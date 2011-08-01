@@ -33,6 +33,7 @@
 ;;; Commentary:
 
 ;; This library provides easy project management and navigation.
+(require 'cl)
 
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr"))
 
@@ -46,7 +47,6 @@
   ;; while we are in the current directory
   (let (files-list) 
     (dolist (current-file (directory-files directory t) files-list)
-      (message current-file)
       (cond
        ((and (file-directory-p current-file)
              (string= (expand-file-name current-file) current-file)
@@ -56,7 +56,9 @@
              (not (file-directory-p current-file))) (setq files-list (cons current-file files-list)))))))
 
 (defun projectile-hashify-files (files-list)
-  (loop for file in files-list collect (list (file-name-nondirectory file) file)))
+  (let ((files-table (make-hash-table :test 'equal)))
+    (dolist (current-file files-list files-table)
+      (puthash (file-name-nondirectory current-file) current-file files-table))))
 
 (defun projectile-ignored-p (file)
   (loop for ignored in projectile-project-root-files
@@ -66,13 +68,38 @@
 
 (defun projectile-jump-to-project-file ()
   (interactive)
-  (let* ((project-files (projectile-hashify-files (projectile-get-project-files (projectile-get-project-root))))
-         (file (if (and (boundp 'ido-mode) ido-mode)
-                   (ido-completing-read "Open file: "
-                                        (mapcar 'car project-files))
-                 (completing-read "Open file: "
-                                  (mapcar 'car project-files)))))
-    (find-file (car (cdr (assoc file project-files))))))
+  (let* ((project-files (projectile-hashify-files 
+                         (projectile-get-project-files (projectile-get-project-root))))
+         (file (ido-completing-read "Jump to project file: "
+                                    (loop for k being the hash-keys in project-files collect k))))
+    (find-file (gethash file project-files))))
+
+(defvar projectile-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c p j") 'projectile-jump-to-file)
+    map)
+  "Keymap for Projectile mode."
+  )
+
+(easy-menu-define projectile-mode-menu projectile-mode-map
+  "Menu for Projectile mode"
+  '("Projectile"
+    ("Navigating"
+     ["Jump to file" projectile-jump-to-project-file])
+
+    ("Test")))
+
+
+;; define minor mode
+(define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
+
+(defun projectile-on () 
+  (when (projectile-get-project-root) 
+    (projectile-mode 1)))
+
+(define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
+  :lighter " Projectile"
+  :keymap projectile-mode-map)
 
 (provide 'projectile)
 ;;; projectile.el ends here
