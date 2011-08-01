@@ -58,7 +58,14 @@
 (defun projectile-hashify-files (files-list)
   (let ((files-table (make-hash-table :test 'equal)))
     (dolist (current-file files-list files-table)
-      (puthash (file-name-nondirectory current-file) current-file files-table))))
+      (let ((basename (file-name-nondirectory current-file)))
+        (if (gethash basename files-table)
+            (puthash (uniquify-file current-file) current-file files-table)
+          (puthash basename current-file files-table))))))
+
+(defun uniquify-file (filename)
+  (let ((filename-parts (reverse (split-string filename "/")))) 
+    (format "%s/%s" (second filename-parts) (first filename-parts))))
 
 (defun projectile-ignored-p (file)
   (loop for ignored in projectile-project-root-files
