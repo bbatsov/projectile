@@ -38,8 +38,8 @@
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr"))
 
 (defun projectile-get-project-root ()
-  (loop for file in ffip-top-level-project-files
-        when (ffip-locate-dominating-file default-directory file)
+  (loop for file in projectile-project-root-files
+        when (locate-dominating-file default-directory file)
         do (return it)))
 
 (defun projectile-get-project-files (directory)
