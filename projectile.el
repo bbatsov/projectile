@@ -84,24 +84,31 @@
 (defun projectile-grep-in-project ()
   (interactive)
   (let ((search-regexp (if mark-active
-                    (buffer-substring (region-beginning) (region-end))
-                  (read-string "Search for: ")))
+                           (buffer-substring (region-beginning) (region-end))
+                         (read-string "Search for: ")))
         (root-dir (projectile-get-project-root)))
     (message "%s %s" search-regexp root-dir)
-   (rgrep 
-    search-regexp 
-    "*" 
-    root-dir)))
+    (rgrep 
+     search-regexp 
+     "*" 
+     root-dir)))
 
 (defun projectile-regenerate-tags ()
-  (interactive))
+  (interactive)
+  (let ((current-dir default-directory)
+        (project-root (projectile-get-project-root)))
+    (cd project-root)
+    (shell-command (format "ctags -Re %s" (projectile-get-project-root)))
+    (cd current-dir)
+    (visit-tags-table project-root)))
 
 (defun projectile-replace-in-project ()
   (interactive))
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c p j") 'projectile-jump-to-file)
+    (define-key map (kbd "C-cp j") 'projectile-jump-to-file)
+    (define-key map (kdb "C-cp f") 'projectile-grep-in-project)
     map)
   "Keymap for Projectile mode."
   )
@@ -112,7 +119,8 @@
     ("Navigating"
      ["Jump to file" projectile-jump-to-project-file])
 
-    ("Test")))
+    ("Search & Replace"
+     ["Search in project"] projectile-grep-in-project)))
 
 
 ;; define minor mode
