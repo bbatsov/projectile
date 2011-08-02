@@ -81,6 +81,24 @@
                                     (loop for k being the hash-keys in project-files collect k))))
     (find-file (gethash file project-files))))
 
+(defun projectile-grep-in-project ()
+  (interactive)
+  (let ((search-regexp (if mark-active
+                    (buffer-substring (region-beginning) (region-end))
+                  (read-string "Search for: ")))
+        (root-dir (projectile-get-project-root)))
+    (message "%s %s" search-regexp root-dir)
+   (rgrep 
+    search-regexp 
+    "*" 
+    root-dir)))
+
+(defun projectile-regenerate-tags ()
+  (interactive))
+
+(defun projectile-replace-in-project ()
+  (interactive))
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c p j") 'projectile-jump-to-file)
