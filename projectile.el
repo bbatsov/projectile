@@ -107,8 +107,8 @@
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-cp j") 'projectile-jump-to-file)
-    (define-key map (kdb "C-cp f") 'projectile-grep-in-project)
+    (define-key map (kbd "C-c p j") 'projectile-jump-to-file)
+    (define-key map (kbd "C-c p f") 'projectile-grep-in-project)
     map)
   "Keymap for Projectile mode."
   )
@@ -120,8 +120,7 @@
      ["Jump to file" projectile-jump-to-project-file])
 
     ("Search & Replace"
-     ["Search in project"] projectile-grep-in-project)))
-
+     ["Search in project" projectile-grep-in-project])))
 
 ;; define minor mode
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
