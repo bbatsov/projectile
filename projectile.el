@@ -37,6 +37,12 @@
 
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr"))
 
+(defvar projectile-projects-cache (make-hash-table :test 'equal))
+
+(defun projectile-invalidate-project-cache ()
+  (interactive)
+  (remhash (projectile-get-project-root) projectile-projects-cache))
+
 (defun projectile-get-project-root ()
   (loop for file in projectile-project-root-files
         when (locate-dominating-file default-directory file)
@@ -45,15 +51,19 @@
 (defun projectile-get-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
   ;; while we are in the current directory
-  (let (files-list) 
-    (dolist (current-file (directory-files directory t) files-list)
-      (cond
-       ((and (file-directory-p current-file)
-             (string= (expand-file-name current-file) current-file)
-             (not (projectile-ignored-p current-file)))
-        (setq files-list (append files-list (projectile-get-project-files current-file))))
-       ((and (string= (expand-file-name current-file) current-file)
-             (not (file-directory-p current-file))) (setq files-list (cons current-file files-list)))))))
+  (if (gethash directory projectile-projects-cache)
+      (gethash directory projectile-projects-cache)
+    (let (files-list) 
+      (dolist (current-file (directory-files directory t) files-list)
+        (cond
+         ((and (file-directory-p current-file)
+               (string= (expand-file-name current-file) current-file)
+               (not (projectile-ignored-p current-file)))
+          (setq files-list (append files-list (projectile-get-project-files current-file))))
+         ((and (string= (expand-file-name current-file) current-file)
+               (not (file-directory-p current-file))) (setq files-list (cons current-file files-list)))))
+      (puthash directory files-list projectile-projects-cache)
+      files-list)))
 
 (defun projectile-hashify-files (files-list)
   (let ((files-table (make-hash-table :test 'equal)))
