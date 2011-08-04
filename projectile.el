@@ -98,12 +98,17 @@
   (let ((current-dir default-directory)
         (project-root (projectile-get-project-root)))
     (cd project-root)
-    (shell-command (format "ctags -Re %s" (projectile-get-project-root)))
+    (shell-command (format "ctags -Re %s" project-root))
     (cd current-dir)
     (visit-tags-table project-root)))
 
 (defun projectile-replace-in-project ()
-  (interactive))
+  (interactive)
+  (let ((current-dir default-directory)
+        (project-root (projectile-get-project-root))
+        (old-text (read-string "Replace: "))
+        (new-text (read-string "With: ")))
+    (shell-command (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'" project-root old-text new-text))))
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
