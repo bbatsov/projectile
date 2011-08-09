@@ -35,7 +35,7 @@
 ;; This library provides easy project management and navigation.
 (require 'cl)
 
-(defvar projectile-project-root-files '(".git" ".hg" ".bzr"))
+(defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile"))
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal))
 
@@ -64,6 +64,24 @@
                (not (file-directory-p current-file))) (setq files-list (cons current-file files-list)))))
       (puthash directory files-list projectile-projects-cache)
       files-list)))
+
+(defun projectile-get-project-buffers ()
+  (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
+        (buffer-files (mapcar 'buffer-file-name (buffer-list))))
+    (mapcar 'get-file-buffer (intersection project-files buffer-files :test 'string=))
+    ))
+
+(defun projectile-get-project-buffer-names ()
+  (mapcar 'buffer-name (projectile-get-project-buffers)))
+
+(defun projectile-switch-to-buffer ()
+  (interactive)
+  (switch-to-buffer (ido-completing-read "Jump to project buffer: " (projectile-get-project-buffer-names))))
+
+(defun projectile-multi-occur ()
+  (interactive)
+  (multi-occur (projectile-get-project-buffers)
+               (car (occur-read-primary-args))))
 
 (defun projectile-hashify-files (files-list)
   (let ((files-table (make-hash-table :test 'equal)))
