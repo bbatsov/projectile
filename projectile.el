@@ -143,7 +143,7 @@
     (define-key map (kbd "C-c p b") 'projectile-switch-to-buffer)
     (define-key map (kbd "C-c p o") 'projectile-multi-occur)
     (define-key map (kbd "C-c p r") 'projectile-replace-in-project)
-    (define-key map (kdb "C-c p i") 'projectile-invalidate-project-cache)
+    (define-key map (kbd "C-c p i") 'projectile-invalidate-project-cache)
     map)
   "Keymap for Projectile mode."
   )
@@ -162,17 +162,19 @@
 
 (defun projectile-on () 
   (when (projectile-get-project-root)
-    (easy-menu-add projectile-mode-menu projectile-mode-map)
     (projectile-mode 1)))
 
 (defun projectile-off ()
+  (easy-menu-remove)
   )
 
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
   :lighter " Projectile"
   :keymap projectile-mode-map
   (if projectile-mode
-      (projectile-on)
+      ;; on start
+      (easy-menu-add projectile-mode-menu projectile-mode-map)
+    ;; on stop
     (projectile-off)))
 
 (provide 'projectile)
