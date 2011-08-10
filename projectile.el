@@ -35,6 +35,7 @@
 ;; This library provides easy project management and navigation.
 (require 'cl)
 (require 'easymenu)
+(require 'thingatpt)
 
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile"))
 
@@ -114,9 +115,10 @@
   (interactive)
   (let ((search-regexp (if mark-active
                            (buffer-substring (region-beginning) (region-end))
-                         (read-string "Search for: ")))
+                         (read-string "Search for: " (thing-at-point 'word))))
         (root-dir (projectile-get-project-root)))
-    (message "%s %s" search-regexp root-dir)
+    ;; generates the grep-find-template
+    (grep-compute-defaults)
     (rgrep search-regexp "all" root-dir)))
 
 (defun projectile-regenerate-tags ()
@@ -132,7 +134,7 @@
   (interactive)
   (let ((current-dir default-directory)
         (project-root (projectile-get-project-root))
-        (old-text (read-string "Replace: "))
+        (old-text (read-string "Replace: " (thing-at-point 'word)))
         (new-text (read-string "With: ")))
     (shell-command (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'" project-root old-text new-text))))
 
