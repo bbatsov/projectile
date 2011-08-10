@@ -34,6 +34,7 @@
 
 ;; This library provides easy project management and navigation.
 (require 'cl)
+(require 'easymenu)
 
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile"))
 
@@ -116,10 +117,7 @@
                          (read-string "Search for: ")))
         (root-dir (projectile-get-project-root)))
     (message "%s %s" search-regexp root-dir)
-    (rgrep 
-     search-regexp 
-     "*" 
-     root-dir)))
+    (rgrep search-regexp "all" root-dir)))
 
 (defun projectile-regenerate-tags ()
   (interactive)
@@ -140,8 +138,12 @@
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c p j") 'projectile-jump-to-file)
+    (define-key map (kbd "C-c p j") 'projectile-jump-to-project-file)
     (define-key map (kbd "C-c p f") 'projectile-grep-in-project)
+    (define-key map (kbd "C-c p b") 'projectile-switch-to-buffer)
+    (define-key map (kbd "C-c p o") 'projectile-multi-occur)
+    (define-key map (kbd "C-c p r") 'projectile-replace-in-project)
+    (define-key map (kdb "C-c p i") 'projectile-invalidate-project-cache)
     map)
   "Keymap for Projectile mode."
   )
@@ -159,12 +161,19 @@
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
 
 (defun projectile-on () 
-  (when (projectile-get-project-root) 
+  (when (projectile-get-project-root)
+    (easy-menu-add projectile-mode-menu projectile-mode-map)
     (projectile-mode 1)))
+
+(defun projectile-off ()
+  )
 
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
   :lighter " Projectile"
-  :keymap projectile-mode-map)
+  :keymap projectile-mode-map
+  (if projectile-mode
+      (projectile-on)
+    (projectile-off)))
 
 (provide 'projectile)
 ;;; projectile.el ends here
