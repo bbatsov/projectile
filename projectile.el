@@ -31,17 +31,48 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
+;;
+;; This library provides easy project management and navigation. The
+;; concept of a project is pretty basic - just a folder containing
+;; special file. Currently git, mercurial and bazaar repos are
+;; considered projects by default. If you want to mark a folder
+;; manually as a project just create an empty .projectile file in
+;; it. Some of projectile's features:
+;;
+:: * jump to a file in project
+;; * jump to a project buffer
+;; * multi-occur in project buffers
+;; * grep in project
+;; * regenerate project etags
+;;; Installation:
+;;
+;; (require 'projectile)
+;; (projectile-global-mode) ;; to enable in all buffers
+;;
+;; To enable projectile only in select modes:
+;;
+;; (add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
+;;
+;;; Usage:
+;;
+;;
+;;
+;;; Code:
 
-;; This library provides easy project management and navigation.
+;; requires
 (require 'cl)
 (require 'easymenu)
 (require 'thingatpt)
 
-(defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile"))
+;; variables
+(defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
+  "A list of files considered to mark the root of a project")
 
-(defvar projectile-projects-cache (make-hash-table :test 'equal))
+(defvar projectile-projects-cache (make-hash-table :test 'equal)
+  "A hashmap used to cache project file names to speed up related operations")
 
 (defun projectile-invalidate-project-cache ()
+  "Removes the current project's files from `projectile-projects-cache'"
   (interactive)
   (remhash (projectile-get-project-root) projectile-projects-cache))
 
