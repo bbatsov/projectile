@@ -125,9 +125,8 @@
                            (buffer-substring (region-beginning) (region-end))
                          (read-string "Search for: " (thing-at-point 'word))))
         (root-dir (projectile-get-project-root)))
-    ;; generates the grep-find-template
     (grep-compute-defaults)
-    (rgrep search-regexp "all" root-dir)))
+    (rgrep search-regexp "* .*" root-dir)))
 
 (defun projectile-regenerate-tags ()
   (interactive)
