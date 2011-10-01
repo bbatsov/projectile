@@ -101,8 +101,7 @@
 (defun projectile-get-project-buffers ()
   (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
         (buffer-files (mapcar 'buffer-file-name (buffer-list))))
-    (mapcar 'get-file-buffer (intersection project-files buffer-files :test 'string=))
-    ))
+    (mapcar 'get-file-buffer (intersection project-files buffer-files :test 'string=))))
 
 (defun projectile-get-project-buffer-names ()
   (mapcar 'buffer-name (projectile-get-project-buffers)))
@@ -184,6 +183,7 @@
     (define-key map (kbd "C-c p o") 'projectile-multi-occur)
     (define-key map (kbd "C-c p r") 'projectile-replace-in-project)
     (define-key map (kbd "C-c p i") 'projectile-invalidate-project-cache)
+    (define-key map (kbd "C-c p t") 'projectile-regenerate-tags)
     map)
   "Keymap for Projectile mode."
   )
@@ -192,10 +192,17 @@
   "Menu for Projectile mode"
   '("Projectile"
     ("Navigating"
-     ["Jump to file" projectile-jump-to-project-file])
+     ["Jump to file" projectile-jump-to-project-file]
+     ["Jump to buffer" projectile-switch-to-buffer])
 
-    ("Search & Replace"
-     ["Search in project" projectile-grep-in-project])))
+    ("Find & Replace"
+     ["Find in project" projectile-grep-in-project]
+     ["Replace in project" projectile-replace-in-project]
+     ["Multi-occur in project" projectile-multi-occur])
+    
+    ("General"
+     ["Invalidate cache" projectile-invalidate-project-cache]
+     ["Regenerate etags" projectile-regenerate-tags])))
 
 ;; define minor mode
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
@@ -205,8 +212,7 @@
     (projectile-mode 1)))
 
 (defun projectile-off ()
-  (easy-menu-remove)
-  )
+  (easy-menu-remove))
 
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
   :lighter " Projectile"
