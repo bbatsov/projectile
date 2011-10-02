@@ -55,7 +55,15 @@
 ;;
 ;;; Usage:
 ;;
+;; Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 ;;
+;; * projectile-jump-to-project-file (C-c p j)
+;; * projectile-grep-in-project (C-c p f)
+;; * projectile-replace-in-project (C-c p r)
+;; * projectile-switch-to-buffer (C-c p b)
+;; * projectile-multi-occur (C-c p o)
+;; * projectile-regenerate-tags (C-c p t)
+;; * projectile-invalidate-project-cache (C-c p i)
 ;;
 ;;; Code:
 
