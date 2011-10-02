@@ -74,7 +74,9 @@
 (defun projectile-invalidate-project-cache ()
   "Removes the current project's files from `projectile-projects-cache'"
   (interactive)
-  (remhash (projectile-get-project-root) projectile-projects-cache))
+  (let ((project-root (projectile-get-project-root)))
+    (remhash project-root projectile-projects-cache)
+    (message "Invalidated Projectile cache for %s" project-root)))
 
 (defun projectile-get-project-root ()
   (loop for file in projectile-project-root-files
@@ -95,7 +97,8 @@
           (setq files-list (append files-list (projectile-get-project-files current-file))))
          ((and (string= (expand-file-name current-file) current-file)
                (not (file-directory-p current-file))) (setq files-list (cons current-file files-list)))))
-      (puthash directory files-list projectile-projects-cache)
+      (when (string= directory (projectile-get-project-root))
+       (puthash directory files-list projectile-projects-cache))
       files-list)))
 
 (defun projectile-get-project-buffers ()
