@@ -76,6 +76,9 @@
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
   "A list of files considered to mark the root of a project")
 
+(defvar projectile-ignored-file-extenstions '("class" "o" "so" "elc")
+  "A list of file extensions ignored by projectile.")
+
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations")
 
@@ -104,7 +107,9 @@
                (not (projectile-ignored-p current-file)))
           (setq files-list (append files-list (projectile-get-project-files current-file))))
          ((and (string= (expand-file-name current-file) current-file)
-               (not (file-directory-p current-file))) (setq files-list (cons current-file files-list)))))
+               (not (file-directory-p current-file))
+               (not (projectile-ignored-extension-p current-file)))
+          (setq files-list (cons current-file files-list)))))
       (when (string= directory (projectile-get-project-root))
        (puthash directory files-list projectile-projects-cache))
       files-list)))
@@ -152,6 +157,10 @@
         do (return t) 
         finally (return nil)))
 
+(defun projectile-ignored-extension-p (file)
+  (let ((ext (file-name-extension file)))
+    (member ext projectile-ignored-file-extenstions)))
+
 (defun projectile-jump-to-project-file ()
   (interactive)
   (let* ((project-files (projectile-hashify-files 
@@ -196,8 +205,7 @@
     (define-key map (kbd "C-c p i") 'projectile-invalidate-project-cache)
     (define-key map (kbd "C-c p t") 'projectile-regenerate-tags)
     map)
-  "Keymap for Projectile mode."
-  )
+  "Keymap for Projectile mode.")
 
 (easy-menu-define projectile-mode-menu projectile-mode-map
   "Menu for Projectile mode"
