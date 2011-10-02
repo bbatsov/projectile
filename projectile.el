@@ -39,7 +39,7 @@
 ;; manually as a project just create an empty .projectile file in
 ;; it. Some of projectile's features:
 ;;
-:: * jump to a file in project
+;; * jump to a file in project
 ;; * jump to a project buffer
 ;; * multi-occur in project buffers
 ;; * grep in project
