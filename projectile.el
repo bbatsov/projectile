@@ -96,10 +96,11 @@
 
 (defun projectile-get-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
-  ;; while we are in the current directory
-  (if (gethash directory projectile-projects-cache)
-      (gethash directory projectile-projects-cache)
-    (let (files-list) 
+  ;; check for a cache hit first
+  (let ((files-list (gethash directory projectile-projects-cache)))
+    ;; cache miss
+    (unless files-list
+      ;; while we are in the current directory
       (dolist (current-file (directory-files directory t) files-list)
         (cond
          ((and (file-directory-p current-file)
@@ -110,9 +111,10 @@
                (not (file-directory-p current-file))
                (not (projectile-ignored-extension-p current-file)))
           (setq files-list (cons current-file files-list)))))
+      ;; we cache the resulting list of files
       (when (string= directory (projectile-get-project-root))
-       (puthash directory files-list projectile-projects-cache))
-      files-list)))
+        (puthash directory files-list projectile-projects-cache)))
+       files-list))
 
 (defun projectile-get-project-buffers ()
   (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
@@ -171,9 +173,9 @@
 
 (defun projectile-grep-in-project ()
   (interactive)
-  (let ((search-regexp (if mark-active
+  (let ((search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
-                         (read-string "Search for: " (thing-at-point 'word))))
+                         (read-string "Search for: " (thing-at-point 'symbol))))
         (root-dir (projectile-get-project-root)))
     (grep-compute-defaults)
     (rgrep search-regexp "* .*" root-dir)))
@@ -191,7 +193,7 @@
   (interactive)
   (let ((current-dir default-directory)
         (project-root (projectile-get-project-root))
-        (old-text (read-string "Replace: " (thing-at-point 'word)))
+        (old-text (read-string "Replace: " (thing-at-point 'symbol)))
         (new-text (read-string "With: ")))
     (shell-command (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'" project-root old-text new-text))))
 
