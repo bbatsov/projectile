@@ -1,12 +1,12 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily
 
-;; Copyright (C) 2011 
+;; Copyright (C) 2011
 ;; Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov
 ;; URL: http://www.emacswiki.org/cgi-bin/wiki/Projectile
 ;; Git: git://github.com/bbatsov/projectile.git
-;; Version: 0.1
+;; Version: 0.2
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; EmacsWiki: Projectile
@@ -114,7 +114,7 @@
       ;; we cache the resulting list of files
       (when (string= directory (projectile-get-project-root))
         (puthash directory files-list projectile-projects-cache)))
-       files-list))
+    files-list))
 
 (defun projectile-get-project-buffers ()
   (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
@@ -140,8 +140,8 @@
       (let ((basename (file-name-nondirectory current-file)))
         (if (gethash basename files-table)
             (progn
-             (puthash (uniquify-file current-file) current-file files-table)
-             (when basename (push basename files-to-uniquify)))
+              (puthash (uniquify-file current-file) current-file files-table)
+              (when basename (push basename files-to-uniquify)))
           (puthash basename current-file files-table))))
     ;; uniquify remaining files
     (dolist (current-file (remove-duplicates files-to-uniquify :test 'string=))
@@ -150,13 +150,13 @@
     files-table))
 
 (defun uniquify-file (filename)
-  (let ((filename-parts (reverse (split-string filename "/")))) 
+  (let ((filename-parts (reverse (split-string filename "/"))))
     (format "%s/%s" (second filename-parts) (first filename-parts))))
 
 (defun projectile-ignored-p (file)
   (loop for ignored in projectile-project-root-files
-        when (string= (expand-file-name (concat (projectile-get-project-root) ignored)) file) 
-        do (return t) 
+        when (string= (expand-file-name (concat (projectile-get-project-root) ignored)) file)
+        do (return t)
         finally (return nil)))
 
 (defun projectile-ignored-extension-p (file)
@@ -165,7 +165,7 @@
 
 (defun projectile-jump-to-project-file ()
   (interactive)
-  (let* ((project-files (projectile-hashify-files 
+  (let* ((project-files (projectile-hashify-files
                          (projectile-get-project-files (projectile-get-project-root))))
          (file (ido-completing-read "Jump to project file: "
                                     (loop for k being the hash-keys in project-files collect k))))
@@ -220,7 +220,7 @@
      ["Find in project" projectile-grep-in-project]
      ["Replace in project" projectile-replace-in-project]
      ["Multi-occur in project" projectile-multi-occur])
-    
+
     ("General"
      ["Invalidate cache" projectile-invalidate-project-cache]
      ["Regenerate etags" projectile-regenerate-tags])))
@@ -228,7 +228,7 @@
 ;; define minor mode
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
 
-(defun projectile-on () 
+(defun projectile-on ()
   (when (projectile-get-project-root)
     (projectile-mode 1)))
 
