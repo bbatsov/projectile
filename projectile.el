@@ -6,7 +6,7 @@
 ;; Author: Bozhidar Batsov
 ;; URL: http://www.emacswiki.org/cgi-bin/wiki/Projectile
 ;; Git: git://github.com/bbatsov/projectile.git
-;; Version: 0.2
+;; Version: 0.3
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; EmacsWiki: Projectile
