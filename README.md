@@ -7,7 +7,7 @@ files is done in pure elisp without the use of GNU find.
 
 This library provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
-special file. Currently git, mercurial and bazaar repos are
+special file. Currently `git`, `mercurial` and `bazaar` repos are
 considered projects by default. If you want to mark a folder
 manually as a project just create an empty `.projectile` file in
 it. Some of projectile's features:
@@ -46,11 +46,11 @@ To enable projectile only in select modes:
 If you're an Emacs 24 user or you have a recent version of package.el
 you can install projectile from the [Marmalade](http://marmalade-repo.org/) repository.
 
-## Emacs Dev Kit
+## Emacs Prelude
 
 Projectile is naturally part of the
-[Emacs Dev Kit](https://github.com/bbatsov/emacs-dev-kit). If you're an
-EDK user - projectile is already properly configured and ready for
+[Emacs Prelude](https://github.com/bbatsov/emacs-prelude). If you're a Prelude
+user - projectile is already properly configured and ready for
 action.
 
 # Usage
