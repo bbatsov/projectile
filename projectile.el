@@ -6,7 +6,7 @@
 ;; Author: Bozhidar Batsov
 ;; URL: http://www.emacswiki.org/cgi-bin/wiki/Projectile
 ;; Git: git://github.com/bbatsov/projectile.git
-;; Version: 0.3
+;; Version: 0.4
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; EmacsWiki: Projectile
@@ -231,11 +231,17 @@
   (projectile-get-project-files
    (projectile-get-project-root)))
 
+(defvar helm-c-projectile-cache nil)
+
 (defvar helm-c-source-projectile
   `((name . "Projectile")
+    (init . (lambda ()
+              (setq helm-c-projectile-cache
+                    (helm-c-projectile-list))))
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
-    (candidates . helm-c-projectile-list)
+    (candidates . helm-c-projectile-cache)
+    (volatile)
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)

@@ -65,6 +65,24 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * projectile-regenerate-tags (C-c p t)
 * projectile-invalidate-project-cache (C-c p i)
 
+## Helm Integration
+
+Projectile can be integrated with
+[Helm](https://github.com/emacs-helm/helm) via
+`helm-c-source-projectile` source. There is also an example function
+for calling Helm with the Projectile file source. You can call it like
+this:
+
+```
+M-x helm-projectile
+```
+
+or even better - bind it to a keybinging like this:
+
+```
+(global-set-key (kbd "C-c h") 'helm-projectile)
+```
+
 # Caveats
 
 * Traversing the project directory programmatically (instead of using
