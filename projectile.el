@@ -1,15 +1,12 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily
 
-;; Copyright (C) 2011
-;; Bozhidar Batsov
+;; Copyright (C) 2011-2012 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov
-;; URL: http://www.emacswiki.org/cgi-bin/wiki/Projectile
-;; Git: git://github.com/bbatsov/projectile.git
-;; Version: 0.5
+;; URL: https://github.com/bbatsov/projectile
+;; Version: 0.6
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
-;; EmacsWiki: Projectile
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,33 +34,7 @@
 ;; special file. Currently git, mercurial and bazaar repos are
 ;; considered projects by default. If you want to mark a folder
 ;; manually as a project just create an empty .projectile file in
-;; it. Some of projectile's features:
-;;
-;; * jump to a file in project
-;; * jump to a project buffer
-;; * multi-occur in project buffers
-;; * grep in project
-;; * regenerate project etags
-;;; Installation:
-;;
-;; (require 'projectile)
-;; (projectile-global-mode) ;; to enable in all buffers
-;;
-;; To enable projectile only in select modes:
-;;
-;; (add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
-;;
-;;; Usage:
-;;
-;; Here's a list of the interactive Emacs Lisp functions, provided by projectile:
-;;
-;; * projectile-jump-to-project-file (C-c p j)
-;; * projectile-grep-in-project (C-c p f)
-;; * projectile-replace-in-project (C-c p r)
-;; * projectile-switch-to-buffer (C-c p b)
-;; * projectile-multi-occur (C-c p o)
-;; * projectile-regenerate-tags (C-c p t)
-;; * projectile-invalidate-project-cache (C-c p i)
+;; it. See the README for more details.
 ;;
 ;;; Code:
 
@@ -71,6 +42,15 @@
 (require 'cl)
 (require 'easymenu)
 (require 'thingatpt)
+
+(defgroup projectile nil "Manage and navigate projects easily."
+  :group 'tools
+  :group 'convenience)
+
+(defcustom projectile-enable-caching nil
+  "Enable project files caching"
+  :group 'projectile
+  :type 'boolean)
 
 ;; variables
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
@@ -83,38 +63,46 @@
   "A hashmap used to cache project file names to speed up related operations")
 
 (defun projectile-invalidate-project-cache ()
-  "Removes the current project's files from `projectile-projects-cache'"
+  "Removes the current project's files from `projectile-projects-cache'."
   (interactive)
   (let ((project-root (projectile-get-project-root)))
     (remhash project-root projectile-projects-cache)
     (message "Invalidated Projectile cache for %s" project-root)))
 
 (defun projectile-get-project-root ()
+  "Retrieves the root directory of a project if available."
   (loop for file in projectile-project-root-files
         when (locate-dominating-file default-directory file)
         do (return it)))
 
 (defun projectile-get-project-files (directory)
-  "List the files in DIRECTORY and in its sub-directories."
-  ;; check for a cache hit first
-  (let ((files-list (gethash directory projectile-projects-cache)))
+  "List the files in `DIRECTORY' and in its sub-directories."
+  ;; check for a cache hit first if caching is enabled
+  (let ((files-list (and projectile-enable-caching
+                     (gethash directory projectile-projects-cache))))
     ;; cache miss
     (unless files-list
       ;; while we are in the current directory
-      (dolist (current-file (directory-files directory t) files-list)
+      (dolist (current-file (file-name-all-completions "" directory) files-list)
         (cond
-         ((and (file-directory-p current-file)
-               (string= (expand-file-name current-file) current-file)
-               (not (projectile-ignored-p current-file)))
-          (setq files-list (append files-list (projectile-get-project-files current-file))))
-         ((and (string= (expand-file-name current-file) current-file)
-               (not (file-directory-p current-file))
+         ;; check for directories that are not ignored
+         ((and (projectile-string-suffix-p current-file "/")
+               (not (or (string= current-file "./") (string= current-file "../")))
+               (not (projectile-ignored-p (concat directory current-file))))
+          (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
+         ;; check for regular files that are not ignored
+         ((and (not (or (string= current-file "./") (string= current-file "../")))
+               (not (projectile-string-suffix-p current-file "/"))
                (not (projectile-ignored-extension-p current-file)))
-          (setq files-list (cons current-file files-list)))))
-      ;; we cache the resulting list of files
-      (when (string= directory (projectile-get-project-root))
+          (setq files-list (cons (expand-file-name (concat directory current-file)) files-list)))))
+      ;; cache the resulting list of files
+      (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
         (puthash directory files-list projectile-projects-cache)))
     files-list))
+
+(defun projectile-string-suffix-p (string suffix)
+  "Check whether `string' ends with `suffix'."
+  (string= (substring string (- (length string) (length suffix))) suffix))
 
 (defun projectile-get-project-buffers ()
   (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
@@ -155,7 +143,7 @@
 
 (defun projectile-ignored-p (file)
   (loop for ignored in projectile-project-root-files
-        when (string= (expand-file-name (concat (projectile-get-project-root) ignored)) file)
+        when (string= (expand-file-name (concat (projectile-get-project-root) ignored "/")) (expand-file-name file))
         do (return t)
         finally (return nil)))
 
@@ -225,38 +213,6 @@
      ["Invalidate cache" projectile-invalidate-project-cache]
      ["Regenerate etags" projectile-regenerate-tags])))
 
-;; Helm integration
-(when (fboundp 'helm)
-  (defun helm-c-projectile-list ()
-    "Generates a list of files in the current project"
-    (projectile-get-project-files
-     (projectile-get-project-root)))
-
-  (defvar helm-c-projectile-cache nil)
-
-  (defvar helm-c-source-projectile
-    `((name . "Projectile")
-      (init . (lambda ()
-                (setq helm-c-projectile-cache
-                      (helm-c-projectile-list))))
-      ;; Needed for filenames with capitals letters.
-      (disable-shortcuts)
-      (candidates . helm-c-projectile-cache)
-      (volatile)
-      (keymap . ,helm-generic-files-map)
-      (help-message . helm-generic-file-help-message)
-      (mode-line . helm-generic-file-mode-line-string)
-      (match helm-c-match-on-basename)
-      (type . file))
-    "Helm source definition")
-
-  (defun helm-projectile ()
-    "Example function for calling Helm with the projectile file source.
-
-Use this function as example and create your own list of Helm sources.
-"
-    (interactive)
-    (helm-other-buffer 'helm-c-source-projectile "*helm projectile*")))
 ;; define minor mode
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
 
