@@ -41,6 +41,14 @@ To enable projectile only in select modes:
 (add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
 ```
 
+If you'd like to enable project files caching (useful in large
+projects where indexing the project's file can take a while) add this
+as well:
+
+```
+(setq projectile-enable-caching t)
+```
+
 ## Marmalade
 
 If you're an Emacs 24 user or you have a recent version of package.el
@@ -57,19 +65,19 @@ action.
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-* projectile-jump-to-project-file (C-c p j)
-* projectile-grep-in-project (C-c p f)
-* projectile-replace-in-project (C-c p r)
-* projectile-switch-to-buffer (C-c p b)
-* projectile-multi-occur (C-c p o)
-* projectile-regenerate-tags (C-c p t)
-* projectile-invalidate-project-cache (C-c p i)
+* `projectile-jump-to-project-file` (C-c p j)
+* `projectile-grep-in-project` (C-c p f)
+* `projectile-replace-in-project` (C-c p r)
+* `projectile-switch-to-buffer` (C-c p b)
+* `projectile-multi-occur` (C-c p o)
+* `projectile-regenerate-tags` (C-c p t)
+* `projectile-invalidate-project-cache` (C-c p i)
 
 ## Helm Integration
 
 Projectile can be integrated with
 [Helm](https://github.com/emacs-helm/helm) via
-`helm-c-source-projectile` source. There is also an example function
+`helm-c-source-projectile` source (available in `helm-projectile.el`). There is also an example function
 for calling Helm with the Projectile file source. You can call it like
 this:
 
@@ -83,6 +91,8 @@ or even better - bind it to a keybinging like this:
 (global-set-key (kbd "C-c h") 'helm-projectile)
 ```
 
+Obviously you need to have Helm installed for this to work :-)
+
 # Caveats
 
 * Traversing the project directory programmatically (instead of using
@@ -90,7 +100,7 @@ or even better - bind it to a keybinging like this:
   portable. Unlike
   [find-file-in-project](https://github.com/bbatsov/find-file-in-project),
   projectile's jump-to-file will work on any OS.
-* To compensate for the lack of speed - a cache is created when a
+* To compensate for the lack of speed - a cache can be created when a
   project is traversed. That cache is not automatically updated
   (presently) so you might want to invalidate it manually from time to
   time (or disable it completely for small projects).
