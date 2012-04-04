@@ -29,12 +29,12 @@
 
 ;;; Commentary:
 ;;
-;; This library provides easy project management and navigation. The
+;; This library provides easy project management and navigation.  The
 ;; concept of a project is pretty basic - just a folder containing
-;; special file. Currently git, mercurial and bazaar repos are
-;; considered projects by default. If you want to mark a folder
+;; special file.  Currently git, mercurial and bazaar repos are
+;; considered projects by default.  If you want to mark a folder
 ;; manually as a project just create an empty .projectile file in
-;; it. See the README for more details.
+;; it.  See the README for more details.
 ;;
 ;;; Code:
 
@@ -48,22 +48,22 @@
   :group 'convenience)
 
 (defcustom projectile-enable-caching nil
-  "Enable project files caching"
+  "Enable project files caching."
   :group 'projectile
   :type 'boolean)
 
 ;; variables
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
-  "A list of files considered to mark the root of a project")
+  "A list of files considered to mark the root of a project.")
 
 (defvar projectile-ignored-file-extenstions '("class" "o" "so" "elc")
   "A list of file extensions ignored by projectile.")
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
-  "A hashmap used to cache project file names to speed up related operations")
+  "A hashmap used to cache project file names to speed up related operations.")
 
 (defun projectile-invalidate-project-cache ()
-  "Removes the current project's files from `projectile-projects-cache'."
+  "Remove the current project's files from `projectile-projects-cache'."
   (interactive)
   (let ((project-root (projectile-get-project-root)))
     (remhash project-root projectile-projects-cache)
@@ -101,27 +101,32 @@
     files-list))
 
 (defun projectile-string-suffix-p (string suffix)
-  "Check whether `string' ends with `suffix'."
+  "Check whether `STRING' ends with `SUFFIX'."
   (string= (substring string (- (length string) (length suffix))) suffix))
 
 (defun projectile-get-project-buffers ()
+  "Get a list of project buffers."
   (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
         (buffer-files (mapcar 'buffer-file-name (buffer-list))))
     (mapcar 'get-file-buffer (intersection project-files buffer-files :test 'string=))))
 
 (defun projectile-get-project-buffer-names ()
+  "Get a list of project buffer names."
   (mapcar 'buffer-name (projectile-get-project-buffers)))
 
 (defun projectile-switch-to-buffer ()
+  "Switch to a project buffer."
   (interactive)
   (switch-to-buffer (ido-completing-read "Jump to project buffer: " (projectile-get-project-buffer-names))))
 
 (defun projectile-multi-occur ()
+  "Do a `multi-occur' in the project's buffers."
   (interactive)
   (multi-occur (projectile-get-project-buffers)
                (car (occur-read-primary-args))))
 
 (defun projectile-hashify-files (files-list)
+  "Make the list of project files `FILES-LIST' ido friendly."
   (let ((files-table (make-hash-table :test 'equal))
         (files-to-uniquify nil))
     (dolist (current-file files-list files-table)
@@ -138,20 +143,24 @@
     files-table))
 
 (defun uniquify-file (filename)
+  "Create an unique version of a `FILENAME'."
   (let ((filename-parts (reverse (split-string filename "/"))))
     (format "%s/%s" (second filename-parts) (first filename-parts))))
 
 (defun projectile-ignored-p (file)
+  "Check if `FILE' should be ignored."
   (loop for ignored in projectile-project-root-files
         when (string= (expand-file-name (concat (projectile-get-project-root) ignored "/")) (expand-file-name file))
         do (return t)
         finally (return nil)))
 
 (defun projectile-ignored-extension-p (file)
+  "Check if `FILE' should be ignored based on its extension."
   (let ((ext (file-name-extension file)))
     (member ext projectile-ignored-file-extenstions)))
 
 (defun projectile-jump-to-project-file ()
+  "Jump to a project's file using ido."
   (interactive)
   (let* ((project-files (projectile-hashify-files
                          (projectile-get-project-files (projectile-get-project-root))))
@@ -160,6 +169,7 @@
     (find-file (gethash file project-files))))
 
 (defun projectile-grep-in-project ()
+  "Perform rgrep in the project."
   (interactive)
   (let ((search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
@@ -169,6 +179,7 @@
     (rgrep search-regexp "* .*" root-dir)))
 
 (defun projectile-regenerate-tags ()
+  "Regenerate the project's etags using ctags."
   (interactive)
   (let ((current-dir default-directory)
         (project-root (projectile-get-project-root)))
@@ -178,6 +189,7 @@
     (visit-tags-table project-root)))
 
 (defun projectile-replace-in-project ()
+  "Replace a string in the project using perl."
   (interactive)
   (let ((current-dir default-directory)
         (project-root (projectile-get-project-root))
@@ -217,10 +229,12 @@
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
 
 (defun projectile-on ()
+  "Enable Projectile."
   (when (projectile-get-project-root)
     (projectile-mode 1)))
 
 (defun projectile-off ()
+  "Disable Projectile."
   (easy-menu-remove))
 
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
