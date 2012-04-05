@@ -41,21 +41,16 @@
 (require 'projectile)
 (require 'helm-config)
 
-(defun helm-c-projectile-list ()
+(defun helm-c-projectile-files-list ()
   "Generates a list of files in the current project"
   (projectile-get-project-files
    (projectile-get-project-root)))
 
-(defvar helm-c-projectile-cache nil)
-
-(defvar helm-c-source-projectile
-  `((name . "Projectile")
-    (init . (lambda ()
-              (setq helm-c-projectile-cache
-                    (helm-c-projectile-list))))
+(defvar helm-c-source-projectile-files-list
+  `((name . "Projectile files list")
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
-    (candidates . helm-c-projectile-cache)
+    (candidates . helm-c-projectile-files-list)
     (volatile)
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
@@ -64,13 +59,26 @@
     (type . file))
   "Helm source definition")
 
-(defun helm-projectile ()
-  "Example function for calling Helm with the projectile file source.
+(defvar helm-c-source-projectile-buffers-list
+  `((name . "Projectile buffers list")
+    ;; Needed for filenames with capitals letters.
+    (candidates . projectile-get-project-buffer-names)
+    (volatile)
+    (keymap . ,helm-c-buffer-map)
+    (mode-line . helm-buffer-mode-line-string)
+    (match helm-c-buffer-match-major-mode)
+    (type . buffer)
+    (persistent-help
+     . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
+  "Helm source definition")
 
-Use this function as example and create your own list of Helm sources.
-"
+
+(defun helm-projectile ()
+  "Use projectile with Helm instead of ido."
   (interactive)
-  (helm-other-buffer 'helm-c-source-projectile "*helm projectile*"))
+  (helm-other-buffer '(helm-c-source-projectile-files-list
+                       helm-c-source-projectile-buffers-list)
+                     "*helm projectile*"))
 
 (provide 'helm-projectile)
 ;;; helm-projectile.el ends here
