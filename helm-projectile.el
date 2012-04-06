@@ -1,4 +1,4 @@
-;;; helm-projectile.el --- Helm integration for projectile
+;;; helm-projectile.el --- Helm integration for Projectile
 
 ;; Copyright (C) 2011-2012 Bozhidar Batsov
 
@@ -7,6 +7,7 @@
 ;; Version: 0.6
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
+;; Package-Requires: ((helm "1.4.0") (projectile "0.6"))
 
 ;; This file is NOT part of GNU Emacs.
 
