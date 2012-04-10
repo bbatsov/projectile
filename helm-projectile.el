@@ -73,13 +73,16 @@
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
   "Helm source definition")
 
-
+;;;###autoload
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
   (helm-other-buffer '(helm-c-source-projectile-files-list
                        helm-c-source-projectile-buffers-list)
                      "*helm projectile*"))
+
+;;;###autoload
+(define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile)
 
 (provide 'helm-projectile)
 ;;; helm-projectile.el ends here
