@@ -41,6 +41,8 @@
 
 (require 'projectile)
 (require 'helm-config)
+(require 'helm-locate)
+(require 'helm-buffers)
 
 (defun helm-c-projectile-files-list ()
   "Generates a list of files in the current project"
