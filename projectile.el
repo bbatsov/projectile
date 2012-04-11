@@ -226,6 +226,7 @@
      ["Regenerate etags" projectile-regenerate-tags])))
 
 ;; define minor mode
+;;;###autoload
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
 
 (defun projectile-on ()
@@ -237,6 +238,7 @@
   "Disable Projectile."
   (easy-menu-remove))
 
+;;;###autoload
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
   :lighter " Projectile"
   :keymap projectile-mode-map

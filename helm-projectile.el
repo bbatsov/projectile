@@ -81,7 +81,6 @@
                        helm-c-source-projectile-buffers-list)
                      "*helm projectile*"))
 
-;;;###autoload
 (define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile)
 
 (provide 'helm-projectile)
