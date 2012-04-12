@@ -56,7 +56,7 @@
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
   "A list of files considered to mark the root of a project.")
 
-(defvar projectile-ignored-file-extenstions '("class" "o" "so" "elc")
+(defvar projectile-ignored-file-extensions '("class" "o" "so" "elc")
   "A list of file extensions ignored by projectile.")
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
@@ -157,7 +157,7 @@
 (defun projectile-ignored-extension-p (file)
   "Check if `FILE' should be ignored based on its extension."
   (let ((ext (file-name-extension file)))
-    (member ext projectile-ignored-file-extenstions)))
+    (member ext projectile-ignored-file-extensions)))
 
 (defun projectile-jump-to-project-file ()
   "Jump to a project's file using ido."
