@@ -54,6 +54,7 @@
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
     (candidates . helm-c-projectile-files-list)
+    (candidate-number-limit . 15)
     (volatile)
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
