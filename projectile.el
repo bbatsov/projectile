@@ -56,6 +56,9 @@
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
   "A list of files considered to mark the root of a project.")
 
+(defvar projectile-ignored-files '("TAGS")
+  "A list of files ignored by projectile.")
+
 (defvar projectile-ignored-file-extensions '("class" "o" "so" "elc")
   "A list of file extensions ignored by projectile.")
 
@@ -93,7 +96,8 @@
          ;; check for regular files that are not ignored
          ((and (not (or (string= current-file "./") (string= current-file "../")))
                (not (projectile-string-suffix-p current-file "/"))
-               (not (projectile-ignored-extension-p current-file)))
+               (not (projectile-ignored-extension-p current-file))
+               (not (projectile-ignored-file-p current-file)))
           (setq files-list (cons (expand-file-name (concat directory current-file)) files-list)))))
       ;; cache the resulting list of files
       (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
@@ -153,6 +157,10 @@
         when (string= (expand-file-name (concat (projectile-get-project-root) ignored "/")) (expand-file-name file))
         do (return t)
         finally (return nil)))
+
+(defun projectile-ignored-file-p (file)
+  "Check if `FILE' should be ignored."
+  (member file projectile-ignored-files))
 
 (defun projectile-ignored-extension-p (file)
   "Check if `FILE' should be ignored based on its extension."
