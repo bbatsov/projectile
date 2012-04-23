@@ -52,6 +52,12 @@
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-keymap-prefix (kbd "C-c p")
+  "Projectile keymap prefix."
+  :group 'projectile
+  :type 'sexp)
+
+
 ;; variables
 (defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
   "A list of files considered to mark the root of a project.")
@@ -207,24 +213,28 @@
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "f") 'projectile-find-file)
-    (define-key map (kbd "g") 'projectile-grep)
-    (define-key map (kbd "b") 'projectile-switch-to-buffer)
-    (define-key map (kbd "o") 'projectile-multi-occur)
-    (define-key map (kbd "r") 'projectile-replace)
-    (define-key map (kbd "i") 'projectile-invalidate-cache)
-    (define-key map (kbd "t") 'projectile-regenerate-tags)
-    map)
-  "Keymap for Projectile mode.")
+      (let ((prefix-map (make-sparse-keymap)))
+        (define-key prefix-map (kbd "f") 'projectile-find-file)
+        (define-key prefix-map (kbd "g") 'projectile-grep)
+        (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
+        (define-key prefix-map (kbd "o") 'projectile-multi-occur)
+        (define-key prefix-map (kbd "r") 'projectile-replace)
+        (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
+        (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
 
-(global-set-key (kbd "C-c p") projectile-mode-map)
+        (define-key map projectile-keymap-prefix prefix-map)
+
+        ;; shortcuts without prefices
+        )
+      map)
+  "Keymap for Projectile mode.")
 
 (easy-menu-define projectile-mode-menu projectile-mode-map
   "Menu for Projectile mode"
   '("Projectile"
     ("Navigating"
-     ["Jump to file" projectile-find-file]
-     ["Jump to buffer" projectile-switch-to-buffer])
+     ["File file" projectile-find-file]
+     ["Switch to buffer" projectile-switch-to-buffer])
 
     ("Find & Replace"
      ["Find in project" projectile-grep]
