@@ -65,6 +65,9 @@
 (defvar projectile-ignored-files '("TAGS")
   "A list of files ignored by projectile.")
 
+(defvar projectile-ignored-directories '(".idea")
+  "A list of directories ignored by projectile.")
+
 (defvar projectile-ignored-file-extensions '("class" "o" "so" "elc")
   "A list of file extensions ignored by projectile.")
 
@@ -97,7 +100,8 @@
          ;; check for directories that are not ignored
          ((and (projectile-string-suffix-p current-file "/")
                (not (or (string= current-file "./") (string= current-file "../")))
-               (not (projectile-ignored-p (concat directory current-file))))
+               (not (projectile-ignored-p (concat directory current-file)))
+               (not (projectile-ignored-directory-p current-file)))
           (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
          ;; check for regular files that are not ignored
          ((and (not (or (string= current-file "./") (string= current-file "../")))
@@ -161,6 +165,13 @@
   "Check if FILE should be ignored."
   (loop for ignored in projectile-project-root-files
         when (string= (expand-file-name (concat (projectile-get-project-root) ignored "/")) (expand-file-name file))
+        do (return t)
+        finally (return nil)))
+
+(defun projectile-ignored-directory-p (file)
+  "Check if FILE should be ignored."
+  (loop for ignored in projectile-ignored-directories
+        when (string= file (concat ignored "/"))
         do (return t)
         finally (return nil)))
 
