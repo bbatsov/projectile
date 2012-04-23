@@ -62,7 +62,7 @@
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
 
-(defun projectile-invalidate-project-cache ()
+(defun projectile-invalidate-cache ()
   "Remove the current project's files from `projectile-projects-cache'."
   (interactive)
   (let ((project-root (projectile-get-project-root)))
@@ -159,16 +159,16 @@
   (let ((ext (file-name-extension file)))
     (member ext projectile-ignored-file-extensions)))
 
-(defun projectile-jump-to-project-file ()
+(defun projectile-find-file ()
   "Jump to a project's file using ido."
   (interactive)
   (let* ((project-files (projectile-hashify-files
                          (projectile-get-project-files (projectile-get-project-root))))
-         (file (ido-completing-read "Jump to project file: "
+         (file (ido-completing-read "File file (Projectile) : "
                                     (loop for k being the hash-keys in project-files collect k))))
     (find-file (gethash file project-files))))
 
-(defun projectile-grep-in-project ()
+(defun projectile-grep ()
   "Perform rgrep in the project."
   (interactive)
   (let ((search-regexp (if (and transient-mark-mode mark-active)
@@ -188,7 +188,7 @@
     (cd current-dir)
     (visit-tags-table project-root)))
 
-(defun projectile-replace-in-project ()
+(defun projectile-replace ()
   "Replace a string in the project using perl."
   (interactive)
   (let ((current-dir default-directory)
@@ -199,30 +199,32 @@
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c p j") 'projectile-jump-to-project-file)
-    (define-key map (kbd "C-c p f") 'projectile-grep-in-project)
-    (define-key map (kbd "C-c p b") 'projectile-switch-to-buffer)
-    (define-key map (kbd "C-c p o") 'projectile-multi-occur)
-    (define-key map (kbd "C-c p r") 'projectile-replace-in-project)
-    (define-key map (kbd "C-c p i") 'projectile-invalidate-project-cache)
-    (define-key map (kbd "C-c p t") 'projectile-regenerate-tags)
+    (define-key map (kbd "f") 'projectile-find-file)
+    (define-key map (kbd "g") 'projectile-grep)
+    (define-key map (kbd "b") 'projectile-switch-to-buffer)
+    (define-key map (kbd "o") 'projectile-multi-occur)
+    (define-key map (kbd "r") 'projectile-replace)
+    (define-key map (kbd "i") 'projectile-invalidate-cache)
+    (define-key map (kbd "t") 'projectile-regenerate-tags)
     map)
   "Keymap for Projectile mode.")
+
+(global-set-key (kbd "C-c p") projectile-mode-map)
 
 (easy-menu-define projectile-mode-menu projectile-mode-map
   "Menu for Projectile mode"
   '("Projectile"
     ("Navigating"
-     ["Jump to file" projectile-jump-to-project-file]
+     ["Jump to file" projectile-find-file]
      ["Jump to buffer" projectile-switch-to-buffer])
 
     ("Find & Replace"
-     ["Find in project" projectile-grep-in-project]
-     ["Replace in project" projectile-replace-in-project]
+     ["Find in project" projectile-grep]
+     ["Replace in project" projectile-replace]
      ["Multi-occur in project" projectile-multi-occur])
 
     ("General"
-     ["Invalidate cache" projectile-invalidate-project-cache]
+     ["Invalidate cache" projectile-invalidate-cache]
      ["Regenerate etags" projectile-regenerate-tags])))
 
 ;; define minor mode
@@ -242,6 +244,7 @@
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
   :lighter " Projectile"
   :keymap projectile-mode-map
+  :group 'projectile
   (if projectile-mode
       ;; on start
       (easy-menu-add projectile-mode-menu projectile-mode-map)
