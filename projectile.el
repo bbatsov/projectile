@@ -79,7 +79,7 @@
         do (return it)))
 
 (defun projectile-get-project-files (directory)
-  "List the files in `DIRECTORY' and in its sub-directories."
+  "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
                      (gethash directory projectile-projects-cache))))
@@ -105,7 +105,7 @@
     files-list))
 
 (defun projectile-string-suffix-p (string suffix)
-  "Check whether `STRING' ends with `SUFFIX'."
+  "Check whether STRING ends with SUFFIX."
   (string= (substring string (- (length string) (length suffix))) suffix))
 
 (defun projectile-get-project-buffers ()
@@ -130,7 +130,7 @@
                (car (occur-read-primary-args))))
 
 (defun projectile-hashify-files (files-list)
-  "Make the list of project files `FILES-LIST' ido friendly."
+  "Make the list of project files FILES-LIST ido friendly."
   (let ((files-table (make-hash-table :test 'equal))
         (files-to-uniquify nil))
     (dolist (current-file files-list files-table)
@@ -147,23 +147,23 @@
     files-table))
 
 (defun uniquify-file (filename)
-  "Create an unique version of a `FILENAME'."
+  "Create an unique version of a FILENAME."
   (let ((filename-parts (reverse (split-string filename "/"))))
     (format "%s/%s" (second filename-parts) (first filename-parts))))
 
 (defun projectile-ignored-p (file)
-  "Check if `FILE' should be ignored."
+  "Check if FILE should be ignored."
   (loop for ignored in projectile-project-root-files
         when (string= (expand-file-name (concat (projectile-get-project-root) ignored "/")) (expand-file-name file))
         do (return t)
         finally (return nil)))
 
 (defun projectile-ignored-file-p (file)
-  "Check if `FILE' should be ignored."
+  "Check if FILE should be ignored."
   (member file projectile-ignored-files))
 
 (defun projectile-ignored-extension-p (file)
-  "Check if `FILE' should be ignored based on its extension."
+  "Check if FILE should be ignored based on its extension."
   (let ((ext (file-name-extension file)))
     (member ext projectile-ignored-file-extensions)))
 
