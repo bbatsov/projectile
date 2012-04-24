@@ -57,7 +57,7 @@ you can install projectile from the [Marmalade](http://marmalade-repo.org/) repo
 ## Emacs Prelude
 
 Projectile is naturally part of the
-[Emacs Prelude](https://github.com/bbatsov/emacs-prelude). If you're a Prelude
+[Emacs Prelude](https://github.com/bbatsov/prelude). If you're a Prelude
 user - projectile is already properly configured and ready for
 action.
 
