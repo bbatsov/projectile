@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Projectile : Project navigation and management library for Emacs" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Projectile</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/bbatsov/projectile">Fork Me on GitHub</a>
+
+          <h1 id="project_title">Projectile</h1>
+          <h2 id="project_tagline">Project navigation and management library for Emacs</h2>
+
+          <section id="downloads">
+            <a class="zip_download_link" href="https://github.com/bbatsov/projectile/zipball/master">Download this project as a .zip file</a>
+            <a class="tar_download_link" href="https://github.com/bbatsov/projectile/tarball/master">Download this project as a tar.gz file</a>
+          </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>Synopsis</h1>
+
+<p>Projectile is a project interaction library for Emacs. Its goal is to
+provide a nice set of features operating on a project level without
+introducing external dependencies. For instance - finding project
+files is done in pure elisp without the use of GNU find.</p>
+
+<p>This library provides easy project management and navigation. The
+concept of a project is pretty basic - just a folder containing
+special file. Currently <code>git</code>, <code>mercurial</code> and <code>bazaar</code> repos are
+considered projects by default. If you want to mark a folder
+manually as a project just create an empty <code>.projectile</code> file in
+it. Some of projectile's features:</p>
+
+<ul>
+<li>jump to a file in project</li>
+<li>jump to a project buffer</li>
+<li>multi-occur in project buffers</li>
+<li>grep in project</li>
+<li>regenerate project etags</li>
+</ul><h1>Installation</h1>
+
+<h2>Manual</h2>
+
+<p>Just drop <code>projectile.el</code> somewhere in your <code>load-path</code>. I favour the
+folder <code>~/.emacs.d/vendor</code>:</p>
+
+<pre><code>(add-to-list 'load-path "~/emacs.d/vendor")
+</code></pre>
+
+<p>You can enable projectile globally like this:</p>
+
+<pre><code>(require 'projectile)
+(projectile-global-mode) ;; to enable in all buffers
+</code></pre>
+
+<p>To enable projectile only in select modes:</p>
+
+<pre><code>(add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
+</code></pre>
+
+<p>If you'd like to enable project files caching (useful in large
+projects where indexing the project's file can take a while) add this
+as well:</p>
+
+<pre><code>(setq projectile-enable-caching t)
+</code></pre>
+
+<h2>Marmalade</h2>
+
+<p>If you're an Emacs 24 user or you have a recent version of package.el
+you can install projectile from the <a href="http://marmalade-repo.org/">Marmalade</a> repository.</p>
+
+<h2>Emacs Prelude</h2>
+
+<p>Projectile is naturally part of the
+<a href="https://github.com/bbatsov/prelude">Emacs Prelude</a>. If you're a Prelude
+user - projectile is already properly configured and ready for
+action.</p>
+
+<h1>Usage</h1>
+
+<p>Here's a list of the interactive Emacs Lisp functions, provided by projectile:</p>
+
+<ul>
+<li>
+<code>projectile-find-file</code> (C-c p f)</li>
+<li>
+<code>projectile-grep</code> (C-c p g)</li>
+<li>
+<code>projectile-switch-to-buffer</code> (C-c p b)</li>
+<li>
+<code>projectile-multi-occur</code> (C-c p o)</li>
+<li>
+<code>projectile-replace</code> (C-c p r)</li>
+<li>
+<code>projectile-invalidate-cache</code> (C-c p i)</li>
+<li>
+<code>projectile-regenerate-tags</code> (C-c p t)</li>
+</ul><h2>Helm Integration</h2>
+
+<p>Projectile can be integrated with
+<a href="https://github.com/emacs-helm/helm">Helm</a> via
+<code>helm-c-source-projectile</code> source (available in <code>helm-projectile.el</code>). There is also an example function
+for calling Helm with the Projectile file source. You can call it like
+this:</p>
+
+<pre><code>M-x helm-projectile
+</code></pre>
+
+<p>or even better - bind it to a keybinding like this:</p>
+
+<pre><code>(global-set-key (kbd "C-c h") 'helm-projectile)
+</code></pre>
+
+<p>Obviously you need to have Helm installed for this to work :-)</p>
+
+<h1>Caveats</h1>
+
+<ul>
+<li>Traversing the project directory programmatically (instead of using
+something like GNU find) is not very fast. On the other hand - it's
+portable. Unlike
+<a href="https://github.com/bbatsov/find-file-in-project">find-file-in-project</a>,
+projectile's jump-to-file will work on any OS.</li>
+<li>To compensate for the lack of speed - a cache can be created when a
+project is traversed. That cache is not automatically updated
+(presently) so you might want to invalidate it manually from time to
+time (or disable it completely for small projects).</li>
+<li>Some operations like find/replace depend (presently) on external
+utilities such as find and perl.</li>
+</ul><h2>Known issues</h2>
+
+<p>Check out the project's
+<a href="https://github.com/bbatsov/projectile/issues?sort=created&amp;direction=desc&amp;state=open">issue list</a>
+a list of unresolved issues. By the way - feel free to fix any of them
+and sent me a pull request. :-)</p>
+
+<h2>Contributors</h2>
+
+<p>Here's a <a href="https://github.com/bbatsov/projectile/contributors">list</a> of all the people who have contributed to the
+development of Projectile.</p>
+
+<h2>Bugs &amp; Improvements</h2>
+
+<p>Bug reports and suggestions for improvements are always
+welcome. github pull requests are even better! :-)</p>
+
+<p>Together we can create the ultimate project management tool for Emacs.</p>
+
+<p>Cheers,<br>
+Bozhidar</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Projectile maintained by <a href="https://github.com/bbatsov">bbatsov</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-22917580-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
