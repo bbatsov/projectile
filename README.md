@@ -65,13 +65,13 @@ action.
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-* `projectile-jump-to-project-file` (C-c p j)
-* `projectile-grep-in-project` (C-c p f)
-* `projectile-replace-in-project` (C-c p r)
+* `projectile-find-file` (C-c p f)
+* `projectile-grep` (C-c p g)
 * `projectile-switch-to-buffer` (C-c p b)
 * `projectile-multi-occur` (C-c p o)
+* `projectile-replace` (C-c p r)
+* `projectile-invalidate-cache` (C-c p i)
 * `projectile-regenerate-tags` (C-c p t)
-* `projectile-invalidate-project-cache` (C-c p i)
 
 ## Helm Integration
 
