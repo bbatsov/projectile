@@ -107,6 +107,28 @@ Obviously you need to have Helm installed for this to work :-)
 * Some operations like find/replace depend (presently) on external
   utilities such as find and perl.
 
-# Contributors
+## Would you like to know more?
 
-None at the moment. You could be the first!
+Check out the [Prelude's project page](http://batsov.com/projectile).
+
+## Known issues
+
+Check out the project's
+[issue list](https://github.com/bbatsov/projectile/issues?sort=created&direction=desc&state=open)
+a list of unresolved issues. By the way - feel free to fix any of them
+and sent me a pull request. :-)
+
+## Contributors
+
+Here's a [list](https://github.com/bbatsov/projectile/contributors) of all the people who have contributed to the
+development of Emacs Prelude.
+
+## Bugs & Improvements
+
+Bug reports and suggestions for improvements are always
+welcome. github pull requests are even better! :-)
+
+Together we can create the ultimate project management tool for Emacs.
+
+Cheers,<br>
+Bozhidar
