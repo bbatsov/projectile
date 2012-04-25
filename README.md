@@ -85,7 +85,7 @@ this:
 M-x helm-projectile
 ```
 
-or even better - bind it to a keybinging like this:
+or even better - bind it to a keybinding like this:
 
 ```
 (global-set-key (kbd "C-c h") 'helm-projectile)
