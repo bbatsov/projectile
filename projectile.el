@@ -200,8 +200,10 @@
                            (buffer-substring (region-beginning) (region-end))
                          (read-string "Search for: " (thing-at-point 'symbol))))
         (root-dir (projectile-get-project-root)))
-    (grep-compute-defaults)
-    (rgrep search-regexp "* .*" root-dir)))
+    (let ((grep-find-ignored-directories (append projectile-ignored-directories grep-find-ignored-directories))
+          (grep-find-ignored-files (append projectile-ignored-files grep-find-ignored-files)))
+      (grep-compute-defaults)
+      (rgrep search-regexp "* .*" root-dir))))
 
 (defun projectile-regenerate-tags ()
   "Regenerate the project's etags using ctags."
