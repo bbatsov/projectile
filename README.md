@@ -109,7 +109,7 @@ Obviously you need to have Helm installed for this to work :-)
 
 ## Would you like to know more?
 
-Check out the [Prelude's project page](http://batsov.com/projectile).
+Check out the [Projectile's project page](http://batsov.com/projectile).
 
 ## Known issues
 
