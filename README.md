@@ -121,7 +121,7 @@ and sent me a pull request. :-)
 ## Contributors
 
 Here's a [list](https://github.com/bbatsov/projectile/contributors) of all the people who have contributed to the
-development of Emacs Prelude.
+development of Projectile.
 
 ## Bugs & Improvements
 
