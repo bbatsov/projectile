@@ -200,6 +200,7 @@
                            (buffer-substring (region-beginning) (region-end))
                          (read-string "Search for: " (thing-at-point 'symbol))))
         (root-dir (projectile-get-project-root)))
+    (require 'grep)
     (let ((grep-find-ignored-directories (append projectile-ignored-directories grep-find-ignored-directories))
           (grep-find-ignored-files (append projectile-ignored-files grep-find-ignored-files)))
       (grep-compute-defaults)
