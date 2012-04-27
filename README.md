@@ -72,6 +72,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * `projectile-replace` (C-c p r)
 * `projectile-invalidate-cache` (C-c p i)
 * `projectile-regenerate-tags` (C-c p t)
+* `projectile-kill-buffers` (C-c p k)
 
 ## Helm Integration
 

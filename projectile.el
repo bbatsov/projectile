@@ -87,6 +87,10 @@
         when (locate-dominating-file default-directory file)
         do (return it)))
 
+(defun projectile-get-project-name ()
+  "Return project name."
+  (file-name-nondirectory (directory-file-name (projectile-get-project-root))))
+
 (defun projectile-get-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
@@ -225,6 +229,18 @@
         (new-text (read-string "With: ")))
     (shell-command (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'" project-root old-text new-text))))
 
+(defun projectile-kill-buffers ()
+  "Kill all project buffers."
+  (interactive)
+  (let* ((buffers (projectile-get-project-buffer-names))
+         (question
+          (format
+           "Are you sure you want to kill %d buffer(s) for '%s'? "
+           (length buffers)
+           (projectile-get-project-name))))
+    (if (yes-or-no-p question)
+        (mapc 'kill-buffer buffers))))
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
       (let ((prefix-map (make-sparse-keymap)))
@@ -235,6 +251,7 @@
         (define-key prefix-map (kbd "r") 'projectile-replace)
         (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
         (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
+        (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
 
         (define-key map projectile-keymap-prefix prefix-map)
 
