@@ -87,6 +87,10 @@
         when (locate-dominating-file default-directory file)
         do (return it)))
 
+(defun projectile-get-project-name ()
+  "Return project name."
+  (file-name-nondirectory (directory-file-name project-root)))
+
 (defun projectile-get-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
