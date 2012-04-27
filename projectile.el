@@ -89,7 +89,7 @@
 
 (defun projectile-get-project-name ()
   "Return project name."
-  (file-name-nondirectory (directory-file-name project-root)))
+  (file-name-nondirectory (directory-file-name (projectile-get-project-root))))
 
 (defun projectile-get-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
