@@ -132,10 +132,13 @@
   "Get a list of project buffer names."
   (mapcar 'buffer-name (projectile-get-project-buffers)))
 
+(defun projectile-prepend-project-name (string)
+  (format "[%s] %s" (projectile-get-project-name) string))
+
 (defun projectile-switch-to-buffer ()
   "Switch to a project buffer."
   (interactive)
-  (switch-to-buffer (ido-completing-read "Jump to project buffer: " (projectile-get-project-buffer-names))))
+  (switch-to-buffer (ido-completing-read (projectile-prepend-project-name "Switch to buffer: ") (projectile-get-project-buffer-names))))
 
 (defun projectile-multi-occur ()
   "Do a `multi-occur' in the project's buffers."
@@ -193,7 +196,7 @@
   (interactive)
   (let* ((project-files (projectile-hashify-files
                          (projectile-get-project-files (projectile-get-project-root))))
-         (file (ido-completing-read "File file (Projectile) : "
+         (file (ido-completing-read (projectile-prepend-project-name "File file: ")
                                     (loop for k being the hash-keys in project-files collect k))))
     (find-file (gethash file project-files))))
 
@@ -202,7 +205,7 @@
   (interactive)
   (let ((search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
-                         (read-string "Search for: " (thing-at-point 'symbol))))
+                         (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol))))
         (root-dir (projectile-get-project-root)))
     (require 'grep)
     (let ((grep-find-ignored-directories (append projectile-ignored-directories grep-find-ignored-directories))
