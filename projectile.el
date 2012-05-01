@@ -59,7 +59,7 @@
 
 
 ;; variables
-(defvar projectile-project-root-files '(".git" ".hg" ".bzr" ".projectile")
+(defvar projectile-project-root-files '(".git" ".hg" ".bzr" "_darcs" ".projectile")
   "A list of files considered to mark the root of a project.")
 
 (defvar projectile-ignored-files '("TAGS")
