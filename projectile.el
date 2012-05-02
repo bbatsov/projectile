@@ -138,7 +138,10 @@
 (defun projectile-switch-to-buffer ()
   "Switch to a project buffer."
   (interactive)
-  (switch-to-buffer (ido-completing-read (projectile-prepend-project-name "Switch to buffer: ") (projectile-get-project-buffer-names))))
+  (switch-to-buffer
+   (ido-completing-read
+    (projectile-prepend-project-name "Switch to buffer: ")
+    (projectile-get-project-buffer-names))))
 
 (defun projectile-multi-occur ()
   "Do a `multi-occur' in the project's buffers."
