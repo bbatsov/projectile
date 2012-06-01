@@ -100,19 +100,20 @@
     (unless files-list
       ;; while we are in the current directory
       (dolist (current-file (file-name-all-completions "" directory) files-list)
-        (cond
-         ;; check for directories that are not ignored
-         ((and (projectile-string-suffix-p current-file "/")
-               (not (or (string= current-file "./") (string= current-file "../")))
-               (not (projectile-ignored-p (concat directory current-file)))
-               (not (projectile-ignored-directory-p current-file)))
-          (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
-         ;; check for regular files that are not ignored
-         ((and (not (or (string= current-file "./") (string= current-file "../")))
-               (not (projectile-string-suffix-p current-file "/"))
-               (not (projectile-ignored-extension-p current-file))
-               (not (projectile-ignored-file-p current-file)))
-          (setq files-list (cons (expand-file-name (concat directory current-file)) files-list)))))
+        (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory)))
+          (cond
+           ;; check for directories that are not ignored
+           ((and (projectile-string-suffix-p current-file "/")
+                 (not (or (string= current-file "./") (string= current-file "../")))
+                 (not (projectile-ignored-p (concat directory current-file)))
+                 (not (projectile-ignored-directory-p absolute-file)))
+            (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
+           ;; check for regular files that are not ignored
+           ((and (not (or (string= current-file "./") (string= current-file "../")))
+                 (not (projectile-string-suffix-p current-file "/"))
+                 (not (projectile-ignored-extension-p current-file))
+                 (not (projectile-ignored-file-p absolute-file)))
+            (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
       ;; cache the resulting list of files
       (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
         (puthash directory files-list projectile-projects-cache)))
@@ -178,21 +179,58 @@
         do (return t)
         finally (return nil)))
 
-(defun projectile-ignored-directory-p (file)
-  "Check if FILE should be ignored."
-  (loop for ignored in projectile-ignored-directories
-        when (string= file (concat ignored "/"))
-        do (return t)
-        finally (return nil)))
+(defun projectile-ignored-directory-p (directory)
+  "Check if DIRECTORY should be ignored."
+  (print directory)
+  (member directory (projectile-ignored-directories)))
 
 (defun projectile-ignored-file-p (file)
   "Check if FILE should be ignored."
-  (member file projectile-ignored-files))
+  (member file (projectile-ignored-files)))
 
 (defun projectile-ignored-extension-p (file)
   "Check if FILE should be ignored based on its extension."
   (let ((ext (file-name-extension file)))
     (member ext projectile-ignored-file-extensions)))
+
+(defun projectile-ignored-files ()
+  "Return list of ignored files."
+  (append
+   (mapcar (lambda (file) (expand-file-name file (projectile-get-project-root))) projectile-ignored-files)
+   (delete-if 'file-directory-p (projectile-project-ignored-files))))
+
+(defun projectile-ignored-directories ()
+  "Return list of ignored directories."
+  (append
+   (mapcar (lambda (directory) (expand-file-name directory (projectile-get-project-root))) projectile-ignored-directories)
+   (delete-if-not 'file-directory-p (projectile-project-ignored-files))))
+
+(defun projectile-project-ignored-files ()
+  "Return list of project specific ignored files."
+  (let* ((patterns)
+         (project-root
+          (projectile-get-project-root))
+         (ignore-file
+          (expand-file-name ".projectile" project-root)))
+    (when (file-exists-p ignore-file)
+      (with-temp-buffer
+        (insert-file-contents-literally ignore-file)
+        (let* ((content (buffer-string))
+               (pieces
+                (mapcar
+                 'projectile-trim
+                 (delete "" (split-string content "\n")))))
+          (setq patterns (append patterns pieces)))))
+    (let ((default-directory project-root))
+      (mapcar
+       (lambda (file)
+         (file-name-as-directory file))
+       (apply 'append (mapcar (lambda (pattern) (file-expand-wildcards pattern t)) patterns))))))
+
+(defun projectile-trim (string)
+  "Return STRING with whitespace removed from front and back."
+  (replace-regexp-in-string "^[ \t\n]+" "" (replace-regexp-in-string "[ \t\n]+$" "" string)))
+
 
 (defun projectile-find-file ()
   "Jump to a project's file using ido."
@@ -212,7 +250,7 @@
         (root-dir (projectile-get-project-root)))
     (require 'grep)
     (let ((grep-find-ignored-directories (append projectile-ignored-directories grep-find-ignored-directories))
-          (grep-find-ignored-files (append projectile-ignored-files grep-find-ignored-files)))
+          (grep-find-ignored-files (append (projectile-ignored-files) grep-find-ignored-files)))
       (grep-compute-defaults)
       (rgrep search-regexp "* .*" root-dir))))
 
