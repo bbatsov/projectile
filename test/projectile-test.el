@@ -3,7 +3,7 @@
   (should (not (projectile-string-suffix-p "test.txt" "rb"))))
 
 (ert-deftest projectile-test-uniquify-file ()
-  (should (equal (uniquify-file "ala/bala/portokala") "bala/portokala")))
+  (should (equal (projectile-uniquify-file "ala/bala/portokala") "bala/portokala")))
 
 (ert-deftest projectile-test-project-get-name ()
   (should (equal (projectile-get-project-name) "projectile")))

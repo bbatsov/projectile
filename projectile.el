@@ -157,16 +157,16 @@
       (let ((basename (file-name-nondirectory current-file)))
         (if (gethash basename files-table)
             (progn
-              (puthash (uniquify-file current-file) current-file files-table)
+              (puthash (projectile-uniquify-file current-file) current-file files-table)
               (when basename (push basename files-to-uniquify)))
           (puthash basename current-file files-table))))
     ;; uniquify remaining files
     (dolist (current-file (remove-duplicates files-to-uniquify :test 'string=))
-      (puthash (uniquify-file (gethash current-file files-table)) (gethash current-file files-table) files-table)
+      (puthash (projectile-uniquify-file (gethash current-file files-table)) (gethash current-file files-table) files-table)
       (remhash current-file files-table))
     files-table))
 
-(defun uniquify-file (filename)
+(defun projectile-uniquify-file (filename)
   "Create an unique version of a FILENAME."
   (let ((filename-parts (reverse (split-string filename "/"))))
     (format "%s/%s" (second filename-parts) (first filename-parts))))
