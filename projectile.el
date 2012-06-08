@@ -113,7 +113,7 @@
                  (not (projectile-string-suffix-p current-file "/"))
                  (not (projectile-ignored-extension-p current-file))
                  (not (projectile-ignored-file-p absolute-file)))
-            (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
+            (setq files-list (cons (expand-file-name (concat directory current-file)) files-list)))))))
       ;; cache the resulting list of files
       (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
         (puthash directory files-list projectile-projects-cache)))
