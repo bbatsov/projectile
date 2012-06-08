@@ -6,10 +6,10 @@
   (should (equal (projectile-uniquify-file "ala/bala/portokala") "bala/portokala")))
 
 (ert-deftest projectile-test-project-get-name ()
-  (should (equal (projectile-get-project-name) "projectile")))
+  (should (equal (projectile-get-project-name) "project")))
 
 (ert-deftest projectile-test-prepend-project-name ()
-  (should (equal (projectile-prepend-project-name "Test") "[projectile] Test")))
+  (should (equal (projectile-prepend-project-name "Test") "[project] Test")))
 
 (ert-deftest projectile-test-trim-no-whitespace ()
   (should (equal (projectile-trim "foo") "foo")))
