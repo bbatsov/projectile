@@ -95,17 +95,17 @@
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
-                     (gethash directory projectile-projects-cache))))
+                         (gethash directory projectile-projects-cache))))
     ;; cache miss
     (unless files-list
       ;; while we are in the current directory
       (dolist (current-file (file-name-all-completions "" directory) files-list)
-        (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory)))
+        (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory))))
           (cond
            ;; check for directories that are not ignored
            ((and (projectile-string-suffix-p current-file "/")
                  (not (or (string= current-file "./") (string= current-file "../")))
-                 (not (projectile-ignored-p absolute-file)))
+                 (not (projectile-ignored-p absolute-file))
                  (not (projectile-ignored-directory-p absolute-file)))
             (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
            ;; check for regular files that are not ignored
@@ -113,11 +113,11 @@
                  (not (projectile-string-suffix-p current-file "/"))
                  (not (projectile-ignored-extension-p current-file))
                  (not (projectile-ignored-file-p absolute-file))
-            (setq files-list (cons (expand-file-name (concat directory current-file)) files-list)))))))
-      ;; cache the resulting list of files
-      (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
-        (puthash directory files-list projectile-projects-cache)))
-    files-list))
+                 (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
+        ;; cache the resulting list of files
+        (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
+          (puthash directory files-list projectile-projects-cache)))
+      files-list)))
 
 (defun projectile-string-suffix-p (string suffix)
   "Check whether STRING ends with SUFFIX."
