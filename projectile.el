@@ -231,6 +231,9 @@
   "Return STRING with whitespace removed from front and back."
   (replace-regexp-in-string "^[ \t\n]+" "" (replace-regexp-in-string "[ \t\n]+$" "" string)))
 
+(defun projectile-expand-root (name)
+  "Expand NAME to project root."
+  (file-name-as-directory (expand-file-name name (projectile-get-project-root))))
 
 (defun projectile-find-file ()
   "Jump to a project's file using ido."

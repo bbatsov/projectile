@@ -28,3 +28,9 @@
   (should (equal (projectile-trim " foo ") "foo"))
   (should (equal (projectile-trim "\tfoo\t") "foo"))
   (should (equal (projectile-trim "\nfoo\n") "foo")))
+
+(ert-deftest projectile-test-expand-root ()
+  (should (equal (projectile-expand-root "foo") "/path/to/project/foo/")) 
+  (should (equal (projectile-expand-root "foo/bar") "/path/to/project/foo/bar/")) 
+  (should (equal (projectile-expand-root "./foo/bar") "/path/to/project/foo/bar/")))
+
