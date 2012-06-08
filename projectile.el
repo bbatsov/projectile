@@ -105,14 +105,14 @@
            ;; check for directories that are not ignored
            ((and (projectile-string-suffix-p current-file "/")
                  (not (or (string= current-file "./") (string= current-file "../")))
-                 (not (projectile-ignored-p (concat directory current-file)))
+                 (not (projectile-ignored-p absolute-file)))
                  (not (projectile-ignored-directory-p absolute-file)))
             (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
            ;; check for regular files that are not ignored
            ((and (not (or (string= current-file "./") (string= current-file "../")))
                  (not (projectile-string-suffix-p current-file "/"))
                  (not (projectile-ignored-extension-p current-file))
-                 (not (projectile-ignored-file-p absolute-file)))
+                 (not (projectile-ignored-file-p absolute-file))
             (setq files-list (cons (expand-file-name (concat directory current-file)) files-list)))))))
       ;; cache the resulting list of files
       (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
@@ -174,14 +174,13 @@
 
 (defun projectile-ignored-p (file)
   "Check if FILE should be ignored."
-  (loop for ignored in projectile-project-root-files
-        when (string= (expand-file-name (concat (projectile-get-project-root) ignored "/")) (expand-file-name file))
-        do (return t)
-        finally (return nil)))
+  (find-if
+   (lambda (root-file)
+     (string= file (projectile-expand-root root-file)))
+   projectile-project-root-files))
 
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
-  (print directory)
   (member directory (projectile-ignored-directories)))
 
 (defun projectile-ignored-file-p (file)
@@ -195,37 +194,37 @@
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
-  (append
-   (mapcar (lambda (file) (expand-file-name file (projectile-get-project-root))) projectile-ignored-files)
-   (delete-if 'file-directory-p (projectile-project-ignored-files))))
+  (mapcar
+   'projectile-expand-root
+   (append projectile-ignored-files (projectile-project-ignored-files))))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
-  (append
-   (mapcar (lambda (directory) (expand-file-name directory (projectile-get-project-root))) projectile-ignored-directories)
-   (delete-if-not 'file-directory-p (projectile-project-ignored-files))))
-
+  (mapcar
+   'projectile-expand-root
+   (append projectile-ignored-directories (projectile-project-ignored-directories))))
+  
 (defun projectile-project-ignored-files ()
-  "Return list of project specific ignored files."
-  (let* ((patterns)
-         (project-root
-          (projectile-get-project-root))
-         (ignore-file
-          (expand-file-name ".projectile" project-root)))
+  "Return list of project ignored files."
+  (delete-if 'file-directory-p (projectile-project-ignored)))
+  
+(defun projectile-project-ignored-directories ()
+  "Return list of project ignored directories."
+  (delete-if-not 'file-directory-p (projectile-project-ignored)))
+
+(defun projectile-project-ignored ()
+  "Return list of project ignored files/directories."
+  (let ((patterns (projectile-parse-ignore-file))
+        (default-directory (projectile-get-project-root)))
+    (apply 'append (mapcar (lambda (pattern) (file-expand-wildcards pattern t)) patterns))))
+
+(defun projectile-parse-ignore-file ()
+  "Parse project ignore file and return list of ignores."
+  (let ((ignore-file (expand-file-name ".projectile" (projectile-get-project-root))))
     (when (file-exists-p ignore-file)
       (with-temp-buffer
         (insert-file-contents-literally ignore-file)
-        (let* ((content (buffer-string))
-               (pieces
-                (mapcar
-                 'projectile-trim
-                 (delete "" (split-string content "\n")))))
-          (setq patterns (append patterns pieces)))))
-    (let ((default-directory project-root))
-      (mapcar
-       (lambda (file)
-         (file-name-as-directory file))
-       (apply 'append (mapcar (lambda (pattern) (file-expand-wildcards pattern t)) patterns))))))
+          (mapcar 'projectile-trim (delete "" (split-string (buffer-string) "\n")))))))
 
 (defun projectile-trim (string)
   "Return STRING with whitespace removed from front and back."
