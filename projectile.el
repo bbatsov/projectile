@@ -116,8 +116,8 @@
                  (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
         ;; cache the resulting list of files
         (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
-          (puthash directory files-list projectile-projects-cache)))
-      files-list)))
+          (puthash directory files-list projectile-projects-cache))))
+    files-list))
 
 (defun projectile-string-suffix-p (string suffix)
   "Check whether STRING ends with SUFFIX."
