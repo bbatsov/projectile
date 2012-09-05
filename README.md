@@ -24,20 +24,20 @@ it. Some of projectile's features:
 Just drop `projectile.el` somewhere in your `load-path`. I favour the
 folder `~/.emacs.d/vendor`:
 
-```
+```lisp
 (add-to-list 'load-path "~/emacs.d/vendor")
 ```
 
 You can enable projectile globally like this:
 
-```
+```lisp
 (require 'projectile)
 (projectile-global-mode) ;; to enable in all buffers
 ```
 
 To enable projectile only in select modes:
 
-```
+```lisp
 (add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
 ```
 
@@ -45,14 +45,23 @@ If you'd like to enable project files caching (useful in large
 projects where indexing the project's file can take a while) add this
 as well:
 
-```
+```lisp
 (setq projectile-enable-caching t)
 ```
 
 ## Marmalade
 
-If you're an Emacs 24 user or you have a recent version of package.el
-you can install projectile from the [Marmalade](http://marmalade-repo.org/) repository.
+If you're an Emacs 24 user or you have a recent version of `package.el`
+you can install projectile from the
+[Marmalade](http://marmalade-repo.org/) repository.
+
+## MELPA
+
+If you're an Emacs 24 user or you have a recent version of `package.el`
+you can install projectile from the
+[MELPA](http://melpa.milkbox.net) repository. The version of
+projectile there will always be up-to-date, but it might be unstable
+(albeit rarely).
 
 ## Emacs Prelude
 
@@ -88,7 +97,7 @@ M-x helm-projectile
 
 or even better - bind it to a keybinding like this:
 
-```
+```lisp
 (global-set-key (kbd "C-c h") 'helm-projectile)
 ```
 
