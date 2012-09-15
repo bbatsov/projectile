@@ -5,7 +5,6 @@
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
 ;; Version: 0.7
-;; Created: 2011-31-07
 ;; Keywords: project, convenience
 
 ;; This file is NOT part of GNU Emacs.
@@ -47,7 +46,7 @@
   :group 'tools
   :group 'convenience)
 
-(defcustom projectile-enable-caching nil
+(defcustom projectile-enable-caching t
   "Enable project files caching."
   :group 'projectile
   :type 'boolean)
@@ -57,18 +56,13 @@
   :group 'projectile
   :type 'sexp)
 
-
 ;; variables
-(defvar projectile-project-root-files '(".git" ".hg" ".bzr" "_darcs" ".projectile")
+(defvar projectile-project-root-files
+  '(".git" ".hg" ".bzr" "_darcs" ".projectile")
   "A list of files considered to mark the root of a project.")
 
-(defvar projectile-ignored-files '("TAGS")
-  "A list of files ignored by projectile.")
-
-(defvar projectile-ignored-directories '(".idea")
-  "A list of directories ignored by projectile.")
-
-(defvar projectile-ignored-file-extensions '("class" "o" "so" "elc")
+(defvar projectile-ignored-file-extensions
+  '("class" "o" "so" "elc" "png" "jpg" "jpeg")
   "A list of file extensions ignored by projectile.")
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
@@ -77,11 +71,11 @@
 (defun projectile-invalidate-cache ()
   "Remove the current project's files from `projectile-projects-cache'."
   (interactive)
-  (let ((project-root (projectile-get-project-root)))
+  (let ((project-root (projectile-project-root)))
     (remhash project-root projectile-projects-cache)
     (message "Invalidated Projectile cache for %s" project-root)))
 
-(defun projectile-get-project-root ()
+(defun projectile-project-root ()
   "Retrieves the root directory of a project if available."
   (loop for file in projectile-project-root-files
         when (locate-dominating-file default-directory file)
@@ -89,7 +83,7 @@
 
 (defun projectile-get-project-name ()
   "Return project name."
-  (file-name-nondirectory (directory-file-name (projectile-get-project-root))))
+  (file-name-nondirectory (directory-file-name (projectile-project-root))))
 
 (defun projectile-get-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
@@ -115,7 +109,7 @@
                  (not (projectile-ignored-file-p absolute-file))
                  (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
         ;; cache the resulting list of files
-        (when (and projectile-enable-caching (string= directory (projectile-get-project-root)))
+        (when (and projectile-enable-caching (string= directory (projectile-project-root)))
           (puthash directory files-list projectile-projects-cache))))
     files-list))
 
@@ -125,7 +119,7 @@
 
 (defun projectile-get-project-buffers ()
   "Get a list of project buffers."
-  (let ((project-files (projectile-get-project-files (projectile-get-project-root)))
+  (let ((project-files (projectile-get-project-files (projectile-project-root)))
         (buffer-files (mapcar 'buffer-file-name (buffer-list))))
     (mapcar 'get-file-buffer (intersection project-files buffer-files :test 'string=))))
 
@@ -195,19 +189,17 @@
 (defun projectile-ignored-files ()
   "Return list of ignored files."
   (mapcar
-   'projectile-expand-root
-   (append projectile-ignored-files (projectile-project-ignored-files))))
+   'projectile-expand-root (projectile-project-ignored-files)))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
   (mapcar
-   'projectile-expand-root
-   (append projectile-ignored-directories (projectile-project-ignored-directories))))
-  
+   'projectile-expand-root (projectile-project-ignored-directories)))
+
 (defun projectile-project-ignored-files ()
   "Return list of project ignored files."
   (delete-if 'file-directory-p (projectile-project-ignored)))
-  
+
 (defun projectile-project-ignored-directories ()
   "Return list of project ignored directories."
   (delete-if-not 'file-directory-p (projectile-project-ignored)))
@@ -215,12 +207,12 @@
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories."
   (let ((patterns (projectile-parse-ignore-file))
-        (default-directory (projectile-get-project-root)))
+        (default-directory (projectile-project-root)))
     (apply 'append (mapcar (lambda (pattern) (file-expand-wildcards pattern t)) patterns))))
 
 (defun projectile-parse-ignore-file ()
   "Parse project ignore file and return list of ignores."
-  (let ((ignore-file (expand-file-name ".projectile" (projectile-get-project-root))))
+  (let ((ignore-file (expand-file-name ".projectile" (projectile-project-root))))
     (when (file-exists-p ignore-file)
       (with-temp-buffer
         (insert-file-contents-literally ignore-file)
@@ -232,13 +224,14 @@
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root."
-  (file-name-as-directory (expand-file-name name (projectile-get-project-root))))
+  (file-name-as-directory
+   (expand-file-name name (projectile-project-root))))
 
 (defun projectile-find-file ()
   "Jump to a project's file using ido."
   (interactive)
   (let* ((project-files (projectile-hashify-files
-                         (projectile-get-project-files (projectile-get-project-root))))
+                         (projectile-get-project-files (projectile-project-root))))
          (file (ido-completing-read (projectile-prepend-project-name "File file: ")
                                     (loop for k being the hash-keys in project-files collect k))))
     (find-file (gethash file project-files))))
@@ -249,7 +242,7 @@
   (let ((search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
                          (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol))))
-        (root-dir (projectile-get-project-root)))
+        (root-dir (projectile-project-root)))
     (require 'grep)
     (let ((grep-find-ignored-directories (append projectile-ignored-directories grep-find-ignored-directories))
           (grep-find-ignored-files (append (projectile-ignored-files) grep-find-ignored-files)))
@@ -260,7 +253,7 @@
   "Regenerate the project's etags using ctags."
   (interactive)
   (let ((current-dir default-directory)
-        (project-root (projectile-get-project-root)))
+        (project-root (projectile-project-root)))
     (cd project-root)
     (shell-command (format "ctags -Re %s" project-root))
     (cd current-dir)
@@ -270,7 +263,7 @@
   "Replace a string in the project using perl."
   (interactive)
   (let ((current-dir default-directory)
-        (project-root (projectile-get-project-root))
+        (project-root (projectile-project-root))
         (old-text (read-string "Replace: " (thing-at-point 'symbol)))
         (new-text (read-string "With: ")))
     (shell-command (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'" project-root old-text new-text))))
@@ -327,12 +320,12 @@
 (define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
 
 (defun projectile-on ()
-  "Enable Projectile."
-  (when (projectile-get-project-root)
+  "Enable Projectile minor mode."
+  (when (projectile-project-root)
     (projectile-mode 1)))
 
 (defun projectile-off ()
-  "Disable Projectile."
+  "Disable Projectile minor mode."
   (easy-menu-remove))
 
 ;;;###autoload

@@ -21,32 +21,13 @@ it. Some of projectile's features:
 # Installation
 
 ## Manual
+
 Just drop `projectile.el` somewhere in your `load-path`. I favour the
 folder `~/.emacs.d/vendor`:
 
 ```lisp
 (add-to-list 'load-path "~/emacs.d/vendor")
-```
-
-You can enable projectile globally like this:
-
-```lisp
 (require 'projectile)
-(projectile-global-mode) ;; to enable in all buffers
-```
-
-To enable projectile only in select modes:
-
-```lisp
-(add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
-```
-
-If you'd like to enable project files caching (useful in large
-projects where indexing the project's file can take a while) add this
-as well:
-
-```lisp
-(setq projectile-enable-caching t)
 ```
 
 ## Marmalade
@@ -72,6 +53,35 @@ action.
 
 # Usage
 
+## Basic setup
+
+You can enable projectile globally like this:
+
+```lisp
+(projectile-global-mode)
+```
+
+To enable projectile only in select modes:
+
+```lisp
+(add-hook 'ruby-mode-hook 'projectile-on)))
+```
+
+Since indexing a big project is not exactly quick in Emacs Lisp,
+projectile caches the project's files automatically. This means you'll
+have to invalidate the cache from time to time when new files are
+added to the project. If you're working
+on a smaller project and you don't mind the reindexing delay you may
+disable the cache:
+
+```lisp
+(setq projectile-enable-caching nil)
+```
+
+At this point you can try out a projectile command such as `C-c p f` (`projectile-file-file`).
+
+## Interactive Commands
+
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
 * `projectile-find-file` (C-c p f)
@@ -82,6 +92,19 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * `projectile-invalidate-cache` (C-c p i)
 * `projectile-regenerate-tags` (C-c p t)
 * `projectile-kill-buffers` (C-c p k)
+
+## Ignoring files
+
+If you'd like to instruct Projectile to ignore certain files in a
+project, when indexing it you can do so in the `.projectile`
+file. Here's an example for a typical Rails application:
+
+```
+log
+tmp
+vendor
+public/uploads
+```
 
 ## Helm Integration
 
@@ -140,5 +163,5 @@ welcome. github pull requests are even better! :-)
 
 Together we can create the ultimate project management tool for Emacs.
 
-Cheers,<br>
+Cheers,<br/>
 Bozhidar
