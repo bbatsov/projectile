@@ -244,7 +244,7 @@
                          (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol))))
         (root-dir (projectile-project-root)))
     (require 'grep)
-    (let ((grep-find-ignored-directories (append projectile-ignored-directories grep-find-ignored-directories))
+    (let ((grep-find-ignored-directories (append  (projectile-ignored-directories) grep-find-ignored-directories))
           (grep-find-ignored-files (append (projectile-ignored-files) grep-find-ignored-files)))
       (grep-compute-defaults)
       (rgrep search-regexp "* .*" root-dir))))
