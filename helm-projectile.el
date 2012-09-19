@@ -47,7 +47,7 @@
 (defun helm-c-projectile-files-list ()
   "Generates a list of files in the current project"
   (projectile-get-project-files
-   (projectile-get-project-root)))
+   (projectile-project-root)))
 
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
