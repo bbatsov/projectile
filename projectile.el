@@ -84,10 +84,12 @@
     (message "Invalidated Projectile cache for %s" project-root)))
 
 (defun projectile-project-root ()
-  "Retrieves the root directory of a project if available."
-  (loop for file in projectile-project-root-files
-        when (locate-dominating-file default-directory file)
-        do (return it)))
+  "Retrieves the root directory of a project if available. The current
+directory is assumed to be the project root otherwise."
+  (or (loop for file in projectile-project-root-files
+            when (locate-dominating-file default-directory file)
+            do (return it))
+      default-directory))
 
 (defun projectile-get-project-name ()
   "Return project name."
@@ -343,12 +345,11 @@
 
 (defun projectile-on ()
   "Enable Projectile minor mode."
-  (when (projectile-project-root)
-    (projectile-mode 1)))
+  (projectile-mode 1))
 
 (defun projectile-off ()
   "Disable Projectile minor mode."
-  (easy-menu-remove))
+  (projectile-mode -1))
 
 ;;;###autoload
 (define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
@@ -359,7 +360,7 @@
       ;; on start
       (easy-menu-add projectile-mode-menu projectile-mode-map)
     ;; on stop
-    (projectile-off)))
+    (easy-menu-remove)))
 
 (provide 'projectile)
 ;;; projectile.el ends here
