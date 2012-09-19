@@ -131,7 +131,8 @@ directory is assumed to be the project root otherwise."
   "Get a list of project buffers."
   (let ((project-files (projectile-get-project-files (projectile-project-root)))
         (buffer-files (mapcar 'buffer-file-name (buffer-list))))
-    (mapcar 'get-file-buffer (intersection project-files buffer-files :test 'string=))))
+    (mapcar 'get-file-buffer
+            (intersection project-files buffer-files :test 'string=))))
 
 (defun projectile-get-project-buffer-names ()
   "Get a list of project buffer names."
@@ -162,12 +163,16 @@ directory is assumed to be the project root otherwise."
       (let ((basename (file-name-nondirectory current-file)))
         (if (gethash basename files-table)
             (progn
-              (puthash (projectile-uniquify-file current-file) current-file files-table)
+              (puthash
+               (projectile-uniquify-file current-file)
+               current-file files-table)
               (when basename (push basename files-to-uniquify)))
           (puthash basename current-file files-table))))
     ;; uniquify remaining files
     (dolist (current-file (remove-duplicates files-to-uniquify :test 'string=))
-      (puthash (projectile-uniquify-file (gethash current-file files-table)) (gethash current-file files-table) files-table)
+      (puthash
+       (projectile-uniquify-file (gethash current-file files-table))
+       (gethash current-file files-table) files-table)
       (remhash current-file files-table))
     files-table))
 
@@ -290,7 +295,9 @@ directory is assumed to be the project root otherwise."
         (project-root (projectile-project-root))
         (old-text (read-string "Replace: " (thing-at-point 'symbol)))
         (new-text (read-string "With: ")))
-    (shell-command (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'" project-root old-text new-text))))
+    (shell-command
+     (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'"
+             project-root old-text new-text))))
 
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
@@ -341,7 +348,9 @@ directory is assumed to be the project root otherwise."
 
 ;; define minor mode
 ;;;###autoload
-(define-globalized-minor-mode projectile-global-mode projectile-mode projectile-on)
+(define-globalized-minor-mode projectile-global-mode
+  projectile-mode
+  projectile-on)
 
 (defun projectile-on ()
   "Enable Projectile minor mode."
@@ -352,7 +361,8 @@ directory is assumed to be the project root otherwise."
   (projectile-mode -1))
 
 ;;;###autoload
-(define-minor-mode projectile-mode "Minor mode to assist project management and navigation."
+(define-minor-mode projectile-mode
+  "Minor mode to assist project management and navigation."
   :lighter " Projectile"
   :keymap projectile-mode-map
   :group 'projectile
