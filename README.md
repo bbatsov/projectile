@@ -78,7 +78,7 @@ disable the cache:
 (setq projectile-enable-caching nil)
 ```
 
-At this point you can try out a projectile command such as `C-c p f` (`projectile-file-file`).
+At this point you can try out a projectile command such as `C-c p f` (`projectile-find-file`).
 
 ## Interactive Commands
 
