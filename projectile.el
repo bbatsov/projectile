@@ -61,6 +61,14 @@
   '(".git" ".hg" ".bzr" "_darcs" ".projectile")
   "A list of files considered to mark the root of a project.")
 
+(defvar projectile-globally-ignored-files
+  '("TAGS")
+  "A list of files globally ignored by projectile.")
+
+(defvar projectile-globally-ignored-directories
+  '(".idea")
+  "A list of directories globally ignored by projectile.")
+
 (defvar projectile-ignored-file-extensions
   '("class" "o" "so" "elc" "png" "jpg" "jpeg")
   "A list of file extensions ignored by projectile.")
@@ -189,12 +197,18 @@
 (defun projectile-ignored-files ()
   "Return list of ignored files."
   (mapcar
-   'projectile-expand-root (projectile-project-ignored-files)))
+   'projectile-expand-root
+   (append
+    projectile-globally-ignored-files
+    (projectile-project-ignored-files))))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
   (mapcar
-   'projectile-expand-root (projectile-project-ignored-directories)))
+   'projectile-expand-root
+   (append
+    projectile-globally-ignored-directories
+    (projectile-project-ignored-directories))))
 
 (defun projectile-project-ignored-files ()
   "Return list of project ignored files."
@@ -208,15 +222,23 @@
   "Return list of project ignored files/directories."
   (let ((patterns (projectile-parse-ignore-file))
         (default-directory (projectile-project-root)))
-    (apply 'append (mapcar (lambda (pattern) (file-expand-wildcards pattern t)) patterns))))
+    (apply 'append
+           (mapcar
+            (lambda (pattern)
+              (file-expand-wildcards pattern t))
+            patterns))))
+
+(defun projectile-ignore-file ()
+  (expand-file-name ".projectile" (projectile-project-root)))
 
 (defun projectile-parse-ignore-file ()
   "Parse project ignore file and return list of ignores."
-  (let ((ignore-file (expand-file-name ".projectile" (projectile-project-root))))
+  (let ((ignore-file (projectile-ignore-file)))
     (when (file-exists-p ignore-file)
       (with-temp-buffer
         (insert-file-contents-literally ignore-file)
-          (mapcar 'projectile-trim (delete "" (split-string (buffer-string) "\n")))))))
+          (mapcar 'projectile-trim
+                  (delete "" (split-string (buffer-string) "\n")))))))
 
 (defun projectile-trim (string)
   "Return STRING with whitespace removed from front and back."
