@@ -373,4 +373,9 @@ directory is assumed to be the project root otherwise."
     (easy-menu-remove)))
 
 (provide 'projectile)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
+
 ;;; projectile.el ends here
