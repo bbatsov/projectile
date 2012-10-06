@@ -51,6 +51,12 @@
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-require-project-root t
+  "Require the presence of a project root to operate. Otherwise consider
+the current directory the project root."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
   :group 'projectile
@@ -89,7 +95,9 @@ directory is assumed to be the project root otherwise."
   (or (loop for file in projectile-project-root-files
             when (locate-dominating-file default-directory file)
             do (return it))
-      default-directory))
+      (if projectile-require-project-root
+          (error "You're not into a project.")
+        default-directory)))
 
 (defun projectile-get-project-name ()
   "Return project name."
