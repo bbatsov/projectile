@@ -60,6 +60,12 @@ the current directory the project root."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-completion-system 'ido
+  "The completion system to be used by Projectile."
+  :group 'projectile
+  :type 'symbol
+  :options '(ido default))
+
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
   :group 'projectile
@@ -152,8 +158,8 @@ directory is assumed to be the project root otherwise."
   "Switch to a project buffer."
   (interactive)
   (switch-to-buffer
-   (ido-completing-read
-    (projectile-prepend-project-name "Switch to buffer: ")
+   (projectile-completing-read
+    "Switch to buffer: "
     (projectile-project-buffer-names))))
 
 (defun projectile-multi-occur ()
@@ -263,13 +269,19 @@ directory is assumed to be the project root otherwise."
   (file-name-as-directory
    (expand-file-name name (projectile-project-root))))
 
+(defun projectile-completing-read (prompt choices)
+  (let ((prompt (projectile-prepend-project-name prompt)))
+    (cond
+     ((eq projectile-completion-system 'ido) (ido-completing-read prompt choices))
+     (t (completing-read prompt choices)))))
+
 (defun projectile-find-file ()
-  "Jump to a project's file using ido."
+  "Jump to a project's file using completion."
   (interactive)
   (let* ((project-files (projectile-hashify-files
                          (projectile-project-files (projectile-project-root))))
-         (file (ido-completing-read (projectile-prepend-project-name "File file: ")
-                                    (loop for k being the hash-keys in project-files collect k))))
+         (file (projectile-completing-read "File file: "
+                                           (loop for k being the hash-keys in project-files collect k))))
     (find-file (gethash file project-files))))
 
 (defun projectile-grep ()

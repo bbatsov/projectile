@@ -80,6 +80,22 @@ disable the cache:
 
 At this point you can try out a projectile command such as `C-c p f` (`projectile-find-file`).
 
+If you want Projectile to be usable in every directory (even without the presence of project file):
+
+```lisp
+(setq projectile-require-project-file nil)
+```
+
+This might not be a great idea if you start projectile in your home folder for instance :-)
+
+If you don't like ido you can use regular completion as well:
+
+```lisp
+(setq projectile-completion-system 'default)
+```
+
+You might want to combine default completion with `icomplete-mode` for optimum results.
+
 ## Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
