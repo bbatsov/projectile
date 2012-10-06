@@ -46,7 +46,7 @@
 
 (defun helm-c-projectile-files-list ()
   "Generates a list of files in the current project"
-  (projectile-get-project-files
+  (projectile-project-files
    (projectile-project-root)))
 
 (defvar helm-c-source-projectile-files-list
@@ -66,7 +66,7 @@
 (defvar helm-c-source-projectile-buffers-list
   `((name . "Projectile buffers list")
     ;; Needed for filenames with capitals letters.
-    (candidates . projectile-get-project-buffer-names)
+    (candidates . projectile-project-buffer-names)
     (volatile)
     (keymap . ,helm-c-buffer-map)
     (mode-line . helm-buffer-mode-line-string)

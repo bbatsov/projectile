@@ -6,6 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Version: 0.7
 ;; Keywords: project, convenience
+;; Package-Requires: ((s "1.0.0"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -41,8 +42,10 @@
 (require 'cl)
 (require 'easymenu)
 (require 'thingatpt)
+(require 's)
 
-(defgroup projectile nil "Manage and navigate projects easily."
+(defgroup projectile nil
+  "Manage and navigate projects easily."
   :group 'tools
   :group 'convenience)
 
@@ -99,11 +102,11 @@ directory is assumed to be the project root otherwise."
           (error "You're not into a project.")
         default-directory)))
 
-(defun projectile-get-project-name ()
+(defun projectile-project-name ()
   "Return project name."
   (file-name-nondirectory (directory-file-name (projectile-project-root))))
 
-(defun projectile-get-project-files (directory)
+(defun projectile-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
@@ -115,14 +118,14 @@ directory is assumed to be the project root otherwise."
         (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory))))
           (cond
            ;; check for directories that are not ignored
-           ((and (projectile-string-suffix-p current-file "/")
+           ((and (s-ends-with-p "/" current-file)
                  (not (or (string= current-file "./") (string= current-file "../")))
                  (not (projectile-ignored-p absolute-file))
                  (not (projectile-ignored-directory-p absolute-file)))
-            (setq files-list (append files-list (projectile-get-project-files (concat directory current-file)))))
+            (setq files-list (append files-list (projectile-project-files (concat directory current-file)))))
            ;; check for regular files that are not ignored
            ((and (not (or (string= current-file "./") (string= current-file "../")))
-                 (not (projectile-string-suffix-p current-file "/"))
+                 (not (s-ends-with-p "/" current-file))
                  (not (projectile-ignored-extension-p current-file))
                  (not (projectile-ignored-file-p absolute-file))
                  (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
@@ -131,23 +134,19 @@ directory is assumed to be the project root otherwise."
           (puthash directory files-list projectile-projects-cache))))
     files-list))
 
-(defun projectile-string-suffix-p (string suffix)
-  "Check whether STRING ends with SUFFIX."
-  (string= (substring string (- (length string) (length suffix))) suffix))
-
-(defun projectile-get-project-buffers ()
+(defun projectile-project-buffers ()
   "Get a list of project buffers."
-  (let ((project-files (projectile-get-project-files (projectile-project-root)))
+  (let ((project-files (projectile-project-files (projectile-project-root)))
         (buffer-files (mapcar 'buffer-file-name (buffer-list))))
     (mapcar 'get-file-buffer
             (intersection project-files buffer-files :test 'string=))))
 
-(defun projectile-get-project-buffer-names ()
+(defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
-  (mapcar 'buffer-name (projectile-get-project-buffers)))
+  (mapcar 'buffer-name (projectile-project-buffers)))
 
 (defun projectile-prepend-project-name (string)
-  (format "[%s] %s" (projectile-get-project-name) string))
+  (format "[%s] %s" (projectile-project-name) string))
 
 (defun projectile-switch-to-buffer ()
   "Switch to a project buffer."
@@ -155,12 +154,12 @@ directory is assumed to be the project root otherwise."
   (switch-to-buffer
    (ido-completing-read
     (projectile-prepend-project-name "Switch to buffer: ")
-    (projectile-get-project-buffer-names))))
+    (projectile-project-buffer-names))))
 
 (defun projectile-multi-occur ()
   "Do a `multi-occur' in the project's buffers."
   (interactive)
-  (multi-occur (projectile-get-project-buffers)
+  (multi-occur (projectile-project-buffers)
                (car (occur-read-primary-args))))
 
 (defun projectile-hashify-files (files-list)
@@ -268,7 +267,7 @@ directory is assumed to be the project root otherwise."
   "Jump to a project's file using ido."
   (interactive)
   (let* ((project-files (projectile-hashify-files
-                         (projectile-get-project-files (projectile-project-root))))
+                         (projectile-project-files (projectile-project-root))))
          (file (ido-completing-read (projectile-prepend-project-name "File file: ")
                                     (loop for k being the hash-keys in project-files collect k))))
     (find-file (gethash file project-files))))
@@ -310,12 +309,12 @@ directory is assumed to be the project root otherwise."
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
   (interactive)
-  (let* ((buffers (projectile-get-project-buffer-names))
+  (let* ((buffers (projectile-project-buffer-names))
          (question
           (format
            "Are you sure you want to kill %d buffer(s) for '%s'? "
            (length buffers)
-           (projectile-get-project-name))))
+           (projectile-project-name))))
     (if (yes-or-no-p question)
         (mapc 'kill-buffer buffers))))
 
@@ -331,10 +330,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
         (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
 
-        (define-key map projectile-keymap-prefix prefix-map)
-
-        ;; shortcuts without prefices
-        )
+        (define-key map projectile-keymap-prefix prefix-map))
       map)
   "Keymap for Projectile mode.")
 
