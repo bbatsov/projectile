@@ -257,12 +257,8 @@ directory is assumed to be the project root otherwise."
     (when (file-exists-p ignore-file)
       (with-temp-buffer
         (insert-file-contents-literally ignore-file)
-          (mapcar 'projectile-trim
+          (mapcar 's-trim
                   (delete "" (split-string (buffer-string) "\n")))))))
-
-(defun projectile-trim (string)
-  "Return STRING with whitespace removed from front and back."
-  (replace-regexp-in-string "^[ \t\n]+" "" (replace-regexp-in-string "[ \t\n]+$" "" string)))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root."
