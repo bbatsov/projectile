@@ -326,6 +326,11 @@ directory is assumed to be the project root otherwise."
     (if (yes-or-no-p question)
         (mapc 'kill-buffer buffers))))
 
+(defun projectile-dired ()
+  "Opens dired at the root of the project"
+  (interactive)
+  (dired (projectile-project-root)))
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
       (let ((prefix-map (make-sparse-keymap)))
@@ -337,6 +342,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
         (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
         (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
+        (define-key prefix-map (kdb "d") 'projectile-dired)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
