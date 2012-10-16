@@ -71,6 +71,11 @@ the current directory the project root."
   :group 'projectile
   :type 'sexp)
 
+(defcustom projectile-cache-file "projectile.cache"
+  "The name of Projectile's cache file."
+  :group 'projectile
+  :type 'string)
+
 ;; variables
 (defvar projectile-project-root-files
   '(".git" ".hg" ".bzr" "_darcs" ".projectile")
@@ -96,7 +101,8 @@ the current directory the project root."
   (interactive)
   (let ((project-root (projectile-project-root)))
     (remhash project-root projectile-projects-cache)
-    (message "Invalidated Projectile cache for %s" project-root)))
+    (message "Invalidated Projectile cache for %s" project-root))
+  (projectile-serialize-cache))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available. The current
@@ -137,7 +143,8 @@ directory is assumed to be the project root otherwise."
                  (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
         ;; cache the resulting list of files
         (when (and projectile-enable-caching (string= directory (projectile-project-root)))
-          (puthash directory files-list projectile-projects-cache))))
+          (puthash directory files-list projectile-projects-cache)
+          (projectile-serialize-cache))))
     files-list))
 
 (defun projectile-project-buffers ()
@@ -331,6 +338,22 @@ directory is assumed to be the project root otherwise."
   (interactive)
   (dired (projectile-project-root)))
 
+(defun projectile-serialize-cache ()
+  (let ((file (concat user-emacs-directory projectile-cache-file)))
+    (with-temp-buffer
+      (insert (prin1-to-string projectile-projects-cache))
+      (when (file-writable-p file)
+        (write-region (point-min)
+                      (point-max)
+                      file)))))
+
+(defun projectile-load-cache ()
+  (let ((file (concat user-emacs-directory projectile-cache-file)))
+    (when (file-exists-p file)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (setq projectile-projects-cache (read (buffer-string)))))))
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
       (let ((prefix-map (make-sparse-keymap)))
@@ -386,7 +409,9 @@ directory is assumed to be the project root otherwise."
   :group 'projectile
   (if projectile-mode
       ;; on start
-      (easy-menu-add projectile-mode-menu projectile-mode-map)
+      (progn
+        (projectile-load-cache)
+        (easy-menu-add projectile-mode-menu projectile-mode-map))
     ;; on stop
     (easy-menu-remove)))
 
