@@ -342,7 +342,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
         (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
         (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
-        (define-key prefix-map (kdb "d") 'projectile-dired)
+        (define-key prefix-map (kbd "d") 'projectile-dired)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
