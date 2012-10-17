@@ -59,7 +59,7 @@
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)
-    (match helm-c-match-on-basename)
+    (match-strict helm-c-match-on-basename)
     (type . file))
   "Helm source definition")
 
@@ -70,7 +70,7 @@
     (volatile)
     (keymap . ,helm-c-buffer-map)
     (mode-line . helm-buffer-mode-line-string)
-    (match helm-c-buffer-match-major-mode)
+    (match-strict helm-c-buffer-match-major-mode)
     (type . buffer)
     (persistent-help
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
