@@ -109,6 +109,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * `projectile-regenerate-tags` (C-c p t)
 * `projectile-kill-buffers` (C-c p k)
 * `projectile-dired` (C-c p d)
+* `projectile-recentf` (C-c p e)
 
 ## Ignoring files
 

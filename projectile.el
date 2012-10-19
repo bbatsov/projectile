@@ -338,6 +338,16 @@ directory is assumed to be the project root otherwise."
   (interactive)
   (dired (projectile-project-root)))
 
+(defun projectile-recentf ()
+  "Shows a list of recently visited files in a project"
+  (interactive)
+  (if (boundp 'recentf-list)
+      (projectile-completing-read "Recently visited files:"
+                                  (intersection (projectile-project-files (projectile-project-root))
+                                                recentf-list
+                                                :test 'string=))
+    (message "recentf is not enabled")))
+
 (defun projectile-serialize-cache ()
   (let ((file (concat user-emacs-directory projectile-cache-file)))
     (with-temp-buffer
@@ -366,6 +376,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
         (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
         (define-key prefix-map (kbd "d") 'projectile-dired)
+        (define-key prefix-map (kbd "e") 'projectile-recentf)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
