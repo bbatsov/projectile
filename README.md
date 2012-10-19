@@ -65,7 +65,7 @@ You can enable projectile globally like this:
 To enable projectile only in select modes:
 
 ```lisp
-(add-hook 'ruby-mode-hook 'projectile-on)))
+(add-hook 'ruby-mode-hook 'projectile-on)
 ```
 
 Since indexing a big project is not exactly quick in Emacs Lisp,
