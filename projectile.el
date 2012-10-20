@@ -66,6 +66,12 @@ the current directory the project root."
   :type 'symbol
   :options '(ido default))
 
+(defcustom projectile-ack-function 'ack-and-a-half
+  "The ack function to use."
+  :group 'projectile
+  :type 'symbol
+  :options '(ack-and-a-half default))
+
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
   :group 'projectile
@@ -306,6 +312,17 @@ directory is assumed to be the project root otherwise."
       (grep-compute-defaults)
       (rgrep search-regexp "* .*" root-dir))))
 
+(defun projectile-ack ()
+  "Run an `ack-and-a-half' search in the project."
+  (interactive)
+  (let ((ack-and-a-half-arguments
+         (mapcar
+          (lambda (path)
+            (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
+          (projectile-ignored-directories))))
+    (call-interactively projectile-ack-function)))
+
+
 (defun projectile-regenerate-tags ()
   "Regenerate the project's etags using ctags."
   (interactive)
@@ -388,6 +405,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
         (define-key prefix-map (kbd "d") 'projectile-dired)
         (define-key prefix-map (kbd "e") 'projectile-recentf)
+        (define-key prefix-map (kbd "a") 'projectile-ack)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
@@ -401,7 +419,8 @@ directory is assumed to be the project root otherwise."
      ["Switch to buffer" projectile-switch-to-buffer])
 
     ("Find & Replace"
-     ["Find in project" projectile-grep]
+     ["Find in project (grep)" projectile-grep]
+     ["Find in project (ack)" projectile-ack]
      ["Replace in project" projectile-replace]
      ["Multi-occur in project" projectile-multi-occur])
 

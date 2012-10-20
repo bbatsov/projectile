@@ -111,6 +111,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * `projectile-kill-buffers` (C-c p k)
 * `projectile-dired` (C-c p d)
 * `projectile-recentf` (C-c p e)
+* `projectile-ack` (C-c p a)
 
 ## Ignoring files
 
