@@ -175,6 +175,21 @@ and sent me a pull request. :-)
 Here's a [list](https://github.com/bbatsov/projectile/contributors) of all the people who have contributed to the
 development of Projectile.
 
+## Contribution
+
+Contribution is always welcome!
+
+Install [carton](https://github.com/rejeep/carton) if you haven't
+already, then:
+
+    $ cd /path/to/projectile
+    $ carton
+
+Run all tests with:
+
+    $ make
+
+
 ## Bugs & Improvements
 
 Bug reports and suggestions for improvements are always
