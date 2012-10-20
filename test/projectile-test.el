@@ -2,7 +2,7 @@
   (should (equal (projectile-uniquify-file "ala/bala/portokala") "bala/portokala")))
 
 (ert-deftest projectile-test-project-get-name ()
-  (should (equal (projectile-get-project-name) "project")))
+  (should (equal (projectile-project-name) "project")))
 
 (ert-deftest projectile-test-prepend-project-name ()
   (should (equal (projectile-prepend-project-name "Test") "[project] Test")))
@@ -44,7 +44,7 @@
 (ert-deftest projectile-test-ignored-directories ()
   (flet ((projectile-project-ignored-directories () '("tmp" "log")))
     (let ((expected '("/path/to/project/compiled/" "/path/to/project/tmp/" "/path/to/project/log/"))
-          (projectile-ignored-directories '("compiled")))
+          (projectile-globally-ignored-directories '("compiled")))
       (should (equal (projectile-ignored-directories) expected)))))
 
 (ert-deftest projectile-test-project-ignored-files ()
