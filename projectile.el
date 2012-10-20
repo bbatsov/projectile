@@ -66,6 +66,12 @@ the current directory the project root."
   :type 'symbol
   :options '(ido default))
 
+(defcustom projectile-ack-function 'ack-and-a-half
+  "The ack function to use."
+  :group 'projectile
+  :type 'symbol
+  :options '(ack-and-a-half default))
+
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
   :group 'projectile
@@ -308,7 +314,7 @@ directory is assumed to be the project root otherwise."
           (lambda (path)
             (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
           (projectile-ignored-directories))))
-    (call-interactively 'ack-and-a-half)))
+    (call-interactively projectile-ack-function)))
 
 
 (defun projectile-regenerate-tags ()
