@@ -278,13 +278,19 @@ directory is assumed to be the project root otherwise."
      ((eq projectile-completion-system 'ido) (ido-completing-read prompt choices))
      (t (completing-read prompt choices)))))
 
+(defun projectile-current-project-files ()
+  (projectile-project-files (projectile-project-root)))
+
+(defun projectile-hash-keys (hash)
+  (loop for k being the hash-keys in hash collect k))
+
 (defun projectile-find-file ()
   "Jump to a project's file using completion."
   (interactive)
   (let* ((project-files (projectile-hashify-files
-                         (projectile-project-files (projectile-project-root))))
+                         (projectile-current-project-files)))
          (file (projectile-completing-read "File file: "
-                                           (loop for k being the hash-keys in project-files collect k))))
+                                           (projectile-hash-keys project-files))))
     (find-file (gethash file project-files))))
 
 (defun projectile-grep ()
@@ -342,10 +348,15 @@ directory is assumed to be the project root otherwise."
   "Shows a list of recently visited files in a project"
   (interactive)
   (if (boundp 'recentf-list)
-      (projectile-completing-read "Recently visited files:"
-                                  (intersection (projectile-project-files (projectile-project-root))
-                                                recentf-list
-                                                :test 'string=))
+      (let ((recent-project-files
+             (projectile-hashify-files
+              (intersection (projectile-current-project-files)
+                            recentf-list
+                            :test 'string=))))
+        (find-file (gethash
+                    (projectile-completing-read "Recently visited files:"
+                                                (projectile-hash-keys recent-project-files))
+                    recent-project-files)))
     (message "recentf is not enabled")))
 
 (defun projectile-serialize-cache ()
