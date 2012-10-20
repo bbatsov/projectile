@@ -13,5 +13,5 @@
 (dolist (test-file (or argv (directory-files projectile-test-path t "-test.el$")))
   (load test-file nil t))
 
-(flet ((projectile-get-project-root () "/path/to/project"))
+(flet ((projectile-project-root () "/path/to/project"))
   (ert-run-tests-batch t))
