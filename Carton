@@ -1,0 +1,5 @@
+(source "melpa" "http://melpa.milkbox.net/packages/")
+
+(package "projectile" "0.7" "Manage and navigate projects in Emacs easily")
+
+(depends-on "s" "1.0.0")
