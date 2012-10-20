@@ -75,3 +75,10 @@
          (file-exists-p (filename) t)
          (insert-file-contents-literally (filename) nil))
     (should (equal '("log" "tmp" "compiled") (projectile-parse-ignore-file)))))
+
+(ert-deftest projectile-test-ack ()
+  (flet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/log"))
+         (call-interactively
+          (function &optional record-flag keys)
+          (should (equal ack-and-a-half-arguments '("--ignore-dir=tmp" "--ignore-dir=log")))))
+    (projectile-ack)))
