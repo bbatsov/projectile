@@ -78,7 +78,7 @@ the current directory the project root."
   :type 'sexp)
 
 (defcustom projectile-cache-file
-  (concat user-emacs-directory "projectile.cache")
+  (expand-file-name "projectile.cache" user-emacs-directory)
   "The name of Projectile's cache file."
   :group 'projectile
   :type 'string)
@@ -152,13 +152,13 @@ directory is assumed to be the project root otherwise."
                  (not (or (string= current-file "./") (string= current-file "../")))
                  (not (projectile-ignored-p absolute-file))
                  (not (projectile-ignored-directory-p absolute-file)))
-            (setq files-list (append files-list (projectile-project-files (concat directory current-file)))))
+            (setq files-list (append files-list (projectile-project-files (expand-file-name current-file directory)))))
            ;; check for regular files that are not ignored
            ((and (not (or (string= current-file "./") (string= current-file "../")))
                  (not (s-ends-with-p "/" current-file))
                  (not (projectile-ignored-extension-p current-file))
                  (not (projectile-ignored-file-p absolute-file))
-                 (setq files-list (cons (expand-file-name (concat directory current-file)) files-list))))))
+                 (setq files-list (cons (expand-file-name (expand-file-name current-file directory)) files-list))))))
         ;; cache the resulting list of files
         (when (and projectile-enable-caching (string= directory (projectile-project-root)))
           (puthash directory files-list projectile-projects-cache)
