@@ -82,6 +82,17 @@ the current directory the project root."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-tags-command "ctags -Re %s"
+  "The command Projectile's going to use to generate a TAGS file."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-replace-command
+  "find %s -type d -name .git -prune -o -print | xargs perl -p -i -e 's/%s/%s/g'"
+  "The command Projectile's going to use to replace text in the project."
+  :group 'projectile
+  :type 'string)
+
 ;; variables
 (defvar projectile-project-root-files
   '(".git" ".hg" ".bzr" "_darcs" ".projectile")
@@ -324,12 +335,12 @@ directory is assumed to be the project root otherwise."
 
 
 (defun projectile-regenerate-tags ()
-  "Regenerate the project's etags using ctags."
+  "Regenerate the project's etags."
   (interactive)
   (let ((current-dir default-directory)
         (project-root (projectile-project-root)))
     (cd project-root)
-    (shell-command (format "ctags -Re %s" project-root))
+    (shell-command (format projectile-tags-command project-root))
     (cd current-dir)
     (visit-tags-table project-root)))
 
@@ -341,7 +352,7 @@ directory is assumed to be the project root otherwise."
         (old-text (read-string "Replace: " (thing-at-point 'symbol)))
         (new-text (read-string "With: ")))
     (shell-command
-     (format "find %s -type d -name .git -prune -o -print| xargs perl -p -i -e 's/%s/%s/g'"
+     (format projectile-replace-command
              project-root old-text new-text))))
 
 (defun projectile-kill-buffers ()
@@ -375,6 +386,10 @@ directory is assumed to be the project root otherwise."
                                                 (projectile-hash-keys recent-project-files))
                     recent-project-files)))
     (message "recentf is not enabled")))
+
+(defun projectile-open ()
+  (interactive)
+  (projectile-completing-read "Open project:" (projectile-hash-keys projectile-projects-cache)))
 
 (defun projectile-serialize-cache ()
   (let ((file (concat user-emacs-directory projectile-cache-file)))
