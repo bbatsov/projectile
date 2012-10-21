@@ -77,7 +77,8 @@ the current directory the project root."
   :group 'projectile
   :type 'sexp)
 
-(defcustom projectile-cache-file "projectile.cache"
+(defcustom projectile-cache-file
+  (concat user-emacs-directory "projectile.cache")
   "The name of Projectile's cache file."
   :group 'projectile
   :type 'string)
@@ -389,23 +390,22 @@ directory is assumed to be the project root otherwise."
 
 (defun projectile-open ()
   (interactive)
-  (projectile-completing-read "Open project:" (projectile-hash-keys projectile-projects-cache)))
+  (projectile-completing-read "Open project:"
+                              (projectile-hash-keys projectile-projects-cache)))
 
 (defun projectile-serialize-cache ()
-  (let ((file (concat user-emacs-directory projectile-cache-file)))
-    (with-temp-buffer
-      (insert (prin1-to-string projectile-projects-cache))
-      (when (file-writable-p file)
-        (write-region (point-min)
-                      (point-max)
-                      file)))))
+  (with-temp-buffer
+    (insert (prin1-to-string projectile-projects-cache))
+    (when (file-writable-p projectile-cache-file)
+      (write-region (point-min)
+                    (point-max)
+                    projectile-cache-file))))
 
 (defun projectile-load-cache ()
-  (let ((file (concat user-emacs-directory projectile-cache-file)))
-    (when (file-exists-p file)
-      (with-temp-buffer
-        (insert-file-contents file)
-        (setq projectile-projects-cache (read (buffer-string)))))))
+  (when (file-exists-p projectile-cache-file)
+    (with-temp-buffer
+      (insert-file-contents projectile-cache-file)
+      (setq projectile-projects-cache (read (buffer-string))))))
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
