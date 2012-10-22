@@ -96,7 +96,7 @@ the current directory the project root."
 
 ;; variables
 (defvar projectile-project-root-files
-  '(".git" ".hg" ".bzr" "_darcs" ".projectile")
+  '(".git" ".hg" ".bzr" "_darcs" ".projectile" "pom.xml" "build.sbt" "Gemfile")
   "A list of files considered to mark the root of a project.")
 
 (defvar projectile-globally-ignored-files
