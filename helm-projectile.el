@@ -44,19 +44,22 @@
 (require 'helm-locate)
 (require 'helm-buffers)
 
-(defun helm-c-projectile-files-list ()
-  "Generates a list of files in the current project"
-  (mapcar (lambda (candidate)
-	    (substring candidate (length (expand-file-name (projectile-project-root)))))
-	     (projectile-project-files (projectile-project-root))))
+(defun helm-c-projectile-candidate-buffer-content ()
+  "Generates a content for the `helm-candidate-buffer' from the files in the current project"
+  (mapconcat (lambda (candidate)
+	       (substring candidate (length (expand-file-name (projectile-project-root)))))
+	     (projectile-project-files (projectile-project-root)) "\n"))
 
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
-    (candidates . helm-c-projectile-files-list)
+    (init . (lambda ()
+	      (with-current-buffer (helm-candidate-buffer 'local)
+		(insert
+		 (helm-c-projectile-candidate-buffer-content)))))
+    (candidates-in-buffer)
     (candidate-number-limit . 15)
-    (volatile)
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)
