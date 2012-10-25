@@ -82,9 +82,10 @@
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
-  (helm-other-buffer '(helm-c-source-projectile-files-list
-                       helm-c-source-projectile-buffers-list)
-                     "*helm projectile*"))
+  (helm :sources '(helm-c-source-projectile-files-list
+		   helm-c-source-projectile-buffers-list)
+	:buffer "*helm projectile*"
+	:prompt (projectile-prepend-project-name "pattern: ")))
 
 (define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile)
 
