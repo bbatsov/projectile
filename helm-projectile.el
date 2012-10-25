@@ -71,8 +71,11 @@
 (defvar helm-c-source-projectile-buffers-list
   `((name . "Projectile buffers list")
     ;; Needed for filenames with capitals letters.
-    (candidates . projectile-project-buffer-names)
-    (volatile)
+    (init . (lambda ()
+	      (with-current-buffer (helm-candidate-buffer 'local)
+		(insert
+		 (s-join "\n" (projectile-project-buffer-names))))))
+    (candidates-in-buffer)
     (keymap . ,helm-c-buffer-map)
     (mode-line . helm-buffer-mode-line-string)
     (match-strict helm-c-buffer-match-major-mode)
