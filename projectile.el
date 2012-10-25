@@ -96,7 +96,7 @@ the current directory the project root."
 
 ;; variables
 (defvar projectile-project-root-files
-  '(".git" ".hg" ".bzr" "_darcs" ".projectile" "pom.xml" "build.sbt" "Gemfile")
+  '(".git" ".hg" ".bzr" "_darcs" ".projectile" "rebar.config" "pom.xml" "build.sbt" "Gemfile")
   "A list of files considered to mark the root of a project.")
 
 (defvar projectile-globally-ignored-files
@@ -104,11 +104,12 @@ the current directory the project root."
   "A list of files globally ignored by projectile.")
 
 (defvar projectile-globally-ignored-directories
-  '(".idea")
+  '(".idea" ".eunit")
   "A list of directories globally ignored by projectile.")
 
 (defvar projectile-ignored-file-extensions
-  '("class" "o" "so" "elc" "png" "jpg" "jpeg")
+  '("class" "o" "so" "elc" "beam" "png" "jpg" "jpeg")
+  "A list of file extensions ignored by projectile.")
   "A list of file extensions ignored by projectile.")
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
