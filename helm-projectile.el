@@ -82,7 +82,8 @@
   (interactive)
   (helm :sources '(helm-c-source-projectile-files-list
 		   helm-c-source-projectile-buffers-list)
-	:buffer "*helm projectile*"))
+	:buffer "*helm projectile*"
+	:prompt (projectile-prepend-project-name "pattern: ")))
 
 (define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile)
 
