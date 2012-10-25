@@ -46,8 +46,9 @@
 
 (defun helm-c-projectile-files-list ()
   "Generates a list of files in the current project"
-  (projectile-project-files
-   (projectile-project-root)))
+  (mapcar (lambda (candidate)
+	    (substring candidate (length (expand-file-name (projectile-project-root)))))
+	     (projectile-project-files (projectile-project-root))))
 
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
@@ -59,8 +60,9 @@
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)
-    (match-strict helm-c-match-on-basename)
-    (type . file))
+    (type . file)
+    (action . (lambda(candidate)
+		(find-file (concat (projectile-project-root) candidate)))))
   "Helm source definition")
 
 (defvar helm-c-source-projectile-buffers-list
