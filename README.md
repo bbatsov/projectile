@@ -17,6 +17,7 @@ it. Some of projectile's features:
 * multi-occur in project buffers
 * grep in project
 * regenerate project etags
+* run make in a project with a single key chord
 
 # Installation
 
@@ -112,6 +113,8 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * `projectile-dired` (C-c p d)
 * `projectile-recentf` (C-c p e)
 * `projectile-ack` (C-c p a)
+* `projectile-compile-project` (C-c p l)
+* `projectile-test-project` (C-c p p)
 
 ## Ignoring files
 
