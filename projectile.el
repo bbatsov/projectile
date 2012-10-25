@@ -119,6 +119,14 @@ the current directory the project root."
                                                   )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
+(defvar projectile-project-test-commands '(("./rebar eunit skip_deps=true" . (lambda (dir)
+                                                                               (file-exists-p
+                                                                                (expand-file-name "rebar" dir))))
+                                           ("rebar eunit skip_deps" . (lambda (dir)(executable-find "rebar")))
+                                           ("make test" . (file-exists-p (expand-file-name "Makefile" dir)))
+                                           )
+  "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
+
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
 
@@ -415,19 +423,28 @@ directory is assumed to be the project root otherwise."
       (insert-file-contents projectile-cache-file)
       (setq projectile-projects-cache (read (buffer-string))))))
 
-(defun projectile-compile-project ()
-  (interactive)
+(defun projectile-run-project-command (checks)
   (let* ((dir (or (projectile-project-root)
                   (file-name-directory (buffer-file-name))))
          (pref (concat "cd " dir " && "))
-         (cmd (projectile-get-project-compile-command dir)))
+         (cmd (projectile-get-project-compile-command dir checks)))
     (if cmd
         (compilation-start (concat pref cmd)))
     ))
 
-(defun projectile-get-project-compile-command (dir)
+(defun projectile-compile-project ()
+  (interactive)
+  (projectile-run-project-command projectile-project-compilation-commands)
+  )
+
+(defun projectile-test-project ()
+  (interactive)
+  (projectile-run-project-command projectile-project-test-commands)
+  )
+
+(defun projectile-get-project-compile-command (dir checks)
   "Retrieves the root directory of a project if available."
-  (loop for (command . check) in projectile-project-compilation-commands
+  (loop for (command . check) in checks
         when (funcall check dir)
         do (return command)
         finally (return nil)))
@@ -447,6 +464,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "e") 'projectile-recentf)
         (define-key prefix-map (kbd "a") 'projectile-ack)
         (define-key prefix-map (kbd "l") 'projectile-compile-project)
+        (define-key prefix-map (kbd "p") 'projectile-test-project)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
