@@ -44,7 +44,7 @@
 (require 'helm-locate)
 (require 'helm-buffers)
 
-(defun helm-c-projectile-candidates-buffer-content ()
+(defun helm-c-projectile-candidate-buffer-content ()
   "Generates a content for the `helm-candidate-buffer' from the files in the current project"
   (mapconcat (lambda (candidate)
 	       (substring candidate (length (expand-file-name (projectile-project-root)))))
@@ -57,7 +57,7 @@
     (init . (lambda ()
 	      (with-current-buffer (helm-candidate-buffer 'local)
 		(insert
-		 (helm-c-projectile-candidates-buffer-content)))))
+		 (helm-c-projectile-candidate-buffer-content)))))
     (candidates-in-buffer)
     (candidate-number-limit . 15)
     (keymap . ,helm-generic-files-map)
