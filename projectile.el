@@ -111,6 +111,14 @@ the current directory the project root."
   '("class" "o" "so" "elc" "png" "jpg" "jpeg")
   "A list of file extensions ignored by projectile.")
 
+(defvar projectile-project-compilation-commands '(("./rebar compile" . (lambda (dir)
+                                                                         (file-exists-p
+                                                                          (expand-file-name "rebar" dir))))
+                                                  ("rebar compile" . (lambda (dir)(executable-find "rebar")))
+                                                  ("make" . (file-exists-p (expand-file-name "Makefile" dir)))
+                                                  )
+  "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
+
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
 
@@ -407,6 +415,23 @@ directory is assumed to be the project root otherwise."
       (insert-file-contents projectile-cache-file)
       (setq projectile-projects-cache (read (buffer-string))))))
 
+(defun projectile-compile-project ()
+  (interactive)
+  (let* ((dir (or (projectile-project-root)
+                  (file-name-directory (buffer-file-name))))
+         (pref (concat "cd " dir " && "))
+         (cmd (projectile-get-project-compile-command dir)))
+    (if cmd
+        (compilation-start (concat pref cmd)))
+    ))
+
+(defun projectile-get-project-compile-command (dir)
+  "Retrieves the root directory of a project if available."
+  (loop for (command . check) in projectile-project-compilation-commands
+        when (funcall check dir)
+        do (return command)
+        finally (return nil)))
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
       (let ((prefix-map (make-sparse-keymap)))
@@ -421,6 +446,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "d") 'projectile-dired)
         (define-key prefix-map (kbd "e") 'projectile-recentf)
         (define-key prefix-map (kbd "a") 'projectile-ack)
+        (define-key prefix-map (kbd "l") 'projectile-compile-project)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
