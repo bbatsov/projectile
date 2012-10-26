@@ -110,7 +110,6 @@ the current directory the project root."
 (defvar projectile-ignored-file-extensions
   '("class" "o" "so" "elc" "beam" "png" "jpg" "jpeg")
   "A list of file extensions ignored by projectile.")
-  "A list of file extensions ignored by projectile.")
 
 (defvar projectile-project-compilation-commands '(("./rebar compile" . (lambda (dir)
                                                                          (file-exists-p
