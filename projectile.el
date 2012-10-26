@@ -111,20 +111,32 @@ the current directory the project root."
   '("class" "o" "so" "elc" "beam" "png" "jpg" "jpeg")
   "A list of file extensions ignored by projectile.")
 
-(defvar projectile-project-compilation-commands '(("./rebar compile" . (lambda (dir)
-                                                                         (file-exists-p
-                                                                          (expand-file-name "rebar" dir))))
-                                                  ("rebar compile" . (lambda (dir)(executable-find "rebar")))
-                                                  ("make" . (file-exists-p (expand-file-name "Makefile" dir)))
-                                                  )
+(defvar projectile-project-compilation-commands
+  '(("./rebar compile" .
+     (lambda (dir)
+       (file-exists-p (expand-file-name "rebar" dir))))
+    ("rebar compile" .
+     (lambda (dir)
+       (and (executable-find "rebar")
+            (file-exists-p (expand-file-name "rebar.config" dir)))))
+    ("make" .
+     (lambda (dir)
+       (file-exists-p (expand-file-name "Makefile" dir))))
+    )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
-(defvar projectile-project-test-commands '(("./rebar eunit skip_deps=true" . (lambda (dir)
-                                                                               (file-exists-p
-                                                                                (expand-file-name "rebar" dir))))
-                                           ("rebar eunit skip_deps" . (lambda (dir)(executable-find "rebar")))
-                                           ("make test" . (file-exists-p (expand-file-name "Makefile" dir)))
-                                           )
+(defvar projectile-project-test-commands
+  '(("./rebar eunit skip_deps=true" .
+     (lambda (dir)
+       (file-exists-p (expand-file-name "rebar" dir))))
+    ("rebar eunit skip_deps=true" .
+     (lambda (dir)
+       (and (executable-find "rebar")
+            (file-exists-p (expand-file-name "rebar.config" dir)))))
+    ("make test" .
+     (lambda (dir)
+       (file-exists-p (expand-file-name "Makefile" dir))))
+    )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
