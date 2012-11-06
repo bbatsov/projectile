@@ -310,8 +310,8 @@ directory is assumed to be the project root otherwise."
     (when (file-exists-p ignore-file)
       (with-temp-buffer
         (insert-file-contents-literally ignore-file)
-          (mapcar 's-trim
-                  (delete "" (split-string (buffer-string) "\n")))))))
+        (let ((split-string-default-separators "[\r\n]"))
+          (mapcar 's-trim (delete "" (split-string (buffer-string)))))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root."
