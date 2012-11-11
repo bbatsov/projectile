@@ -211,7 +211,7 @@ directory is assumed to be the project root otherwise."
   "Switch to a project buffer."
   (interactive)
   (switch-to-buffer
-   (projectile-completing-read
+   (projectile-completing-read-in-project
     "Switch to buffer: "
     (projectile-project-buffer-names))))
 
@@ -319,10 +319,12 @@ directory is assumed to be the project root otherwise."
    (expand-file-name name (projectile-project-root))))
 
 (defun projectile-completing-read (prompt choices)
-  (let ((prompt (projectile-prepend-project-name prompt)))
-    (cond
-     ((eq projectile-completion-system 'ido) (ido-completing-read prompt choices))
-     (t (completing-read prompt choices)))))
+  (cond
+   ((eq projectile-completion-system 'ido) (ido-completing-read prompt choices))
+   (t (completing-read prompt choices))))
+
+(defun projectile-completing-read-in-project (prompt choices)
+  (projectile-completing-read (projectile-prepend-project-name prompt) choices))
 
 (defun projectile-current-project-files ()
   (projectile-project-files (projectile-project-root)))
@@ -335,8 +337,9 @@ directory is assumed to be the project root otherwise."
   (interactive)
   (let* ((project-files (projectile-hashify-files
                          (projectile-current-project-files)))
-         (file (projectile-completing-read "File file: "
-                                           (projectile-hash-keys project-files))))
+         (file (projectile-completing-read-in-project
+                "File file: "
+                (projectile-hash-keys project-files))))
     (find-file (gethash file project-files))))
 
 (defun projectile-grep ()
@@ -411,15 +414,17 @@ directory is assumed to be the project root otherwise."
                             recentf-list
                             :test 'string=))))
         (find-file (gethash
-                    (projectile-completing-read "Recently visited files:"
-                                                (projectile-hash-keys recent-project-files))
+                    (projectile-completing-read-in-project
+                     "Recently visited files:"
+                     (projectile-hash-keys recent-project-files))
                     recent-project-files)))
     (message "recentf is not enabled")))
 
 (defun projectile-open ()
   (interactive)
-  (projectile-completing-read "Open project:"
-                              (projectile-hash-keys projectile-projects-cache)))
+  (dired (projectile-completing-read
+          "Open project: "
+          (projectile-hash-keys projectile-projects-cache))))
 
 (defun projectile-serialize-cache ()
   (with-temp-buffer
@@ -477,6 +482,7 @@ directory is assumed to be the project root otherwise."
         (define-key prefix-map (kbd "a") 'projectile-ack)
         (define-key prefix-map (kbd "l") 'projectile-compile-project)
         (define-key prefix-map (kbd "p") 'projectile-test-project)
+        (define-key prefix-map (kbd "o") 'projectile-open)
 
         (define-key map projectile-keymap-prefix prefix-map))
       map)
