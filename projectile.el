@@ -150,6 +150,18 @@ the current directory the project root."
     (message "Invalidated Projectile cache for %s" project-root))
   (projectile-serialize-cache))
 
+(defun projectile-reindex-current-project ()
+  (interactive)
+  (projectile-invalidate-cache)
+  (let ((project-root (projectile-project-root)))
+    (projectile-cache-project project-root
+                              (projectile-index-directory project-root))))
+
+(defun projectile-cache-project (project files)
+  (when (and projectile-enable-caching)
+    (puthash project files projectile-projects-cache)
+    (projectile-serialize-cache)))
+
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available. The current
 directory is assumed to be the project root otherwise."
@@ -169,29 +181,31 @@ directory is assumed to be the project root otherwise."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
                          (gethash directory projectile-projects-cache))))
-    ;; cache miss
+    ;; cache disabled or cache miss
     (unless files-list
-      ;; while we are in the current directory
-      (dolist (current-file (file-name-all-completions "" directory) files-list)
-        (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory))))
-          (cond
-           ;; check for directories that are not ignored
-           ((and (s-ends-with-p "/" current-file)
-                 (not (or (string= current-file "./") (string= current-file "../")))
-                 (not (projectile-ignored-p absolute-file))
-                 (not (projectile-ignored-directory-p absolute-file)))
-            (setq files-list (append files-list (projectile-project-files (expand-file-name current-file directory)))))
-           ;; check for regular files that are not ignored
-           ((and (not (or (string= current-file "./") (string= current-file "../")))
-                 (not (s-ends-with-p "/" current-file))
-                 (not (projectile-ignored-extension-p current-file))
-                 (not (projectile-ignored-file-p absolute-file))
-                 (setq files-list (cons (expand-file-name (expand-file-name current-file directory)) files-list))))))
-        ;; cache the resulting list of files
-        (when (and projectile-enable-caching (string= directory (projectile-project-root)))
-          (puthash directory files-list projectile-projects-cache)
-          (projectile-serialize-cache))))
+      (message "Projectile is indexing %s. This may take a while." directory)
+      (setq files-list (projectile-index-directory directory))
+      ;; cache the resulting list of files
+      (projectile-cache-project directory files-list))
     files-list))
+
+(defun projectile-index-directory (directory)
+  (let (files-list)
+    (dolist (current-file (file-name-all-completions "" directory) files-list)
+      (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory))))
+        (cond
+         ;; check for directories that are not ignored
+         ((and (s-ends-with-p "/" current-file)
+               (not (or (string= current-file "./") (string= current-file "../")))
+               (not (projectile-ignored-p absolute-file))
+               (not (projectile-ignored-directory-p absolute-file)))
+          (setq files-list (append files-list (projectile-index-directory (expand-file-name current-file directory)))))
+         ;; check for regular files that are not ignored
+         ((and (not (or (string= current-file "./") (string= current-file "../")))
+               (not (s-ends-with-p "/" current-file))
+               (not (projectile-ignored-extension-p current-file))
+               (not (projectile-ignored-file-p absolute-file))
+               (setq files-list (cons (expand-file-name (expand-file-name current-file directory)) files-list)))))))))
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
@@ -463,23 +477,23 @@ directory is assumed to be the project root otherwise."
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-      (let ((prefix-map (make-sparse-keymap)))
-        (define-key prefix-map (kbd "f") 'projectile-find-file)
-        (define-key prefix-map (kbd "g") 'projectile-grep)
-        (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
-        (define-key prefix-map (kbd "o") 'projectile-multi-occur)
-        (define-key prefix-map (kbd "r") 'projectile-replace)
-        (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
-        (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
-        (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
-        (define-key prefix-map (kbd "d") 'projectile-dired)
-        (define-key prefix-map (kbd "e") 'projectile-recentf)
-        (define-key prefix-map (kbd "a") 'projectile-ack)
-        (define-key prefix-map (kbd "l") 'projectile-compile-project)
-        (define-key prefix-map (kbd "p") 'projectile-test-project)
+    (let ((prefix-map (make-sparse-keymap)))
+      (define-key prefix-map (kbd "f") 'projectile-find-file)
+      (define-key prefix-map (kbd "g") 'projectile-grep)
+      (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
+      (define-key prefix-map (kbd "o") 'projectile-multi-occur)
+      (define-key prefix-map (kbd "r") 'projectile-replace)
+      (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
+      (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
+      (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
+      (define-key prefix-map (kbd "d") 'projectile-dired)
+      (define-key prefix-map (kbd "e") 'projectile-recentf)
+      (define-key prefix-map (kbd "a") 'projectile-ack)
+      (define-key prefix-map (kbd "l") 'projectile-compile-project)
+      (define-key prefix-map (kbd "p") 'projectile-test-project)
 
-        (define-key map projectile-keymap-prefix prefix-map))
-      map)
+      (define-key map projectile-keymap-prefix prefix-map))
+    map)
   "Keymap for Projectile mode.")
 
 (easy-menu-define projectile-mode-menu projectile-mode-map
