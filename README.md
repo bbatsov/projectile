@@ -80,7 +80,7 @@ disable the cache:
 (setq projectile-enable-caching nil)
 ```
 
-At this point you can try out a projectile command such as `C-c p f` (`projectile-find-file`).
+At this point you can try out a projectile command such as <kbd>C-c p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).
 
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
@@ -102,19 +102,19 @@ You might want to combine default completion with `icomplete-mode` for optimum r
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-* `projectile-find-file` (C-c p f)
-* `projectile-grep` (C-c p g)
-* `projectile-switch-to-buffer` (C-c p b)
-* `projectile-multi-occur` (C-c p o)
-* `projectile-replace` (C-c p r)
-* `projectile-invalidate-cache` (C-c p i)
-* `projectile-regenerate-tags` (C-c p t)
-* `projectile-kill-buffers` (C-c p k)
-* `projectile-dired` (C-c p d)
-* `projectile-recentf` (C-c p e)
-* `projectile-ack` (C-c p a)
-* `projectile-compile-project` (C-c p l)
-* `projectile-test-project` (C-c p p)
+* `projectile-find-file` <kbd>C-c p f</kbd>
+* `projectile-grep` <kbd>C-c p g</kbd>
+* `projectile-switch-to-buffer` <kbd>C-c p b</kbd>
+* `projectile-multi-occur` <kbd>C-c p o</kbd>
+* `projectile-replace` <kbd>C-c p r</kbd>
+* `projectile-invalidate-cache` <kbd>C-c p i</kbd>
+* `projectile-regenerate-tags` <kbd>C-c p t</kbd>
+* `projectile-kill-buffers` <kbd>C-c p k</kbd>
+* `projectile-dired` <kbd>C-c p d</kbd>
+* `projectile-recentf` <kbd>C-c p e</kbd>
+* `projectile-ack` <kbd>C-c p a</kbd>
+* `projectile-compile-project` <kbd>C-c p l</kbd>
+* `projectile-test-project` <kbd>C-c p p</kbd>
 
 ## Ignoring files
 
@@ -186,13 +186,16 @@ Contribution is always welcome!
 Install [carton](https://github.com/rejeep/carton) if you haven't
 already, then:
 
-    $ cd /path/to/projectile
-    $ carton
+```bash
+$ cd /path/to/projectile
+$ carton
+```
 
 Run all tests with:
 
-    $ make
-
+```bash
+$ make
+```
 
 ## Bugs & Improvements
 
