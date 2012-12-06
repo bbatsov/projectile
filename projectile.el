@@ -283,11 +283,9 @@ directory is assumed to be the project root otherwise."
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
-  (mapcar
-   'projectile-expand-root
    (append
     projectile-globally-ignored-files
-    (projectile-project-ignored-files))))
+    (projectile-project-ignored-files)))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
