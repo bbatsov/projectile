@@ -147,8 +147,9 @@ the current directory the project root."
   (interactive)
   (let ((project-root (projectile-project-root)))
     (remhash project-root projectile-projects-cache)
-    (message "Invalidated Projectile cache for %s" project-root))
-  (projectile-serialize-cache))
+    (projectile-serialize-cache)
+    (message "Invalidated Projectile cache for %s."
+             (propertize project-root 'face 'font-lock-keyword-face))))
 
 (defun projectile-reindex-current-project ()
   (interactive)
@@ -183,7 +184,8 @@ directory is assumed to be the project root otherwise."
                          (gethash directory projectile-projects-cache))))
     ;; cache disabled or cache miss
     (unless files-list
-      (message "Projectile is indexing %s. This may take a while." directory)
+      (message "Projectile is indexing %s. This may take a while."
+               (propertize directory 'face 'font-lock-keyword-face))
       (setq files-list (projectile-index-directory directory))
       ;; cache the resulting list of files
       (projectile-cache-project directory files-list))
