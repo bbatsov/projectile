@@ -116,6 +116,10 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 * `projectile-compile-project` <kbd>C-c p l</kbd>
 * `projectile-test-project` <kbd>C-c p p</kbd>
 
+If you ever forget any of Projectile's keybindings just do a:
+
+<kbd>C-c p C-h</kbd>
+
 ## Ignoring files
 
 If you'd like to instruct Projectile to ignore certain files in a
