@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Version: 0.7
 ;; Keywords: project, convenience
-;; Package-Requires: ((s "1.0.0"))
+;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -43,6 +43,7 @@
 (require 'easymenu)
 (require 'thingatpt)
 (require 's)
+(require 'dash)
 
 (defgroup projectile nil
   "Manage and navigate projects easily."
@@ -166,9 +167,10 @@ the current directory the project root."
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available. The current
 directory is assumed to be the project root otherwise."
-  (or (loop for file in projectile-project-root-files
-            when (locate-dominating-file default-directory file)
-            do (return it))
+  (or (->> projectile-project-root-files
+        (--map (locate-dominating-file default-directory it))
+        (-remove #'null)
+        (car))
       (if projectile-require-project-root
           (error "You're not into a project.")
         default-directory)))
@@ -261,7 +263,7 @@ directory is assumed to be the project root otherwise."
 (defun projectile-uniquify-file (filename)
   "Create an unique version of a FILENAME."
   (let ((filename-parts (reverse (split-string filename "/"))))
-    (format "%s/%s" (second filename-parts) (first filename-parts))))
+    (format "%s/%s" (second filename-parts) (car filename-parts))))
 
 (defun projectile-ignored-p (file)
   "Check if FILE should be ignored."
@@ -344,7 +346,9 @@ directory is assumed to be the project root otherwise."
   (projectile-project-files (projectile-project-root)))
 
 (defun projectile-hash-keys (hash)
-  (loop for k being the hash-keys in hash collect k))
+  (let (allkeys)
+    (maphash (lambda (k v) (setq allkeys (cons k allkeys))) hash)
+    allkeys))
 
 (defun projectile-find-file ()
   "Jump to a project's file using completion."

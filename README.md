@@ -21,11 +21,14 @@ it. Some of projectile's features:
 
 # Installation
 
+The recommended way to install Projectile is via MELPA.
+
 ## Manual
 
-Just drop `projectile.el` and [s.el](https://github.com/magnars/s.el)
-somewhere in your `load-path`. I favour the folder
-`~/.emacs.d/vendor`:
+Just drop `projectile.el`,
+[dash.el](https://github.com/magnars/dash.el) and
+[s.el](https://github.com/magnars/s.el) somewhere in your
+`load-path`. I favour the folder `~/.emacs.d/vendor`:
 
 ```lisp
 (add-to-list 'load-path "~/emacs.d/vendor")
