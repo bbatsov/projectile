@@ -535,7 +535,9 @@ directory is assumed to be the project root otherwise."
 
 ;;;###autoload
 (define-minor-mode projectile-mode
-  "Minor mode to assist project management and navigation."
+  "Minor mode to assist project management and navigation.
+
+\\{projectile-mode-map}"
   :lighter " Projectile"
   :keymap projectile-mode-map
   :group 'projectile
