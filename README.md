@@ -167,8 +167,8 @@ Obviously you need to have Helm installed for this to work :-)
   project is traversed. That cache is not automatically updated
   (presently) so you might want to invalidate it manually from time to
   time (or disable it completely for small projects).
-* Some operations like find/replace depend (presently) on external
-  utilities such as find and perl.
+* Some operations like search(grep) depend (presently) on external
+  utilities such as `find`.
 
 ## Would you like to know more?
 
