@@ -1,6 +1,6 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily
 
-;; Copyright (C) 2011-2012 Bozhidar Batsov
+;; Copyright © 2011-2013 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
