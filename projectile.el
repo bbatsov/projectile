@@ -89,12 +89,6 @@ the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-replace-command
-  "find %s -type d -name .git -prune -o -print | xargs perl -p -i -e 's/%s/%s/g'"
-  "The command Projectile's going to use to replace text in the project."
-  :group 'projectile
-  :type 'string)
-
 ;; variables
 (defvar projectile-project-root-files
   '(".projectile" ".git" ".hg" ".bzr" "_darcs" "rebar.config" "pom.xml" "build.sbt" "Gemfile")
@@ -396,13 +390,9 @@ directory is assumed to be the project root otherwise."
 (defun projectile-replace ()
   "Replace a string in the project using perl."
   (interactive)
-  (let ((current-dir default-directory)
-        (project-root (projectile-project-root))
-        (old-text (read-string "Replace: " (thing-at-point 'symbol)))
+  (let ((old-text (read-string "Replace: " (thing-at-point 'symbol)))
         (new-text (read-string "With: ")))
-    (shell-command
-     (format projectile-replace-command
-             project-root old-text new-text))))
+    (tags-query-replace old-text new-text nil '(projectile-project-files (projectile-project-root)))))
 
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
