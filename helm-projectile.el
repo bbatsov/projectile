@@ -47,34 +47,34 @@
 (defun helm-c-projectile-candidate-buffer-content ()
   "Generates a content for the `helm-candidate-buffer' from the files in the current project"
   (mapconcat (lambda (candidate)
-	       (substring candidate (length (expand-file-name (projectile-project-root)))))
-	     (projectile-project-files (projectile-project-root)) "\n"))
+               (substring candidate (length (expand-file-name (projectile-project-root)))))
+             (projectile-project-files (projectile-project-root)) "\n"))
 
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
     (init . (lambda ()
-	      (with-current-buffer (helm-candidate-buffer 'local)
-		(insert
-		 (helm-c-projectile-candidate-buffer-content)))))
+              (with-current-buffer (helm-candidate-buffer 'local)
+                (insert
+                 (helm-c-projectile-candidate-buffer-content)))))
     (candidates-in-buffer)
     (candidate-number-limit . 15)
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)
     (type . file)
-    (action . (lambda(candidate)
-		(find-file (concat (projectile-project-root) candidate)))))
+    (action . (lambda (candidate)
+                (find-file (concat (projectile-project-root) candidate)))))
   "Helm source definition")
 
 (defvar helm-c-source-projectile-buffers-list
   `((name . "Projectile buffers list")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
-	      (with-current-buffer (helm-candidate-buffer 'local)
-		(insert
-		 (s-join "\n" (projectile-project-buffer-names))))))
+              (with-current-buffer (helm-candidate-buffer 'local)
+                (insert
+                 (s-join "\n" (projectile-project-buffer-names))))))
     (candidates-in-buffer)
     (keymap . ,helm-c-buffer-map)
     (mode-line . helm-buffer-mode-line-string)
@@ -89,9 +89,9 @@
   "Use projectile with Helm instead of ido."
   (interactive)
   (helm :sources '(helm-c-source-projectile-files-list
-		   helm-c-source-projectile-buffers-list)
-	:buffer "*helm projectile*"
-	:prompt (projectile-prepend-project-name "pattern: ")))
+                   helm-c-source-projectile-buffers-list)
+        :buffer "*helm projectile*"
+        :prompt (projectile-prepend-project-name "pattern: ")))
 
 (define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile)
 
