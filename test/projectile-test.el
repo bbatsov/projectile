@@ -1,5 +1,6 @@
 (ert-deftest projectile-test-uniquify-file ()
-  (should (equal (projectile-uniquify-file "ala/bala/portokala") "bala/portokala")))
+  (should (equal (projectile-uniquify-file "ala/bala/portokala")
+                 "bala/portokala")))
 
 (ert-deftest projectile-test-project-get-name ()
   (should (equal (projectile-project-name) "project")))
@@ -11,13 +12,6 @@
   (should (equal (projectile-expand-root "foo") "/path/to/project/foo/"))
   (should (equal (projectile-expand-root "foo/bar") "/path/to/project/foo/bar/"))
   (should (equal (projectile-expand-root "./foo/bar") "/path/to/project/foo/bar/")))
-
-(ert-deftest projectile-test-ignored-p ()
-  (let ((projectile-project-root-files '(".git")))
-    (should (projectile-ignored-p "/path/to/project/.git/"))
-    (should-not (projectile-ignored-p "/path/to/project/.git"))
-    (should-not (projectile-ignored-p ".projectile"))
-    (should-not (projectile-ignored-p "tmp/.git"))))
 
 (ert-deftest projectile-test-ignored-directory-p ()
   (flet ((projectile-ignored-directories () '("/path/to/project/tmp")))

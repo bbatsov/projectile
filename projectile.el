@@ -99,7 +99,7 @@ the current directory the project root."
   "A list of files globally ignored by projectile.")
 
 (defvar projectile-globally-ignored-directories
-  '(".idea" ".eunit")
+  '(".idea" ".eunit" ".git" ".hg" ".bzr" "_darcs")
   "A list of directories globally ignored by projectile.")
 
 (defvar projectile-ignored-file-extensions
@@ -151,7 +151,7 @@ the current directory the project root."
   (projectile-invalidate-cache)
   (let ((project-root (projectile-project-root)))
     (projectile-cache-project project-root
-                              (projectile-index-directory project-root))))
+                              (projectile-index-directory project-root (projectile-rel-patterns)))))
 
 (defun projectile-cache-project (project files)
   (when (and projectile-enable-caching)
@@ -177,44 +177,49 @@ directory is assumed to be the project root otherwise."
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
-                         (gethash directory projectile-projects-cache))))
+                         (gethash directory projectile-projects-cache)))
+        (patterns (projectile-rel-patterns)))
     ;; cache disabled or cache miss
     (unless files-list
       (message "Projectile is indexing %s. This may take a while."
                (propertize directory 'face 'font-lock-keyword-face))
-      (setq files-list (projectile-index-directory directory))
+      (setq files-list (projectile-index-directory directory patterns))
       ;; cache the resulting list of files
       (projectile-cache-project directory files-list))
     files-list))
 
-(defun projectile-index-directory (directory)
+(defun projectile-index-directory (directory patterns)
   (let (files-list)
     (dolist (current-file (file-name-all-completions "" directory) files-list)
-      (let ((absolute-file (file-name-as-directory (expand-file-name current-file directory))))
+      (let ((absolute-file (expand-file-name current-file directory)))
         (cond
          ;; check for directories that are not ignored
          ((and (s-ends-with-p "/" current-file)
                (not (or (string= current-file "./") (string= current-file "../")))
-               (not (projectile-ignored-p absolute-file))
-               (not (projectile-ignored-directory-p absolute-file)))
-          (setq files-list (append files-list (projectile-index-directory (expand-file-name current-file directory)))))
+               (not (-any? (lambda (file)
+                            (string= (s-chop-suffix "/" current-file) file))
+                          '(".svn" ".cvs")))
+               (not (projectile-ignored-directory-p absolute-file))
+               (not (and patterns (projectile-ignored-rel-p directory absolute-file patterns))))
+          (setq files-list (append files-list (projectile-index-directory (expand-file-name current-file directory) patterns))))
          ;; check for regular files that are not ignored
          ((and (not (or (string= current-file "./") (string= current-file "../")))
                (not (s-ends-with-p "/" current-file))
                (not (projectile-ignored-extension-p current-file))
                (not (projectile-ignored-file-p absolute-file))
+               (not (and patterns (projectile-ignored-rel-p directory absolute-file patterns)))
                (setq files-list (cons (expand-file-name (expand-file-name current-file directory)) files-list)))))))))
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
   (let ((project-files (projectile-project-files (projectile-project-root)))
-        (buffer-files (mapcar 'buffer-file-name (buffer-list))))
-    (mapcar 'get-file-buffer
+        (buffer-files (-map 'buffer-file-name (buffer-list))))
+    (-map 'get-file-buffer
             (intersection project-files buffer-files :test 'string=))))
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
-  (mapcar 'buffer-name (projectile-project-buffers)))
+  (-map 'buffer-name (projectile-project-buffers)))
 
 (defun projectile-prepend-project-name (string)
   (format "[%s] %s" (projectile-project-name) string))
@@ -259,13 +264,6 @@ directory is assumed to be the project root otherwise."
   (let ((filename-parts (reverse (split-string filename "/"))))
     (format "%s/%s" (second filename-parts) (car filename-parts))))
 
-(defun projectile-ignored-p (file)
-  "Check if FILE should be ignored."
-  (find-if
-   (lambda (root-file)
-     (string= file (projectile-expand-root root-file)))
-   projectile-project-root-files))
-
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
   (member directory (projectile-ignored-directories)))
@@ -274,6 +272,15 @@ directory is assumed to be the project root otherwise."
   "Check if FILE should be ignored."
   (member file (projectile-ignored-files)))
 
+(defun projectile-ignored-rel-p (directory file patterns)
+  "Check if FILE should be ignored relative to DIRECTORY."
+  (let ((default-directory directory))
+    (-any? (lambda (pattern)
+             (or (s-ends-with? (s-chop-suffix "/" pattern)
+                               (s-chop-suffix "/" file))
+                 (member file (file-expand-wildcards pattern t))))
+           patterns)))
+
 (defun projectile-ignored-extension-p (file)
   "Check if FILE should be ignored based on its extension."
   (let ((ext (file-name-extension file)))
@@ -281,7 +288,7 @@ directory is assumed to be the project root otherwise."
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
-  (mapcar
+  (-map
    'projectile-expand-root
    (append
     projectile-globally-ignored-files
@@ -289,26 +296,42 @@ directory is assumed to be the project root otherwise."
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
-  (mapcar
-   'projectile-expand-root
-   (append
-    projectile-globally-ignored-directories
-    (projectile-project-ignored-directories))))
+  (-map
+   'file-name-as-directory
+   (-map
+    'projectile-expand-root
+    (append
+     projectile-globally-ignored-directories
+     (projectile-project-ignored-directories)))))
 
 (defun projectile-project-ignored-files ()
   "Return list of project ignored files."
-  (delete-if 'file-directory-p (projectile-project-ignored)))
+  (-remove 'file-directory-p (projectile-project-ignored)))
 
 (defun projectile-project-ignored-directories ()
   "Return list of project ignored directories."
-  (delete-if-not 'file-directory-p (projectile-project-ignored)))
+  (-filter 'file-directory-p (projectile-project-ignored)))
+
+(defun projectile-abs-patterns ()
+  "Return a list of absolute (starting with /) file patterns."
+  (-map (lambda (pattern)
+          (s-chop-prefix "/" pattern))
+        (-filter (lambda (pattern)
+                   (s-starts-with? "/" pattern))
+                 (projectile-parse-ignore-file))))
+
+(defun projectile-rel-patterns ()
+  "Return a list of relative file patterns."
+  (-remove (lambda (pattern)
+             (s-starts-with? "/" pattern))
+           (projectile-parse-ignore-file)))
 
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories."
-  (let ((patterns (projectile-parse-ignore-file))
+  (let ((patterns (projectile-abs-patterns))
         (default-directory (projectile-project-root)))
     (apply 'append
-           (mapcar
+           (-map
             (lambda (pattern)
               (file-expand-wildcards pattern t))
             patterns))))
@@ -323,7 +346,7 @@ directory is assumed to be the project root otherwise."
       (with-temp-buffer
         (insert-file-contents-literally ignore-file)
         (let ((split-string-default-separators "[\r\n]"))
-          (mapcar 's-trim (delete "" (split-string (buffer-string)))))))))
+          (-map 's-trim (delete "" (split-string (buffer-string)))))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root."
@@ -370,7 +393,7 @@ directory is assumed to be the project root otherwise."
   "Run an `ack-and-a-half' search in the project."
   (interactive)
   (let ((ack-and-a-half-arguments
-         (mapcar
+         (-map
           (lambda (path)
             (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
           (projectile-ignored-directories))))
