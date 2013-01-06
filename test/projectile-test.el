@@ -23,12 +23,6 @@
     (should (projectile-ignored-file-p "/path/to/project/TAGS"))
     (should-not (projectile-ignored-file-p "/path/to/project/foo.el"))))
 
-(ert-deftest projectile-test-ignored-extension-p ()
-  (let ((projectile-ignored-file-extensions '("elc")))
-    (should (projectile-ignored-extension-p "foo.elc"))
-    (should (projectile-ignored-extension-p "/path/to/project/foo.elc"))
-    (should-not (projectile-ignored-extension-p "foo.el"))))
-
 (ert-deftest projectile-test-ignored-files ()
   (flet ((projectile-project-ignored-files () '("foo.js" "bar.rb")))
     (let ((expected '("/path/to/project/TAGS/" "/path/to/project/foo.js/" "/path/to/project/bar.rb/"))

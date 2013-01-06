@@ -102,10 +102,6 @@ the current directory the project root."
   '(".idea" ".eunit" ".git" ".hg" ".bzr" "_darcs")
   "A list of directories globally ignored by projectile.")
 
-(defvar projectile-ignored-file-extensions
-  '("class" "o" "so" "elc" "beam" "png" "jpg" "jpeg")
-  "A list of file extensions ignored by projectile.")
-
 (defvar projectile-project-compilation-commands
   '(("./rebar compile" .
      (lambda (dir)
@@ -212,7 +208,6 @@ have been indexed."
                                     patterns))))
          ;; check for regular files that are not ignored
          ((and (not (s-ends-with-p "/" current-file))
-               (not (projectile-ignored-extension-p current-file))
                (not (projectile-ignored-file-p absolute-file))
                (not (and patterns
                          (projectile-ignored-rel-p directory
@@ -291,11 +286,6 @@ have been indexed."
                                (s-chop-suffix "/" file))
                  (member file (file-expand-wildcards pattern t))))
            patterns)))
-
-(defun projectile-ignored-extension-p (file)
-  "Check if FILE should be ignored based on its extension."
-  (let ((ext (file-name-extension file)))
-    (member ext projectile-ignored-file-extensions)))
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
