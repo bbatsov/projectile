@@ -454,7 +454,7 @@ have been indexed."
                             recentf-list
                             :test 'string=))))
         (find-file (gethash
-                    (projectile-completing-read "Recently visited files:"
+                    (projectile-completing-read "Recently visited files: "
                                                 (projectile-hash-keys recent-project-files))
                     recent-project-files)))
     (message "recentf is not enabled")))
