@@ -532,19 +532,23 @@ have been indexed."
 (easy-menu-define projectile-mode-menu projectile-mode-map
   "Menu for Projectile mode"
   '("Projectile"
-    ("Navigating"
-     ["File file" projectile-find-file]
-     ["Switch to buffer" projectile-switch-to-buffer])
-
-    ("Find & Replace"
-     ["Find in project (grep)" projectile-grep]
-     ["Find in project (ack)" projectile-ack]
-     ["Replace in project" projectile-replace]
-     ["Multi-occur in project" projectile-multi-occur])
-
-    ("General"
-     ["Invalidate cache" projectile-invalidate-cache]
-     ["Regenerate etags" projectile-regenerate-tags])))
+    ["File file" projectile-find-file]
+    ["Switch to buffer" projectile-switch-to-buffer]
+    ["Kill project buffers" projectile-kill-buffers]
+    ["Recent files" projectile-recentf]
+    "--"
+    ["Open project in dired" projectile-dired]
+    ["Find in project (grep)" projectile-grep]
+    ["Find in project (ack)" projectile-ack]
+    ["Replace in project" projectile-replace]
+    ["Multi-occur in project" projectile-multi-occur]
+    "--"
+    ["Invalidate cache" projectile-invalidate-cache]
+    ["Reindex project" projectile-reindex-current-project]
+    ["Regenerate etags" projectile-regenerate-tags]
+    "--"
+    ["Compile project" projectile-compile-project]
+    ["Test project" projectile-test-project]))
 
 ;; define minor mode
 ;;;###autoload
