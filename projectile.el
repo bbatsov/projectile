@@ -357,8 +357,7 @@ have been indexed."
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root."
-  (file-name-as-directory
-   (expand-file-name name (projectile-project-root))))
+  (expand-file-name name (projectile-project-root)))
 
 (defun projectile-completing-read (prompt choices)
   "Present a project tailored PROMPT with CHOICES."
@@ -392,10 +391,11 @@ have been indexed."
   (let ((search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
                          (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol))))
-        (root-dir (projectile-project-root)))
+        (root-dir (expand-file-name (projectile-project-root))))
     (require 'grep)
-    (let ((grep-find-ignored-directories (append  (projectile-ignored-directories) grep-find-ignored-directories))
-          (grep-find-ignored-files (append (projectile-ignored-files) grep-find-ignored-files)))
+    ;; paths for find-grep should relative and without trailing /
+    (let ((grep-find-ignored-directories (append (-map (lambda (dir) (s-chop-suffix "/" (s-replace root-dir "" dir))) (projectile-ignored-directories)) grep-find-ignored-directories))
+          (grep-find-ignored-files (append (-map (lambda (file) (s-replace root-dir "" file)) (projectile-ignored-files)) grep-find-ignored-files)))
       (grep-compute-defaults)
       (rgrep search-regexp "* .*" root-dir))))
 
