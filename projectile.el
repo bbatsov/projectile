@@ -189,26 +189,37 @@ directory is assumed to be the project root otherwise."
     files-list))
 
 (defun projectile-index-directory (directory patterns)
+  "Index DIRECTORY taking into account PATTERNS.
+The function calls itself recursively until all sub-directories
+have been indexed."
   (let (files-list)
     (dolist (current-file (file-name-all-completions "" directory) files-list)
       (let ((absolute-file (expand-file-name current-file directory)))
         (cond
          ;; check for directories that are not ignored
          ((and (s-ends-with-p "/" current-file)
-               (not (or (string= current-file "./") (string= current-file "../")))
+               ;; avoid loops & ignore some well known directories
                (not (-any? (lambda (file)
                             (string= (s-chop-suffix "/" current-file) file))
-                          '(".svn" ".cvs")))
+                          '("." ".." ".svn" ".cvs")))
                (not (projectile-ignored-directory-p absolute-file))
-               (not (and patterns (projectile-ignored-rel-p directory absolute-file patterns))))
-          (setq files-list (append files-list (projectile-index-directory (expand-file-name current-file directory) patterns))))
+               (not (and patterns
+                         (projectile-ignored-rel-p directory
+                                                   absolute-file patterns))))
+          (setq files-list (append files-list
+                                   (projectile-index-directory
+                                    (expand-file-name current-file directory)
+                                    patterns))))
          ;; check for regular files that are not ignored
-         ((and (not (or (string= current-file "./") (string= current-file "../")))
-               (not (s-ends-with-p "/" current-file))
+         ((and (not (s-ends-with-p "/" current-file))
                (not (projectile-ignored-extension-p current-file))
                (not (projectile-ignored-file-p absolute-file))
-               (not (and patterns (projectile-ignored-rel-p directory absolute-file patterns)))
-               (setq files-list (cons (expand-file-name (expand-file-name current-file directory)) files-list)))))))))
+               (not (and patterns
+                         (projectile-ignored-rel-p directory
+                                                   absolute-file patterns))))
+          (setq files-list (cons
+                            (expand-file-name current-file directory)
+                            files-list))))))))
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
