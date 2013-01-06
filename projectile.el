@@ -56,8 +56,8 @@
   :type 'boolean)
 
 (defcustom projectile-require-project-root t
-  "Require the presence of a project root to operate. Otherwise consider
-the current directory the project root."
+  "Require the presence of a project root to operate when true.
+Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'boolean)
 
@@ -143,26 +143,30 @@ the current directory the project root."
              (propertize project-root 'face 'font-lock-keyword-face))))
 
 (defun projectile-reindex-current-project ()
+  "Reindex the current project."
   (interactive)
   (projectile-invalidate-cache)
   (let ((project-root (projectile-project-root)))
-    (projectile-cache-project project-root
-                              (projectile-index-directory project-root (projectile-rel-patterns)))))
+    (projectile-cache-project
+     project-root
+     (projectile-index-directory project-root (projectile-rel-patterns)))))
 
 (defun projectile-cache-project (project files)
-  (when (and projectile-enable-caching)
+  "Cache PROJECT's FILES.
+The cache is created both in memory and on the hard drive."
+  (when projectile-enable-caching
     (puthash project files projectile-projects-cache)
     (projectile-serialize-cache)))
 
 (defun projectile-project-root ()
-  "Retrieves the root directory of a project if available. The current
-directory is assumed to be the project root otherwise."
+  "Retrieves the root directory of a project if available.
+The current directory is assumed to be the project's root otherwise."
   (or (->> projectile-project-root-files
         (--map (locate-dominating-file default-directory it))
         (-remove #'null)
         (car))
       (if projectile-require-project-root
-          (error "You're not into a project.")
+          (error "You're not into a project")
         default-directory)))
 
 (defun projectile-project-name ()
@@ -228,6 +232,7 @@ have been indexed."
   (-map 'buffer-name (projectile-project-buffers)))
 
 (defun projectile-prepend-project-name (string)
+  "Prepend the current project's name to STRING."
   (format "[%s] %s" (projectile-project-name) string))
 
 (defun projectile-switch-to-buffer ()
@@ -279,7 +284,7 @@ have been indexed."
   (member file (projectile-ignored-files)))
 
 (defun projectile-ignored-rel-p (directory file patterns)
-  "Check if FILE should be ignored relative to DIRECTORY."
+  "Check if FILE should be ignored relative to DIRECTORY according to PATTERNS."
   (let ((default-directory directory))
     (-any? (lambda (pattern)
              (or (s-ends-with? (s-chop-suffix "/" pattern)
@@ -338,10 +343,11 @@ have been indexed."
             patterns))))
 
 (defun projectile-ignore-file ()
+  "Return the absolute path to the project's ignore file."
   (expand-file-name ".projectile" (projectile-project-root)))
 
 (defun projectile-parse-ignore-file ()
-  "Parse project ignore file and return list of ignores."
+  "Parse project ignore file and return list of patterns to ignore."
   (let ((ignore-file (projectile-ignore-file)))
     (when (file-exists-p ignore-file)
       (with-temp-buffer
@@ -355,15 +361,18 @@ have been indexed."
    (expand-file-name name (projectile-project-root))))
 
 (defun projectile-completing-read (prompt choices)
+  "Present a project tailored PROMPT with CHOICES."
   (let ((prompt (projectile-prepend-project-name prompt)))
     (cond
      ((eq projectile-completion-system 'ido) (ido-completing-read prompt choices))
      (t (completing-read prompt choices)))))
 
 (defun projectile-current-project-files ()
+  "Return a list of files for the current project."
   (projectile-project-files (projectile-project-root)))
 
 (defun projectile-hash-keys (hash)
+  "Return a list of all HASH keys."
   (let (allkeys)
     (maphash (lambda (k v) (setq allkeys (cons k allkeys))) hash)
     allkeys))
@@ -431,12 +440,12 @@ have been indexed."
         (mapc 'kill-buffer buffers))))
 
 (defun projectile-dired ()
-  "Opens dired at the root of the project"
+  "Opens dired at the root of the project."
   (interactive)
   (dired (projectile-project-root)))
 
 (defun projectile-recentf ()
-  "Shows a list of recently visited files in a project"
+  "Show a list of recently visited files in a project."
   (interactive)
   (if (boundp 'recentf-list)
       (let ((recent-project-files
@@ -451,11 +460,13 @@ have been indexed."
     (message "recentf is not enabled")))
 
 (defun projectile-open ()
+  "Prompt for a project to open."
   (interactive)
   (projectile-completing-read "Open project:"
                               (projectile-hash-keys projectile-projects-cache)))
 
 (defun projectile-serialize-cache ()
+  "Serializes the memory cache to the hard drive."
   (with-temp-buffer
     (insert (prin1-to-string projectile-projects-cache))
     (when (file-writable-p projectile-cache-file)
@@ -464,12 +475,14 @@ have been indexed."
                     projectile-cache-file))))
 
 (defun projectile-load-cache ()
+  "Load the cache from the hard drive in memory."
   (when (file-exists-p projectile-cache-file)
     (with-temp-buffer
       (insert-file-contents projectile-cache-file)
       (setq projectile-projects-cache (read (buffer-string))))))
 
 (defun projectile-run-project-command (checks)
+  "Run command considering CHECKS."
   (let* ((dir (or (projectile-project-root)
                   (file-name-directory (buffer-file-name))))
          (pref (concat "cd " dir " && "))
@@ -479,17 +492,17 @@ have been indexed."
     ))
 
 (defun projectile-compile-project ()
+  "Run project compilation command."
   (interactive)
-  (projectile-run-project-command projectile-project-compilation-commands)
-  )
+  (projectile-run-project-command projectile-project-compilation-commands))
 
 (defun projectile-test-project ()
+  "Run project test command."
   (interactive)
-  (projectile-run-project-command projectile-project-test-commands)
-  )
+  (projectile-run-project-command projectile-project-test-commands))
 
 (defun projectile-get-project-compile-command (dir checks)
-  "Retrieves the root directory of a project if available."
+  "Retrieve compile command according to DIR and CHECKS."
   (loop for (command . check) in checks
         when (funcall check dir)
         do (return command)
