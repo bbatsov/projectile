@@ -3,7 +3,7 @@
 Projectile is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
 introducing external dependencies. For instance - finding project
-files is done in pure elisp without the use of GNU find.
+files is done in pure Emacs Lisp without the use of GNU find.
 
 This library provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
@@ -14,9 +14,12 @@ it. Some of projectile's features:
 
 * jump to a file in project
 * jump to a project buffer
+* kill all project buffers
+* replace in project
 * multi-occur in project buffers
 * grep in project
 * regenerate project etags
+* visit project in dired
 * run make in a project with a single key chord
 
 # Installation
@@ -105,19 +108,19 @@ You might want to combine default completion with `icomplete-mode` for optimum r
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-* `projectile-find-file` <kbd>C-c p f</kbd>
-* `projectile-grep` <kbd>C-c p g</kbd>
+* `projectile-find-file`        <kbd>C-c p f</kbd>
+* `projectile-grep`             <kbd>C-c p g</kbd>
 * `projectile-switch-to-buffer` <kbd>C-c p b</kbd>
-* `projectile-multi-occur` <kbd>C-c p o</kbd>
-* `projectile-replace` <kbd>C-c p r</kbd>
+* `projectile-multi-occur`      <kbd>C-c p o</kbd>
+* `projectile-replace`          <kbd>C-c p r</kbd>
 * `projectile-invalidate-cache` <kbd>C-c p i</kbd>
-* `projectile-regenerate-tags` <kbd>C-c p t</kbd>
-* `projectile-kill-buffers` <kbd>C-c p k</kbd>
-* `projectile-dired` <kbd>C-c p d</kbd>
-* `projectile-recentf` <kbd>C-c p e</kbd>
-* `projectile-ack` <kbd>C-c p a</kbd>
-* `projectile-compile-project` <kbd>C-c p l</kbd>
-* `projectile-test-project` <kbd>C-c p p</kbd>
+* `projectile-regenerate-tags`  <kbd>C-c p t</kbd>
+* `projectile-kill-buffers`     <kbd>C-c p k</kbd>
+* `projectile-dired`            <kbd>C-c p d</kbd>
+* `projectile-recentf`          <kbd>C-c p e</kbd>
+* `projectile-ack`              <kbd>C-c p a</kbd>
+* `projectile-compile-project`  <kbd>C-c p l</kbd>
+* `projectile-test-project`     <kbd>C-c p p</kbd>
 
 If you ever forget any of Projectile's keybindings just do a:
 
@@ -130,10 +133,20 @@ project, when indexing it you can do so in the `.projectile`
 file. Here's an example for a typical Rails application:
 
 ```
-log
+/log
+/tmp
+/vendor
+/public/uploads
+```
+
+This would ignore the folders only at the root of the project.
+Projectile also supports relative pathname ignores:
+
+```
 tmp
-vendor
-public/uploads
+*.rb
+*.yml
+models
 ```
 
 ## Helm Integration
