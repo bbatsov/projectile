@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
-;; Version: 0.7
+;; Version: 0.8
 ;; Keywords: project, convenience
 ;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
 
