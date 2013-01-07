@@ -275,6 +275,16 @@ have been indexed."
   (let ((filename-parts (reverse (split-string filename "/"))))
     (format "%s/%s" (second filename-parts) (car filename-parts))))
 
+(defun projectile-project-p (&optional directory)
+  "Check if this project can run projectile function."
+  (let ((project-directory (or directory default-directory)))
+    (if (->> projectile-project-root-files
+          (--map (locate-dominating-file project-directory it))
+          (-remove #'null)
+          (car))
+        t
+      nil)))
+
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
   (member directory (projectile-ignored-directories)))
