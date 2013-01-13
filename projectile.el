@@ -529,26 +529,33 @@ have been indexed."
     map)
   "Keymap for Projectile mode.")
 
-(easy-menu-define projectile-mode-menu projectile-mode-map
-  "Menu for Projectile mode"
-  '("Projectile"
-    ["File file" projectile-find-file]
-    ["Switch to buffer" projectile-switch-to-buffer]
-    ["Kill project buffers" projectile-kill-buffers]
-    ["Recent files" projectile-recentf]
-    "--"
-    ["Open project in dired" projectile-dired]
-    ["Find in project (grep)" projectile-grep]
-    ["Find in project (ack)" projectile-ack]
-    ["Replace in project" projectile-replace]
-    ["Multi-occur in project" projectile-multi-occur]
-    "--"
-    ["Invalidate cache" projectile-invalidate-cache]
-    ["Reindex project" projectile-reindex-current-project]
-    ["Regenerate etags" projectile-regenerate-tags]
-    "--"
-    ["Compile project" projectile-compile-project]
-    ["Test project" projectile-test-project]))
+(defun projectile-add-menu ()
+  (easy-menu-add-item nil '("Tools")
+                      '("Projectile"
+                        ["File file" projectile-find-file]
+                        ["Switch to buffer" projectile-switch-to-buffer]
+                        ["Kill project buffers" projectile-kill-buffers]
+                        ["Recent files" projectile-recentf]
+                        "--"
+                        ["Open project in dired" projectile-dired]
+                        ["Find in project (grep)" projectile-grep]
+                        ["Find in project (ack)" projectile-ack]
+                        ["Replace in project" projectile-replace]
+                        ["Multi-occur in project" projectile-multi-occur]
+                        "--"
+                        ["Invalidate cache" projectile-invalidate-cache]
+                        ["Reindex project" projectile-reindex-current-project]
+                        ["Regenerate etags" projectile-regenerate-tags]
+                        "--"
+                        ["Compile project" projectile-compile-project]
+                        ["Test project" projectile-test-project])
+                      "Search Files (Grep)...")
+
+  (easy-menu-add-item nil '("Tools") '("--") "Search Files (Grep)..."))
+
+(defun projectile-remove-menu ()
+  (easy-menu-remove-item nil '("Tools") "Projectile")
+  (easy-menu-remove-item nil '("Tools") "--"))
 
 ;; define minor mode
 ;;;###autoload
@@ -576,9 +583,9 @@ have been indexed."
       ;; on start
       (progn
         (projectile-load-cache)
-        (easy-menu-add projectile-mode-menu projectile-mode-map))
+        (projectile-add-menu))
     ;; on stop
-    (easy-menu-remove)))
+    (projectile-remove-menu)))
 
 (provide 'projectile)
 
