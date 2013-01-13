@@ -511,12 +511,6 @@ have been indexed."
                     recent-project-files)))
     (message "recentf is not enabled")))
 
-(defun projectile-open ()
-  "Prompt for a project to open."
-  (interactive)
-  (projectile-completing-read "Open project:"
-                              (projectile-hash-keys projectile-projects-cache)))
-
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
   (with-temp-buffer
