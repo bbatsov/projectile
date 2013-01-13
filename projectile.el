@@ -385,6 +385,58 @@ have been indexed."
                                            (projectile-hash-keys project-files))))
     (find-file (gethash file project-files))))
 
+(defun projectile-find-test-file ()
+  "Jump to a project's test file using completion."
+  (interactive)
+  (let* ((test-files (projectile-hashify-files
+                         (projectile-test-files (projectile-current-project-files))))
+         (file (projectile-completing-read "File test file: "
+                                           (projectile-hash-keys test-files))))
+    (find-file (gethash file test-files))))
+
+(defvar projectile-test-files-suffices '("_test" "_spec" "Test" "-test")
+  "Some common suffices of test files.")
+
+(defun projectile-test-files (files)
+  (-filter 'projectile-test-file-p files))
+
+(defun projectile-test-file-p (file)
+  "Check if FILE is a test file."
+  (-any? (lambda (suffix)
+           (s-ends-with? suffix (file-name-sans-extension file)))
+         projectile-test-files-suffices))
+
+(defun projectile-toggle-between-implemenation-and-test ()
+  "Toggle between an implementation file and its test file."
+  (interactive)
+  (if (projectile-test-file-p (buffer-file-name))
+      ;; find the matching impl file
+      (let ((impl-file (projectile-compute-file-name (buffer-file-name))))
+        (if impl-file
+            (find-file impl-file)
+          (error "No matching source file found")))
+    ;; find the matching test file
+    (let ((test-file (projectile-compute-test-file-name (buffer-file-name))))
+      (if test-file
+          (find-file test-file)
+        (error "No matching test file found")))))
+
+(defun projectile-compute-test-file-name (file)
+  (let ((basename (file-name-sans-extension file))
+        (extension (file-name-extension file)))
+      (-first #'file-exists-p
+              (-map (lambda (suffix)
+                      (s-replace "/app/" "/spec/" (concat (s-append suffix basename) "." extension)))
+                    projectile-test-files-suffices))))
+
+(defun projectile-compute-file-name (test-file)
+  (let ((basename (file-name-sans-extension test-file))
+        (extension (file-name-extension test-file)))
+    (-first #'file-exists-p
+            (-map (lambda (suffix)
+                    (s-replace "/spec/" "/app/" (concat (s-chop-suffix suffix basename) "." extension)))
+                  projectile-test-files-suffices))))
+
 (defun projectile-grep ()
   "Perform rgrep in the project."
   (interactive)
@@ -512,12 +564,14 @@ have been indexed."
   (let ((map (make-sparse-keymap)))
     (let ((prefix-map (make-sparse-keymap)))
       (define-key prefix-map (kbd "f") 'projectile-find-file)
+      (define-key prefix-map (kbd "T") 'projectile-find-test-file)
+      (define-key prefix-map (kbd "t") 'projectile-toggle-between-implemenation-and-test)
       (define-key prefix-map (kbd "g") 'projectile-grep)
       (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
       (define-key prefix-map (kbd "o") 'projectile-multi-occur)
       (define-key prefix-map (kbd "r") 'projectile-replace)
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
-      (define-key prefix-map (kbd "t") 'projectile-regenerate-tags)
+      (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
       (define-key prefix-map (kbd "d") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
