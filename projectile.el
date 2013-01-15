@@ -44,6 +44,7 @@
 (require 'thingatpt)
 (require 's)
 (require 'dash)
+(require 'grep)
 
 (defgroup projectile nil
   "Manage and navigate projects easily."
@@ -91,7 +92,8 @@ Otherwise consider the current directory the project root."
 
 ;; variables
 (defvar projectile-project-root-files
-  '(".projectile" ".git" ".hg" ".bzr" "_darcs" "rebar.config" "pom.xml" "build.sbt" "Gemfile")
+  '(".projectile" "project.clj" ".git" ".hg" ".bzr" "_darcs"
+    "rebar.config" "pom.xml" "build.sbt" "Gemfile")
   "A list of files considered to mark the root of a project.")
 
 (defvar projectile-globally-ignored-files
@@ -398,6 +400,7 @@ have been indexed."
   "Some common suffices of test files.")
 
 (defun projectile-test-files (files)
+  "Return only the test FILES."
   (-filter 'projectile-test-file-p files))
 
 (defun projectile-test-file-p (file)
@@ -405,6 +408,25 @@ have been indexed."
   (-any? (lambda (suffix)
            (s-ends-with? suffix (file-name-sans-extension file)))
          projectile-test-files-suffices))
+
+(defvar projectile-rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec"))
+(defvar projectile-rails-test '("Gemfile" "app" "lib" "db" "config" "test"))
+(defvar projectile-maven '("pom.xml"))
+(defvar projectile-lein '("project.clj"))
+
+(defun projectile-project-type ()
+  "Determine the project's type based on its structure."
+  (let ((project-root (projectile-project-root)))
+    (cond
+     ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
+     ((projectile-verify-files projectile-rails-test) 'rails-test)
+     ((projectile-verify-files projectile-maven) 'maven)
+     ((projectile-verify-files projectile-lein) 'lein)
+     (t 'generic))))
+
+(defun projectile-verify-files (files)
+  "Check whether all FILES exist in the current project."
+  (-all? 'file-exists-p (-map 'projectile-expand-root files)))
 
 (defun projectile-toggle-between-implemenation-and-test ()
   "Toggle between an implementation file and its test file."
@@ -605,19 +627,7 @@ have been indexed."
   (easy-menu-remove-item nil '("Tools") "Projectile")
   (easy-menu-remove-item nil '("Tools") "--"))
 
-;; define minor mode
-;;;###autoload
-(define-globalized-minor-mode projectile-global-mode
-  projectile-mode
-  projectile-on)
-
-(defun projectile-on ()
-  "Enable Projectile minor mode."
-  (projectile-mode 1))
-
-(defun projectile-off ()
-  "Disable Projectile minor mode."
-  (projectile-mode -1))
+;;; define minor mode
 
 ;;;###autoload
 (define-minor-mode projectile-mode
@@ -634,6 +644,19 @@ have been indexed."
         (projectile-add-menu))
     ;; on stop
     (projectile-remove-menu)))
+
+;;;###autoload
+(define-globalized-minor-mode projectile-global-mode
+  projectile-mode
+  projectile-on)
+
+(defun projectile-on ()
+  "Enable Projectile minor mode."
+  (projectile-mode 1))
+
+(defun projectile-off ()
+  "Disable Projectile minor mode."
+  (projectile-mode -1))
 
 (provide 'projectile)
 
