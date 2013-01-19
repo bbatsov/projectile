@@ -108,19 +108,21 @@ You might want to combine default completion with `icomplete-mode` for optimum r
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-* `projectile-find-file`        <kbd>C-c p f</kbd>
-* `projectile-grep`             <kbd>C-c p g</kbd>
-* `projectile-switch-to-buffer` <kbd>C-c p b</kbd>
-* `projectile-multi-occur`      <kbd>C-c p o</kbd>
-* `projectile-replace`          <kbd>C-c p r</kbd>
-* `projectile-invalidate-cache` <kbd>C-c p i</kbd>
-* `projectile-regenerate-tags`  <kbd>C-c p t</kbd>
-* `projectile-kill-buffers`     <kbd>C-c p k</kbd>
-* `projectile-dired`            <kbd>C-c p d</kbd>
-* `projectile-recentf`          <kbd>C-c p e</kbd>
-* `projectile-ack`              <kbd>C-c p a</kbd>
-* `projectile-compile-project`  <kbd>C-c p l</kbd>
-* `projectile-test-project`     <kbd>C-c p p</kbd>
+| Command                      | Key                |
+-------------------------------|--------------------|
+| `projectile-find-file`       | <kbd>C-c p f</kbd> |
+| `projectile-grep`            | <kbd>C-c p g</kbd> |
+| `projectile-switch-to-buffer`| <kbd>C-c p b</kbd> |
+| `projectile-multi-occur`     | <kbd>C-c p o</kbd> |
+| `projectile-replace`         | <kbd>C-c p r</kbd> |
+| `projectile-invalidate-cache`| <kbd>C-c p i</kbd> |
+| `projectile-regenerate-tags` | <kbd>C-c p t</kbd> |
+| `projectile-kill-buffers`    | <kbd>C-c p k</kbd> |
+| `projectile-dired`           | <kbd>C-c p d</kbd> |
+| `projectile-recentf`         | <kbd>C-c p e</kbd> |
+| `projectile-ack`             | <kbd>C-c p a</kbd> |
+| `projectile-compile-project` | <kbd>C-c p l</kbd> |
+| `projectile-test-project`    | <kbd>C-c p p</kbd> |
 
 If you ever forget any of Projectile's keybindings just do a:
 
