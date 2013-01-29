@@ -5,6 +5,10 @@ provide a nice set of features operating on a project level without
 introducing external dependencies. For instance - finding project
 files is done in pure Emacs Lisp without the use of GNU find.
 
+Projectile also tries to be practical - if some external tools could
+speed up some task substantially and the tools are available,
+Projectile will leverage them.
+
 This library provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
 special file. Currently `git`, `mercurial` and `bazaar` repos are
@@ -41,15 +45,15 @@ Just drop `projectile.el`,
 ## Marmalade
 
 If you're an Emacs 24 user or you have a recent version of `package.el`
-you can install projectile from the
+you can install Projectile from the
 [Marmalade](http://marmalade-repo.org/) repository.
 
 ## MELPA
 
 If you're an Emacs 24 user or you have a recent version of `package.el`
-you can install projectile from the
+you can install Projectile from the
 [MELPA](http://melpa.milkbox.net) repository. The version of
-projectile there will always be up-to-date, but it might be unstable
+Projectile there will always be up-to-date, but it might be unstable
 (albeit rarely).
 
 ## Emacs Prelude
@@ -75,15 +79,15 @@ To enable projectile only in select modes:
 (add-hook 'ruby-mode-hook 'projectile-on)
 ```
 
-Since indexing a big project is not exactly quick in Emacs Lisp,
-projectile caches the project's files automatically. This means you'll
-have to invalidate the cache from time to time when new files are
-added to the project. If you're working
-on a smaller project and you don't mind the reindexing delay you may
-disable the cache:
+Since indexing a big project is not exactly quick (especially in Emacs
+Lisp), projectile support caching of the project's files. The caching
+is enabled on Windows by default, since on Windows native project
+indexing in Emacs Lisp is the only game in town.
+
+To enable caching unconditionally use this snippet of code:
 
 ```lisp
-(setq projectile-enable-caching nil)
+(setq projectile-enable-caching t)
 ```
 
 At this point you can try out a projectile command such as <kbd>C-c p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).
@@ -178,10 +182,6 @@ Obviously you need to have Helm installed for this to work :-)
   portable. Unlike
   [find-file-in-project](https://github.com/bbatsov/find-file-in-project),
   projectile's jump-to-file will work on any OS.
-* To compensate for the lack of speed - a cache can be created when a
-  project is traversed. That cache is not automatically updated
-  (presently) so you might want to invalidate it manually from time to
-  time (or disable it completely for small projects).
 * Some operations like search(grep) depend (presently) on external
   utilities such as `find`.
 

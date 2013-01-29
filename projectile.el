@@ -51,7 +51,7 @@
   :group 'tools
   :group 'convenience)
 
-(defcustom projectile-enable-caching t
+(defcustom projectile-enable-caching (eq system-type 'windows-nt)
   "Enable project files caching."
   :group 'projectile
   :type 'boolean)
@@ -185,10 +185,28 @@ The current directory is assumed to be the project's root otherwise."
     (unless files-list
       (message "Projectile is indexing %s. This may take a while."
                (propertize directory 'face 'font-lock-keyword-face))
-      (setq files-list (projectile-index-directory directory patterns))
+      (if (eq system-type 'windows-nt)
+          (setq files-list (projectile-index-directory directory patterns))
+        ;; we're on unix
+        (setq files-list (projectile-get-repo-files)))
       ;; cache the resulting list of files
       (projectile-cache-project directory files-list))
     files-list))
+
+(defun projectile-get-ext-command ()
+  (let ((vcs (projectile-project-vcs)))
+    (cond
+     ((eq vcs 'git) "git ls-files -z")
+     ((eq vcs 'hg) "hg locate -0")
+     ((eq vcs 'bzr) "bzr ls --versioned -0")
+     ((eq vcs 'darcs) "darcs show files -0")
+     (t "find ."))))
+
+(defun projectile-get-repo-files ()
+  (-map 'projectile-expand-root (projectile-files-via-ext-command (projectile-get-ext-command))))
+
+(defun projectile-files-via-ext-command (command)
+  (split-string (shell-command-to-string command) "\0"))
 
 (defun projectile-index-directory (directory patterns)
   "Index DIRECTORY taking into account PATTERNS.
@@ -426,7 +444,20 @@ have been indexed."
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
-  (-all? 'file-exists-p (-map 'projectile-expand-root files)))
+  (-all? 'projectile-verify-file files))
+
+(defun projectile-verify-file (file)
+  "Check whether FILE exists in the current project."
+  (file-exists-p (projectile-expand-root file)))
+
+(defun projectile-project-vcs ()
+  (cond
+   ((projectile-verify-file ".git") 'git)
+   ((projectile-verify-file ".hg") 'hg)
+   ((projectile-verify-file ".bzr") 'bzr)
+   ((projectile-verify-file "_darcs") 'darcs)
+   ((projectile-verify-file ".svn") 'svn)
+   (t 'none)))
 
 (defun projectile-toggle-between-implemenation-and-test ()
   "Toggle between an implementation file and its test file."
