@@ -188,7 +188,14 @@ The current directory is assumed to be the project's root otherwise."
       (if (eq system-type 'windows-nt)
           (setq files-list (projectile-index-directory directory patterns))
         ;; we're on unix
-        (setq files-list (projectile-get-repo-files)))
+        (let ((current-dir (or (file-name-directory (buffer-file-name))
+                               default-directory)))
+          ;; the shell commands need to invoked in the project's root dir
+          (cd (projectile-project-root))
+          (setq files-list (projectile-get-repo-files))
+          ;; restore the original current directory
+          (message current-dir)
+          (cd current-dir)))
       ;; cache the resulting list of files
       (projectile-cache-project directory files-list))
     files-list))
