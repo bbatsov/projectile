@@ -144,15 +144,6 @@ Otherwise consider the current directory the project root."
     (message "Invalidated Projectile cache for %s."
              (propertize project-root 'face 'font-lock-keyword-face))))
 
-(defun projectile-reindex-current-project ()
-  "Reindex the current project."
-  (interactive)
-  (projectile-invalidate-cache)
-  (let ((project-root (projectile-project-root)))
-    (projectile-cache-project
-     project-root
-     (projectile-index-directory project-root (projectile-rel-patterns)))))
-
 (defun projectile-cache-project (project files)
   "Cache PROJECT's FILES.
 The cache is created both in memory and on the hard drive."
@@ -406,18 +397,22 @@ project-root for every file."
     (maphash (lambda (k v) (setq allkeys (cons k allkeys))) hash)
     allkeys))
 
-(defun projectile-find-file ()
+(defun projectile-find-file (arg)
   "Jump to a project's file using completion."
-  (interactive)
+  (interactive "P")
+  (when arg
+    (projectile-invalidate-cache))
   (let* ((project-files (projectile-hashify-files
                          (projectile-current-project-files)))
          (file (projectile-completing-read "File file: "
                                            (projectile-hash-keys project-files))))
     (find-file (gethash file project-files))))
 
-(defun projectile-find-test-file ()
+(defun projectile-find-test-file (arg)
   "Jump to a project's test file using completion."
-  (interactive)
+  (interactive "P")
+  (when arg
+    (projectile-invalidate-cache))
   (let* ((test-files (projectile-hashify-files
                          (projectile-test-files (projectile-current-project-files))))
          (file (projectile-completing-read "File test file: "
@@ -655,7 +650,6 @@ project-root for every file."
                         ["Multi-occur in project" projectile-multi-occur]
                         "--"
                         ["Invalidate cache" projectile-invalidate-cache]
-                        ["Reindex project" projectile-reindex-current-project]
                         ["Regenerate etags" projectile-regenerate-tags]
                         "--"
                         ["Compile project" projectile-compile-project]
