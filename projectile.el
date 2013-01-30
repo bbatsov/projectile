@@ -210,7 +210,7 @@ The current directory is assumed to be the project's root otherwise."
      (t "find . -type f"))))
 
 (defun projectile-get-repo-files ()
-  (-map 'projectile-expand-root (projectile-files-via-ext-command (projectile-get-ext-command))))
+  (-map 'expand-file-name (projectile-files-via-ext-command (projectile-get-ext-command))))
 
 (defun projectile-files-via-ext-command (command)
   (split-string (shell-command-to-string command) "\0"))
@@ -383,7 +383,10 @@ have been indexed."
           (-map 's-trim (delete "" (split-string (buffer-string)))))))))
 
 (defun projectile-expand-root (name)
-  "Expand NAME to project root."
+  "Expand NAME to project root.
+
+Never use on many files since it's going to recalculate the
+project-root for every file."
   (expand-file-name name (projectile-project-root)))
 
 (defun projectile-completing-read (prompt choices)
