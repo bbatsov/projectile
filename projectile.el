@@ -207,7 +207,7 @@ The current directory is assumed to be the project's root otherwise."
      ((eq vcs 'hg) "hg locate -0")
      ((eq vcs 'bzr) "bzr ls --versioned -0")
      ((eq vcs 'darcs) "darcs show files -0")
-     (t "find ."))))
+     (t "find . -type f"))))
 
 (defun projectile-get-repo-files ()
   (-map 'projectile-expand-root (projectile-files-via-ext-command (projectile-get-ext-command))))
