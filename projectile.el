@@ -194,7 +194,7 @@ The current directory is assumed to be the project's root otherwise."
 (defun projectile-get-ext-command ()
   (let ((vcs (projectile-project-vcs)))
     (cond
-     ((eq vcs 'git) "git ls-files -zo")
+     ((eq vcs 'git) "git ls-files -zco --exclude-standard")
      ((eq vcs 'hg) "hg locate -0")
      ((eq vcs 'bzr) "bzr ls --versioned -0")
      ((eq vcs 'darcs) "darcs show files -0")
