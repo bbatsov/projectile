@@ -191,19 +191,53 @@ The current directory is assumed to be the project's root otherwise."
       (projectile-cache-project directory files-list))
     files-list))
 
+(defcustom projectile-git-command "git ls-files -zco --exclude-standard"
+  "Command used by projectile to get the files in a git project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-hg-command "hg locate -0"
+  "Command used by projectile to get the files in a hg project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-bzr-command "bzr ls --versioned -0"
+  "Command used by projectile to get the files in a bazaar project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-darcs-command "darcs show files -0"
+  "Command used by projectile to get the files in a darcs project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-svn-command "find . -type f"
+  "Command used by projectile to get the files in a svn project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-generic-command "find . -type f"
+  "Command used by projectile to get the files in a generic project."
+  :group 'projectile
+  :type 'string)
+
 (defun projectile-get-ext-command ()
+  "Determine which external command to invoke based on the project's VCS."
   (let ((vcs (projectile-project-vcs)))
     (cond
-     ((eq vcs 'git) "git ls-files -zco --exclude-standard")
-     ((eq vcs 'hg) "hg locate -0")
-     ((eq vcs 'bzr) "bzr ls --versioned -0")
-     ((eq vcs 'darcs) "darcs show files -0")
-     (t "find . -type f"))))
+     ((eq vcs 'git) projectile-git-command)
+     ((eq vcs 'hg) projectile-hg-command)
+     ((eq vcs 'bzr) projectile-bzr-command)
+     ((eq vcs 'darcs) projectile-darcs-command)
+     ((eq vcs 'svn) projectile-svn-command)
+     (t projectile-generic-command))))
 
 (defun projectile-get-repo-files ()
+  "Get a list of the files in the project."
   (-map 'expand-file-name (projectile-files-via-ext-command (projectile-get-ext-command))))
 
 (defun projectile-files-via-ext-command (command)
+  "Get a list of relative file names in the project root by executing COMMAND."
   (split-string (shell-command-to-string command) "\0"))
 
 (defun projectile-index-directory (directory patterns)
@@ -456,13 +490,15 @@ project-root for every file."
   (file-exists-p (projectile-expand-root file)))
 
 (defun projectile-project-vcs ()
-  (cond
-   ((projectile-verify-file ".git") 'git)
-   ((projectile-verify-file ".hg") 'hg)
-   ((projectile-verify-file ".bzr") 'bzr)
-   ((projectile-verify-file "_darcs") 'darcs)
-   ((projectile-verify-file ".svn") 'svn)
-   (t 'none)))
+  "Determine the VCS used by the project if any."
+  (let ((project-root (projectile-project-root)))
+   (cond
+    ((locate-dominating-file project-root ".git") 'git)
+    ((locate-dominating-file project-root ".hg") 'hg)
+    ((locate-dominating-file project-root ".bzr") 'bzr)
+    ((locate-dominating-file project-root "_darcs") 'darcs)
+    ((locate-dominating-file project-root ".svn") 'svn)
+    (t 'none))))
 
 (defun projectile-toggle-between-implemenation-and-test ()
   "Toggle between an implementation file and its test file."
