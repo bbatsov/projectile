@@ -51,6 +51,9 @@
   :group 'tools
   :group 'convenience)
 
+(defconst projectile-current-version "0.9.0-beta"
+  "The current Projectile version.")
+
 (defcustom projectile-enable-caching (eq system-type 'windows-nt)
   "Enable project files caching."
   :group 'projectile
@@ -134,6 +137,12 @@ Otherwise consider the current directory the project root."
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
+
+(defun projectile-version ()
+  "Reports the version of Projectile in use."
+  (interactive)
+  (message "Projectile (version %s) 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>"
+           projectile-current-version))
 
 (defun projectile-invalidate-cache ()
   "Remove the current project's files from `projectile-projects-cache'."
@@ -672,6 +681,7 @@ project-root for every file."
   "Keymap for Projectile mode.")
 
 (defun projectile-add-menu ()
+  "Add Projectile's menu under Tools."
   (easy-menu-add-item nil '("Tools")
                       '("Projectile"
                         ["File file" projectile-find-file]
@@ -689,12 +699,15 @@ project-root for every file."
                         ["Regenerate etags" projectile-regenerate-tags]
                         "--"
                         ["Compile project" projectile-compile-project]
-                        ["Test project" projectile-test-project])
+                        ["Test project" projectile-test-project]
+                        "--"
+                        ["About" projectile-version])
                       "Search Files (Grep)...")
 
   (easy-menu-add-item nil '("Tools") '("--") "Search Files (Grep)..."))
 
 (defun projectile-remove-menu ()
+  "Remove Projectile's menu."
   (easy-menu-remove-item nil '("Tools") "Projectile")
   (easy-menu-remove-item nil '("Tools") "--"))
 
