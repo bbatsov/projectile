@@ -54,6 +54,11 @@
 (defconst projectile-current-version "0.9.0-beta"
   "The current Projectile version.")
 
+(defcustom projectile-use-native-indexing (eq system-type 'windows-nt)
+  "Use native Emacs Lisp project indexing."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-enable-caching (eq system-type 'windows-nt)
   "Enable project files caching."
   :group 'projectile
@@ -185,9 +190,9 @@ The current directory is assumed to be the project's root otherwise."
     (unless files-list
       (message "Projectile is indexing %s. This may take a while."
                (propertize directory 'face 'font-lock-keyword-face))
-      (if (eq system-type 'windows-nt)
+      (if projectile-use-native-indexing
           (setq files-list (projectile-index-directory directory patterns))
-        ;; we're on unix
+        ;; use external tools to get the project files
         (let ((current-dir (or (file-name-directory (buffer-file-name))
                                default-directory)))
           ;; the shell commands need to invoked in the project's root dir
