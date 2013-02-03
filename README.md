@@ -18,6 +18,7 @@ it. Some of projectile's features:
 
 * jump to a file in project
 * jump to a project buffer
+* jump to a test in project
 * kill all project buffers
 * replace in project
 * multi-occur in project buffers
@@ -115,6 +116,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 | Command                      | Key                |
 -------------------------------|--------------------|
 | `projectile-find-file`       | <kbd>C-c p f</kbd> |
+| `projectile-find-test-file`  | <kbd>C-c p T</kbd> |
 | `projectile-grep`            | <kbd>C-c p g</kbd> |
 | `projectile-switch-to-buffer`| <kbd>C-c p b</kbd> |
 | `projectile-multi-occur`     | <kbd>C-c p o</kbd> |
