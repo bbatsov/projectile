@@ -193,8 +193,9 @@ The current directory is assumed to be the project's root otherwise."
       (if projectile-use-native-indexing
           (setq files-list (projectile-index-directory directory patterns))
         ;; use external tools to get the project files
-        (let ((current-dir (or (file-name-directory (buffer-file-name))
-                               default-directory)))
+        (let ((current-dir (if (buffer-file-name)
+                               (file-name-directory (buffer-file-name))
+                             default-directory)))
           ;; the shell commands need to invoked in the project's root dir
           (cd (projectile-project-root))
           (setq files-list (projectile-get-repo-files))
