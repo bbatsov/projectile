@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/bbatsov/projectile.png?branch=master)](https://travis-ci.org/bbatsov/projectile)
+
 # Synopsis
 
 Projectile is a project interaction library for Emacs. Its goal is to
