@@ -1,3 +1,21 @@
+(defconst testsuite-dir
+  (if load-file-name
+      (file-name-directory load-file-name)
+    ;; Fall back to default directory (in case of M-x eval-buffer)
+    default-directory)
+  "Directory of the test suite.")
+
+(message "Running tests on Emacs %s" emacs-version)
+
+(require 'dash)
+(require 's)
+
+;; Load Projectile
+(load (expand-file-name "../projectile" testsuite-dir) nil :no-message)
+
+;; Load test helpers
+(load (expand-file-name "test-helper.el" testsuite-dir) nil :no-message)
+
 (ert-deftest projectile-test-uniquify-file ()
   (should (equal (projectile-uniquify-file "ala/bala/portokala")
                  "bala/portokala")))
