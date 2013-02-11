@@ -141,10 +141,11 @@ Otherwise consider the current directory the project root."
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
 (defvar projectile-projects-cache
-  (when (file-exists-p projectile-cache-file)
+  (if (file-exists-p projectile-cache-file)
     (with-temp-buffer
       (insert-file-contents projectile-cache-file)
-      (read (buffer-string))))
+      (read (buffer-string)))
+    (make-hash-table :test 'equal))
   "A hashmap used to cache project file names to speed up related operations.")
 
 (defun projectile-version ()
