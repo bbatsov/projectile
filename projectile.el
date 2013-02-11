@@ -316,7 +316,26 @@ have been indexed."
   (multi-occur (projectile-project-buffers)
                (car (occur-read-primary-args))))
 
+(defcustom projectile-show-paths 'disambiguate-only
+  "Whether to display paths with projectile-find-file."
+  :group 'projectile
+  :type '(radio (const :tag "Only show paths to disambiguate files" disambiguate-only)
+                (const :tag "Show relative paths" relative)))
+
 (defun projectile-hashify-files (files-list)
+  (if (eq projectile-show-paths 'disambiguate-only)
+      (projectile-hashify-with-uniquify files-list)
+    (projectile-hashify-with-relative-paths files-list)))
+
+(defun projectile-hashify-with-relative-paths (files-list)
+  "Build a hash where the values match FILES-LIST and the keys are ido friendly.
+Our keys our relative paths in the project."
+  (let ((project-root (projectile-project-root))
+        (files-table (make-hash-table :test 'equal)))
+    (dolist (current-file files-list files-table)
+      (puthash (file-relative-name current-file project-root) current-file files-table))))
+
+(defun projectile-hashify-with-uniquify (files-list)
   "Make the list of project files FILES-LIST ido friendly."
   (let ((files-table (make-hash-table :test 'equal))
         (files-to-uniquify nil))
