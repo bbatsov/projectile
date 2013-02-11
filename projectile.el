@@ -226,12 +226,12 @@ The current directory is assumed to be the project's root otherwise."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-svn-command "find . -type f"
+(defcustom projectile-svn-command "find . -type f -print0"
   "Command used by projectile to get the files in a svn project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-generic-command "find . -type f"
+(defcustom projectile-generic-command "find . -type f -print0"
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
