@@ -17,7 +17,7 @@ build : deps $(OBJECTS)
 test : build
 	$(CARTON) exec $(EMACS) --no-site-file --no-site-lisp --batch \
 		$(EMACSFLAGS) \
-		-l test/projectile-test -f ert-run-tests-batch-and-exit
+		-l test/test
 
 .PHONY: virtual-test
 virtual-test :
