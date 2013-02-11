@@ -140,7 +140,12 @@ Otherwise consider the current directory the project root."
     )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
-(defvar projectile-projects-cache (make-hash-table :test 'equal)
+(defvar projectile-projects-cache
+  (if (file-exists-p projectile-cache-file)
+    (with-temp-buffer
+      (insert-file-contents projectile-cache-file)
+      (read (buffer-string)))
+    (make-hash-table :test 'equal))
   "A hashmap used to cache project file names to speed up related operations.")
 
 (defun projectile-version ()
@@ -629,13 +634,6 @@ project-root for every file."
                     (point-max)
                     projectile-cache-file))))
 
-(defun projectile-load-cache ()
-  "Load the cache from the hard drive in memory."
-  (when (file-exists-p projectile-cache-file)
-    (with-temp-buffer
-      (insert-file-contents projectile-cache-file)
-      (setq projectile-projects-cache (read (buffer-string))))))
-
 (defun projectile-run-project-command (checks)
   "Run command considering CHECKS."
   (let* ((dir (or (projectile-project-root)
@@ -729,9 +727,7 @@ project-root for every file."
   :group 'projectile
   (if projectile-mode
       ;; on start
-      (progn
-        (projectile-load-cache)
-        (projectile-add-menu))
+      (projectile-add-menu)
     ;; on stop
     (projectile-remove-menu)))
 
