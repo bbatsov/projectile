@@ -70,3 +70,11 @@
           (function &optional record-flag keys)
           (should (equal ack-and-a-half-arguments '("--ignore-dir=tmp" "--ignore-dir=log")))))
     (projectile-ack)))
+
+(ert-deftest projectile-test-hashify-relative ()
+  (let* ((file-names '("/path/to/project/foo/bar"))
+         (projectile-show-paths-function 'projectile-hashify-with-relative-paths)
+         (files-table (projectile-hashify-files file-names))
+         (files-table-keys))
+    (maphash (lambda (key value) (setq allkeys (cons key files-table-keys))) files-table)
+    (should (equal files-table-keys '("foo/bar")))))
