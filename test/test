@@ -19,6 +19,6 @@
 ;; and run tests
 (flet ((projectile-project-root () "/path/to/project")
        (projectile-project-name () "project"))
-  (ert-run-tests-batch t))
+  (ert-run-tests-batch-and-exit t))
 
 
