@@ -316,16 +316,14 @@ have been indexed."
   (multi-occur (projectile-project-buffers)
                (car (occur-read-primary-args))))
 
-(defcustom projectile-show-paths 'disambiguate-only
+(defcustom projectile-show-paths-function 'projectile-hashify-with-uniquify
   "Whether to display paths with projectile-find-file."
   :group 'projectile
-  :type '(radio (const :tag "Only show paths to disambiguate files" disambiguate-only)
-                (const :tag "Show relative paths" relative)))
+  :type '(radio (const :tag "Only show paths to disambiguate files" projectile-hashify-with-uniquify)
+                (const :tag "Show relative paths" projectile-hashify-with-relative-paths)))
 
 (defun projectile-hashify-files (files-list)
-  (if (eq projectile-show-paths 'disambiguate-only)
-      (projectile-hashify-with-uniquify files-list)
-    (projectile-hashify-with-relative-paths files-list)))
+  (funcall projectile-show-paths-function files-list))
 
 (defun projectile-hashify-with-relative-paths (files-list)
   "Build a hash where the values match FILES-LIST and the keys are ido friendly.
