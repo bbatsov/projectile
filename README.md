@@ -82,6 +82,8 @@ To enable projectile only in select modes:
 (add-hook 'ruby-mode-hook 'projectile-on)
 ```
 
+### Caching
+
 Since indexing a big project is not exactly quick (especially in Emacs
 Lisp), projectile support caching of the project's files. The caching
 is enabled on Windows by default, since on Windows native project
@@ -95,6 +97,8 @@ To enable caching unconditionally use this snippet of code:
 
 At this point you can try out a projectile command such as <kbd>C-c p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).
 
+### Using Projectile everywhere
+
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
 ```lisp
@@ -102,6 +106,8 @@ If you want Projectile to be usable in every directory (even without the presenc
 ```
 
 This might not be a great idea if you start projectile in your home folder for instance :-)
+
+### Completion Options
 
 If you don't like ido you can use regular completion as well:
 
@@ -111,6 +117,13 @@ If you don't like ido you can use regular completion as well:
 
 You might want to combine default completion with `icomplete-mode` for optimum results.
 
+By default, projectile only shows the path to a file if there are
+other files with the same name. You can force projectile to always
+show the path (relative to the project root):
+
+```lisp
+(setq projectile-show-paths-function 'projectile-hashify-with-relative-paths)
+```
 ## Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
