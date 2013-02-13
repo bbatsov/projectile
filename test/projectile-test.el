@@ -76,5 +76,5 @@
          (projectile-show-paths-function 'projectile-hashify-with-relative-paths)
          (files-table (projectile-hashify-files file-names))
          (files-table-keys))
-    (maphash (lambda (key value) (setq allkeys (cons key files-table-keys))) files-table)
+    (maphash (lambda (key value) (setq files-table-keys (cons key files-table-keys))) files-table)
     (should (equal files-table-keys '("foo/bar")))))
