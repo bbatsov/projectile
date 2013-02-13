@@ -78,3 +78,11 @@
          (files-table-keys))
     (maphash (lambda (key value) (setq files-table-keys (cons key files-table-keys))) files-table)
     (should (equal files-table-keys '("foo/bar")))))
+
+(ert-deftest projectile-test-hashify-uniquify ()
+  (let* ((file-names '("/path/to/project/foo/bar" "/path/to/project/foo2/bar" "/path/to/project/biz/baz"))
+         (projectile-show-paths-function 'projectile-hashify-with-uniquify)
+         (files-table (projectile-hashify-files file-names))
+         (files-table-keys))
+    (maphash (lambda (key value) (setq files-table-keys (cons key files-table-keys))) files-table)
+    (should (equal (sort files-table-keys 'string-lessp) '("baz" "foo/bar" "foo2/bar")))))
