@@ -193,9 +193,9 @@ The current directory is assumed to be the project's root otherwise."
         (patterns (projectile-rel-patterns)))
     ;; cache disabled or cache miss
     (unless files-list
-      (message "Projectile is indexing %s. This may take a while."
-               (propertize directory 'face 'font-lock-keyword-face))
       (if projectile-use-native-indexing
+          (message "Projectile is indexing %s. This may take a while."
+                   (propertize directory 'face 'font-lock-keyword-face))
           (setq files-list (projectile-index-directory directory patterns))
         ;; use external tools to get the project files
         (let ((current-dir (if (buffer-file-name)
