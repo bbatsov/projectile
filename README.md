@@ -137,7 +137,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 | `projectile-multi-occur`     | <kbd>C-c p o</kbd> |
 | `projectile-replace`         | <kbd>C-c p r</kbd> |
 | `projectile-invalidate-cache`| <kbd>C-c p i</kbd> |
-| `projectile-regenerate-tags` | <kbd>C-c p t</kbd> |
+| `projectile-regenerate-tags` | <kbd>C-c p R</kbd> |
 | `projectile-kill-buffers`    | <kbd>C-c p k</kbd> |
 | `projectile-dired`           | <kbd>C-c p d</kbd> |
 | `projectile-recentf`         | <kbd>C-c p e</kbd> |
