@@ -97,6 +97,13 @@ To enable caching unconditionally use this snippet of code:
 
 At this point you can try out a projectile command such as <kbd>C-c p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).
 
+Running <kbd>C-u C-c p f</kbd> will invalidate the cache prior to
+prompting you for a file to jump to.
+
+Pressing <kbd>C-c p z</kbd> will add the currently visited file to the
+cache for current project. Generally files created outside Emacs will
+be added to the cache automatically the first time you open them.
+
 ### Using Projectile everywhere
 
 If you want Projectile to be usable in every directory (even without the presence of project file):
@@ -124,26 +131,28 @@ show the path (relative to the project root):
 ```lisp
 (setq projectile-show-paths-function 'projectile-hashify-with-relative-paths)
 ```
+
 ## Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-| Command                      | Key                |
--------------------------------|--------------------|
-| `projectile-find-file`       | <kbd>C-c p f</kbd> |
-| `projectile-find-test-file`  | <kbd>C-c p T</kbd> |
-| `projectile-grep`            | <kbd>C-c p g</kbd> |
-| `projectile-switch-to-buffer`| <kbd>C-c p b</kbd> |
-| `projectile-multi-occur`     | <kbd>C-c p o</kbd> |
-| `projectile-replace`         | <kbd>C-c p r</kbd> |
-| `projectile-invalidate-cache`| <kbd>C-c p i</kbd> |
-| `projectile-regenerate-tags` | <kbd>C-c p R</kbd> |
-| `projectile-kill-buffers`    | <kbd>C-c p k</kbd> |
-| `projectile-dired`           | <kbd>C-c p d</kbd> |
-| `projectile-recentf`         | <kbd>C-c p e</kbd> |
-| `projectile-ack`             | <kbd>C-c p a</kbd> |
-| `projectile-compile-project` | <kbd>C-c p l</kbd> |
-| `projectile-test-project`    | <kbd>C-c p p</kbd> |
+| Command                        | Key                |
+---------------------------------|--------------------|
+| `projectile-find-file`         | <kbd>C-c p f</kbd> |
+| `projectile-find-test-file`    | <kbd>C-c p T</kbd> |
+| `projectile-grep`              | <kbd>C-c p g</kbd> |
+| `projectile-switch-to-buffer`  | <kbd>C-c p b</kbd> |
+| `projectile-multi-occur`       | <kbd>C-c p o</kbd> |
+| `projectile-replace`           | <kbd>C-c p r</kbd> |
+| `projectile-invalidate-cache`  | <kbd>C-c p i</kbd> |
+| `projectile-regenerate-tags`   | <kbd>C-c p R</kbd> |
+| `projectile-kill-buffers`      | <kbd>C-c p k</kbd> |
+| `projectile-dired`             | <kbd>C-c p d</kbd> |
+| `projectile-recentf`           | <kbd>C-c p e</kbd> |
+| `projectile-ack`               | <kbd>C-c p a</kbd> |
+| `projectile-compile-project`   | <kbd>C-c p l</kbd> |
+| `projectile-test-project`      | <kbd>C-c p p</kbd> |
+| `projectile-cache-current-file`| <kbd>C-c p z</kbd> |
 
 If you ever forget any of Projectile's keybindings just do a:
 

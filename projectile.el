@@ -211,6 +211,28 @@ The current directory is assumed to be the project's root otherwise."
       (projectile-cache-project directory files-list))
     files-list))
 
+(defun projectile-file-cached-p (file project)
+  "Check if FILE is already in PROJECT cache."
+  (member file (gethash project projectile-projects-cache)))
+
+(defun projectile-cache-current-file ()
+  "Add the currently visited file to the cache."
+  (interactive)
+  (let ((current-file (buffer-file-name (current-buffer)))
+        (current-project (projectile-project-root)))
+    (unless (projectile-file-cached-p current-file current-project)
+      (puthash current-project
+               (cons current-file (gethash current-project projectile-projects-cache))
+               projectile-projects-cache)
+      (projectile-serialize-cache)
+      (message "File %s added to project %s cache." current-file current-project))))
+
+;; cache opened files automatically to reduce the need for cache invalidation
+(add-hook 'find-file-hook
+          (lambda ()
+            (when projectile-enable-caching
+              (projectile-cache-current-file))))
+
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
   :group 'projectile
@@ -696,6 +718,7 @@ project-root for every file."
       (define-key prefix-map (kbd "a") 'projectile-ack)
       (define-key prefix-map (kbd "l") 'projectile-compile-project)
       (define-key prefix-map (kbd "p") 'projectile-test-project)
+      (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
 
       (define-key map projectile-keymap-prefix prefix-map))
     map)
