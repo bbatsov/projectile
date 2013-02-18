@@ -93,7 +93,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re %s"
+(defcustom projectile-tags-command "ctags -Re %s %s"
   "The command Projectile's going to use to generate a TAGS file."
   :group 'projectile
   :type 'string)
@@ -614,14 +614,18 @@ project-root for every file."
           (projectile-ignored-directories))))
     (call-interactively projectile-ack-function)))
 
+(defun projectile-tags-exclude-patterns ()
+  (mapconcat (lambda (pattern) (format "--exclude=%s" pattern))
+	     (projectile-project-ignored-directories) " "))
 
 (defun projectile-regenerate-tags ()
   "Regenerate the project's etags."
   (interactive)
   (let ((current-dir default-directory)
-        (project-root (projectile-project-root)))
+        (project-root (projectile-project-root))
+	(tags-exclude (projectile-tags-exclude-patterns)))
     (cd project-root)
-    (shell-command (format projectile-tags-command project-root))
+    (shell-command (format projectile-tags-command tags-exclude project-root))
     (cd current-dir)
     (visit-tags-table project-root)))
 
