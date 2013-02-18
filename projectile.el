@@ -615,6 +615,7 @@ project-root for every file."
     (call-interactively projectile-ack-function)))
 
 (defun projectile-tags-exclude-patterns ()
+  "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=%s" pattern))
 	     (projectile-project-ignored-directories) " "))
 
