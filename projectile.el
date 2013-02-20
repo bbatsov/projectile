@@ -194,9 +194,10 @@ The current directory is assumed to be the project's root otherwise."
     ;; cache disabled or cache miss
     (unless files-list
       (if projectile-use-native-indexing
-          (message "Projectile is indexing %s. This may take a while."
-                   (propertize directory 'face 'font-lock-keyword-face))
-          (setq files-list (projectile-index-directory directory patterns))
+          (progn
+            (message "Projectile is indexing %s. This may take a while."
+                     (propertize directory 'face 'font-lock-keyword-face))
+            (setq files-list (projectile-index-directory directory patterns)))
         ;; use external tools to get the project files
         (let ((current-dir (if (buffer-file-name)
                                (file-name-directory (buffer-file-name))
