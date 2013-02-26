@@ -181,6 +181,12 @@ The current directory is assumed to be the project's root otherwise."
           (error "You're not into a project")
         default-directory)))
 
+(defun projectile-project-p ()
+  "Check if we're in a project."
+  (condition-case nil
+      (projectile-project-root)
+    (error nil)))
+
 (defun projectile-project-name ()
   "Return project name."
   (file-name-nondirectory (directory-file-name (projectile-project-root))))
@@ -231,7 +237,7 @@ The current directory is assumed to be the project's root otherwise."
 ;; cache opened files automatically to reduce the need for cache invalidation
 (add-hook 'find-file-hook
           (lambda ()
-            (when projectile-enable-caching
+            (when (and (projectile-project-p) projectile-enable-caching)
               (projectile-cache-current-file))))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
