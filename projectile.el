@@ -140,13 +140,41 @@ Otherwise consider the current directory the project root."
     )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
-(defvar projectile-projects-cache
-  (if (file-exists-p projectile-cache-file)
+
+(defun projectile-serialize (filename data)
+  "Serialize DATA to FILENAME. The saved data can be restored with
+projectile-unserialize."
+  (with-temp-buffer
+    (insert (prin1-to-string data))
+    (when (file-writable-p filename)
+      (write-region (point-min)
+                    (point-max)
+                    filename))))
+
+(defun projectile-unserialize (filename)
+  "Reads data serialized by projectile-serialize from FILENAME."
+  (when (file-exists-p filename)
     (with-temp-buffer
-      (insert-file-contents projectile-cache-file)
-      (read (buffer-string)))
-    (make-hash-table :test 'equal))
+      (insert-file-contents filename)
+      (read (buffer-string)))))
+
+(defvar projectile-projects-cache
+  (or (projectile-unserialize projectile-cache-file)
+      (make-hash-table :test 'equal))
   "A hashmap used to cache project file names to speed up related operations.")
+
+(defvar projectile-known-projects nil
+  "List of locations where we have previously seen projects.
+The list of projects is ordered by the time they have been accessed.")
+
+(defcustom projectile-known-projects-file
+  (expand-file-name "projectile-bookmarks.eld"
+                    user-emacs-directory)
+  "Name and location of the Projectile's known projects file."
+  :group 'projectile
+  :type 'string)
+
+
 
 (defun projectile-version ()
   "Reports the version of Projectile in use."
@@ -164,22 +192,35 @@ Otherwise consider the current directory the project root."
              (propertize project-root 'face 'font-lock-keyword-face))))
 
 (defun projectile-cache-project (project files)
-  "Cache PROJECT's FILES.
+  "Cache PROJECTs FILES.
 The cache is created both in memory and on the hard drive."
   (when projectile-enable-caching
     (puthash project files projectile-projects-cache)
-    (projectile-serialize-cache)))
+    (projectile-serialize-cache))
+  (projectile-add-known-project project)
+  (projectile-save-known-projects))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (or (->> projectile-project-root-files
-        (--map (locate-dominating-file default-directory it))
-        (-remove #'null)
-        (car))
-      (if projectile-require-project-root
-          (error "You're not into a project")
-        default-directory)))
+  (let ((project-root
+         (or (->> projectile-project-root-files
+               (--map (locate-dominating-file default-directory it))
+               (-remove #'null)
+               (car))
+             (if projectile-require-project-root
+                 (error "You're not into a project")
+               default-directory))))
+    (run-hooks 'projectile-project-root-hook)
+    project-root))
+
+(defvar projectile-project-root-hook
+  nil
+  "Called whenever a project root is found.
+
+The found project root is available as
+PROJECT-ROOT.")
+
 
 (defun projectile-project-name ()
   "Return project name."
@@ -618,14 +659,14 @@ project-root for every file."
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=%s" pattern))
-	     (projectile-project-ignored-directories) " "))
+       (projectile-project-ignored-directories) " "))
 
 (defun projectile-regenerate-tags ()
   "Regenerate the project's etags."
   (interactive)
   (let ((current-dir default-directory)
         (project-root (projectile-project-root))
-	(tags-exclude (projectile-tags-exclude-patterns)))
+  (tags-exclude (projectile-tags-exclude-patterns)))
     (cd project-root)
     (shell-command (format projectile-tags-command tags-exclude project-root))
     (cd current-dir)
@@ -672,12 +713,8 @@ project-root for every file."
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
-  (with-temp-buffer
-    (insert (prin1-to-string projectile-projects-cache))
-    (when (file-writable-p projectile-cache-file)
-      (write-region (point-min)
-                    (point-max)
-                    projectile-cache-file))))
+  (projectile-serialize projectile-cache-file projectile-projects-cache))
+
 
 (defun projectile-run-project-command (checks)
   "Run command considering CHECKS."
@@ -706,6 +743,46 @@ project-root for every file."
         do (return command)
         finally (return nil)))
 
+
+
+
+(defun projectile-switch-project ()
+  "Switch to a project we have seen before."
+  (interactive)
+  (let ((project-to-switch
+         (projectile-completing-read "Switch to which project: "
+                                     projectile-known-projects)))
+    (dired project-to-switch)
+    (let ((project-switched project-to-switch))
+      (run-hooks 'projectile-switch-project-hook))))
+
+(defvar projectile-switch-project-hook nil
+  "Hooks run when project is switched. The path to the opened project
+is available as PROJECT-SWITCHED")
+
+
+
+(defun projectile-add-known-project (project-root)
+  "Add a project to the list of known projects."
+  (setq projectile-known-projects
+        (-distinct
+         (cons project-root projectile-known-projects))))
+
+
+(defun projectile-load-known-projects ()
+  "Load saved projects from PROJECTILE-KNOWN-PROJECTS-FILE
+and sets PROJECTILE-KNOWN-PROJECTS."
+  (setq projectile-known-projects
+        (projectile-unserialize projectile-known-projects-file)))
+
+;; load the known projects
+(projectile-load-known-projects)
+
+(defun projectile-save-known-projects ()
+  "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
+  (projectile-serialize projectile-known-projects-file projectile-known-projects))
+
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
     (let ((prefix-map (make-sparse-keymap)))
@@ -725,6 +802,7 @@ project-root for every file."
       (define-key prefix-map (kbd "l") 'projectile-compile-project)
       (define-key prefix-map (kbd "p") 'projectile-test-project)
       (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
+      (define-key prefix-map (kbd "s") 'projectile-switch-project)
 
       (define-key map projectile-keymap-prefix prefix-map))
     map)
