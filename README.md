@@ -21,6 +21,7 @@ it. Some of projectile's features:
 * jump to a file in project
 * jump to a project buffer
 * jump to a test in project
+* switch between projects you have worked on
 * kill all project buffers
 * replace in project
 * multi-occur in project buffers
@@ -153,6 +154,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 | `projectile-compile-project`   | <kbd>C-c p l</kbd> |
 | `projectile-test-project`      | <kbd>C-c p p</kbd> |
 | `projectile-cache-current-file`| <kbd>C-c p z</kbd> |
+| `projectile-switch-project`    | <kbd>C-c p s</kbd> |
 
 If you ever forget any of Projectile's keybindings just do a:
 
