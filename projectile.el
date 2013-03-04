@@ -232,31 +232,33 @@ PROJECT-ROOT.")
   "Return project name."
   (file-name-nondirectory (directory-file-name (projectile-project-root))))
 
+(defun projectile-get-project-directories ()
+  "Get the list of project directories that are of interest to the user."
+  (-map (lambda (subdir) (concat (projectile-project-root) subdir))
+        (or (car (projectile-parse-dirconfig-file)) '(""))))
+
 (defun projectile-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
-  (let ((files-list (and projectile-enable-caching
-                         (gethash directory projectile-projects-cache)))
-        (patterns (projectile-rel-patterns)))
+  (let ((files-list ()))
     ;; cache disabled or cache miss
     (unless files-list
       (if projectile-use-native-indexing
           (progn
             (message "Projectile is indexing %s. This may take a while."
                      (propertize directory 'face 'font-lock-keyword-face))
-            (setq files-list (projectile-index-directory directory patterns)))
+            (setq files-list
+                  (projectile-index-directory directory
+                                              (projectile-patterns-to-ignore))))
         ;; use external tools to get the project files
         (let ((current-dir (if (buffer-file-name)
                                (file-name-directory (buffer-file-name))
                              default-directory)))
-          ;; the shell commands need to invoked in the project's root dir
-          (cd (projectile-project-root))
+          (cd directory)
           (setq files-list (projectile-get-repo-files))
           ;; restore the original current directory
           (message current-dir)
-          (cd current-dir)))
-      ;; cache the resulting list of files
-      (projectile-cache-project directory files-list))
+          (cd current-dir))))
     files-list))
 
 (defun projectile-file-cached-p (file project)
@@ -281,12 +283,12 @@ PROJECT-ROOT.")
             (when (and (projectile-project-p) projectile-enable-caching)
               (projectile-cache-current-file))))
 
-(defcustom projectile-git-command "git ls-files -zco --exclude-standard"
+(defcustom projectile-git-command "git ls-tree -z --name-only HEAD"
   "Command used by projectile to get the files in a git project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-hg-command "hg locate -0"
+(defcustom projectile-hg-command "hg locate -0 -I ."
   "Command used by projectile to get the files in a hg project."
   :group 'projectile
   :type 'string)
@@ -296,7 +298,7 @@ PROJECT-ROOT.")
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-darcs-command "darcs show files -0"
+(defcustom projectile-darcs-command "darcs show files -0 . "
   "Command used by projectile to get the files in a darcs project."
   :group 'projectile
   :type 'string)
@@ -364,7 +366,7 @@ have been indexed."
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
-  (let ((project-files (projectile-project-files (projectile-project-root)))
+  (let ((project-files (projectile-current-project-files))
         (buffer-files (-map 'buffer-file-name (buffer-list))))
     (-map 'get-file-buffer
             (intersection project-files buffer-files :test 'string=))))
@@ -477,42 +479,55 @@ Our keys our relative paths in the project."
   "Return list of project ignored directories."
   (-filter 'file-directory-p (projectile-project-ignored)))
 
-(defun projectile-abs-patterns ()
-  "Return a list of absolute (starting with /) file patterns."
+(defun projectile-paths-to-ignore ()
+  "Return a list of ignored project paths."
   (-map (lambda (pattern)
           (s-chop-prefix "/" pattern))
         (-filter (lambda (pattern)
                    (s-starts-with? "/" pattern))
-                 (projectile-parse-ignore-file))))
+                 (cdr (projectile-parse-dirconfig-file)))))
 
-(defun projectile-rel-patterns ()
+(defun projectile-patterns-to-ignore ()
   "Return a list of relative file patterns."
   (-remove (lambda (pattern)
              (s-starts-with? "/" pattern))
-           (projectile-parse-ignore-file)))
+           (cdr (projectile-parse-dirconfig-file))))
 
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories."
-  (let ((patterns (projectile-abs-patterns))
+  (let ((paths (projectile-paths-to-ignore))
         (default-directory (projectile-project-root)))
     (apply 'append
            (-map
             (lambda (pattern)
               (file-expand-wildcards pattern t))
-            patterns))))
+            paths))))
 
-(defun projectile-ignore-file ()
-  "Return the absolute path to the project's ignore file."
+(defun projectile-dirconfig-file ()
+  "Return the absolute path to the project's dirconfig file."
   (expand-file-name ".projectile" (projectile-project-root)))
 
-(defun projectile-parse-ignore-file ()
-  "Parse project ignore file and return list of patterns to ignore."
-  (let ((ignore-file (projectile-ignore-file)))
-    (when (file-exists-p ignore-file)
+(defun projectile-parse-dirconfig-file ()
+  "Parse project ignore file and return directories to ignore and keep.
+
+The return value will be a cons, the car being the list of
+directories to keep, and the cdr being the list of files or
+directories to ignore.
+
+Strings starting with + will be added to the list of directories
+to keep, and strings starting with - will be added to the list of
+directories to ignore. For backward compatibility, without a
+prefix the string will be assumed to be an ignore string."
+  (let ((dirconfig-file (projectile-dirconfig-file)))
+    (when (file-exists-p dirconfig-file)
       (with-temp-buffer
-        (insert-file-contents-literally ignore-file)
-        (let ((split-string-default-separators "[\r\n]"))
-          (-map 's-trim (delete "" (split-string (buffer-string)))))))))
+        (insert-file-contents-literally dirconfig-file)
+        (let* ((split-string-default-separators "[\r\n]")
+               (strings (-map 's-trim (delete "" (split-string (buffer-string)))))
+               (separated-vals (--separate (s-starts-with? "+" it) strings)))
+          (flet ((strip-prefix (s) (s-chop-prefixes '("-" "+") s)))
+            (cons (-map 'strip-prefix (first separated-vals))
+                  (-map 'strip-prefix (second separated-vals)))))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
@@ -530,7 +545,11 @@ project-root for every file."
 
 (defun projectile-current-project-files ()
   "Return a list of files for the current project."
-  (projectile-project-files (projectile-project-root)))
+  (let ((files (-mapcat (lambda (dir) (projectile-project-files dir))
+                        (projectile-get-project-directories))))
+    ;; cache the resulting list of files
+    (projectile-cache-project (projectile-project-root) files)
+    files))
 
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
@@ -647,7 +666,8 @@ project-root for every file."
         (root-dir (expand-file-name (projectile-project-root))))
     (require 'grep)
     ;; paths for find-grep should relative and without trailing /
-    (let ((grep-find-ignored-directories (append (-map (lambda (dir) (s-chop-suffix "/" (s-replace root-dir "" dir))) (projectile-ignored-directories)) grep-find-ignored-directories))
+    (let ((grep-find-ignored-directories (append (-map (lambda (dir) (s-chop-suffix "/" (s-replace root-dir "" dir)))
+                                                       (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
           (grep-find-ignored-files (append (-map (lambda (file) (s-replace root-dir "" file)) (projectile-ignored-files)) grep-find-ignored-files)))
       (grep-compute-defaults)
       (rgrep search-regexp "* .*" root-dir))))
@@ -679,11 +699,11 @@ project-root for every file."
     (visit-tags-table project-root)))
 
 (defun projectile-replace ()
-  "Replace a string in the project using perl."
+  "Replace a string in the project using `tags-query-replace'."
   (interactive)
   (let ((old-text (read-string "Replace: " (thing-at-point 'symbol)))
         (new-text (read-string "With: ")))
-    (tags-query-replace old-text new-text nil '(projectile-project-files (projectile-project-root)))))
+    (tags-query-replace old-text new-text nil '(projectile-current-project-files))))
 
 (defun projectile-kill-buffers ()
   "Kill all project buffers."

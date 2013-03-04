@@ -163,25 +163,44 @@ If you ever forget any of Projectile's keybindings just do a:
 ## Ignoring files
 
 If you'd like to instruct Projectile to ignore certain files in a
-project, when indexing it you can do so in the `.projectile`
-file. Here's an example for a typical Rails application:
+project, when indexing it you can do so in the `.projectile` file by
+adding each path to ignore, where the paths all are relative to the
+root directory and start with a slash. Everything ignored should be
+preceded with a - sign. Here's an example for a typical Rails
+application:
 
 ```
-/log
-/tmp
-/vendor
-/public/uploads
+-/log
+-/tmp
+-/vendor
+-/public/uploads
 ```
 
 This would ignore the folders only at the root of the project.
 Projectile also supports relative pathname ignores:
 
 ```
-tmp
-*.rb
-*.yml
-models
+-tmp
+-*.rb
+-*.yml
+-models
 ```
+
+You can also ignore everything except certain subdirectories. This is
+useful when selecting the directories to keep is easier than selecting
+the directories to ignore, although you can do both. To select
+directories to keep, that means everything else will be ignored.
+Example:
+
+```
++/src/foo
++/tests/foo
+```
+
+If both directories to keep and ignore are specified, the directories
+to keep first apply, restricting what files are considered. The paths
+and patterns to ignore are then applied to that set.
+
 
 ## Helm Integration
 
