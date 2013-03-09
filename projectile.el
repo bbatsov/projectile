@@ -240,7 +240,8 @@ PROJECT-ROOT.")
 (defun projectile-project-files (directory)
   "List the files in DIRECTORY and in its sub-directories."
   ;; check for a cache hit first if caching is enabled
-  (let ((files-list ()))
+  (let ((files-list (and projectile-enable-caching
+                         (gethash directory projectile-projects-cache))))
     ;; cache disabled or cache miss
     (unless files-list
       (if projectile-use-native-indexing
@@ -546,9 +547,12 @@ project-root for every file."
 (defun projectile-current-project-files ()
   "Return a list of files for the current project."
   (let ((files (-mapcat (lambda (dir) (projectile-project-files dir))
-                        (projectile-get-project-directories))))
-    ;; cache the resulting list of files
-    (projectile-cache-project (projectile-project-root) files)
+                        (projectile-get-project-directories)))
+        (was-hashed (and projectile-enable-caching
+                         (gethash (projectile-project-root) projectile-projects-cache))))
+    (unless was-hashed
+       ;; cache the resulting list of files
+      (when projectile-enable-caching (projectile-cache-project (projectile-project-root) files)))
     files))
 
 (defun projectile-hash-keys (hash)
