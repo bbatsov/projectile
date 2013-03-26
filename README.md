@@ -110,7 +110,7 @@ be added to the cache automatically the first time you open them.
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
 ```lisp
-(setq projectile-require-project-file nil)
+(setq projectile-require-project-root nil)
 ```
 
 This might not be a great idea if you start projectile in your home folder for instance :-)
