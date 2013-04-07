@@ -364,10 +364,16 @@ have been indexed."
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
-  (let ((project-files (projectile-project-files (projectile-project-root)))
-        (buffer-files (-map 'buffer-file-name (buffer-list))))
-    (-map 'get-file-buffer
-            (intersection project-files buffer-files :test 'string=))))
+  (let ((project-root (projectile-project-root)))
+    (-filter (lambda (buffer)
+               (projectile-project-buffer-p buffer project-root))
+             (buffer-list))))
+
+(defun projectile-project-buffer-p (buffer project-root)
+  "Check if BUFFER is under PROJECT-ROOT."
+  (with-current-buffer buffer
+    (s-starts-with? (expand-file-name project-root)
+                    (expand-file-name default-directory))))
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
