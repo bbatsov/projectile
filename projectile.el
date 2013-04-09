@@ -664,17 +664,18 @@ project-root for every file."
 (defun projectile-grep ()
   "Perform rgrep in the project."
   (interactive)
-  (let ((search-regexp (if (and transient-mark-mode mark-active)
+  (let ((roots (projectile-get-project-directories))
+        (search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
-                         (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol))))
-        (root-dir (expand-file-name (projectile-project-root))))
-    (require 'grep)
-    ;; paths for find-grep should relative and without trailing /
-    (let ((grep-find-ignored-directories (append (-map (lambda (dir) (s-chop-suffix "/" (s-replace root-dir "" dir)))
-                                                       (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-          (grep-find-ignored-files (append (-map (lambda (file) (s-replace root-dir "" file)) (projectile-ignored-files)) grep-find-ignored-files)))
-      (grep-compute-defaults)
-      (rgrep search-regexp "* .*" root-dir))))
+                         (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol)))))
+    (dolist (root-dir roots)
+      (require 'grep)
+      ;; paths for find-grep should relative and without trailing /
+      (let ((grep-find-ignored-directories (append (-map (lambda (dir) (s-chop-suffix "/" (s-replace root-dir "" dir)))
+                                                         (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
+            (grep-find-ignored-files (append (-map (lambda (file) (s-replace root-dir "" file)) (projectile-ignored-files)) grep-find-ignored-files)))
+        (grep-compute-defaults)
+        (rgrep search-regexp "* .*" root-dir)))))
 
 (defun projectile-ack ()
   "Run an `ack-and-a-half' search in the project."
