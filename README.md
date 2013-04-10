@@ -110,7 +110,7 @@ be added to the cache automatically the first time you open them.
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
 ```lisp
-(setq projectile-require-project-file nil)
+(setq projectile-require-project-root nil)
 ```
 
 This might not be a great idea if you start projectile in your home folder for instance :-)
@@ -137,24 +137,24 @@ show the path (relative to the project root):
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 
-| Command                        | Key                |
----------------------------------|--------------------|
-| `projectile-find-file`         | <kbd>C-c p f</kbd> |
-| `projectile-find-test-file`    | <kbd>C-c p T</kbd> |
-| `projectile-grep`              | <kbd>C-c p g</kbd> |
-| `projectile-switch-to-buffer`  | <kbd>C-c p b</kbd> |
-| `projectile-multi-occur`       | <kbd>C-c p o</kbd> |
-| `projectile-replace`           | <kbd>C-c p r</kbd> |
-| `projectile-invalidate-cache`  | <kbd>C-c p i</kbd> |
-| `projectile-regenerate-tags`   | <kbd>C-c p R</kbd> |
-| `projectile-kill-buffers`      | <kbd>C-c p k</kbd> |
-| `projectile-dired`             | <kbd>C-c p d</kbd> |
-| `projectile-recentf`           | <kbd>C-c p e</kbd> |
-| `projectile-ack`               | <kbd>C-c p a</kbd> |
-| `projectile-compile-project`   | <kbd>C-c p l</kbd> |
-| `projectile-test-project`      | <kbd>C-c p p</kbd> |
-| `projectile-cache-current-file`| <kbd>C-c p z</kbd> |
-| `projectile-switch-project`    | <kbd>C-c p s</kbd> |
+Keybinding         | Description
+-------------------|------------------------------------------------------------
+<kbd>C-c p f</kbd> | Display a list of all files in the project. With a prefix argument it will clear the cache first.
+<kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
+<kbd>C-c p g</kbd> | Run grep on the files in the project.
+<kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
+<kbd>C-c p o</kbd> | Runs `multi-occur` on all project buffers currently open.
+<kbd>C-c p r</kbd> | Runs interactive query-replace on all files in the projects.
+<kbd>C-c p i</kbd> | Invalidates the project cache (if existing).
+<kbd>C-c p R</kbd> | Regenerates the projects `TAGS` file.
+<kbd>C-c p k</kbd> | Kills all project buffers.
+<kbd>C-c p d</kbd> | Opens the root of the project in `dired`.
+<kbd>C-c p e</kbd> | Shows a list of recently visited project files.
+<kbd>C-c p a</kbd> | Runs `ack` on the project. Requires the presence of `ack-and-a-half`.
+<kbd>C-c p l</kbd> | Runs a standard compilation command for your type of project.
+<kbd>C-c p p</kbd> | Runs a standard test command for your type of project.
+<kbd>C-c p z</kbd> | Adds the currently visited to the cache.
+<kbd>C-c p s</kbd> | Display a list of known projects you can switch to.
 
 If you ever forget any of Projectile's keybindings just do a:
 
