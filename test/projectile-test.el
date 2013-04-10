@@ -77,7 +77,7 @@
 (ert-deftest projectile-test-project-ignored ()
   (let* ((file-names '("log" "tmp" "compiled"))
          (files (mapcar 'projectile-expand-root file-names)))
-    (flet ((projectile-abs-patterns () (list "log" "tmp" "compiled"))
+    (flet ((projectile-paths-to-ignore () (list "log" "tmp" "compiled"))
            (file-expand-wildcards (pattern ignored)
                                   (cond
                                    ((string-equal pattern "log")
@@ -89,11 +89,12 @@
       (should (equal (projectile-project-ignored) files)))))
 
 
-(ert-deftest projectile-test-parse-ignore-file ()
-  (flet ((buffer-string () " log\t\ntmp \ncompiled\n")
+(ert-deftest projectile-test-parse-dirconfig-file ()
+  (flet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
          (file-exists-p (filename) t)
          (insert-file-contents-literally (filename) nil))
-    (should (equal '("log" "tmp" "compiled") (projectile-parse-ignore-file)))))
+    (should (equal '(("include") . ("log" "tmp" "compiled"))
+                   (projectile-parse-dirconfig-file)))))
 
 (ert-deftest projectile-test-ack ()
   (flet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/log"))
@@ -117,3 +118,11 @@
          (files-table-keys))
     (maphash (lambda (key value) (setq files-table-keys (cons key files-table-keys))) files-table)
     (should (equal (sort files-table-keys 'string-lessp) '("baz" "foo/bar" "foo2/bar")))))
+
+(ert-deftest projectile-test-get-project-directories ()
+  (flet ((projectile-project-root () "/my/root/")
+         (projectile-parse-dirconfig-file () '(nil)))
+    (should (equal '("/my/root/") (projectile-get-project-directories)))
+    (flet ((projectile-parse-dirconfig-file () '(("foo" "bar/baz"))))
+      (should (equal '("/my/root/foo" "/my/root/bar/baz")
+                     (projectile-get-project-directories))))))
