@@ -49,7 +49,7 @@
   (let ((project-root (expand-file-name (projectile-project-root))))
     (mapconcat (lambda (candidate)
                  (s-replace project-root "" candidate))
-               (projectile-project-files (projectile-project-root)) "\n")))
+               (projectile-current-project-files) "\n")))
 
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
