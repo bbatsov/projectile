@@ -1,3 +1,4 @@
-(define-package "projectile" "0.7"
-  "Manage and navigate projects in Emacs easily"
-  '((s "1.0.0")))
+(define-package "projectile" "0.9-beta"
+  "Manage and navigate projects in Emacs easily."
+  '((dash "1.0.0")
+    (s "1.0.0")))
