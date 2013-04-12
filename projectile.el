@@ -284,7 +284,7 @@ PROJECT-ROOT.")
             (when (and (projectile-project-p) projectile-enable-caching)
               (projectile-cache-current-file))))
 
-(defcustom projectile-git-command "git ls-tree -z --name-only HEAD"
+(defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
   :group 'projectile
   :type 'string)
