@@ -141,9 +141,10 @@ Otherwise consider the current directory the project root."
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
 
-(defun projectile-serialize (filename data)
-  "Serialize DATA to FILENAME. The saved data can be restored with
-projectile-unserialize."
+(defun projectile-serialize (data filename)
+  "Serialize DATA to FILENAME.
+
+The saved data can be restored with `projectile-unserialize'."
   (with-temp-buffer
     (insert (prin1-to-string data))
     (when (file-writable-p filename)
@@ -152,7 +153,7 @@ projectile-unserialize."
                     filename))))
 
 (defun projectile-unserialize (filename)
-  "Reads data serialized by projectile-serialize from FILENAME."
+  "Read data serialized by `projectile-serialize' from FILENAME."
   (when (file-exists-p filename)
     (with-temp-buffer
       (insert-file-contents filename)
@@ -173,8 +174,6 @@ The list of projects is ordered by the time they have been accessed.")
   "Name and location of the Projectile's known projects file."
   :group 'projectile
   :type 'string)
-
-
 
 (defun projectile-version ()
   "Reports the version of Projectile in use."
@@ -407,6 +406,9 @@ have been indexed."
                 (const :tag "Show relative paths" projectile-hashify-with-relative-paths)))
 
 (defun projectile-hashify-files (files-list)
+  "Convert FILES-LIST into a compact presentation.
+
+The exact format depends on `projectile-show-paths-function'."
   (funcall projectile-show-paths-function files-list))
 
 (defun projectile-hashify-with-relative-paths (files-list)
@@ -523,7 +525,7 @@ directories to ignore.
 
 Strings starting with + will be added to the list of directories
 to keep, and strings starting with - will be added to the list of
-directories to ignore. For backward compatibility, without a
+directories to ignore.  For backward compatibility, without a
 prefix the string will be assumed to be an ignore string."
   (let ((dirconfig-file (projectile-dirconfig-file)))
     (when (file-exists-p dirconfig-file)
@@ -568,7 +570,9 @@ project-root for every file."
     allkeys))
 
 (defun projectile-find-file (arg)
-  "Jump to a project's file using completion."
+  "Jump to a project's file using completion.
+
+With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache))
@@ -579,7 +583,9 @@ project-root for every file."
     (find-file (gethash file project-files))))
 
 (defun projectile-find-test-file (arg)
-  "Jump to a project's test file using completion."
+  "Jump to a project's test file using completion.
+
+With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache))
@@ -652,6 +658,7 @@ project-root for every file."
         (error "No matching test file found")))))
 
 (defun projectile-compute-test-file-name (file)
+  "Compute the name of the test matching FILE."
   (let ((basename (file-name-sans-extension file))
         (extension (file-name-extension file)))
       (-first #'file-exists-p
@@ -660,6 +667,7 @@ project-root for every file."
                     projectile-test-files-suffices))))
 
 (defun projectile-compute-file-name (test-file)
+  "Compute the name of a file matching TEST-FILE."
   (let ((basename (file-name-sans-extension test-file))
         (extension (file-name-extension test-file)))
     (-first #'file-exists-p
@@ -750,7 +758,7 @@ project-root for every file."
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
-  (projectile-serialize projectile-cache-file projectile-projects-cache))
+  (projectile-serialize projectile-projects-cache projectile-cache-file))
 
 
 (defun projectile-run-project-command (checks)
@@ -780,9 +788,6 @@ project-root for every file."
         do (return command)
         finally (return nil)))
 
-
-
-
 (defun projectile-switch-project ()
   "Switch to a project we have seen before."
   (interactive)
@@ -797,14 +802,11 @@ project-root for every file."
   "Hooks run when project is switched. The path to the opened project
 is available as PROJECT-SWITCHED")
 
-
-
 (defun projectile-add-known-project (project-root)
   "Add a project to the list of known projects."
   (setq projectile-known-projects
         (-distinct
          (cons project-root projectile-known-projects))))
-
 
 (defun projectile-load-known-projects ()
   "Load saved projects from PROJECTILE-KNOWN-PROJECTS-FILE
@@ -817,8 +819,7 @@ and sets PROJECTILE-KNOWN-PROJECTS."
 
 (defun projectile-save-known-projects ()
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
-  (projectile-serialize projectile-known-projects-file projectile-known-projects))
-
+  (projectile-serialize projectile-known-projects projectile-known-projects-file))
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
