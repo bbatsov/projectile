@@ -399,7 +399,7 @@ have been indexed."
   (multi-occur (projectile-project-buffers)
                (car (occur-read-primary-args))))
 
-(defcustom projectile-show-paths-function 'projectile-hashify-with-uniquify
+(defcustom projectile-show-paths-function 'projectile-hashify-with-relative-paths
   "Whether to display paths with projectile-find-file."
   :group 'projectile
   :type '(radio (const :tag "Only show paths to disambiguate files" projectile-hashify-with-uniquify)
