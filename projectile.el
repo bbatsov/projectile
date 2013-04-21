@@ -330,7 +330,7 @@ PROJECT-ROOT.")
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
-  (split-string (shell-command-to-string command) "\0"))
+  (split-string (shell-command-to-string command) "\0" t))
 
 (defun projectile-index-directory (directory patterns)
   "Index DIRECTORY taking into account PATTERNS.
