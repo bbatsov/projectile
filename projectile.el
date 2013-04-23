@@ -214,7 +214,8 @@ The current directory is assumed to be the project's root otherwise."
          (or (->> projectile-project-root-files
                (--map (locate-dominating-file default-directory it))
                (-remove #'null)
-               (car))
+               (car)
+               (expand-file-name))
              (if projectile-require-project-root
                  (error "You're not into a project")
                default-directory))))
@@ -382,7 +383,7 @@ have been indexed."
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
-    (s-starts-with? (expand-file-name project-root)
+    (s-starts-with? project-root
                     (expand-file-name default-directory))))
 
 (defun projectile-project-buffer-names ()
@@ -689,13 +690,14 @@ With a prefix ARG invalidates the cache first."
   (let ((roots (projectile-get-project-directories))
         (search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
-                         (read-string (projectile-prepend-project-name "Grep for: ") (thing-at-point 'symbol)))))
+                         (read-string (projectile-prepend-project-name "Grep for: ")
+                                      (thing-at-point 'symbol)))))
     (dolist (root-dir roots)
       (require 'grep)
       ;; paths for find-grep should relative and without trailing /
-      (let ((grep-find-ignored-directories (append (-map (lambda (dir) (s-chop-suffix "/" (s-replace root-dir "" dir)))
+      (let ((grep-find-ignored-directories (union (-map (lambda (dir) (s-chop-suffix "/" (s-chop-prefix root-dir dir)))
                                                          (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-            (grep-find-ignored-files (append (-map (lambda (file) (s-replace root-dir "" file)) (projectile-ignored-files)) grep-find-ignored-files)))
+            (grep-find-ignored-files (union (-map (lambda (file) (s-chop-prefix root-dir file)) (projectile-ignored-files)) grep-find-ignored-files)))
         (grep-compute-defaults)
         (rgrep search-regexp "* .*" root-dir)))))
 

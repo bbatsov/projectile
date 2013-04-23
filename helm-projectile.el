@@ -46,7 +46,7 @@
 
 (defun helm-c-projectile-candidate-buffer-content ()
   "Generates a content for the `helm-candidate-buffer' from the files in the current project"
-  (let ((project-root (expand-file-name (projectile-project-root))))
+  (let ((project-root (projectile-project-root)))
     (mapconcat (lambda (candidate)
                  (s-replace project-root "" candidate))
                (projectile-current-project-files) "\n")))
