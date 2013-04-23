@@ -123,6 +123,10 @@ Otherwise consider the current directory the project root."
     ("make" .
      (lambda (dir)
        (file-exists-p (expand-file-name "Makefile" dir))))
+    ("lein compile" .
+     (lambda (dir)
+       (and (executable-find "lein")
+            (file-exists-p (expand-file-name "project.clj" dir)))))
     )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
@@ -137,6 +141,10 @@ Otherwise consider the current directory the project root."
     ("make test" .
      (lambda (dir)
        (file-exists-p (expand-file-name "Makefile" dir))))
+    ("lein test" .
+     (lambda (dir)
+       (and (executable-find "lein")
+            (file-exists-p (expand-file-name "project.clj" dir)))))
     )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
