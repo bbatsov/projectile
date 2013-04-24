@@ -753,18 +753,19 @@ With a prefix ARG invalidates the cache first."
       (run-hooks 'projectile-switch-project-hook))))
 
 (defvar projectile-switch-project-hook nil
-  "Hooks run when project is switched. The path to the opened project
-is available as PROJECT-SWITCHED")
+  "Hooks run when project is switched.
+
+The path to the opened project is available as PROJECT-SWITCHED")
 
 (defun projectile-add-known-project (project-root)
-  "Add a project to the list of known projects."
+  "Add PROJECT-ROOT to the list of known projects."
   (setq projectile-known-projects
         (-distinct
          (cons project-root projectile-known-projects))))
 
 (defun projectile-load-known-projects ()
-  "Load saved projects from PROJECTILE-KNOWN-PROJECTS-FILE
-and sets PROJECTILE-KNOWN-PROJECTS."
+  "Load saved projects from `projectile-known-projects-file'.
+Also set `projectile-known-projects'."
   (setq projectile-known-projects
         (projectile-unserialize projectile-known-projects-file)))
 
