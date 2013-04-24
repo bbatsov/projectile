@@ -569,6 +569,8 @@ With a prefix ARG invalidates the cache first."
 
 (defvar projectile-rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec"))
 (defvar projectile-rails-test '("Gemfile" "app" "lib" "db" "config" "test"))
+(defvar projectile-ruby-rspec '("Gemfile" "lib" "pkg" "spec"))
+(defvar projectile-ruby-test '("Gemfile" "lib" "pkg" "test"))
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-lein '("project.clj"))
 
@@ -578,6 +580,8 @@ With a prefix ARG invalidates the cache first."
     (cond
      ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
      ((projectile-verify-files projectile-rails-test) 'rails-test)
+     ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
+     ((projectile-verify-files projectile-ruby-test) 'ruby-test)
      ((projectile-verify-files projectile-maven) 'maven)
      ((projectile-verify-files projectile-lein) 'lein)
      (t 'generic))))
@@ -606,33 +610,43 @@ With a prefix ARG invalidates the cache first."
   (interactive)
   (if (projectile-test-file-p (buffer-file-name))
       ;; find the matching impl file
-      (let ((impl-file (projectile-compute-file-name (buffer-file-name))))
+      (let ((impl-file (projectile-find-matching-file (buffer-file-name))))
         (if impl-file
-            (find-file impl-file)
+            (find-file (projectile-expand-root impl-file))
           (error "No matching source file found")))
     ;; find the matching test file
-    (let ((test-file (projectile-compute-test-file-name (buffer-file-name))))
+    (let ((test-file (projectile-find-matching-test (buffer-file-name))))
       (if test-file
-          (find-file test-file)
+          (find-file (projectile-expand-root test-file))
         (error "No matching test file found")))))
 
-(defun projectile-compute-test-file-name (file)
-  "Compute the name of the test matching FILE."
-  (let ((basename (file-name-sans-extension file))
-        (extension (file-name-extension file)))
-      (-first #'file-exists-p
-              (-map (lambda (suffix)
-                      (s-replace "/app/" "/spec/" (concat (s-append suffix basename) "." extension)))
-                    projectile-test-files-suffices))))
+(defun projectile-test-suffix (project-type)
+  "Find test files suffix based on PROJECT-TYPE."
+  (cond
+   ((member project-type '(rails-rspec ruby-rspec)) "_spec")
+   ((member project-type '(rails-test ruby-test lein)) "_test")
+   ((member project-type '(maven)) "Test")
+   (t (error "Project type not supported!"))))
 
-(defun projectile-compute-file-name (test-file)
+(defun projectile-find-matching-test (file)
+  "Compute the name of the test matching FILE."
+  (let ((basename (file-name-nondirectory (file-name-sans-extension file)))
+        (extension (file-name-extension file))
+        (test-suffix (projectile-test-suffix (projectile-project-type))))
+      (-first (lambda (current-file)
+                (s-equals? (file-name-nondirectory (file-name-sans-extension current-file))
+                           (concat basename test-suffix)))
+              (projectile-current-project-files))))
+
+(defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (let ((basename (file-name-sans-extension test-file))
-        (extension (file-name-extension test-file)))
-    (-first #'file-exists-p
-            (-map (lambda (suffix)
-                    (s-replace "/spec/" "/app/" (concat (s-chop-suffix suffix basename) "." extension)))
-                  projectile-test-files-suffices))))
+  (let ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
+        (extension (file-name-extension test-file))
+        (test-suffix (projectile-test-suffix (projectile-project-type))))
+    (-first (lambda (current-file)
+              (s-equals? (concat (file-name-nondirectory (file-name-sans-extension current-file)) test-suffix)
+                         basename))
+            (projectile-current-project-files))))
 
 (defun projectile-grep ()
   "Perform rgrep in the project."
