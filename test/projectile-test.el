@@ -16,10 +16,6 @@
 ;; Load test helpers
 (load (expand-file-name "test-helper.el" testsuite-dir) nil :no-message)
 
-(ert-deftest projectile-test-uniquify-file ()
-  (should (equal (projectile-uniquify-file "ala/bala/portokala")
-                 "bala/portokala")))
-
 (ert-deftest projectile-test-project-get-name ()
   (should (equal (projectile-project-name) "project")))
 
@@ -102,22 +98,6 @@
           (function &optional record-flag keys)
           (should (equal ack-and-a-half-arguments '("--ignore-dir=tmp" "--ignore-dir=log")))))
     (projectile-ack)))
-
-(ert-deftest projectile-test-hashify-relative ()
-  (let* ((file-names '("/path/to/project/foo/bar"))
-         (projectile-show-paths-function 'projectile-hashify-with-relative-paths)
-         (files-table (projectile-hashify-files file-names))
-         (files-table-keys))
-    (maphash (lambda (key value) (setq files-table-keys (cons key files-table-keys))) files-table)
-    (should (equal files-table-keys '("foo/bar")))))
-
-(ert-deftest projectile-test-hashify-uniquify ()
-  (let* ((file-names '("/path/to/project/foo/bar" "/path/to/project/foo2/bar" "/path/to/project/biz/baz"))
-         (projectile-show-paths-function 'projectile-hashify-with-uniquify)
-         (files-table (projectile-hashify-files file-names))
-         (files-table-keys))
-    (maphash (lambda (key value) (setq files-table-keys (cons key files-table-keys))) files-table)
-    (should (equal (sort files-table-keys 'string-lessp) '("baz" "foo/bar" "foo2/bar")))))
 
 (ert-deftest projectile-test-get-project-directories ()
   (flet ((projectile-project-root () "/my/root/")

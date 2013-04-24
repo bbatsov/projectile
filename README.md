@@ -125,14 +125,6 @@ If you don't like ido you can use regular completion as well:
 
 You might want to combine default completion with `icomplete-mode` for optimum results.
 
-By default, projectile always shows the path (relative to the project
-root). You can force projectile to only show the path to a file if there
-are other files with the same name:
-
-```lisp
-(setq projectile-show-paths-function 'projectile-hashify-with-uniquify)
-```
-
 ## Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:

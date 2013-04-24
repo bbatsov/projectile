@@ -148,7 +148,6 @@ Otherwise consider the current directory the project root."
     )
   "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
 
-
 (defun projectile-serialize (data filename)
   "Serialize DATA to FILENAME.
 
@@ -257,8 +256,9 @@ PROJECT-ROOT.")
             (message "Projectile is indexing %s. This may take a while."
                      (propertize directory 'face 'font-lock-keyword-face))
             (setq files-list
-                  (projectile-index-directory directory
-                                              (projectile-patterns-to-ignore))))
+                  ;; we need the files with paths relative to the project root
+                  (-map (lambda (file) (s-chop-prefix directory file))
+                        (projectile-index-directory directory (projectile-patterns-to-ignore)))))
         ;; use external tools to get the project files
         (let ((current-dir (if (buffer-file-name)
                                (file-name-directory (buffer-file-name))
@@ -335,7 +335,7 @@ PROJECT-ROOT.")
 
 (defun projectile-get-repo-files ()
   "Get a list of the files in the project."
-  (-map 'expand-file-name (projectile-files-via-ext-command (projectile-get-ext-command))))
+  (projectile-files-via-ext-command (projectile-get-ext-command)))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
@@ -407,52 +407,6 @@ have been indexed."
   (interactive)
   (multi-occur (projectile-project-buffers)
                (car (occur-read-primary-args))))
-
-(defcustom projectile-show-paths-function 'projectile-hashify-with-relative-paths
-  "Whether to display paths with projectile-find-file."
-  :group 'projectile
-  :type '(radio (const :tag "Only show paths to disambiguate files" projectile-hashify-with-uniquify)
-                (const :tag "Show relative paths" projectile-hashify-with-relative-paths)))
-
-(defun projectile-hashify-files (files-list)
-  "Convert FILES-LIST into a compact presentation.
-
-The exact format depends on `projectile-show-paths-function'."
-  (funcall projectile-show-paths-function files-list))
-
-(defun projectile-hashify-with-relative-paths (files-list)
-  "Build a hash where the values match FILES-LIST and the keys are ido friendly.
-Our keys our relative paths in the project."
-  (let ((project-root (projectile-project-root))
-        (files-table (make-hash-table :test 'equal)))
-    (dolist (current-file files-list files-table)
-      (puthash (file-relative-name current-file project-root) current-file files-table))))
-
-(defun projectile-hashify-with-uniquify (files-list)
-  "Make the list of project files FILES-LIST ido friendly."
-  (let ((files-table (make-hash-table :test 'equal))
-        (files-to-uniquify nil))
-    (dolist (current-file files-list files-table)
-      (let ((basename (file-name-nondirectory current-file)))
-        (if (gethash basename files-table)
-            (progn
-              (puthash
-               (projectile-uniquify-file current-file)
-               current-file files-table)
-              (when basename (push basename files-to-uniquify)))
-          (puthash basename current-file files-table))))
-    ;; uniquify remaining files
-    (dolist (current-file (remove-duplicates files-to-uniquify :test 'string=))
-      (puthash
-       (projectile-uniquify-file (gethash current-file files-table))
-       (gethash current-file files-table) files-table)
-      (remhash current-file files-table))
-    files-table))
-
-(defun projectile-uniquify-file (filename)
-  "Create an unique version of a FILENAME."
-  (let ((filename-parts (reverse (split-string filename "/"))))
-    (format "%s/%s" (second filename-parts) (car filename-parts))))
 
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
@@ -585,11 +539,9 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache))
-  (let* ((project-files (projectile-hashify-files
-                         (projectile-current-project-files)))
-         (file (projectile-completing-read "File file: "
-                                           (projectile-hash-keys project-files))))
-    (find-file (gethash file project-files))))
+  (let ((file (projectile-completing-read "File file: "
+                                          (projectile-current-project-files))))
+    (find-file (expand-file-name file (projectile-project-root)))))
 
 (defun projectile-find-test-file (arg)
   "Jump to a project's test file using completion.
@@ -598,11 +550,9 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache))
-  (let* ((test-files (projectile-hashify-files
-                         (projectile-test-files (projectile-current-project-files))))
-         (file (projectile-completing-read "File test file: "
-                                           (projectile-hash-keys test-files))))
-    (find-file (gethash file test-files))))
+  (let ((file (projectile-completing-read "File test file: "
+                                          (projectile-current-project-files))))
+    (find-file (expand-file-name file (projectile-project-root)))))
 
 (defvar projectile-test-files-suffices '("_test" "_spec" "Test" "-test")
   "Some common suffices of test files.")
@@ -755,21 +705,15 @@ With a prefix ARG invalidates the cache first."
   "Show a list of recently visited files in a project."
   (interactive)
   (if (boundp 'recentf-list)
-      (let ((recent-project-files
-             (projectile-hashify-files
-              (intersection (projectile-current-project-files)
-                            recentf-list
-                            :test 'string=))))
-        (find-file (gethash
-                    (projectile-completing-read "Recently visited files: "
-                                                (projectile-hash-keys recent-project-files))
-                    recent-project-files)))
+      (let* ((project-root (projectile-project-root))
+             (recent-project-files
+              (-filter (lambda (file) (s-starts-with-p project-root file)) recentf-list)))
+        (find-file (projectile-completing-read "Recently visited files: " recent-project-files)))
     (message "recentf is not enabled")))
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
   (projectile-serialize projectile-projects-cache projectile-cache-file))
-
 
 (defun projectile-run-project-command (checks)
   "Run command considering CHECKS."
