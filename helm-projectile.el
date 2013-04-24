@@ -1,10 +1,10 @@
 ;;; helm-projectile.el --- Helm integration for Projectile
 
-;; Copyright (C) 2011-2012 Bozhidar Batsov
+;; Copyright (C) 2011-2013 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
-;; Version: 0.6
+;; Version: 0.9.0
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; Package-Requires: ((helm "1.4.0") (projectile "0.6"))
@@ -30,12 +30,12 @@
 
 ;;; Commentary:
 ;;
-;; This library provides easy project management and navigation. The
+;; This library provides easy project management and navigation.  The
 ;; concept of a project is pretty basic - just a folder containing
-;; special file. Currently git, mercurial and bazaar repos are
-;; considered projects by default. If you want to mark a folder
+;; special file.  Currently git, mercurial and bazaar repos are
+;; considered projects by default.  If you want to mark a folder
 ;; manually as a project just create an empty .projectile file in
-;; it. See the README for more details.
+;; it.  See the README for more details.
 ;;
 ;;; Code:
 
@@ -45,11 +45,8 @@
 (require 'helm-buffers)
 
 (defun helm-c-projectile-candidate-buffer-content ()
-  "Generates a content for the `helm-candidate-buffer' from the files in the current project"
-  (let ((project-root (projectile-project-root)))
-    (mapconcat (lambda (candidate)
-                 (s-replace project-root "" candidate))
-               (projectile-current-project-files) "\n")))
+  "Generate content for the `helm-candidate-buffer' from the files in the current project."
+  (s-join "\n" (projectile-current-project-files)))
 
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
@@ -67,7 +64,7 @@
     (type . file)
     (action . (lambda (candidate)
                 (find-file (concat (projectile-project-root) candidate)))))
-  "Helm source definition")
+  "Helm source definition.")
 
 (defvar helm-c-source-projectile-buffers-list
   `((name . "Projectile buffers list")
@@ -83,7 +80,7 @@
     (type . buffer)
     (persistent-help
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
-  "Helm source definition")
+  "Helm source definition.")
 
 ;;;###autoload
 (defun helm-projectile ()
