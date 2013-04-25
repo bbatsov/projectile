@@ -214,12 +214,18 @@ The current directory is assumed to be the project's root otherwise."
                (--map (locate-dominating-file default-directory it))
                (-remove #'null)
                (car)
-               (expand-file-name))
+               (projectile-expand-file-name))
              (if projectile-require-project-root
                  (error "You're not into a project")
                default-directory))))
     (run-hooks 'projectile-project-root-hook)
     project-root))
+
+(defun projectile-expand-file-name (file-name)
+  "A thin wrapper around `expand-file-name' that handles nil.
+Expand FILE-NAME using `default-directory'."
+  (when file-name
+    (expand-file-name file-name)))
 
 (defvar projectile-project-root-hook
   nil

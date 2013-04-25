@@ -106,3 +106,7 @@
     (flet ((projectile-parse-dirconfig-file () '(("foo" "bar/baz"))))
       (should (equal '("/my/root/foo" "/my/root/bar/baz")
                      (projectile-get-project-directories))))))
+
+(ert-deftest projectile-test-expand-file-name ()
+  (should (equal nil (projectile-expand-file-name nil)))
+  (should (equal (expand-file-name "test") (projectile-expand-file-name "test"))))
