@@ -725,11 +725,17 @@ With a prefix ARG invalidates the cache first."
   "Show a list of recently visited files in a project."
   (interactive)
   (if (boundp 'recentf-list)
-      (let* ((project-root (projectile-project-root))
-             (recent-project-files
-              (-filter (lambda (file) (s-starts-with-p project-root file)) recentf-list)))
-        (find-file (projectile-completing-read "Recently visited files: " recent-project-files)))
-    (message "recentf is not enabled")))
+      (find-file (projectile-expand-root (projectile-completing-read "Recently visited files: " (projectile-recentf-files)))))
+    (message "recentf is not enabled"))
+
+(defun projectile-recentf-files ()
+  "Return a list of recently visited files in a project."
+  (if (boundp 'recentf-list)
+      (let ((project-root (projectile-project-root)))
+        (->> recentf-list
+          (-filter (lambda (file) (s-starts-with-p project-root file)))
+          (-map (lambda (file) (s-chop-prefix project-root file)))))
+    nil))
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."

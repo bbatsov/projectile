@@ -82,12 +82,29 @@
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
   "Helm source definition.")
 
+(defvar helm-c-source-projectile-recentf-list
+  `((name . "Projectile recent files list")
+    ;; Needed for filenames with capitals letters.
+    (init . (lambda ()
+              (with-current-buffer (helm-candidate-buffer 'local)
+                (insert
+                 (s-join "\n" (projectile-recentf-files))))))
+    (candidates-in-buffer)
+    (keymap . ,helm-generic-files-map)
+    (help-message . helm-generic-file-help-message)
+    (mode-line . helm-generic-file-mode-line-string)
+    (type . file)
+    (action . (lambda (candidate)
+                (find-file (concat (projectile-project-root) candidate)))))
+  "Helm source definition.")
+
 ;;;###autoload
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
   (helm :sources '(helm-c-source-projectile-files-list
-                   helm-c-source-projectile-buffers-list)
+                   helm-c-source-projectile-buffers-list
+                   helm-c-source-projectile-recentf-list)
         :buffer "*helm projectile*"
         :prompt (projectile-prepend-project-name "pattern: ")))
 
