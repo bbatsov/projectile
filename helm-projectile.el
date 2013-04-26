@@ -63,7 +63,7 @@
     (mode-line . helm-generic-file-mode-line-string)
     (type . file)
     (action . (lambda (candidate)
-                (find-file (concat (projectile-project-root) candidate)))))
+                (find-file (projectile-expand-root candidate)))))
   "Helm source definition.")
 
 (defvar helm-c-source-projectile-buffers-list
@@ -95,7 +95,7 @@
     (mode-line . helm-generic-file-mode-line-string)
     (type . file)
     (action . (lambda (candidate)
-                (find-file (concat (projectile-project-root) candidate)))))
+                (find-file (projectile-expand-root candidate)))))
   "Helm source definition.")
 
 ;;;###autoload
