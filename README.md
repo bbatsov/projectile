@@ -4,23 +4,28 @@
 
 Projectile is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
-introducing external dependencies. For instance - finding project
-files is done in pure Emacs Lisp without the use of GNU find.
+introducing external dependencies(when feasible). For instance -
+finding project files has a portable implementation written in pure
+Emacs Lisp without the use of GNU `find`(but for performance sake an
+indexing mechanism backed by external commands exists as well).
 
-Projectile also tries to be practical - if some external tools could
-speed up some task substantially and the tools are available,
-Projectile will leverage them.
+Projectile tries to be practical - portability is great, but if some
+external tools could speed up some task substantially and the tools
+are available, Projectile will leverage them.
 
 This library provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
-special file. Currently `git`, `mercurial` and `bazaar` repos are
-considered projects by default. If you want to mark a folder
-manually as a project just create an empty `.projectile` file in
-it. Some of projectile's features:
+special file. Currently `git`, `mercurial`, `darcs` and `bazaar` repos
+are considered projects by default. So are `lein`, `maven`, `sbt`,
+`rebar` and `bundler` projects. If you want to mark a folder manually
+as a project just create an empty `.projectile` file in it. Some of
+projectile's features:
 
 * jump to a file in project
 * jump to a project buffer
 * jump to a test in project
+* toggle between code and its test
+* jump to recently visited files in the project
 * switch between projects you have worked on
 * kill all project buffers
 * replace in project
@@ -262,6 +267,10 @@ Run all tests with:
 $ make
 ```
 
+## Changelog
+
+A fairly extensive changelog is available [here](CHANGELOG.md).
+
 ## Bugs & Improvements
 
 Bug reports and suggestions for improvements are always
@@ -270,4 +279,4 @@ welcome. github pull requests are even better! :-)
 Together we can create the ultimate project management tool for Emacs.
 
 Cheers,<br/>
-Bozhidar
+[Bozhidar](https://twitter.com/bbatsov)
