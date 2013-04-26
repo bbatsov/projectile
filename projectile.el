@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
-;; Version: 0.9.0
+;; Version: 0.9.1
 ;; Keywords: project, convenience
 ;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
 
@@ -51,7 +51,7 @@
   :group 'tools
   :group 'convenience)
 
-(defconst projectile-current-version "0.9.0"
+(defconst projectile-current-version "0.9.1"
   "The current Projectile version.")
 
 (defcustom projectile-use-native-indexing (eq system-type 'windows-nt)
