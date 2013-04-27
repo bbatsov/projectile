@@ -2,6 +2,12 @@
 
 ### master (unreleased)
 
+### New features
+
+### Changes
+
+* Rebound `projectile-compile-project` to <kbd>C-c p c</kbd>
+
 ## 0.9.1 (04/26/2013)
 
 ### New features

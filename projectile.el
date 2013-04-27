@@ -818,7 +818,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "d") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "a") 'projectile-ack)
-      (define-key prefix-map (kbd "l") 'projectile-compile-project)
+      (define-key prefix-map (kbd "c") 'projectile-compile-project)
       (define-key prefix-map (kbd "p") 'projectile-test-project)
       (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
       (define-key prefix-map (kbd "s") 'projectile-switch-project)
