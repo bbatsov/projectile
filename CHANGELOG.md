@@ -7,6 +7,7 @@
 ### Changes
 
 * Rebound `projectile-compile-project` to <kbd>C-c p c</kbd>
+* Reworked `projectile-compile-project` and `projectile-test-project` to be smarter, more configurable and closer in behavior to the stock `compile` command
 
 ## 0.9.1 (04/26/2013)
 

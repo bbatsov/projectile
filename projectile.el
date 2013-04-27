@@ -112,42 +112,6 @@ Otherwise consider the current directory the project root."
   '(".idea" ".eunit" ".git" ".hg" ".bzr" "_darcs")
   "A list of directories globally ignored by projectile.")
 
-(defvar projectile-project-compilation-commands
-  '(("./rebar compile" .
-     (lambda (dir)
-       (file-exists-p (expand-file-name "rebar" dir))))
-    ("rebar compile" .
-     (lambda (dir)
-       (and (executable-find "rebar")
-            (file-exists-p (expand-file-name "rebar.config" dir)))))
-    ("make" .
-     (lambda (dir)
-       (file-exists-p (expand-file-name "Makefile" dir))))
-    ("lein compile" .
-     (lambda (dir)
-       (and (executable-find "lein")
-            (file-exists-p (expand-file-name "project.clj" dir)))))
-    )
-  "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
-
-(defvar projectile-project-test-commands
-  '(("./rebar eunit skip_deps=true" .
-     (lambda (dir)
-       (file-exists-p (expand-file-name "rebar" dir))))
-    ("rebar eunit skip_deps=true" .
-     (lambda (dir)
-       (and (executable-find "rebar")
-            (file-exists-p (expand-file-name "rebar.config" dir)))))
-    ("make test" .
-     (lambda (dir)
-       (file-exists-p (expand-file-name "Makefile" dir))))
-    ("lein test" .
-     (lambda (dir)
-       (and (executable-find "lein")
-            (file-exists-p (expand-file-name "project.clj" dir)))))
-    )
-  "A list of pairs of commands and prerequisite lambdas to perform project compilation.")
-
 (defun projectile-serialize (data filename)
   "Serialize DATA to FILENAME.
 
@@ -579,6 +543,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-ruby-test '("Gemfile" "lib" "pkg" "test"))
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-lein '("project.clj"))
+(defvar projectile-rebar '("rebar"))
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
@@ -590,6 +555,7 @@ With a prefix ARG invalidates the cache first."
      ((projectile-verify-files projectile-ruby-test) 'ruby-test)
      ((projectile-verify-files projectile-maven) 'maven)
      ((projectile-verify-files projectile-lein) 'lein)
+     ((projectile-verify-files projectile-rebar) 'rebar)
      (t 'generic))))
 
 (defun projectile-verify-files (files)
@@ -741,32 +707,76 @@ With a prefix ARG invalidates the cache first."
   "Serializes the memory cache to the hard drive."
   (projectile-serialize projectile-projects-cache projectile-cache-file))
 
-(defun projectile-run-project-command (checks)
-  "Run command considering CHECKS."
-  (let* ((dir (or (projectile-project-root)
-                  (file-name-directory (buffer-file-name))))
-         (pref (concat "cd " dir " && "))
-         (cmd (projectile-get-project-compile-command dir checks)))
-    (if cmd
-        (compilation-start (concat pref cmd)))
-    ))
+(defvar projectile-rails-compile-cmd "bundle exec rails server")
+(defvar projectile-ruby-compile-cmd "bundle exec rake")
+(defvar projectile-ruby-test-cmd "bundle rake test")
+(defvar projectile-ruby-rspec-cmd "bundle exec rspec")
+(defvar projectile-maven-compile-cmd "mvn clean install")
+(defvar projectile-maven-test-cmd "mvn test")
+(defvar projectile-lein-compile-cmd "lein compile")
+(defvar projectile-lein-test-cmd "lein test")
+(defvar projectile-rebar-compile-cmd "rebar")
+(defvar projectile-rebar-test-cmd "rebar eunit")
+(defvar projectile-make-compile-cmd "make")
+(defvar projectile-make-test-cmd "make test")
+
+(defvar projectile-compilation-cmd-map
+  (make-hash-table :test 'equal)
+  "A mapping between projects and the last compilation command used on them.")
+(defvar projectile-test-cmd-map
+  (make-hash-table :test 'equal)
+  "A mapping between projects and the last test command used on them.")
+
+(defun projectile-default-compilation-command (project-type)
+  "Retrieve default compilation command for PROJECT-TYPE."
+  (cond
+   ((member project-type '(rails-rspec rails-test)) projectile-rails-compile-cmd)
+   ((member project-type '(ruby-rspec ruby-test)) projectile-ruby-compile-cmd)
+   ((eq project-type 'lein) projectile-lein-compile-cmd)
+   ((eq project-type 'make) projectile-make-compile-cmd)
+   ((eq project-type 'rebar) projectile-rebar-compile-cmd)
+   ((eq project-type 'maven) projectile-make-compile-cmd)
+   (t (error "Project type not supported!"))))
+
+(defun projectile-default-test-command (project-type)
+  "Retrieve default test command for PROJECT-TYPE."
+  (cond
+   ((member project-type '(rails-rspec ruby-rspec)) projectile-ruby-rspec-cmd)
+   ((member project-type '(rails-test ruby-test)) projectile-ruby-test-cmd)
+   ((eq project-type 'lein) projectile-lein-test-cmd)
+   ((eq project-type 'make) projectile-make-test-cmd)
+   ((eq project-type 'rebar) projectile-rebar-test-cmd)
+   ((eq project-type 'maven) projectile-maven-test-cmd)
+   (t (error "Project type not supported!"))))
+
+(defun projectile-compilation-command (project)
+  "Retrieve the compilation command for PROJECT."
+  (or (gethash project projectile-compilation-cmd-map)
+      (projectile-default-compilation-command (projectile-project-type))))
+
+(defun projectile-test-command (project)
+  "Retrieve the compilation command for PROJECT."
+  (or (gethash project projectile-test-cmd-map)
+      (projectile-default-test-command (projectile-project-type))))
 
 (defun projectile-compile-project ()
   "Run project compilation command."
   (interactive)
-  (projectile-run-project-command projectile-project-compilation-commands))
+  (let* ((project-root (projectile-project-root))
+         (compilation-cmd (compilation-read-command (projectile-compilation-command project-root))))
+    (cd project-root)
+    (puthash project-root compilation-cmd projectile-compilation-cmd-map)
+    (compilation-start compilation-cmd)))
 
+;; TODO - factor this duplication out
 (defun projectile-test-project ()
   "Run project test command."
   (interactive)
-  (projectile-run-project-command projectile-project-test-commands))
-
-(defun projectile-get-project-compile-command (dir checks)
-  "Retrieve compile command according to DIR and CHECKS."
-  (loop for (command . check) in checks
-        when (funcall check dir)
-        do (return command)
-        finally (return nil)))
+  (let* ((project-root (projectile-project-root))
+         (test-cmd (compilation-read-command (projectile-test-command project-root))))
+    (cd project-root)
+    (puthash project-root test-cmd projectile-test-cmd-map)
+    (compilation-start test-cmd)))
 
 (defun projectile-switch-project ()
   "Switch to a project we have seen before."
