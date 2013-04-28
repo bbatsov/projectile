@@ -38,8 +38,6 @@
 ;;
 ;;; Code:
 
-;; requires
-(require 'cl)
 (require 'easymenu)
 (require 'thingatpt)
 (require 's)
@@ -898,9 +896,4 @@ Also set `projectile-known-projects'."
   (projectile-mode -1))
 
 (provide 'projectile)
-
-;; Local Variables:
-;; byte-compile-warnings: (not cl-functions)
-;; End:
-
 ;;; projectile.el ends here
