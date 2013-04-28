@@ -101,7 +101,7 @@ Otherwise consider the current directory the project root."
 ;; variables
 (defvar projectile-project-root-files
   '(".projectile" "project.clj" ".git" ".hg" ".bzr" "_darcs"
-    "rebar.config" "pom.xml" "build.sbt" "Gemfile")
+    "rebar.config" "pom.xml" "build.sbt" "Gemfile" "Makefile")
   "A list of files considered to mark the root of a project.")
 
 (defvar projectile-globally-ignored-files
@@ -544,6 +544,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-lein '("project.clj"))
 (defvar projectile-rebar '("rebar"))
+(defvar projectile-make '("Makefile"))
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
@@ -556,6 +557,7 @@ With a prefix ARG invalidates the cache first."
      ((projectile-verify-files projectile-maven) 'maven)
      ((projectile-verify-files projectile-lein) 'lein)
      ((projectile-verify-files projectile-rebar) 'rebar)
+     ((projectile-verify-files projectile-make) 'make)
      (t 'generic))))
 
 (defun projectile-verify-files (files)
@@ -735,8 +737,8 @@ With a prefix ARG invalidates the cache first."
    ((eq project-type 'lein) projectile-lein-compile-cmd)
    ((eq project-type 'make) projectile-make-compile-cmd)
    ((eq project-type 'rebar) projectile-rebar-compile-cmd)
-   ((eq project-type 'maven) projectile-make-compile-cmd)
-   (t (error "Project type not supported!"))))
+   ((eq project-type 'maven) projectile-maven-compile-cmd)
+   (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
   "Retrieve default test command for PROJECT-TYPE."
@@ -747,7 +749,7 @@ With a prefix ARG invalidates the cache first."
    ((eq project-type 'make) projectile-make-test-cmd)
    ((eq project-type 'rebar) projectile-rebar-test-cmd)
    ((eq project-type 'maven) projectile-maven-test-cmd)
-   (t (error "Project type not supported!"))))
+   (t projectile-make-test-cmd)))
 
 (defun projectile-compilation-command (project)
   "Retrieve the compilation command for PROJECT."
