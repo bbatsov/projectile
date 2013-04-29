@@ -35,6 +35,10 @@ projectile's features:
 * visit project in dired
 * run make in a project with a single key chord
 
+Here's a glimpse of Projectile in action:
+
+![Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/projectile.png)
+
 # Installation
 
 The recommended way to install Projectile is via MELPA.
@@ -222,6 +226,8 @@ or even better - bind it to a keybinding like this:
 ```
 
 Obviously you need to have Helm installed for this to work :-)
+
+![Helm-Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png)
 
 # Caveats
 
