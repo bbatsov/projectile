@@ -843,7 +843,7 @@ Also set `projectile-known-projects'."
   "Add Projectile's menu under Tools."
   (easy-menu-add-item nil '("Tools")
                       '("Projectile"
-                        ["File file" projectile-find-file]
+                        ["Find file" projectile-find-file]
                         ["Switch to buffer" projectile-switch-to-buffer]
                         ["Kill project buffers" projectile-kill-buffers]
                         ["Recent files" projectile-recentf]
