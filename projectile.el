@@ -509,7 +509,7 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache))
-  (let ((file (projectile-completing-read "File file: "
+  (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
 
@@ -520,7 +520,7 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache))
-  (let ((file (projectile-completing-read "File test file: "
+  (let ((file (projectile-completing-read "Find test file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
 
