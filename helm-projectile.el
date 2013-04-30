@@ -110,7 +110,7 @@
 
 ;;;###autoload
 (eval-after-load 'projectile
-    (define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile))
+    '(define-key projectile-mode-map (kbd "C-c p h") 'helm-projectile))
 
 (provide 'helm-projectile)
 ;;; helm-projectile.el ends here
