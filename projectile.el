@@ -668,9 +668,13 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-replace ()
   "Replace a string in the project using `tags-query-replace'."
   (interactive)
-  (let ((old-text (read-string "Replace: " (thing-at-point 'symbol)))
-        (new-text (read-string "With: ")))
-    (tags-query-replace old-text new-text nil '(projectile-current-project-files))))
+  (let* ((old-text (read-string
+                    (projectile-prepend-project-name "Replace: ")
+                    (thing-at-point 'symbol)))
+        (new-text (read-string
+                   (projectile-prepend-project-name
+                    (format "Replace %s with: " old-text)))))
+    (tags-query-replace old-text new-text nil '(-map 'projectile-expand-root (projectile-current-project-files)))))
 
 (defun projectile-kill-buffers ()
   "Kill all project buffers."

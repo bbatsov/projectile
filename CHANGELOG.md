@@ -4,6 +4,10 @@
 
 ### New features
 
+### Bugs fixed
+
+* Fixed `projectile-replace`, which was broken from the use of relative paths
+
 ### Changes
 
 * Rebound `projectile-compile-project` to <kbd>C-c p c</kbd>
