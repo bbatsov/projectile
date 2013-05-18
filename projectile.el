@@ -152,10 +152,17 @@ The list of projects is ordered by the time they have been accessed.")
   (message "Projectile (version %s) 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>"
            projectile-current-version))
 
-(defun projectile-invalidate-cache ()
-  "Remove the current project's files from `projectile-projects-cache'."
-  (interactive)
-  (let ((project-root (projectile-project-root)))
+(defun projectile-invalidate-cache (arg)
+  "Remove the current project's files from `projectile-projects-cache'.
+
+With a prefix argument ARG prompts for the name of the project whose cache
+to invalidate."
+  (interactive "P")
+  (let ((project-root
+         (if arg
+             (completing-read "Remove cache for: "
+                              (projectile-hash-keys projectile-projects-cache))
+             (projectile-project-root))))
     (remhash project-root projectile-projects-cache)
     (projectile-serialize-cache)
     (message "Invalidated Projectile cache for %s."
