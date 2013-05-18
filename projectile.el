@@ -498,13 +498,15 @@ project-root for every file."
 
 (defun projectile-current-project-files ()
   "Return a list of files for the current project."
-  (let ((files (-mapcat (lambda (dir) (projectile-project-files dir))
-                        (projectile-get-project-directories)))
-        (was-hashed (and projectile-enable-caching
-                         (gethash (projectile-project-root) projectile-projects-cache))))
-    (unless was-hashed
-       ;; cache the resulting list of files
-      (when projectile-enable-caching (projectile-cache-project (projectile-project-root) files)))
+  (let ((files (and projectile-enable-caching
+                    (gethash (projectile-project-root) projectile-projects-cache))))
+    ;; nothing is cached
+    (unless files
+      (setq files (-mapcat 'projectile-project-files
+                           (projectile-get-project-directories)))
+      ;; cache the resulting list of files
+      (when projectile-enable-caching
+        (projectile-cache-project (projectile-project-root) files)))
     files))
 
 (defun projectile-hash-keys (hash)
@@ -519,7 +521,7 @@ project-root for every file."
 With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
-    (projectile-invalidate-cache))
+    (projectile-invalidate-cache nil))
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
