@@ -214,7 +214,11 @@ PROJECT-ROOT.")
 
 (defun projectile-project-name ()
   "Return project name."
-  (file-name-nondirectory (directory-file-name (projectile-project-root))))
+  (let ((project-root
+         (condition-case nil
+             (projectile-project-root)
+           (error default-directory))))
+   (file-name-nondirectory (directory-file-name project-root))))
 
 (defun projectile-get-project-directories ()
   "Get the list of project directories that are of interest to the user."
