@@ -173,9 +173,7 @@ to invalidate."
 The cache is created both in memory and on the hard drive."
   (when projectile-enable-caching
     (puthash project files projectile-projects-cache)
-    (projectile-serialize-cache))
-  (projectile-add-known-project project)
-  (projectile-save-known-projects))
+    (projectile-serialize-cache)))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
@@ -272,6 +270,12 @@ PROJECT-ROOT.")
           (lambda ()
             (when (and (projectile-project-p) projectile-enable-caching)
               (projectile-cache-current-file))))
+
+(add-hook 'find-file-hook
+          (lambda ()
+            (when (projectile-project-p)
+              (projectile-add-known-project (projectile-project-root))
+              (projectile-save-known-projects))))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
