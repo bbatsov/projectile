@@ -4,9 +4,14 @@
 
 ### New features
 
+* `projectile-invalidate-cache` now accepts a prefix argument. When
+  present you'll be prompted for the project whose cache to
+  invalidate.
+
 ### Bugs fixed
 
 * Fixed `projectile-replace`, which was broken from the use of relative paths
+* #103 - `projectile-switch-project` does not require a project to work
 
 ### Changes
 
