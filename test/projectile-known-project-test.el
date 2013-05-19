@@ -1,19 +1,3 @@
-(defun projectile-switch-project-test-env (body)
-  (let (projectile-called-hooks-flag
-        ido-response
-        (projectile-switch-project-hook
-         (lambda () (setq projectile-called-hooks-flag t))))
-    (flet ((ido-completing-read (prompt options)
-                                ido-response))
-      (eval (cons 'progn body)))))
-
-(ert-deftest projectile-test-switch-project-calls-hooks ()
-  "Hooks should be called so user run code
-that is needed to support a working project."
-  (projectile-switch-project-test-env
-   '((projectile-switch-project)
-     (should projectile-called-hooks-flag))))
-
 (ert-deftest projectile-test-add-known-project-adds-project-to-known-projects ()
   "An added project should be added to the list of known projects."
   (let (projectile-known-projects)
