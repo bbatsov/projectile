@@ -187,7 +187,6 @@ The current directory is assumed to be the project's root otherwise."
              (if projectile-require-project-root
                  (error "You're not into a project")
                default-directory))))
-    (run-hooks 'projectile-project-root-hook)
     project-root))
 
 (defun projectile-expand-file-name (file-name)
@@ -195,14 +194,6 @@ The current directory is assumed to be the project's root otherwise."
 Expand FILE-NAME using `default-directory'."
   (when file-name
     (expand-file-name file-name)))
-
-(defvar projectile-project-root-hook
-  nil
-  "Called whenever a project root is found.
-
-The found project root is available as
-PROJECT-ROOT.")
-
 
 (defun projectile-project-p ()
   "Check if we're in a project."
@@ -530,7 +521,7 @@ With a prefix ARG invalidates the cache first."
 With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
-    (projectile-invalidate-cache))
+    (projectile-invalidate-cache nil))
   (let ((file (projectile-completing-read "Find test file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
