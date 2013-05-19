@@ -239,14 +239,7 @@ PROJECT-ROOT.")
                   (-map (lambda (file) (s-chop-prefix directory file))
                         (projectile-index-directory directory (projectile-patterns-to-ignore)))))
         ;; use external tools to get the project files
-        (let ((current-dir (if (buffer-file-name)
-                               (file-name-directory (buffer-file-name))
-                             default-directory)))
-          (cd directory)
-          (setq files-list (projectile-get-repo-files))
-          ;; restore the original current directory
-          (message current-dir)
-          (cd current-dir))))
+        (setq files-list (projectile-get-repo-files directory))))
     files-list))
 
 (defun projectile-file-cached-p (file project)
@@ -277,32 +270,32 @@ PROJECT-ROOT.")
               (projectile-add-known-project (projectile-project-root))
               (projectile-save-known-projects))))
 
-(defcustom projectile-git-command "git ls-files -zco --exclude-standard"
+(defcustom projectile-git-command "git ls-files -zco --exclude-standard %s"
   "Command used by projectile to get the files in a git project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-hg-command "hg locate -0 -I ."
+(defcustom projectile-hg-command "hg locate -0 -I %s"
   "Command used by projectile to get the files in a hg project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-bzr-command "bzr ls --versioned -0"
+(defcustom projectile-bzr-command "bzr ls --versioned -0 %s"
   "Command used by projectile to get the files in a bazaar project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-darcs-command "darcs show files -0 . "
+(defcustom projectile-darcs-command "darcs show files -0 %s"
   "Command used by projectile to get the files in a darcs project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-svn-command "find . -type f -print0"
+(defcustom projectile-svn-command "find %s -type f -print0"
   "Command used by projectile to get the files in a svn project."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-generic-command "find . -type f -print0"
+(defcustom projectile-generic-command "find %s -type f -print0"
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
@@ -318,9 +311,10 @@ PROJECT-ROOT.")
      ((eq vcs 'svn) projectile-svn-command)
      (t projectile-generic-command))))
 
-(defun projectile-get-repo-files ()
-  "Get a list of the files in the project."
-  (projectile-files-via-ext-command (projectile-get-ext-command)))
+(defun projectile-get-repo-files (directory)
+  "Get a list of the files in DIRECTORY."
+  (projectile-files-via-ext-command
+   (format (projectile-get-ext-command) directory)))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
@@ -804,10 +798,18 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-switch-project ()
   "Switch to a project we have seen before."
   (interactive)
-  (let ((project-to-switch
+  (let ((cur-buffer (current-buffer))
+        (old-dir (if (buffer-file-name)
+                     (file-name-directory (buffer-file-name))
+                   default-directory))
+        (project-to-switch
          (projectile-completing-read "Switch to which project: "
                                      projectile-known-projects)))
-    (dired project-to-switch)
+    (cd project-to-switch)
+    (projectile-find-file nil)
+    ;; its important not to mess up the buffer's `default-directory'
+    (with-current-buffer cur-buffer
+      (cd old-dir))
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 
