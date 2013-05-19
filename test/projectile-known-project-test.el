@@ -1,23 +1,11 @@
 (defun projectile-switch-project-test-env (body)
-  (let (dired-calls
-        projectile-called-hooks-flag
+  (let (projectile-called-hooks-flag
         ido-response
         (projectile-switch-project-hook
          (lambda () (setq projectile-called-hooks-flag t))))
     (flet ((ido-completing-read (prompt options)
-                                ido-response)
-           (dired (&rest args)
-                  (push args dired-calls)))
+                                ido-response))
       (eval (cons 'progn body)))))
-
-(ert-deftest projectile-test-switch-project-calls-dired ()
-  "A good default action for switching a project is to
-switch a dired buffer on the projects root directory."
-  (projectile-switch-project-test-env
-   '((let ((ido-response "~/my/project/"))
-       (projectile-switch-project)
-       (should (string= (car (car dired-calls))
-                        ido-response))))))
 
 (ert-deftest projectile-test-switch-project-calls-hooks ()
   "Hooks should be called so user run code
