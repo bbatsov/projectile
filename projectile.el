@@ -59,7 +59,7 @@
   :group 'projectile
   :type 'boolean)
 
-(defcustom projectile-enable-caching (eq system-type 'windows-nt)
+(defcustom projectile-enable-caching projectile-use-native-indexing
   "Enable project files caching."
   :group 'projectile
   :type 'boolean)
