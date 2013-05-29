@@ -116,12 +116,9 @@ Otherwise consider the current directory the project root."
   "Serialize DATA to FILENAME.
 
 The saved data can be restored with `projectile-unserialize'."
-  (with-temp-buffer
-    (insert (prin1-to-string data))
-    (when (file-writable-p filename)
-      (write-region (point-min)
-                    (point-max)
-                    filename))))
+  (when (file-writable-p filename)
+    (with-temp-file filename
+      (insert (prin1-to-string data)))))
 
 (defun projectile-unserialize (filename)
   "Read data serialized by `projectile-serialize' from FILENAME."
