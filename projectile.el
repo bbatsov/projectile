@@ -212,10 +212,12 @@ Expand FILE-NAME using `default-directory'."
         (or (car (projectile-parse-dirconfig-file)) '(""))))
 
 (defun projectile-project-files (directory)
-  "List the files in DIRECTORY and in its sub-directories."
+  "List the files in DIRECTORY and in its sub-directories.
+Files are returned as relative paths to the project root."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
-                         (gethash directory projectile-projects-cache))))
+                         (gethash directory projectile-projects-cache)))
+        (root (projectile-project-root)))
     ;; cache disabled or cache miss
     (unless files-list
       (if projectile-use-native-indexing
@@ -224,14 +226,16 @@ Expand FILE-NAME using `default-directory'."
                      (propertize directory 'face 'font-lock-keyword-face))
             (setq files-list
                   ;; we need the files with paths relative to the project root
-                  (-map (lambda (file) (s-chop-prefix directory file))
+                  (-map (lambda (file) (s-chop-prefix root file))
                         (projectile-index-directory directory (projectile-patterns-to-ignore)))))
         ;; use external tools to get the project files
         (let ((current-dir (if (buffer-file-name)
                                (file-name-directory (buffer-file-name))
                              default-directory)))
-          (cd directory)
-          (setq files-list (projectile-get-repo-files))
+          (cd current-dir)
+          (setq files-list (-map (lambda (f)
+                                   (s-chop-prefix root (expand-file-name f current-dir)))
+                                 (projectile-get-repo-files)))
           ;; restore the original current directory
           (message current-dir)
           (cd current-dir))))
