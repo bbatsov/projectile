@@ -22,6 +22,7 @@ as a project just create an empty `.projectile` file in it. Some of
 projectile's features:
 
 * jump to a file in project
+* jump to a directory in project
 * jump to a project buffer
 * jump to a test in project
 * toggle between code and its test
@@ -161,6 +162,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 Keybinding         | Description
 -------------------|------------------------------------------------------------
 <kbd>C-c p f</kbd> | Display a list of all files in the project. With a prefix argument it will clear the cache first.
+<kbd>C-c p d</kbd> | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
 <kbd>C-c p g</kbd> | Run grep on the files in the project.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
@@ -169,7 +171,7 @@ Keybinding         | Description
 <kbd>C-c p i</kbd> | Invalidates the project cache (if existing).
 <kbd>C-c p R</kbd> | Regenerates the projects `TAGS` file.
 <kbd>C-c p k</kbd> | Kills all project buffers.
-<kbd>C-c p d</kbd> | Opens the root of the project in `dired`.
+<kbd>C-c p D</kbd> | Opens the root of the project in `dired`.
 <kbd>C-c p e</kbd> | Shows a list of recently visited project files.
 <kbd>C-c p a</kbd> | Runs `ack` on the project. Requires the presence of `ack-and-a-half`.
 <kbd>C-c p c</kbd> | Runs a standard compilation command for your type of project.
