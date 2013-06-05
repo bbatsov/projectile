@@ -7,6 +7,9 @@
 * `projectile-invalidate-cache` now accepts a prefix argument. When
   present you'll be prompted for the project whose cache to
   invalidate.
+* New command `projectile-find-dir` works similar to
+  `projectile-find-file` - displays the project's dirs and opens them
+  with `dired`. It's bound to `C-c p d`.
 
 ### Bugs fixed
 
@@ -16,7 +19,10 @@
 ### Changes
 
 * Rebound `projectile-compile-project` to <kbd>C-c p c</kbd>
-* Reworked `projectile-compile-project` and `projectile-test-project` to be smarter, more configurable and closer in behavior to the stock `compile` command
+* Rebound `projectile-dired` to <kbd>C-c p D</kbd>
+* Reworked `projectile-compile-project` and `projectile-test-project`
+  to be smarter, more configurable and closer in behavior to the stock
+  `compile` command
 
 ## 0.9.1 (04/26/2013)
 

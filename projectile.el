@@ -505,6 +505,12 @@ project-root for every file."
         (projectile-cache-project (projectile-project-root) files)))
     files))
 
+(defun projectile-current-project-dirs ()
+  "Return a list of dirs for the current project."
+  (-remove 'null (-distinct
+                  (-map 'file-name-directory
+                        (projectile-current-project-files)))))
+
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
   (let (allkeys)
@@ -521,6 +527,17 @@ With a prefix ARG invalidates the cache first."
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
+
+(defun projectile-find-dir (arg)
+  "Jump to a project's file using completion.
+
+With a prefix ARG invalidates the cache first."
+  (interactive "P")
+  (when arg
+    (projectile-invalidate-cache nil))
+  (let ((dir (projectile-completing-read "Find dir: "
+                                          (projectile-current-project-dirs))))
+    (dired (expand-file-name dir (projectile-project-root)))))
 
 (defun projectile-find-test-file (arg)
   "Jump to a project's test file using completion.
@@ -840,7 +857,8 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
       (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
-      (define-key prefix-map (kbd "d") 'projectile-dired)
+      (define-key prefix-map (kbd "d") 'projectile-find-dir)
+      (define-key prefix-map (kbd "D") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "a") 'projectile-ack)
       (define-key prefix-map (kbd "c") 'projectile-compile-project)
