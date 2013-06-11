@@ -232,12 +232,11 @@ Files are returned as relative paths to the project root."
         (let ((current-dir (if (buffer-file-name)
                                (file-name-directory (buffer-file-name))
                              default-directory)))
-          (cd current-dir)
+          (cd directory)
           (setq files-list (-map (lambda (f)
-                                   (s-chop-prefix root (expand-file-name f current-dir)))
+                                   (s-chop-prefix root (expand-file-name f directory)))
                                  (projectile-get-repo-files)))
           ;; restore the original current directory
-          (message current-dir)
           (cd current-dir))))
     files-list))
 
