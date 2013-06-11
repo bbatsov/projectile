@@ -211,7 +211,7 @@ Expand FILE-NAME using `default-directory'."
   (-map (lambda (subdir) (concat (projectile-project-root) subdir))
         (or (car (projectile-parse-dirconfig-file)) '(""))))
 
-(defun projectile-project-files (directory)
+(defun projectile-dir-files (directory)
   "List the files in DIRECTORY and in its sub-directories.
 Files are returned as relative paths to the project root."
   ;; check for a cache hit first if caching is enabled
@@ -219,25 +219,32 @@ Files are returned as relative paths to the project root."
                          (gethash directory projectile-projects-cache)))
         (root (projectile-project-root)))
     ;; cache disabled or cache miss
-    (unless files-list
-      (if projectile-use-native-indexing
-          (progn
-            (message "Projectile is indexing %s. This may take a while."
-                     (propertize directory 'face 'font-lock-keyword-face))
-            (setq files-list
-                  ;; we need the files with paths relative to the project root
-                  (-map (lambda (file) (s-chop-prefix root file))
-                        (projectile-index-directory directory (projectile-patterns-to-ignore)))))
-        ;; use external tools to get the project files
-        (let ((current-dir (if (buffer-file-name)
-                               (file-name-directory (buffer-file-name))
-                             default-directory)))
-          (cd directory)
-          (setq files-list (-map (lambda (f)
-                                   (s-chop-prefix root (expand-file-name f directory)))
-                                 (projectile-get-repo-files)))
-          ;; restore the original current directory
-          (cd current-dir))))
+    (or files-list
+        (if projectile-use-native-indexing
+            (projectile-dir-files-native root directory)
+          ;; use external tools to get the project files
+          (projectile-dir-files-external root directory)))))
+
+(defun projectile-dir-files-native (root directory)
+  "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
+  (message "Projectile is indexing %s. This may take a while."
+           (propertize directory 'face 'font-lock-keyword-face))
+  ;; we need the files with paths relative to the project root
+  (-map (lambda (file) (s-chop-prefix root file))
+        (projectile-index-directory directory (projectile-patterns-to-ignore))))
+
+(defun projectile-dir-files-external (root directory)
+  "Get the files for ROOT under DIRECTORY using external tools."
+  (let ((current-dir (if (buffer-file-name)
+                         (file-name-directory (buffer-file-name))
+                       default-directory))
+        (files-list nil))
+    (cd directory)
+    (setq files-list (-map (lambda (f)
+                             (s-chop-prefix root (expand-file-name f directory)))
+                           (projectile-get-repo-files)))
+    ;; restore the original current directory
+    (cd current-dir)
     files-list))
 
 (defun projectile-file-cached-p (file project)
@@ -497,7 +504,7 @@ project-root for every file."
                     (gethash (projectile-project-root) projectile-projects-cache))))
     ;; nothing is cached
     (unless files
-      (setq files (-mapcat 'projectile-project-files
+      (setq files (-mapcat 'projectile-dir-files
                            (projectile-get-project-directories)))
       ;; cache the resulting list of files
       (when projectile-enable-caching
