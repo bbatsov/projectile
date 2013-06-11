@@ -666,7 +666,7 @@ With a prefix ARG invalidates the cache first."
         (search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
                          (read-string (projectile-prepend-project-name "Grep for: ")
-                                      (thing-at-point 'symbol)))))
+                                      (substring-no-properties (thing-at-point 'symbol))))))
     (dolist (root-dir roots)
       (require 'grep)
       ;; paths for find-grep should relative and without trailing /
