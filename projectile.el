@@ -604,6 +604,11 @@ With a prefix ARG invalidates the cache first."
   "Determine the VCS used by the project if any."
   (let ((project-root (projectile-project-root)))
    (cond
+    ((file-exists-p (expand-file-name ".git" project-root)) 'git)
+    ((file-exists-p (expand-file-name ".hg" project-root)) 'hg)
+    ((file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
+    ((file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
+    ((file-exists-p (expand-file-name ".svn" project-root)) 'svn)
     ((locate-dominating-file project-root ".git") 'git)
     ((locate-dominating-file project-root ".hg") 'hg)
     ((locate-dominating-file project-root ".bzr") 'bzr)
