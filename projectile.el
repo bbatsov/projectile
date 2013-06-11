@@ -366,8 +366,10 @@ have been indexed."
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
-    (s-starts-with? project-root
-                    (expand-file-name default-directory))))
+    (and (s-starts-with? project-root
+                         (expand-file-name default-directory))
+         ;; ignore hidden buffers
+         (not (s-starts-with? " " (buffer-name buffer))))))
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
