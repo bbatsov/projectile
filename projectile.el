@@ -707,7 +707,7 @@ With a prefix ARG invalidates the cache first."
   (interactive)
   (let* ((old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
-                    (thing-at-point 'symbol)))
+                    (substring-no-properties (thing-at-point 'symbol))))
         (new-text (read-string
                    (projectile-prepend-project-name
                     (format "Replace %s with: " old-text)))))
