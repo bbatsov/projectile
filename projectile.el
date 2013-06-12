@@ -668,7 +668,7 @@ With a prefix ARG invalidates the cache first."
         (search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
                          (read-string (projectile-prepend-project-name "Grep for: ")
-                                      (substring-no-properties (thing-at-point 'symbol))))))
+                                      (projectile-symbol-at-point)))))
     (dolist (root-dir roots)
       (require 'grep)
       ;; paths for find-grep should relative and without trailing /
@@ -709,11 +709,15 @@ With a prefix ARG invalidates the cache first."
   (interactive)
   (let* ((old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
-                    (substring-no-properties (thing-at-point 'symbol))))
+                    (projectile-symbol-at-point)))
         (new-text (read-string
                    (projectile-prepend-project-name
                     (format "Replace %s with: " old-text)))))
     (tags-query-replace old-text new-text nil '(-map 'projectile-expand-root (projectile-current-project-files)))))
+
+(defun projectile-symbol-at-point ()
+  "Get the symbol at point and strip its properties."
+  (substring-no-properties (or (thing-at-point 'symbol) "")))
 
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
