@@ -85,7 +85,7 @@ Otherwise consider the current directory the project root."
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
   :group 'projectile
-  :type 'sexp)
+  :type 'string)
 
 (defcustom projectile-cache-file
   (expand-file-name "projectile.cache" user-emacs-directory)
