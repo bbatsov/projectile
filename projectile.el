@@ -760,7 +760,7 @@ With a prefix ARG invalidates the cache first."
 
 (defvar projectile-rails-compile-cmd "bundle exec rails server")
 (defvar projectile-ruby-compile-cmd "bundle exec rake")
-(defvar projectile-ruby-test-cmd "bundle rake test")
+(defvar projectile-ruby-test-cmd "bundle exec rake test")
 (defvar projectile-ruby-rspec-cmd "bundle exec rspec")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
