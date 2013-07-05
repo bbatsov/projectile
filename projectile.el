@@ -254,8 +254,8 @@ Files are returned as relative paths to the project root."
 (defun projectile-cache-current-file ()
   "Add the currently visited file to the cache."
   (interactive)
-  (let ((current-file (buffer-file-name (current-buffer)))
-        (current-project (projectile-project-root)))
+  (let* ((current-project (projectile-project-root))
+        (current-file (file-relative-name (buffer-file-name (current-buffer)) current-project)))
     (unless (projectile-file-cached-p current-file current-project)
       (puthash current-project
                (cons current-file (gethash current-project projectile-projects-cache))
