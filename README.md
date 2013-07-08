@@ -155,6 +155,22 @@ If you don't like ido you can use regular completion as well:
 
 You might want to combine default completion with `icomplete-mode` for optimum results.
 
+You can also set `projectile-completion-system` to a function:
+
+```lisp
+(setq projectile-completion-system 'my-custom-completion-fn)
+(setq projectile-completion-system
+      (lambda (prompt choices)
+        ;; ...
+        ))
+```
+
+An example of a custom completion function is
+[this one](https://gist.github.com/rejeep/5933343), which only show
+the file name (not including path) and if the file selected is not
+unique, another completion with names relative to project root
+appears.
+
 ### Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
