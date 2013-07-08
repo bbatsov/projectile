@@ -5,13 +5,13 @@ VAGRANT = vagrant
 
 OBJECTS = projectile.elc
 
-.PHONY: deps
-deps :
+elpa:
 	$(CARTON) install
 	$(CARTON) update
+	touch $@
 
 .PHONY: build
-build : deps $(OBJECTS)
+build : elpa $(OBJECTS)
 
 .PHONY: test
 test : build
