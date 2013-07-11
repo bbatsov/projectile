@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Version: 0.9.1
 ;; Keywords: project, convenience
-;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
+;; Package-Requires: ((s "1.0.0") (dash "1.0.0") (grizzl "0.1.0"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -45,6 +45,7 @@
 (require 's)
 (require 'dash)
 (require 'grep)
+(require 'grizzl)
 
 (defgroup projectile nil
   "Manage and navigate projects easily."
@@ -74,7 +75,7 @@ Otherwise consider the current directory the project root."
   "The completion system to be used by Projectile."
   :group 'projectile
   :type 'symbol
-  :options '(ido default))
+  :options '(ido grizzl default))
 
 (defcustom projectile-ack-function 'ack-and-a-half
   "The ack function to use."
@@ -501,6 +502,8 @@ project-root for every file."
       (ido-completing-read prompt choices))
      ((eq projectile-completion-system 'default)
       (completing-read prompt choices))
+     ((eq projectile-completion-system 'grizzl)
+      (grizzl-completing-read prompt (grizzl-make-index choices)))
      (t (funcall projectile-completion-system prompt choices)))))
 
 (defun projectile-current-project-files ()

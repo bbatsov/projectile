@@ -10,6 +10,7 @@
 * New command `projectile-find-dir` works similar to
   `projectile-find-file` - displays the project's dirs and opens them
   with `dired`. It's bound to `C-c p d`.
+* Added support for `grizzle` as a completion system.
 
 ### Bugs fixed
 
