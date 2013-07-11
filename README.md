@@ -156,10 +156,12 @@ If you don't like `ido` you can use regular completion as well:
 Another completion option is [grizzle](https://github.com/d11wtq/grizzl):
 
 ```lisp
-(setq projectile-completion-system 'grizzle)
+(setq projectile-completion-system 'grizzl)
 ```
 
-`grizzle`'s advantage is that it provides great fuzzy completion
+![Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/projectile-grizzl.png)
+
+`grizzl`'s advantage is that it provides great fuzzy completion
 (compared to `ido`'s less than stellar flex matching).
 
 You might want to combine default completion with `icomplete-mode` for optimum results.
