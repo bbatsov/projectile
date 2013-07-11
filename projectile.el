@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Version: 0.9.1
 ;; Keywords: project, convenience
-;; Package-Requires: ((s "1.0.0") (dash "1.0.0") (grizzl "0.1.0"))
+;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -45,7 +45,6 @@
 (require 's)
 (require 'dash)
 (require 'grep)
-(require 'grizzl)
 
 (defgroup projectile nil
   "Manage and navigate projects easily."
@@ -503,7 +502,11 @@ project-root for every file."
      ((eq projectile-completion-system 'default)
       (completing-read prompt choices))
      ((eq projectile-completion-system 'grizzl)
-      (grizzl-completing-read prompt (grizzl-make-index choices)))
+      (if (and (fboundp 'grizzl-completing-read)
+               (fboundp 'grizzl-make-index))
+          (grizzl-completing-read prompt (grizzl-make-index choices))
+        (user-error "Please install grizzl from \
+https://github.com/d11wtq/grizzl")))
      (t (funcall projectile-completion-system prompt choices)))))
 
 (defun projectile-current-project-files ()
