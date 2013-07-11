@@ -149,7 +149,7 @@ This might not be a great idea if you start projectile in your home folder for i
 
 ##### Grizzl
 
-Another completion option is [grizzle](https://github.com/d11wtq/grizzl):
+Another completion option is [grizzl](https://github.com/d11wtq/grizzl):
 
 ```lisp
 (setq projectile-completion-system 'grizzl)
