@@ -147,11 +147,7 @@ This might not be a great idea if you start projectile in your home folder for i
 
 #### Completion Options
 
-If you don't like `ido` you can use regular completion as well:
-
-```lisp
-(setq projectile-completion-system 'default)
-```
+##### Grizzl
 
 Another completion option is [grizzle](https://github.com/d11wtq/grizzl):
 
@@ -164,7 +160,17 @@ Another completion option is [grizzle](https://github.com/d11wtq/grizzl):
 `grizzl`'s advantage is that it provides great fuzzy completion
 (compared to `ido`'s less than stellar flex matching).
 
+##### Basic (Emacs's default)
+
+If you don't like `ido` and `grizzl` you can use regular completion:
+
+```lisp
+(setq projectile-completion-system 'default)
+```
+
 You might want to combine default completion with `icomplete-mode` for optimum results.
+
+##### Custom Completion Function
 
 You can also set `projectile-completion-system` to a function:
 
