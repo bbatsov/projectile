@@ -93,6 +93,11 @@ To enable projectile only in select modes:
 (add-hook 'ruby-mode-hook 'projectile-on)
 ```
 
+If you're going to use the default `ido` completion it's
+**extremely highly** recommended that you install the optional
+[flx package](https://github.com/lewang/flx), which provides a much
+more powerful alternative to `ido`'s built-in `flex` matching.
+
 #### Indexing method
 
 Projectile had two modes of operation - one is portable and is
