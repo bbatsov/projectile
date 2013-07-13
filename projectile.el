@@ -100,7 +100,7 @@ Otherwise consider the current directory the project root."
 
 ;; variables
 (defvar projectile-project-root-files
-  '(".projectile" "project.clj" ".git" ".hg" ".bzr" "_darcs"
+  '(".projectile" "project.clj" ".git" ".hg" ".fslckout" ".bzr" "_darcs"
     "rebar.config" "pom.xml" "build.sbt" "Gemfile" "Makefile")
   "A list of files considered to mark the root of a project.")
 
@@ -109,7 +109,7 @@ Otherwise consider the current directory the project root."
   "A list of files globally ignored by projectile.")
 
 (defvar projectile-globally-ignored-directories
-  '(".idea" ".eunit" ".git" ".hg" ".bzr" "_darcs")
+  '(".idea" ".eunit" ".git" ".hg" ".fslckout" ".bzr" "_darcs")
   "A list of directories globally ignored by projectile.")
 
 (defun projectile-serialize (data filename)
@@ -285,6 +285,11 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-fossil-command "fossil ls"
+  "Command used by projectile to get the files in a fossil project."
+  :group 'projectile
+  :type 'string)
+
 (defcustom projectile-bzr-command "bzr ls --versioned -0"
   "Command used by projectile to get the files in a bazaar project."
   :group 'projectile
@@ -311,6 +316,7 @@ Files are returned as relative paths to the project root."
     (cond
      ((eq vcs 'git) projectile-git-command)
      ((eq vcs 'hg) projectile-hg-command)
+     ((eq vcs 'fossil) projectile-fossil-command)
      ((eq vcs 'bzr) projectile-bzr-command)
      ((eq vcs 'darcs) projectile-darcs-command)
      ((eq vcs 'svn) projectile-svn-command)
@@ -619,11 +625,13 @@ With a prefix ARG invalidates the cache first."
    (cond
     ((file-exists-p (expand-file-name ".git" project-root)) 'git)
     ((file-exists-p (expand-file-name ".hg" project-root)) 'hg)
+    ((file-exists-p (expand-file-name ".fossil" project-root)) 'fossil)
     ((file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
     ((file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
     ((file-exists-p (expand-file-name ".svn" project-root)) 'svn)
     ((locate-dominating-file project-root ".git") 'git)
     ((locate-dominating-file project-root ".hg") 'hg)
+    ((locate-dominating-file project-root ".fossil") 'fossil)
     ((locate-dominating-file project-root ".bzr") 'bzr)
     ((locate-dominating-file project-root "_darcs") 'darcs)
     ((locate-dominating-file project-root ".svn") 'svn)
