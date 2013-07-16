@@ -11,11 +11,14 @@
   `projectile-find-file` - displays the project's dirs and opens them
   with `dired`. It's bound to `C-c p d`.
 * Added support for `grizzl` as a completion system.
+* Added support for `fossil` projects.
+* Added support for `Symfony 2` project.
 
 ### Bugs fixed
 
 * Fixed `projectile-replace`, which was broken from the use of relative paths
 * #103 - `projectile-switch-project` does not require a project to work
+* Don't show hidden buffers in projectile-project-buffers
 
 ### Changes
 
