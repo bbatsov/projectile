@@ -1,6 +1,8 @@
 # Changelog
 
-### master (unreleased)
+## master (unreleased)
+
+## 0.9.2 (07/16/2013)
 
 ### New features
 
@@ -13,6 +15,8 @@
 * Added support for `grizzl` as a completion system.
 * Added support for `fossil` projects.
 * Added support for `Symfony 2` project.
+* New command `projectile-clear-known-projects` removes all known projects.
+* New command `projectile-remove-known-project` prompts you for a known project to remove.
 
 ### Bugs fixed
 

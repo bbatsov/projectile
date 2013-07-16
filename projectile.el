@@ -5,7 +5,7 @@
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 0.9.1
+;; Version: 0.9.2
 ;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -111,6 +111,12 @@ Otherwise consider the current directory the project root."
 (defvar projectile-globally-ignored-directories
   '(".idea" ".eunit" ".git" ".hg" ".fslckout" ".bzr" "_darcs")
   "A list of directories globally ignored by projectile.")
+
+(defvar projectile-find-file-hook nil
+  "Hooks run when a file is opened with `projectile-find-file'.")
+
+(defvar projectile-find-dir-hook nil
+  "Hooks run when a directory is opened with `projectile-find-dir'.")
 
 (defun projectile-serialize (data filename)
   "Serialize DATA to FILENAME.
@@ -260,12 +266,12 @@ Files are returned as relative paths to the project root."
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
-  "Function for caching files with `find-file-hook`."
+  "Function for caching files with `find-file-hook'."
   (when (and (projectile-project-p) projectile-enable-caching)
     (projectile-cache-current-file)))
 
 (defun projectile-cache-projects-find-file-hook ()
-  "Function for caching projects with `find-file-hook`."
+  "Function for caching projects with `find-file-hook'."
   (when (projectile-project-p)
     (projectile-add-known-project (projectile-project-root))
     (projectile-save-known-projects)))
@@ -544,7 +550,8 @@ With a prefix ARG invalidates the cache first."
     (projectile-invalidate-cache nil))
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
-    (find-file (expand-file-name file (projectile-project-root)))))
+    (find-file (expand-file-name file (projectile-project-root)))
+    (run-hooks 'projectile-find-file-hook)))
 
 (defun projectile-find-dir (arg)
   "Jump to a project's file using completion.
@@ -555,7 +562,8 @@ With a prefix ARG invalidates the cache first."
     (projectile-invalidate-cache nil))
   (let ((dir (projectile-completing-read "Find dir: "
                                           (projectile-current-project-dirs))))
-    (dired (expand-file-name dir (projectile-project-root)))))
+    (dired (expand-file-name dir (projectile-project-root)))
+    (run-hooks 'projectile-find-dir-hook)))
 
 (defun projectile-find-test-file (arg)
   "Jump to a project's test file using completion.
@@ -859,11 +867,28 @@ With a prefix ARG invalidates the cache first."
 
 The path to the opened project is available as PROJECT-SWITCHED")
 
+(defun projectile-clear-known-projects ()
+  "Clear both `projectile-known-projects' and `projectile-known-projects-file'."
+  (interactive)
+  (setq projectile-known-projects nil)
+  (projectile-save-known-projects))
+
+(defun projectile-remove-known-project ()
+  "Remove a projected from the list of known projects."
+  (interactive)
+  (let ((project-to-remove
+          (projectile-completing-read "Switch to which project: "
+                                      projectile-known-projects)))
+    (setq projectile-known-projects
+          (--reject (string= project-to-remove it) projectile-known-projects))
+    (projectile-save-known-projects)
+    (message "Project %s removed from the list of known projects." project-to-remove)))
+
 (defun projectile-add-known-project (project-root)
   "Add PROJECT-ROOT to the list of known projects."
   (setq projectile-known-projects
         (-distinct
-         (cons project-root projectile-known-projects))))
+         (cons (abbreviate-file-name project-root) projectile-known-projects))))
 
 (defun projectile-load-known-projects ()
   "Load saved projects from `projectile-known-projects-file'.
@@ -967,7 +992,8 @@ Also set `projectile-known-projects'."
 (defun projectile-global-on ()
   "Enable Projectile global minor mode."
   (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
-  (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook))
+  (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook)
+  (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook))
 
 (defun projectile-global-off ()
   "Disable Projectile global minor mode."

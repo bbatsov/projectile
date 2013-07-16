@@ -4,10 +4,10 @@
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
-;; Version: 0.9.1
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
-;; Package-Requires: ((helm "1.4.0") (projectile "0.9.1"))
+;; Version: 0.9.2
+;; Package-Requires: ((helm "1.4.0") (projectile "0.9.2"))
 
 ;; This file is NOT part of GNU Emacs.
 
