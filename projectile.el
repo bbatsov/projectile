@@ -235,16 +235,11 @@ Files are returned as relative paths to the project root."
 
 (defun projectile-dir-files-external (root directory)
   "Get the files for ROOT under DIRECTORY using external tools."
-  (let ((current-dir (if (buffer-file-name)
-                         (file-name-directory (buffer-file-name))
-                       default-directory))
+  (let ((default-directory directory)
         (files-list nil))
-    (cd directory)
     (setq files-list (-map (lambda (f)
                              (s-chop-prefix root (expand-file-name f directory)))
                            (projectile-get-repo-files)))
-    ;; restore the original current directory
-    (cd current-dir)
     files-list))
 
 (defun projectile-file-cached-p (file project)
@@ -715,12 +710,10 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-regenerate-tags ()
   "Regenerate the project's etags."
   (interactive)
-  (let ((current-dir default-directory)
-        (project-root (projectile-project-root))
-  (tags-exclude (projectile-tags-exclude-patterns)))
-    (cd project-root)
+  (let* ((project-root (projectile-project-root))
+         (tags-exclude (projectile-tags-exclude-patterns))
+         (default-directory project-root))
     (shell-command (format projectile-tags-command tags-exclude project-root))
-    (cd current-dir)
     (visit-tags-table project-root)))
 
 (defun projectile-replace ()
@@ -835,8 +828,8 @@ With a prefix ARG invalidates the cache first."
   "Run project compilation command."
   (interactive)
   (let* ((project-root (projectile-project-root))
-         (compilation-cmd (compilation-read-command (projectile-compilation-command project-root))))
-    (cd project-root)
+         (compilation-cmd (compilation-read-command (projectile-compilation-command project-root)))
+         (default-directory project-root))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (compilation-start compilation-cmd)))
 
@@ -845,18 +838,19 @@ With a prefix ARG invalidates the cache first."
   "Run project test command."
   (interactive)
   (let* ((project-root (projectile-project-root))
-         (test-cmd (compilation-read-command (projectile-test-command project-root))))
-    (cd project-root)
+         (test-cmd (compilation-read-command (projectile-test-command project-root)))
+         (default-directory project-root))
     (puthash project-root test-cmd projectile-test-cmd-map)
     (compilation-start test-cmd)))
 
 (defun projectile-switch-project ()
   "Switch to a project we have seen before."
   (interactive)
-  (let ((project-to-switch
+  (let* ((project-to-switch
          (projectile-completing-read "Switch to which project: "
-                                     projectile-known-projects)))
-    (dired project-to-switch)
+                                     projectile-known-projects))
+         (default-directory project-to-switch))
+    (projectile-find-file nil)
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 

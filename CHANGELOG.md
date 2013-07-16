@@ -27,6 +27,7 @@
 * Reworked `projectile-compile-project` and `projectile-test-project`
   to be smarter, more configurable and closer in behavior to the stock
   `compile` command
+* `projectile-switch-project` (<kbd>C-c p s</kbd>) now runs `projectile-find-file` instead of `dired`.
 
 ## 0.9.1 (04/26/2013)
 
