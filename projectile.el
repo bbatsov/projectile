@@ -4,8 +4,8 @@
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
-;; Version: 0.9.1
 ;; Keywords: project, convenience
+;; Version: 0.9.1
 ;; Package-Requires: ((s "1.0.0") (dash "1.0.0"))
 
 ;; This file is NOT part of GNU Emacs.
