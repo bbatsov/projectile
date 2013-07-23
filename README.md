@@ -237,6 +237,27 @@ If you ever forget any of Projectile's keybindings just do a:
 
 <kbd>C-c p C-h</kbd>
 
+You can change the default keymap prefix `C-c p` like this:
+
+```lisp
+(setq projectile-keymap-prefix (kbd "C-c C-p"))
+```
+
+For some common commands you might want to take a little shortcut and
+leverage the fairly unused `Super` key (by default `Command` on Mac
+keyboards and `Windows` on Win keyboards). Here's something you can
+add to your Emacs config:
+
+```lisp
+(define-key projectile-mode-map [?\s-d] 'projectile-find-dir)
+(define-key projectile-mode-map [?\s-p] 'projectile-switch-project)
+(define-key projectile-mode-map [?\s-f] 'projectile-find-file)
+(define-key projectile-mode-map [?\s-g] 'projectile-grep)
+```
+
+Note that the `Super` keybindings are not usable in Windows. Emacs
+Prelude already adds those extra keybindings.
+
 ### Ignoring files
 
 If you'd like to instruct Projectile to ignore certain files in a
