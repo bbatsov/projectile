@@ -9,7 +9,7 @@
 (add-to-list 'load-path "~/emacs/")
 
 (require 'projectile)
-(require 'cl-lib)
+(require 'cl)
 
 (load (expand-file-name "test-helper.el" projectile-test-path) nil t)
 (dolist (test-file (or argv (directory-files projectile-test-path t "-test.el$")))
@@ -17,6 +17,6 @@
 
 ;; setup test environment
 ;; and run tests
-(cl-flet ((projectile-project-root () "/path/to/project")
+(flet ((projectile-project-root () "/path/to/project")
           (projectile-project-name () "project"))
   (ert-run-tests-batch-and-exit t))
