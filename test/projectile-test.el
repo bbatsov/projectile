@@ -7,9 +7,6 @@
 
 (message "Running tests on Emacs %s" emacs-version)
 
-(require 'dash)
-(require 's)
-
 ;; Load Projectile
 (load (expand-file-name "../projectile" testsuite-dir) nil :no-message)
 
@@ -28,17 +25,16 @@
   (should (equal (projectile-expand-root "./foo/bar") "/path/to/project/foo/bar")))
 
 (ert-deftest projectile-test-ignored-directory-p ()
-  (flet ((projectile-ignored-directories () '("/path/to/project/tmp")))
+  (cl-flet ((projectile-ignored-directories () '("/path/to/project/tmp")))
     (should (projectile-ignored-directory-p "/path/to/project/tmp"))
     (should-not (projectile-ignored-directory-p "/path/to/project/log"))))
-
 (ert-deftest projectile-test-ignored-file-p ()
-  (flet ((projectile-ignored-files () '("/path/to/project/TAGS")))
+  (cl-flet ((projectile-ignored-files () '("/path/to/project/TAGS")))
     (should (projectile-ignored-file-p "/path/to/project/TAGS"))
     (should-not (projectile-ignored-file-p "/path/to/project/foo.el"))))
 
 (ert-deftest projectile-test-ignored-files ()
-  (flet ((projectile-project-ignored-files () '("foo.js" "bar.rb")))
+  (cl-flet ((projectile-project-ignored-files () '("foo.js" "bar.rb")))
     (let ((expected '("/path/to/project/TAGS"
                       "/path/to/project/foo.js"
                       "/path/to/project/bar.rb"))
@@ -46,7 +42,7 @@
       (should (equal (projectile-ignored-files) expected)))))
 
 (ert-deftest projectile-test-ignored-directories ()
-  (flet ((projectile-project-ignored-directories () '("tmp" "log"))
+  (cl-flet ((projectile-project-ignored-directories () '("tmp" "log"))
          (projectile-project-root () "/path/to/project"))
     (let ((expected '("/path/to/project/compiled/"
                       "/path/to/project/tmp/"
@@ -56,24 +52,24 @@
 
 (ert-deftest projectile-test-project-ignored-files ()
   (let ((files '("/path/to/project/foo.el" "/path/to/project/foo.elc")))
-    (flet ((projectile-project-ignored () files))
-      (flet ((file-directory-p (filename) nil))
+    (cl-flet ((projectile-project-ignored () files))
+      (cl-flet ((file-directory-p (filename) nil))
         (should (equal (projectile-project-ignored-files) files)))
-      (flet ((file-directory-p (filename) t))
+      (cl-flet ((file-directory-p (filename) t))
         (should-not (projectile-project-ignored-files))))))
 
 (ert-deftest projectile-test-project-ignored-directories ()
   (let ((directories '("/path/to/project/tmp" "/path/to/project/log")))
-    (flet ((projectile-project-ignored () directories))
-      (flet ((file-directory-p (filename) t))
+    (cl-flet ((projectile-project-ignored () directories))
+      (cl-flet ((file-directory-p (filename) t))
         (should (equal (projectile-project-ignored-directories) directories)))
-      (flet ((file-directory-p (filename) nil))
+      (cl-flet ((file-directory-p (filename) nil))
         (should-not (projectile-project-ignored-directories))))))
 
 (ert-deftest projectile-test-project-ignored ()
   (let* ((file-names '("log" "tmp" "compiled"))
          (files (mapcar 'projectile-expand-root file-names)))
-    (flet ((projectile-paths-to-ignore () (list "log" "tmp" "compiled"))
+    (cl-flet ((projectile-paths-to-ignore () (list "log" "tmp" "compiled"))
            (file-expand-wildcards (pattern ignored)
                                   (cond
                                    ((string-equal pattern "log")
@@ -86,24 +82,24 @@
 
 
 (ert-deftest projectile-test-parse-dirconfig-file ()
-  (flet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
+  (cl-flet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
          (file-exists-p (filename) t)
          (insert-file-contents-literally (filename) nil))
     (should (equal '(("include") . ("log" "tmp" "compiled"))
                    (projectile-parse-dirconfig-file)))))
 
 (ert-deftest projectile-test-ack ()
-  (flet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/log"))
+  (cl-flet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/log"))
          (call-interactively
           (function &optional record-flag keys)
           (should (equal ack-and-a-half-arguments '("--ignore-dir=tmp" "--ignore-dir=log")))))
     (projectile-ack)))
 
 (ert-deftest projectile-test-get-project-directories ()
-  (flet ((projectile-project-root () "/my/root/")
+  (cl-flet ((projectile-project-root () "/my/root/")
          (projectile-parse-dirconfig-file () '(nil)))
     (should (equal '("/my/root/") (projectile-get-project-directories)))
-    (flet ((projectile-parse-dirconfig-file () '(("foo" "bar/baz"))))
+    (cl-flet ((projectile-parse-dirconfig-file () '(("foo" "bar/baz"))))
       (should (equal '("/my/root/foo" "/my/root/bar/baz")
                      (projectile-get-project-directories))))))
 
@@ -112,7 +108,7 @@
   (should (equal (expand-file-name "test") (projectile-expand-file-name "test"))))
 
 (ert-deftest projectile-test-dir-files ()
-  (flet ((projectile-project-root () "/my/root/")
+  (cl-flet ((projectile-project-root () "/my/root/")
          (projectile-patterns-to-ignore () nil)
          (projectile-index-directory (dir patterns) (should (equal dir "a/"))
                                      '("/my/root/a/b/c" "/my/root/a/d/e"))

@@ -39,7 +39,6 @@
 ;;; Code:
 
 ;; requires
-(require 'cl)
 (require 'easymenu)
 (require 'thingatpt)
 (require 's)
@@ -489,9 +488,11 @@ prefix the string will be assumed to be an ignore string."
         (let* ((split-string-default-separators "[\r\n]")
                (strings (-map 's-trim (delete "" (split-string (buffer-string)))))
                (separated-vals (--separate (s-starts-with? "+" it) strings)))
-          (flet ((strip-prefix (s) (s-chop-prefixes '("-" "+") s)))
-            (cons (-map 'strip-prefix (first separated-vals))
-                  (-map 'strip-prefix (second separated-vals)))))))))
+          (cons (-map 'projectile-strip-dir-prefix (car separated-vals))
+                (-map 'projectile-strip-dir-prefix (cadr separated-vals))))))))
+
+(defun projectile-strip-dir-prefix (dir)
+  (s-chop-prefixes '("-" "+") dir))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
@@ -694,9 +695,9 @@ With a prefix ARG invalidates the cache first."
     (dolist (root-dir roots)
       (require 'grep)
       ;; paths for find-grep should relative and without trailing /
-      (let ((grep-find-ignored-directories (union (-map (lambda (dir) (s-chop-suffix "/" (s-chop-prefix root-dir dir)))
+      (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (s-chop-prefix root-dir dir)))
                                                          (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-            (grep-find-ignored-files (union (-map (lambda (file) (s-chop-prefix root-dir file)) (projectile-ignored-files)) grep-find-ignored-files)))
+            (grep-find-ignored-files (-union (-map (lambda (file) (s-chop-prefix root-dir file)) (projectile-ignored-files)) grep-find-ignored-files)))
         (grep-compute-defaults)
         (rgrep search-regexp "* .*" root-dir)))))
 
