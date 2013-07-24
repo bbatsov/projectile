@@ -50,7 +50,7 @@
   :group 'tools
   :group 'convenience)
 
-(defconst projectile-current-version "0.9.2"
+(defconst projectile-current-version "0.9.3-beta"
   "The current Projectile version.")
 
 (defcustom projectile-use-native-indexing (eq system-type 'windows-nt)
