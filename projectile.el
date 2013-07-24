@@ -864,6 +864,14 @@ With a prefix ARG invalidates the cache first."
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 
+(defun projectile-find-file-in-directory ()
+  "Switch to a project we have seen before."
+  (interactive)
+  (let* ((directory (read-directory-name "Find file in directory: "))
+         (default-directory directory)
+         (projectile-require-project-root nil))
+    (projectile-find-file nil)))
+
 (defvar projectile-switch-project-hook nil
   "Hooks run when project is switched.
 
