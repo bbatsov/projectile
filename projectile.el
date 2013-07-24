@@ -857,7 +857,7 @@ With a prefix ARG invalidates the cache first."
   "Switch to a project we have seen before."
   (interactive)
   (let* ((project-to-switch
-         (projectile-completing-read "Switch to which project: "
+         (projectile-completing-read "Switch to project: "
                                      projectile-known-projects))
          (default-directory project-to-switch))
     (projectile-find-file nil)
@@ -879,7 +879,7 @@ The path to the opened project is available as PROJECT-SWITCHED")
   "Remove a projected from the list of known projects."
   (interactive)
   (let ((project-to-remove
-          (projectile-completing-read "Switch to which project: "
+          (projectile-completing-read "Remove from known projects: "
                                       projectile-known-projects)))
     (setq projectile-known-projects
           (--reject (string= project-to-remove it) projectile-known-projects))
