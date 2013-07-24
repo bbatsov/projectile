@@ -346,8 +346,8 @@ have been indexed."
                           '("." ".." ".svn" ".cvs")))
                (not (projectile-ignored-directory-p absolute-file))
                (not (and patterns
-                         (projectile-ignored-rel-p directory
-                                                   absolute-file patterns))))
+                         (projectile-ignored-rel-p absolute-file
+                                                   directory patterns))))
           (setq files-list (append files-list
                                    (projectile-index-directory
                                     (expand-file-name current-file directory)
@@ -356,8 +356,8 @@ have been indexed."
          ((and (not (s-ends-with-p "/" current-file))
                (not (projectile-ignored-file-p absolute-file))
                (not (and patterns
-                         (projectile-ignored-rel-p directory
-                                                   absolute-file patterns))))
+                         (projectile-ignored-rel-p absolute-file
+                                                   directory patterns))))
           (setq files-list (cons
                             (expand-file-name current-file directory)
                             files-list))))))))
@@ -407,7 +407,7 @@ have been indexed."
   "Check if FILE should be ignored."
   (member file (projectile-ignored-files)))
 
-(defun projectile-ignored-rel-p (directory file patterns)
+(defun projectile-ignored-rel-p (file directory patterns)
   "Check if FILE should be ignored relative to DIRECTORY according to PATTERNS."
   (let ((default-directory directory))
     (-any? (lambda (pattern)
@@ -492,6 +492,7 @@ prefix the string will be assumed to be an ignore string."
                 (-map 'projectile-strip-dir-prefix (cadr separated-vals))))))))
 
 (defun projectile-strip-dir-prefix (dir)
+  "Strip + or - prefix from DIR."
   (s-chop-prefixes '("-" "+") dir))
 
 (defun projectile-expand-root (name)
