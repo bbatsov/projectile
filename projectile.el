@@ -918,6 +918,7 @@ Also set `projectile-known-projects'."
     (let ((prefix-map (make-sparse-keymap)))
       (define-key prefix-map (kbd "f") 'projectile-find-file)
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
+      (define-key prefix-map (kbd "l") 'projectile-find-file-in-directory)
       (define-key prefix-map (kbd "t") 'projectile-toggle-between-implemenation-and-test)
       (define-key prefix-map (kbd "g") 'projectile-grep)
       (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)

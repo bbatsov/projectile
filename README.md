@@ -23,6 +23,7 @@ Projectile's features:
 
 * jump to a file in project
 * jump to a directory in project
+* jump to a file in a directory
 * jump to a project buffer
 * jump to a test in project
 * toggle between code and its test
@@ -218,6 +219,7 @@ Keybinding         | Description
 <kbd>C-c p f</kbd> | Display a list of all files in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p d</kbd> | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
+<kbd>C-c p l</kbd> | Display a list of all files in a directory (that's not necessarily a project)
 <kbd>C-c p g</kbd> | Run grep on the files in the project.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
 <kbd>C-c p o</kbd> | Runs `multi-occur` on all project buffers currently open.
