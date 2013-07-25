@@ -95,7 +95,7 @@ To enable Projectile only in select modes:
 
 If you're going to use the default `ido` completion it's
 **extremely highly** recommended that you install the optional
-[flx package](https://github.com/lewang/flx), which provides a much
+[flx-ido package](https://github.com/lewang/flx), which provides a much
 more powerful alternative to `ido`'s built-in `flex` matching.
 
 #### Indexing method
@@ -165,7 +165,7 @@ extremely popular and it is built into Emacs.
 
 As already noted above if you're going to use the `ido` completion it's
 **extremely highly** recommended that you install the optional
-[flx package](https://github.com/lewang/flx), which provides a much
+[flx-ido package](https://github.com/lewang/flx), which provides a much
 more powerful alternative to `ido`'s built-in `flex` matching.
 
 ##### Grizzl
