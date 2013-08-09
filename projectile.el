@@ -575,7 +575,7 @@ With a prefix ARG invalidates the cache first."
   (when arg
     (projectile-invalidate-cache nil))
   (let ((file (projectile-completing-read "Find test file: "
-                                          (projectile-current-project-files))))
+                                          (projectile-current-project-test-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
 
 (defvar projectile-test-files-suffices '("_test" "_spec" "Test" "-test")
@@ -590,6 +590,10 @@ With a prefix ARG invalidates the cache first."
   (-any? (lambda (suffix)
            (s-ends-with? suffix (file-name-sans-extension file)))
          projectile-test-files-suffices))
+
+(defun projectile-current-project-test-files ()
+  "Return a list of test files for the current project."
+  (projectile-test-files (projectile-current-project-files)))
 
 (defvar projectile-rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec"))
 (defvar projectile-rails-test '("Gemfile" "app" "lib" "db" "config" "test"))

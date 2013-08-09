@@ -6,6 +6,10 @@
 
 * Add new command `projectile-find-file-in-directory` that allows you to jump to files in any directory
 
+### Bug fixes
+
+* `projectile-find-test-file` now properly displays only test files (#145)
+
 ## 0.9.2 (07/16/2013)
 
 ### New features
