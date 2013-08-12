@@ -349,12 +349,12 @@ development of Projectile.
 
 Contribution is always welcome!
 
-Install [carton](https://github.com/rejeep/carton) if you haven't
+Install [cask](https://github.com/rejeep/cask.el) if you haven't
 already, then:
 
 ```bash
 $ cd /path/to/projectile
-$ carton
+$ cask
 ```
 
 Run all tests with:

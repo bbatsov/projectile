@@ -19,16 +19,10 @@ export DEBIAN_FRONTEND='noninteractive'
 ppa ppa:cassou/emacs
 apt_update
 
-# Install Emacs 24.2 and Emacs snapshot
+# Install Emacs 24.x and Emacs snapshot
 apt emacs24 emacs24-el emacs24-common-non-dfsg \
     emacs-snapshot emacs-snapshot-el
 
-# Install carton for Emacs dependency management
-CARTON_DIR=/opt/carton-0.1.0
-if ! [ -d "$CARTON_DIR" -a -x "/$CARTON_DIR/bin/carton" ]; then
-  sudo rm -rf "$CARTON_DIR"
-  wget -O - https://github.com/rejeep/carton/archive/v0.1.0.tar.gz | \
-    sudo tar xz -C /opt
-  # Bring carton into $PATH
-  sudo ln -fs "$CARTON_DIR/bin/carton" /usr/local/bin
-fi
+# Install Cask for Emacs dependency management
+curl -fsSkL https://raw.github.com/rejeep/cask.el/master/go | sh
+sudo ln -fs "~/.cask/bin/cask" /usr/local/bin
