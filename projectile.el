@@ -856,11 +856,18 @@ With a prefix ARG invalidates the cache first."
   (or (gethash project projectile-test-cmd-map)
       (projectile-default-test-command (projectile-project-type))))
 
-(defun projectile-compile-project ()
-  "Run project compilation command."
-  (interactive)
+(defun projectile-compile-project (arg)
+  "Run project compilation command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
   (let* ((project-root (projectile-project-root))
-         (compilation-cmd (compilation-read-command (projectile-compilation-command project-root)))
+         (default-cmd (projectile-compilation-command project-root))
+         (compilation-cmd (if (or compilation-read-command arg)
+                              (compilation-read-command default-cmd)
+                            default-cmd))
          (default-directory project-root))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (compilation-start compilation-cmd)))
