@@ -228,7 +228,7 @@ Files are returned as relative paths to the project root."
         (if projectile-use-native-indexing
             (projectile-dir-files-native root directory)
           ;; use external tools to get the project files
-          (projectile-dir-files-external root directory)))))
+          (projectile-remove-ignored (projectile-dir-files-external root directory))))))
 
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
@@ -362,6 +362,16 @@ have been indexed."
                             (expand-file-name current-file directory)
                             files-list))))))))
 
+(defun projectile-remove-ignored (files)
+  "Remove ignored files and folders from FILES.
+
+Operates on filenames relative to the project root."
+  (let ((ignored (append (projectile-ignored-files-rel)
+                         (projectile-ignored-directories-rel))))
+    (-remove (lambda (file)
+               (--any-p  (s-starts-with-p it file) ignored))
+             files)))
+
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
   (let ((project-root (projectile-project-root)))
@@ -433,6 +443,14 @@ have been indexed."
     (append
      projectile-globally-ignored-directories
      (projectile-project-ignored-directories)))))
+
+(defun projectile-ignored-directories-rel ()
+  "Return list of ignored directories, relative to the root."
+  (--map (s-chop-prefix (projectile-project-root) it) (projectile-ignored-directories)))
+
+(defun projectile-ignored-files-rel ()
+  "Return list of ignored files, relative to the root."
+  (--map (s-chop-prefix (projectile-project-root) it) (projectile-ignored-files)))
 
 (defun projectile-project-ignored-files ()
   "Return list of project ignored files."
