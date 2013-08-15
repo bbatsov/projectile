@@ -17,7 +17,7 @@ build : elpa $(OBJECTS)
 test : build
 	$(CASK) exec $(EMACS) --no-site-file --no-site-lisp --batch \
 		$(EMACSFLAGS) \
-		-l test/test
+		-l test/run-tests
 
 .PHONY: virtual-test
 virtual-test :
