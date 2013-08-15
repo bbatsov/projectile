@@ -1,4 +1,4 @@
-EMACS = /Applications/Emacs.app/Contents/MacOS/Emacs
+EMACS = emacs
 EMACSFLAGS =
 CASK = cask
 VAGRANT = vagrant

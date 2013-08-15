@@ -25,4 +25,4 @@ apt emacs24 emacs24-el emacs24-common-non-dfsg \
 
 # Install Cask for Emacs dependency management
 curl -fsSkL https://raw.github.com/rejeep/cask.el/master/go | sh
-sudo ln -fs "~/.cask/bin/cask" /usr/local/bin
+export PATH=$PATH:$HOME/.cask/bin/cask
