@@ -24,5 +24,10 @@ apt emacs24 emacs24-el emacs24-common-non-dfsg \
     emacs-snapshot emacs-snapshot-el
 
 # Install Cask for Emacs dependency management
-curl -fsSkL https://raw.github.com/rejeep/cask.el/master/go | sh
-export PATH=$PATH:$HOME/.cask/bin/cask
+CASK_DIR=/opt/cask.el-0.4.5
+if ! [ -d "$CASK_DIR" -a -x "/$CASK_DIR/bin/cask" ]; then
+  sudo rm -rf "$CASK_DIR"
+  wget -O - https://github.com/rejeep/cask.el/archive/v0.4.5.tar.gz | sudo tar xz -C /opt
+  # Bring Cask into $PATH
+  sudo ln -fs "$CASK_DIR/bin/cask" /usr/local/bin
+fi
