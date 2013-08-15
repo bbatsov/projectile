@@ -27,7 +27,8 @@ virtual-test :
 .PHONY: clean
 clean :
 	rm -f $(OBJECTS)
-	rm -rf elpa # Clean packages installed for development
+	rm -f elpa
+	rm -rf .cask # Clean packages installed for development
 
 %.elc : %.el
 	$(CASK) exec $(EMACS) --no-site-file --no-site-lisp --batch \

@@ -6,7 +6,6 @@
 
 (add-to-list 'load-path projectile-root-path)
 (add-to-list 'load-path projectile-test-path)
-(add-to-list 'load-path "~/emacs/")
 
 (require 'projectile)
 (require 'cl)
