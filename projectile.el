@@ -1009,10 +1009,7 @@ Also set `projectile-known-projects'."
 \\{projectile-mode-map}"
   :lighter " Projectile"
   :keymap projectile-mode-map
-  :group 'projectile
-  (if projectile-mode
-      ;; on start
-    ;; on stop))
+  :group 'projectile)
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
