@@ -39,7 +39,6 @@
 ;;; Code:
 
 ;; requires
-(require 'easymenu)
 (require 'thingatpt)
 (require 's)
 (require 'dash)
@@ -971,42 +970,35 @@ Also set `projectile-known-projects'."
     map)
   "Keymap for Projectile mode.")
 
-(defun projectile-add-menu ()
-  "Add Projectile's menu under Tools."
-  (easy-menu-add-item nil '("Tools")
-                      '("Projectile"
-                        ["Find file" projectile-find-file]
-                        ["Find test file" projectile-find-test-file]
-                        ["Find directory" projectile-find-dir]
-                        ["Find file in directory" projectile-find-file-in-directory]
-                        ["Switch to buffer" projectile-switch-to-buffer]
-                        ["Jump between implementation file and test file" projectile-toggle-between-implemenation-and-test]
-                        ["Kill project buffers" projectile-kill-buffers]
-                        ["Recent files" projectile-recentf]
-                        "--"
-                        ["Open project in dired" projectile-dired]
-                        ["Switch to project" projectile-switch-project]
-                        ["Find in project (grep)" projectile-grep]
-                        ["Find in project (ack)" projectile-ack]
-                        ["Replace in project" projectile-replace]
-                        ["Multi-occur in project" projectile-multi-occur]
-                        "--"
-                        ["Cache current file" projectile-cache-current-file]
-                        ["Invalidate cache" projectile-invalidate-cache]
-                        ["Regenerate etags" projectile-regenerate-tags]
-                        "--"
-                        ["Compile project" projectile-compile-project]
-                        ["Test project" projectile-test-project]
-                        "--"
-                        ["About" projectile-version])
-                      "Search Files (Grep)...")
+(easy-menu-change
+ '("Tools") "Projectile"
+ '(["Find file" projectile-find-file]
+   ["Find test file" projectile-find-test-file]
+   ["Find directory" projectile-find-dir]
+   ["Find file in directory" projectile-find-file-in-directory]
+   ["Switch to buffer" projectile-switch-to-buffer]
+   ["Jump between implementation file and test file" projectile-toggle-between-implemenation-and-test]
+   ["Kill project buffers" projectile-kill-buffers]
+   ["Recent files" projectile-recentf]
+   "--"
+   ["Open project in dired" projectile-dired]
+   ["Switch to project" projectile-switch-project]
+   ["Find in project (grep)" projectile-grep]
+   ["Find in project (ack)" projectile-ack]
+   ["Replace in project" projectile-replace]
+   ["Multi-occur in project" projectile-multi-occur]
+   "--"
+   ["Cache current file" projectile-cache-current-file]
+   ["Invalidate cache" projectile-invalidate-cache]
+   ["Regenerate etags" projectile-regenerate-tags]
+   "--"
+   ["Compile project" projectile-compile-project]
+   ["Test project" projectile-test-project]
+   "--"
+   ["About" projectile-version])
+ "Search Files (Grep)...")
 
-  (easy-menu-add-item nil '("Tools") '("--") "Search Files (Grep)..."))
-
-(defun projectile-remove-menu ()
-  "Remove Projectile's menu."
-  (easy-menu-remove-item nil '("Tools") "Projectile")
-  (easy-menu-remove-item nil '("Tools") "--"))
+(easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
 
 ;;; define minor mode
 
@@ -1020,9 +1012,7 @@ Also set `projectile-known-projects'."
   :group 'projectile
   (if projectile-mode
       ;; on start
-      (projectile-add-menu)
-    ;; on stop
-    (projectile-remove-menu)))
+    ;; on stop))
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
