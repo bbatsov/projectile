@@ -574,7 +574,7 @@ With a prefix ARG invalidates the cache first."
     (run-hooks 'projectile-find-file-hook)))
 
 (defun projectile-find-dir (arg)
-  "Jump to a project's file using completion.
+  "Jump to a project's directory using completion.
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
@@ -852,7 +852,7 @@ With a prefix ARG invalidates the cache first."
       (projectile-default-compilation-command (projectile-project-type))))
 
 (defun projectile-test-command (project)
-  "Retrieve the compilation command for PROJECT."
+  "Retrieve the test command for PROJECT."
   (or (gethash project projectile-test-cmd-map)
       (projectile-default-test-command (projectile-project-type))))
 
@@ -894,7 +894,9 @@ with a prefix ARG."
       (run-hooks 'projectile-switch-project-hook))))
 
 (defun projectile-find-file-in-directory ()
-  "Switch to a project we have seen before."
+  "Jump to a file in a (maybe regular) directory.
+
+This command will first prompt for the directory the file is in."
   (interactive)
   (let* ((directory (read-directory-name "Find file in directory: "))
          (default-directory directory)
@@ -974,16 +976,22 @@ Also set `projectile-known-projects'."
   (easy-menu-add-item nil '("Tools")
                       '("Projectile"
                         ["Find file" projectile-find-file]
+                        ["Find test file" projectile-find-test-file]
+                        ["Find directory" projectile-find-dir]
+                        ["Find file in directory" projectile-find-file-in-directory]
                         ["Switch to buffer" projectile-switch-to-buffer]
+                        ["Jump between implementation file and test file" projectile-toggle-between-implemenation-and-test]
                         ["Kill project buffers" projectile-kill-buffers]
                         ["Recent files" projectile-recentf]
                         "--"
                         ["Open project in dired" projectile-dired]
+                        ["Switch to project" projectile-switch-project]
                         ["Find in project (grep)" projectile-grep]
                         ["Find in project (ack)" projectile-ack]
                         ["Replace in project" projectile-replace]
                         ["Multi-occur in project" projectile-multi-occur]
                         "--"
+                        ["Cache current file" projectile-cache-current-file]
                         ["Invalidate cache" projectile-invalidate-cache]
                         ["Regenerate etags" projectile-regenerate-tags]
                         "--"

@@ -360,7 +360,7 @@ $ cask
 Run all tests with:
 
 ```bash
-$ make
+$ make test
 ```
 
 ## Changelog
