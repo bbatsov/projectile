@@ -49,13 +49,32 @@
   :group 'tools
   :group 'convenience)
 
-(defcustom projectile-use-native-indexing (eq system-type 'windows-nt)
-  "Use native Emacs Lisp project indexing."
-  :group 'projectile
-  :type 'boolean)
+(defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
+  "Specifies the indexing method used by Projectile.
 
-(defcustom projectile-enable-caching projectile-use-native-indexing
-  "Enable project files caching."
+There are two indexing methods - native and alien.
+
+The native method is implemented in Emacs Lisp (therefore it is
+native to Emacs).  It's advantage is that is portable and will
+work everywhere that Emacs does.  It's disadvantage is that is a
+bit slow (especially for large projects).  Generally it's a good
+idea to pair the native indexing method with caching.
+
+The alien indexing method uses external tools (e.g. git, find,
+etc) to speed up the indexing process.  The disadvantage of this
+method is that it's not well supported on Windows systems.
+
+By default alien indexing is the default on all operating
+systems, except Windows."
+  :group 'projectile
+  :type 'symbol
+  :options '(native alien))
+
+(defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
+  "When t enables project files caching.
+
+Project caching is automatically enabled by default if you're
+using the native indexing method."
   :group 'projectile
   :type 'boolean)
 
@@ -303,7 +322,7 @@ Files are returned as relative paths to the project root."
         (root (projectile-project-root)))
     ;; cache disabled or cache miss
     (or files-list
-        (if projectile-use-native-indexing
+        (if (eq projectile-indexing-method 'native)
             (projectile-dir-files-native root directory)
           ;; use external tools to get the project files
           (projectile-remove-ignored (projectile-dir-files-external root directory))))))

@@ -7,6 +7,10 @@
 * Add new command `projectile-find-file-in-directory` that allows you to jump to files in any directory
 * `.projectile` is now always taken into account
 
+### Changes
+
+* Replace variable `projectile-use-native-indexing` with `projectile-indexing-method`.
+
 ### Bug fixes
 
 * `projectile-find-test-file` now properly displays only test files (#145)

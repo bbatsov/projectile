@@ -112,7 +112,7 @@ method is used on all operating systems except Windows. To force the
 use of native indexing:
 
 ```lisp
-(setq projectile-use-native-indexing t)
+(setq projectile-indexing-method 'native)
 ```
 
 #### Caching
