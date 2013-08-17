@@ -42,6 +42,8 @@
 (require 'grep)           ; For `rgrep'
 (require 'package)        ; For `package-buffer-info' and `package-version-join'
 
+
+;;; Customization
 (defgroup projectile nil
   "Manage and navigate projects easily."
   :group 'tools
@@ -91,7 +93,6 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-;; variables
 (defvar projectile-project-root-files
   '(".projectile" "project.clj" ".git" ".hg" ".fslckout" ".bzr" "_darcs"
     "rebar.config" "pom.xml" "build.sbt" "Gemfile" "Makefile")
@@ -111,6 +112,8 @@ Otherwise consider the current directory the project root."
 (defvar projectile-find-dir-hook nil
   "Hooks run when a directory is opened with `projectile-find-dir'.")
 
+
+;;; Serialization
 (defun projectile-serialize (data filename)
   "Serialize DATA to FILENAME.
 
@@ -142,6 +145,7 @@ The list of projects is ordered by the time they have been accessed.")
   :group 'projectile
   :type 'string)
 
+
 ;;; Version information
 (defun projectile-library-version ()
   "Get the version in the Flycheck library header."
@@ -194,6 +198,8 @@ just return nil."
       (message "Projectile version: %s" version))
     version))
 
+
+;;; Caching
 (defun projectile-invalidate-cache (arg)
   "Remove the current project's files from `projectile-projects-cache'.
 
@@ -217,6 +223,36 @@ The cache is created both in memory and on the hard drive."
     (puthash project files projectile-projects-cache)
     (projectile-serialize-cache)))
 
+(defun projectile-file-cached-p (file project)
+  "Check if FILE is already in PROJECT cache."
+  (member file (gethash project projectile-projects-cache)))
+
+(defun projectile-cache-current-file ()
+  "Add the currently visited file to the cache."
+  (interactive)
+  (let* ((current-project (projectile-project-root))
+        (current-file (file-relative-name (buffer-file-name (current-buffer)) current-project)))
+    (unless (projectile-file-cached-p current-file current-project)
+      (puthash current-project
+               (cons current-file (gethash current-project projectile-projects-cache))
+               projectile-projects-cache)
+      (projectile-serialize-cache)
+      (message "File %s added to project %s cache." current-file current-project))))
+
+;; cache opened files automatically to reduce the need for cache invalidation
+(defun projectile-cache-files-find-file-hook ()
+  "Function for caching files with `find-file-hook'."
+  (when (and (projectile-project-p) projectile-enable-caching)
+    (projectile-cache-current-file)))
+
+(defun projectile-cache-projects-find-file-hook ()
+  "Function for caching projects with `find-file-hook'."
+  (when (projectile-project-p)
+    (projectile-add-known-project (projectile-project-root))
+    (projectile-save-known-projects)))
+
+
+;;; Project root related utilities
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
@@ -251,6 +287,8 @@ Expand FILE-NAME using `default-directory'."
            (error default-directory))))
    (file-name-nondirectory (directory-file-name project-root))))
 
+
+;;; Project indexing
 (defun projectile-get-project-directories ()
   "Get the list of project directories that are of interest to the user."
   (-map (lambda (subdir) (concat (projectile-project-root) subdir))
@@ -286,34 +324,6 @@ Files are returned as relative paths to the project root."
                              (s-chop-prefix root (expand-file-name f directory)))
                            (projectile-get-repo-files)))
     files-list))
-
-(defun projectile-file-cached-p (file project)
-  "Check if FILE is already in PROJECT cache."
-  (member file (gethash project projectile-projects-cache)))
-
-(defun projectile-cache-current-file ()
-  "Add the currently visited file to the cache."
-  (interactive)
-  (let* ((current-project (projectile-project-root))
-        (current-file (file-relative-name (buffer-file-name (current-buffer)) current-project)))
-    (unless (projectile-file-cached-p current-file current-project)
-      (puthash current-project
-               (cons current-file (gethash current-project projectile-projects-cache))
-               projectile-projects-cache)
-      (projectile-serialize-cache)
-      (message "File %s added to project %s cache." current-file current-project))))
-
-;; cache opened files automatically to reduce the need for cache invalidation
-(defun projectile-cache-files-find-file-hook ()
-  "Function for caching files with `find-file-hook'."
-  (when (and (projectile-project-p) projectile-enable-caching)
-    (projectile-cache-current-file)))
-
-(defun projectile-cache-projects-find-file-hook ()
-  "Function for caching projects with `find-file-hook'."
-  (when (projectile-project-p)
-    (projectile-add-known-project (projectile-project-root))
-    (projectile-save-known-projects)))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
@@ -601,6 +611,8 @@ https://github.com/d11wtq/grizzl")))
     (maphash (lambda (k v) (setq allkeys (cons k allkeys))) hash)
     allkeys))
 
+
+;;; Interactive commands
 (defun projectile-find-file (arg)
   "Jump to a project's file using completion.
 
@@ -984,6 +996,8 @@ Also set `projectile-known-projects'."
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
   (projectile-serialize projectile-known-projects projectile-known-projects-file))
 
+
+;;; Minor mode
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
     (let ((prefix-map (make-sparse-keymap)))
@@ -1040,8 +1054,6 @@ Also set `projectile-known-projects'."
  "Search Files (Grep)...")
 
 (easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
-
-;;; define minor mode
 
 ;;;###autoload
 (define-minor-mode projectile-mode
