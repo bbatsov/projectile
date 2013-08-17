@@ -1,16 +1,14 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily
 
-;; Copyright © 2011-2013 Bozhidar Batsov
+;; Copyright © 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>
 
-;; Author: Bozhidar Batsov
+;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 0.9.2
+;; Version: 1.0.0-cvs
 ;; Package-Requires: ((s "1.6.0") (dash "1.5.0"))
 
 ;; This file is NOT part of GNU Emacs.
-
-;;; License:
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,19 +36,16 @@
 ;;
 ;;; Code:
 
-;; requires
 (require 'thingatpt)
 (require 's)
 (require 'dash)
-(require 'grep)
+(require 'grep)           ; For `rgrep'
+(require 'package)        ; For `package-buffer-info' and `package-version-join'
 
 (defgroup projectile nil
   "Manage and navigate projects easily."
   :group 'tools
   :group 'convenience)
-
-(defconst projectile-current-version "0.9.3-beta"
-  "The current Projectile version.")
 
 (defcustom projectile-use-native-indexing (eq system-type 'windows-nt)
   "Use native Emacs Lisp project indexing."
@@ -147,11 +142,57 @@ The list of projects is ordered by the time they have been accessed.")
   :group 'projectile
   :type 'string)
 
-(defun projectile-version ()
-  "Reports the version of Projectile in use."
-  (interactive)
-  (message "Projectile (version %s) 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>"
-           projectile-current-version))
+;;; Version information
+(defun projectile-library-version ()
+  "Get the version in the Flycheck library header."
+  (-when-let* ((definition (symbol-function 'projectile-mode))
+               (source-file (find-lisp-object-file-name 'projectile-mode
+                                                        definition)))
+    (with-temp-buffer
+      (insert-file-contents source-file)
+      (let ((info (package-buffer-info)))
+        (package-version-join
+         (if (fboundp 'package-desc-version)
+             (package-desc-version info)
+           (version-to-list (aref (package-buffer-info) 3))))))))
+
+(defun projectile-package-version ()
+  "Get the package version of Projectile.
+
+This is the version number of the installed Projectile package."
+  (when (boundp 'package-alist)
+    (-when-let (info (assq 'projectile package-alist))
+      (package-version-join
+       (if (fboundp 'package-desc-version)
+           (package-desc-version (cadr info))
+         (aref (cdr info) 0))))))
+
+(defun projectile-version (&optional show-version)
+  "Get the Projectile version as string.
+
+If called interactively or if SHOW-VERSION is non-nil, show the
+version in the echo area and the messages buffer.
+
+The returned string includes both, the version from package.el
+and the library version, if both a present and different.
+
+If the version number could not be determined, signal an error,
+if called interactively, or if SHOW-VERSION is non-nil, otherwise
+just return nil."
+  (interactive (list (not (or executing-kbd-macro noninteractive))))
+  (let* ((lib-version (projectile-library-version))
+         (pkg-version (projectile-package-version))
+         (version (cond
+                   ((and lib-version pkg-version
+                         (not (string= lib-version pkg-version)))
+                    (format "%s (package: %s)" lib-version pkg-version))
+                   ((or pkg-version lib-version)
+                    (format "%s" (or pkg-version lib-version))))))
+    (when show-version
+      (unless version
+        (error "Could not find out Projectile version"))
+      (message "Projectile version: %s" version))
+    version))
 
 (defun projectile-invalidate-cache (arg)
   "Remove the current project's files from `projectile-projects-cache'.
