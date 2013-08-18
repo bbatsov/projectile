@@ -347,7 +347,9 @@ development of Projectile.
 
 ## Contribution
 
-Contribution is always welcome!
+All contributions are welcome, as long as they don't break anything
+:-) To make sure you didn't introduce any regressions it's a good idea
+to run the tests first.
 
 Install [cask](https://github.com/rejeep/cask.el) if you haven't
 already, then:
