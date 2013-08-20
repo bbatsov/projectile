@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 1.0.0-cvs
-;; Package-Requires: ((s "1.6.0") (dash "1.5.0"))
+;; Package-Requires: ((s "1.6.0") (dash "1.5.0") (pkg-info "0.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -168,27 +168,15 @@ The list of projects is ordered by the time they have been accessed.")
 ;;; Version information
 (defun projectile-library-version ()
   "Get the version in the Flycheck library header."
-  (-when-let* ((definition (symbol-function 'projectile-mode))
-               (source-file (find-lisp-object-file-name 'projectile-mode
-                                                        definition)))
-    (with-temp-buffer
-      (insert-file-contents source-file)
-      (let ((info (package-buffer-info)))
-        (package-version-join
-         (if (fboundp 'package-desc-version)
-             (package-desc-version info)
-           (version-to-list (aref (package-buffer-info) 3))))))))
+  (-when-let (version (pkg-info-defining-library-version 'projectile))
+    (pkg-info-format-version version)))
 
 (defun projectile-package-version ()
   "Get the package version of Projectile.
 
 This is the version number of the installed Projectile package."
-  (when (boundp 'package-alist)
-    (-when-let (info (assq 'projectile package-alist))
-      (package-version-join
-       (if (fboundp 'package-desc-version)
-           (package-desc-version (cadr info))
-         (aref (cdr info) 0))))))
+  (-when-let (version (pkg-info-package-version 'flycheck))
+    (pkg-info-format-version version)))
 
 (defun projectile-version (&optional show-version)
   "Get the Projectile version as string.
