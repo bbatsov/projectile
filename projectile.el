@@ -167,7 +167,7 @@ The list of projects is ordered by the time they have been accessed.")
 
 ;;; Version information
 (defun projectile-library-version ()
-  "Get the version in the Flycheck library header."
+  "Get the version in the Projectile library header."
   (-when-let (version (pkg-info-defining-library-version 'projectile))
     (pkg-info-format-version version)))
 
