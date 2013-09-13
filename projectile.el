@@ -113,8 +113,19 @@ Otherwise consider the current directory the project root."
   :type 'string)
 
 (defvar projectile-project-root-files
-  '(".projectile" "project.clj" ".git" ".hg" ".fslckout" ".bzr" "_darcs"
-    "rebar.config" "pom.xml" "build.sbt" "Gemfile" "Makefile")
+  '(".projectile"    ; projectile project marker
+    ".git"           ; Git VCS root dir
+    ".hg"            ; Mercurial VCS root dir
+    ".fslckout"      ; Fossil VCS root dir
+    ".bzr"           ; Bazaar VCS root dir
+    "_darcs"         ; Darcs VCS root dir
+    "rebar.config"   ; Rebar project file
+    "project.clj"    ; Leiningen project file
+    "pom.xml"        ; Maven project file
+    "build.sbt"      ; SBT project file
+    "Gemfile"        ; Bundler file
+    "Makefile"       ; Make project file
+    )
   "A list of files considered to mark the root of a project.")
 
 (defvar projectile-globally-ignored-files
@@ -122,7 +133,13 @@ Otherwise consider the current directory the project root."
   "A list of files globally ignored by projectile.")
 
 (defvar projectile-globally-ignored-directories
-  '(".idea" ".eunit" ".git" ".hg" ".fslckout" ".bzr" "_darcs")
+  '(".idea"
+    ".eunit"
+    ".git"
+    ".hg"
+    ".fslckout"
+    ".bzr"
+    "_darcs")
   "A list of directories globally ignored by projectile.")
 
 (defvar projectile-find-file-hook nil
