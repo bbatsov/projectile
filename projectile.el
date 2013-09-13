@@ -1103,8 +1103,4 @@ Also set `projectile-known-projects'."
 
 (provide 'projectile)
 
-;; Local Variables:
-;; byte-compile-warnings: (not cl-functions)
-;; End:
-
 ;;; projectile.el ends here
