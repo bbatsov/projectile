@@ -112,7 +112,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defvar projectile-project-root-files
+(defcustom projectile-project-root-files
   '(".projectile"    ; projectile project marker
     ".git"           ; Git VCS root dir
     ".hg"            ; Mercurial VCS root dir
@@ -126,13 +126,17 @@ Otherwise consider the current directory the project root."
     "Gemfile"        ; Bundler file
     "Makefile"       ; Make project file
     )
-  "A list of files considered to mark the root of a project.")
+  "A list of files considered to mark the root of a project."
+  :group 'projectile
+  :type '(repeat string))
 
-(defvar projectile-globally-ignored-files
+(defcustom projectile-globally-ignored-files
   '("TAGS")
-  "A list of files globally ignored by projectile.")
+  "A list of files globally ignored by projectile."
+  :group 'projectile
+  :type '(repeat string))
 
-(defvar projectile-globally-ignored-directories
+(defcustom projectile-globally-ignored-directories
   '(".idea"
     ".eunit"
     ".git"
@@ -140,13 +144,19 @@ Otherwise consider the current directory the project root."
     ".fslckout"
     ".bzr"
     "_darcs")
-  "A list of directories globally ignored by projectile.")
+  "A list of directories globally ignored by projectile."
+  :group 'projectile
+  :type '(repeat string))
 
-(defvar projectile-find-file-hook nil
-  "Hooks run when a file is opened with `projectile-find-file'.")
+(defcustom projectile-find-file-hook nil
+  "Hooks run when a file is opened with `projectile-find-file'."
+  :group 'projectile
+  :type 'hook)
 
-(defvar projectile-find-dir-hook nil
-  "Hooks run when a directory is opened with `projectile-find-dir'.")
+(defcustom projectile-find-dir-hook nil
+  "Hooks run when a directory is opened with `projectile-find-dir'."
+  :group 'projectile
+  :type 'hook)
 
 
 ;;; Serialization
@@ -672,8 +682,10 @@ With a prefix ARG invalidates the cache first."
                                           (projectile-current-project-test-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
 
-(defvar projectile-test-files-suffices '("_test" "_spec" "Test" "-test")
-  "Some common suffices of test files.")
+(defcustom projectile-test-files-suffices '("_test" "_spec" "Test" "-test")
+  "Some common suffices of test files."
+  :group 'projectile
+  :type '(repeat string))
 
 (defun projectile-test-files (files)
   "Return only the test FILES."
@@ -979,10 +991,12 @@ This command will first prompt for the directory the file is in."
          (projectile-require-project-root nil))
     (projectile-find-file nil)))
 
-(defvar projectile-switch-project-hook nil
+(defcustom projectile-switch-project-hook nil
   "Hooks run when project is switched.
 
-The path to the opened project is available as PROJECT-SWITCHED")
+The path to the opened project is available as PROJECT-SWITCHED"
+  :group 'projectile
+  :type 'hook)
 
 (defun projectile-clear-known-projects ()
   "Clear both `projectile-known-projects' and `projectile-known-projects-file'."
