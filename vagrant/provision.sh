@@ -24,7 +24,7 @@ apt emacs24 emacs24-el emacs24-common-non-dfsg \
     emacs-snapshot emacs-snapshot-el
 
 # Install Cask for Emacs dependency management
-CASK_DIR=/opt/cask.el-0.4.5
+CASK_DIR=/opt/cask.el-0.4.6
 if ! [ -d "$CASK_DIR" -a -x "/$CASK_DIR/bin/cask" ]; then
   sudo rm -rf "$CASK_DIR"
   wget -O - https://github.com/cask/cask/archive/v0.4.6.tar.gz | sudo tar xz -C /opt
