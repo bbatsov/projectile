@@ -27,7 +27,7 @@ apt emacs24 emacs24-el emacs24-common-non-dfsg \
 CASK_DIR=/opt/cask.el-0.4.5
 if ! [ -d "$CASK_DIR" -a -x "/$CASK_DIR/bin/cask" ]; then
   sudo rm -rf "$CASK_DIR"
-  wget -O - https://github.com/rejeep/cask.el/archive/v0.4.5.tar.gz | sudo tar xz -C /opt
+  wget -O - https://github.com/cask/cask/archive/v0.4.6.tar.gz | sudo tar xz -C /opt
   # Bring Cask into $PATH
   sudo ln -fs "$CASK_DIR/bin/cask" /usr/local/bin
 fi
