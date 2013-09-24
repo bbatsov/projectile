@@ -155,7 +155,7 @@ When running `projectile-switch-project` (<kbd>C-c p s</kbd>) Projectile invokes
 `projectile-switch-project-action`:
 
 ```lisp
-(setq projectile-switch-project-action 'projectile-direc)
+(setq projectile-switch-project-action 'projectile-dired)
 ```
 
 #### Completion Options
