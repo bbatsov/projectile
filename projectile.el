@@ -158,7 +158,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'hook)
 
-(defcustom projectile-switch-project-action 'projectile-file-file
+(defcustom projectile-switch-project-action 'projectile-find-file
   "Action invoked after switching projects with `projectile-switch-project'.
 
 Any function that does not take arguments will do."
