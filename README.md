@@ -148,6 +148,16 @@ If you want Projectile to be usable in every directory (even without the presenc
 
 This might not be a great idea if you start Projectile in your home folder for instance. :-)
 
+#### Switching projects
+
+When running `projectile-switch-project` (<kbd>C-c p s</kbd>) Projectile invokes the command specified in
+`projectile-switch-project-action` (by default it's `projectile-find-file`). If you want to use something else alter the value of
+`projectile-switch-project-action`:
+
+```lisp
+(setq projectile-switch-project-action 'projectile-direc)
+```
+
 #### Completion Options
 
 ##### Ido

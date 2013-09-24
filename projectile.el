@@ -158,15 +158,13 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'hook)
 
-(defcustom projectile-switch-project-action 'projectile-find-file
-  "Specifies the action to take when switching projects with `projectile-switch-project'.
+(defcustom projectile-switch-project-action 'projectile-file-file
+  "Action invoked after switching projects with `projectile-switch-project'.
 
-There are two options:
-- projectile-find-file: Prompt for a file to open in the new project with `projectile-find-file'
-- dired: Open the project's root directory with `dired'"
+Any function that does not take arguments will do."
   :group 'projectile
-  :type 'symbol
-  :options '(projectile-find-file dired))
+  :type 'symbol)
+
 
 ;;; Serialization
 (defun projectile-serialize (data filename)
@@ -656,7 +654,7 @@ https://github.com/d11wtq/grizzl")))
 
 
 ;;; Interactive commands
-(defun projectile-find-file (arg)
+(defun projectile-find-file (&optional arg)
   "Jump to a project's file using completion.
 
 With a prefix ARG invalidates the cache first."
@@ -986,10 +984,7 @@ with a prefix ARG."
          (projectile-completing-read "Switch to project: "
                                      projectile-known-projects))
          (default-directory project-to-switch))
-    (cond
-     ((eq projectile-switch-project-action 'projectile-find-file) (projectile-find-file nil))
-     ((eq projectile-switch-project-action 'dired) (dired (projectile-project-root)))
-     (t (error "Customized variable projectile-switch-project-action invalid!")))
+    (funcall projectile-switch-project-action)
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 
@@ -1001,7 +996,7 @@ This command will first prompt for the directory the file is in."
   (let* ((directory (read-directory-name "Find file in directory: "))
          (default-directory directory)
          (projectile-require-project-root nil))
-    (projectile-find-file nil)))
+    (projectile-find-file)))
 
 (defcustom projectile-switch-project-hook nil
   "Hooks run when project is switched.
