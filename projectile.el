@@ -158,6 +158,15 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'hook)
 
+(defcustom projectile-switch-project-action 'projectile-find-file
+  "Specifies the action to take when switching projects with `projectile-switch-project'.
+
+There are two options:
+- projectile-find-file: Prompt for a file to open in the new project with `projectile-find-file'
+- dired: Open the project's root directory with `dired'"
+  :group 'projectile
+  :type 'symbol
+  :options '(projectile-find-file dired))
 
 ;;; Serialization
 (defun projectile-serialize (data filename)
@@ -977,7 +986,10 @@ with a prefix ARG."
          (projectile-completing-read "Switch to project: "
                                      projectile-known-projects))
          (default-directory project-to-switch))
-    (projectile-find-file nil)
+    (cond
+     ((eq projectile-switch-project-action 'projectile-find-file) (projectile-find-file nil))
+     ((eq projectile-switch-project-action 'dired) (dired (projectile-project-root)))
+     (t (error "Customized variable projectile-switch-project-action invalid!")))
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 
