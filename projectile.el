@@ -977,12 +977,17 @@ with a prefix ARG."
     (puthash project-root test-cmd projectile-test-cmd-map)
     (compilation-start test-cmd)))
 
+(defun projectile-relevant-known-projects ()
+  "Return a list of known projects except the current one."
+  (-difference projectile-known-projects
+               (list (abbreviate-file-name (projectile-project-root)))))
+
 (defun projectile-switch-project ()
   "Switch to a project we have seen before."
   (interactive)
   (let* ((project-to-switch
          (projectile-completing-read "Switch to project: "
-                                     projectile-known-projects))
+                                     (projectile-relevant-known-projects)))
          (default-directory project-to-switch))
     (funcall projectile-switch-project-action)
     (let ((project-switched project-to-switch))
