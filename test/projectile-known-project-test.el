@@ -15,15 +15,15 @@ existed."
 
 (defun projectile-mock-serialization-functions (&rest body)
   (let (projectile-serialization-calls)
-    (flet ((projectile-serialize (&rest args)
-                                 (push (cons 'serialize args)
-                                       projectile-serialization-calls)
-                                 'projectile-serialize-return)
-           (projectile-unserialize (&rest args)
-                                   (push (cons 'unserialize args)
+    (noflet ((projectile-serialize (&rest args)
+                                   (push (cons 'serialize args)
                                          projectile-serialization-calls)
-                                   'projectile-unserialize-return))
-      (eval (cons 'progn body)))))
+                                   'projectile-serialize-return)
+             (projectile-unserialize (&rest args)
+                                     (push (cons 'unserialize args)
+                                           projectile-serialization-calls)
+                                     'projectile-unserialize-return))
+            (eval (cons 'progn body)))))
 
 (defun projectile-test-tmp-file-path ()
   "Return a filename suitable to save data to in the

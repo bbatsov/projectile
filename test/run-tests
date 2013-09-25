@@ -8,7 +8,7 @@
 (add-to-list 'load-path projectile-test-path)
 
 (require 'projectile)
-(require 'cl)
+(require 'noflet)
 
 (load (expand-file-name "test-helper.el" projectile-test-path) nil t)
 (dolist (test-file (or argv (directory-files projectile-test-path t "-test.el$")))
@@ -16,6 +16,6 @@
 
 ;; setup test environment
 ;; and run tests
-(flet ((projectile-project-root () "/path/to/project")
-          (projectile-project-name () "project"))
-  (ert-run-tests-batch-and-exit t))
+(noflet ((projectile-project-root () "/path/to/project")
+         (projectile-project-name () "project"))
+        (ert-run-tests-batch-and-exit t))
