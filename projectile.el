@@ -988,9 +988,11 @@ with a prefix ARG."
     (compilation-start test-cmd)))
 
 (defun projectile-relevant-known-projects ()
-  "Return a list of known projects except the current one."
-  (-difference projectile-known-projects
-               (list (abbreviate-file-name (projectile-project-root)))))
+  "Return a list of known projects except the current one (if present)."
+  (if (projectile-project-p)
+      (-difference projectile-known-projects
+                   (list (abbreviate-file-name (projectile-project-root))))
+    projectile-known-projects))
 
 (defun projectile-switch-project ()
   "Switch to a project we have seen before."
