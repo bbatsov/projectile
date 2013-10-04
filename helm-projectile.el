@@ -44,18 +44,13 @@
 (require 'helm-locate)
 (require 'helm-buffers)
 
-(defun helm-c-projectile-candidate-buffer-content ()
-  "Generate content for the `helm-candidate-buffer' from the files in the current project."
-  (s-join "\n" (projectile-current-project-files)))
-
 (defvar helm-c-source-projectile-files-list
   `((name . "Projectile files list")
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
     (init . (lambda ()
-              (with-current-buffer (helm-candidate-buffer 'local)
-                (insert
-                 (helm-c-projectile-candidate-buffer-content)))))
+              (helm-init-candidates-in-buffer
+               'global (projectile-current-project-files))))
     (candidates-in-buffer)
     (candidate-number-limit . 15)
     (keymap . ,helm-generic-files-map)
@@ -70,9 +65,8 @@
   `((name . "Projectile buffers list")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
-              (with-current-buffer (helm-candidate-buffer 'local)
-                (insert
-                 (s-join "\n" (projectile-project-buffer-names))))))
+              (helm-init-candidates-in-buffer
+               'global (projectile-project-buffer-names))))
     (candidates-in-buffer)
     (keymap . ,helm-buffer-map)
     (mode-line . helm-buffer-mode-line-string)
@@ -86,9 +80,8 @@
   `((name . "Projectile recent files list")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
-              (with-current-buffer (helm-candidate-buffer 'local)
-                (insert
-                 (s-join "\n" (projectile-recentf-files))))))
+              (helm-init-candidates-in-buffer
+               'global (projectile-recentf-files))))
     (candidates-in-buffer)
     (keymap . ,helm-generic-files-map)
     (help-message . helm-generic-file-help-message)
