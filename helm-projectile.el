@@ -74,9 +74,9 @@
                 (insert
                  (s-join "\n" (projectile-project-buffer-names))))))
     (candidates-in-buffer)
-    (keymap . ,helm-c-buffer-map)
+    (keymap . ,helm-buffer-map)
     (mode-line . helm-buffer-mode-line-string)
-    (match-strict helm-c-buffer-match-major-mode)
+    (match-strict helm-buffer-match-major-mode)
     (type . buffer)
     (persistent-help
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
