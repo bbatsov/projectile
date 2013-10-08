@@ -44,8 +44,8 @@
 (require 'helm-locate)
 (require 'helm-buffers)
 
-(defvar helm-c-source-projectile-files-list
-  `((name . "Projectile files list")
+(defvar helm-source-projectile-files-list
+  `((name . "Projectile Files")
     ;; Needed for filenames with capitals letters.
     (disable-shortcuts)
     (init . (lambda ()
@@ -61,23 +61,36 @@
                 (find-file (projectile-expand-root candidate)))))
   "Helm source definition.")
 
-(defvar helm-c-source-projectile-buffers-list
-  `((name . "Projectile buffers list")
-    ;; Needed for filenames with capitals letters.
+(defvar helm-source-projectile-buffers-list
+  `((name . "Projectile Buffers")
     (init . (lambda ()
-              (helm-init-candidates-in-buffer
-               'global (projectile-project-buffer-names))))
-    (candidates-in-buffer)
-    (keymap . ,helm-buffer-map)
-    (mode-line . helm-buffer-mode-line-string)
-    (match helm-buffer-match-major-mode)
+              ;; Issue #51 Create the list before `helm-buffer' creation.
+              (setq helm-buffers-list-cache (projectile-project-buffer-names))
+              (let ((result (loop for b in helm-buffers-list-cache
+                                  maximize (length b) into len-buf
+                                  maximize (length (with-current-buffer b
+                                                     (symbol-name major-mode)))
+                                  into len-mode
+                                  finally return (cons len-buf len-mode))))
+                (unless helm-buffer-max-length
+                  (setq helm-buffer-max-length (car result)))
+                (unless helm-buffer-max-len-mode
+                  ;; If a new buffer is longer that this value
+                  ;; this value will be updated
+                  (setq helm-buffer-max-len-mode (cdr result))))))
+    (candidates . helm-buffers-list-cache)
     (type . buffer)
+    (match helm-buffer-match-major-mode)
+    (persistent-action . helm-buffers-list-persistent-action)
+    (keymap . ,helm-buffer-map)
+    (volatile)
+    (no-delay-on-input)
+    (mode-line . helm-buffer-mode-line-string)
     (persistent-help
-     . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer"))
-  "Helm source definition.")
+     . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
 
-(defvar helm-c-source-projectile-recentf-list
-  `((name . "Projectile recent files list")
+(defvar helm-source-projectile-recentf-list
+  `((name . "Projectile Recent Files")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
               (helm-init-candidates-in-buffer
@@ -95,9 +108,9 @@
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
-  (helm :sources '(helm-c-source-projectile-files-list
-                   helm-c-source-projectile-buffers-list
-                   helm-c-source-projectile-recentf-list)
+  (helm :sources '(helm-source-projectile-files-list
+                   helm-source-projectile-buffers-list
+                   helm-source-projectile-recentf-list)
         :buffer "*helm projectile*"
         :prompt (projectile-prepend-project-name "pattern: ")))
 
