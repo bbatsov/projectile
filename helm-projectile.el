@@ -65,8 +65,8 @@
   `((name . "Projectile Buffers")
     (init . (lambda ()
               ;; Issue #51 Create the list before `helm-buffer' creation.
-              (setq helm-buffers-list-cache (projectile-project-buffer-names))
-              (let ((result (loop for b in helm-buffers-list-cache
+              (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
+              (let ((result (loop for b in helm-projectile-buffers-list-cache
                                   maximize (length b) into len-buf
                                   maximize (length (with-current-buffer b
                                                      (symbol-name major-mode)))
@@ -78,7 +78,7 @@
                   ;; If a new buffer is longer that this value
                   ;; this value will be updated
                   (setq helm-buffer-max-len-mode (cdr result))))))
-    (candidates . helm-buffers-list-cache)
+    (candidates . helm-projectile-buffers-list-cache)
     (type . buffer)
     (match helm-buffer-match-major-mode)
     (persistent-action . helm-buffers-list-persistent-action)
