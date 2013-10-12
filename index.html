@@ -1,116 +1,404 @@
 <!DOCTYPE html>
 <html>
-
   <head>
-    <meta charset='utf-8' />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Projectile : Project navigation and management library for Emacs" />
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
 
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
 
-    <title>Projectile</title>
+    <title>Projectile by bbatsov</title>
   </head>
 
   <body>
+    <header>
+      <div class="inner">
+        <h1>Projectile</h1>
+        <h2>Project navigation and management library for Emacs</h2>
+        <a href="https://github.com/bbatsov/projectile" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
 
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/bbatsov/projectile">Fork Me on GitHub</a>
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h2>
+<a name="synopsis" class="anchor" href="#synopsis"><span class="octicon octicon-link"></span></a>Synopsis</h2>
 
-          <h1 id="project_title">Projectile</h1>
-          <h2 id="project_tagline">Project navigation and management library for Emacs</h2>
-
-          <section id="downloads">
-            <a class="zip_download_link" href="https://github.com/bbatsov/projectile/zipball/master">Download this project as a .zip file</a>
-            <a class="tar_download_link" href="https://github.com/bbatsov/projectile/tarball/master">Download this project as a tar.gz file</a>
-          </section>
-        </header>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
-        <h1>Synopsis</h1>
-
-<p>Projectile is a project interaction library for Emacs. Its goal is to
+<p><strong>Projectile</strong> is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
-introducing external dependencies. For instance - finding project
-files is done in pure elisp without the use of GNU find.</p>
+introducing external dependencies(when feasible). For instance -
+finding project files has a portable implementation written in pure
+Emacs Lisp without the use of GNU <code>find</code>(but for performance sake an
+indexing mechanism backed by external commands exists as well).</p>
+
+<p>Projectile tries to be practical - portability is great, but if some
+external tools could speed up some task substantially and the tools
+are available, Projectile will leverage them.</p>
 
 <p>This library provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
-special file. Currently <code>git</code>, <code>mercurial</code> and <code>bazaar</code> repos are
-considered projects by default. If you want to mark a folder
-manually as a project just create an empty <code>.projectile</code> file in
-it. Some of projectile's features:</p>
+special file. Currently <code>git</code>, <code>mercurial</code>, <code>darcs</code> and <code>bazaar</code> repos
+are considered projects by default. So are <code>lein</code>, <code>maven</code>, <code>sbt</code>,
+<code>rebar</code> and <code>bundler</code> projects. If you want to mark a folder manually
+as a project just create an empty <code>.projectile</code> file in it. Some of
+Projectile's features:</p>
 
 <ul>
 <li>jump to a file in project</li>
+<li>jump to a directory in project</li>
+<li>jump to a file in a directory</li>
 <li>jump to a project buffer</li>
+<li>jump to a test in project</li>
+<li>toggle between code and its test</li>
+<li>jump to recently visited files in the project</li>
+<li>switch between projects you have worked on</li>
+<li>kill all project buffers</li>
+<li>replace in project</li>
 <li>multi-occur in project buffers</li>
 <li>grep in project</li>
 <li>regenerate project etags</li>
-</ul><h1>Installation</h1>
+<li>visit project in dired</li>
+<li>run make in a project with a single key chord</li>
+</ul><p>Here's a glimpse of Projectile in action:</p>
 
-<h2>Manual</h2>
+<p><img src="https://github.com/bbatsov/projectile/raw/master/screenshots/projectile.png" alt="Projectile Screenshot"></p>
 
-<p>Just drop <code>projectile.el</code> somewhere in your <code>load-path</code>. I favour the
-folder <code>~/.emacs.d/vendor</code>:</p>
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
 
-<pre><code>(add-to-list 'load-path "~/emacs.d/vendor")
-</code></pre>
+<p>The recommended way to install Projectile is via MELPA or Marmalade.</p>
 
-<p>You can enable projectile globally like this:</p>
+<h3>
+<a name="manual" class="anchor" href="#manual"><span class="octicon octicon-link"></span></a>Manual</h3>
 
-<pre><code>(require 'projectile)
-(projectile-global-mode) ;; to enable in all buffers
-</code></pre>
+<p>Just drop <code>projectile.el</code>,
+<a href="https://github.com/magnars/dash.el">dash.el</a> and
+<a href="https://github.com/magnars/s.el">s.el</a> somewhere in your
+<code>load-path</code>. I favour the folder <code>~/.emacs.d/vendor</code>:</p>
 
-<p>To enable projectile only in select modes:</p>
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="nv">add-to-list</span> <span class="ss">'load-path</span> <span class="s">"~/emacs.d/vendor"</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">require</span> <span class="ss">'projectile</span><span class="p">)</span>
+</pre></div>
 
-<pre><code>(add-hook 'ruby-mode-hook #'(lambda () (projectile-mode)))
-</code></pre>
+<h3>
+<a name="marmalade" class="anchor" href="#marmalade"><span class="octicon octicon-link"></span></a>Marmalade</h3>
 
-<p>If you'd like to enable project files caching (useful in large
-projects where indexing the project's file can take a while) add this
-as well:</p>
+<p>If you're an Emacs 24 user or you have a recent version of <code>package.el</code>
+you can install Projectile from the
+<a href="http://marmalade-repo.org/">Marmalade</a> repository.</p>
 
-<pre><code>(setq projectile-enable-caching t)
-</code></pre>
+<h3>
+<a name="melpa" class="anchor" href="#melpa"><span class="octicon octicon-link"></span></a>MELPA</h3>
 
-<h2>Marmalade</h2>
+<p>If you're an Emacs 24 user or you have a recent version of <code>package.el</code>
+you can install Projectile from the
+<a href="http://melpa.milkbox.net">MELPA</a> repository. The version of
+Projectile there will always be up-to-date, but it might be unstable
+(albeit rarely).</p>
 
-<p>If you're an Emacs 24 user or you have a recent version of package.el
-you can install projectile from the <a href="http://marmalade-repo.org/">Marmalade</a> repository.</p>
-
-<h2>Emacs Prelude</h2>
+<h3>
+<a name="emacs-prelude" class="anchor" href="#emacs-prelude"><span class="octicon octicon-link"></span></a>Emacs Prelude</h3>
 
 <p>Projectile is naturally part of the
 <a href="https://github.com/bbatsov/prelude">Emacs Prelude</a>. If you're a Prelude
-user - projectile is already properly configured and ready for
+user - Projectile is already properly configured and ready for
 action.</p>
 
-<h1>Usage</h1>
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="basic-setup" class="anchor" href="#basic-setup"><span class="octicon octicon-link"></span></a>Basic setup</h3>
+
+<p>You can enable Projectile globally like this:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="nv">projectile-global-mode</span><span class="p">)</span>
+</pre></div>
+
+<p>To enable Projectile only in select modes:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="nv">add-hook</span> <span class="ss">'ruby-mode-hook</span> <span class="ss">'projectile-on</span><span class="p">)</span>
+</pre></div>
+
+<p>If you're going to use the default <code>ido</code> completion it's
+<strong>extremely highly</strong> recommended that you install the optional
+<a href="https://github.com/lewang/flx">flx-ido package</a>, which provides a much
+more powerful alternative to <code>ido</code>'s built-in <code>flex</code> matching.</p>
+
+<h4>
+<a name="indexing-method" class="anchor" href="#indexing-method"><span class="octicon octicon-link"></span></a>Indexing method</h4>
+
+<p>Projectile has two modes of operation - one is portable and is
+implemented in Emacs Lisp(therefore it's native to Emacs and is known
+as the <code>native indexing method</code>) and the other relies on external
+commands like <code>find</code>, <code>git</code>, etc to obtain the list of files in a
+project.</p>
+
+<p>Since the native indexing mode is much slower, but default the second
+method is used on all operating systems except Windows. To force the
+use of native indexing:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-indexing-method</span> <span class="ss">'native</span><span class="p">)</span>
+</pre></div>
+
+<h4>
+<a name="caching" class="anchor" href="#caching"><span class="octicon octicon-link"></span></a>Caching</h4>
+
+<p>Since indexing a big project is not exactly quick (especially in Emacs
+Lisp), Projectile supports caching of the project's files. The caching
+is enabled by default whenever native indexing is enabled.</p>
+
+<p>To enable caching unconditionally use this snippet of code:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-enable-caching</span> <span class="no">t</span><span class="p">)</span>
+</pre></div>
+
+<p>At this point you can try out a Projectile command such as <kbd>C-c p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).</p>
+
+<p>Running <kbd>C-u C-c p f</kbd> will invalidate the cache prior to
+prompting you for a file to jump to.</p>
+
+<p>Pressing <kbd>C-c p z</kbd> will add the currently visited file to the
+cache for current project. Generally files created outside Emacs will
+be added to the cache automatically the first time you open them.</p>
+
+<p>The project cache is persistent and will be preserved during Emacs restarts.</p>
+
+<h4>
+<a name="using-projectile-everywhere" class="anchor" href="#using-projectile-everywhere"><span class="octicon octicon-link"></span></a>Using Projectile everywhere</h4>
+
+<p>If you want Projectile to be usable in every directory (even without the presence of project file):</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-require-project-root</span> <span class="no">nil</span><span class="p">)</span>
+</pre></div>
+
+<p>This might not be a great idea if you start Projectile in your home folder for instance. :-)</p>
+
+<h4>
+<a name="switching-projects" class="anchor" href="#switching-projects"><span class="octicon octicon-link"></span></a>Switching projects</h4>
+
+<p>When running <code>projectile-switch-project</code> (<kbd>C-c p s</kbd>) Projectile invokes the command specified in
+<code>projectile-switch-project-action</code> (by default it's <code>projectile-find-file</code>). If you want to use something else alter the value of
+<code>projectile-switch-project-action</code>:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-switch-project-action</span> <span class="ss">'projectile-dired</span><span class="p">)</span>
+</pre></div>
+
+<h4>
+<a name="completion-options" class="anchor" href="#completion-options"><span class="octicon octicon-link"></span></a>Completion Options</h4>
+
+<h5>
+<a name="ido" class="anchor" href="#ido"><span class="octicon octicon-link"></span></a>Ido</h5>
+
+<p>By default Projectile uses <code>ido</code> as it completion system. <code>ido</code> is
+extremely popular and it is built into Emacs.</p>
+
+<p>As already noted above if you're going to use the <code>ido</code> completion it's
+<strong>extremely highly</strong> recommended that you install the optional
+<a href="https://github.com/lewang/flx">flx-ido package</a>, which provides a much
+more powerful alternative to <code>ido</code>'s built-in <code>flex</code> matching.</p>
+
+<h5>
+<a name="grizzl" class="anchor" href="#grizzl"><span class="octicon octicon-link"></span></a>Grizzl</h5>
+
+<p>Another completion option is <a href="https://github.com/d11wtq/grizzl">grizzl</a>:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-completion-system</span> <span class="ss">'grizzl</span><span class="p">)</span>
+</pre></div>
+
+<p><img src="https://github.com/bbatsov/projectile/raw/master/screenshots/projectile-grizzl.png" alt="Projectile Screenshot"></p>
+
+<p><code>grizzl</code>'s advantage is that it provides good fuzzy completion
+(compared to <code>ido</code>'s less than stellar built-in flex matching, but inferior to <code>ido-flx</code>).</p>
+
+<h5>
+<a name="basic-emacss-default" class="anchor" href="#basic-emacss-default"><span class="octicon octicon-link"></span></a>Basic (Emacs's default)</h5>
+
+<p>If you don't like <code>ido</code> and <code>grizzl</code> you can use regular completion:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-completion-system</span> <span class="ss">'default</span><span class="p">)</span>
+</pre></div>
+
+<p>You might want to combine default completion with <code>icomplete-mode</code> for optimum results.</p>
+
+<h5>
+<a name="custom-completion-function" class="anchor" href="#custom-completion-function"><span class="octicon octicon-link"></span></a>Custom Completion Function</h5>
+
+<p>You can also set <code>projectile-completion-system</code> to a function:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-completion-system</span> <span class="ss">'my-custom-completion-fn</span><span class="p">)</span>
+<span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-completion-system</span>
+      <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">prompt</span> <span class="nv">choices</span><span class="p">)</span>
+        <span class="c1">;; ...</span>
+        <span class="p">))</span>
+</pre></div>
+
+<p>An example of a custom completion function is
+<a href="https://gist.github.com/rejeep/5933343">this one</a>, which only show
+the file name (not including path) and if the file selected is not
+unique, another completion with names relative to project root
+appears.</p>
+
+<h3>
+<a name="interactive-commands" class="anchor" href="#interactive-commands"><span class="octicon octicon-link"></span></a>Interactive Commands</h3>
 
 <p>Here's a list of the interactive Emacs Lisp functions, provided by projectile:</p>
 
-<ul>
-<li>
-<code>projectile-find-file</code> (C-c p f)</li>
-<li>
-<code>projectile-grep</code> (C-c p g)</li>
-<li>
-<code>projectile-switch-to-buffer</code> (C-c p b)</li>
-<li>
-<code>projectile-multi-occur</code> (C-c p o)</li>
-<li>
-<code>projectile-replace</code> (C-c p r)</li>
-<li>
-<code>projectile-invalidate-cache</code> (C-c p i)</li>
-<li>
-<code>projectile-regenerate-tags</code> (C-c p t)</li>
-</ul><h2>Helm Integration</h2>
+<table>
+<thead><tr>
+<th>Keybinding</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><kbd>C-c p f</kbd></td>
+<td>Display a list of all files in the project. With a prefix argument it will clear the cache first.</td>
+</tr>
+<tr>
+<td><kbd>C-c p d</kbd></td>
+<td>Display a list of all directories in the project. With a prefix argument it will clear the cache first.</td>
+</tr>
+<tr>
+<td><kbd>C-c p T</kbd></td>
+<td>Display a list of all test files(specs, features, etc) in the project.</td>
+</tr>
+<tr>
+<td><kbd>C-c p l</kbd></td>
+<td>Display a list of all files in a directory (that's not necessarily a project)</td>
+</tr>
+<tr>
+<td><kbd>C-c p g</kbd></td>
+<td>Run grep on the files in the project.</td>
+</tr>
+<tr>
+<td><kbd>C-c p b</kbd></td>
+<td>Display a list of all project buffers currently open.</td>
+</tr>
+<tr>
+<td><kbd>C-c p o</kbd></td>
+<td>Runs <code>multi-occur</code> on all project buffers currently open.</td>
+</tr>
+<tr>
+<td><kbd>C-c p r</kbd></td>
+<td>Runs interactive query-replace on all files in the projects.</td>
+</tr>
+<tr>
+<td><kbd>C-c p i</kbd></td>
+<td>Invalidates the project cache (if existing).</td>
+</tr>
+<tr>
+<td><kbd>C-c p R</kbd></td>
+<td>Regenerates the projects <code>TAGS</code> file.</td>
+</tr>
+<tr>
+<td><kbd>C-c p k</kbd></td>
+<td>Kills all project buffers.</td>
+</tr>
+<tr>
+<td><kbd>C-c p D</kbd></td>
+<td>Opens the root of the project in <code>dired</code>.</td>
+</tr>
+<tr>
+<td><kbd>C-c p e</kbd></td>
+<td>Shows a list of recently visited project files.</td>
+</tr>
+<tr>
+<td><kbd>C-c p a</kbd></td>
+<td>Runs <code>ack</code> on the project. Requires the presence of <code>ack-and-a-half</code>.</td>
+</tr>
+<tr>
+<td><kbd>C-c p c</kbd></td>
+<td>Runs a standard compilation command for your type of project.</td>
+</tr>
+<tr>
+<td><kbd>C-c p p</kbd></td>
+<td>Runs a standard test command for your type of project.</td>
+</tr>
+<tr>
+<td><kbd>C-c p z</kbd></td>
+<td>Adds the currently visited to the cache.</td>
+</tr>
+<tr>
+<td><kbd>C-c p s</kbd></td>
+<td>Display a list of known projects you can switch to.</td>
+</tr>
+</tbody>
+</table><p>If you ever forget any of Projectile's keybindings just do a:</p>
+
+<p><kbd>C-c p C-h</kbd></p>
+
+<p>You can change the default keymap prefix <code>C-c p</code> like this:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="k">setq</span> <span class="nv">projectile-keymap-prefix</span> <span class="p">(</span><span class="nv">kbd</span> <span class="s">"C-c C-p"</span><span class="p">))</span>
+</pre></div>
+
+<p>For some common commands you might want to take a little shortcut and
+leverage the fairly unused <code>Super</code> key (by default <code>Command</code> on Mac
+keyboards and <code>Windows</code> on Win keyboards). Here's something you can
+add to your Emacs config:</p>
+
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="nv">define-key</span> <span class="nv">projectile-mode-map</span> <span class="nv">[?\s-d]</span> <span class="ss">'projectile-find-dir</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">define-key</span> <span class="nv">projectile-mode-map</span> <span class="nv">[?\s-p]</span> <span class="ss">'projectile-switch-project</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">define-key</span> <span class="nv">projectile-mode-map</span> <span class="nv">[?\s-f]</span> <span class="ss">'projectile-find-file</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">define-key</span> <span class="nv">projectile-mode-map</span> <span class="nv">[?\s-g]</span> <span class="ss">'projectile-grep</span><span class="p">)</span>
+</pre></div>
+
+<p>Note that the <code>Super</code> keybindings are not usable in Windows. Emacs
+Prelude already adds those extra keybindings.</p>
+
+<h3>
+<a name="ignoring-files" class="anchor" href="#ignoring-files"><span class="octicon octicon-link"></span></a>Ignoring files</h3>
+
+<p>If you'd like to instruct Projectile to ignore certain files in a
+project, when indexing it you can do so in the <code>.projectile</code> file by
+adding each path to ignore, where the paths all are relative to the
+root directory and start with a slash. Everything ignored should be
+preceded with a - sign. Alternatively, not having any prefix at all
+also means to ignore the directory or file pattern that follows.
+Here's an example for a typical Rails application:</p>
+
+<pre><code>-/log
+-/tmp
+-/vendor
+-/public/uploads
+</code></pre>
+
+<p>This would ignore the folders only at the root of the project.
+Projectile also supports relative pathname ignores:</p>
+
+<pre><code>-tmp
+-*.rb
+-*.yml
+-models
+</code></pre>
+
+<p>You can also ignore everything except certain subdirectories. This is
+useful when selecting the directories to keep is easier than selecting
+the directories to ignore, although you can do both. To select
+directories to keep, that means everything else will be ignored.</p>
+
+<p>Example:</p>
+
+<pre><code>+/src/foo
++/tests/foo
+</code></pre>
+
+<p>Keep in mind that you can only include subdirectories, not file
+patterns.</p>
+
+<p>If both directories to keep and ignore are specified, the directories
+to keep first apply, restricting what files are considered. The paths
+and patterns to ignore are then applied to that set.</p>
+
+<h3>
+<a name="helm-integration" class="anchor" href="#helm-integration"><span class="octicon octicon-link"></span></a>Helm Integration</h3>
 
 <p>Projectile can be integrated with
 <a href="https://github.com/emacs-helm/helm">Helm</a> via
@@ -123,12 +411,15 @@ this:</p>
 
 <p>or even better - bind it to a keybinding like this:</p>
 
-<pre><code>(global-set-key (kbd "C-c h") 'helm-projectile)
-</code></pre>
+<div class="highlight highlight-lisp"><pre><span class="p">(</span><span class="nv">global-set-key</span> <span class="p">(</span><span class="nv">kbd</span> <span class="s">"C-c h"</span><span class="p">)</span> <span class="ss">'helm-projectile</span><span class="p">)</span>
+</pre></div>
 
 <p>Obviously you need to have Helm installed for this to work :-)</p>
 
-<h1>Caveats</h1>
+<p><img src="https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png" alt="Helm-Projectile Screenshot"></p>
+
+<h2>
+<a name="caveats" class="anchor" href="#caveats"><span class="octicon octicon-link"></span></a>Caveats</h2>
 
 <ul>
 <li>Traversing the project directory programmatically (instead of using
@@ -136,45 +427,80 @@ something like GNU find) is not very fast. On the other hand - it's
 portable. Unlike
 <a href="https://github.com/bbatsov/find-file-in-project">find-file-in-project</a>,
 projectile's jump-to-file will work on any OS.</li>
-<li>To compensate for the lack of speed - a cache can be created when a
-project is traversed. That cache is not automatically updated
-(presently) so you might want to invalidate it manually from time to
-time (or disable it completely for small projects).</li>
-<li>Some operations like find/replace depend (presently) on external
-utilities such as find and perl.</li>
-</ul><h2>Known issues</h2>
+<li>Some operations like search(grep) depend (presently) on external
+utilities such as <code>find</code>.</li>
+</ul><h2>
+<a name="would-you-like-to-know-more" class="anchor" href="#would-you-like-to-know-more"><span class="octicon octicon-link"></span></a>Would you like to know more?</h2>
+
+<p>Check out the <a href="http://batsov.com/projectile">Projectile's project page</a>.</p>
+
+<h2>
+<a name="known-issues" class="anchor" href="#known-issues"><span class="octicon octicon-link"></span></a>Known issues</h2>
 
 <p>Check out the project's
 <a href="https://github.com/bbatsov/projectile/issues?sort=created&amp;direction=desc&amp;state=open">issue list</a>
 a list of unresolved issues. By the way - feel free to fix any of them
 and sent me a pull request. :-)</p>
 
-<h2>Contributors</h2>
+<h2>
+<a name="contributors" class="anchor" href="#contributors"><span class="octicon octicon-link"></span></a>Contributors</h2>
 
 <p>Here's a <a href="https://github.com/bbatsov/projectile/contributors">list</a> of all the people who have contributed to the
 development of Projectile.</p>
 
-<h2>Bugs &amp; Improvements</h2>
+<h2>
+<a name="contribution" class="anchor" href="#contribution"><span class="octicon octicon-link"></span></a>Contribution</h2>
+
+<p>All contributions are welcome, as long as they don't break anything
+:-) To make sure you didn't introduce any regressions it's a good idea
+to run the tests first.</p>
+
+<p>Install <a href="https://github.com/rejeep/cask.el">cask</a> if you haven't
+already, then:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span><span class="nb">cd</span> /path/to/projectile
+<span class="nv">$ </span>cask
+</pre></div>
+
+<p>Run all tests with:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>make <span class="nb">test</span>
+</pre></div>
+
+<h2>
+<a name="changelog" class="anchor" href="#changelog"><span class="octicon octicon-link"></span></a>Changelog</h2>
+
+<p>A fairly extensive changelog is available <a href="CHANGELOG.md">here</a>.</p>
+
+<h2>
+<a name="bugs--improvements" class="anchor" href="#bugs--improvements"><span class="octicon octicon-link"></span></a>Bugs &amp; Improvements</h2>
 
 <p>Bug reports and suggestions for improvements are always
-welcome. github pull requests are even better! :-)</p>
+welcome. GitHub pull requests are even better! :-)</p>
 
 <p>Together we can create the ultimate project management tool for Emacs.</p>
 
-<p>Cheers,<br>
-Bozhidar</p>
-      </section>
+<p>Cheers,<br><a href="https://twitter.com/bbatsov">Bozhidar</a></p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/bbatsov/projectile/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/bbatsov/projectile/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/bbatsov/projectile"></a> is maintained by <a href="https://github.com/bbatsov">bbatsov</a>.</p>
+
+          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
     </div>
 
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Projectile maintained by <a href="https://github.com/bbatsov">bbatsov</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
-      </footer>
-    </div>
-
-              <script type="text/javascript">
+            <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
           </script>
@@ -184,7 +510,6 @@ Bozhidar</p>
             pageTracker._trackPageview();
             } catch(err) {}
           </script>
-
 
   </body>
 </html>
