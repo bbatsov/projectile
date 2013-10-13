@@ -859,10 +859,12 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
                     (projectile-symbol-at-point)))
         (new-text (read-string
                    (projectile-prepend-project-name
-                    (format "Replace %s with: " old-text)))))
-    (if arg
-        (tags-query-replace old-text new-text nil '(-map 'projectile-expand-root (projectile-files-in-project-directory (read-directory-name "Replace in directory: "))))
-      (tags-query-replace old-text new-text nil '(-map 'projectile-expand-root (projectile-current-project-files))))))
+                    (format "Replace %s with: " old-text))))
+        (files (if arg
+                   (-map 'projectile-expand-root (projectile-files-in-project-directory (read-directory-name "Replace in directory: ")))
+                 (-map 'projectile-expand-root (projectile-current-project-files)))))
+    ;; we have to reject directories as a workaround to work with git submodules
+    (tags-query-replace old-text new-text nil '(-reject 'file-directory-p files))))
 
 (defun projectile-symbol-at-point ()
   "Get the symbol at point and strip its properties."
