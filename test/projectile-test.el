@@ -103,9 +103,9 @@
                   (should (equal '("/my/root/foo" "/my/root/bar/baz")
                                  (projectile-get-project-directories))))))
 
-(ert-deftest projectile-test-expand-file-name ()
-  (should (equal nil (projectile-expand-file-name nil)))
-  (should (equal (expand-file-name "test") (projectile-expand-file-name "test"))))
+(ert-deftest projectile-test-file-truename ()
+  (should (equal nil (projectile-file-truename nil)))
+  (should (equal (file-truename "test") (projectile-file-truename "test"))))
 
 (ert-deftest projectile-test-dir-files ()
   (noflet ((projectile-project-root () "/my/root/")
