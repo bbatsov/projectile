@@ -302,17 +302,17 @@ The current directory is assumed to be the project's root otherwise."
                (--map (locate-dominating-file default-directory it))
                (-remove #'null)
                (car)
-               (projectile-expand-file-name))
+               (projectile-file-truename))
              (if projectile-require-project-root
                  (error "You're not into a project")
                default-directory))))
     project-root))
 
-(defun projectile-expand-file-name (file-name)
+(defun projectile-file-truename (file-name)
   "A thin wrapper around `expand-file-name' that handles nil.
 Expand FILE-NAME using `default-directory'."
   (when file-name
-    (expand-file-name file-name)))
+    (file-truename file-name)))
 
 (defun projectile-project-p ()
   "Check if we're in a project."
@@ -474,7 +474,7 @@ Operates on filenames relative to the project root."
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
     (and (s-starts-with? project-root
-                         (expand-file-name default-directory))
+                         (file-truename default-directory))
          ;; ignore hidden buffers
          (not (s-starts-with? " " (buffer-name buffer))))))
 
