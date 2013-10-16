@@ -1014,7 +1014,7 @@ with a prefix ARG."
 This command will first prompt for the directory the file is in."
   (interactive)
   (let* ((directory (read-directory-name "Find file in directory: "))
-         (default-directory directory)
+         (default-directory (file-truename directory))
          (projectile-require-project-root nil))
     (projectile-find-file)))
 
