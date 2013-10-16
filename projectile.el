@@ -123,6 +123,7 @@ Otherwise consider the current directory the project root."
     "project.clj"    ; Leiningen project file
     "pom.xml"        ; Maven project file
     "build.sbt"      ; SBT project file
+    "build.gradle"   ; Gradle project file
     "Gemfile"        ; Bundler file
     "Makefile"       ; Make project file
     )
