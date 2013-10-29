@@ -8,6 +8,7 @@
 * `.projectile` is now always taken into account
 * `projectile-switch-project`'s behavior is now customizable via `projectile-switch-project-action`.
 * Add support for Gradle projects.
+* Add support for `Ag`.
 
 ### Changes
 

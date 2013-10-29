@@ -832,6 +832,16 @@ With a prefix ARG invalidates the cache first."
           (projectile-ignored-directories))))
     (call-interactively projectile-ack-function)))
 
+(defun projectile-ag ()
+  "Run an ag search in the project."
+  (interactive)
+  (if (fboundp 'ag)
+      (let ((search-regexp (read-from-minibuffer
+                            (projectile-prepend-project-name "Ag search for: ")
+                            (projectile-symbol-at-point))))
+       (ag/search search-regexp (projectile-project-root) t))
+    (error "Ag is not available")))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=%s" pattern))
@@ -1087,6 +1097,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "D") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "a") 'projectile-ack)
+      (define-key prefix-map (kbd "A") 'projectile-ag)
       (define-key prefix-map (kbd "c") 'projectile-compile-project)
       (define-key prefix-map (kbd "p") 'projectile-test-project)
       (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
