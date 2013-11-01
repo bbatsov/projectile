@@ -113,19 +113,20 @@ Otherwise consider the current directory the project root."
   :type 'string)
 
 (defcustom projectile-project-root-files
-  '(".projectile"    ; projectile project marker
-    ".git"           ; Git VCS root dir
-    ".hg"            ; Mercurial VCS root dir
-    ".fslckout"      ; Fossil VCS root dir
-    ".bzr"           ; Bazaar VCS root dir
-    "_darcs"         ; Darcs VCS root dir
-    "rebar.config"   ; Rebar project file
-    "project.clj"    ; Leiningen project file
-    "pom.xml"        ; Maven project file
-    "build.sbt"      ; SBT project file
-    "build.gradle"   ; Gradle project file
-    "Gemfile"        ; Bundler file
-    "Makefile"       ; Make project file
+  '(".projectile"        ; projectile project marker
+    ".git"               ; Git VCS root dir
+    ".hg"                ; Mercurial VCS root dir
+    ".fslckout"          ; Fossil VCS root dir
+    ".bzr"               ; Bazaar VCS root dir
+    "_darcs"             ; Darcs VCS root dir
+    "rebar.config"       ; Rebar project file
+    "project.clj"        ; Leiningen project file
+    "pom.xml"            ; Maven project file
+    "build.sbt"          ; SBT project file
+    "build.gradle"       ; Gradle project file
+    "Gemfile"            ; Bundler file
+    "requirements.txt"   ; Pip file
+    "Makefile"           ; Make project file
     )
   "A list of files considered to mark the root of a project."
   :group 'projectile
@@ -144,7 +145,8 @@ Otherwise consider the current directory the project root."
     ".hg"
     ".fslckout"
     ".bzr"
-    "_darcs")
+    "_darcs"
+    "venv")
   "A list of directories globally ignored by projectile."
   :group 'projectile
   :type '(repeat string))
@@ -714,6 +716,8 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-symfony '("composer.json" "app" "src" "vendor"))
 (defvar projectile-ruby-rspec '("Gemfile" "lib" "spec"))
 (defvar projectile-ruby-test '("Gemfile" "lib" "test"))
+(defvar projectile-django '("manage.py"))
+(defvar projectile-python '("setup.py"))
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-lein '("project.clj"))
 (defvar projectile-rebar '("rebar"))
@@ -728,6 +732,8 @@ With a prefix ARG invalidates the cache first."
      ((projectile-verify-files projectile-rails-test) 'rails-test)
      ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
      ((projectile-verify-files projectile-ruby-test) 'ruby-test)
+     ((projectile-verify-files projectile-django) 'django)
+     ((projectile-verify-files projectile-python) 'python)
      ((projectile-verify-files projectile-symfony) 'symfony)
      ((projectile-verify-files projectile-maven) 'maven)
      ((projectile-verify-files projectile-lein) 'lein)
@@ -924,6 +930,10 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
 (defvar projectile-ruby-compile-cmd "bundle exec rake build")
 (defvar projectile-ruby-test-cmd "bundle exec rake test")
 (defvar projectile-ruby-rspec-cmd "bundle exec rspec")
+(defvar projectile-django-compile-cmd "venv/bin/python manage.py runserver")
+(defvar projectile-django-test-cmd "venv/bin/python manage.py test")
+(defvar projectile-python-compile-cmd "venv/bin/python setup.py build")
+(defvar projectile-python-test-cmd "venv/bin/python setup.py test")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
 (defvar projectile-maven-compile-cmd "mvn clean install")
@@ -949,6 +959,8 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
   (cond
    ((member project-type '(rails-rspec rails-test)) projectile-rails-compile-cmd)
    ((member project-type '(ruby-rspec ruby-test)) projectile-ruby-compile-cmd)
+   ((eq project-type 'django) projectile-django-compile-cmd)
+   ((eq project-type 'python) projectile-python-compile-cmd)
    ((eq project-type 'symfony) projectile-symfony-compile-cmd)
    ((eq project-type 'lein) projectile-lein-compile-cmd)
    ((eq project-type 'make) projectile-make-compile-cmd)
@@ -962,6 +974,8 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
   (cond
    ((member project-type '(rails-rspec ruby-rspec)) projectile-ruby-rspec-cmd)
    ((member project-type '(rails-test ruby-test)) projectile-ruby-test-cmd)
+   ((eq project-type 'django) projectile-django-test-cmd)
+   ((eq project-type 'python) projectile-python-test-cmd)
    ((eq project-type 'symfony) projectile-symfony-test-cmd)
    ((eq project-type 'lein) projectile-lein-test-cmd)
    ((eq project-type 'make) projectile-make-test-cmd)
