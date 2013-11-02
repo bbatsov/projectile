@@ -838,14 +838,14 @@ With a prefix ARG invalidates the cache first."
           (projectile-ignored-directories))))
     (call-interactively projectile-ack-function)))
 
-(defun projectile-ag ()
-  "Run an ag search in the project."
-  (interactive)
-  (if (fboundp 'ag)
-      (let ((search-regexp (read-from-minibuffer
-                            (projectile-prepend-project-name "Ag search for: ")
-                            (projectile-symbol-at-point))))
-       (ag/search search-regexp (projectile-project-root) t))
+(defun projectile-ag (regexp)
+  "Run an ag search with REGEXP in the project."
+  (interactive
+   (list (read-from-minibuffer
+          (projectile-prepend-project-name "Ag search for: ")
+          (projectile-symbol-at-point))))
+  (if (fboundp 'ag-regexp)
+      (ag-regexp regexp (projectile-project-root))
     (error "Ag is not available")))
 
 (defun projectile-tags-exclude-patterns ()
