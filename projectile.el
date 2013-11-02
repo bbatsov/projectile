@@ -275,8 +275,10 @@ The cache is created both in memory and on the hard drive."
   "Add the currently visited file to the cache."
   (interactive)
   (let* ((current-project (projectile-project-root))
-        (current-file (file-relative-name (buffer-file-name (current-buffer)) current-project)))
-    (unless (projectile-file-cached-p current-file current-project)
+         (abs-current-file (buffer-file-name (current-buffer)) current-project)
+         (current-file (file-relative-name abs-current-file)))
+    (unless (or (projectile-file-cached-p current-file current-project)
+                (projectile-ignored-directory-p (file-name-directory abs-current-file)))
       (puthash current-project
                (cons current-file (gethash current-project projectile-projects-cache))
                projectile-projects-cache)
