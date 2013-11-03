@@ -151,6 +151,19 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type '(repeat string))
 
+(defcustom projectile-globally-ignored-modes
+  '("erc-mode"
+    "help-mode"
+    "completion-list-mode"
+    "Buffer-menu-mode"
+    "gnus-.*-mode")
+  "A list of regular expressions for major modes ignored by projectile.
+
+If a buffer is using a given major mode, projectile will ignore
+it for functions working with buffers."
+  :group 'projectile
+  :type '(repeat string))
+
 (defcustom projectile-find-file-hook nil
   "Hooks run when a file is opened with `projectile-find-file'."
   :group 'projectile
@@ -481,7 +494,15 @@ Operates on filenames relative to the project root."
     (and (s-starts-with? project-root
                          (file-truename default-directory))
          ;; ignore hidden buffers
-         (not (s-starts-with? " " (buffer-name buffer))))))
+         (not (s-starts-with? " " (buffer-name buffer)))
+         (not (projectile-ignored-buffer-p buffer)))))
+
+(defun projectile-ignored-buffer-p (buffer)
+  "Check if BUFFER should be ignored."
+  (with-current-buffer buffer
+    (--any-p (s-matches? (concat "^" it "$")
+                         (symbol-name major-mode))
+             projectile-globally-ignored-modes)))
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
