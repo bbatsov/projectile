@@ -1,7 +1,8 @@
-(source "melpa" "http://melpa.milkbox.net/packages/")
+(source gnu)
+(source melpa)
 
-(package "projectile" "0.9.3" "Manage and navigate projects in Emacs easily")
+(package-file "projectile.el")
 
-(depends-on "s" "1.0.0")
-(depends-on "dash" "1.0.3")
-(depends-on "noflet" "0.1.0")
+(development
+ (depends-on "ert")
+ (depends-on "noflet"))
