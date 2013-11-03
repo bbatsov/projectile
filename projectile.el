@@ -280,6 +280,35 @@ The cache is created both in memory and on the hard drive."
     (puthash project files projectile-projects-cache)
     (projectile-serialize-cache)))
 
+(defun projectile-purge-file-from-cache (file)
+  "Purge FILE from the cache of the current project."
+  (interactive
+   (list (projectile-completing-read
+          "Remove file from cache: "
+          (projectile-current-project-files))))
+  (let* ((project-root (projectile-project-root))
+         (project-cache (gethash project-root projectile-projects-cache)))
+    (if (projectile-file-cached-p file project-root)
+       (progn
+         (puthash project-root (remove file project-cache) projectile-projects-cache)
+         (projectile-serialize-cache)
+         (message "%s removed from cache" file))
+     (error "%s is not in the cache" file))))
+
+(defun projectile-purge-dir-from-cache (dir)
+  "Purge DIR from the cache of the current project."
+  (interactive
+   (list (projectile-completing-read
+          "Remove directory from cache: "
+          (projectile-current-project-dirs))))
+  (let* ((project-root (projectile-project-root))
+         (project-cache (gethash project-root projectile-projects-cache)))
+    (puthash project-root
+             (-filter (lambda (file)
+                        (s-starts-with-p dir file))
+                      project-cache)
+             projectile-projects-cache)))
+
 (defun projectile-file-cached-p (file project)
   "Check if FILE is already in PROJECT cache."
   (member file (gethash project projectile-projects-cache)))

@@ -4,19 +4,21 @@
 
 ### New features
 
-* Add new command `projectile-find-file-in-directory` that allows you to jump to files in any directory
+* Added new command `projectile-find-file-in-directory` that allows you to jump to files in any directory
 * `.projectile` is now always taken into account
 * `projectile-switch-project`'s behavior is now customizable via `projectile-switch-project-action`.
-* Add support for Gradle projects.
-* Add support for `Ag`.
+* Added support for Gradle projects.
+* Added support for `Ag`.
+* Added new command `projectile-purge-file-from-cache`.
+* Added new command `projectile-purge-dir-from-cache`.
 
 ### Changes
 
-* Replace variable `projectile-use-native-indexing` with `projectile-indexing-method`.
+* Replaced variable `projectile-use-native-indexing` with `projectile-indexing-method`.
 
 ### Bug fixes
 
-* `projectile-find-test-file` now properly displays only test files (#145)
+* `projectile-find-test-file` now properly displays only test files (#145).
 
 ## 0.9.2 (07/16/2013)
 

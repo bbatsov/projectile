@@ -138,6 +138,9 @@ be added to the cache automatically the first time you open them.
 
 The project cache is persistent and will be preserved during Emacs restarts.
 
+You can purge an individual file from the cache with `M-x projectile-purge-file-from-cache` or an
+entire directory with `M-x projectile-purge-dir-from-cache`.
+
 #### Using Projectile everywhere
 
 If you want Projectile to be usable in every directory (even without the presence of project file):
