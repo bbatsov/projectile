@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 1.0.0-cvs
-;; Package-Requires: ((s "1.6.0") (dash "1.5.0") (pkg-info "0.1"))
+;; Package-Requires: ((s "1.6.0") (dash "1.5.0") (pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 (require 's)
 (require 'dash)
 (require 'grep)           ; For `rgrep'
-(require 'package)        ; For `package-buffer-info' and `package-version-join'
+(require 'pkg-info)       ; For `pkg-info-version-info'
 
 
 ;;; Customization
@@ -216,17 +216,6 @@ The list of projects is ordered by the time they have been accessed.")
 
 
 ;;; Version information
-(defun projectile-library-version ()
-  "Get the version in the Projectile library header."
-  (-when-let (version (pkg-info-defining-library-version 'projectile-mode))
-    (pkg-info-format-version version)))
-
-(defun projectile-package-version ()
-  "Get the package version of Projectile.
-
-This is the version number of the installed Projectile package."
-  (-when-let (version (pkg-info-package-version 'projectile))
-    (pkg-info-format-version version)))
 
 (defun projectile-version (&optional show-version)
   "Get the Projectile version as string.
@@ -240,18 +229,9 @@ and the library version, if both a present and different.
 If the version number could not be determined, signal an error,
 if called interactively, or if SHOW-VERSION is non-nil, otherwise
 just return nil."
-  (interactive (list (not (or executing-kbd-macro noninteractive))))
-  (let* ((lib-version (projectile-library-version))
-         (pkg-version (projectile-package-version))
-         (version (cond
-                   ((and lib-version pkg-version
-                         (not (string= lib-version pkg-version)))
-                    (format "%s (package: %s)" lib-version pkg-version))
-                   ((or pkg-version lib-version)
-                    (format "%s" (or pkg-version lib-version))))))
+  (interactive (list t))
+  (let ((version (pkg-info-version-info 'projectile)))
     (when show-version
-      (unless version
-        (error "Could not find out Projectile version"))
       (message "Projectile version: %s" version))
     version))
 
@@ -317,7 +297,7 @@ The cache is created both in memory and on the hard drive."
   "Add the currently visited file to the cache."
   (interactive)
   (let* ((current-project (projectile-project-root))
-         (abs-current-file (buffer-file-name (current-buffer)) current-project)
+         (abs-current-file (buffer-file-name (current-buffer)))
          (current-file (file-relative-name abs-current-file)))
     (unless (or (projectile-file-cached-p current-file current-project)
                 (projectile-ignored-directory-p (file-name-directory abs-current-file)))
