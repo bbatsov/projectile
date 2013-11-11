@@ -965,7 +965,7 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
 (defvar projectile-django-compile-cmd "venv/bin/python manage.py runserver")
 (defvar projectile-django-test-cmd "venv/bin/python manage.py test")
 (defvar projectile-python-compile-cmd "venv/bin/python setup.py build")
-(defvar projectile-python-test-cmd "venv/bin/python setup.py test")
+(defvar projectile-python-test-cmd "venv/bin/python -m unittest discover")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
 (defvar projectile-maven-compile-cmd "mvn clean install")
