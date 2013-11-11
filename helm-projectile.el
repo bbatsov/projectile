@@ -57,8 +57,8 @@
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)
     (type . file)
-    (action . (lambda (candidate)
-                (find-file (projectile-expand-root candidate)))))
+    (action . (("Find File" . (lambda (candidate)
+                                (find-file (projectile-expand-root candidate)))))))
   "Helm source definition.")
 
 (defvar helm-source-projectile-buffers-list
@@ -100,8 +100,8 @@
     (help-message . helm-generic-file-help-message)
     (mode-line . helm-generic-file-mode-line-string)
     (type . file)
-    (action . (lambda (candidate)
-                (find-file (projectile-expand-root candidate)))))
+    (action . (("Find File" . (lambda (candidate)
+                                (find-file (projectile-expand-root candidate)))))))
   "Helm source definition.")
 
 ;;;###autoload
