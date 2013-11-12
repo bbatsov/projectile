@@ -119,20 +119,21 @@
           (let ((projectile-use-native-indexing nil))
             (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "a/"))))))
 
-(ert-deftest projectile-setup-hook-functions ()
-  (projectile-global-mode 1)
+(ert-deftest projectile-setup-hook-functions-projectile-mode ()
+  (projectile-mode 1)
   (should (and (memq 'projectile-cache-files-find-file-hook find-file-hook)
                (memq 'projectile-cache-projects-find-file-hook find-file-hook)))
-  (projectile-off)
+  (projectile-mode -1)
+  (should (and (not (memq 'projectile-cache-files-find-file-hook find-file-hook))
+               (not (memq 'projectile-cache-projects-find-file-hook find-file-hook)))))
+
+(ert-deftest projectile-setup-hook-functions-projectile-global-mode ()
+  (projectile-global-mode 1)
   (should (and (memq 'projectile-cache-files-find-file-hook find-file-hook)
                (memq 'projectile-cache-projects-find-file-hook find-file-hook)))
   (projectile-global-mode -1)
   (should (and (not (memq 'projectile-cache-files-find-file-hook find-file-hook))
-               (not (memq 'projectile-cache-projects-find-file-hook find-file-hook))))
-  (projectile-on)
-  (should (and (not (memq 'projectile-cache-files-find-file-hook find-file-hook))
                (not (memq 'projectile-cache-projects-find-file-hook find-file-hook)))))
-
 
 (ert-deftest projectile-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
