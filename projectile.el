@@ -1206,10 +1206,27 @@ Also set `projectile-known-projects'."
 (define-minor-mode projectile-mode
   "Minor mode to assist project management and navigation.
 
+When called interactively, toggle `projectile-mode'.  With prefix
+ARG, enable `projectile-mode' if ARG is positive, otherwise disable
+it.
+
+When called from Lisp, enable `projectile-mode' if ARG is omitted,
+nil or positive.  If ARG is `toggle', toggle `projectile-mode'.
+Otherwise behave as if called interactively.
+
 \\{projectile-mode-map}"
   :lighter " Projectile"
   :keymap projectile-mode-map
-  :group 'projectile)
+  :group 'projectile
+  :require 'projectile
+  (cond
+   (projectile-mode
+    (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
+    (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook)
+    (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook))
+   (t
+    (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
+    (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook))))
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
@@ -1226,20 +1243,11 @@ Also set `projectile-known-projects'."
 
 (defun projectile-global-on ()
   "Enable Projectile global minor mode."
-  (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
-  (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook)
-  (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook))
+  (projectile-global-mode +1))
 
 (defun projectile-global-off ()
   "Disable Projectile global minor mode."
-  (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
-  (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook))
-
-(defadvice projectile-global-mode (after projectile-setup-hooks activate)
-  "Add/remove `find-file-hook' functions within `projectile-global-mode'."
-  (if projectile-global-mode
-      (projectile-global-on)
-    (projectile-global-off)))
+  (projectile-global-mode -1))
 
 (provide 'projectile)
 
