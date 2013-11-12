@@ -45,24 +45,6 @@ Here's a glimpse of Projectile in action:
 
 The recommended way to install Projectile is via MELPA or Marmalade.
 
-### Manual
-
-Just drop `projectile.el`,
-[dash.el](https://github.com/magnars/dash.el) and
-[s.el](https://github.com/magnars/s.el) somewhere in your
-`load-path`. I favour the folder `~/.emacs.d/vendor`:
-
-```lisp
-(add-to-list 'load-path "~/emacs.d/vendor")
-(require 'projectile)
-```
-
-### Marmalade
-
-If you're an Emacs 24 user or you have a recent version of `package.el`
-you can install Projectile from the
-[Marmalade](http://marmalade-repo.org/) repository.
-
 ### MELPA
 
 If you're an Emacs 24 user or you have a recent version of `package.el`
@@ -70,6 +52,16 @@ you can install Projectile from the
 [MELPA](http://melpa.milkbox.net) repository. The version of
 Projectile there will always be up-to-date, but it might be unstable
 (albeit rarely).
+
+### Marmalade
+
+If you're an Emacs 24 user or you have a recent version of `package.el`
+you can install Projectile from the
+[Marmalade](http://marmalade-repo.org/) repository.
+
+### el-get
+
+Projectile is also available for installation from the [el-get](https://github.com/dimitri/el-get) package manager.
 
 ### Emacs Prelude
 
