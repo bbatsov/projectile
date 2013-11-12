@@ -43,22 +43,32 @@
 (require 'helm-config)
 (require 'helm-locate)
 (require 'helm-buffers)
+(require 'helm-files)
+
+(defvar helm-projectile-current-project-root)
+
+(defun helm-projectile-coerce-file (candidate)
+  (with-current-buffer (helm-candidate-buffer)
+    (expand-file-name candidate helm-projectile-current-project-root)))
+
+(defun helm-projectile-init-buffer-with-files (project-root files)
+  (with-current-buffer (helm-candidate-buffer project-root)
+    (set (make-local-variable 'helm-projectile-current-project-root)
+         project-root)
+    (dolist (file files)
+      (insert (concat file "\n")))))
 
 (defvar helm-source-projectile-files-list
   `((name . "Projectile Files")
-    ;; Needed for filenames with capitals letters.
-    (disable-shortcuts)
     (init . (lambda ()
-              (helm-init-candidates-in-buffer
-               'global (projectile-current-project-files))))
+              (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                      (projectile-current-project-files))))
+    (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
-    (candidate-number-limit . 15)
     (keymap . ,helm-generic-files-map)
-    (help-message . helm-generic-file-help-message)
-    (mode-line . helm-generic-file-mode-line-string)
-    (type . file)
-    (action . (lambda (candidate)
-                (find-file (projectile-expand-root candidate)))))
+    (help-message . helm-find-file-help-message)
+    (mode-line . helm-ff-mode-line-string)
+    (type . file))
   "Helm source definition.")
 
 (defvar helm-source-projectile-buffers-list
@@ -93,15 +103,14 @@
   `((name . "Projectile Recent Files")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
-              (helm-init-candidates-in-buffer
-               'global (projectile-recentf-files))))
+              (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                      (projectile-recentf-files))))
+    (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
     (keymap . ,helm-generic-files-map)
-    (help-message . helm-generic-file-help-message)
-    (mode-line . helm-generic-file-mode-line-string)
-    (type . file)
-    (action . (lambda (candidate)
-                (find-file (projectile-expand-root candidate)))))
+    (help-message . helm-find-file-help-message)
+    (mode-line . helm-ff-mode-line-string)
+    (type . file))
   "Helm source definition.")
 
 ;;;###autoload
