@@ -809,7 +809,7 @@ With a prefix ARG invalidates the cache first."
     ((locate-dominating-file project-root ".svn") 'svn)
     (t 'none))))
 
-(defun projectile-toggle-between-implemenation-and-test ()
+(defun projectile-toggle-between-implementation-and-test ()
   "Toggle between an implementation file and its test file."
   (interactive)
   (if (projectile-test-file-p (buffer-file-name))
@@ -1150,7 +1150,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "f") 'projectile-find-file)
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
       (define-key prefix-map (kbd "l") 'projectile-find-file-in-directory)
-      (define-key prefix-map (kbd "t") 'projectile-toggle-between-implemenation-and-test)
+      (define-key prefix-map (kbd "t") 'projectile-toggle-between-implementation-and-test)
       (define-key prefix-map (kbd "g") 'projectile-grep)
       (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
       (define-key prefix-map (kbd "o") 'projectile-multi-occur)
@@ -1179,7 +1179,7 @@ Also set `projectile-known-projects'."
    ["Find directory" projectile-find-dir]
    ["Find file in directory" projectile-find-file-in-directory]
    ["Switch to buffer" projectile-switch-to-buffer]
-   ["Jump between implementation file and test file" projectile-toggle-between-implemenation-and-test]
+   ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
    ["Kill project buffers" projectile-kill-buffers]
    ["Recent files" projectile-recentf]
    "--"
