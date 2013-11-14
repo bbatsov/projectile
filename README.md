@@ -229,6 +229,7 @@ Keybinding         | Description
 <kbd>C-c p A</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
 <kbd>C-c p c</kbd> | Runs a standard compilation command for your type of project.
 <kbd>C-c p p</kbd> | Runs a standard test command for your type of project.
+<kbd>C-c p t</kbd> | Toggle between an implementation file and its test file.
 <kbd>C-c p z</kbd> | Adds the currently visited to the cache.
 <kbd>C-c p s</kbd> | Display a list of known projects you can switch to.
 
