@@ -15,6 +15,7 @@
 ### Changes
 
 * Replaced variable `projectile-use-native-indexing` with `projectile-indexing-method`.
+* Corrected grammar on error message for not being in a project.
 
 ### Bug fixes
 
