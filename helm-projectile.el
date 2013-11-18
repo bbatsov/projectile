@@ -68,7 +68,8 @@
     (keymap . ,helm-generic-files-map)
     (help-message . helm-find-file-help-message)
     (mode-line . helm-ff-mode-line-string)
-    (type . file))
+    (type . file)
+    (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
 (defvar helm-source-projectile-buffers-list
@@ -110,7 +111,8 @@
     (keymap . ,helm-generic-files-map)
     (help-message . helm-find-file-help-message)
     (mode-line . helm-ff-mode-line-string)
-    (type . file))
+    (type . file)
+    (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
 ;;;###autoload
