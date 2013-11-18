@@ -6,7 +6,8 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
-;; Version: 1.0.0-cvs
+;; Version: 20131111.2052
+;; X-Original-Version: 1.0.0-cvs
 ;; Package-Requires: ((helm "1.4.0") (projectile "0.9.2"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -68,7 +69,8 @@
     (keymap . ,helm-generic-files-map)
     (help-message . helm-find-file-help-message)
     (mode-line . helm-ff-mode-line-string)
-    (type . file))
+    (type . file)
+    (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
 (defvar helm-source-projectile-buffers-list
@@ -110,7 +112,8 @@
     (keymap . ,helm-generic-files-map)
     (help-message . helm-find-file-help-message)
     (mode-line . helm-ff-mode-line-string)
-    (type . file))
+    (type . file)
+    (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
 ;;;###autoload
