@@ -119,11 +119,12 @@
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
-  (helm :sources '(helm-source-projectile-files-list
-                   helm-source-projectile-buffers-list
-                   helm-source-projectile-recentf-list)
-        :buffer "*helm projectile*"
-        :prompt (projectile-prepend-project-name "pattern: ")))
+  (let ((helm-ff-transformer-show-only-basename nil))
+    (helm :sources '(helm-source-projectile-files-list
+                     helm-source-projectile-buffers-list
+                     helm-source-projectile-recentf-list)
+          :buffer "*helm projectile*"
+          :prompt (projectile-prepend-project-name "pattern: "))))
 
 ;;;###autoload
 (eval-after-load 'projectile
