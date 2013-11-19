@@ -186,7 +186,6 @@ Any function that does not take arguments will do."
   "If true, add top-level dir to options offered by `projectile-find-dir'."
   :group 'projectile
   :type 'boolean)
-
 
 ;;; Serialization
 (defun projectile-serialize (data filename)
@@ -707,7 +706,6 @@ With a prefix ARG invalidates the cache first."
     (find-file (expand-file-name file (projectile-project-root)))
     (run-hooks 'projectile-find-file-hook)))
 
-
 (defun projectile-find-dir (&optional arg)
   "Jump to a project's directory using completion.
 
@@ -716,10 +714,10 @@ With a prefix ARG invalidates the cache first."
   (when arg
     (projectile-invalidate-cache nil))
   (let ((dir (projectile-completing-read 
-	      "Find dir: "
-	      (if projectile-find-dir-includes-top-level 
-		  (append '("./") (projectile-current-project-dirs))
-		(projectile-current-project-dirs)))))
+              "Find dir: "
+              (if projectile-find-dir-includes-top-level 
+                  (append '("./") (projectile-current-project-dirs))
+                (projectile-current-project-dirs)))))
     (dired (expand-file-name dir (projectile-project-root)))
     (run-hooks 'projectile-find-dir-hook)))
 

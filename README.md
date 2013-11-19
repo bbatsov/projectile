@@ -161,6 +161,7 @@ remain in the completion system to select a file to visit.
 ```lisp
 (setq projectile-switch-project-action 'projectile-dired)
 ```
+
 With this setting, once you have selected your project, the top-level
 directory of the project is immediately opened for you in a dired
 buffer.
@@ -170,14 +171,17 @@ buffer.
 ```lisp
 (setq projectile-switch-project-action 'projectile-find-dir)
 ```
+
 With this setting, once you have selected your project, you will
 remain in Projectile's completion system to select a sub-directory of
 your project, and then *that* sub-directory is opened for you in a
 dired buffer.  If you use this setting, then you will probably also
 want to set
+
 ```lisp
 (setq projectile-find-dir-includes-top-level t)
 ```
+
 in order to allow for the occasions where you want to select the
 top-level directory.
 
