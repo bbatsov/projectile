@@ -1074,11 +1074,18 @@ with a prefix ARG."
     (compilation-start compilation-cmd)))
 
 ;; TODO - factor this duplication out
-(defun projectile-test-project ()
-  "Run project test command."
-  (interactive)
+(defun projectile-test-project (arg)
+  "Run project test command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
   (let* ((project-root (projectile-project-root))
-         (test-cmd (compilation-read-command (projectile-test-command project-root)))
+         (default-cmd (projectile-test-command project-root))
+         (test-cmd (if (or compilation-read-command arg)
+                       (compilation-read-command default-cmd)
+                     default-cmd))
          (default-directory project-root))
     (puthash project-root test-cmd projectile-test-cmd-map)
     (compilation-start test-cmd)))
