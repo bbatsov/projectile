@@ -249,6 +249,7 @@ Keybinding         | Description
 <kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
 <kbd>C-c p l</kbd> | Display a list of all files in a directory (that's not necessarily a project)
 <kbd>C-c p g</kbd> | Run grep on the files in the project.
+<kbd>C-c p v</kbd> | Run `vc-dir` on the root directory of the project.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
 <kbd>C-c p o</kbd> | Runs `multi-occur` on all project buffers currently open.
 <kbd>C-c p r</kbd> | Runs interactive query-replace on all files in the projects.
