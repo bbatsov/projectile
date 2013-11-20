@@ -968,6 +968,11 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
   "Opens dired at the root of the project."
   (interactive)
   (dired (projectile-project-root)))
+  
+(defun projectile-vc-dir ()
+  "Opens vc-dir at the root of the project."
+  (interactive)
+  (vc-dir (projectile-project-root)))
 
 (defun projectile-recentf ()
   "Show a list of recently visited files in a project."
@@ -1172,6 +1177,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
       (define-key prefix-map (kbd "d") 'projectile-find-dir)
       (define-key prefix-map (kbd "D") 'projectile-dired)
+      (define-key prefix-map (kbd "v") 'projectile-vc-dir)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "a") 'projectile-ack)
       (define-key prefix-map (kbd "A") 'projectile-ag)
