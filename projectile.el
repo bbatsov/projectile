@@ -165,6 +165,11 @@ it for functions working with buffers."
   :group 'projectile
   :type '(repeat string))
 
+(defcustom projectile-mode-hook nil
+  "Hooks run when a `projectile-mode' is enabled."
+  :group 'projectile
+  :type 'hook)
+
 (defcustom projectile-find-file-hook nil
   "Hooks run when a file is opened with `projectile-find-file'."
   :group 'projectile
