@@ -157,7 +157,8 @@ Otherwise consider the current directory the project root."
     "help-mode"
     "completion-list-mode"
     "Buffer-menu-mode"
-    "gnus-.*-mode")
+    "gnus-.*-mode"
+    "occur-mode")
   "A list of regular expressions for major modes ignored by projectile.
 
 If a buffer is using a given major mode, projectile will ignore
