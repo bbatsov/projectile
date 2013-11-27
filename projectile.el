@@ -107,7 +107,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re %s %s"
+(defcustom projectile-tags-command "ctags -Re %s"
   "The command Projectile's going to use to generate a TAGS file."
   :group 'projectile
   :type 'string)
@@ -920,7 +920,7 @@ With a prefix ARG invalidates the cache first."
   (let* ((project-root (projectile-project-root))
          (tags-exclude (projectile-tags-exclude-patterns))
          (default-directory project-root))
-    (shell-command (format projectile-tags-command tags-exclude project-root))
+    (shell-command (format projectile-tags-command tags-exclude))
     (visit-tags-table project-root)))
 
 (defun projectile-files-in-project-directory (directory)

@@ -238,6 +238,13 @@ the file name (not including path) and if the file selected is not
 unique, another completion with names relative to project root
 appears.
 
+##### Regenerate tags
+
+To be able to regenerate a project's tags via `projectile-tags-command`, you
+should install and add to the PATH
+[Exuberant Ctags](http://ctags.sourceforge.net/) instead of a plain ctags, which
+ships with Emacs distribution.
+
 ### Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
