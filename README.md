@@ -238,6 +238,12 @@ the file name (not including path) and if the file selected is not
 unique, another completion with names relative to project root
 appears.
 
+##### Regenerate tags
+
+For the succesful regenerate project tags in Windows, you should install and add
+to the PATH [Exuberant Ctags](http://ctags.sourceforge.net/) instead of a plain
+ctags, wich ships with emacs for Windows.
+
 ### Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by projectile:
