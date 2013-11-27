@@ -240,9 +240,10 @@ appears.
 
 ##### Regenerate tags
 
-For the succesful regenerate project tags in Windows, you should install and add
-to the PATH [Exuberant Ctags](http://ctags.sourceforge.net/) instead of a plain
-ctags, wich ships with emacs for Windows.
+To be able to regenerate a project's tags via `projectile-tags-command`, you
+should install and add to the PATH
+[Exuberant Ctags](http://ctags.sourceforge.net/) instead of a plain ctags, which
+ships with Emacs distribution.
 
 ### Interactive Commands
 
