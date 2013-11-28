@@ -387,7 +387,7 @@ Files are returned as relative paths to the project root."
   (message "Projectile is indexing %s. This may take a while."
            (propertize directory 'face 'font-lock-keyword-face))
   ;; we need the files with paths relative to the project root
-  (-map (lambda (file) (s-chop-prefix root file))
+  (-map (lambda (file) (file-relative-name file root))
         (projectile-index-directory directory (projectile-patterns-to-ignore))))
 
 (defun projectile-dir-files-external (root directory)
@@ -395,7 +395,7 @@ Files are returned as relative paths to the project root."
   (let ((default-directory directory)
         (files-list nil))
     (setq files-list (-map (lambda (f)
-                             (s-chop-prefix root (expand-file-name f directory)))
+                             (file-relative-name (expand-file-name f directory) root))
                            (projectile-get-repo-files)))
     files-list))
 
@@ -578,11 +578,13 @@ Operates on filenames relative to the project root."
 
 (defun projectile-ignored-directories-rel ()
   "Return list of ignored directories, relative to the root."
-  (--map (s-chop-prefix (projectile-project-root) it) (projectile-ignored-directories)))
+  (let (project-root (projectile-project-root))
+   (--map (file-relative-name it project-root) (projectile-ignored-directories))))
 
 (defun projectile-ignored-files-rel ()
   "Return list of ignored files, relative to the root."
-  (--map (s-chop-prefix (projectile-project-root) it) (projectile-ignored-files)))
+  (let (project-root (projectile-project-root))
+   (--map (file-relative-name it project-root) (projectile-ignored-files))))
 
 (defun projectile-project-ignored-files ()
   "Return list of project ignored files."
@@ -714,9 +716,9 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache nil))
-  (let ((dir (projectile-completing-read 
+  (let ((dir (projectile-completing-read
               "Find dir: "
-              (if projectile-find-dir-includes-top-level 
+              (if projectile-find-dir-includes-top-level
                   (append '("./") (projectile-current-project-dirs))
                 (projectile-current-project-dirs)))))
     (dired (expand-file-name dir (projectile-project-root)))
@@ -883,9 +885,9 @@ With a prefix ARG invalidates the cache first."
     (dolist (root-dir roots)
       (require 'grep)
       ;; paths for find-grep should relative and without trailing /
-      (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (s-chop-prefix root-dir dir)))
+      (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir root-dir)))
                                                          (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-            (grep-find-ignored-files (-union (-map (lambda (file) (s-chop-prefix root-dir file)) (projectile-ignored-files)) grep-find-ignored-files)))
+            (grep-find-ignored-files (-union (-map (lambda (file) (file-relative-name file root-dir)) (projectile-ignored-files)) grep-find-ignored-files)))
         (grep-compute-defaults)
         (rgrep search-regexp "* .*" root-dir)))))
 
@@ -925,7 +927,7 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
-  (let ((dir (s-chop-prefix (projectile-project-root) (expand-file-name directory))))
+  (let ((dir (file-relative-name (expand-file-name directory) (projectile-project-root))))
     (-filter (lambda (file) (s-starts-with-p dir file))
              (projectile-current-project-files))))
 
@@ -969,7 +971,7 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
   "Opens dired at the root of the project."
   (interactive)
   (dired (projectile-project-root)))
-  
+
 (defun projectile-vc-dir ()
   "Opens vc-dir at the root of the project."
   (interactive)
@@ -988,7 +990,7 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
       (let ((project-root (projectile-project-root)))
         (->> recentf-list
           (-filter (lambda (file) (s-starts-with-p project-root file)))
-          (-map (lambda (file) (s-chop-prefix project-root file)))))
+          (-map (lambda (file) (file-relative-name file project-root)))))
     nil))
 
 (defun projectile-serialize-cache ()
