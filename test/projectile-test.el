@@ -139,3 +139,8 @@
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
     (noflet ((projectile-project-root () "/path/to/project1"))
             (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
+
+(ert-deftest projectile-tags-exclude-items ()
+  (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
+    (should (equal (projectile-tags-exclude-patterns)
+                   "--exclude=.git --exclude=.hg"))))
