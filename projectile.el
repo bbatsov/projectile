@@ -912,7 +912,7 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=%s" pattern))
-       (projectile-project-ignored-directories) " "))
+       (projectile-paths-to-ignore) " "))
 
 (defun projectile-regenerate-tags ()
   "Regenerate the project's etags."
