@@ -578,12 +578,12 @@ Operates on filenames relative to the project root."
 
 (defun projectile-ignored-directories-rel ()
   "Return list of ignored directories, relative to the root."
-  (let (project-root (projectile-project-root))
+  (let ((project-root (projectile-project-root)))
    (--map (file-relative-name it project-root) (projectile-ignored-directories))))
 
 (defun projectile-ignored-files-rel ()
   "Return list of ignored files, relative to the root."
-  (let (project-root (projectile-project-root))
+  (let ((project-root (projectile-project-root)))
    (--map (file-relative-name it project-root) (projectile-ignored-files))))
 
 (defun projectile-project-ignored-files ()
