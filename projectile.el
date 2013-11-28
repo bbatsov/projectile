@@ -980,12 +980,12 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
         (mapc 'kill-buffer buffers))))
 
 (defun projectile-dired ()
-  "Opens dired at the root of the project."
+  "Open `dired' at the root of the project."
   (interactive)
   (dired (projectile-project-root)))
 
 (defun projectile-vc-dir ()
-  "Opens vc-dir at the root of the project."
+  "Open `vc-dir' at the root of the project."
   (interactive)
   (vc-dir (projectile-project-root)))
 
