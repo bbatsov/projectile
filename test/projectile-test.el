@@ -153,5 +153,3 @@
                         (mapcar (lambda (item)
                                   (equal (substring item (1- (length item))) "/"))
                                 tags-exclude-items)))))
-
-;; (projectile-tags-exclude-patterns)
