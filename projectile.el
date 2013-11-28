@@ -612,11 +612,11 @@ Operates on filenames relative to the project root."
   "Return list of project ignored files/directories."
   (let ((paths (projectile-paths-to-ignore))
         (default-directory (projectile-project-root)))
-    (apply 'append
-           (-map
-            (lambda (pattern)
-              (file-expand-wildcards pattern t))
-            paths))))
+    (-flatten (-map
+               (lambda (pattern)
+                 (or (file-expand-wildcards pattern t)
+                     (projectile-expand-root pattern)))
+               paths))))
 
 (defun projectile-dirconfig-file ()
   "Return the absolute path to the project's dirconfig file."

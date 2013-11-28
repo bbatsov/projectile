@@ -73,11 +73,11 @@
              (file-expand-wildcards (pattern ignored)
                                     (cond
                                      ((string-equal pattern "log")
-                                      (list "/path/to/project/log"))
+                                      "/path/to/project/log")
                                      ((string-equal pattern "tmp")
-                                      (list "/path/to/project/tmp"))
+                                      "/path/to/project/tmp")
                                      ((string-equal pattern "compiled")
-                                      (list "/path/to/project/compiled")))))
+                                      "/path/to/project/compiled"))))
             (should (equal (projectile-project-ignored) files)))))
 
 
