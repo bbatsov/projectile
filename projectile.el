@@ -1246,7 +1246,7 @@ Also set `projectile-known-projects'."
 (defconst projectile-mode-line-lighter " Projectile"
   "The default lighter for `projectile-mode'.")
 
-(defvar-local projectile-mode-line projectile-mode-line-lighther
+(defvar-local projectile-mode-line projectile-mode-line-lighter
   "The dynamic mode line lighter variable for `projectile-mode'.")
 
 (defun projectile-update-mode-line ()
