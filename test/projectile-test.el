@@ -141,15 +141,12 @@
             (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
 
 (ert-deftest projectile-tags-exclude-items ()
-  (let* ((tags-exclude (projectile-tags-exclude-patterns))
-         (tags-exclude-items (mapcar
-                              (lambda (x) (substring x (length "--exclude=")))
-                              (split-string tags-exclude " "))))
-    (should-not (member nil
-                        (mapcar (lambda (item)
-                                  (not (string-match "\\.\\." item)))
-                                tags-exclude-items)))
-    (should-not (member t
-                        (mapcar (lambda (item)
-                                  (equal (substring item (1- (length item))) "/"))
-                                tags-exclude-items)))))
+  (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
+    (let* ((tags-exclude (projectile-tags-exclude-patterns))
+           (tags-exclude-items (mapcar
+                                (lambda (x) (substring x (length "--exclude=")))
+                                (split-string tags-exclude " "))))
+      (should-not
+       (member t (mapcar (lambda (item)
+                           (equal (substring item (1- (length item))) "/"))
+                         tags-exclude-items))))))
