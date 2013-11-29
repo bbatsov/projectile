@@ -42,6 +42,18 @@
 (require 'grep)           ; For `rgrep'
 (require 'pkg-info)       ; For `pkg-info-version-info'
 
+;;;; Compatibility
+(eval-and-compile
+  (unless (fboundp 'defvar-local)
+    (defmacro defvar-local (var val &optional docstring)
+      "Define VAR as a buffer-local variable with default value VAL.
+Like `defvar' but additionally marks the variable as being automatically
+buffer-local wherever it is set."
+      (declare (debug defvar) (doc-string 3))
+      `(progn
+         (defvar ,var ,val ,docstring)
+         (make-variable-buffer-local ',var)))))
+
 
 ;;; Customization
 (defgroup projectile nil
@@ -969,12 +981,12 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
         (mapc 'kill-buffer buffers))))
 
 (defun projectile-dired ()
-  "Opens dired at the root of the project."
+  "Open `dired' at the root of the project."
   (interactive)
   (dired (projectile-project-root)))
 
 (defun projectile-vc-dir ()
-  "Opens vc-dir at the root of the project."
+  "Open `vc-dir' at the root of the project."
   (interactive)
   (vc-dir (projectile-project-root)))
 
@@ -1232,6 +1244,20 @@ Also set `projectile-known-projects'."
 (easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
 
 ;;;###autoload
+(defconst projectile-mode-line-lighter " Projectile"
+  "The default lighter for `projectile-mode'.")
+
+(defvar-local projectile-mode-line projectile-mode-line-lighter
+  "The dynamic mode line lighter variable for `projectile-mode'.")
+
+(defun projectile-update-mode-line ()
+  "Report project in mode-line."
+  (let* ((project-name (projectile-project-name))
+         (message (format "%s[%s]" projectile-mode-line-lighter project-name)))
+    (setq projectile-mode-line message))
+  (force-mode-line-update))
+
+;;;###autoload
 (define-minor-mode projectile-mode
   "Minor mode to assist project management and navigation.
 
@@ -1244,7 +1270,7 @@ nil or positive.  If ARG is `toggle', toggle `projectile-mode'.
 Otherwise behave as if called interactively.
 
 \\{projectile-mode-map}"
-  :lighter " Projectile"
+  :lighter projectile-mode-line
   :keymap projectile-mode-map
   :group 'projectile
   :require 'projectile
@@ -1252,7 +1278,8 @@ Otherwise behave as if called interactively.
    (projectile-mode
     (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook)
-    (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook))
+    (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
+    (add-hook 'find-file-hook 'projectile-update-mode-line t t))
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook))))
