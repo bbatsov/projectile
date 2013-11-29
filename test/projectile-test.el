@@ -142,11 +142,5 @@
 
 (ert-deftest projectile-tags-exclude-items ()
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
-    (let* ((tags-exclude (projectile-tags-exclude-patterns))
-           (tags-exclude-items (mapcar
-                                (lambda (x) (substring x (length "--exclude=")))
-                                (split-string tags-exclude " "))))
-      (should-not
-       (member t (mapcar (lambda (item)
-                           (equal (substring item (1- (length item))) "/"))
-                         tags-exclude-items))))))
+    (let ((tags-exclude (projectile-tags-exclude-patterns)))
+      (should (equal tags-exclude "--exclude=.git --exclude=.hg")))))
