@@ -142,5 +142,5 @@
 
 (ert-deftest projectile-tags-exclude-items ()
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
-    (let ((tags-exclude (projectile-tags-exclude-patterns)))
-      (should (equal tags-exclude "--exclude=.git --exclude=.hg")))))
+    (should (equal (projectile-tags-exclude-patterns)
+                   "--exclude=.git --exclude=.hg"))))
