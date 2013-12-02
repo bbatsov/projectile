@@ -146,7 +146,7 @@ This might not be a great idea if you start Projectile in your home folder for i
 #### Switching projects
 
 When running `projectile-switch-project` (<kbd>C-c p s</kbd>) Projectile invokes the command specified in
-`projectile-switch-project-action` (by default it is `projectile-find-file`). 
+`projectile-switch-project-action` (by default it is `projectile-find-file`).
 Depending on your personal workflow and habits, you may prefer to
 alter the value of `projectile-switch-project-action`:
 
@@ -262,6 +262,7 @@ Keybinding         | Description
 <kbd>C-c p r</kbd> | Runs interactive query-replace on all files in the projects.
 <kbd>C-c p i</kbd> | Invalidates the project cache (if existing).
 <kbd>C-c p R</kbd> | Regenerates the projects `TAGS` file.
+<kbd>C-c p j</kbd> | Find tag in project's `TAGS` file.
 <kbd>C-c p k</kbd> | Kills all project buffers.
 <kbd>C-c p D</kbd> | Opens the root of the project in `dired`.
 <kbd>C-c p e</kbd> | Shows a list of recently visited project files.

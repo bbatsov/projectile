@@ -11,6 +11,7 @@
 * Added support for `Ag`.
 * Added new command `projectile-purge-file-from-cache`.
 * Added new command `projectile-purge-dir-from-cache`.
+* Added new command `projectile-find-tag`.
 
 ### Changes
 

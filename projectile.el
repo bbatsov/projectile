@@ -938,6 +938,18 @@ With a prefix ARG invalidates the cache first."
     (shell-command (format projectile-tags-command tags-exclude))
     (visit-tags-table project-root)))
 
+(defun projectile-find-tag ()
+  "Find tag in project."
+  (interactive)
+  (visit-tags-table (projectile-project-root))
+  (tags-completion-table)
+  (let (tag-names)
+    (mapc (lambda (x)
+            (unless (integerp x)
+              (push (prin1-to-string x t) tag-names)))
+          tags-completion-table)
+    (find-tag (projectile-completing-read "Find tag: " tag-names))))
+
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
   (let ((dir (file-relative-name (expand-file-name directory) (projectile-project-root))))
@@ -1197,6 +1209,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "r") 'projectile-replace)
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
       (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
+      (define-key prefix-map (kbd "j") 'projectile-find-tags)
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
       (define-key prefix-map (kbd "d") 'projectile-find-dir)
       (define-key prefix-map (kbd "D") 'projectile-dired)
