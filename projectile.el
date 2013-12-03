@@ -1209,7 +1209,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "r") 'projectile-replace)
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
       (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
-      (define-key prefix-map (kbd "j") 'projectile-find-tags)
+      (define-key prefix-map (kbd "j") 'projectile-find-tag)
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
       (define-key prefix-map (kbd "d") 'projectile-find-dir)
       (define-key prefix-map (kbd "D") 'projectile-dired)
