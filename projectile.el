@@ -547,6 +547,14 @@ Operates on filenames relative to the project root."
     "Switch to buffer: "
     (projectile-project-buffer-names))))
 
+(defun projectile-switch-to-buffer-other-window ()
+  "Switch to a project buffer and show it in another window."
+  (interactive)
+  (switch-to-buffer-other-window
+   (projectile-completing-read
+    "Switch to buffer: "
+    (projectile-project-buffer-names))))
+
 (defun projectile-multi-occur ()
   "Do a `multi-occur' in the project's buffers."
   (interactive)
@@ -719,6 +727,18 @@ With a prefix ARG invalidates the cache first."
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))
+    (run-hooks 'projectile-find-file-hook)))
+
+(defun projectile-find-file-other-window (&optional arg)
+  "Jump to a project's file using completion and show it in another window.
+
+With a prefix ARG invalidates the cache first."
+  (interactive "P")
+  (when arg
+    (projectile-invalidate-cache nil))
+  (let ((file (projectile-completing-read "Find file: "
+                                          (projectile-current-project-files))))
+    (find-file-other-window (expand-file-name file (projectile-project-root)))
     (run-hooks 'projectile-find-file-hook)))
 
 (defun projectile-find-dir (&optional arg)
@@ -1199,11 +1219,13 @@ Also set `projectile-known-projects'."
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
     (let ((prefix-map (make-sparse-keymap)))
+      (define-key prefix-map (kbd "4 f") 'projectile-find-file-other-window)
       (define-key prefix-map (kbd "f") 'projectile-find-file)
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
       (define-key prefix-map (kbd "l") 'projectile-find-file-in-directory)
       (define-key prefix-map (kbd "t") 'projectile-toggle-between-implementation-and-test)
       (define-key prefix-map (kbd "g") 'projectile-grep)
+      (define-key prefix-map (kbd "4 b") 'projectile-switch-to-buffer-other-window)
       (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
       (define-key prefix-map (kbd "o") 'projectile-multi-occur)
       (define-key prefix-map (kbd "r") 'projectile-replace)
