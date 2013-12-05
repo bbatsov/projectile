@@ -1311,13 +1311,14 @@ Otherwise behave as if called interactively.
   :require 'projectile
   (cond
    (projectile-mode
-    (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
-    (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook)
+    (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook t t)
+    (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
     (add-hook 'find-file-hook 'projectile-update-mode-line t t))
    (t
-    (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook)
-    (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook))))
+    (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
+    (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
+    (remove-hook 'find-file-hook 'projectile-update-mode-line t))))
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
