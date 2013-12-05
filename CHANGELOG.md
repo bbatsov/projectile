@@ -4,6 +4,8 @@
 
 ### New features
 
+* Added new command `projectile-find-file-other-window`
+* Added new command `projectile-switch-to-buffer-other-window`
 * Added new command `projectile-find-file-in-directory` that allows you to jump to files in any directory
 * `.projectile` is now always taken into account
 * `projectile-switch-project`'s behavior is now customizable via `projectile-switch-project-action`.
