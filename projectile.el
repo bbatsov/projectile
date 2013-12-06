@@ -188,7 +188,7 @@ it for functions working with buffers."
   :group 'projectile
   :type 'hook)
 
-(defcustom projectile-switch-project-action 'projectile-find-file
+(defcustom projectile-switch-project-action 'projectile-commander
   "Action invoked after switching projects with `projectile-switch-project'.
 
 Any function that does not take arguments will do."
@@ -756,7 +756,7 @@ With a prefix ARG invalidates the cache first."
     (dired (expand-file-name dir (projectile-project-root)))
     (run-hooks 'projectile-find-dir-hook)))
 
-(defun projectile-find-test-file (arg)
+(defun projectile-find-test-file (&optional arg)
   "Jump to a project's test file using completion.
 
 With a prefix ARG invalidates the cache first."
@@ -1214,6 +1214,110 @@ Also set `projectile-known-projects'."
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
   (projectile-serialize projectile-known-projects projectile-known-projects-file))
 
+;;;; projectile-commander
+
+(defconst projectile-commander-help-buffer "*Commander Help*")
+
+(defvar projectile-commander-methods nil
+  "List of file-selection methods for the `projectile-commander' command.
+Each element is a list (KEY DESCRIPTION FUNCTION).
+DESCRIPTION is a one-line description of what the key selects.")
+
+;;;###autoload
+(defun projectile-commander ()
+  "Execute a Projectile command with a single letter.
+The user is prompted for a single character indicating the action to invoke.
+The `?' character describes then
+available actions.
+
+See `def-projectile-commander-method' for defining new methods."
+  (interactive)
+  (message "Commander [%s]: "
+           (apply #'string (mapcar #'car projectile-commander-methods)))
+  (let* ((ch (save-window-excursion
+               (select-window (minibuffer-window))
+               (read-char)))
+         (method (cl-find ch projectile-commander-methods :key #'car)))
+    (cond (method
+           (funcall (cl-caddr method)))
+          (t
+           (message "No method for character: ?\\%c" ch)
+           (ding)
+           (sleep-for 1)
+           (discard-input)
+           (projectile-commander)))))
+
+(defmacro def-projectile-commander-method (key description &rest body)
+  "Define a new `projectile-commander' method.
+
+KEY is the key the user will enter to choose this method.
+
+DESCRIPTION is a one-line sentence describing how the method.
+
+BODY is a series of forms which are evaluated when the find
+is chosen."
+  (let ((method `(lambda ()
+                   ,@body)))
+    `(setq projectile-commander-methods
+           (cl-sort (cons (list ,key ,description ,method)
+                          (cl-remove ,key projectile-commander-methods :key #'car))
+                  #'< :key #'car))))
+
+(def-projectile-commander-method ?? "Commander help buffer."
+  (ignore-errors (kill-buffer projectile-commander-help-buffer))
+  (with-current-buffer (get-buffer-create projectile-commander-help-buffer)
+    (insert "Projectile Commander Methods:\n\n")
+    (loop for (key line nil) in projectile-commander-methods
+          do (insert (format "%c:\t%s\n" key line)))
+    (goto-char (point-min))
+    (help-mode)
+    (display-buffer (current-buffer) t))
+  (projectile-commander))
+
+(def-projectile-commander-method ?f
+  "Find file in project."
+  (projectile-find-file))
+
+(def-projectile-commander-method ?T
+  "Find test file in project."
+  (projectile-find-test-file))
+
+(def-projectile-commander-method ?b
+  "Switch to project buffer."
+  (projectile-switch-to-buffer))
+
+(def-projectile-commander-method ?d
+  "Find directory in project."
+  (projectile-find-dir))
+
+(def-projectile-commander-method ?D
+  "Open project root in dired."
+  (projectile-dired))
+
+(def-projectile-commander-method ?g
+  "Run grep on project."
+  (projectile-grep))
+
+(def-projectile-commander-method ?s
+  "Switch project."
+  (projectile-switch-project))
+
+(def-projectile-commander-method ?o
+  "Run multi-occur on project buffers."
+  (projectile-multi-occur))
+
+(def-projectile-commander-method ?j
+  "Find tag in project."
+  (projectile-find-tag))
+
+(def-projectile-commander-method ?k
+  "Kill all project buffers."
+  (projectile-grep))
+
+(def-projectile-commander-method ?e
+  "Find recently visited file in project."
+  (projectile-recentf))
+
 
 ;;; Minor mode
 (defvar projectile-mode-map
@@ -1243,6 +1347,7 @@ Also set `projectile-known-projects'."
       (define-key prefix-map (kbd "p") 'projectile-test-project)
       (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
       (define-key prefix-map (kbd "s") 'projectile-switch-project)
+      (define-key prefix-map (kbd "m") 'projectile-commander)
 
       (define-key map projectile-keymap-prefix prefix-map))
     map)

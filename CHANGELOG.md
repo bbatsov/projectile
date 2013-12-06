@@ -14,6 +14,9 @@
 * Added new command `projectile-purge-file-from-cache`.
 * Added new command `projectile-purge-dir-from-cache`.
 * Added new command `projectile-find-tag`.
+* Added new command `projectile-commander`. It allows you to quickly
+  run many Projectile commands with a single key. Very useful as a
+  project-switching action.
 
 ### Changes
 
