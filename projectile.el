@@ -188,7 +188,7 @@ it for functions working with buffers."
   :group 'projectile
   :type 'hook)
 
-(defcustom projectile-switch-project-action 'projectile-commander
+(defcustom projectile-switch-project-action 'projectile-find-file
   "Action invoked after switching projects with `projectile-switch-project'.
 
 Any function that does not take arguments will do."
@@ -1150,14 +1150,19 @@ with a prefix ARG."
                    (list (abbreviate-file-name (projectile-project-root))))
     projectile-known-projects))
 
-(defun projectile-switch-project ()
-  "Switch to a project we have seen before."
-  (interactive)
+(defun projectile-switch-project (&optional arg)
+  "Switch to a project we have visited before.
+Invokes the command referenced by `projectile-switch-project-action' on switch.
+With a prefix ARG invokes `projectile-commander' instead of
+`projectile-switch-project-action.'"
+  (interactive "P")
   (let* ((project-to-switch
          (projectile-completing-read "Switch to project: "
                                      (projectile-relevant-known-projects)))
          (default-directory project-to-switch))
-    (funcall projectile-switch-project-action)
+    (if arg
+        (projectile-commander)
+      (funcall projectile-switch-project-action))
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 
