@@ -4,11 +4,13 @@
 
 ### New features
 
-* Added new command `projectile-find-file-other-window`
-* Added new command `projectile-switch-to-buffer-other-window`
-* Added new command `projectile-find-file-in-directory` that allows you to jump to files in any directory
-* `.projectile` is now always taken into account
-* `projectile-switch-project`'s behavior is now customizable via `projectile-switch-project-action`.
+* Added new command `projectile-find-file-other-window`.
+* Added new command `projectile-switch-to-buffer-other-window`.
+* Added new command `projectile-find-file-in-directory` that allows
+  you to jump to files in any directory.
+* `.projectile` is now always taken into account.
+* `projectile-switch-project`'s behavior is now customizable via
+  `projectile-switch-project-action`.
 * Added support for Gradle projects.
 * Added support for `Ag`.
 * Added new command `projectile-purge-file-from-cache`.
@@ -17,6 +19,8 @@
 * Added new command `projectile-commander`. It allows you to quickly
   run many Projectile commands with a single key. Very useful as a
   project-switching action.
+* `projectile-switch-project` now supports a prefix argument. When it's present
+the switch action wis `projectile-commander`.
 
 ### Changes
 
