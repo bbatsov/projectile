@@ -323,7 +323,9 @@ The cache is created both in memory and on the hard drive."
                (cons current-file (gethash current-project projectile-projects-cache))
                projectile-projects-cache)
       (projectile-serialize-cache)
-      (message "File %s added to project %s cache." current-file current-project))))
+      (message "File %s added to project %s cache."
+               (propertize current-file 'face 'font-lock-keyword-face)
+               (propertize current-project 'face 'font-lock-keyword-face)))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
