@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 0.10.0 (12/09/2013)
+
 ### New features
 
 * Added new command `projectile-find-file-other-window`.
