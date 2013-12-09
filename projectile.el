@@ -1319,7 +1319,7 @@ is chosen."
 
 (def-projectile-commander-method ?k
   "Kill all project buffers."
-  (projectile-grep))
+  (projectile-kill-buffers))
 
 (def-projectile-commander-method ?e
   "Find recently visited file in project."
