@@ -2,6 +2,9 @@
 
 ## master (unreleased)
 
+* Added new `projectile-commander` methods ?v and ?R which run
+  `projectile-vc-dir` and `projectile-regenerate-tags`, respectively.
+
 ## 0.10.0 (12/09/2013)
 
 ### New features
