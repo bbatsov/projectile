@@ -1301,6 +1301,14 @@ is chosen."
   "Open project root in dired."
   (projectile-dired))
 
+(def-projectile-commander-method ?v
+  "Open project root in vc-dir."
+  (projectile-vc-dir))
+
+(def-projectile-commander-method ?R
+  "Regenerate the project's etags."
+  (projectile-regenerate-tags))
+
 (def-projectile-commander-method ?g
   "Run grep on project."
   (projectile-grep))
