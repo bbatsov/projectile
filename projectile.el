@@ -1281,6 +1281,14 @@ is chosen."
     (display-buffer (current-buffer) t))
   (projectile-commander))
 
+(def-projectile-commander-method ?a
+  "Run ack on project."
+  (projectile-ack))
+
+(def-projectile-commander-method ?A
+  "Find ag on project."
+  (call-interactively 'projectile-ag))
+
 (def-projectile-commander-method ?f
   "Find file in project."
   (projectile-find-file))
