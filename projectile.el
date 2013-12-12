@@ -928,11 +928,14 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-ack ()
   "Run an `ack-and-a-half' search in the project."
   (interactive)
-  (let ((ack-and-a-half-arguments
-         (-map
-          (lambda (path)
-            (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
-          (projectile-ignored-directories))))
+  (let* ((saved-arguments (if (boundp 'ack-and-a-half-arguments)
+                              ack-and-a-half-arguments '()))
+         (ack-and-a-half-arguments
+          (append saved-arguments
+                  (-map
+                   (lambda (path)
+                     (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
+                   (projectile-ignored-directories)))))
     (call-interactively projectile-ack-function)))
 
 (defun projectile-ag (regexp)
@@ -1280,6 +1283,14 @@ is chosen."
     (help-mode)
     (display-buffer (current-buffer) t))
   (projectile-commander))
+
+(def-projectile-commander-method ?a
+  "Run ack on project."
+  (projectile-ack))
+
+(def-projectile-commander-method ?A
+  "Find ag on project."
+  (call-interactively 'projectile-ag))
 
 (def-projectile-commander-method ?f
   "Find file in project."
