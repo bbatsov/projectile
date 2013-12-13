@@ -138,7 +138,6 @@ Otherwise consider the current directory the project root."
     "build.gradle"       ; Gradle project file
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
-    "Makefile"           ; Make project file
     )
   "A list of files considered to mark the root of a project."
   :group 'projectile

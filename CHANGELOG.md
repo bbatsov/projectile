@@ -2,6 +2,9 @@
 
 ## master (unreleased)
 
+* The presence of a `Makefile` is no longer taken as an indicator
+  of the project root by default, since recursive make is unfortunately
+  a common occurrence (affects `projectile-project-root-files`).
 * Added new `projectile-commander` methods ?v and ?R which run
   `projectile-vc-dir` and `projectile-regenerate-tags`, respectively.
 
