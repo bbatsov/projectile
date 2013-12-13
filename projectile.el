@@ -346,7 +346,9 @@ The cache is created both in memory and on the hard drive."
 The current directory is assumed to be the project's root otherwise."
   (let ((project-root
          (or (->> projectile-project-root-files
-               (--map (locate-dominating-file default-directory it))
+               (--map (locate-dominating-file (file-truename
+                                               (or buffer-file-name default-directory))
+                                              it))
                (-remove #'null)
                (car)
                (projectile-file-truename))
