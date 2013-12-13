@@ -356,8 +356,7 @@ The current directory is assumed to be the project's root otherwise."
     project-root))
 
 (defun projectile-file-truename (file-name)
-  "A thin wrapper around `expand-file-name' that handles nil.
-Expand FILE-NAME using `default-directory'."
+  "A thin wrapper around `file-truename' that handles nil."
   (when file-name
     (file-truename file-name)))
 
