@@ -929,7 +929,7 @@ With a prefix ARG invalidates the cache first."
   "Run an `ack-and-a-half' search in the project."
   (interactive)
   (let* ((saved-arguments (if (boundp 'ack-and-a-half-arguments)
-                              ack-and-a-half-arguments))
+                              ack-and-a-half-arguments '()))
          (ack-and-a-half-arguments
           (append saved-arguments
                   (-map
