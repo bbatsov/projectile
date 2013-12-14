@@ -2,6 +2,9 @@
 
 ## master (unreleased)
 
+* Modified `projectile-ack` to append to `ack-and-a-half-arguments`
+  instead of overriding them.
+
 * Added new `projectile-commander` methods ?v and ?R which run
   `projectile-vc-dir` and `projectile-regenerate-tags`, respectively.
 
