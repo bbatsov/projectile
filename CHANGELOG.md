@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+* Modified `projectile-ack` to append to `ack-and-a-half-arguments`
+  instead of overriding them.
 * The presence of a `Makefile` is no longer taken as an indicator
   of the project root by default, since recursive make is unfortunately
   a common occurrence (affects `projectile-project-root-files`).
