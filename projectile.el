@@ -345,7 +345,9 @@ The cache is created both in memory and on the hard drive."
 The current directory is assumed to be the project's root otherwise."
   (let ((project-root
          (or (->> projectile-project-root-files
-               (--map (locate-dominating-file default-directory it))
+               (--map (locate-dominating-file (file-truename
+                                               (or buffer-file-name default-directory))
+                                              it))
                (-remove #'null)
                (car)
                (projectile-file-truename))
@@ -355,8 +357,7 @@ The current directory is assumed to be the project's root otherwise."
     project-root))
 
 (defun projectile-file-truename (file-name)
-  "A thin wrapper around `expand-file-name' that handles nil.
-Expand FILE-NAME using `default-directory'."
+  "A thin wrapper around `file-truename' that handles nil."
   (when file-name
     (file-truename file-name)))
 
