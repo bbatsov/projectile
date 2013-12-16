@@ -11,6 +11,7 @@
   `projectile-vc-dir` and `projectile-regenerate-tags`, respectively.
 * Projectile is now able to find the project pertaining to a symlink
   pointing to a version-controlled file.
+* `projectile-vc-dir` will use `magit-status` if available.
 
 ## 0.10.0 (12/09/2013)
 

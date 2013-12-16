@@ -1023,9 +1023,14 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
   (dired (projectile-project-root)))
 
 (defun projectile-vc-dir ()
-  "Open `vc-dir' at the root of the project."
+  "Open `vc-dir' at the root of the project.
+
+For git projects `magit-status' is used if available."
   (interactive)
-  (vc-dir (projectile-project-root)))
+  (cond
+   ((and (eq (projectile-project-vcs) 'git) (fboundp 'magit-status))
+    (magit-status (projectile-project-root)))
+   (t (vc-dir (projectile-project-root)))))
 
 (defun projectile-recentf ()
   "Show a list of recently visited files in a project."
