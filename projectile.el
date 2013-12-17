@@ -198,6 +198,12 @@ Any function that does not take arguments will do."
   "If true, add top-level dir to options offered by `projectile-find-dir'."
   :group 'projectile
   :type 'boolean)
+
+(defcustom projectile-use-git-grep nil
+  "If true, use `vc-git-grep' in git projects."
+  :group 'projectile
+  :type 'boolean)
+
 
 ;;; Serialization
 (defun projectile-serialize (data filename)
@@ -918,12 +924,15 @@ With a prefix ARG invalidates the cache first."
                                       (projectile-symbol-at-point)))))
     (dolist (root-dir roots)
       (require 'grep)
-      ;; paths for find-grep should relative and without trailing /
-      (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir root-dir)))
-                                                         (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-            (grep-find-ignored-files (-union (-map (lambda (file) (file-relative-name file root-dir)) (projectile-ignored-files)) grep-find-ignored-files)))
-        (grep-compute-defaults)
-        (rgrep search-regexp "* .*" root-dir)))))
+      ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
+      (if (and (eq (projectile-project-vcs) 'git) projectile-use-git-grep)
+          (vc-git-grep search-regexp "* .*" root-dir)
+        ;; paths for find-grep should relative and without trailing /
+        (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir root-dir)))
+                                                           (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
+              (grep-find-ignored-files (-union (-map (lambda (file) (file-relative-name file root-dir)) (projectile-ignored-files)) grep-find-ignored-files)))
+          (grep-compute-defaults)
+          (rgrep search-regexp "* .*" root-dir))))))
 
 (defun projectile-ack ()
   "Run an `ack-and-a-half' search in the project."
