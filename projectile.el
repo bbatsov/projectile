@@ -1193,7 +1193,14 @@ This command will first prompt for the directory the file is in."
   (let* ((directory (read-directory-name "Find file in directory: "))
          (default-directory directory)
          (projectile-require-project-root nil))
-    (projectile-find-file)))
+    (if (projectile-project-p)
+        ;; target directory is in a project
+        (let ((file (projectile-completing-read "Find file: "
+                                                (projectile-dir-files directory))))
+          (find-file (expand-file-name file (projectile-project-root)))
+          (run-hooks 'projectile-find-file-hook))
+      ;; target directory is not in a project
+      (projectile-find-file))))
 
 (defcustom projectile-switch-project-hook nil
   "Hooks run when project is switched.
