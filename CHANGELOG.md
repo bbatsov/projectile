@@ -4,6 +4,9 @@
 
 ### New features
 
+* New defcustom `projectile-remember-window-configs` will make
+  `projectile-switch-project` restore the most recent window configuration (if
+  any) of the target project.
 * New command `projectile-run-command-in-root`.
 * New defcustom `projectile-use-git-grep` will make `projectile-grep` use `git grep`
 for git projects.
