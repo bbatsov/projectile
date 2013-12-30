@@ -859,20 +859,32 @@ With a prefix ARG invalidates the cache first."
     ((locate-dominating-file project-root ".svn") 'svn)
     (t 'none))))
 
+(defun projectile-find-implementation-or-test (file-name)
+  "Given a FILE-NAME return the matching implementation or test filename."
+  (unless file-name (error "The current buffer is not visiting a file"))
+  (if (projectile-test-file-p file-name)
+      ;; find the matching impl file
+      (let ((impl-file (projectile-find-matching-file file-name)))
+        (if impl-file
+            (projectile-expand-root impl-file)
+          (error "No matching source file found")))
+    ;; find the matching test file
+    (let ((test-file (projectile-find-matching-test file-name)))
+      (if test-file
+          (projectile-expand-root test-file)
+        (error "No matching test file found")))))
+
+(defun projectile-find-implementation-or-test-other-window ()
+  "Open matching implementation or test file in other window."
+  (interactive)
+  (find-file-other-window
+   (projectile-find-implementation-or-test (buffer-file-name))))
+
 (defun projectile-toggle-between-implementation-and-test ()
   "Toggle between an implementation file and its test file."
   (interactive)
-  (if (projectile-test-file-p (buffer-file-name))
-      ;; find the matching impl file
-      (let ((impl-file (projectile-find-matching-file (buffer-file-name))))
-        (if impl-file
-            (find-file (projectile-expand-root impl-file))
-          (error "No matching source file found")))
-    ;; find the matching test file
-    (let ((test-file (projectile-find-matching-test (buffer-file-name))))
-      (if test-file
-          (find-file (projectile-expand-root test-file))
-        (error "No matching test file found")))))
+  (find-file
+   (projectile-find-implementation-or-test (buffer-file-name))))
 
 (defun projectile-test-prefix (project-type)
   "Find test files prefix based on PROJECT-TYPE."
@@ -1381,6 +1393,7 @@ is chosen."
   (let ((map (make-sparse-keymap)))
     (let ((prefix-map (make-sparse-keymap)))
       (define-key prefix-map (kbd "4 f") 'projectile-find-file-other-window)
+      (define-key prefix-map (kbd "4 t") 'projectile-find-implementation-or-test-other-window)
       (define-key prefix-map (kbd "f") 'projectile-find-file)
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
       (define-key prefix-map (kbd "l") 'projectile-find-file-in-directory)

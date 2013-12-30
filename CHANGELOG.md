@@ -10,6 +10,9 @@ for git projects.
 * Added new `projectile-commander` methods ?v and ?R which run
   `projectile-vc-dir` and `projectile-regenerate-tags`, respectively.
 * `projectile-vc-dir` will use `magit-status` if available.
+* New functions `projectile-find-implementation-or-test` and
+  `projectile-find-implementation-or-test-other-window`, the later is
+  bound to `C-c p 4 t`.
 
 ### Changes
 
@@ -24,6 +27,8 @@ for git projects.
 * Modified `projectile-ack` to append to `ack-and-a-half-arguments`
   instead of overriding them.
 * [#229] Fix `projectile-find-file-in-directory`'s behavior for project directories
+* `projectile-toggle-between-implementation-or-test` shows
+  understandable error if current buffer is not visiting a file.
 
 ## 0.10.0 (12/09/2013)
 
