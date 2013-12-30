@@ -982,6 +982,18 @@ With a prefix ARG invalidates the cache first."
           tags-completion-table)
     (find-tag (projectile-completing-read "Find tag: " tag-names))))
 
+(defmacro projectile-with-default-dir (dir &rest body)
+  "Invoke in DIR the BODY."
+  (declare (debug t) (indent 1))
+  `(let ((default-directory ,dir))
+     ,@body))
+
+(defun projectile-run-command-in-root ()
+  "Invoke `shell-command' in the project's root."
+  (interactive)
+  (projectile-with-default-dir (projectile-project-root)
+    (call-interactively 'execute-extended-command)))
+
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
   (let ((dir (file-relative-name (expand-file-name directory) (projectile-project-root))))
