@@ -26,6 +26,8 @@ for git projects.
 * Modified `projectile-ack` to append to `ack-and-a-half-arguments`
   instead of overriding them.
 * [#229] Fix `projectile-find-file-in-directory`'s behavior for project directories
+* `projectile-toggle-between-implementation-or-test` shows
+  understandable error if current buffer is not visiting a file.
 
 ## 0.10.0 (12/09/2013)
 
