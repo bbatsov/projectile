@@ -204,6 +204,12 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-remember-window-configs nil
+  "If true, restore the last window configuration when switching projects.
+If no configuration exists, just run `projectile-switch-project-action' as usual."
+  :group 'projectile
+  :type 'boolean)
+
 
 ;;; Serialization
 (defun projectile-serialize (data filename)
@@ -343,6 +349,45 @@ The cache is created both in memory and on the hard drive."
   (when (projectile-project-p)
     (projectile-add-known-project (projectile-project-root))
     (projectile-save-known-projects)))
+
+
+;;; Window configurations
+(defvar projectile-window-config-map
+  (make-hash-table :test 'equal)
+  "A mapping from project names to their latest window configurations.")
+
+(defun projectile-save-window-config (project-name)
+  "Save PROJECT-NAME's configuration to `projectile-window-config-map'."
+  (puthash project-name (current-window-configuration) projectile-window-config-map))
+
+(defun projectile-get-window-config (project-name)
+  "Return the window configuration corresponding to PROJECT-NAME.
+If no such window configuration exists,
+returns nil."
+  (gethash project-name projectile-window-config-map))
+
+(defun projectile-restore-window-config (project-name)
+  "Restore the window configuration corresponding to the PROJECT-NAME.
+Returns nil if no window configuration was found"
+  (let ((window-config (projectile-get-window-config project-name)))
+    (when window-config
+      (set-window-configuration window-config))))
+
+(defadvice projectile-switch-project (before projectile-save-window-configuration-before-switching-projects activate)
+  "Save the current project's window configuration before switching projects."
+  (when (and projectile-remember-window-configs
+             (projectile-project-p))
+    (projectile-save-window-config (projectile-project-name))))
+
+(defadvice projectile-kill-buffers (before projectile-remove-window-configuration-before-kill-buffers activate)
+  "Remove's this project's window configuration from the table before killing buffers."
+  (remhash (projectile-project-name) projectile-window-config-map))
+
+(defadvice projectile-kill-buffers (after projectile-restore-window-configuration-after-kill-buffers activate)
+  "Restore previous (if any) project's window configuration after killing a project's buffers."
+  (when (and projectile-remember-window-configs
+             (projectile-project-p))
+    (projectile-restore-window-config (projectile-project-name))))
 
 
 ;;; Project root related utilities
@@ -1198,12 +1243,17 @@ With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
   (let* ((project-to-switch
-         (projectile-completing-read "Switch to project: "
-                                     (projectile-relevant-known-projects)))
-         (default-directory project-to-switch))
-    (if arg
-        (projectile-commander)
-      (funcall projectile-switch-project-action))
+          (projectile-completing-read "Switch to project: "
+                                      (projectile-relevant-known-projects)))
+         (default-directory project-to-switch)
+         (switch-project-action (if arg
+                                    'projectile-commander
+                                  projectile-switch-project-action)))
+    (if projectile-remember-window-configs
+        (unless (projectile-restore-window-config (projectile-project-name))
+          (funcall switch-project-action)
+          (delete-other-windows))
+      (funcall switch-project-action))
     (let ((project-switched project-to-switch))
       (run-hooks 'projectile-switch-project-hook))))
 

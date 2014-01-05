@@ -145,10 +145,18 @@ This might not be a great idea if you start Projectile in your home folder for i
 
 #### Switching projects
 
-When running `projectile-switch-project` (<kbd>C-c p s</kbd>) Projectile invokes the command specified in
-`projectile-switch-project-action` (by default it is `projectile-find-file`).
-Depending on your personal workflow and habits, you may prefer to
-alter the value of `projectile-switch-project-action`:
+When running `projectile-switch-project` (<kbd>C-c p s</kbd>) Projectile invokes
+the command specified in `projectile-switch-project-action` (by default it is
+`projectile-find-file`).
+
+When `projectile-remember-window-configs` is `t` (default is `nil`), the most
+recent window configuration of the target project is restored instead of calling
+`projectile-switch-project-action`.  If the target project has no window
+configuration in the current editing session, `projectile-switch-project-action`
+is otherwise invoked as described above.
+
+Depending on your personal workflow and habits, you
+may prefer to alter the value of `projectile-switch-project-action`:
 
 ###### `projectile-find-file`
 
