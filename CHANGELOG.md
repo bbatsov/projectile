@@ -11,8 +11,8 @@
 * New defcustom `projectile-use-git-grep` will make `projectile-grep` use `git grep`
 for git projects.
 * Added new `projectile-commander` methods ?v and ?R which run
-  `projectile-vc-dir` and `projectile-regenerate-tags`, respectively.
-* `projectile-vc-dir` will use `magit-status` if available.
+  `projectile-vc` and `projectile-regenerate-tags`, respectively.
+* `projectile-vc` will use `magit-status` if available.
 * New functions `projectile-find-implementation-or-test` and
   `projectile-find-implementation-or-test-other-window`, the later is
   bound to `C-c p 4 t`.

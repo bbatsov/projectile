@@ -1098,7 +1098,7 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
   (interactive)
   (dired (projectile-project-root)))
 
-(defun projectile-vc-dir ()
+(defun projectile-vc ()
   "Open `vc-dir' at the root of the project.
 
 For git projects `magit-status' is used if available."
@@ -1406,8 +1406,8 @@ is chosen."
   (projectile-dired))
 
 (def-projectile-commander-method ?v
-  "Open project root in vc-dir."
-  (projectile-vc-dir))
+  "Open project root in vc-dir or magit."
+  (projectile-vc))
 
 (def-projectile-commander-method ?R
   "Regenerate the project's etags."
@@ -1459,7 +1459,7 @@ is chosen."
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
       (define-key prefix-map (kbd "d") 'projectile-find-dir)
       (define-key prefix-map (kbd "D") 'projectile-dired)
-      (define-key prefix-map (kbd "v") 'projectile-vc-dir)
+      (define-key prefix-map (kbd "v") 'projectile-vc)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "a") 'projectile-ack)
       (define-key prefix-map (kbd "A") 'projectile-ag)
