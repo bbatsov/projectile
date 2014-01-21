@@ -7,7 +7,7 @@
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; Version: 0.10.0
-;; Package-Requires: ((helm "1.4.0") (projectile "0.10.0"))
+;; Package-Requires: ((helm "1.4.0") (projectile "0.10.0") (cl-lib 0.3))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -44,6 +44,7 @@
 (require 'helm-locate)
 (require 'helm-buffers)
 (require 'helm-files)
+(require 'cl-lib)
 
 (defvar helm-projectile-current-project-root)
 
@@ -77,12 +78,12 @@
     (init . (lambda ()
               ;; Issue #51 Create the list before `helm-buffer' creation.
               (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
-              (let ((result (loop for b in helm-projectile-buffers-list-cache
-                                  maximize (length b) into len-buf
-                                  maximize (length (with-current-buffer b
-                                                     (symbol-name major-mode)))
-                                  into len-mode
-                                  finally return (cons len-buf len-mode))))
+              (let ((result (cl-loop for b in helm-projectile-buffers-list-cache
+                                     maximize (length b) into len-buf
+                                     maximize (length (with-current-buffer b
+                                                        (symbol-name major-mode)))
+                                     into len-mode
+                                     finally return (cons len-buf len-mode))))
                 (unless helm-buffer-max-length
                   (setq helm-buffer-max-length (car result)))
                 (unless helm-buffer-max-len-mode
