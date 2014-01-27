@@ -23,7 +23,8 @@ for git projects.
   of the project root by default, since recursive make is unfortunately
   a common occurrence (affects `projectile-project-root-files`).
 * Projectile is now able to find the project pertaining to a symlink
-  pointing to a version-controlled file.
+pointing to a version-controlled file.
+* Drop `projectile-ack-function` defcustom.
 
 ### Bugs fixed
 
@@ -31,7 +32,8 @@ for git projects.
   instead of overriding them.
 * [#229] Fix `projectile-find-file-in-directory`'s behavior for project directories
 * `projectile-toggle-between-implementation-or-test` shows
-  understandable error if current buffer is not visiting a file.
+understandable error if current buffer is not visiting a file.
+* [#244] Correct folder picked up by `projectile-ack` after project-switch.
 
 ## 0.10.0 (12/09/2013)
 
