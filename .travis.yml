@@ -1,7 +1,7 @@
 language: emacs-lisp
 env:
   - EMACS=emacs24
-  - EMACS=emacs-snapshot
+#  - EMACS=emacs-snapshot
 before_script:
   - sh vagrant/provision.sh
   - make EMACS=${EMACS} elpa
