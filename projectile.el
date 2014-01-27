@@ -102,12 +102,6 @@ Otherwise consider the current directory the project root."
   :type 'symbol
   :options '(ido grizzl default))
 
-(defcustom projectile-ack-function 'ack-and-a-half
-  "The ack function to use."
-  :group 'projectile
-  :type 'symbol
-  :options '(ack-and-a-half default))
-
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
   :group 'projectile
@@ -989,18 +983,22 @@ With a prefix ARG invalidates the cache first."
           (grep-compute-defaults)
           (rgrep search-regexp "* .*" root-dir))))))
 
-(defun projectile-ack ()
-  "Run an `ack-and-a-half' search in the project."
-  (interactive)
-  (let* ((saved-arguments (if (boundp 'ack-and-a-half-arguments)
-                              ack-and-a-half-arguments '()))
-         (ack-and-a-half-arguments
-          (append saved-arguments
-                  (-map
-                   (lambda (path)
-                     (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
-                   (projectile-ignored-directories)))))
-    (call-interactively projectile-ack-function)))
+(defun projectile-ack (regexp)
+  "Run an ack search in the project."
+  (interactive
+   (list (read-from-minibuffer
+          (projectile-prepend-project-name "Ack search for: ")
+          (projectile-symbol-at-point))))
+  (if (fboundp 'ack-and-a-half)
+      (let* ((saved-arguments ack-and-a-half-arguments)
+             (ack-and-a-half-arguments
+              (append saved-arguments
+                      (-map
+                       (lambda (path)
+                         (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
+                       (projectile-ignored-directories)))))
+        (ack-and-a-half regexp t (projectile-project-root)))
+    (error "ack-and-a-half not available")))
 
 (defun projectile-ag (regexp)
   "Run an ag search with REGEXP in the project."
@@ -1379,7 +1377,7 @@ is chosen."
 
 (def-projectile-commander-method ?a
   "Run ack on project."
-  (projectile-ack))
+  (call-interactively 'projectile-ack))
 
 (def-projectile-commander-method ?A
   "Find ag on project."
