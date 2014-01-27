@@ -93,7 +93,7 @@
            (call-interactively
             (function &optional record-flag keys)
             (should (equal ack-and-a-half-arguments '("--ignore-dir=tmp" "--ignore-dir=log")))))
-          (projectile-ack)))
+          (projectile-ack "test")))
 
 (ert-deftest projectile-test-get-project-directories ()
   (noflet ((projectile-project-root () "/my/root/")
