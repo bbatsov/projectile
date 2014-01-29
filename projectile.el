@@ -925,13 +925,29 @@ With a prefix ARG invalidates the cache first."
   (find-file
    (projectile-find-implementation-or-test (buffer-file-name))))
 
+(defun projectile-test-affix (project-type)
+  "Find test files affix based on PROJECT-TYPE."
+  (or (funcall projectile-test-prefix-function project-type)
+      (funcall projectile-test-suffix-function project-type)
+      (error "Project type not supported!")))
+
+(defcustom projectile-test-prefix-function 'projectile-test-prefix
+  "Function to find test files prefix based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
+(defcustom projectile-test-suffix-function 'projectile-test-suffix
+  "Function to find test files suffix based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
 (defun projectile-test-prefix (project-type)
-  "Find test files prefix based on PROJECT-TYPE."
+  "Find default test files prefix based on PROJECT-TYPE."
   (cond
    ((member project-type '(django python)) "test_")))
 
 (defun projectile-test-suffix (project-type)
-  "Find test files suffix based on PROJECT-TYPE."
+  "Find default test files suffix based on PROJECT-TYPE."
   (cond
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
    ((member project-type '(rails-test ruby-test lein)) "_test")
@@ -941,9 +957,7 @@ With a prefix ARG invalidates the cache first."
   "Compute the name of the test matching FILE."
   (let ((basename (file-name-nondirectory (file-name-sans-extension file)))
         (extension (file-name-extension file))
-        (test-affix (or (projectile-test-prefix (projectile-project-type))
-                        (projectile-test-suffix (projectile-project-type))
-                        (error "Project type not supported!"))))
+        (test-affix (projectile-test-affix (projectile-project-type))))
       (-first (lambda (current-file)
                 (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
                   (or (s-equals? current-file-basename (concat test-affix basename))
@@ -954,9 +968,7 @@ With a prefix ARG invalidates the cache first."
   "Compute the name of a file matching TEST-FILE."
   (let ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
         (extension (file-name-extension test-file))
-        (test-affix (or (projectile-test-prefix (projectile-project-type))
-                        (projectile-test-suffix (projectile-project-type))
-                        (error "Project type not supported!"))))
+        (test-affix (projectile-test-affix (projectile-project-type))))
     (-first (lambda (current-file)
               (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
                 (or (s-equals? (concat test-affix current-file-basename) basename)
