@@ -996,7 +996,7 @@ With a prefix ARG invalidates the cache first."
           (rgrep search-regexp "* .*" root-dir))))))
 
 (defun projectile-ack (regexp)
-  "Run an ack search in the project."
+  "Run an ack search with REGEXP in the project."
   (interactive
    (list (read-from-minibuffer
           (projectile-prepend-project-name "Ack search for: ")
