@@ -132,6 +132,10 @@ Otherwise consider the current directory the project root."
     "build.gradle"       ; Gradle project file
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
+    "package.json"       ; npm package file
+    "Gruntfile.js"       ; Grunt project file
+    "bower.json"         ; Bower project file
+    "composer.json"      ; Composer project file
     )
   "A list of files considered to mark the root of a project."
   :group 'projectile
@@ -852,6 +856,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-rebar '("rebar"))
 (defvar projectile-sbt '("build.sbt"))
 (defvar projectile-make '("Makefile"))
+(defvar projectile-grunt '("Gruntfile.js"))
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
@@ -870,6 +875,7 @@ With a prefix ARG invalidates the cache first."
      ((projectile-verify-files projectile-rebar) 'rebar)
      ((projectile-verify-files projectile-sbt) 'sbt)
      ((projectile-verify-files projectile-make) 'make)
+     ((projectile-verify-files projectile-grunt) 'grunt)
      (t 'generic))))
 
 (defun projectile-verify-files (files)
@@ -1158,6 +1164,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-sbt-test-cmd "sbt test")
 (defvar projectile-make-compile-cmd "make")
 (defvar projectile-make-test-cmd "make test")
+(defvar projectile-grunt-compile-cmd "grunt")
+(defvar projectile-grunt-test-cmd "grunt test")
 
 (defvar projectile-compilation-cmd-map
   (make-hash-table :test 'equal)
@@ -1179,6 +1187,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'rebar) projectile-rebar-compile-cmd)
    ((eq project-type 'maven) projectile-maven-compile-cmd)
    ((eq project-type 'sbt) projectile-sbt-compile-cmd)
+   ((eq project-type 'grunt) projectile-grunt-compile-cmd)
    (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
@@ -1194,6 +1203,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'rebar) projectile-rebar-test-cmd)
    ((eq project-type 'maven) projectile-maven-test-cmd)
    ((eq project-type 'sbt) projectile-sbt-test-cmd)
+   ((eq project-type 'grunt) projectile-grunt-test-cmd)
    (t projectile-make-test-cmd)))
 
 (defun projectile-compilation-command (project)
