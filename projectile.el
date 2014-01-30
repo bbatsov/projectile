@@ -41,6 +41,7 @@
 (require 'dash)
 (require 'grep)           ; For `rgrep'
 (require 'pkg-info)       ; For `pkg-info-version-info'
+(require 'vc-git)
 
 ;;;; Compatibility
 (eval-and-compile
@@ -193,7 +194,7 @@ Any function that does not take arguments will do."
   :type 'symbol)
 
 (defcustom projectile-find-dir-includes-top-level nil
-  "If true, add top-level dir to options offered by `projectile-find-dir'."
+  "If true, add TOP-LEVEL dir to options offered by `projectile-find-dir'."
   :group 'projectile
   :type 'boolean)
 
@@ -388,11 +389,16 @@ Returns nil if no window configuration was found"
     (projectile-restore-window-config (projectile-project-name))))
 
 
-;;; Project root related utilities
+(defvar projectile-project-root-dir nil)
+
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (let ((project-root
+  (print (concat "default dir: " default-directory))
+  (let* ((default-directory (if projectile-project-root-dir
+			       projectile-project-root-dir
+			     default-directory))
+	(project-root
 	 (or (->> projectile-project-root-files
 	       (--map (locate-dominating-file (file-truename default-directory) it))
 	       (-remove #'null)
@@ -403,8 +409,9 @@ The current directory is assumed to be the project's root otherwise."
 	       default-directory))))
     project-root))
 
+
 (defun projectile-file-truename (file-name)
-  "A thin wrapper around `file-truename' that handles nil."
+  "A thin wrapper around `file-truename' that handles nil or FILE-NAME."
   (when file-name
     (file-truename file-name)))
 
@@ -856,8 +863,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-rebar '("rebar"))
 (defvar projectile-sbt '("build.sbt"))
 (defvar projectile-make '("Makefile"))
-(defvar projectile-grunt '("grunt"))
-
+(defvar projectile-grunt '("Gruntfile.js"))
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
@@ -877,7 +883,11 @@ With a prefix ARG invalidates the cache first."
      ((projectile-verify-files projectile-sbt) 'sbt)
      ((projectile-verify-files projectile-make) 'make)
      ((projectile-verify-files projectile-grunt) 'grunt)
-     (t 'generic))))
+     ((projectile-verify-files projectile-grunt) 'grunt)
+     (t 'generic)
+     )
+    ;; 'grunt
+    ))
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
@@ -991,7 +1001,7 @@ With a prefix ARG invalidates the cache first."
 	  (rgrep search-regexp "* .*" root-dir))))))
 
 (defun projectile-ack (regexp)
-  "Run an ack search in the project."
+  "Run an ack search in the project using REGEXP."
   (interactive
    (list (read-from-minibuffer
 	  (projectile-prepend-project-name "Ack search for: ")
@@ -1005,7 +1015,7 @@ With a prefix ARG invalidates the cache first."
 			 (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
 		       (projectile-ignored-directories)))))
 	(ack-and-a-half regexp t (projectile-project-root)))
-    (error "ack-and-a-half not available")))
+    (error "Function ack-and-a-half not available")))
 
 (defun projectile-ag (regexp)
   "Run an ag search with REGEXP in the project."
@@ -1143,17 +1153,28 @@ For git projects `magit-status' is used if available."
 (defvar projectile-python-test-cmd "venv/bin/python -m unittest discover")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
+
 (defvar projectile-maven-compile-cmd "mvn clean install")
+(defvar projectile-maven-deploy-cmd "mvn deploy")
+(defvar projectile-maven-release-cmd "mvn release:perform")
 (defvar projectile-maven-test-cmd "mvn test")
+
 (defvar projectile-lein-compile-cmd "lein compile")
 (defvar projectile-lein-test-cmd "lein test")
 (defvar projectile-rebar-compile-cmd "rebar")
 (defvar projectile-rebar-test-cmd "rebar eunit")
 (defvar projectile-sbt-compile-cmd "sbt compile")
 (defvar projectile-sbt-test-cmd "sbt test")
+
 (defvar projectile-make-compile-cmd "make")
+(defvar projectile-make-deploy-cmd "make install")
+(defvar projectile-make-release-cmd "make dist")
 (defvar projectile-make-test-cmd "make test")
+
 (defvar projectile-grunt-compile-cmd "grunt")
+(defvar projectile-grunt-deploy-cmd "grunt deploy")
+(defvar projectile-grunt-release-cmd "grunt --verbose bumpup")
+(defvar projectile-grunt-test-cmd "grunt test")
 
 (defvar projectile-compilation-cmd-map
   (make-hash-table :test 'equal)
@@ -1161,6 +1182,12 @@ For git projects `magit-status' is used if available."
 (defvar projectile-test-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last test command used on them.")
+(defvar projectile-deploy-cmd-map
+  (make-hash-table :test 'equal)
+  "A mapping between projects and the last deploy command used on them.")
+(defvar projectile-release-cmd-map
+  (make-hash-table :test 'equal)
+  "A mapping between projects and the last release command used on them.")
 
 (defun projectile-default-compilation-command (project-type)
   "Retrieve default compilation command for PROJECT-TYPE."
@@ -1175,7 +1202,22 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'rebar) projectile-rebar-compile-cmd)
    ((eq project-type 'maven) projectile-maven-compile-cmd)
    ((eq project-type 'sbt) projectile-sbt-compile-cmd)
+   ((eq project-type 'grunt) projectile-grunt-compile-cmd)
    (t projectile-make-compile-cmd)))
+
+(defun projectile-default-deploy-command (project-type)
+  "Retrieve default deploy command for PROJECT-TYPE."
+  (cond
+   ((eq project-type 'maven) projectile-maven-test-cmd)
+   ((eq project-type 'grunt) projectile-grunt-deploy-cmd)
+   (t projectile-make-deploy-cmd)))
+
+(defun projectile-default-release-command (project-type)
+  "Retrieve default release command for PROJECT-TYPE."
+  (cond
+   ((eq project-type 'maven) projectile-maven-test-cmd)
+   ((eq project-type 'grunt) projectile-grunt-release-cmd)
+   (t projectile-make-release-cmd)))
 
 (defun projectile-default-test-command (project-type)
   "Retrieve default test command for PROJECT-TYPE."
@@ -1190,12 +1232,24 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'rebar) projectile-rebar-test-cmd)
    ((eq project-type 'maven) projectile-maven-test-cmd)
    ((eq project-type 'sbt) projectile-sbt-test-cmd)
+   ((eq project-type 'grunt) projectile-grunt-test-cmd)
    (t projectile-make-test-cmd)))
+
 
 (defun projectile-compilation-command (project)
   "Retrieve the compilation command for PROJECT."
   (or (gethash project projectile-compilation-cmd-map)
       (projectile-default-compilation-command (projectile-project-type))))
+
+(defun projectile-deploy-command (project)
+  "Retrieve the deploy command for PROJECT."
+  (or (gethash project projectile-deploy-cmd-map)
+      (projectile-default-deploy-command (projectile-project-type))))
+
+(defun projectile-release-command (project)
+  "Retrieve the release command for PROJECT."
+  (or (gethash project projectile-release-cmd-map)
+      (projectile-default-release-command (projectile-project-type))))
 
 (defun projectile-test-command (project)
   "Retrieve the test command for PROJECT."
@@ -1210,13 +1264,47 @@ variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
   (let* ((project-root (projectile-project-root))
-	 (default-cmd (projectile-compilation-command project-root))
-	 (compilation-cmd (if (or compilation-read-command arg)
-			      (compilation-read-command default-cmd)
-			    default-cmd))
+	 ;; (default-cmd (projectile-compilation-command project-root))
+	 (compilation-cmd (projectile-compilation-command project-root))
+	 ;; (compilation-cmd (if (or compilation-read-command arg)
+	 ;;		      (compilation-read-command default-cmd)
+	 ;;		    default-cmd))
 	 (default-directory project-root))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
-    (compilation-start compilation-cmd)))
+    (save-window-excursion
+    (compilation-start compilation-cmd))
+))
+
+(defun projectile-deploy-project (arg)
+  "Run project deploy command.
+
+Normally you'll be prompted for a deploy command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (let* ((project-root (projectile-project-root))
+	 (default-cmd (projectile-deploy-command project-root))
+	 (deploy-cmd (if (or compilation-read-command arg)
+			      (compilation-read-command default-cmd)
+		       default-cmd))
+	 (default-directory project-root))
+    (puthash project-root deploy-cmd projectile-deploy-cmd-map)
+    (compilation-start deploy-cmd)))
+
+(defun projectile-release-project (&optional root-dir)
+  "Run project release command.
+
+Force path with ROOT-DIR parameter."
+  (interactive "P")
+  (if root-dir
+      (setq projectile-project-root-dir root-dir)
+    (setq projectile-project-root-dir nil))
+  (let* ((project-root (projectile-project-root))
+	 (release-cmd (projectile-release-command project-root))
+	 (default-directory project-root))
+    (print (concat "Release cmd: " release-cmd))
+    (puthash project-root release-cmd projectile-release-cmd-map)
+    (compilation-start release-cmd)))
 
 ;; TODO - factor this duplication out
 (defun projectile-test-project (arg)
@@ -1458,7 +1546,7 @@ is chosen."
       (define-key prefix-map (kbd "d") 'projectile-find-dir)
       (define-key prefix-map (kbd "D") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
-      (define-key prefix-map (kbd "E") 'projectile-release)
+      (define-key prefix-map (kbd "E") 'projectile-release-project)
       (define-key prefix-map (kbd "f") 'projectile-find-file)
       (define-key prefix-map (kbd "g") 'projectile-grep)
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
@@ -1468,7 +1556,7 @@ is chosen."
       (define-key prefix-map (kbd "m") 'projectile-commander)
       (define-key prefix-map (kbd "o") 'projectile-multi-occur)
       (define-key prefix-map (kbd "p") 'projectile-test-project)
-      (define-key prefix-map (kbd "P") 'projectile-deploy)
+      (define-key prefix-map (kbd "P") 'projectile-deploy-project)
       (define-key prefix-map (kbd "r") 'projectile-replace)
       (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
       (define-key prefix-map (kbd "s") 'projectile-switch-project)
@@ -1504,6 +1592,8 @@ is chosen."
    "--"
    ["Compile project" projectile-compile-project]
    ["Test project" projectile-test-project]
+   ["Deploy project" projectile-deploy-project]
+   ["Release project" projectile-release-project]
    "--"
    ["About" projectile-version])
  "Search Files (Grep)...")
