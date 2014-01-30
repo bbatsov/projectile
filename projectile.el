@@ -881,11 +881,7 @@ With a prefix ARG invalidates the cache first."
      ((projectile-verify-files projectile-sbt) 'sbt)
      ((projectile-verify-files projectile-make) 'make)
      ((projectile-verify-files projectile-grunt) 'grunt)
-     ((projectile-verify-files projectile-grunt) 'grunt)
-     (t 'generic)
-     )
-    ;; 'grunt
-    ))
+     (t 'generic))))
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
@@ -1171,7 +1167,7 @@ For git projects `magit-status' is used if available."
 
 (defvar projectile-grunt-compile-cmd "grunt")
 (defvar projectile-grunt-deploy-cmd "grunt deploy")
-(defvar projectile-grunt-release-cmd "grunt --verbose bumpup")
+(defvar projectile-grunt-release-cmd "grunt bumpup")
 (defvar projectile-grunt-test-cmd "grunt test")
 
 (defvar projectile-compilation-cmd-map
@@ -1233,7 +1229,6 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grunt) projectile-grunt-test-cmd)
    (t projectile-make-test-cmd)))
 
-
 (defun projectile-compilation-command (project)
   "Retrieve the compilation command for PROJECT."
   (or (gethash project projectile-compilation-cmd-map)
@@ -1262,16 +1257,13 @@ variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
   (let* ((project-root (projectile-project-root))
-	 ;; (default-cmd (projectile-compilation-command project-root))
-	 (compilation-cmd (projectile-compilation-command project-root))
-	 ;; (compilation-cmd (if (or compilation-read-command arg)
-	 ;;		      (compilation-read-command default-cmd)
-	 ;;		    default-cmd))
+	 (default-cmd (projectile-compilation-command project-root))
+	 (compilation-cmd (if (or compilation-read-command arg)
+			      (compilation-read-command default-cmd)
+			    default-cmd))
 	 (default-directory project-root))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
-    (save-window-excursion
-    (compilation-start compilation-cmd))
-))
+    (compilation-start compilation-cmd)))
 
 (defun projectile-deploy-project (arg)
   "Run project deploy command.
@@ -1301,7 +1293,9 @@ Force path with ROOT-DIR parameter."
 	 (release-cmd (projectile-release-command project-root))
 	 (default-directory project-root))
     (puthash project-root release-cmd projectile-release-cmd-map)
+    ;; (save-window-excursion
     (compilation-start release-cmd)))
+;; )
 
 ;; TODO - factor this duplication out
 (defun projectile-test-project (arg)
