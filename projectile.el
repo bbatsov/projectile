@@ -959,7 +959,7 @@ With a prefix ARG invalidates the cache first."
    ((member project-type '(django python)) "test_")))
 
 (defun projectile-test-suffix (project-type)
-  "Find default test files prefix based on PROJECT-TYPE."
+  "Find default test files suffix based on PROJECT-TYPE."
   (cond
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
    ((member project-type '(rails-test ruby-test lein)) "_test")
