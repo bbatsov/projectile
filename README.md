@@ -386,7 +386,7 @@ been idle for `projectile-idle-timer-seconds` seconds (default is 30
 seconds).  To enable this feature, run:
 
 ```
-M-x customize-group projectile RET
+M-x customize-group RET projectile RET
 ```
 
 and set `projectile-enable-idle-timer` to non-nil.  By default,
