@@ -384,19 +384,24 @@ Returns nil if no window configuration was found"
     (projectile-restore-window-config (projectile-project-name))))
 
 
+(defvar projectile-project-root-dir nil)
+
 ;;; Project root related utilities
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (let ((project-root
-         (or (->> projectile-project-root-files
-               (--map (locate-dominating-file (file-truename default-directory) it))
-               (-remove #'null)
-               (car)
-               (projectile-file-truename))
-             (if projectile-require-project-root
-                 (error "You're not in a project")
-               default-directory))))
+  (let* ((default-directory (if projectile-project-root-dir
+                                projectile-project-root-dir
+                              default-directory))
+         (project-root
+          (or (->> projectile-project-root-files
+                (--map (locate-dominating-file (file-truename default-directory) it))
+                (-remove #'null)
+                (car)
+                (projectile-file-truename))
+              (if projectile-require-project-root
+                  (error "You're not in a project")
+                default-directory))))
     project-root))
 
 (defun projectile-file-truename (file-name)
