@@ -394,7 +394,6 @@ Returns nil if no window configuration was found"
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (print (concat "default dir: " default-directory))
   (let* ((default-directory (if projectile-project-root-dir
 			       projectile-project-root-dir
 			     default-directory))
@@ -408,7 +407,6 @@ The current directory is assumed to be the project's root otherwise."
 		 (error "You're not in a project")
 	       default-directory))))
     project-root))
-
 
 (defun projectile-file-truename (file-name)
   "A thin wrapper around `file-truename' that handles nil or FILE-NAME."
@@ -1302,7 +1300,6 @@ Force path with ROOT-DIR parameter."
   (let* ((project-root (projectile-project-root))
 	 (release-cmd (projectile-release-command project-root))
 	 (default-directory project-root))
-    (print (concat "Release cmd: " release-cmd))
     (puthash project-root release-cmd projectile-release-cmd-map)
     (compilation-start release-cmd)))
 
