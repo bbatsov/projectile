@@ -214,16 +214,12 @@ If no configuration exists, just run `projectile-switch-project-action' as usual
 (defvar projectile-idle-timer nil
   "The timer object created when `project-enable-idle-timer' is non-nil.")
 
-(defun projectile-idle-regenerate-tags ()
-  "Regenerate the project's tags if in a project."
-  (projectile-regenerate-tags))
-
 (defcustom projectile-idle-timer-seconds 30
   "The idle period to use when `projectile-enable-idle-timer' is non-nil."
   :group 'projectile
   :type 'number)
 
-(defcustom projectile-idle-timer-hook '(projectile-idle-regenerate-tags)
+(defcustom projectile-idle-timer-hook '(projectile-regenerate-tags)
   "The hook run when `projectile-enable-idle-timer' is non-nil."
   :group 'projectile
   :type '(repeat symbol))
