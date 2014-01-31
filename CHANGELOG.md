@@ -4,6 +4,9 @@
 
 ### New features
 
+* New variable `projectile-enable-idle-timer` turns on an idle timer
+  which runs the hook `projectile-idle-timer-hook` every
+  `projectile-idle-timer-seconds` seconds when non-nil.
 * New defcustom `projectile-remember-window-configs` will make
   `projectile-switch-project` restore the most recent window configuration (if
   any) of the target project.
