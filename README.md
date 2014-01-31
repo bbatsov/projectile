@@ -378,6 +378,25 @@ Obviously you need to have Helm installed for this to work :-)
 
 ![Helm-Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png)
 
+### Idle Timer
+
+Projectile can be configured to run the hook
+`projectile-idle-timer-hook` every time Emacs is in a project and has
+been idle for `projectile-idle-timer-seconds` seconds (default is 30
+seconds).  To enable this feature, run:
+
+```
+M-x customize-group RET projectile RET
+```
+
+and set `projectile-enable-idle-timer` to non-nil.  By default,
+`projectile-idle-timer-hook` runs `projectile-regenerate-tags`.  Add
+additional functions to the hook using `add-hook`:
+
+```lisp
+(add-hook 'projectile-idle-timer-hook 'my-projectile-idle-timer-function)
+```
+
 ## Caveats
 
 * Traversing the project directory programmatically (instead of using
