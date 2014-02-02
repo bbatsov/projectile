@@ -281,6 +281,7 @@ Keybinding         | Description
 <kbd>C-c p c</kbd> | Runs a standard compilation command for your type of project.
 <kbd>C-c p p</kbd> | Runs a standard test command for your type of project.
 <kbd>C-c p t</kbd> | Toggle between an implementation file and its test file.
+<kbd>C-c p 4 t</kbd> | Jump to implementation or test file in other window.
 <kbd>C-c p z</kbd> | Adds the currently visited to the cache.
 <kbd>C-c p s</kbd> | Display a list of known projects you can switch to.
 <kbd>C-c p m</kbd> | Run the commander (an interface to run commands with a single key).
