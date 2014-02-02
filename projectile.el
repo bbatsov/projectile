@@ -193,7 +193,7 @@ Any function that does not take arguments will do."
   :type 'symbol)
 
 (defcustom projectile-find-dir-includes-top-level nil
-  "If true, add top-level dir to options offered by `projectile-find-dir'."
+  "If true, add option `top-level' dir to options offered by `projectile-find-dir'."
   :group 'projectile
   :type 'boolean)
 
@@ -438,7 +438,7 @@ The current directory is assumed to be the project's root otherwise."
     project-root))
 
 (defun projectile-file-truename (file-name)
-  "A thin wrapper around `file-truename' that handles nil."
+  "A thin wrapper around `file-truename' that handles FILE-NAME or nil."
   (when file-name
     (file-truename file-name)))
 
@@ -1050,7 +1050,7 @@ With a prefix ARG invalidates the cache first."
                          (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
                        (projectile-ignored-directories)))))
         (ack-and-a-half regexp t (projectile-project-root)))
-    (error "ack-and-a-half not available")))
+    (error "Function ack-and-a-half not available")))
 
 (defun projectile-ag (regexp)
   "Run an ag search with REGEXP in the project."
