@@ -155,7 +155,7 @@ Otherwise consider the current directory the project root."
     ".fslckout"
     ".bzr"
     "_darcs"
-    "venv"
+    ".tox"
     "build")
   "A list of directories globally ignored by projectile."
   :group 'projectile
@@ -1182,10 +1182,10 @@ For git projects `magit-status' is used if available."
 (defvar projectile-ruby-compile-cmd "bundle exec rake build")
 (defvar projectile-ruby-test-cmd "bundle exec rake test")
 (defvar projectile-ruby-rspec-cmd "bundle exec rspec")
-(defvar projectile-django-compile-cmd "venv/bin/python manage.py runserver")
-(defvar projectile-django-test-cmd "venv/bin/python manage.py test")
-(defvar projectile-python-compile-cmd "venv/bin/python setup.py build")
-(defvar projectile-python-test-cmd "venv/bin/python -m unittest discover")
+(defvar projectile-django-compile-cmd "python manage.py runserver")
+(defvar projectile-django-test-cmd "python manage.py test")
+(defvar projectile-python-compile-cmd "python setup.py build")
+(defvar projectile-python-test-cmd "python -m unittest discover")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
 (defvar projectile-maven-compile-cmd "mvn clean install")
