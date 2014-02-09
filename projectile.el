@@ -155,6 +155,7 @@ Otherwise consider the current directory the project root."
     ".fslckout"
     ".bzr"
     "_darcs"
+    ".tox"
     "build")
   "A list of directories globally ignored by projectile."
   :group 'projectile
