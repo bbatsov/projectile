@@ -1082,25 +1082,39 @@ With a prefix ARG asks for files (globbing-aware) which to grep in."
              (projectile-ignored-directories-rel) " "))
 
 (defun projectile-regenerate-tags ()
-  "Regenerate the project's etags."
+  "Regenerate the project's [e|g]tags."
   (interactive)
-  (let* ((project-root (projectile-project-root))
-         (tags-exclude (projectile-tags-exclude-patterns))
-         (default-directory project-root))
-    (shell-command (format projectile-tags-command tags-exclude))
-    (visit-tags-table project-root t)))
+  (if (boundp 'ggtags-mode)
+      (progn
+        (let* ((ggtags-project-root (projectile-project-root))
+               (default-directory ggtags-project-root))
+          (ggtags-ensure-project)
+          (ggtags-update-tags t)))
+    (let* ((project-root (projectile-project-root))
+           (tags-exclude (projectile-tags-exclude-patterns))
+           (default-directory project-root))
+      (shell-command (format projectile-tags-command tags-exclude))
+      (visit-tags-table project-root t))))
 
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
-  (visit-tags-table (projectile-project-root) t)
-  (tags-completion-table)
-  (let (tag-names)
-    (mapc (lambda (x)
-            (unless (integerp x)
-              (push (prin1-to-string x t) tag-names)))
-          tags-completion-table)
-    (find-tag (projectile-completing-read "Find tag: " tag-names))))
+  (let ((tags (if (boundp 'ggtags-mode)
+                  (progn
+                    (ggtags-completion-table)
+                    (projectile--tags ggtags-completion-table))
+                (visit-tags-table (projectile-project-root) t)
+                (tags-completion-table)
+                (projectile--tags tags-completion-table))))
+    (find-tag (projectile-completing-read "Find tag: " tags))))
+
+(defun projectile--tags (completion-table)
+  "Find tags using COMPLETION-TABLE."
+  (-reject 'null
+           (-map (lambda (x)
+                   (unless (integerp x)
+                     (prin1-to-string x t)))
+                 completion-table)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
@@ -1516,7 +1530,7 @@ is chosen."
   (projectile-vc))
 
 (def-projectile-commander-method ?R
-  "Regenerate the project's etags."
+  "Regenerate the project's [e|g]tags."
   (projectile-regenerate-tags))
 
 (def-projectile-commander-method ?g
@@ -1598,7 +1612,7 @@ is chosen."
    "--"
    ["Cache current file" projectile-cache-current-file]
    ["Invalidate cache" projectile-invalidate-cache]
-   ["Regenerate etags" projectile-regenerate-tags]
+   ["Regenerate [e|g]tags" projectile-regenerate-tags]
    "--"
    ["Compile project" projectile-compile-project]
    ["Test project" projectile-test-project]
