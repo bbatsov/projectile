@@ -1075,7 +1075,8 @@ With a prefix ARG invalidates the cache first."
          (tags-exclude (projectile-tags-exclude-patterns))
          (default-directory project-root))
     (shell-command (format projectile-tags-command tags-exclude))
-    (visit-tags-table project-root t)))
+    (if (not (and (boundp 'gtags-mode) gtags-mode))
+    (visit-tags-table project-root t))))
 
 (defun projectile-find-tag ()
   "Find tag in project."
