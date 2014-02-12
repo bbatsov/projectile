@@ -438,7 +438,8 @@ The current directory is assumed to be the project's root otherwise."
     project-root))
 
 (defun projectile-file-truename (file-name)
-  "A thin wrapper around `file-truename' that handles nil."
+  "Return the truename of FILE-NAME.
+A thin wrapper around `file-truename' that handles nil."
   (when file-name
     (file-truename file-name)))
 
