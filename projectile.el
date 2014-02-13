@@ -1108,6 +1108,51 @@ With a prefix ARG invalidates the cache first."
     (-filter (lambda (file) (s-starts-with-p dir file))
              (projectile-current-project-files))))
 
+(defun projectile-unixy-system-p ()
+  "Check to see if unixy text utilities are installed."
+  (--all? (executable-find it) '("grep" "cut" "uniq")))
+
+(defun projectile-files-from-cmd (cmd directory)
+  "Use a grep-like CMD to search for files within DIRECTORY.
+
+CMD should include the necessary search params and should output
+equivalently to grep -H (colon-deliminated, with the relative
+filename as the first column).  Returns a list of expanded
+filenames."
+  (let ((default-directory directory))
+    (->> (s-trim (shell-command-to-string
+                  (concat cmd " | cut -d: -f1 | uniq")))
+      (s-split "\n+")
+      (-filter 's-present?)
+      (--map (concat directory (s-chop-prefix "./" it))))))
+
+(defun projectile-files-with-string (string directory)
+  "Return a list of all files containing STRING in DIRECTORY.
+
+Tries to use ag, ack, git-grep, and grep in that order.  If those
+are impossible (for instance on Windows), returns a list of all
+files in the project."
+  (if (projectile-unixy-system-p)
+      (let* ((search-term (shell-quote-argument string))
+             (cmd (cond ((executable-find "ag")
+                         (concat "ag --literal --nocolor --noheading -- "
+                                 search-term))
+                        ((executable-find "ack")
+                         (concat "ack --noheading --nocolor -- "
+                                 search-term))
+                        ((and (executable-find "git")
+                              (eq (projectile-project-vcs) 'git))
+                         (concat "git grep -H "
+                                 search-term))
+                        (t
+                         (concat "grep -rH "
+                                 search-term
+                                 " .")))))
+        (projectile-files-from-cmd cmd directory))
+    ;; we have to reject directories as a workaround to work with git submodules
+    (-reject 'file-directory-p
+             (-map 'projectile-expand-root (projectile-dir-files directory)))))
+
 (defun projectile-replace (arg)
   "Replace a string in the project using `tags-query-replace'.
 
@@ -1119,14 +1164,11 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
-         (files (if arg
-                    (-map 'projectile-expand-root
-                          (projectile-files-in-project-directory
-                           (read-directory-name "Replace in directory: ")))
-                  (-map 'projectile-expand-root
-                        (projectile-current-project-files)))))
-    ;; we have to reject directories as a workaround to work with git submodules
-    (tags-query-replace old-text new-text nil '(-reject 'file-directory-p files))))
+         (directory (if arg
+                        (read-directory-name "Replace in directory: ")
+                      (projectile-project-root)))
+         (files (projectile-files-with-string old-text directory)))
+    (tags-query-replace old-text new-text nil 'files)))
 
 (defun projectile-symbol-at-point ()
   "Get the symbol at point and strip its properties."
