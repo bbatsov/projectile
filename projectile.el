@@ -1036,6 +1036,7 @@ With a prefix ARG invalidates the cache first."
           (grep-compute-defaults)
           (rgrep search-regexp "* .*" root-dir))))))
 
+(defvar ack-and-a-half-arguments)
 (defun projectile-ack (regexp)
   "Run an ack search with REGEXP in the project."
   (interactive
