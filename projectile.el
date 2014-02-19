@@ -1349,8 +1349,7 @@ With a prefix ARG invokes `projectile-commander' instead of
           (funcall switch-project-action)
           (delete-other-windows))
       (funcall switch-project-action))
-    (let ((project-switched project-to-switch))
-      (run-hooks 'projectile-switch-project-hook))))
+    (run-hooks 'projectile-switch-project-hook)))
 
 (defun projectile-find-file-in-directory ()
   "Jump to a file in a (maybe regular) directory.
@@ -1370,9 +1369,7 @@ This command will first prompt for the directory the file is in."
       (projectile-find-file))))
 
 (defcustom projectile-switch-project-hook nil
-  "Hooks run when project is switched.
-
-The path to the opened project is available as PROJECT-SWITCHED"
+  "Hooks run when project is switched."
   :group 'projectile
   :type 'hook)
 
