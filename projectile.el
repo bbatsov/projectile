@@ -1,4 +1,4 @@
-;;; projectile.el --- Manage and navigate projects in Emacs easily
+;;; projectile.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
 
 ;; Copyright © 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>
 
@@ -796,7 +796,7 @@ https://github.com/d11wtq/grizzl")))
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
   (let (allkeys)
-    (maphash (lambda (k v) (setq allkeys (cons k allkeys))) hash)
+    (maphash (lambda (k _v) (setq allkeys (cons k allkeys))) hash)
     allkeys))
 
 
@@ -895,23 +895,22 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
-  (let ((project-root (projectile-project-root)))
-    (cond
-     ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
-     ((projectile-verify-files projectile-rails-test) 'rails-test)
-     ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
-     ((projectile-verify-files projectile-ruby-test) 'ruby-test)
-     ((projectile-verify-files projectile-django) 'django)
-     ((projectile-verify-files projectile-python-pip)'python)
-     ((projectile-verify-files projectile-python-egg) 'python)
-     ((projectile-verify-files projectile-symfony) 'symfony)
-     ((projectile-verify-files projectile-maven) 'maven)
-     ((projectile-verify-files projectile-lein) 'lein)
-     ((projectile-verify-files projectile-rebar) 'rebar)
-     ((projectile-verify-files projectile-sbt) 'sbt)
-     ((projectile-verify-files projectile-make) 'make)
-     ((projectile-verify-files projectile-grunt) 'grunt)
-     (t 'generic))))
+  (cond
+   ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
+   ((projectile-verify-files projectile-rails-test) 'rails-test)
+   ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
+   ((projectile-verify-files projectile-ruby-test) 'ruby-test)
+   ((projectile-verify-files projectile-django) 'django)
+   ((projectile-verify-files projectile-python-pip)'python)
+   ((projectile-verify-files projectile-python-egg) 'python)
+   ((projectile-verify-files projectile-symfony) 'symfony)
+   ((projectile-verify-files projectile-maven) 'maven)
+   ((projectile-verify-files projectile-lein) 'lein)
+   ((projectile-verify-files projectile-rebar) 'rebar)
+   ((projectile-verify-files projectile-sbt) 'sbt)
+   ((projectile-verify-files projectile-make) 'make)
+   ((projectile-verify-files projectile-grunt) 'grunt)
+   (t 'generic)))
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
@@ -997,7 +996,6 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
   (let ((basename (file-name-nondirectory (file-name-sans-extension file)))
-        (extension (file-name-extension file))
         (test-affix (projectile-test-affix (projectile-project-type))))
       (-first (lambda (current-file)
                 (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
@@ -1008,7 +1006,6 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
   (let ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-        (extension (file-name-extension test-file))
         (test-affix (projectile-test-affix (projectile-project-type))))
     (-first (lambda (current-file)
               (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
