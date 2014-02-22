@@ -1033,14 +1033,13 @@ With a prefix ARG invalidates the cache first."
           (grep-compute-defaults)
           (rgrep search-regexp "* .*" root-dir))))))
 
-(defvar ack-and-a-half-arguments)
 (defun projectile-ack (regexp)
   "Run an ack search with REGEXP in the project."
   (interactive
    (list (read-from-minibuffer
           (projectile-prepend-project-name "Ack search for: ")
           (projectile-symbol-at-point))))
-  (if (fboundp 'ack-and-a-half)
+  (if (require 'ack-and-a-half nil 'noerror)
       (let* ((saved-arguments ack-and-a-half-arguments)
              (ack-and-a-half-arguments
               (append saved-arguments
