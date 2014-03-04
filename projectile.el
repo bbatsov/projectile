@@ -1165,6 +1165,7 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
                         (read-directory-name "Replace in directory: ")
                       (projectile-project-root)))
          (files (projectile-files-with-string old-text directory)))
+    ;; 'files is intentional - the functions expects a form to evaluate
     (tags-query-replace old-text new-text nil 'files)))
 
 (defun projectile-symbol-at-point ()
