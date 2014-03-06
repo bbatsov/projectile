@@ -1013,25 +1013,28 @@ With a prefix ARG invalidates the cache first."
                     (s-equals? (concat current-file-basename test-affix) basename))))
             (projectile-current-project-files))))
 
-(defun projectile-grep ()
-  "Perform rgrep in the project."
-  (interactive)
+(defun projectile-grep (&optional arg)
+  "Perform rgrep in the project.
+
+With a prefix ARG asks for files (globbing-aware) which to grep in."
+  (interactive "P")
   (let ((roots (projectile-get-project-directories))
         (search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
                          (read-string (projectile-prepend-project-name "Grep for: ")
-                                      (projectile-symbol-at-point)))))
+                                      (projectile-symbol-at-point))))
+        (files (and arg (read-string (projectile-prepend-project-name "Grep in: ")))))
     (dolist (root-dir roots)
       (require 'grep)
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
       (if (and (eq (projectile-project-vcs) 'git) projectile-use-git-grep)
-          (vc-git-grep search-regexp "" root-dir)
+          (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir root-dir)))
                                                            (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
               (grep-find-ignored-files (-union (-map (lambda (file) (file-relative-name file root-dir)) (projectile-ignored-files)) grep-find-ignored-files)))
           (grep-compute-defaults)
-          (rgrep search-regexp "* .*" root-dir))))))
+          (rgrep search-regexp (or files "* .*") root-dir))))))
 
 (defun projectile-ack (regexp)
   "Run an ack search with REGEXP in the project."
