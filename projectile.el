@@ -1545,10 +1545,6 @@ is chosen."
 (def-projectile-commander-method ?e
   "Find recently visited file in project."
   (projectile-recentf))
-
-(def-projectile-commander-method ?ESC
-  "Switch to the most recently selected project buffer."
-  (call-interactively 'projectile-project-buffers-other-buffer))
 
 ;;; Minor mode
 (defvar projectile-mode-map
