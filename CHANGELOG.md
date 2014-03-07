@@ -4,6 +4,9 @@
 
 ### New features
 
+* Added new interacive function `projectile-project-buffers-other-buffer`
+  which runs new `projectile-project-buffers-non-visible` function, the former
+  is bound to C-c p ESC.
 * New variable `projectile-enable-idle-timer` turns on an idle timer
   which runs the hook `projectile-idle-timer-hook` every
   `projectile-idle-timer-seconds` seconds when non-nil.
