@@ -1074,7 +1074,9 @@ With a prefix ARG asks for files (globbing-aware) which to grep in."
   (interactive)
   (if (and (boundp 'ggtags-mode) ggtags-mode)
       (progn
-        (let* ((default-directory project-root))
+        (let* ((ggtags-project-root (projectile-project-root))
+               (default-directory ggtags-project-root))
+          (ggtags-ensure-project)
           (ggtags-update-tags t)))
     (let* ((project-root (projectile-project-root))
            (tags-exclude (projectile-tags-exclude-patterns))
