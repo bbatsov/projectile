@@ -20,7 +20,8 @@ for git projects.
   `projectile-find-implementation-or-test-other-window`, the later is
   bound to `C-c p 4 t`.
 * New defcustoms `projectile-test-prefix-function` and `projectile-test-suffix-function`
-  allow users to customize how projectile identifies test files by project type.
+allow users to customize how projectile identifies test files by project type.
+* `projectile-grep` will ask for a file pattern if invoked with a prefix argument.
 
 ### Changes
 

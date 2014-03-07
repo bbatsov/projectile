@@ -4,4 +4,5 @@
 (package-file "projectile.el")
 
 (development
- (depends-on "noflet"))
+ (depends-on "noflet")
+ (depends-on "ack-and-a-half"))
