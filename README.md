@@ -6,7 +6,7 @@
 provide a nice set of features operating on a project level without
 introducing external dependencies(when feasible). For instance -
 finding project files has a portable implementation written in pure
-Emacs Lisp without the use of GNU `find`(but for performance sake an
+Emacs Lisp without the use of GNU `find` (but for performance sake an
 indexing mechanism backed by external commands exists as well).
 
 Projectile tries to be practical - portability is great, but if some
@@ -99,7 +99,7 @@ as the `native indexing method`) and the other relies on external
 commands like `find`, `git`, etc to obtain the list of files in a
 project.
 
-Since the native indexing mode is much slower, but default the second
+Since the native indexing mode is much slower, by default the second
 method is used on all operating systems except Windows. To force the
 use of native indexing:
 
@@ -282,7 +282,7 @@ Keybinding         | Description
 <kbd>C-c p p</kbd> | Runs a standard test command for your type of project.
 <kbd>C-c p t</kbd> | Toggle between an implementation file and its test file.
 <kbd>C-c p 4 t</kbd> | Jump to implementation or test file in other window.
-<kbd>C-c p z</kbd> | Adds the currently visited to the cache.
+<kbd>C-c p z</kbd> | Adds the currently visited file to the cache.
 <kbd>C-c p s</kbd> | Display a list of known projects you can switch to.
 <kbd>C-c p m</kbd> | Run the commander (an interface to run commands with a single key).
 

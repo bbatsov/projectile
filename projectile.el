@@ -1,4 +1,4 @@
-;;; projectile.el --- Manage and navigate projects in Emacs easily
+;;; projectile.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
 
 ;; Copyright © 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>
 
@@ -438,7 +438,8 @@ The current directory is assumed to be the project's root otherwise."
     project-root))
 
 (defun projectile-file-truename (file-name)
-  "A thin wrapper around `file-truename' that handles nil."
+  "Return the truename of FILE-NAME.
+A thin wrapper around `file-truename' that handles nil."
   (when file-name
     (file-truename file-name)))
 
@@ -795,7 +796,7 @@ https://github.com/d11wtq/grizzl")))
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
   (let (allkeys)
-    (maphash (lambda (k v) (setq allkeys (cons k allkeys))) hash)
+    (maphash (lambda (k _v) (setq allkeys (cons k allkeys))) hash)
     allkeys))
 
 
@@ -894,23 +895,22 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
-  (let ((project-root (projectile-project-root)))
-    (cond
-     ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
-     ((projectile-verify-files projectile-rails-test) 'rails-test)
-     ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
-     ((projectile-verify-files projectile-ruby-test) 'ruby-test)
-     ((projectile-verify-files projectile-django) 'django)
-     ((projectile-verify-files projectile-python-pip)'python)
-     ((projectile-verify-files projectile-python-egg) 'python)
-     ((projectile-verify-files projectile-symfony) 'symfony)
-     ((projectile-verify-files projectile-maven) 'maven)
-     ((projectile-verify-files projectile-lein) 'lein)
-     ((projectile-verify-files projectile-rebar) 'rebar)
-     ((projectile-verify-files projectile-sbt) 'sbt)
-     ((projectile-verify-files projectile-make) 'make)
-     ((projectile-verify-files projectile-grunt) 'grunt)
-     (t 'generic))))
+  (cond
+   ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
+   ((projectile-verify-files projectile-rails-test) 'rails-test)
+   ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
+   ((projectile-verify-files projectile-ruby-test) 'ruby-test)
+   ((projectile-verify-files projectile-django) 'django)
+   ((projectile-verify-files projectile-python-pip)'python)
+   ((projectile-verify-files projectile-python-egg) 'python)
+   ((projectile-verify-files projectile-symfony) 'symfony)
+   ((projectile-verify-files projectile-lein) 'lein)
+   ((projectile-verify-files projectile-maven) 'maven)
+   ((projectile-verify-files projectile-rebar) 'rebar)
+   ((projectile-verify-files projectile-sbt) 'sbt)
+   ((projectile-verify-files projectile-make) 'make)
+   ((projectile-verify-files projectile-grunt) 'grunt)
+   (t 'generic)))
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
@@ -996,7 +996,6 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
   (let ((basename (file-name-nondirectory (file-name-sans-extension file)))
-        (extension (file-name-extension file))
         (test-affix (projectile-test-affix (projectile-project-type))))
       (-first (lambda (current-file)
                 (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
@@ -1007,7 +1006,6 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
   (let ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-        (extension (file-name-extension test-file))
         (test-affix (projectile-test-affix (projectile-project-type))))
     (-first (lambda (current-file)
               (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
@@ -1015,25 +1013,28 @@ With a prefix ARG invalidates the cache first."
                     (s-equals? (concat current-file-basename test-affix) basename))))
             (projectile-current-project-files))))
 
-(defun projectile-grep ()
-  "Perform rgrep in the project."
-  (interactive)
+(defun projectile-grep (&optional arg)
+  "Perform rgrep in the project.
+
+With a prefix ARG asks for files (globbing-aware) which to grep in."
+  (interactive "P")
   (let ((roots (projectile-get-project-directories))
         (search-regexp (if (and transient-mark-mode mark-active)
                            (buffer-substring (region-beginning) (region-end))
                          (read-string (projectile-prepend-project-name "Grep for: ")
-                                      (projectile-symbol-at-point)))))
+                                      (projectile-symbol-at-point))))
+        (files (and arg (read-string (projectile-prepend-project-name "Grep in: ")))))
     (dolist (root-dir roots)
       (require 'grep)
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
       (if (and (eq (projectile-project-vcs) 'git) projectile-use-git-grep)
-          (vc-git-grep search-regexp "'*'" root-dir)
+          (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir root-dir)))
                                                            (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
               (grep-find-ignored-files (-union (-map (lambda (file) (file-relative-name file root-dir)) (projectile-ignored-files)) grep-find-ignored-files)))
           (grep-compute-defaults)
-          (rgrep search-regexp "* .*" root-dir))))))
+          (rgrep search-regexp (or files "* .*") root-dir))))))
 
 (defun projectile-ack (regexp)
   "Run an ack search with REGEXP in the project."
@@ -1041,7 +1042,7 @@ With a prefix ARG invalidates the cache first."
    (list (read-from-minibuffer
           (projectile-prepend-project-name "Ack search for: ")
           (projectile-symbol-at-point))))
-  (if (fboundp 'ack-and-a-half)
+  (if (require 'ack-and-a-half nil 'noerror)
       (let* ((saved-arguments ack-and-a-half-arguments)
              (ack-and-a-half-arguments
               (append saved-arguments
@@ -1108,6 +1109,51 @@ With a prefix ARG invalidates the cache first."
     (-filter (lambda (file) (s-starts-with-p dir file))
              (projectile-current-project-files))))
 
+(defun projectile-unixy-system-p ()
+  "Check to see if unixy text utilities are installed."
+  (--all? (executable-find it) '("grep" "cut" "uniq")))
+
+(defun projectile-files-from-cmd (cmd directory)
+  "Use a grep-like CMD to search for files within DIRECTORY.
+
+CMD should include the necessary search params and should output
+equivalently to grep -H (colon-deliminated, with the relative
+filename as the first column).  Returns a list of expanded
+filenames."
+  (let ((default-directory directory))
+    (->> (s-trim (shell-command-to-string
+                  (concat cmd " | cut -d: -f1 | uniq")))
+      (s-split "\n+")
+      (-filter 's-present?)
+      (--map (concat directory (s-chop-prefix "./" it))))))
+
+(defun projectile-files-with-string (string directory)
+  "Return a list of all files containing STRING in DIRECTORY.
+
+Tries to use ag, ack, git-grep, and grep in that order.  If those
+are impossible (for instance on Windows), returns a list of all
+files in the project."
+  (if (projectile-unixy-system-p)
+      (let* ((search-term (shell-quote-argument string))
+             (cmd (cond ((executable-find "ag")
+                         (concat "ag --literal --nocolor --noheading -- "
+                                 search-term))
+                        ((executable-find "ack")
+                         (concat "ack --noheading --nocolor -- "
+                                 search-term))
+                        ((and (executable-find "git")
+                              (eq (projectile-project-vcs) 'git))
+                         (concat "git grep -H "
+                                 search-term))
+                        (t
+                         (concat "grep -rH "
+                                 search-term
+                                 " .")))))
+        (projectile-files-from-cmd cmd directory))
+    ;; we have to reject directories as a workaround to work with git submodules
+    (-reject 'file-directory-p
+             (-map 'projectile-expand-root (projectile-dir-files directory)))))
+
 (defun projectile-replace (arg)
   "Replace a string in the project using `tags-query-replace'.
 
@@ -1119,14 +1165,11 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
-         (files (if arg
-                    (-map 'projectile-expand-root
-                          (projectile-files-in-project-directory
-                           (read-directory-name "Replace in directory: ")))
-                  (-map 'projectile-expand-root
-                        (projectile-current-project-files)))))
-    ;; we have to reject directories as a workaround to work with git submodules
-    (tags-query-replace old-text new-text nil '(-reject 'file-directory-p files))))
+         (directory (if arg
+                        (read-directory-name "Replace in directory: ")
+                      (projectile-project-root)))
+         (files (projectile-files-with-string old-text directory)))
+    (tags-query-replace old-text new-text nil (cons 'list files))))
 
 (defun projectile-symbol-at-point ()
   "Get the symbol at point and strip its properties."
@@ -1309,8 +1352,7 @@ With a prefix ARG invokes `projectile-commander' instead of
           (funcall switch-project-action)
           (delete-other-windows))
       (funcall switch-project-action))
-    (let ((project-switched project-to-switch))
-      (run-hooks 'projectile-switch-project-hook))))
+    (run-hooks 'projectile-switch-project-hook)))
 
 (defun projectile-find-file-in-directory ()
   "Jump to a file in a (maybe regular) directory.
@@ -1330,9 +1372,7 @@ This command will first prompt for the directory the file is in."
       (projectile-find-file))))
 
 (defcustom projectile-switch-project-hook nil
-  "Hooks run when project is switched.
-
-The path to the opened project is available as PROJECT-SWITCHED"
+  "Hooks run when project is switched."
   :group 'projectile
   :type 'hook)
 
