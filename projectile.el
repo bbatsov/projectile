@@ -1070,14 +1070,15 @@ With a prefix ARG asks for files (globbing-aware) which to grep in."
              (projectile-ignored-directories-rel) " "))
 
 (defun projectile-regenerate-tags ()
-  "Regenerate the project's etags."
+  "Regenerate the project's [e|g]tags."
   (interactive)
   (let* ((project-root (projectile-project-root))
          (tags-exclude (projectile-tags-exclude-patterns))
          (default-directory project-root))
     (shell-command (format projectile-tags-command tags-exclude))
-    (if (not (and (boundp 'gtags-mode) gtags-mode))
-    (visit-tags-table project-root t))))
+    (if (and (boundp 'ggtags-mode) ggtags-mode)
+        (ggtags-visit-project-root t)
+      (visit-tags-table project-root t))))
 
 (defun projectile-find-tag ()
   "Find tag in project."
@@ -1505,7 +1506,7 @@ is chosen."
   (projectile-vc))
 
 (def-projectile-commander-method ?R
-  "Regenerate the project's etags."
+  "Regenerate the project's [e|g]tags."
   (projectile-regenerate-tags))
 
 (def-projectile-commander-method ?g
@@ -1587,7 +1588,7 @@ is chosen."
    "--"
    ["Cache current file" projectile-cache-current-file]
    ["Invalidate cache" projectile-invalidate-cache]
-   ["Regenerate etags" projectile-regenerate-tags]
+   ["Regenerate [e|g]tags" projectile-regenerate-tags]
    "--"
    ["Compile project" projectile-compile-project]
    ["Test project" projectile-test-project]
