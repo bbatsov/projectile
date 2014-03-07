@@ -639,6 +639,21 @@ Operates on filenames relative to the project root."
     "Switch to buffer: "
     (projectile-project-buffer-names))))
 
+  (defun projectile-project-buffers-other-buffer ()
+    "Switch to the most recently selected projectile buffer other than the
+current one. Only buffers not visible in windows are returned."
+    (interactive)
+    (switch-to-buffer (car (projectile-project-buffers-non-visible))) nil t)
+
+  (defun projectile-project-buffers-non-visible ()
+    "Get a list of non visible project buffers."
+    (let ((project-root (projectile-project-root)))
+      (-filter (lambda (buffer)
+                 (and
+                  (projectile-project-buffer-p buffer project-root)
+                  (not (get-buffer-window buffer 'visible))))
+               (buffer-list))))
+
 (defun projectile-multi-occur ()
   "Do a `multi-occur' in the project's buffers."
   (interactive)
@@ -1530,7 +1545,6 @@ is chosen."
 (def-projectile-commander-method ?e
   "Find recently visited file in project."
   (projectile-recentf))
-
 
 ;;; Minor mode
 (defvar projectile-mode-map
@@ -1562,6 +1576,7 @@ is chosen."
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
       (define-key prefix-map (kbd "v") 'projectile-vc)
       (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
+      (define-key prefix-map (kbd "ESC") 'projectile-project-buffers-other-buffer)
       (define-key map projectile-keymap-prefix prefix-map))
     map)
   "Keymap for Projectile mode.")
