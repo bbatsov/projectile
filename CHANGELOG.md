@@ -4,6 +4,8 @@
 
 ### New features
 
+* Added new commands `projectile-display-buffer`
+  and`projectile-find-dir-other-window`.
 * Added new interacive function `projectile-project-buffers-other-buffer`
   which runs new `projectile-project-buffers-non-visible` function, the former
   is bound to `C-c p ESC`.

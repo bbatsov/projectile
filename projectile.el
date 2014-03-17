@@ -640,6 +640,14 @@ Operates on filenames relative to the project root."
     "Switch to buffer: "
     (projectile-project-buffer-names))))
 
+(defun projectile-display-buffer ()
+  "Display a project buffer in another window without selecting it."
+  (interactive)
+  (display-buffer
+   (projectile-completing-read
+    "Display buffer: "
+    (projectile-project-buffer-names))))
+
 (defun projectile-project-buffers-other-buffer ()
   "Switch to the most recently selected buffer project buffer.
 Only buffers not visible in windows are returned."
@@ -845,13 +853,27 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (when arg
     (projectile-invalidate-cache nil))
-  (let ((dir (projectile-completing-read
-              "Find dir: "
-              (if projectile-find-dir-includes-top-level
-                  (append '("./") (projectile-current-project-dirs))
-                (projectile-current-project-dirs)))))
+  (let ((dir (projectile-complete-dir)))
     (dired (expand-file-name dir (projectile-project-root)))
     (run-hooks 'projectile-find-dir-hook)))
+
+(defun projectile-find-dir-other-window (&optional arg)
+  "Jump to a project's directory in other window using completion.
+
+With a prefix ARG invalidates the cache first."
+  (interactive "P")
+  (when arg
+    (projectile-invalidate-cache nil))
+  (let ((dir (projectile-complete-dir)))
+    (dired-other-window (expand-file-name dir (projectile-project-root)))
+    (run-hooks 'projectile-find-dir-hook)))
+
+(defun projectile-complete-dir ()
+  (projectile-completing-read
+   "Find dir: "
+   (if projectile-find-dir-includes-top-level
+       (append '("./") (projectile-current-project-dirs))
+     (projectile-current-project-dirs))))
 
 (defun projectile-find-test-file (&optional arg)
   "Jump to a project's test file using completion.
@@ -1563,6 +1585,7 @@ is chosen."
   (let ((map (make-sparse-keymap)))
     (let ((prefix-map (make-sparse-keymap)))
       (define-key prefix-map (kbd "4 b") 'projectile-switch-to-buffer-other-window)
+      (define-key prefix-map (kbd "4 C-o") 'projectile-display-buffer)
       (define-key prefix-map (kbd "4 f") 'projectile-find-file-other-window)
       (define-key prefix-map (kbd "4 t") 'projectile-find-implementation-or-test-other-window)
       (define-key prefix-map (kbd "a") 'projectile-ack)
@@ -1570,6 +1593,7 @@ is chosen."
       (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
       (define-key prefix-map (kbd "c") 'projectile-compile-project)
       (define-key prefix-map (kbd "d") 'projectile-find-dir)
+      (define-key prefix-map (kbd "4 d") 'projectile-find-dir-other-window)
       (define-key prefix-map (kbd "D") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "f") 'projectile-find-file)
