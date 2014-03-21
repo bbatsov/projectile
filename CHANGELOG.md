@@ -45,6 +45,7 @@ pointing to a version-controlled file.
 * `projectile-toggle-between-implementation-or-test` shows
 understandable error if current buffer is not visiting a file.
 * [#244] Correct folder picked up by `projectile-ack` after project-switch.
+* [#182] Invalidate project cache if .projectile is modified.
 
 ## 0.10.0 (12/09/2013)
 

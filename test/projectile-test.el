@@ -150,3 +150,10 @@
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
     (should (equal (projectile-tags-exclude-patterns)
                    "--exclude=.git --exclude=.hg"))))
+
+(ert-deftest projectile-test-maybe-invalidate ()
+  (noflet ((projectile-invalidate-cache (arg) t))
+    (should-not (projectile-maybe-invalidate-cache nil))
+    (should (projectile-maybe-invalidate-cache t))
+    (noflet ((file-newer-than-file-p (a b) t))
+      (should (projectile-maybe-invalidate-cache nil)))))
