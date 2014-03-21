@@ -383,6 +383,12 @@ The cache is created both in memory and on the hard drive."
     (projectile-add-known-project (projectile-project-root))
     (projectile-save-known-projects)))
 
+(defun projectile-maybe-invalidate-cache (force)
+  "Invalidate if FORCE or project's dirconfig newer than cache."
+  (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
+                                          projectile-cache-file))
+    (projectile-invalidate-cache nil)))
+
 
 ;;; Window configurations
 (defvar projectile-window-config-map
@@ -827,8 +833,7 @@ https://github.com/d11wtq/grizzl")))
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (when arg
-    (projectile-invalidate-cache nil))
+  (projectile-maybe-invalidate-cache arg)
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
     (find-file (expand-file-name file (projectile-project-root)))
@@ -839,8 +844,7 @@ With a prefix ARG invalidates the cache first."
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (when arg
-    (projectile-invalidate-cache nil))
+  (projectile-maybe-invalidate-cache arg)
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
     (find-file-other-window (expand-file-name file (projectile-project-root)))
@@ -851,8 +855,7 @@ With a prefix ARG invalidates the cache first."
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (when arg
-    (projectile-invalidate-cache nil))
+  (projectile-maybe-invalidate-cache arg)
   (let ((dir (projectile-complete-dir)))
     (dired (expand-file-name dir (projectile-project-root)))
     (run-hooks 'projectile-find-dir-hook)))
@@ -880,8 +883,7 @@ With a prefix ARG invalidates the cache first."
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (when arg
-    (projectile-invalidate-cache nil))
+  (projectile-maybe-invalidate-cache arg)
   (let ((file (projectile-completing-read "Find test file: "
                                           (projectile-current-project-test-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
