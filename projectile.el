@@ -1071,21 +1071,27 @@ With a prefix ARG asks for files (globbing-aware) which to grep in."
           (grep-compute-defaults)
           (rgrep search-regexp (or files "* .*") root-dir))))))
 
-(defun projectile-ack (regexp)
-  "Run an ack search with REGEXP in the project."
+(defun projectile-ack (regexp &optional arg)
+  "Run an ack search with REGEXP in the project.
+
+With a prefix argument ARG prompts you for a directory on which the search is performed."
   (interactive
    (list (read-from-minibuffer
           (projectile-prepend-project-name "Ack search for: ")
-          (projectile-symbol-at-point))))
+          (projectile-symbol-at-point))
+         current-prefix-arg))
   (if (require 'ack-and-a-half nil 'noerror)
       (let* ((saved-arguments ack-and-a-half-arguments)
+             (root (if arg 
+                       (projectile-complete-dir)
+                     (projectile-project-root)))
              (ack-and-a-half-arguments
               (append saved-arguments
                       (-map
                        (lambda (path)
                          (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
                        (projectile-ignored-directories)))))
-        (ack-and-a-half regexp t (projectile-project-root)))
+        (ack-and-a-half regexp t root))
     (error "ack-and-a-half not available")))
 
 (defun projectile-ag (regexp)
