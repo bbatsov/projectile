@@ -1074,7 +1074,7 @@ With a prefix ARG asks for files (globbing-aware) which to grep in."
 (defun projectile-ack (regexp &optional arg)
   "Run an ack search with REGEXP in the project.
 
-With a prefix argument ARG prompts you for a directory on which the search is performed."
+With a prefix argument ARG prompts you for a directory on which the search is performed ."
   (interactive
    (list (read-from-minibuffer
           (projectile-prepend-project-name "Ack search for: ")
@@ -1087,10 +1087,12 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
                      (projectile-project-root)))
              (ack-and-a-half-arguments
               (append saved-arguments
-                      (-map
-                       (lambda (path)
-                         (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
-                       (projectile-ignored-directories)))))
+                      (-union (-map (lambda (path)
+                                      (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
+                                    (projectile-ignored-directories))
+                              (-map (lambda (path)
+                                      (concat "--ignore-file=is:" (file-relative-name path root))) 
+                                    (projectile-ignored-files))))))
         (ack-and-a-half regexp t root))
     (error "ack-and-a-half not available")))
 
