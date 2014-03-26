@@ -146,6 +146,18 @@
     (noflet ((projectile-project-root () "/path/to/project1"))
             (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
 
+(ert-deftest projectile-projects-cleaned ()
+  (let* ((directories (cl-loop repeat 3 collect (make-temp-file "projectile-cleanup" t)))
+         (projectile-known-projects directories))
+    (unwind-protect
+        (progn
+          (projectile-cleanup-known-projects)
+          (should (equal projectile-known-projects directories))
+          (delete-directory (car directories))
+          (projectile-cleanup-known-projects)
+          (should (equal projectile-known-projects (cdr directories))))
+      (--each directories (ignore-errors (delete-directory it))))))
+
 (ert-deftest projectile-tags-exclude-items ()
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
     (should (equal (projectile-tags-exclude-patterns)
