@@ -362,7 +362,8 @@ The cache is created both in memory and on the hard drive."
          (abs-current-file (buffer-file-name (current-buffer)))
          (current-file (file-relative-name abs-current-file current-project)))
     (unless (or (projectile-file-cached-p current-file current-project)
-                (projectile-ignored-directory-p (file-name-directory abs-current-file)))
+                (projectile-ignored-directory-p (file-name-directory abs-current-file))
+                (projectile-ignored-file-p abs-current-file))
       (puthash current-project
                (cons current-file (gethash current-project projectile-projects-cache))
                projectile-projects-cache)
