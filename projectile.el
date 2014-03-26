@@ -1437,7 +1437,7 @@ This command will first prompt for the directory the file is in."
   (projectile-save-known-projects))
 
 (defun projectile-remove-known-project ()
-  "Remove a projected from the list of known projects."
+  "Remove a project from the list of known projects."
   (interactive)
   (let ((project-to-remove
           (projectile-completing-read "Remove from known projects: "
