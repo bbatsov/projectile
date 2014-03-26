@@ -1424,6 +1424,12 @@ This command will first prompt for the directory the file is in."
   :group 'projectile
   :type 'hook)
 
+(defun projectile-cleanup-known-projects ()
+  "Remove known projects that don't exist anymore."
+  (interactive)
+  (setq projectile-known-projects (--filter (file-exists-p it) projectile-known-projects))
+  (projectile-save-known-projects))
+
 (defun projectile-clear-known-projects ()
   "Clear both `projectile-known-projects' and `projectile-known-projects-file'."
   (interactive)
