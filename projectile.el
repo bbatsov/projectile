@@ -1279,6 +1279,14 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
     (if (yes-or-no-p question)
         (mapc 'kill-buffer buffers))))
 
+(defun projectile-save-project-buffers ()
+  "Save all project buffers."
+  (interactive)
+  (--each (projectile-project-buffers)
+    (with-current-buffer it
+      (when buffer-file-name
+        (save-buffer)))))
+
 (defun projectile-dired ()
   "Open `dired' at the root of the project."
   (interactive)
@@ -1658,6 +1666,7 @@ is chosen."
       (define-key prefix-map (kbd "r") 'projectile-replace)
       (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
       (define-key prefix-map (kbd "s") 'projectile-switch-project)
+      (define-key prefix-map (kbd "S") 'projectile-save-project-buffers)
       (define-key prefix-map (kbd "t") 'projectile-toggle-between-implementation-and-test)
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
       (define-key prefix-map (kbd "v") 'projectile-vc)
