@@ -4,6 +4,7 @@
 
 ### New features
 
+* Added new command `projectile-save-project-buffers`.
 * Added new command `projectile-cleanup-known-projects`.
 * Added new commands `projectile-display-buffer`
   and`projectile-find-dir-other-window`.

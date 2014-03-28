@@ -286,6 +286,7 @@ Keybinding         | Description
 <kbd>C-c p 4 t</kbd> | Jump to implementation or test file in other window.
 <kbd>C-c p z</kbd> | Adds the currently visited file to the cache.
 <kbd>C-c p s</kbd> | Display a list of known projects you can switch to.
+<kbd>C-c p S</kbd> | Save all project buffers.
 <kbd>C-c p m</kbd> | Run the commander (an interface to run commands with a single key).
 <kbd>C-c p ESC</kbd> | Switch to the most recently selected projectile buffer.
 
