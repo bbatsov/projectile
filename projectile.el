@@ -431,19 +431,52 @@ Returns nil if no window configuration was found"
 
 
 ;;; Project root related utilities
+(defun projectile-parent (path)
+  "Return the parent directory of PATH.
+PATH may be a file or directory and directory paths may end with a slash."
+  (directory-file-name (file-name-directory (directory-file-name path))))
+
+(defun projectile-locate-ancestor-containing (directory name)
+  "Look up the directory hierarchy, starting at DIRECTORY, for a directory containing NAME.
+If multiple directories are found, return the parentmost (i.e. closest to /)."
+  (let ((current-dir-matches (file-exists-p (concat directory "/" name))))
+    (if (equal directory "/")
+        (if current-dir-matches
+            ;; / contains NAME, so return this directory.
+            directory
+          ;; / does not contain NAME, we're done.
+          nil)
+      (or
+       ;; If there's an ancestor directory that contains this NAME, return it.
+       (projectile-locate-ancestor-containing
+        (projectile-parent directory)
+        name)
+       ;; Otherwise, return this directory if it contains NAME.
+       (if current-dir-matches (file-name-as-directory directory))))))
+
+;; In Subversion v1.7 only the root has a .svn directory, whereas
+;; previously every subdirectory has a .svn directory. We support
+;; both.
+(defun projectile-svn-project-root (file)
+  "Find the root path of the Subversion repository that contains FILE."
+  (projectile-locate-ancestor-containing
+   (if (file-regular-p file)
+       (projectile-parent file)
+     (directory-file-name file))
+   ".svn"))
+
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (let ((project-root
-         (or (->> projectile-project-root-files
-               (--map (locate-dominating-file (file-truename default-directory) it))
-               (-remove #'null)
-               (car)
-               (projectile-file-truename))
-             (if projectile-require-project-root
-                 (error "You're not in a project")
-               default-directory))))
-    project-root))
+  (or (->> projectile-project-root-files
+        (--map (locate-dominating-file (file-truename default-directory) it))
+        (-remove #'null)
+        car
+        projectile-file-truename)
+      (projectile-svn-project-root default-directory)
+      (if projectile-require-project-root
+          (error "You're not in a project")
+        default-directory)))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
