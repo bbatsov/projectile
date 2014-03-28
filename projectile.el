@@ -465,6 +465,14 @@ If multiple directories are found, return the parentmost (i.e. closest to /)."
      (directory-file-name file))
    ".svn"))
 
+(defun projectile-cvs-project-root (file)
+  "Find the root path of the CVS repository that contains FILE."
+  (projectile-locate-ancestor-containing
+   (if (file-regular-p file)
+       (projectile-parent file)
+     (directory-file-name file))
+   "CVS"))
+
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
@@ -474,6 +482,7 @@ The current directory is assumed to be the project's root otherwise."
         car
         projectile-file-truename)
       (projectile-svn-project-root default-directory)
+      (projectile-cvs-project-root default-directory)
       (if projectile-require-project-root
           (error "You're not in a project")
         default-directory)))
@@ -1118,7 +1127,7 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
          current-prefix-arg))
   (if (require 'ack-and-a-half nil 'noerror)
       (let* ((saved-arguments ack-and-a-half-arguments)
-             (root (if arg 
+             (root (if arg
                        (projectile-complete-dir)
                      (projectile-project-root)))
              (ack-and-a-half-arguments
@@ -1127,7 +1136,7 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
                                       (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
                                     (projectile-ignored-directories))
                               (-map (lambda (path)
-                                      (concat "--ignore-file=is:" (file-relative-name path root))) 
+                                      (concat "--ignore-file=is:" (file-relative-name path root)))
                                     (projectile-ignored-files))))))
         (ack-and-a-half regexp t root))
     (error "ack-and-a-half not available")))

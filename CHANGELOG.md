@@ -31,6 +31,7 @@ allow users to customize how projectile identifies test files by project type.
 * `projectile-grep` will ask for a file pattern if invoked with a
   prefix argument.
 * Subversion checkouts are now automatically detected.
+* CVS checkouts are now automatically detected.
 
 ### Changes
 
