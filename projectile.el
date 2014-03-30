@@ -434,7 +434,7 @@ Returns nil if no window configuration was found"
 (defun projectile-parent (path)
   "Return the parent directory of PATH.
 PATH may be a file or directory and directory paths may end with a slash."
-  (directory-file-name (file-name-directory (directory-file-name path))))
+  (directory-file-name (file-name-directory (directory-file-name (expand-file-name path)))))
 
 (defun projectile-locate-ancestor-containing (directory name)
   "Look up the directory hierarchy, starting at DIRECTORY, for a directory containing NAME.
