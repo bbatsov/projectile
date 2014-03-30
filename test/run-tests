@@ -17,6 +17,5 @@
 
 ;; setup test environment
 ;; and run tests
-(noflet ((projectile-project-root () "/path/to/project")
-         (projectile-project-name () "project"))
-        (ert-run-tests-batch-and-exit t))
+
+(ert-run-tests-batch-and-exit t)

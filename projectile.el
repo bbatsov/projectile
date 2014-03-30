@@ -119,13 +119,7 @@ Otherwise consider the current directory the project root."
   :type 'string)
 
 (defcustom projectile-project-root-files
-  '(".projectile"        ; projectile project marker
-    ".git"               ; Git VCS root dir
-    ".hg"                ; Mercurial VCS root dir
-    ".fslckout"          ; Fossil VCS root dir
-    ".bzr"               ; Bazaar VCS root dir
-    "_darcs"             ; Darcs VCS root dir
-    "rebar.config"       ; Rebar project file
+  '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
     "pom.xml"            ; Maven project file
     "build.sbt"          ; SBT project file
@@ -140,6 +134,37 @@ Otherwise consider the current directory the project root."
   "A list of files considered to mark the root of a project."
   :group 'projectile
   :type '(repeat string))
+
+(defcustom projectile-project-root-files-top-down-recurring
+  '(".svn" ; Svn VCS root dir
+    "CVS"  ; Csv VCS root dir
+    )
+  "A list of files considered to mark the root of a project.
+This root files pattern stops at the parentmost match."
+  :group 'projectile
+  :type '(repeat string))
+
+(defcustom projectile-project-root-files-bottom-up
+  '(".projectile" ; projectile project marker
+    ".git"        ; Git VCS root dir
+    ".hg"         ; Mercurial VCS root dir
+    ".fslckout"   ; Fossil VCS root dir
+    ".bzr"        ; Bazaar VCS root dir
+    "_darcs"      ; Darcs VCS root dir
+    )
+  "A list of files considered to mark the root of a project.
+This root files pattern overrides discovery of any root files
+pattern that would have found a project root in a subdirectory."
+  :group 'projectile
+  :type '(repeat string))
+
+(defcustom projectile-project-root-files-functions
+  '(projectile-root-bottom-up
+    projectile-root-top-down
+    projectile-root-top-down-recurring)
+  "A list of functions for finding project roots."
+  :group 'projectile
+  :type '(repeat function))
 
 (defcustom projectile-globally-ignored-files
   '("TAGS")
@@ -436,56 +461,71 @@ Returns nil if no window configuration was found"
 PATH may be a file or directory and directory paths may end with a slash."
   (directory-file-name (file-name-directory (directory-file-name (expand-file-name path)))))
 
-(defun projectile-locate-ancestor-containing (directory name)
-  "Look up the directory hierarchy, starting at DIRECTORY, for a directory containing NAME.
-If multiple directories are found, return the parentmost (i.e. closest to /)."
-  (let ((current-dir-matches (file-exists-p (concat directory "/" name))))
-    (if (equal directory "/")
-        (if current-dir-matches
-            ;; / contains NAME, so return this directory.
-            directory
-          ;; / does not contain NAME, we're done.
-          nil)
-      (or
-       ;; If there's an ancestor directory that contains this NAME, return it.
-       (projectile-locate-ancestor-containing
-        (projectile-parent directory)
-        name)
-       ;; Otherwise, return this directory if it contains NAME.
-       (if current-dir-matches (file-name-as-directory directory))))))
+(defun projectile-locate-dominating-file (file name)
+  "Look up the directory hierarchy from FILE for a directory containing NAME.
+Stop at the first parent directory containing a file NAME,
+and return the directory.  Return nil if not found.
+Instead of a string, NAME can also be a predicate taking one argument
+\(a directory) and returning a non-nil value if that directory is the one for
+which we're looking."
+  ;; copied from files.el (stripped comments) emacs-24 bzr branch 2014-03-28 10:20
+  (setq file (abbreviate-file-name file))
+  (let ((root nil)
+        try)
+    (while (not (or root
+                    (null file)
+                    (string-match locate-dominating-stop-dir-regexp file)))
+      (setq try (if (stringp name)
+                    (file-exists-p (expand-file-name name file))
+                  (funcall name file)))
+      (cond (try (setq root file))
+            ((equal file (setq file (file-name-directory
+                                     (directory-file-name file))))
+             (setq file nil))))
+    (if root (file-name-as-directory root))))
 
-;; In Subversion v1.7 only the root has a .svn directory, whereas
-;; previously every subdirectory has a .svn directory. We support
-;; both.
-(defun projectile-svn-project-root (file)
-  "Find the root path of the Subversion repository that contains FILE."
-  (projectile-locate-ancestor-containing
-   (if (file-regular-p file)
-       (projectile-parent file)
-     (directory-file-name file))
-   ".svn"))
+(defun projectile-root-bottom-up (dir &optional list)
+  "Identify a project root in DIR by looking at `projectile-project-root-files-bottom-up'.
+Returns a project root directory path or nil if not found."
+  (--reduce-from
+   (or acc
+       (projectile-locate-dominating-file dir it))
+   nil
+   (or list projectile-project-root-files-bottom-up (list))))
 
-(defun projectile-cvs-project-root (file)
-  "Find the root path of the CVS repository that contains FILE."
-  (projectile-locate-ancestor-containing
-   (if (file-regular-p file)
-       (projectile-parent file)
-     (directory-file-name file))
-   "CVS"))
+(defun projectile-root-top-down (dir &optional list)
+  "Identify a project root in DIR by looking at `projectile-project-root-files-top-down'.
+Returns a project root directory path or nil if not found."
+  (projectile-locate-dominating-file
+   dir
+   (lambda (dir)
+     (--first (file-exists-p (expand-file-name it dir))
+              (or list projectile-project-root-files (list))))))
+
+(defun projectile-root-top-down-recurring (dir &optional list)
+  "Identify a project root in DIR by looking at `projectile-project-root-files-top-down-recurring'.
+Returns a project root directory path or nil if not found."
+  (--reduce-from
+   (or acc
+       (projectile-locate-dominating-file
+        dir
+        (lambda (dir)
+          (and (file-exists-p (expand-file-name it dir))
+               (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
+                   (not (file-exists-p (expand-file-name it (projectile-parent dir)))))))))
+   nil
+   (or list projectile-project-root-files-top-down-recurring (list))))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (or (->> projectile-project-root-files
-        (--map (locate-dominating-file (file-truename default-directory) it))
-        (-remove #'null)
-        car
-        projectile-file-truename)
-      (projectile-svn-project-root default-directory)
-      (projectile-cvs-project-root default-directory)
-      (if projectile-require-project-root
-          (error "You're not in a project")
-        default-directory)))
+  (let ((dir (file-truename default-directory)))
+    (or (--reduce-from
+         (or acc (funcall it dir)) nil
+         projectile-project-root-files-functions)
+        (if projectile-require-project-root
+            (error "You're not in a project")
+          default-directory))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
@@ -1010,12 +1050,12 @@ With a prefix ARG invalidates the cache first."
      ((file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
      ((file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
      ((file-exists-p (expand-file-name ".svn" project-root)) 'svn)
-     ((locate-dominating-file project-root ".git") 'git)
-     ((locate-dominating-file project-root ".hg") 'hg)
-     ((locate-dominating-file project-root ".fossil") 'fossil)
-     ((locate-dominating-file project-root ".bzr") 'bzr)
-     ((locate-dominating-file project-root "_darcs") 'darcs)
-     ((locate-dominating-file project-root ".svn") 'svn)
+     ((projectile-locate-dominating-file project-root ".git") 'git)
+     ((projectile-locate-dominating-file project-root ".hg") 'hg)
+     ((projectile-locate-dominating-file project-root ".fossil") 'fossil)
+     ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
+     ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
+     ((projectile-locate-dominating-file project-root ".svn") 'svn)
      (t 'none))))
 
 (defun projectile-find-implementation-or-test (file-name)
