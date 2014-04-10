@@ -3,7 +3,9 @@
 ## master (unreleased)
 
 ### New features
-
+* added new defcustoms `projectile-project-root-files-top-down-recurring`,
+  `projectile-project-root-files-bottom-up` and
+  `projectile-project-root-files-functions`.
 * Added new command `projectile-save-project-buffers`.
 * Added new command `projectile-cleanup-known-projects`.
 * Added new commands `projectile-display-buffer`

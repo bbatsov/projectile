@@ -361,6 +361,20 @@ If both directories to keep and ignore are specified, the directories
 to keep first apply, restricting what files are considered. The paths
 and patterns to ignore are then applied to that set.
 
+### Customizing project root files
+
+You can set the values of `projectile-project-root-files`,
+`projectile-project-root-files-top-down-recurring`,
+`projectile-project-root-files-bottom-up` and
+`projectile-project-root-files-functions` to customize how project roots are
+identified.
+
+To customize project root files settings:
+
+```
+M-x customize-group RET projectile RET
+```
+
 ### Helm Integration
 
 Projectile can be integrated with
