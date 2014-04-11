@@ -166,6 +166,20 @@
           (should (equal projectile-known-projects (cdr directories))))
       (--each directories (ignore-errors (delete-directory it))))))
 
+(ert-deftest projectile-test-project-root-is-absolute ()
+  (let* ((root-directory (make-temp-file "projectile-absolute" t))
+         (root-file (concat root-directory "/.projectile"))
+         (deep-directory (concat root-directory "/foo/bar/baz"))
+         (project-file (concat deep-directory "/tmp.txt")))
+    (unwind-protect
+        (progn
+          (mkdir deep-directory t)
+          (with-temp-file root-file)
+          (with-temp-file project-file)
+          (with-current-buffer (find-file-noselect project-file)
+            (should (file-name-absolute-p (projectile-project-root)))))
+      (ignore-errors (delete-directory root-directory t)))))
+
 (ert-deftest projectile-tags-exclude-items ()
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
     (should (equal (projectile-tags-exclude-patterns)
