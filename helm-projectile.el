@@ -70,7 +70,8 @@
     (help-message . helm-find-file-help-message)
     (mode-line . helm-ff-mode-line-string)
     (type . file)
-    (action . (lambda (file) (find-file file))))
+    (action . (("Find file" . (lambda (file) (find-file file)))
+               ("Open dired in file's directory" . helm-open-dired))))
   "Helm source definition.")
 
 (defvar helm-source-projectile-buffers-list
