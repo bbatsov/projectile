@@ -129,7 +129,7 @@
           (let ((projectile-use-native-indexing nil))
             (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "a/"))))))
 
-(ert-deftest projectile-setup-hook-functions-projectile-mode ()
+(ert-deftest projectile-test-setup-hook-functions-projectile-mode ()
   (projectile-mode 1)
   (should (and (memq 'projectile-cache-files-find-file-hook find-file-hook)
                (memq 'projectile-cache-projects-find-file-hook find-file-hook)
@@ -139,7 +139,7 @@
                (not (memq 'projectile-cache-projects-find-file-hook find-file-hook))
                (not (memq 'projectile-update-mode-line find-file-hook)))))
 
-(ert-deftest projectile-setup-hook-functions-projectile-global-mode ()
+(ert-deftest projectile-test-setup-hook-functions-projectile-global-mode ()
   (projectile-global-mode 1)
   (should (and (memq 'projectile-cache-files-find-file-hook find-file-hook)
                (memq 'projectile-cache-projects-find-file-hook find-file-hook)
@@ -149,12 +149,12 @@
                (not (memq 'projectile-cache-projects-find-file-hook find-file-hook))
                (not (memq 'projectile-update-mode-line find-file-hook)))))
 
-(ert-deftest projectile-relevant-known-projects ()
+(ert-deftest projectile-test-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
     (noflet ((projectile-project-root () "/path/to/project1"))
             (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
 
-(ert-deftest projectile-projects-cleaned ()
+(ert-deftest projectile-test-projects-cleaned ()
   (let* ((directories (cl-loop repeat 3 collect (make-temp-file "projectile-cleanup" t)))
          (projectile-known-projects directories))
     (unwind-protect
@@ -166,7 +166,21 @@
           (should (equal projectile-known-projects (cdr directories))))
       (--each directories (ignore-errors (delete-directory it))))))
 
-(ert-deftest projectile-tags-exclude-items ()
+(ert-deftest projectile-test-project-root-is-absolute ()
+  (let* ((root-directory (make-temp-file "projectile-absolute" t))
+         (root-file (concat root-directory "/.projectile"))
+         (deep-directory (concat root-directory "/foo/bar/baz"))
+         (project-file (concat deep-directory "/tmp.txt")))
+    (unwind-protect
+        (progn
+          (mkdir deep-directory t)
+          (with-temp-file root-file)
+          (with-temp-file project-file)
+          (with-current-buffer (find-file-noselect project-file)
+            (should (file-name-absolute-p (projectile-project-root)))))
+      (ignore-errors (delete-directory root-directory t)))))
+
+(ert-deftest projectile-test-tags-exclude-items ()
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
     (should (equal (projectile-tags-exclude-patterns)
                    "--exclude=.git --exclude=.hg"))))
