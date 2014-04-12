@@ -109,6 +109,8 @@ use of native indexing:
 
 #### Caching
 
+#### Project files
+
 Since indexing a big project is not exactly quick (especially in Emacs
 Lisp), Projectile supports caching of the project's files. The caching
 is enabled by default whenever native indexing is enabled.
@@ -132,6 +134,36 @@ The project cache is persistent and will be preserved during Emacs restarts.
 
 You can purge an individual file from the cache with `M-x projectile-purge-file-from-cache` or an
 entire directory with `M-x projectile-purge-dir-from-cache`.
+
+##### File exists cache
+
+Projectile does many file existence checks since that is how it identifies an
+project root. Normally this is fine, however in some situations the file system
+speed is much slower than usual and can make emacs "freeze" for extended
+periods of time when opening files and browsing directories.
+
+The most common example would be interfacing with remote systems using
+TRAMP/ssh. By default all remote file existence checks are cached
+
+To disable remote file exists cache that use this snippet of code:
+
+```lisp
+(setq projectile-file-exists-remote-cache-expire nil)
+```
+
+To change the remote file exists cache expire to 10 minutes use this snippet
+of code:
+
+```lisp
+(setq projectile-file-exists-remote-cache-expire (* 10 60))
+```
+
+You can also enable the cache for local file systems, that is normally not
+needed but possible:
+
+```lisp
+(setq projectile-file-exists-local-cache-expire (* 5 60))
+```
 
 #### Using Projectile everywhere
 

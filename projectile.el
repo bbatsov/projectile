@@ -90,6 +90,25 @@ using the native indexing method."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-file-exists-local-cache-expire nil
+    "Number of seconds before file existence cache expires for a
+file on a local file system.
+
+ A value of nil disables this cache."
+  
+  :group 'projectile
+  :type '(choice (const :tag "Disabled" nil)
+                 (integer :tag "Seconds"))) 
+
+(defcustom projectile-file-exists-remote-cache-expire (* 5 60)
+  "Number of seconds before file existence cache expires for a
+file on a remote file system such as tramp.
+
+ A value of nil disables this cache."
+  :group 'projectile
+  :type '(choice (const :tag "Disabled" nil)
+                 (integer :tag "Seconds")))
+
 (defcustom projectile-require-project-root t
   "Require the presence of a project root to operate when true.
 Otherwise consider the current directory the project root."
@@ -324,6 +343,58 @@ just return nil."
 
 
 ;;; Caching
+(defvar projectile-file-exists-cache
+  (make-hash-table :test 'equal)
+  "Cached `projectile-file-exists-p' results.")
+
+(defvar projectile-file-exists-cache-timer nil
+  "Timer for scheduling`projectile-file-exists-cache-cleanup'.")
+
+(defun projectile-file-exists-cache-cleanup ()
+  "Removed timed out cache entries and reschedules or remove the
+timer if no more items are in the cache."
+  (let ((now (current-time)))
+    (maphash (lambda (key value)
+               (if (time-less-p (cdr value) now)
+                   (remhash key  projectile-file-exists-cache)))
+             projectile-file-exists-cache)
+    (setq projectile-file-exists-cache-timer
+          (if (> (hash-table-count projectile-file-exists-cache) 0)
+                    (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))))
+
+(defun projectile-file-exists-p (filename)
+  "Return t if file FILENAME exist.
+A wrapper around `file-exists-p' with additional caching support."
+  (let* ((file-remote (file-remote-p filename))
+         (expire-seconds
+          (if file-remote
+              (and projectile-file-exists-remote-cache-expire
+                   (> projectile-file-exists-remote-cache-expire 0)
+                   projectile-file-exists-remote-cache-expire)
+            (and projectile-file-exists-local-cache-expire
+                 (> projectile-file-exists-local-cache-expire 0)
+                 projectile-file-exists-local-cache-expire)))
+         (remote-file-name-inhibit-cache (if expire-seconds
+                                             expire-seconds
+                                           remote-file-name-inhibit-cache)))
+    (if (not expire-seconds)
+        (file-exists-p filename)
+      (let* ((current-time (current-time))
+             (cached (gethash filename projectile-file-exists-cache))
+             (cached-value (if cached (car cached)))
+             (cached-expire (if cached (cdr cached)))
+             (cached-expired (if cached (time-less-p cached-expire current-time) t))
+             (value (or (and (not cached-expired) cached-value)
+                        (if (file-exists-p filename) 'found 'notfound))))
+        (when (or (not cached) cached-expired)
+          (puthash filename
+                   (cons value (time-add current-time (seconds-to-time expire-seconds)))
+                   projectile-file-exists-cache))
+        (unless projectile-file-exists-cache-timer
+          (setq projectile-file-exists-cache-timer
+                (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))
+        (equal value 'found)))))
+
 (defun projectile-invalidate-cache (arg)
   "Remove the current project's files from `projectile-projects-cache'.
 
@@ -476,7 +547,7 @@ which we're looking."
                     (null file)
                     (string-match locate-dominating-stop-dir-regexp file)))
       (setq try (if (stringp name)
-                    (file-exists-p (expand-file-name name file))
+                    (projectile-file-exists-p (expand-file-name name file))
                   (funcall name file)))
       (cond (try (setq root file))
             ((equal file (setq file (file-name-directory
@@ -499,7 +570,7 @@ Returns a project root directory path or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
-     (--first (file-exists-p (expand-file-name it dir))
+     (--first (projectile-file-exists-p (expand-file-name it dir))
               (or list projectile-project-root-files (list))))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
@@ -510,9 +581,9 @@ Returns a project root directory path or nil if not found."
        (projectile-locate-dominating-file
         dir
         (lambda (dir)
-          (and (file-exists-p (expand-file-name it dir))
+          (and (projectile-file-exists-p (expand-file-name it dir))
                (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
-                   (not (file-exists-p (expand-file-name it (projectile-parent dir)))))))))
+                   (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir)))))))))
    nil
    (or list projectile-project-root-files-top-down-recurring (list))))
 
@@ -849,7 +920,7 @@ to keep, and strings starting with - will be added to the list of
 directories to ignore.  For backward compatibility, without a
 prefix the string will be assumed to be an ignore string."
   (let ((dirconfig-file (projectile-dirconfig-file)))
-    (when (file-exists-p dirconfig-file)
+    (when (projectile-file-exists-p dirconfig-file)
       (with-temp-buffer
         (insert-file-contents-literally dirconfig-file)
         (let* ((split-string-default-separators "[\r\n]")
@@ -1039,18 +1110,18 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-verify-file (file)
   "Check whether FILE exists in the current project."
-  (file-exists-p (projectile-expand-root file)))
+  (projectile-file-exists-p (projectile-expand-root file)))
 
 (defun projectile-project-vcs ()
   "Determine the VCS used by the project if any."
   (let ((project-root (projectile-project-root)))
     (cond
-     ((file-exists-p (expand-file-name ".git" project-root)) 'git)
-     ((file-exists-p (expand-file-name ".hg" project-root)) 'hg)
-     ((file-exists-p (expand-file-name ".fossil" project-root)) 'fossil)
-     ((file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
-     ((file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
-     ((file-exists-p (expand-file-name ".svn" project-root)) 'svn)
+     ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
+     ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
+     ((projectile-file-exists-p (expand-file-name ".fossil" project-root)) 'fossil)
+     ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
+     ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
+     ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
      ((projectile-locate-dominating-file project-root ".git") 'git)
      ((projectile-locate-dominating-file project-root ".hg") 'hg)
      ((projectile-locate-dominating-file project-root ".fossil") 'fossil)
@@ -1526,10 +1597,11 @@ This command will first prompt for the directory the file is in."
   :group 'projectile
   :type 'hook)
 
+
 (defun projectile-cleanup-known-projects ()
   "Remove known projects that don't exist anymore."
   (interactive)
-  (setq projectile-known-projects (--filter (file-exists-p it) projectile-known-projects))
+  (setq projectile-known-projects (--filter (projectile-file-exists-p it) projectile-known-projects))
   (projectile-save-known-projects))
 
 (defun projectile-clear-known-projects ()
