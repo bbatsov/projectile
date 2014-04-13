@@ -3,6 +3,9 @@
 ## master (unreleased)
 
 ### New features
+* added file existence cache with defcustoms
+  `projectile-file-exists-remote-cache-expire` and
+  `projectile-file-exists-local-cache-expire`.
 * added new defcustoms `projectile-project-root-files-top-down-recurring`,
   `projectile-project-root-files-bottom-up` and
   `projectile-project-root-files-functions`.
