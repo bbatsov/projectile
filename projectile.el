@@ -1408,6 +1408,14 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
       (when buffer-file-name
         (save-buffer)))))
 
+(defun projectile-update-project-buffers ()
+  "Update all project buffers from disk."
+  (interactive)
+  (--each (projectile-project-buffers)
+    (with-current-buffer it
+      (when (and (buffer-file-name) (file-exists-p (buffer-file-name)) (not (buffer-modified-p)))
+          (revert-buffer t t t)))))
+
 (defun projectile-dired ()
   "Open `dired' at the root of the project."
   (interactive)
@@ -1791,6 +1799,7 @@ is chosen."
       (define-key prefix-map (kbd "S") 'projectile-save-project-buffers)
       (define-key prefix-map (kbd "t") 'projectile-toggle-between-implementation-and-test)
       (define-key prefix-map (kbd "T") 'projectile-find-test-file)
+      (define-key prefix-map (kbd "u") 'projectile-update-project-buffers)
       (define-key prefix-map (kbd "v") 'projectile-vc)
       (define-key prefix-map (kbd "z") 'projectile-cache-current-file)
       (define-key prefix-map (kbd "ESC") 'projectile-project-buffers-other-buffer)
