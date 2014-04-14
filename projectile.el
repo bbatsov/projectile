@@ -1491,8 +1491,15 @@ With a prefix ARG invokes `projectile-commander' instead of
   (interactive "P")
   (let* ((project-to-switch
           (projectile-completing-read "Switch to project: "
-                                      (projectile-relevant-known-projects)))
-         (default-directory project-to-switch)
+                                      (projectile-relevant-known-projects))))
+    (projectile-switch-project-by-name project-to-switch arg)))
+
+(defun projectile-switch-project-by-name (project-to-switch &optional arg)
+  "Switch to project by project name PROJECT-TO-SWITCH.
+Invokes the command referenced by `projectile-switch-project-action' on switch.
+With a prefix ARG invokes `projectile-commander' instead of
+`projectile-switch-project-action.'"
+  (let* ((default-directory project-to-switch)
          (switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
