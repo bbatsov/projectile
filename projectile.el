@@ -91,14 +91,14 @@ using the native indexing method."
   :type 'boolean)
 
 (defcustom projectile-file-exists-local-cache-expire nil
-    "Number of seconds before file existence cache expires for a
+  "Number of seconds before file existence cache expires for a
 file on a local file system.
 
  A value of nil disables this cache."
-  
+
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds"))) 
+                 (integer :tag "Seconds")))
 
 (defcustom projectile-file-exists-remote-cache-expire (* 5 60)
   "Number of seconds before file existence cache expires for a
@@ -360,7 +360,7 @@ timer if no more items are in the cache."
              projectile-file-exists-cache)
     (setq projectile-file-exists-cache-timer
           (if (> (hash-table-count projectile-file-exists-cache) 0)
-                    (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))))
+              (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))))
 
 (defun projectile-file-exists-p (filename)
   "Return t if file FILENAME exist.
