@@ -48,6 +48,8 @@
 (require 'perspective)
 (require 'projectile)
 
+(persp-mode)
+
 (defmacro projectile-persp-bridge (func-name)
   "Create advice to create a perspective before invoking function FUNC-NAME.
 The advice provides bridge between perspective and projectile
