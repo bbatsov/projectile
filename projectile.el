@@ -1048,7 +1048,7 @@ With a prefix ARG invalidates the cache first."
   :group 'projectile
   :type '(repeat string))
 
-(defcustom projectile-test-files-suffices '("_test" "_spec" "Test" "-test")
+(defcustom projectile-test-files-suffices '("_test" "_spec" "Spec" "Test" "-test")
   "Some common suffices of test files."
   :group 'projectile
   :type '(repeat string))
@@ -1079,6 +1079,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-python-pip '("requirements.txt"))
 (defvar projectile-python-egg '("setup.py"))
 (defvar projectile-maven '("pom.xml"))
+(defvar projectile-grails '("application.properties" "grails-app"))
 (defvar projectile-lein '("project.clj"))
 (defvar projectile-rebar '("rebar"))
 (defvar projectile-sbt '("build.sbt"))
@@ -1107,6 +1108,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-symfony) 'symfony)
    ((projectile-verify-files projectile-lein) 'lein)
    ((projectile-verify-files projectile-maven) 'maven)
+   ((projectile-verify-files projectile-grails) 'grails)
    ((projectile-verify-files projectile-rebar) 'rebar)
    ((projectile-verify-files projectile-sbt) 'sbt)
    ((projectile-verify-files projectile-make) 'make)
@@ -1193,7 +1195,8 @@ With a prefix ARG invalidates the cache first."
   (cond
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
    ((member project-type '(rails-test ruby-test lein go)) "_test")
-   ((member project-type '(maven symfony)) "Test")))
+   ((member project-type '(maven symfony)) "Test")
+   ((member project-type '(grails)) "Spec")))
 
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
@@ -1465,6 +1468,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
 (defvar projectile-maven-compile-cmd "mvn clean install")
 (defvar projectile-maven-test-cmd "mvn test")
+(defvar projectile-grails-compile-cmd "grails package")
+(defvar projectile-grails-test-cmd "grails test-app")
 (defvar projectile-lein-compile-cmd "lein compile")
 (defvar projectile-lein-test-cmd "lein test")
 (defvar projectile-rebar-compile-cmd "rebar")
@@ -1497,6 +1502,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'make) projectile-make-compile-cmd)
    ((eq project-type 'rebar) projectile-rebar-compile-cmd)
    ((eq project-type 'maven) projectile-maven-compile-cmd)
+   ((eq project-type 'grails) projectile-grails-compile-cmd)
    ((eq project-type 'sbt) projectile-sbt-compile-cmd)
    ((eq project-type 'grunt) projectile-grunt-compile-cmd)
    ((eq project-type 'go) projectile-go-compile-cmd)
@@ -1514,6 +1520,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'make) projectile-make-test-cmd)
    ((eq project-type 'rebar) projectile-rebar-test-cmd)
    ((eq project-type 'maven) projectile-maven-test-cmd)
+   ((eq project-type 'grails) projectile-grails-test-cmd)
    ((eq project-type 'sbt) projectile-sbt-test-cmd)
    ((eq project-type 'grunt) projectile-grunt-test-cmd)
    ((eq project-type 'go) projectile-go-test-cmd)
