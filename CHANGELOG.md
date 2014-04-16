@@ -37,6 +37,8 @@ allow users to customize how projectile identifies test files by project type.
   prefix argument.
 * Subversion checkouts are now automatically detected.
 * CVS checkouts are now automatically detected.
+* added `projectile-persp-switch-project` command to make perspective
+  mode work along with projectile.
 
 ### Changes
 
