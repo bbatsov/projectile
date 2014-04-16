@@ -1,4 +1,3 @@
-;;; Package --- Summary
 ;;; persp-projectile.el --- Perspective integration with Projectile
 
 ;; Copyright (C) 2014 Daniel Wu
@@ -48,8 +47,6 @@
 (require 'perspective)
 (require 'projectile)
 
-(persp-mode)
-
 (defmacro projectile-persp-bridge (func-name)
   "Create advice to create a perspective before invoking function FUNC-NAME.
 The advice provides bridge between perspective and projectile
@@ -60,10 +57,8 @@ project, this advice creates a new perspective for that project."
      (let ((project-name (projectile-project-name)))
            (persp-switch project-name))))
 
-
 (projectile-persp-bridge projectile-dired)
 (projectile-persp-bridge projectile-find-file)
-
 
 (defun projectile-persp-switch-project ()
   "Switch to a project or perspective we have visited before.
@@ -82,9 +77,7 @@ perspective of the project that we're switching to"
         (persp-switch name)
       (projectile-switch-project-by-name project-to-switch))))
 
-
-(define-key projectile-mode-map (kbd "C-c p s") 'projectile-persp-switch-project)
-
+(define-key projectile-mode-map [remap projectile-switch-project] 'projectile-persp-switch-project)
 
 (provide 'persp-projectile)
 ;;; persp-projectile.el ends here
