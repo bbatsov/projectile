@@ -411,9 +411,11 @@ A picture says a thousand words. See below screenshot to get a concrete idea.
 Only current project related files showing in minibuffer when I call
 `ido-swith-buffer`, and an indicator in mode line tells me which
 project that I'm in.
+
 ![Persp-Projectile Screenshot 1](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile1.png)
 
 When I switch to a different project, I get a clean 'perspective'.
+
 ![Persp-Projectile Screenshot 2](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile2.png)
 
 To integrate perspective with projectile, first of all, you need to
