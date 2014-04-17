@@ -117,14 +117,18 @@
     (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
+(defvar helm-projectile-sources-list
+  '(helm-source-projectile-files-list
+    helm-source-projectile-buffers-list
+    helm-source-projectile-recentf-list)
+  "List of sources to use for `helm-projectile'.")
+
 ;;;###autoload
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
   (let ((helm-ff-transformer-show-only-basename nil))
-    (helm :sources '(helm-source-projectile-files-list
-                     helm-source-projectile-buffers-list
-                     helm-source-projectile-recentf-list)
+    (helm :sources helm-projectile-sources-list
           :buffer "*helm projectile*"
           :prompt (projectile-prepend-project-name "pattern: "))))
 
