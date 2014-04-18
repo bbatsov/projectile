@@ -46,6 +46,12 @@
 (require 'helm-files)
 (require 'cl-lib)
 
+(defgroup helm-projectile nil
+  "Helm support for projectile."
+  :prefix "helm-projectile-"
+  :group 'projectile
+  :link `(url-link :tag "helm-projectile homepage" "https://github.com/bbatsov/projectile"))
+
 (defvar helm-projectile-current-project-root)
 
 (defun helm-projectile-coerce-file (candidate)
@@ -117,14 +123,19 @@
     (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
+(defcustom helm-projectile-sources-list
+  '(helm-source-projectile-files-list
+    helm-source-projectile-buffers-list
+    helm-source-projectile-recentf-list)
+  "Default sources for `helm-projectile'."
+  :group 'helm-projectile)
+
 ;;;###autoload
 (defun helm-projectile ()
   "Use projectile with Helm instead of ido."
   (interactive)
   (let ((helm-ff-transformer-show-only-basename nil))
-    (helm :sources '(helm-source-projectile-files-list
-                     helm-source-projectile-buffers-list
-                     helm-source-projectile-recentf-list)
+    (helm :sources helm-projectile-sources-list
           :buffer "*helm projectile*"
           :prompt (projectile-prepend-project-name "pattern: "))))
 
