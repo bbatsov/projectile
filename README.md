@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/bbatsov/projectile.png?branch=master)](https://travis-ci.org/bbatsov/projectile)
+[![Gittip](http://img.shields.io/gittip/bbatsov.svg)](https://www.gittip.com/bbatsov/)
 
 ## Synopsis
 
