@@ -1331,6 +1331,12 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
   (projectile-with-default-dir (projectile-project-root)
     (call-interactively 'execute-extended-command)))
 
+(defun projectile-run-shell-command-in-root ()
+  "Invoke `shell-command' in the project's root."
+  (interactive)
+  (projectile-with-default-dir (projectile-project-root)
+    (call-interactively 'shell-command)))
+
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
   (let ((dir (file-relative-name (expand-file-name directory) (projectile-project-root))))
@@ -1802,6 +1808,7 @@ is chosen."
       (define-key prefix-map (kbd "4 C-o") 'projectile-display-buffer)
       (define-key prefix-map (kbd "4 f") 'projectile-find-file-other-window)
       (define-key prefix-map (kbd "4 t") 'projectile-find-implementation-or-test-other-window)
+      (define-key prefix-map (kbd "!") 'projectile-run-shell-command-in-root)
       (define-key prefix-map (kbd "a") 'projectile-ack)
       (define-key prefix-map (kbd "A") 'projectile-ag)
       (define-key prefix-map (kbd "b") 'projectile-switch-to-buffer)
