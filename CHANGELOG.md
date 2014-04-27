@@ -58,6 +58,10 @@ that shouldn't be added to the known projects list.
 * Projectile is now able to find the project pertaining to a symlink
 pointing to a version-controlled file.
 * Drop `projectile-ack-function` defcustom.
+* `projectile-command-map` is now the keymap referenced by the
+  `projectile-keymap-prefix` in `projectile-mode-map`. This allows
+  modification of the inner map, and allows additional prefix keys to
+  reference it.
 
 ### Bugs fixed
 
