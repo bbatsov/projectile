@@ -1326,7 +1326,7 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
      ,@body))
 
 (defun projectile-run-command-in-root ()
-  "Invoke `shell-command' in the project's root."
+  "Invoke `execute-extended-command' in the project's root."
   (interactive)
   (projectile-with-default-dir (projectile-project-root)
     (call-interactively 'execute-extended-command)))
