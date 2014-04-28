@@ -25,6 +25,7 @@
   any) of the target project.
 * New command `projectile-run-command-in-root`.
 * New command `projectile-run-shell-command-in-root`.
+* New command `projectile-run-async-shell-command-in-root`.
 * New defcustom `projectile-use-git-grep` will make `projectile-grep` use `git grep`
 for git projects.
 * Added new `projectile-commander` methods ?v and ?R which run
