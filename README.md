@@ -77,13 +77,13 @@ action.
 
 You can enable Projectile globally like this:
 
-```lisp
+```el
 (projectile-global-mode)
 ```
 
 To enable Projectile only in select modes:
 
-```lisp
+```el
 (add-hook 'ruby-mode-hook 'projectile-on)
 ```
 
@@ -104,7 +104,7 @@ Since the native indexing mode is much slower, by default the second
 method is used on all operating systems except Windows. To force the
 use of native indexing:
 
-```lisp
+```el
 (setq projectile-indexing-method 'native)
 ```
 
@@ -118,7 +118,7 @@ is enabled by default whenever native indexing is enabled.
 
 To enable caching unconditionally use this snippet of code:
 
-```lisp
+```el
 (setq projectile-enable-caching t)
 ```
 
@@ -148,21 +148,21 @@ TRAMP/ssh. By default all remote file existence checks are cached
 
 To disable remote file exists cache that use this snippet of code:
 
-```lisp
+```el
 (setq projectile-file-exists-remote-cache-expire nil)
 ```
 
 To change the remote file exists cache expire to 10 minutes use this snippet
 of code:
 
-```lisp
+```el
 (setq projectile-file-exists-remote-cache-expire (* 10 60))
 ```
 
 You can also enable the cache for local file systems, that is normally not
 needed but possible:
 
-```lisp
+```el
 (setq projectile-file-exists-local-cache-expire (* 5 60))
 ```
 
@@ -170,7 +170,7 @@ needed but possible:
 
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
-```lisp
+```el
 (setq projectile-require-project-root nil)
 ```
 
@@ -199,7 +199,7 @@ remain in the completion system to select a file to visit.
 
 ###### `projectile-dired`
 
-```lisp
+```el
 (setq projectile-switch-project-action 'projectile-dired)
 ```
 
@@ -209,7 +209,7 @@ buffer.
 
 ###### `projectile-find-dir`
 
-```lisp
+```el
 (setq projectile-switch-project-action 'projectile-find-dir)
 ```
 
@@ -219,7 +219,7 @@ your project, and then *that* sub-directory is opened for you in a
 dired buffer.  If you use this setting, then you will probably also
 want to set
 
-```lisp
+```el
 (setq projectile-find-dir-includes-top-level t)
 ```
 
@@ -242,7 +242,7 @@ more powerful alternative to `ido`'s built-in `flex` matching.
 
 Another completion option is [grizzl](https://github.com/d11wtq/grizzl):
 
-```lisp
+```el
 (setq projectile-completion-system 'grizzl)
 ```
 
@@ -255,7 +255,7 @@ Another completion option is [grizzl](https://github.com/d11wtq/grizzl):
 
 If you don't like `ido` and `grizzl` you can use regular completion:
 
-```lisp
+```el
 (setq projectile-completion-system 'default)
 ```
 
@@ -265,7 +265,7 @@ You might want to combine default completion with `icomplete-mode` for optimum r
 
 You can also set `projectile-completion-system` to a function:
 
-```lisp
+```el
 (setq projectile-completion-system 'my-custom-completion-fn)
 (setq projectile-completion-system
       (lambda (prompt choices)
@@ -331,7 +331,7 @@ If you ever forget any of Projectile's keybindings just do a:
 
 You can change the default keymap prefix `C-c p` like this:
 
-```lisp
+```el
 (setq projectile-keymap-prefix (kbd "C-c C-p"))
 ```
 
@@ -340,7 +340,7 @@ leverage the fairly unused `Super` key (by default `Command` on Mac
 keyboards and `Windows` on Win keyboards). Here's something you can
 add to your Emacs config:
 
-```lisp
+```el
 (define-key projectile-mode-map [?\s-d] 'projectile-find-dir)
 (define-key projectile-mode-map [?\s-p] 'projectile-switch-project)
 (define-key projectile-mode-map [?\s-f] 'projectile-find-file)
@@ -424,7 +424,7 @@ M-x helm-projectile
 
 or even better - bind it to a keybinding like this:
 
-```lisp
+```el
 (global-set-key (kbd "C-c h") 'helm-projectile)
 ```
 
@@ -468,7 +468,7 @@ Install package: perspective
 
 Secondly, make sure `persp-projectile.el` is in your Emacs load path. Then require it in your init file.
 
-```lisp
+```el
 (require 'persp-projectile)
 ```
 
@@ -476,7 +476,7 @@ You're ready to go! Try the interactive command
 `projectile-persp-switch-project`, or you may also bind it to some
 handy keybinding.
 
-```lisp
+```el
 (define-key projectile-mode-map (kbd "s-s") 'projectile-persp-switch-project)
 ```
 
@@ -495,7 +495,7 @@ and set `projectile-enable-idle-timer` to non-nil.  By default,
 `projectile-idle-timer-hook` runs `projectile-regenerate-tags`.  Add
 additional functions to the hook using `add-hook`:
 
-```lisp
+```el
 (add-hook 'projectile-idle-timer-hook 'my-projectile-idle-timer-function)
 ```
 
