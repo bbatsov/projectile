@@ -1278,6 +1278,16 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
       (ag-regexp regexp (projectile-project-root))
     (error "Ag is not available")))
 
+(defun projectile-pt (regexp)
+  "Run an pt search with REGEXP in the project."
+  (interactive
+   (list (read-from-minibuffer
+          (projectile-prepend-project-name "Pt search for: ")
+          (projectile-symbol-at-point))))
+  (if (fboundp 'pt-regexp)
+      (pt-regexp regexp (projectile-project-root))
+    (error "Pt is not available")))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=%s"
@@ -1750,9 +1760,9 @@ is chosen."
   "Run ack on project."
   (call-interactively 'projectile-ack))
 
-(def-projectile-commander-method ?A
-  "Find ag on project."
-  (call-interactively 'projectile-ag))
+(def-projectile-commander-method ?P
+  "Find pt on project."
+  (call-interactively 'projectile-pt))
 
 (def-projectile-commander-method ?f
   "Find file in project."
@@ -1833,6 +1843,7 @@ is chosen."
       (define-key prefix-map (kbd "m") 'projectile-commander)
       (define-key prefix-map (kbd "o") 'projectile-multi-occur)
       (define-key prefix-map (kbd "p") 'projectile-test-project)
+      (define-key prefix-map (kbd "P") 'projectile-pt)
       (define-key prefix-map (kbd "r") 'projectile-replace)
       (define-key prefix-map (kbd "R") 'projectile-regenerate-tags)
       (define-key prefix-map (kbd "s") 'projectile-switch-project)
@@ -1861,6 +1872,8 @@ is chosen."
    ["Switch to project" projectile-switch-project]
    ["Find in project (grep)" projectile-grep]
    ["Find in project (ack)" projectile-ack]
+   ["Find in project (ag)" projectile-ag]
+   ["Find in project (pt)" projectile-pt]
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
    "--"
