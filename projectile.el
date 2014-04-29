@@ -1861,6 +1861,7 @@ is chosen."
    ["Switch to project" projectile-switch-project]
    ["Find in project (grep)" projectile-grep]
    ["Find in project (ack)" projectile-ack]
+   ["Find in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
    "--"
