@@ -4,6 +4,7 @@
 
 ### New features
 
+* Added support for default file glob pattern to `projectile-grep`
 * added file existence cache with defcustoms
   `projectile-file-exists-remote-cache-expire` and
   `projectile-file-exists-local-cache-expire`.

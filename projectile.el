@@ -1220,17 +1220,48 @@ With a prefix ARG invalidates the cache first."
                     (s-equals? (concat current-file-basename test-affix) basename))))
             (projectile-current-project-files))))
 
+(defun projectile-grep-default-files ()
+  "Try to find a default pattern for `projectile-grep'.
+This is a subset of `grep-read-files', where either a matching entry from
+`grep-files-aliases' or file name extension pattern is returned."
+  (when buffer-file-name
+    (let* ((fn (file-name-nondirectory buffer-file-name))
+           (default-alias
+             (let ((aliases (remove (assoc "all" grep-files-aliases)
+                                    grep-files-aliases))
+                   alias)
+               (while aliases
+                 (setq alias (car aliases)
+                       aliases (cdr aliases))
+                 (if (string-match (mapconcat
+                                    'wildcard-to-regexp
+                                    (split-string (cdr alias) nil t)
+                                    "\\|")
+                                   fn)
+                     (setq aliases nil)
+                   (setq alias nil)))
+               (cdr alias)))
+           (default-extension
+             (let ((ext (file-name-extension fn)))
+               (and ext (concat "*." ext)))))
+      (or default-alias default-extension))))
+
 (defun projectile-grep (&optional arg)
   "Perform rgrep in the project.
 
-With a prefix ARG asks for files (globbing-aware) which to grep in."
+With a prefix ARG asks for files (globbing-aware) which to grep in.
+With prefix ARG of `-' (such as `M--'), default the files (without prompt),
+to `projectile-grep-default-files'."
   (interactive "P")
-  (let ((roots (projectile-get-project-directories))
-        (search-regexp (if (and transient-mark-mode mark-active)
-                           (buffer-substring (region-beginning) (region-end))
-                         (read-string (projectile-prepend-project-name "Grep for: ")
-                                      (projectile-symbol-at-point))))
-        (files (and arg (read-string (projectile-prepend-project-name "Grep in: ")))))
+  (let* ((roots (projectile-get-project-directories))
+         (search-regexp (if (and transient-mark-mode mark-active)
+                            (buffer-substring (region-beginning) (region-end))
+                          (read-string (projectile-prepend-project-name "Grep for: ")
+                                       (projectile-symbol-at-point))))
+         (files (and arg (or (and (equal current-prefix-arg '-)
+                                  (projectile-grep-default-files))
+                             (read-string (projectile-prepend-project-name "Grep in: ")
+                                          (projectile-grep-default-files))))))
     (dolist (root-dir roots)
       (require 'grep)
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
