@@ -1303,9 +1303,7 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
   "Find tag in project."
   (interactive)
   (let ((tags (if (boundp 'ggtags-mode)
-                  (progn
-                    (ggtags-completion-table)
-                    (projectile--tags ggtags-completion-table))
+                  (projectile--tags (all-completions "" ggtags-completion-table))
                 (visit-tags-table (projectile-project-root) t)
                 (tags-completion-table)
                 (projectile--tags tags-completion-table))))
