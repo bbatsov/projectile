@@ -499,6 +499,12 @@ additional functions to the hook using `add-hook`:
 (add-hook 'projectile-idle-timer-hook 'my-projectile-idle-timer-function)
 ```
 
+### Mode line indicator
+
+By default the minor mode indicator of Projectile appears in the form
+"Projectile[ProjectName]". The "Projectile" prefix is configurable using the
+variable `projectile-mode-line-lighter`.
+
 ## Caveats
 
 * Traversing the project directory programmatically (instead of using
