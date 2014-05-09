@@ -1875,16 +1875,18 @@ is chosen."
 (easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
 
 ;;;###autoload
-(defconst projectile-mode-line-lighter " Projectile"
-  "The default lighter for `projectile-mode'.")
+(defcustom projectile-mode-line-lighter "Projectile"
+  "The default lighter for `projectile-mode'."
+  :group 'projectile
+  :type 'string)
 
-(defvar-local projectile-mode-line projectile-mode-line-lighter
+(defvar-local projectile-mode-line (format " %s" projectile-mode-line-lighter)
   "The dynamic mode line lighter variable for `projectile-mode'.")
 
 (defun projectile-update-mode-line ()
   "Report project in mode-line."
   (let* ((project-name (projectile-project-name))
-         (message (format "%s[%s]" projectile-mode-line-lighter project-name)))
+         (message (format " %s[%s]" projectile-mode-line-lighter project-name)))
     (setq projectile-mode-line message))
   (force-mode-line-update))
 

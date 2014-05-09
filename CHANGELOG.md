@@ -42,6 +42,8 @@ allow users to customize how projectile identifies test files by project type.
 * CVS checkouts are now automatically detected.
 * added `projectile-persp-switch-project` command to make perspective
   mode work along with projectile.
+* Changed `projectile-mode-line-lighter` to a defcustom variable to make
+  mode line indicator prefix customizable.
 
 ### Changes
 
