@@ -1,6 +1,6 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2013 Bozhidar Batsov <bozhidar@batsov.com>
+;; Copyright © 2011-2014 Bozhidar Batsov <bozhidar@batsov.com>
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
@@ -1619,14 +1619,14 @@ With a prefix ARG invokes `projectile-commander' instead of
       (funcall switch-project-action))
     (run-hooks 'projectile-switch-project-hook)))
 
-(defun projectile-find-file-in-directory ()
-  "Jump to a file in a (maybe regular) directory.
+
+(defun projectile-find-file-in-directory (&optional directory)
+  "Jump to a file in a (maybe regular) DIRECTORY.
 
 This command will first prompt for the directory the file is in."
-  (interactive)
-  (let* ((directory (read-directory-name "Find file in directory: "))
-         (default-directory directory)
-         (projectile-require-project-root nil))
+  (interactive "DFind file in directory: ")
+  (let ((default-directory directory)
+        (projectile-require-project-root nil))
     (if (projectile-project-p)
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
