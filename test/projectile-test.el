@@ -93,7 +93,7 @@
   (noflet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
            (file-exists-p (filename) t)
            (insert-file-contents-literally (filename) nil))
-          (should (equal '(("include") . ("log" "tmp" "compiled"))
+          (should (equal '(("include/") . ("log" "tmp" "compiled"))
                          (projectile-parse-dirconfig-file)))))
 
 (ert-deftest projectile-test-ack ()
@@ -281,7 +281,7 @@
                       (project-root-in "projectA/src/framework/lib")))
      (should (f-same? "projectA"
                       (project-root-in "projectA/src/html")))
-     
+
      (setq projectile-project-root-files-functions '(projectile-root-top-down
                                                      projectile-root-top-down-recurring
                                                      projectile-root-bottom-up))
@@ -291,7 +291,7 @@
                       (project-root-in "projectA/src/framework/lib")))
      (should (f-same? "projectA/src"
                       (project-root-in "projectA/src/html"))))
-   
+
    (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
          (projectile-project-root-files '("otherfile" "noframework.conf"))
          (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
@@ -348,7 +348,7 @@
    (let* ((initial-time (current-time))
           (projectile-file-exists-local-cache-expire 100)
           (projectile-file-exists-remote-cache-expire nil))
-     
+
      (noflet ((run-with-timer (&rest args) 'nooptimer))
        (noflet ((current-time () initial-time))
          (should (projectile-file-exists-p "fileA"))
@@ -387,7 +387,7 @@
          (should (equal  projectile-file-exists-cache-timer 'nooptimer))
          (projectile-file-exists-cache-cleanup)
          (should (equal projectile-file-exists-cache-timer 'nooptimer)))
-       
+
        (noflet ((current-time () (time-add initial-time (seconds-to-time 1000))))
          (should (equal  projectile-file-exists-cache-timer 'nooptimer))
          (projectile-file-exists-cache-cleanup)

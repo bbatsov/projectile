@@ -926,8 +926,14 @@ prefix the string will be assumed to be an ignore string."
         (let* ((split-string-default-separators "[\r\n]")
                (strings (-map 's-trim (delete "" (split-string (buffer-string)))))
                (separated-vals (--separate (s-starts-with? "+" it) strings)))
-          (cons (-map 'projectile-strip-dir-prefix (car separated-vals))
+          (cons (-map (lambda (dir) (projectile-ensure-trailing-slash
+                                     (projectile-strip-dir-prefix dir))) (car separated-vals))
                 (-map 'projectile-strip-dir-prefix (cadr separated-vals))))))))
+
+(defun projectile-ensure-trailing-slash (dir)
+  "Append / to DIR if missing."
+  (if (s-ends-with? "/" dir) dir
+    (concat dir "/")))
 
 (defun projectile-strip-dir-prefix (dir)
   "Strip + or - prefix from DIR."
