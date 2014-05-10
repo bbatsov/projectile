@@ -555,6 +555,10 @@ $ make test
 
 A fairly extensive changelog is available [here](CHANGELOG.md).
 
+## Freenode
+
+If you're into IRC you can visit the `#projectile` channel on Freenode.
+
 ## Bugs & Improvements
 
 Bug reports and suggestions for improvements are always
