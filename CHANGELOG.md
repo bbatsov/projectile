@@ -44,7 +44,8 @@ allow users to customize how projectile identifies test files by project type.
 * added `projectile-persp-switch-project` command to make perspective
   mode work along with projectile.
 * Changed `projectile-mode-line-lighter` to a defcustom variable to make
-  mode line indicator prefix customizable.
+mode line indicator prefix customizable.
+* New command `projectile-find-file-in-known-projects`.
 
 ### Changes
 

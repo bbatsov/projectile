@@ -293,6 +293,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by projectile:
 Keybinding         | Description
 -------------------|------------------------------------------------------------
 <kbd>C-c p f</kbd> | Display a list of all files in the project. With a prefix argument it will clear the cache first.
+<kbd>C-c p F</kbd> | Display a list of all files in all known projects.
 <kbd>C-c p 4 f</kbd> | Jump to a project's file using completion and show it in another window.
 <kbd>C-c p d</kbd> | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p 4 d</kbd> | Switch to a project directory and show it in another window.

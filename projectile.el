@@ -1673,6 +1673,19 @@ This command will first prompt for the directory the file is in."
       ;; target directory is not in a project
       (projectile-find-file))))
 
+(defun projectile-find-file-in-known-projects ()
+  "Jump to a file in any of the known projects."
+  (interactive)
+  (let ((projectile-require-project-root nil)
+        (all-files nil))
+    (-each projectile-known-projects
+      (lambda (project)
+        (let ((default-directory project))
+          (setq all-files (append all-files (-map (lambda (file)
+                                                    (expand-file-name file project))
+                                                  (projectile-current-project-files)))))))
+    (find-file (projectile-completing-read "Find file in projects: " all-files))))
+
 (defcustom projectile-switch-project-hook nil
   "Hooks run when project is switched."
   :group 'projectile
@@ -1860,6 +1873,7 @@ is chosen."
       (define-key prefix-map (kbd "D") 'projectile-dired)
       (define-key prefix-map (kbd "e") 'projectile-recentf)
       (define-key prefix-map (kbd "f") 'projectile-find-file)
+      (define-key prefix-map (kbd "F") 'projectile-find-file-in-known-projects)
       (define-key prefix-map (kbd "g") 'projectile-grep)
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
       (define-key prefix-map (kbd "j") 'projectile-find-tag)
@@ -1884,6 +1898,7 @@ is chosen."
 (easy-menu-change
  '("Tools") "Projectile"
  '(["Find file" projectile-find-file]
+   ["Find file in known projects" projectile-find-file-in-known-projects]
    ["Find test file" projectile-find-test-file]
    ["Find directory" projectile-find-dir]
    ["Find file in directory" projectile-find-file-in-directory]
