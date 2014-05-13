@@ -1712,15 +1712,12 @@ This command will first prompt for the directory the file is in."
 
 (defun projectile-remove-known-project (&optional project)
   "Remove PROJECT from the list of known projects."
-  (interactive)
-  (let ((project-to-remove
-         (or project
-             (projectile-completing-read "Remove from known projects: "
-                                         projectile-known-projects))))
-    (setq projectile-known-projects
-          (--reject (string= project-to-remove it) projectile-known-projects))
-    (projectile-save-known-projects)
-    (message "Project %s removed from the list of known projects." project-to-remove)))
+  (interactive (list (projectile-completing-read "Remove from known projects: "
+                                                 projectile-known-projects)))
+  (setq projectile-known-projects
+        (--reject (string= project it) projectile-known-projects))
+  (projectile-save-known-projects)
+  (message "Project %s removed from the list of known projects." project))
 
 (defun projectile-remove-current-project-from-known-projects ()
   "Remove the current project from the list of known projects."
