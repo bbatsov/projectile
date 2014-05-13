@@ -48,6 +48,7 @@ mode line indicator prefix customizable.
 * New command `projectile-find-file-in-known-projects`.
 * New defcustom `projectile-ignored-projects` allows you to specify projects
 that shouldn't be added to the known projects list.
+* New command `projectile-remove-current-project-from-known-projects`.
 
 ### Changes
 
