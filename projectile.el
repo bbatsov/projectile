@@ -1298,7 +1298,7 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
   (if (require 'ack-and-a-half nil 'noerror)
       (let* ((saved-arguments ack-and-a-half-arguments)
              (root (if arg
-                       (projectile-complete-dir)
+                       (expand-file-name (projectile-complete-dir) (projectile-project-root))
                      (projectile-project-root)))
              (ack-and-a-half-arguments
               (append saved-arguments
