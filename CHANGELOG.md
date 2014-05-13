@@ -46,6 +46,8 @@ allow users to customize how projectile identifies test files by project type.
 * Changed `projectile-mode-line-lighter` to a defcustom variable to make
 mode line indicator prefix customizable.
 * New command `projectile-find-file-in-known-projects`.
+* New defcustom `projectile-ignored-projects` allows you to specify projects
+that shouldn't be added to the known projects list.
 
 ### Changes
 

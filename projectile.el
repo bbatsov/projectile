@@ -320,6 +320,12 @@ The list of projects is ordered by the time they have been accessed.")
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-ignored-projects nil
+  "A list of projects not to be added to `projectile-known-projects'."
+  :group 'projectile
+  :type 'list
+  :package-version '(projectile . "0.11.0"))
+
 
 ;;; Version information
 
@@ -1715,11 +1721,17 @@ This command will first prompt for the directory the file is in."
     (projectile-save-known-projects)
     (message "Project %s removed from the list of known projects." project-to-remove)))
 
+(defun projectile-ignored-projects ()
+  "A list of projects that should not be save in `projectile-known-projects'."
+  (-map 'file-truename projectile-ignored-projects))
+
 (defun projectile-add-known-project (project-root)
   "Add PROJECT-ROOT to the list of known projects."
-  (setq projectile-known-projects
-        (-distinct
-         (cons (abbreviate-file-name project-root) projectile-known-projects))))
+  (unless (member project-root (projectile-ignored-projects))
+    (setq projectile-known-projects
+          (-distinct
+           (cons (abbreviate-file-name project-root)
+                 projectile-known-projects)))))
 
 (defun projectile-load-known-projects ()
   "Load saved projects from `projectile-known-projects-file'.
