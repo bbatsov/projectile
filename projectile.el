@@ -41,6 +41,8 @@
 (require 'dash)
 (require 'grep)           ; For `rgrep'
 (require 'pkg-info)       ; For `pkg-info-version-info'
+(require 'ibuffer)
+(require 'ibuf-ext)
 
 ;;;; Compatibility
 (eval-and-compile
@@ -1749,6 +1751,33 @@ Also set `projectile-known-projects'."
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
   (projectile-serialize projectile-known-projects projectile-known-projects-file))
 
+(define-ibuffer-filter projectile-files
+  "Show Ibuffer with all buffers in the current project."
+  (:reader (read-directory-name "Project root: " (ignore-errors (projectile-project-root)))
+           :description nil)
+  (with-current-buffer buf
+    (equal (file-name-as-directory (expand-file-name qualifier))
+           (ignore-errors (projectile-project-root)))))
+
+(defun projectile-ibuffer-by-project (project-root)
+  "Open an IBuffer window showing all buffers in PROJECT-ROOT."
+  (let ((project-name (file-name-nondirectory (directory-file-name project-root))))
+    (ibuffer nil (format "*%s Buffers*" project-name)
+             (list (cons 'projectile-files project-root)))))
+
+(defun projectile-ibuffer (prefix)
+  "Open an IBuffer window showing all buffers in the current project.
+
+Let user choose another project when PREFIX is supplied."
+  (interactive "p")
+  (let ((project-root (if (= prefix 4)
+                          (projectile-completing-read
+                           "Project name: "
+                           (projectile-relevant-known-projects))
+                        (projectile-project-root))))
+
+    (projectile-ibuffer-by-project project-root)))
+
 ;;;; projectile-commander
 
 (defconst projectile-commander-help-buffer "*Commander Help*")
@@ -1891,6 +1920,7 @@ is chosen."
       (define-key prefix-map (kbd "F") 'projectile-find-file-in-known-projects)
       (define-key prefix-map (kbd "g") 'projectile-grep)
       (define-key prefix-map (kbd "i") 'projectile-invalidate-cache)
+      (define-key prefix-map (kbd "I") 'projectile-ibuffer)
       (define-key prefix-map (kbd "j") 'projectile-find-tag)
       (define-key prefix-map (kbd "k") 'projectile-kill-buffers)
       (define-key prefix-map (kbd "l") 'projectile-find-file-in-directory)
