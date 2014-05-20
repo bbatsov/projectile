@@ -131,9 +131,12 @@
   :group 'helm-projectile)
 
 ;;;###autoload
-(defun helm-projectile ()
-  "Use projectile with Helm instead of ido."
-  (interactive)
+(defun helm-projectile (&optional arg)
+  "Use projectile with Helm instead of ido.
+
+With a prefix ARG invalidates the cache first."
+  (interactive "P")
+  (projectile-maybe-invalidate-cache arg)
   (let ((helm-ff-transformer-show-only-basename nil))
     (helm :sources helm-projectile-sources-list
           :buffer "*helm projectile*"
