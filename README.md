@@ -338,6 +338,10 @@ You can change the default keymap prefix `C-c p` like this:
 (setq projectile-keymap-prefix (kbd "C-c C-p"))
 ```
 
+It is also possible to add additional commands to
+`projectile-command-map` referenced by the prefix key in
+`projectile-mode-map`.
+
 For some common commands you might want to take a little shortcut and
 leverage the fairly unused `Super` key (by default `Command` on Mac
 keyboards and `Windows` on Win keyboards). Here's something you can
