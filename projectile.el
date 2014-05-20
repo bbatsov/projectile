@@ -1353,7 +1353,7 @@ regular expression."
 
 (defun projectile-visit-project-tags-table ()
   "Visit the current project's tags table."
-  (when (projectile-project-p)
+  (when (and (projectile-project-p) (file-exists-p (projectile-expand-root "TAGS")))
     (visit-tags-table (projectile-project-root) t)))
 
 (defun projectile-find-tag ()
