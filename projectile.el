@@ -1313,14 +1313,21 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
         (ack-and-a-half regexp t root))
     (error "ack-and-a-half not available")))
 
-(defun projectile-ag (regexp)
-  "Run an ag search with REGEXP in the project."
+(defun projectile-ag (search-term &optional arg)
+  "Run an ag search with SEARCH-TERM in the project.
+
+With an optional prefix argument ARG SEARCH-TERM is interpreted as a
+regular expression."
   (interactive
    (list (read-from-minibuffer
           (projectile-prepend-project-name "Ag search for: ")
-          (projectile-symbol-at-point))))
+          (projectile-symbol-at-point))
+         current-prefix-arg))
   (if (fboundp 'ag-regexp)
-      (ag-regexp regexp (projectile-project-root))
+      (let ((ag-command (if arg 'ag-regexp 'ag))
+            ;; reset the prefix arg, otherwise it will affect the ag-command
+            (current-prefix-arg nil))
+        (funcall ag-command search-term (projectile-project-root)))
     (error "Ag is not available")))
 
 (defun projectile-tags-exclude-patterns ()
