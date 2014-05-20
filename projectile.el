@@ -1351,6 +1351,11 @@ regular expression."
       (shell-command (format projectile-tags-command tags-exclude))
       (visit-tags-table project-root t))))
 
+(defun projectile-visit-project-tags-table ()
+  "Visit the current project's tags table."
+  (when (projectile-project-p)
+    (visit-tags-table (projectile-project-root) t)))
+
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
@@ -2021,11 +2026,13 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook t t)
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
-    (add-hook 'find-file-hook 'projectile-update-mode-line t t))
+    (add-hook 'find-file-hook 'projectile-update-mode-line t t)
+    (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t))
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
-    (remove-hook 'find-file-hook 'projectile-update-mode-line t))))
+    (remove-hook 'find-file-hook 'projectile-update-mode-line t)
+    (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t))))
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
