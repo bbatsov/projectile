@@ -772,11 +772,9 @@ Operates on filenames relative to the project root."
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
-    (and (s-starts-with? project-root
-                         (file-truename default-directory))
-         ;; ignore hidden buffers
-         (not (s-starts-with? " " (buffer-name buffer)))
-         (not (projectile-ignored-buffer-p buffer)))))
+    (and (not (s-starts-with? " " (buffer-name buffer)))
+         (not (projectile-ignored-buffer-p buffer))
+         (s-starts-with? project-root (file-truename default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
