@@ -1359,7 +1359,8 @@ regular expression."
   (interactive)
   (let ((tags (if (boundp 'ggtags-mode)
                   (projectile--tags (all-completions "" ggtags-completion-table))
-                (visit-tags-table (projectile-project-root) t)
+                ;; we have to manually reset the tags-completion-table every time
+                (setq tags-completion-table nil)
                 (tags-completion-table)
                 (projectile--tags tags-completion-table))))
     (find-tag (projectile-completing-read "Find tag: " tags))))
