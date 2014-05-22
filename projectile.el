@@ -139,6 +139,12 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-sort-order 'default
+  "The sort order used for a project's files."
+  :group 'projectile
+  :type 'symbol
+  :options '(default access-time modification-time))
+
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
@@ -979,7 +985,7 @@ https://github.com/d11wtq/grizzl")))
       ;; cache the resulting list of files
       (when projectile-enable-caching
         (projectile-cache-project (projectile-project-root) files)))
-    files))
+    (projectile-sort-files files)))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
@@ -1016,6 +1022,31 @@ With a prefix ARG invalidates the cache first."
                                           (projectile-current-project-files))))
     (find-file-other-window (expand-file-name file (projectile-project-root)))
     (run-hooks 'projectile-find-file-hook)))
+
+(defun projectile-sort-files (files)
+  "Sort FILES according to `projectile-sort-order'."
+  (pcase projectile-sort-order
+    (`default files)
+    (`modification-time (projectile-sort-by-modification-time files))
+    (`access-time (projectile-sort-by-access-time files))))
+
+(defun projectile-sort-by-modification-time (files)
+  "Sort FILES by modification time."
+  (let ((default-directory (projectile-project-root)))
+   (-sort (lambda (file1 file2)
+            (let ((file1-mtime (nth 5 (file-attributes file1)))
+                  (file2-mtime (nth 5 (file-attributes file2))))
+              (not (time-less-p file1-mtime file2-mtime))))
+          files)))
+
+(defun projectile-sort-by-access-time (files)
+  "Sort FILES by access time."
+  (let ((default-directory (projectile-project-root)))
+    (-sort (lambda (file1 file2)
+             (let ((file1-atime (nth 4 (file-attributes file1)))
+                   (file2-atime (nth 4 (file-attributes file2))))
+               (not (time-less-p file1-atime file2-atime))))
+           files)))
 
 (defun projectile-find-dir (&optional arg)
   "Jump to a project's directory using completion.
