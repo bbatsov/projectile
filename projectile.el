@@ -1421,7 +1421,9 @@ regular expression."
                 (setq tags-completion-table nil)
                 (tags-completion-table)
                 (projectile--tags tags-completion-table))))
-    (find-tag (projectile-completing-read "Find tag: " tags))))
+    (find-tag (projectile-completing-read "Find tag: "
+                                          tags
+                                          (projectile-symbol-at-point)))))
 
 (defun projectile--tags (completion-table)
   "Find tags using COMPLETION-TABLE."
