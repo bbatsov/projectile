@@ -145,6 +145,15 @@ Otherwise consider the current directory the project root."
   :type 'symbol
   :options '(default access-time modification-time))
 
+(defcustom projectile-buffers-filter-function nil
+  "A function used to filter the buffers in `projectile-project-buffers'.
+
+The function should accept and return a list of Emacs buffers.
+Two example filter functions are shipped by default - `projectile-buffers-with-file'
+and `projectile-buffers-with-file-or-process'."
+  :group 'projectile
+  :type 'symbol)
+
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
@@ -768,12 +777,24 @@ Operates on filenames relative to the project root."
                (--any-p  (s-starts-with-p it file) ignored))
              files)))
 
+(defun projectile-buffers-with-file (buffers)
+  "Return only those BUFFERS backed by files."
+  (--filter (buffer-file-name it) buffers))
+
+(defun projectile-buffers-with-file-or-process (buffers)
+  "Return only those BUFFERS backed by files or processes."
+  (--filter (or (buffer-file-name it)
+                (get-buffer-process it)) buffers))
+
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
-  (let ((project-root (projectile-project-root)))
-    (-filter (lambda (buffer)
-               (projectile-project-buffer-p buffer project-root))
-             (buffer-list))))
+  (let* ((project-root (projectile-project-root))
+         (all-buffers (-filter (lambda (buffer)
+                                 (projectile-project-buffer-p buffer project-root))
+                               (buffer-list))))
+    (if projectile-buffers-filter-function
+        (funcall projectile-buffers-filter-function buffers)
+      all-buffers)))
 
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
