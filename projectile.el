@@ -793,7 +793,7 @@ Operates on filenames relative to the project root."
                                  (projectile-project-buffer-p buffer project-root))
                                (buffer-list))))
     (if projectile-buffers-filter-function
-        (funcall projectile-buffers-filter-function buffers)
+        (funcall projectile-buffers-filter-function all-buffers)
       all-buffers)))
 
 (defun projectile-project-buffer-p (buffer project-root)
