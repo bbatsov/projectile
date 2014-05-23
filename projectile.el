@@ -163,6 +163,7 @@ and `projectile-buffers-with-file-or-process'."
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
     "package.json"       ; npm package file
+    "gulpfile.js"        ; Gulp build file
     "Gruntfile.js"       ; Grunt project file
     "bower.json"         ; Bower project file
     "composer.json"      ; Composer project file
@@ -1157,6 +1158,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-sbt '("build.sbt"))
 (defvar projectile-make '("Makefile"))
 (defvar projectile-grunt '("Gruntfile.js"))
+(defvar projectile-gulp '("gulpfile.js"))
 
 (defun projectile-go ()
   (-any? (lambda (file)
@@ -1185,6 +1187,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-rebar) 'rebar)
    ((projectile-verify-files projectile-sbt) 'sbt)
    ((projectile-verify-files projectile-make) 'make)
+   ((projectile-verify-files projectile-gulp) 'gulp)
    ((projectile-verify-files projectile-grunt) 'grunt)
    ((funcall projectile-go-function) 'go)
    (t 'generic)))
@@ -1611,6 +1614,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-make-test-cmd "make test")
 (defvar projectile-grunt-compile-cmd "grunt")
 (defvar projectile-grunt-test-cmd "grunt test")
+(defvar projectile-gulp-compile-cmd "gulp")
+(defvar projectile-gulp-test-cmd "gulp test")
 (defvar projectile-go-compile-cmd "go build ./...")
 (defvar projectile-go-test-cmd "go test ./...")
 
@@ -1637,6 +1642,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grails) projectile-grails-compile-cmd)
    ((eq project-type 'sbt) projectile-sbt-compile-cmd)
    ((eq project-type 'grunt) projectile-grunt-compile-cmd)
+   ((eq project-type 'gulp) projectile-gulp-compile-cmd)
    ((eq project-type 'go) projectile-go-compile-cmd)
    (t projectile-make-compile-cmd)))
 
@@ -1656,6 +1662,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grails) projectile-grails-test-cmd)
    ((eq project-type 'sbt) projectile-sbt-test-cmd)
    ((eq project-type 'grunt) projectile-grunt-test-cmd)
+   ((eq project-type 'gulp) projectile-gulp-test-cmd)
    ((eq project-type 'go) projectile-go-test-cmd)
    (t projectile-make-test-cmd)))
 
