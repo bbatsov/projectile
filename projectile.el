@@ -979,14 +979,14 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root)))
 
-(defun projectile-completing-read (prompt choices)
+(defun projectile-completing-read (prompt choices &optional initial-input)
   "Present a project tailored PROMPT with CHOICES."
   (let ((prompt (projectile-prepend-project-name prompt)))
     (cond
      ((eq projectile-completion-system 'ido)
-      (ido-completing-read prompt choices))
+      (ido-completing-read prompt choices nil nil initial-input))
      ((eq projectile-completion-system 'default)
-      (completing-read prompt choices))
+      (completing-read prompt choices nil nil initial-input))
      ((eq projectile-completion-system 'grizzl)
       (if (and (fboundp 'grizzl-completing-read)
                (fboundp 'grizzl-make-index))
