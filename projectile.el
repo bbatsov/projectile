@@ -1048,10 +1048,11 @@ With a prefix ARG invalidates the cache first."
   "Sort FILES according to `projectile-sort-order'."
   (pcase projectile-sort-order
     (`default files)
+    (`recentf (projectile-sort-by-recentf-first files))
     (`modification-time (projectile-sort-by-modification-time files))
     (`access-time (projectile-sort-by-access-time files))))
 
-(defun projectile-sort-recentf-first (files)
+(defun projectile-sort-by-recentf-first (files)
   "Sort FILES by a recent first scheme."
   (let ((project-recentf-files (projectile-recentf-files)))
     (append project-recentf-files
