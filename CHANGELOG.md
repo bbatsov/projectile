@@ -50,6 +50,7 @@ mode line indicator prefix customizable.
 that shouldn't be added to the known projects list.
 * New command `projectile-remove-current-project-from-known-projects`.
 * New defcustom `projectile-buffers-filter-function`.
+* New defcustom `projectile-sort-order`.
 
 ### Changes
 

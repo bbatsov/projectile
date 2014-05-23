@@ -143,7 +143,7 @@ Otherwise consider the current directory the project root."
   "The sort order used for a project's files."
   :group 'projectile
   :type 'symbol
-  :options '(default access-time modification-time))
+  :options '(default recentf access-time modification-time))
 
 (defcustom projectile-buffers-filter-function nil
   "A function used to filter the buffers in `projectile-project-buffers'.
@@ -1050,6 +1050,12 @@ With a prefix ARG invalidates the cache first."
     (`default files)
     (`modification-time (projectile-sort-by-modification-time files))
     (`access-time (projectile-sort-by-access-time files))))
+
+(defun projectile-sort-recentf-first (files)
+  "Sort FILES by a recent first scheme."
+  (let ((project-recentf-files (projectile-recentf-files)))
+    (append project-recentf-files
+            (-difference files project-recentf-files))))
 
 (defun projectile-sort-by-modification-time (files)
   "Sort FILES by modification time."
