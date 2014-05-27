@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 0.11.0 (05/27/2014)
+
 ### New features
 
 * Added support for default file glob pattern to `projectile-grep`
