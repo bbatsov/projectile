@@ -51,6 +51,8 @@ that shouldn't be added to the known projects list.
 * New command `projectile-remove-current-project-from-known-projects`.
 * New defcustom `projectile-buffers-filter-function`.
 * New defcustom `projectile-sort-order`.
+* New function `projectile-process-current-project-buffers`.
+* New function `projectile-process-current-project-files`.
 
 ### Changes
 

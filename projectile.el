@@ -797,6 +797,12 @@ Operates on filenames relative to the project root."
         (funcall projectile-buffers-filter-function all-buffers)
       all-buffers)))
 
+(defun projectile-process-current-project-buffers (action)
+  "Process the current project's buffers using ACTION."
+  (let ((project-buffers (projectile-project-buffers)))
+    (dolist (buffer project-buffers)
+      (funcall action buffer))))
+
 (defun projectile-project-buffer-files ()
   "Get a list of project buffer files."
   (let ((project-root (projectile-project-root)))
@@ -1025,6 +1031,13 @@ https://github.com/d11wtq/grizzl")))
       (when projectile-enable-caching
         (projectile-cache-project (projectile-project-root) files)))
     (projectile-sort-files files)))
+
+(defun projectile-process-current-project-files (action)
+  "Process the current project's files using ACTION."
+  (let ((project-files (projectile-current-project-files))
+        default-directory (projectile-project-root))
+    (dolist (filename project-files)
+     (funcall action filename))))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
