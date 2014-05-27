@@ -558,6 +558,10 @@ Run all tests with:
 $ make test
 ```
 
+I'm also accepting financial contributions via [gittip](https://www.gittip.com/bbatsov).
+
+[![Support via Gittip](https://rawgithub.com/twolfson/gittip-badge/0.2.0/dist/gittip.png)](https://www.gittip.com/bbatsov)
+
 ## Changelog
 
 A fairly extensive changelog is available [here](CHANGELOG.md).
