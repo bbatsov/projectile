@@ -134,7 +134,12 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re %s"
+(defcustom projectile-tags-file-name "TAGS"
+  "The tags filename Projectile's going to use."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-tags-command "ctags -Re -f %s %s"
   "The command Projectile's going to use to generate a TAGS file."
   :group 'projectile
   :type 'string)
@@ -204,7 +209,7 @@ pattern that would have found a project root in a subdirectory."
   :type '(repeat function))
 
 (defcustom projectile-globally-ignored-files
-  '("TAGS")
+  (list projectile-tags-file-name)
   "A list of files globally ignored by projectile."
   :group 'projectile
   :type '(repeat string))
@@ -1444,14 +1449,17 @@ regular expression."
           (ggtags-update-tags t)))
     (let* ((project-root (projectile-project-root))
            (tags-exclude (projectile-tags-exclude-patterns))
-           (default-directory project-root))
-      (shell-command (format projectile-tags-command tags-exclude))
-      (visit-tags-table project-root t))))
+           (default-directory project-root)
+           (tags-file (expand-file-name projectile-tags-file-name)))
+      (shell-command (format projectile-tags-command tags-file tags-exclude))
+      (visit-tags-table tags-file))))
 
 (defun projectile-visit-project-tags-table ()
   "Visit the current project's tags table."
-  (when (and (projectile-project-p) (file-exists-p (projectile-expand-root "TAGS")))
-    (visit-tags-table (projectile-project-root) t)))
+  (when (projectile-project-p)
+    (let ((tags-file (projectile-expand-root projectile-tags-file-name)))
+      (when (file-exists-p tags-file)
+        (visit-tags-table tags-file t)))))
 
 (defun projectile-find-tag ()
   "Find tag in project."
