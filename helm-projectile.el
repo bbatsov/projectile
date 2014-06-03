@@ -99,7 +99,7 @@
                   (setq helm-buffer-max-len-mode (cdr result))))))
     (candidates . helm-projectile-buffers-list-cache)
     (type . buffer)
-    (match helm-buffer-match-major-mode)
+    (match helm-buffers-list--match-fn)
     (persistent-action . helm-buffers-list-persistent-action)
     (keymap . ,helm-buffer-map)
     (volatile)
