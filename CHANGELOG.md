@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 0.11.0 (05/27/2014)
+
 ### New features
 
 * Added support for default file glob pattern to `projectile-grep`
@@ -49,6 +51,10 @@ mode line indicator prefix customizable.
 * New defcustom `projectile-ignored-projects` allows you to specify projects
 that shouldn't be added to the known projects list.
 * New command `projectile-remove-current-project-from-known-projects`.
+* New defcustom `projectile-buffers-filter-function`.
+* New defcustom `projectile-sort-order`.
+* New function `projectile-process-current-project-buffers`.
+* New function `projectile-process-current-project-files`.
 
 ### Changes
 
@@ -93,7 +99,7 @@ understandable error if current buffer is not visiting a file.
   run many Projectile commands with a single key. Very useful as a
   project-switching action.
 * `projectile-switch-project` now supports a prefix argument. When it's present
-the switch action wis `projectile-commander`.
+the switch action is `projectile-commander`.
 
 ### Changes
 
@@ -144,8 +150,6 @@ the switch action wis `projectile-commander`.
 ### Bugs fixed
 
 * #95 - handle properly missing project root
-
-### Misc
 
 ## 0.9.0 (04/24/2013)
 

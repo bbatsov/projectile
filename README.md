@@ -45,21 +45,21 @@ Here's a glimpse of Projectile in action:
 
 ## Installation
 
-The recommended way to install Projectile is via MELPA or Marmalade.
+The recommended way to install Projectile is via `package.el`.
 
-### MELPA
+### package.el
 
-If you're an Emacs 24 user or you have a recent version of `package.el`
-you can install Projectile from the
+#### MELPA
+
+You can install a snapshot version of Projectile from the
 [MELPA](http://melpa.milkbox.net) repository. The version of
 Projectile there will always be up-to-date, but it might be unstable
 (albeit rarely).
 
-### Marmalade
+#### MELPA Stable
 
-If you're an Emacs 24 user or you have a recent version of `package.el`
-you can install Projectile from the
-[Marmalade](http://marmalade-repo.org/) repository.
+You can install the last stable version of Projectile from the
+[MELPA Stable](http://melpa-stable.milkbox.net) repository.
 
 ### el-get
 
@@ -557,6 +557,10 @@ Run all tests with:
 ```bash
 $ make test
 ```
+
+I'm also accepting financial contributions via [gittip](https://www.gittip.com/bbatsov).
+
+[![Support via Gittip](https://rawgithub.com/twolfson/gittip-badge/0.2.0/dist/gittip.png)](https://www.gittip.com/bbatsov)
 
 ## Changelog
 

@@ -5,7 +5,7 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 0.10.0
+;; Version: 0.11.0
 ;; Package-Requires: ((s "1.6.0") (dash "1.5.0") (pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -139,6 +139,21 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-sort-order 'default
+  "The sort order used for a project's files."
+  :group 'projectile
+  :type 'symbol
+  :options '(default recentf recently-active access-time modification-time))
+
+(defcustom projectile-buffers-filter-function nil
+  "A function used to filter the buffers in `projectile-project-buffers'.
+
+The function should accept and return a list of Emacs buffers.
+Two example filter functions are shipped by default - `projectile-buffers-with-file'
+and `projectile-buffers-with-file-or-process'."
+  :group 'projectile
+  :type 'symbol)
+
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
@@ -148,6 +163,7 @@ Otherwise consider the current directory the project root."
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
     "package.json"       ; npm package file
+    "gulpfile.js"        ; Gulp build file
     "Gruntfile.js"       ; Grunt project file
     "bower.json"         ; Bower project file
     "composer.json"      ; Composer project file
@@ -762,21 +778,44 @@ Operates on filenames relative to the project root."
                (--any-p  (s-starts-with-p it file) ignored))
              files)))
 
+(defun projectile-buffers-with-file (buffers)
+  "Return only those BUFFERS backed by files."
+  (--filter (buffer-file-name it) buffers))
+
+(defun projectile-buffers-with-file-or-process (buffers)
+  "Return only those BUFFERS backed by files or processes."
+  (--filter (or (buffer-file-name it)
+                (get-buffer-process it)) buffers))
+
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
+  (let* ((project-root (projectile-project-root))
+         (all-buffers (-filter (lambda (buffer)
+                                 (projectile-project-buffer-p buffer project-root))
+                               (buffer-list))))
+    (if projectile-buffers-filter-function
+        (funcall projectile-buffers-filter-function all-buffers)
+      all-buffers)))
+
+(defun projectile-process-current-project-buffers (action)
+  "Process the current project's buffers using ACTION."
+  (let ((project-buffers (projectile-project-buffers)))
+    (dolist (buffer project-buffers)
+      (funcall action buffer))))
+
+(defun projectile-project-buffer-files ()
+  "Get a list of project buffer files."
   (let ((project-root (projectile-project-root)))
-    (-filter (lambda (buffer)
-               (projectile-project-buffer-p buffer project-root))
-             (buffer-list))))
+    (->> (projectile-buffers-with-file (projectile-project-buffers))
+      (-map (lambda (buffer)
+              (file-relative-name (buffer-file-name buffer) project-root))))))
 
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
-    (and (s-starts-with? project-root
-                         (file-truename default-directory))
-         ;; ignore hidden buffers
-         (not (s-starts-with? " " (buffer-name buffer)))
-         (not (projectile-ignored-buffer-p buffer)))))
+    (and (not (s-starts-with? " " (buffer-name buffer)))
+         (not (projectile-ignored-buffer-p buffer))
+         (s-starts-with? project-root (file-truename default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
@@ -784,6 +823,16 @@ Operates on filenames relative to the project root."
     (--any-p (s-matches? (concat "^" it "$")
                          (symbol-name major-mode))
              projectile-globally-ignored-modes)))
+
+(defun projectile-recently-active-files ()
+  "Get list of recently active files.
+
+Files are ordered by recently active buffers, and then recently
+opened through use of recentf."
+  (let ((project-buffer-files (projectile-project-buffer-files)))
+    (append project-buffer-files
+            (-difference (projectile-recentf-files)
+                         project-buffer-files))))
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
@@ -954,14 +1003,14 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root)))
 
-(defun projectile-completing-read (prompt choices)
+(defun projectile-completing-read (prompt choices &optional initial-input)
   "Present a project tailored PROMPT with CHOICES."
   (let ((prompt (projectile-prepend-project-name prompt)))
     (cond
      ((eq projectile-completion-system 'ido)
-      (ido-completing-read prompt choices))
+      (ido-completing-read prompt choices nil nil initial-input))
      ((eq projectile-completion-system 'default)
-      (completing-read prompt choices))
+      (completing-read prompt choices nil nil initial-input))
      ((eq projectile-completion-system 'grizzl)
       (if (and (fboundp 'grizzl-completing-read)
                (fboundp 'grizzl-make-index))
@@ -981,7 +1030,14 @@ https://github.com/d11wtq/grizzl")))
       ;; cache the resulting list of files
       (when projectile-enable-caching
         (projectile-cache-project (projectile-project-root) files)))
-    files))
+    (projectile-sort-files files)))
+
+(defun projectile-process-current-project-files (action)
+  "Process the current project's files using ACTION."
+  (let ((project-files (projectile-current-project-files))
+        default-directory (projectile-project-root))
+    (dolist (filename project-files)
+     (funcall action filename))))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
@@ -1018,6 +1074,45 @@ With a prefix ARG invalidates the cache first."
                                           (projectile-current-project-files))))
     (find-file-other-window (expand-file-name file (projectile-project-root)))
     (run-hooks 'projectile-find-file-hook)))
+
+(defun projectile-sort-files (files)
+  "Sort FILES according to `projectile-sort-order'."
+  (pcase projectile-sort-order
+    (`default files)
+    (`recentf (projectile-sort-by-recentf-first files))
+    (`recently-active (projectile-sort-by-recently-active-first files))
+    (`modification-time (projectile-sort-by-modification-time files))
+    (`access-time (projectile-sort-by-access-time files))))
+
+(defun projectile-sort-by-recentf-first (files)
+  "Sort FILES by a recent first scheme."
+  (let ((project-recentf-files (projectile-recentf-files)))
+    (append project-recentf-files
+            (-difference files project-recentf-files))))
+
+(defun projectile-sort-by-recently-active-first (files)
+  "Sort FILES by most recently active buffers or opened files."
+  (let ((project-recently-active-files (projectile-recently-active-files)))
+    (append project-recently-active-files
+            (-difference files project-recently-active-files))))
+
+(defun projectile-sort-by-modification-time (files)
+  "Sort FILES by modification time."
+  (let ((default-directory (projectile-project-root)))
+   (-sort (lambda (file1 file2)
+            (let ((file1-mtime (nth 5 (file-attributes file1)))
+                  (file2-mtime (nth 5 (file-attributes file2))))
+              (not (time-less-p file1-mtime file2-mtime))))
+          files)))
+
+(defun projectile-sort-by-access-time (files)
+  "Sort FILES by access time."
+  (let ((default-directory (projectile-project-root)))
+    (-sort (lambda (file1 file2)
+             (let ((file1-atime (nth 4 (file-attributes file1)))
+                   (file2-atime (nth 4 (file-attributes file2))))
+               (not (time-less-p file1-atime file2-atime))))
+           files)))
 
 (defun projectile-find-dir (&optional arg)
   "Jump to a project's directory using completion.
@@ -1100,6 +1195,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-sbt '("build.sbt"))
 (defvar projectile-make '("Makefile"))
 (defvar projectile-grunt '("Gruntfile.js"))
+(defvar projectile-gulp '("gulpfile.js"))
 
 (defun projectile-go ()
   (-any? (lambda (file)
@@ -1128,6 +1224,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-rebar) 'rebar)
    ((projectile-verify-files projectile-sbt) 'sbt)
    ((projectile-verify-files projectile-make) 'make)
+   ((projectile-verify-files projectile-gulp) 'gulp)
    ((projectile-verify-files projectile-grunt) 'grunt)
    ((funcall projectile-go-function) 'go)
    (t 'generic)))
@@ -1361,10 +1458,13 @@ regular expression."
   (interactive)
   (let ((tags (if (boundp 'ggtags-mode)
                   (projectile--tags (all-completions "" ggtags-completion-table))
-                (visit-tags-table (projectile-project-root) t)
+                ;; we have to manually reset the tags-completion-table every time
+                (setq tags-completion-table nil)
                 (tags-completion-table)
                 (projectile--tags tags-completion-table))))
-    (find-tag (projectile-completing-read "Find tag: " tags))))
+    (find-tag (projectile-completing-read "Find tag: "
+                                          tags
+                                          (projectile-symbol-at-point)))))
 
 (defun projectile--tags (completion-table)
   "Find tags using COMPLETION-TABLE."
@@ -1551,6 +1651,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-make-test-cmd "make test")
 (defvar projectile-grunt-compile-cmd "grunt")
 (defvar projectile-grunt-test-cmd "grunt test")
+(defvar projectile-gulp-compile-cmd "gulp")
+(defvar projectile-gulp-test-cmd "gulp test")
 (defvar projectile-go-compile-cmd "go build ./...")
 (defvar projectile-go-test-cmd "go test ./...")
 
@@ -1577,6 +1679,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grails) projectile-grails-compile-cmd)
    ((eq project-type 'sbt) projectile-sbt-compile-cmd)
    ((eq project-type 'grunt) projectile-grunt-compile-cmd)
+   ((eq project-type 'gulp) projectile-gulp-compile-cmd)
    ((eq project-type 'go) projectile-go-compile-cmd)
    (t projectile-make-compile-cmd)))
 
@@ -1596,6 +1699,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grails) projectile-grails-test-cmd)
    ((eq project-type 'sbt) projectile-sbt-test-cmd)
    ((eq project-type 'grunt) projectile-grunt-test-cmd)
+   ((eq project-type 'gulp) projectile-gulp-test-cmd)
    ((eq project-type 'go) projectile-go-test-cmd)
    (t projectile-make-test-cmd)))
 
