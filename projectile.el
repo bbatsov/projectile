@@ -1581,6 +1581,8 @@ to run the replacement."
            (length buffers)
            (projectile-project-name))))
     (if (yes-or-no-p question)
+        ;; we take care not to kill indirect buffers directly
+        ;; as we might encounter them after their base buffers are killed
         (mapc 'kill-buffer (-remove 'buffer-base-buffer buffers)))))
 
 (defun projectile-save-project-buffers ()
