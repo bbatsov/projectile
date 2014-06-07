@@ -1552,7 +1552,8 @@ files in the project."
 (defun projectile-replace (arg)
   "Replace a string in the project using `tags-query-replace'.
 
-With a prefix argument ARG prompts you for a directory on which to run the replacement."
+With a prefix argument ARG prompts you for a directory on which
+to run the replacement."
   (interactive "P")
   (let* ((old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
