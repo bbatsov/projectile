@@ -2,6 +2,11 @@
 
 ## master (unreleased)
 
+### Bugs fixed
+
+* Prevent `projectile-kill-buffers` from trying to kill indirect
+  buffers.
+
 ## 0.11.0 (05/27/2014)
 
 ### New features

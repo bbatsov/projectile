@@ -1573,14 +1573,14 @@ With a prefix argument ARG prompts you for a directory on which to run the repla
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
   (interactive)
-  (let* ((buffers (projectile-project-buffer-names))
+  (let* ((buffers (projectile-project-buffers))
          (question
           (format
            "Are you sure you want to kill %d buffer(s) for '%s'? "
            (length buffers)
            (projectile-project-name))))
     (if (yes-or-no-p question)
-        (mapc 'kill-buffer buffers))))
+        (mapc 'kill-buffer (-remove 'buffer-base-buffer buffers)))))
 
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
