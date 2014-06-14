@@ -1740,6 +1740,26 @@ with a prefix ARG."
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (compilation-start compilation-cmd)))
 
+(defun projectile-compilation-find-file (oldfun &rest args)
+  "Try to find a buffer for FILENAME, if we cannot find it,
+fallback to the original function, OLDFUN.
+
+\(advice-add 'compilation-find-file :around projectile-compilation-find-file)"
+  (cl-destructuring-bind (marker filename directory &rest formats) args
+    (or
+     (if (file-exists-p (expand-file-name filename))
+         (find-file-noselect filename))
+     ;; Try to find the filename using projectile
+     (and (projectile-project-p)
+          (loop with root = (projectile-project-root)
+                for dir in (cons "" (projectile-current-project-dirs))
+                for file = (expand-file-name filename
+                                             (expand-file-name dir root))
+                if (file-exists-p file)
+                return (find-file-noselect file)))
+     ;; Fall back to the old function `compilation-find-file'
+     (apply oldfun marker filename directory formats))))
+
 ;; TODO - factor this duplication out
 (defun projectile-test-project (arg)
   "Run project test command.
@@ -2143,11 +2163,13 @@ Otherwise behave as if called interactively.
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
     (add-hook 'find-file-hook 'projectile-update-mode-line t t)
     (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t))
+    (advice-add 'compilation-find-file :around 'projectile-compilation-find-file)
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-update-mode-line t)
-    (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t))))
+    (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t)
+    (advice-remove 'compilation-find-file 'projectile-compilation-find-file))))
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
