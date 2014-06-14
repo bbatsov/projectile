@@ -476,6 +476,7 @@ Install package: perspective
 Secondly, make sure `persp-projectile.el` is in your Emacs load path. Then require it in your init file.
 
 ```el
+(persp-mode)
 (require 'persp-projectile)
 ```
 
