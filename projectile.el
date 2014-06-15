@@ -1464,15 +1464,16 @@ regular expression."
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
-  (let ((tags (if (boundp 'ggtags-mode)
+  (let ((find-tag-function (if (boundp 'ggtags-mode) 'ggtags-find-tag 'find-tag))
+        (tags (if (boundp 'ggtags-mode)
                   (projectile--tags (all-completions "" ggtags-completion-table))
                 ;; we have to manually reset the tags-completion-table every time
                 (setq tags-completion-table nil)
                 (tags-completion-table)
                 (projectile--tags tags-completion-table))))
-    (find-tag (projectile-completing-read "Find tag: "
-                                          tags
-                                          (projectile-symbol-at-point)))))
+    (funcall find-tag-function (projectile-completing-read "Find tag: "
+                                                            tags
+                                                            (projectile-symbol-at-point)))))
 
 (defun projectile--tags (completion-table)
   "Find tags using COMPLETION-TABLE."
