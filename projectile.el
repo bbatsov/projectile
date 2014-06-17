@@ -5,7 +5,8 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 0.11.0
+;; Version: 20140614.559
+;; X-Original-Version: 0.11.0
 ;; Package-Requires: ((s "1.6.0") (dash "1.5.0") (pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -139,7 +140,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re -f %s %s"
+(defcustom projectile-tags-command  "etags -o %s %s"
   "The command Projectile's going to use to generate a TAGS file."
   :group 'projectile
   :type 'string)
@@ -1438,6 +1439,12 @@ regular expression."
                                        (directory-file-name pattern)))
              (projectile-ignored-directories-rel) " "))
 
+(defun projectile-tags-all-filelist() 
+     "Return a file list can accept by etags"
+     (mapconcat (lambda (file) (format "%s" file))
+                (projectile-current-project-files) " ")
+)
+
 (defun projectile-regenerate-tags ()
   "Regenerate the project's [e|g]tags."
   (interactive)
@@ -1448,10 +1455,11 @@ regular expression."
           (ggtags-ensure-project)
           (ggtags-update-tags t)))
     (let* ((project-root (projectile-project-root))
+           (full-file-list (projectile-tags-all-filelist))
            (tags-exclude (projectile-tags-exclude-patterns))
            (default-directory project-root)
            (tags-file (expand-file-name projectile-tags-file-name)))
-      (shell-command (format projectile-tags-command tags-file tags-exclude))
+      (shell-command (format projectile-tags-command tags-file full-file-list))
       (visit-tags-table tags-file))))
 
 (defun projectile-visit-project-tags-table ()
