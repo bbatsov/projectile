@@ -2163,8 +2163,8 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
     (add-hook 'find-file-hook 'projectile-update-mode-line t t)
-    (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t))
-    (advice-add 'compilation-find-file :around 'projectile-compilation-find-file)
+    (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t)
+    (advice-add 'compilation-find-file :around 'projectile-compilation-find-file))
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
