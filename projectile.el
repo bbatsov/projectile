@@ -1668,6 +1668,31 @@ For git projects `magit-status' is used if available."
 (defvar projectile-go-compile-cmd "go build ./...")
 (defvar projectile-go-test-cmd "go test ./...")
 
+(cl-dolist (var '(projectile-rails-compile-cmd
+                  projectile-ruby-compile-cmd
+                  projectile-ruby-test-cmd
+                  projectile-ruby-rspec-cmd
+                  projectile-django-compile-cmd
+                  projectile-django-test-cmd
+                  projectile-python-compile-cmd
+                  projectile-python-test-cmd
+                  projectile-symfony-compile-cmd
+                  projectile-symfony-test-cmd
+                  projectile-maven-compile-cmd
+                  projectile-maven-test-cmd
+                  projectile-lein-compile-cmd
+                  projectile-lein-test-cmd
+                  projectile-rebar-compile-cmd
+                  projectile-rebar-test-cmd
+                  projectile-sbt-compile-cmd
+                  projectile-sbt-test-cmd
+                  projectile-make-compile-cmd
+                  projectile-make-test-cmd
+                  projectile-grunt-compile-cmd
+                  projectile-grunt-test-cmd))
+  (put var 'safe-local-variable #'stringp))
+
+
 (defvar projectile-compilation-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last compilation command used on them.")
