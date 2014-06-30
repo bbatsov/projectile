@@ -172,6 +172,7 @@ and `projectile-buffers-with-file-or-process'."
     "Gruntfile.js"       ; Grunt project file
     "bower.json"         ; Bower project file
     "composer.json"      ; Composer project file
+    "Cargo.toml"         ; Cargo project file
     )
   "A list of files considered to mark the root of a project."
   :group 'projectile
