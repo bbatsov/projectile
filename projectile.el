@@ -121,7 +121,7 @@ Otherwise consider the current directory the project root."
   "The completion system to be used by Projectile."
   :group 'projectile
   :type 'symbol
-  :options '(ido grizzl default))
+  :options '(ido grizzl helm default))
 
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
@@ -1017,6 +1017,11 @@ project-root for every file."
       (ido-completing-read prompt choices nil nil initial-input))
      ((eq projectile-completion-system 'default)
       (completing-read prompt choices nil nil initial-input))
+     ((eq projectile-completion-system 'helm)
+      (helm-comp-read prompt choices
+                      :initial-input initial-input
+                      :candidates-in-buffer t
+                      :must-match 'confirm))
      ((eq projectile-completion-system 'grizzl)
       (if (and (fboundp 'grizzl-completing-read)
                (fboundp 'grizzl-make-index))
