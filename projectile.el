@@ -1018,10 +1018,13 @@ project-root for every file."
      ((eq projectile-completion-system 'default)
       (completing-read prompt choices nil nil initial-input))
      ((eq projectile-completion-system 'helm)
-      (helm-comp-read prompt choices
-                      :initial-input initial-input
-                      :candidates-in-buffer t
-                      :must-match 'confirm))
+      (if (fboundp 'helm-comp-read)
+          (helm-comp-read prompt choices
+                          :initial-input initial-input
+                          :candidates-in-buffer t
+                          :must-match 'confirm)
+        (user-error "Please install helm from \
+https://github.com/emacs-helm/helm")))
      ((eq projectile-completion-system 'grizzl)
       (if (and (fboundp 'grizzl-completing-read)
                (fboundp 'grizzl-make-index))
