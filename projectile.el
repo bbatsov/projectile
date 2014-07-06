@@ -1459,8 +1459,16 @@ regular expression."
     (let* ((project-root (projectile-project-root))
            (tags-exclude (projectile-tags-exclude-patterns))
            (default-directory project-root)
-           (tags-file (expand-file-name projectile-tags-file-name)))
-      (shell-command (format projectile-tags-command tags-file tags-exclude))
+           (tags-file (expand-file-name projectile-tags-file-name))
+           (command (format projectile-tags-command tags-file tags-exclude))
+           shell-output exit-code)
+      (with-temp-buffer
+        (setq exit-code
+              (call-process-shell-command command nil (current-buffer))
+              shell-output
+              (s-trim (buffer-substring (point-min) (point-max)))))
+      (unless (zerop exit-code)
+        (error shell-output))
       (visit-tags-table tags-file))))
 
 (defun projectile-visit-project-tags-table ()
