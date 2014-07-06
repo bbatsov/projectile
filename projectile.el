@@ -173,6 +173,7 @@ and `projectile-buffers-with-file-or-process'."
     "bower.json"         ; Bower project file
     "composer.json"      ; Composer project file
     "Cargo.toml"         ; Cargo project file
+    "mix.exs"            ; Elixir mix project file
     )
   "A list of files considered to mark the root of a project."
   :group 'projectile
