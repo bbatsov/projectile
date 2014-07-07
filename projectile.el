@@ -1469,7 +1469,9 @@ regular expression."
   (when (projectile-project-p)
     (let ((tags-file (projectile-expand-root projectile-tags-file-name)))
       (when (file-exists-p tags-file)
-        (visit-tags-table tags-file t)))))
+        (with-demoted-errors 
+          "Error loading tags-file: %s"
+          (visit-tags-table tags-file t))))))
 
 (defun projectile-find-tag ()
   "Find tag in project."
