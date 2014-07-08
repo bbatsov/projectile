@@ -139,8 +139,13 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re -f %s %s"
-  "The command Projectile's going to use to generate a TAGS file."
+(defcustom projectile-tags-file-delete-command "rm -f %s"
+"This used to delete the generate TAGS file."
+:group 'projectile
+:type 'string)
+
+(defcustom projectile-tags-command  "%s %s | xargs --null etags -f %s -a - "
+  "The command Projectile's going to use to generate a TAGS file, this command will delete the tag file and regenerate by etgas."
   :group 'projectile
   :type 'string)
 
@@ -1448,6 +1453,12 @@ regular expression."
                                        (directory-file-name pattern)))
              (projectile-ignored-directories-rel) " "))
 
+(defun projectile-tags-all-filelist()
+     "Return a file list can accept by etags"
+     (mapconcat (lambda (file) (format "%s" file))
+                (projectile-current-project-files) " ")
+)
+
 (defun projectile-regenerate-tags ()
   "Regenerate the project's [e|g]tags."
   (interactive)
@@ -1458,10 +1469,12 @@ regular expression."
           (ggtags-ensure-project)
           (ggtags-update-tags t)))
     (let* ((project-root (projectile-project-root))
-           (tags-exclude (projectile-tags-exclude-patterns))
            (default-directory project-root)
+           (repo-files-command (projectile-get-ext-command))
+           (exclude-patterns  (projectile-tags-exclude-patterns))
            (tags-file (expand-file-name projectile-tags-file-name)))
-      (shell-command (format projectile-tags-command tags-file tags-exclude))
+      (shell-command (format projectile-tags-file-delete-command tags-file))
+      (async-shell-command (format projectile-tags-command repo-files-command exclude-patterns tags-file))
       (visit-tags-table tags-file))))
 
 (defun projectile-visit-project-tags-table ()
