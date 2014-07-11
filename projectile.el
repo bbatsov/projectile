@@ -822,6 +822,7 @@ Operates on filenames relative to the project root."
   (with-current-buffer buffer
     (and (not (s-starts-with? " " (buffer-name buffer)))
          (not (projectile-ignored-buffer-p buffer))
+         (s-equals? (file-remote-p default-directory) (file-remote-p project-root))
          (s-starts-with? project-root (file-truename default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
