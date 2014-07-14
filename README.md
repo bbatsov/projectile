@@ -340,7 +340,12 @@ You can change the default keymap prefix `C-c p` like this:
 
 It is also possible to add additional commands to
 `projectile-command-map` referenced by the prefix key in
-`projectile-mode-map`.
+`projectile-mode-map`. You can even add an alternative prefix for all
+commands. Here's an example that adds `super-p` as the extra prefix:
+
+```el
+(define-key some-keymap (kbd "s-p") 'projectile-command-map)
+```
 
 For some common commands you might want to take a little shortcut and
 leverage the fairly unused `Super` key (by default `Command` on Mac
