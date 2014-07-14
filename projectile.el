@@ -1881,10 +1881,11 @@ This command will first prompt for the directory the file is in."
         (all-files nil))
     (-each projectile-known-projects
       (lambda (project)
-        (let ((default-directory project))
-          (setq all-files (append all-files (-map (lambda (file)
-                                                    (expand-file-name file project))
-                                                  (projectile-current-project-files)))))))
+        (when (file-exists-p project)
+          (let ((default-directory project))
+            (setq all-files (append all-files (-map (lambda (file)
+                                                      (expand-file-name file project))
+                                                    (projectile-current-project-files))))))))
     (find-file (projectile-completing-read "Find file in projects: " all-files))))
 
 (defcustom projectile-switch-project-hook nil
