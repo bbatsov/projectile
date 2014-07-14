@@ -417,6 +417,24 @@ To customize project root files settings:
 M-x customize-group RET projectile RET
 ```
 
+### Storing project settings
+
+From project to project some things may differ even in same language -
+different coding styles, separate auto-completion sources, etc.  If
+you need to set some variables according to selected project, you can
+use standard Emacs feature called
+[Per-Directory Local Variables](http://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html). To
+use it you must create file named `.dir-locals.el` inside project
+directory. This file must contain something like this:
+
+```
+((nil . ((eval . (
+                  (setq secret-ftp-password "secret")
+                  (setq compile-command "make target-x")))))
+ (c-mode . (c-file-style . "BSD"))
+ )
+```
+
 ### Helm Integration
 
 Projectile can be integrated with
