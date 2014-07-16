@@ -60,18 +60,16 @@ project, this advice creates a new perspective for that project."
 (projectile-persp-bridge projectile-dired)
 (projectile-persp-bridge projectile-find-file)
 
-(defun projectile-persp-switch-project ()
+(defun projectile-persp-switch-project (project-to-switch)
   "Switch to a project or perspective we have visited before.
 If the perspective of corresponding project does not exist, this
 function will call `persp-switch' to create one and swith to that before
 `projectile-switch-project' invokes `projectile-switch-project-action'.
 Otherwise, this function calls `persp-switch' to an existing
 perspective of the project that we're switching to"
-  (interactive)
-  (let* ((project-to-switch
-          (projectile-completing-read "Switch to project: "
-                                      (projectile-relevant-known-projects)))
-         (name (file-name-nondirectory (directory-file-name project-to-switch)))
+  (interactive (list (projectile-completing-read "Switch to project: "
+                                                 (projectile-relevant-known-projects))))
+  (let* ((name (file-name-nondirectory (directory-file-name project-to-switch)))
          (persp (gethash name perspectives-hash)))
     (if persp
         (persp-switch name)
