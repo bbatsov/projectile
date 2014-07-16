@@ -179,7 +179,7 @@ This might not be a great idea if you start Projectile in your home folder for i
 
 #### Switching projects
 
-When running `projectile-switch-project` (<kbd>C-c p s</kbd>) Projectile invokes
+When running `projectile-switch-project` (<kbd>C-c p p</kbd>) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
 `projectile-find-file`).
 
