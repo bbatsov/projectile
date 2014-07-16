@@ -300,8 +300,8 @@ Keybinding         | Description
 <kbd>C-c p 4 d</kbd> | Switch to a project directory and show it in another window.
 <kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
 <kbd>C-c p l</kbd> | Display a list of all files in a directory (that's not necessarily a project)
-<kbd>C-c p g</kbd> | Run grep on the files in the project.
-<kbd>M-- C-c p g</kbd> | Run grep on `projectile-grep-default-files` in the project.
+<kbd>C-c p s g</kbd> | Run grep on the files in the project.
+<kbd>M-- C-c p s g</kbd> | Run grep on `projectile-grep-default-files` in the project.
 <kbd>C-c p v</kbd> | Run `vc-dir` on the root directory of the project.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
 <kbd>C-c p 4 b</kbd> | Switch to a project buffer and show it in another window.
@@ -314,16 +314,16 @@ Keybinding         | Description
 <kbd>C-c p k</kbd> | Kills all project buffers.
 <kbd>C-c p D</kbd> | Opens the root of the project in `dired`.
 <kbd>C-c p e</kbd> | Shows a list of recently visited project files.
-<kbd>C-c p a</kbd> | Runs `ack` on the project. Requires the presence of `ack-and-a-half`.
-<kbd>C-c p A</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
+<kbd>C-c p s a</kbd> | Runs `ack` on the project. Requires the presence of `ack-and-a-half`.
+<kbd>C-c p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
 <kbd>C-c p !</kbd> | Runs `shell-command` in the root directory of the project.
 <kbd>C-c p &</kbd> | Runs `async-shell-command` in the root directory of the project.
 <kbd>C-c p c</kbd> | Runs a standard compilation command for your type of project.
-<kbd>C-c p p</kbd> | Runs a standard test command for your type of project.
+<kbd>C-c p P</kbd> | Runs a standard test command for your type of project.
 <kbd>C-c p t</kbd> | Toggle between an implementation file and its test file.
 <kbd>C-c p 4 t</kbd> | Jump to implementation or test file in other window.
 <kbd>C-c p z</kbd> | Adds the currently visited file to the cache.
-<kbd>C-c p s</kbd> | Display a list of known projects you can switch to.
+<kbd>C-c p p</kbd> | Display a list of known projects you can switch to.
 <kbd>C-c p S</kbd> | Save all project buffers.
 <kbd>C-c p m</kbd> | Run the commander (an interface to run commands with a single key).
 <kbd>C-c p ESC</kbd> | Switch to the most recently selected projectile buffer.
