@@ -1478,7 +1478,7 @@ regular expression."
   (when (projectile-project-p)
     (let ((tags-file (projectile-expand-root projectile-tags-file-name)))
       (when (file-exists-p tags-file)
-        (with-demoted-errors 
+        (with-demoted-errors
           "Error loading tags-file: %s"
           (visit-tags-table tags-file t))))))
 
@@ -2097,6 +2097,7 @@ is chosen."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "4 b") 'projectile-switch-to-buffer-other-window)
     (define-key map (kbd "4 C-o") 'projectile-display-buffer)
+    (define-key map (kbd "4 d") 'projectile-find-dir-other-window)
     (define-key map (kbd "4 f") 'projectile-find-file-other-window)
     (define-key map (kbd "4 t") 'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "!") 'projectile-run-shell-command-in-root)
@@ -2106,7 +2107,6 @@ is chosen."
     (define-key map (kbd "b") 'projectile-switch-to-buffer)
     (define-key map (kbd "c") 'projectile-compile-project)
     (define-key map (kbd "d") 'projectile-find-dir)
-    (define-key map (kbd "4 d") 'projectile-find-dir-other-window)
     (define-key map (kbd "D") 'projectile-dired)
     (define-key map (kbd "e") 'projectile-recentf)
     (define-key map (kbd "f") 'projectile-find-file)
