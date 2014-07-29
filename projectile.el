@@ -2171,20 +2171,22 @@ is chosen."
 (easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
 
 ;;;###autoload
-(defcustom projectile-mode-line-lighter "Projectile"
-  "The default lighter for `projectile-mode'."
+(defcustom projectile-mode-line
+  '(" Projectile" (:eval (format "[%s]" (projectile-project-name))))
+  "Mode line ligher for Projectile.
+
+The value of this variable is a mode line template as in
+`mode-line-format'.  See Info Node `(elisp)Mode Line Format' for
+details about mode line templates.
+
+Customize this variable to change how Projectile displays its
+status in the mode line.  The default value displays the project
+name.  Set this variable to nil to disable the mode line
+entirely."
   :group 'projectile
-  :type 'string)
-
-(defvar-local projectile-mode-line (format " %s" projectile-mode-line-lighter)
-  "The dynamic mode line lighter variable for `projectile-mode'.")
-
-(defun projectile-update-mode-line ()
-  "Report project in mode-line."
-  (let* ((project-name (projectile-project-name))
-         (message (format " %s[%s]" projectile-mode-line-lighter project-name)))
-    (setq projectile-mode-line message))
-  (force-mode-line-update))
+  :type 'sexp
+  :risky t
+  :package-version '(projectile "0.12.0"))
 
 ;;;###autoload
 (define-minor-mode projectile-mode
@@ -2208,13 +2210,11 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook t t)
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
-    (add-hook 'find-file-hook 'projectile-update-mode-line t t)
     (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t)
     (ad-activate 'compilation-find-file))
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
-    (remove-hook 'find-file-hook 'projectile-update-mode-line t)
     (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t)
     (ad-deactivate 'compilation-find-file))))
 
