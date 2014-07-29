@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* Make the mode line format customizable with `projectile-mode-line`
+
 ### Bugs fixed
 
 * Prevent `projectile-kill-buffers` from trying to kill indirect
