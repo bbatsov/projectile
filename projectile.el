@@ -44,6 +44,10 @@
 (require 'ibuffer)
 (require 'ibuf-ext)
 
+(eval-when-compile
+  (defvar ack-and-a-half-arguments)
+  (defvar ggtags-completion-table))
+
 ;;;; Compatibility
 (eval-and-compile
   (unless (fboundp 'defvar-local)
