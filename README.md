@@ -428,11 +428,81 @@ use it you must create file named `.dir-locals.el` inside project
 directory. This file must contain something like this:
 
 ```
-((nil . ((eval . (
-                  (setq secret-ftp-password "secret")
-                  (setq compile-command "make target-x")))))
- (c-mode . (c-file-style . "BSD"))
- )
+((nil . ((secret-ftp-password . "secret")
+         (compile-command . "make target-x")
+         (eval . (progn
+                   (defun my-project-specific-function ()
+                     ;; ...
+                     ))))
+ (c-mode . (c-file-style . "BSD")))
+```
+
+The top-level alist member referenced with the key `nil` applies to the
+entire project. A key with the name `eval` will evaluate its
+arguments. In the example above, this is used to create a function. It
+could also be used to e.g. add such a function to a key map.
+
+Here are a few examples of how to use this feature with Projectile.
+
+#### Configuring Projectile's Behavior
+
+Projectile offers many customizable variables (via `defcustom`) that
+allows us to customize its behavior. Because of how `dir-locals.el`
+works, it can be used to set these customizations on a per-project basis.
+
+You could enable caching for a project in this way:
+
+```
+((nil . ((projectile-enable-caching . t))))
+```
+
+If one of your projects had a file that you wanted Projectile to
+ignore, you would customize Projectile by:
+
+```
+((nil . ((projectile-globally-ignored-files . '("MyBinaryFile")))))
+```
+
+If you wanted to wrap the git command that Projectile uses to find list
+the files in you repository, you could do:
+
+```
+((nil . ((projectile-git-command . "/path/to/other/git ls-files -zco --exclude-standard"))))
+```
+
+#### Configure Project's Compilation Command
+
+Overriding pieces of Projectile might require some hacking on your
+part -- reading the source, advising functions, etc.
+
+For example, by reading Projectile's source, you could discover that
+a project's compilation command can be specified with this code:
+
+```
+((nil . ((eval . (progn
+                   ;; require projectile; the following code will fail
+                   ;; without it.
+                   (require 'projectile)
+                   ;; provide a fake "recent" compilation cmd
+                   ;; which will be returned by the function
+                   ;; `projectile-compilation-command`
+                   (puthash (projectile-project-root)
+                            "./command-to-compile-your-project.sh"
+                            projectile-compilation-cmd-map))))))
+```
+
+#### Configure Project's Test Command
+
+Altering the test command works in the same way as altering the
+compilation command. Comments are left out in this example for
+brevity and clarity:
+
+```
+((nil . ((eval . (progn
+                   (require 'projectile)
+                   (puthash (projectile-project-root)
+                            "./test-project.sh"
+                            projectile-test-cmd-map))))))
 ```
 
 ### Helm Integration
