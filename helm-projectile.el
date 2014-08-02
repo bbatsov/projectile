@@ -126,8 +126,11 @@
 (defvar helm-source-projectile-projects-list
   `((name . "Projects")
     (candidates . projectile-known-projects)
-    (action . projectile-switch-project-by-name)
-    (type . file)))
+    (persistent-action . dired)
+    (action ("Switch to project" . projectile-switch-project-by-name)
+	    ("Projectile commander" . ,(lambda (p)
+					 (projectile-switch-project-by-name p t)))
+ 	    ("Dired" . dired))))
 
 (defcustom helm-projectile-sources-list
   '(helm-source-projectile-files-list
