@@ -123,6 +123,12 @@
     (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
+(defvar helm-source-projectile-projects-list
+  `((name . "Projects")
+    (candidates . projectile-known-projects)
+    (action . projectile-switch-project-by-name)
+    (type . file)))
+
 (defcustom helm-projectile-sources-list
   '(helm-source-projectile-files-list
     helm-source-projectile-buffers-list
