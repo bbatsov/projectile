@@ -6,4 +6,5 @@
 (development
  (depends-on "f")
  (depends-on "noflet")
- (depends-on "ack-and-a-half"))
+ (depends-on "ack-and-a-half")
+ (depends-on "helm"))
