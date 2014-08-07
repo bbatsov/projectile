@@ -65,6 +65,11 @@
     (dolist (file files)
       (insert (concat file "\n")))))
 
+(defun helm-projectile-switch-to-eshell (dir)
+  (interactive)
+  (with-helm-default-directory dir
+      (eshell)))
+
 (defvar helm-source-projectile-files-list
   `((name . "Projectile Files")
     (init . (lambda ()
@@ -124,11 +129,32 @@
   "Helm source definition.")
 
 (defcustom helm-projectile-sources-list
-  '(helm-source-projectile-files-list
+  '(helm-source-projectile-projects
+    helm-source-projectile-files-list
     helm-source-projectile-buffers-list
     helm-source-projectile-recentf-list)
   "Default sources for `helm-projectile'."
   :group 'helm-projectile)
+
+(defvar helm-source-projectile-projects
+  `((name . "Projectile projects")
+    (candidates . projectile-relevant-known-projects)
+    (keymap . ,(let ((map (make-sparse-keymap)))
+                 (set-keymap-parent map helm-map)
+                 (define-key map (kbd "C-d")
+                   (lambda ()
+                     (interactive)
+                     (helm-quit-and-execute-action 'dired)))
+                 (define-key map (kbd "M-e")
+                   (lambda ()
+                     (interactive)
+                     (helm-quit-and-execute-action
+                      'helm-projectile-switch-to-eshell)))
+                 map))
+    (action . (("Switch to project" . projectile-switch-project-by-name)
+               ("Open Dired in project's directory" . dired)
+               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell))))
+  "Helm source for known projectile projects.")
 
 ;;;###autoload
 (defun helm-projectile (&optional arg)
@@ -142,9 +168,21 @@ With a prefix ARG invalidates the cache first."
           :buffer "*helm projectile*"
           :prompt (projectile-prepend-project-name "pattern: "))))
 
+(defun helm-projectile-switch-project ()
+  "Use Helm instead of ido to switch project in projectile."
+  (interactive)
+  (let ((projectile-completion-system 'helm))
+    (helm :sources helm-source-projectile-projects
+          :buffer "*helm projectile projects*"
+          :prompt (projectile-prepend-project-name "Switch to project: "))))
+
 ;;;###autoload
 (eval-after-load 'projectile
-    '(define-key projectile-command-map (kbd "h") 'helm-projectile))
+  '(progn
+     (define-key projectile-command-map (kbd "h") 'helm-projectile)
+     (define-key projectile-command-map (kbd "H")
+       'helm-projectile-switch-project)))
 
 (provide 'helm-projectile)
+
 ;;; helm-projectile.el ends here

@@ -512,11 +512,11 @@ brevity and clarity:
 
 ### Helm Integration
 
-Projectile can be integrated with
-[Helm](https://github.com/emacs-helm/helm) via
-`helm-c-source-projectile` source (available in `helm-projectile.el`). There is also an example function
-for calling Helm with the Projectile file source. You can call it like
-this:
+Projectile can be integrated with [Helm](https://github.com/emacs-helm/helm) via
+`helm-source-projectile-projects`, `helm-source-projectile-files-list`,
+`helm-source-projectile-buffers-list` and `helm-source-projectile-recentf-list`
+sources (available in `helm-projectile.el`). There is also an example function
+for calling Helm with the Projectile file source. You can call it like this:
 
 ```
 M-x helm-projectile
@@ -527,6 +527,17 @@ or even better - bind it to a keybinding like this:
 ```el
 (global-set-key (kbd "C-c h") 'helm-projectile)
 ```
+
+For those who prefer helm to ido, the command `helm-projectile-switch-project`
+can be used to replace `projectile-switch-project` to switch project. Please
+note that this is different from simply setting `projectile-completion-system`
+to `helm`, which just enables projectile to use the Helm completion to complete
+a project name. The benefit of using `helm-projectile-switch-project` is that on
+any selected project we can fire many actions, not limited to just the "switch
+to project" action, as in the case of using helm completion by setting
+`projectile-completion-system` to `helm`. Currently only three actions have been
+provided, these are "Switch to project", "Open Dired in project's directory" and
+"Switch to Eshell", but we will definitely add more in the future.
 
 Obviously you need to have Helm installed for this to work :-)
 
