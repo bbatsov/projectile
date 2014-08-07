@@ -1437,7 +1437,7 @@ With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression."
   (interactive
    (list (read-from-minibuffer
-          (projectile-prepend-project-name "Ag search for: ")
+          (projectile-prepend-project-name (format "Ag %ssearch for: " (if current-prefix-arg "regexp " "")))
           (projectile-symbol-at-point))
          current-prefix-arg))
   (if (fboundp 'ag-regexp)
