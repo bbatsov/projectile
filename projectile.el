@@ -1840,10 +1840,12 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (let ((project-to-switch
-         (projectile-completing-read "Switch to project: "
-                                     (projectile-relevant-known-projects))))
-    (projectile-switch-project-by-name project-to-switch arg)))
+  (let ((relevant-projects (projectile-relevant-known-projects)))
+    (if relevant-projects
+        (projectile-switch-project-by-name
+         (projectile-completing-read "Switch to project: " relevant-projects)
+         arg)
+      (error "There are no known projects"))))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
