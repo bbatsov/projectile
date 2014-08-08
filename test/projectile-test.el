@@ -408,3 +408,10 @@
            (save-excursion
              (re-search-forward sym)
              (projectile-grep ?-))))))))
+
+;;;;;;;;; fresh tests
+
+(ert-deftest projectile-clear-known-projects ()
+  (let ((projectile-known-projects '("one" "two" "three")))
+    (projectile-clear-known-projects)
+    (should (null projectile-known-projects))))
