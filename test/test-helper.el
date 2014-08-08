@@ -20,3 +20,5 @@
 (defun project-root-in (directory)
   (let ((default-directory (f-expand directory)))
     (projectile-project-root)))
+
+(provide 'test-helper)

@@ -1,17 +1,7 @@
-(defconst testsuite-dir
-  (if load-file-name
-      (file-name-directory load-file-name)
-    ;; Fall back to default directory (in case of M-x eval-buffer)
-    default-directory)
-  "Directory of the test suite.")
-
-(message "Running tests on Emacs %s" emacs-version)
-
-;; Load Projectile
-(load (expand-file-name "../projectile" testsuite-dir) nil :no-message)
-
-;; Load test helpers
-(load (expand-file-name "test-helper.el" testsuite-dir) nil :no-message)
+(require 'projectile)
+(require 'ert)
+(require 'noflet)
+(require 'test-helper)
 
 (ert-deftest projectile-test-project-get-name ()
   (noflet ((projectile-project-name () "project"))
