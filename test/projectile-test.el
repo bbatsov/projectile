@@ -92,6 +92,7 @@
 (ert-deftest projectile-test-parse-dirconfig-file ()
   (noflet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
            (file-exists-p (filename) t)
+           (file-truename (filename) filename)
            (insert-file-contents-literally (filename) nil))
           (should (equal '(("include/") . ("log" "tmp" "compiled"))
                          (projectile-parse-dirconfig-file)))))
