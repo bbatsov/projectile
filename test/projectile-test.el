@@ -415,3 +415,7 @@
   (let ((projectile-known-projects '("one" "two" "three")))
     (projectile-clear-known-projects)
     (should (null projectile-known-projects))))
+
+(ert-deftest projectile-switch-project-no-projects ()
+  (let ((projectile-known-projects nil))
+    (should-error (projectile-switch-project))))
