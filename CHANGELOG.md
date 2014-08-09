@@ -5,6 +5,13 @@
 ### New features
 
 * Make the mode line format customizable with `projectile-mode-line`
+* Add support for `cargo.toml` projects
+* Try to use projectile to find files in compilation buffers
+* Support `helm` as a completion system
+
+### Changes
+
+* Collect search tool (`grep`, `ag`, `ack`) keybindings under a common keymap prefix (`C-c p s`)
 
 ### Bugs fixed
 
