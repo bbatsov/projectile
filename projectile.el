@@ -2235,16 +2235,10 @@ Otherwise behave as if called interactively.
     (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t)
     (ad-deactivate 'compilation-find-file))))
 
-(defun projectile-on ()
-  "Enable Projectile minor mode.
-
-Used by `projectile-global-mode.'"
-  (projectile-mode 1))
-
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
   projectile-mode
-  projectile-on)
+  projectile-mode)
 
 (provide 'projectile)
 
