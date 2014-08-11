@@ -419,3 +419,9 @@
 (ert-deftest projectile-switch-project-no-projects ()
   (let ((projectile-known-projects nil))
     (should-error (projectile-switch-project))))
+
+(ert-deftest projectile-ignored-buffer-p-by-name ()
+  (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
+    (should (projectile-ignored-buffer-p (generate-new-buffer "*nrepl messages*")))
+    (should (projectile-ignored-buffer-p (generate-new-buffer "*something*")))
+    (should-not (projectile-ignored-buffer-p (generate-new-buffer "test")))))

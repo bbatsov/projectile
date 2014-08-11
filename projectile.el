@@ -249,6 +249,15 @@ it for functions working with buffers."
   :group 'projectile
   :type '(repeat string))
 
+(defcustom projectile-globally-ignored-buffers nil
+  "A list of buffer-names ignored by projectile.
+
+If a buffer is in the list projectile will ignore
+it for functions working with buffers."
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile . "0.12.0"))
+
 (defcustom projectile-find-file-hook nil
   "Hooks run when a file is opened with `projectile-find-file'."
   :group 'projectile
@@ -831,10 +840,12 @@ Operates on filenames relative to the project root."
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
-  (with-current-buffer buffer
-    (--any-p (s-matches? (concat "^" it "$")
-                         (symbol-name major-mode))
-             projectile-globally-ignored-modes)))
+  (or
+   (member (buffer-name buffer) projectile-globally-ignored-buffers)
+   (with-current-buffer buffer
+     (--any-p (s-matches? (concat "^" it "$")
+                          (symbol-name major-mode))
+              projectile-globally-ignored-modes))))
 
 (defun projectile-recently-active-files ()
   "Get list of recently active files.

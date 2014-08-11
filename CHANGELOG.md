@@ -8,6 +8,7 @@
 * Add support for `cargo.toml` projects
 * Try to use projectile to find files in compilation buffers
 * Support `helm` as a completion system
+* New `defcustom` `projectile-globally-ignored-buffers` allows you ignore buffers by name
 
 ### Changes
 
