@@ -2229,22 +2229,6 @@ Otherwise behave as if called interactively.
   projectile-mode
   projectile-on)
 
-(defun projectile-on ()
-  "Enable Projectile minor mode."
-  (projectile-mode 1))
-
-(defun projectile-off ()
-  "Disable Projectile minor mode."
-  (projectile-mode -1))
-
-(defun projectile-global-on ()
-  "Enable Projectile global minor mode."
-  (projectile-global-mode +1))
-
-(defun projectile-global-off ()
-  "Disable Projectile global minor mode."
-  (projectile-global-mode -1))
-
 (provide 'projectile)
 
 ;; Local Variables:

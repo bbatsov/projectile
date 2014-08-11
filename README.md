@@ -85,7 +85,7 @@ You can enable Projectile globally like this:
 To enable Projectile only in select modes:
 
 ```el
-(add-hook 'ruby-mode-hook 'projectile-on)
+(add-hook 'ruby-mode-hook 'projectile-mode)
 ```
 
 If you're going to use the default `ido` completion it's
