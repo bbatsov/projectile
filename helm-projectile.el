@@ -70,6 +70,11 @@
   (with-helm-default-directory dir
       (eshell)))
 
+(defun helm-projectile-vc (dir)
+  (interactive)
+  (with-helm-default-directory dir
+      (projectile-vc)))
+
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
     (candidates . projectile-relevant-known-projects)
@@ -79,6 +84,11 @@
                    (lambda ()
                      (interactive)
                      (helm-quit-and-execute-action 'dired)))
+                 (define-key map (kbd "M-g")
+                   (lambda ()
+                     (interactive)
+                     (helm-quit-and-execute-action
+                      'helm-projectile-vc)))
                  (define-key map (kbd "M-e")
                    (lambda ()
                      (interactive)
@@ -90,6 +100,8 @@
                   (let ((projectile-completion-system 'helm))
                     (projectile-switch-project-by-name project))))
                ("Open Dired in project's directory" . dired)
+               ("Open project root in vc-dir or magit `M-g'" .
+                helm-projectile-vc)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell))))
   "Helm source for known projectile projects.")
 
