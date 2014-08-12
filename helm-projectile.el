@@ -85,7 +85,7 @@
                      (helm-quit-and-execute-action
                       'helm-projectile-switch-to-eshell)))
                  map))
-    (action . (("Switch to project" .
+    (action . (("Switch to project `C-d'" .
                 (lambda (project)
                   (let ((projectile-completion-system 'helm))
                     (projectile-switch-project-by-name project))))
