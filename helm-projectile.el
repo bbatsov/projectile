@@ -85,7 +85,10 @@
                      (helm-quit-and-execute-action
                       'helm-projectile-switch-to-eshell)))
                  map))
-    (action . (("Switch to project" . projectile-switch-project-by-name)
+    (action . (("Switch to project" .
+                (lambda (project)
+                  (let ((projectile-completion-system 'helm))
+                    (projectile-switch-project-by-name project))))
                ("Open Dired in project's directory" . dired)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell))))
   "Helm source for known projectile projects.")
@@ -171,10 +174,9 @@ With a prefix ARG invalidates the cache first."
 (defun helm-projectile-switch-project ()
   "Use Helm instead of ido to switch project in projectile."
   (interactive)
-  (let ((projectile-completion-system 'helm))
-    (helm :sources helm-source-projectile-projects
-          :buffer "*helm projectile projects*"
-          :prompt (projectile-prepend-project-name "Switch to project: "))))
+  (helm :sources helm-source-projectile-projects
+        :buffer "*helm projectile projects*"
+        :prompt (projectile-prepend-project-name "Switch to project: ")))
 
 ;;;###autoload
 (eval-after-load 'projectile
