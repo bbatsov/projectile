@@ -65,6 +65,13 @@
     (dolist (file files)
       (insert (concat file "\n")))))
 
+(defmacro helm-projectile-define-key (map key fun)
+  (declare (indent 1))
+  `(define-key ,map ,key
+     (lambda ()
+       (interactive)
+       (helm-quit-and-execute-action ,fun))))
+
 (defun helm-projectile-switch-to-eshell (dir)
   (interactive)
   (with-helm-default-directory dir
@@ -80,20 +87,11 @@
     (candidates . projectile-relevant-known-projects)
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
-                 (define-key map (kbd "C-d")
-                   (lambda ()
-                     (interactive)
-                     (helm-quit-and-execute-action 'dired)))
-                 (define-key map (kbd "M-g")
-                   (lambda ()
-                     (interactive)
-                     (helm-quit-and-execute-action
-                      'helm-projectile-vc)))
-                 (define-key map (kbd "M-e")
-                   (lambda ()
-                     (interactive)
-                     (helm-quit-and-execute-action
-                      'helm-projectile-switch-to-eshell)))
+                 (helm-projectile-define-key map (kbd "C-d") 'dired)
+                 (helm-projectile-define-key map
+                   (kbd "M-g") 'helm-projectile-vc)
+                 (helm-projectile-define-key map
+                   (kbd "M-e") 'helm-projectile-switch-to-eshell)
                  map))
     (action . (("Switch to project `C-d'" .
                 (lambda (project)
