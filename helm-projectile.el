@@ -93,11 +93,11 @@
                  (helm-projectile-define-key map
                    (kbd "M-e") 'helm-projectile-switch-to-eshell)
                  map))
-    (action . (("Switch to project `C-d'" .
+    (action . (("Switch to project" .
                 (lambda (project)
                   (let ((projectile-completion-system 'helm))
                     (projectile-switch-project-by-name project))))
-               ("Open Dired in project's directory" . dired)
+               ("Open Dired in project's directory `C-d'" . dired)
                ("Open project root in vc-dir or magit `M-g'" .
                 helm-projectile-vc)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell))))
