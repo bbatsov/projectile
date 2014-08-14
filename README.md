@@ -614,8 +614,9 @@ additional functions to the hook using `add-hook`:
 ### Mode line indicator
 
 By default the minor mode indicator of Projectile appears in the form
-"Projectile[ProjectName]". The "Projectile" prefix is configurable using the
-variable `projectile-mode-line-lighter`.
+" Projectile[ProjectName]". This is configurable via the custom variable
+`projectile-mode-line`, which expects a sexp like
+`'(:eval (format " Proj[%s]" (projectile-project-name)))`
 
 ## Caveats
 
