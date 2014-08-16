@@ -1441,6 +1441,19 @@ With a prefix argument ARG prompts you for a directory on which the search is pe
         (ack-and-a-half regexp t root))
     (error "ack-and-a-half not available")))
 
+(defun ignored-paths (root)
+  "Return paths under ROOT to be ignored during ag search."
+  (append
+   (-map (lambda (path)
+           (concat "--ignore=" (file-relative-name (directory-file-name path) root)))
+         (projectile-ignored-directories))
+   (-map (lambda (path)
+           (concat "--ignore=" (file-relative-name path root)))
+         (projectile-ignored-files))
+   (-map (lambda (pattern)
+           (concat "--ignore=" pattern))
+         (projectile-patterns-to-ignore))))
+
 (defun projectile-ag (search-term &optional arg)
   "Run an ag search with SEARCH-TERM in the project.
 
@@ -1452,9 +1465,13 @@ regular expression."
           (projectile-symbol-at-point))
          current-prefix-arg))
   (if (fboundp 'ag-regexp)
-      (let ((ag-command (if arg 'ag-regexp 'ag))
-            ;; reset the prefix arg, otherwise it will affect the ag-command
-            (current-prefix-arg nil))
+      (let* ((ag-command (if arg 'ag-regexp 'ag))
+             (root (if arg
+                       (expand-file-name (projectile-complete-dir) (projectile-project-root))
+                     (projectile-project-root)))
+             (ag-arguments (append (ignored-paths root) ag-arguments))
+             ;; reset the prefix arg, otherwise it will affect the ag-command
+             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
     (error "Ag is not available")))
 
