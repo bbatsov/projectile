@@ -537,7 +537,13 @@ any selected project we can fire many actions, not limited to just the "switch
 to project" action, as in the case of using helm completion by setting
 `projectile-completion-system` to `helm`. Currently only three actions have been
 provided, these are "Switch to project", "Open Dired in project's directory" and
-"Switch to Eshell", but we will definitely add more in the future.
+"Switch to Eshell", but we will definitely add more in the future. You could set
+a new keybinding for `helm-projectile-switch-project` or override the
+`projectile-switch-project` like this:
+
+```el
+(define-key projectile-mode-map (kbd "C-c p p") 'helm-projectile-switch-project)
+```
 
 Obviously you need to have Helm installed for this to work :-)
 
