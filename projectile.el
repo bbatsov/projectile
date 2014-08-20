@@ -166,6 +166,7 @@ and `projectile-buffers-with-file-or-process'."
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
+    "SConstruct"         ; Scons project file
     "pom.xml"            ; Maven project file
     "build.sbt"          ; SBT project file
     "build.gradle"       ; Gradle project file
@@ -1218,6 +1219,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-django '("manage.py"))
 (defvar projectile-python-pip '("requirements.txt"))
 (defvar projectile-python-egg '("setup.py"))
+(defvar projectile-scons '("SConstruct"))
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-gradle '("build.gradle"))
 (defvar projectile-grails '("application.properties" "grails-app"))
@@ -1249,6 +1251,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-python-egg) 'python)
    ((projectile-verify-files projectile-symfony) 'symfony)
    ((projectile-verify-files projectile-lein) 'lein)
+   ((projectile-verify-files projectile-scons) 'scons)
    ((projectile-verify-files projectile-maven) 'maven)
    ((projectile-verify-files projectile-gradle) 'gradle)
    ((projectile-verify-files projectile-grails) 'grails)
@@ -1339,6 +1342,7 @@ With a prefix ARG invalidates the cache first."
   (cond
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
    ((member project-type '(rails-test ruby-test lein go)) "_test")
+   ((member project-type '(scons)) "test")
    ((member project-type '(maven symfony)) "Test")
    ((member project-type '(gradle grails)) "Spec")))
 
@@ -1683,6 +1687,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-python-test-cmd "python -m unittest discover")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
+(defvar projectile-scons-compile-cmd "scons")
+(defvar projectile-scons-test-cmd "scons test")
 (defvar projectile-maven-compile-cmd "mvn clean install")
 (defvar projectile-maven-test-cmd "mvn test")
 (defvar projectile-gradle-compile-cmd "gradle build")
@@ -1714,6 +1720,8 @@ For git projects `magit-status' is used if available."
                   projectile-python-test-cmd
                   projectile-symfony-compile-cmd
                   projectile-symfony-test-cmd
+                  projectile-scons-compile-cmd
+                  projectile-scons-test-cmd
                   projectile-maven-compile-cmd
                   projectile-maven-test-cmd
                   projectile-lein-compile-cmd
@@ -1747,6 +1755,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'lein) projectile-lein-compile-cmd)
    ((eq project-type 'make) projectile-make-compile-cmd)
    ((eq project-type 'rebar) projectile-rebar-compile-cmd)
+   ((eq project-type 'scons) projectile-scons-compile-cmd)
    ((eq project-type 'maven) projectile-maven-compile-cmd)
    ((eq project-type 'gradle) projectile-gradle-compile-cmd)
    ((eq project-type 'grails) projectile-grails-compile-cmd)
@@ -1767,6 +1776,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'lein) projectile-lein-test-cmd)
    ((eq project-type 'make) projectile-make-test-cmd)
    ((eq project-type 'rebar) projectile-rebar-test-cmd)
+   ((eq project-type 'scons) projectile-scons-test-cmd)
    ((eq project-type 'maven) projectile-maven-test-cmd)
    ((eq project-type 'gradle) projectile-gradle-test-cmd)
    ((eq project-type 'grails) projectile-grails-test-cmd)
