@@ -19,9 +19,9 @@ This library provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
 special file. Currently `git`, `mercurial`, `darcs` and `bazaar` repos
 are considered projects by default. So are `lein`, `maven`, `sbt`,
-`rebar` and `bundler` projects. If you want to mark a folder manually
-as a project just create an empty `.projectile` file in it. Some of
-Projectile's features:
+`scons`, `rebar` and `bundler` projects. If you want to mark a folder
+manually as a project just create an empty `.projectile` file in
+it. Some of Projectile's features:
 
 * jump to a file in project
 * jump to a directory in project
