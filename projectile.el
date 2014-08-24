@@ -1066,14 +1066,15 @@ https://github.com/d11wtq/grizzl")))
 
 (defun projectile-git-changed ()
   "Return a list of files that are added, copied, modified, or unmerged according to git."
-  (let ((git-command "git diff --name-only --diff-filter=ACMU"))
-    (split-string (replace-regexp-in-string "\n$" "" (shell-command-to-string (format "(cd %s && %s)" (projectile-project-root) git-command))) "\n")))
+  (let ((default-directory (projectile-project-root)))
+    (split-string (shell-command-to-string "git diff --name-only --diff-filter=ACMU"))))
 
 (defun projectile-git-status ()
   "Return a list of files with their git status, only for files in `projectile-git-changed'."
   (let* ((file-list (mapconcat 'identity (projectile-git-changed) " "))
-         (command (format "git -c color.status=false status --short -- %s" file-list)))
-    (split-string (replace-regexp-in-string "\n$" "" (shell-command-to-string (format "(cd %s && %s)" (projectile-project-root) command))) "\n")))
+         (git-command (format "git -c color.status=false status --short -- %s" file-list))
+         (default-directory (projectile-project-root)))
+    (split-string (shell-command-to-string git-command) "\n" t)))
 
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
