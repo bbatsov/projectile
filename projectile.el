@@ -1064,6 +1064,17 @@ https://github.com/d11wtq/grizzl")))
         (projectile-cache-project (projectile-project-root) files)))
     (projectile-sort-files files)))
 
+(defun projectile-git-changed ()
+  "Return a list of files that are added, copied, modified, or unmerged according to git."
+  (let ((git-command "git diff --name-only --diff-filter=ACMU"))
+    (split-string (replace-regexp-in-string "\n$" "" (shell-command-to-string (format "(cd %s && %s)" (projectile-project-root) git-command))) "\n")))
+
+(defun projectile-git-status ()
+  "Return a list of files with their git status, only for files in `projectile-git-changed'."
+  (let* ((file-list (mapconcat 'identity (projectile-git-changed) " "))
+         (command (format "git -c color.status=false status --short -- %s" file-list)))
+    (split-string (replace-regexp-in-string "\n$" "" (shell-command-to-string (format "(cd %s && %s)" (projectile-project-root) command))) "\n")))
+
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
   (let ((project-files (projectile-current-project-files))
@@ -1093,6 +1104,14 @@ With a prefix ARG invalidates the cache first."
   (projectile-maybe-invalidate-cache arg)
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files))))
+    (find-file (expand-file-name file (projectile-project-root)))
+    (run-hooks 'projectile-find-file-hook)))
+
+(defun projectile-switch-to-modified-file (&optional arg)
+  "Find an added or modified file using ido."
+  (interactive "P")
+  (let* ((file-status-string (completing-read "Choose new or modified file: " (projectile-git-status)))
+         (file (car (last (split-string file-status-string  " ")))))
     (find-file (expand-file-name file (projectile-project-root)))
     (run-hooks 'projectile-find-file-hook)))
 
