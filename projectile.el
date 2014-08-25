@@ -1085,6 +1085,54 @@ https://github.com/d11wtq/grizzl")))
 
 
 ;;; Interactive commands
+(defcustom projectile-other-file-alist
+  '(("cpp" . (".h" ".hpp" ".ipp"))
+    ("ipp" . (".h" ".hpp" ".cpp"))
+    ("hpp" . (".h" ".ipp" ".cpp"))
+    ("cxx" . (".hxx" ".ixx"))
+    ("ixx" . (".cxx" ".hxx"))
+    ("hxx" . (".ixx" ".cxx"))
+    ("c" . (".h"))
+    ("h" . (".c"))
+    )
+  "Alist of extensions for switching to file with the same name, using other extensions based on the extension of current file.")
+
+(defun projectile-find-other-file ()
+  "Switch between files with the same name but different extensions."
+  (interactive)
+  (-if-let (other-file (projectile-get-other-file))
+      (find-file (expand-file-name other-file (projectile-project-root)))
+    (error "No other file found")))
+
+(defun projectile-find-other-file-other-window ()
+  "Switch between files with the same name but different extensions in other window."
+  (interactive)
+  (-if-let (other-file (projectile-get-other-file))
+      (find-file-other-window (expand-file-name other-file (projectile-project-root)))
+    (error "No other file found")))
+
+(defun projectile-get-other-file ()
+  "Narrow to files with the same names but different extensions.
+If only one file exists, switch immediately.  If more than one file exist,
+prompt a list of possible files for users to choose.  Return the selection."
+  (interactive "P")
+  (let* ((file-ext-list (cdr (assoc (file-name-extension (buffer-file-name)) projectile-other-file-alist)))
+         (filename (file-name-base (buffer-file-name)))
+         (file-list (mapcar (lambda (ext)
+                              (concat filename ext))
+                            file-ext-list))
+         (candidates (mapcan
+                      (lambda (file)
+                        (filter (lambda (project-file)
+                                  (string-match file project-file))
+                                (projectile-current-project-files)))
+                      file-list)))
+    (if candidates
+        (if (= (length candidates) 1)
+            (car candidates)
+          (projectile-completing-read "Switch to: " candidates))
+      nil)))
+
 (defun projectile-find-file (&optional arg)
   "Jump to a project's file using completion.
 
@@ -2122,6 +2170,7 @@ is chosen."
 ;;; Minor mode
 (defvar projectile-command-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "4 a") 'projectile-find-other-file-other-window)
     (define-key map (kbd "4 b") 'projectile-switch-to-buffer-other-window)
     (define-key map (kbd "4 C-o") 'projectile-display-buffer)
     (define-key map (kbd "4 d") 'projectile-find-dir-other-window)
@@ -2129,6 +2178,7 @@ is chosen."
     (define-key map (kbd "4 t") 'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "!") 'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") 'projectile-run-async-shell-command-in-root)
+    (define-key map (kbd "a") 'projectile-find-other-file)
     (define-key map (kbd "b") 'projectile-switch-to-buffer)
     (define-key map (kbd "c") 'projectile-compile-project)
     (define-key map (kbd "d") 'projectile-find-dir)
@@ -2173,6 +2223,7 @@ is chosen."
    ["Find test file" projectile-find-test-file]
    ["Find directory" projectile-find-dir]
    ["Find file in directory" projectile-find-file-in-directory]
+   ["Find other file" projectile-find-other-file]
    ["Switch to buffer" projectile-switch-to-buffer]
    ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
    ["Kill project buffers" projectile-kill-buffers]
