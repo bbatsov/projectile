@@ -22,7 +22,8 @@
 ### Bugs fixed
 
 * Prevent `projectile-kill-buffers` from trying to kill indirect
-  buffers.
+buffers.
+* [#412](https://github.com/bbatsov/projectile/issues/412): Handle multiple possible targets in `projectile-toggle-between-implementation-or-test`.
 
 ## 0.11.0 (05/27/2014)
 

@@ -1396,23 +1396,31 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
-  (let ((basename (file-name-nondirectory (file-name-sans-extension file)))
-        (test-affix (projectile-test-affix (projectile-project-type))))
-    (-first (lambda (current-file)
-              (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
-                (or (s-equals? current-file-basename (concat test-affix basename))
-                    (s-equals? current-file-basename (concat basename test-affix)))))
-            (projectile-current-project-files))))
+  (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
+         (test-affix (projectile-test-affix (projectile-project-type)))
+         (candidates (-filter (lambda (current-file)
+                                (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
+                                  (or (s-equals? current-file-basename (concat test-affix basename))
+                                      (s-equals? current-file-basename (concat basename test-affix)))))
+                              (projectile-current-project-files))))
+    (cond
+     ((null candidates) nil)
+     ((= (length candidates) 1) (car candidates))
+     (t (projectile-completing-read "Switch to: " candidates)))))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (let ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-        (test-affix (projectile-test-affix (projectile-project-type))))
-    (-first (lambda (current-file)
-              (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
-                (or (s-equals? (concat test-affix current-file-basename) basename)
-                    (s-equals? (concat current-file-basename test-affix) basename))))
-            (projectile-current-project-files))))
+  (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
+         (test-affix (projectile-test-affix (projectile-project-type)))
+         (candidates (-filter (lambda (current-file)
+                                (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
+                                  (or (s-equals? (concat test-affix current-file-basename) basename)
+                                      (s-equals? (concat current-file-basename test-affix) basename))))
+                              (projectile-current-project-files))))
+    (cond
+     ((null candidates) nil)
+     ((= (length candidates) 1) (car candidates))
+     (t (projectile-completing-read "Switch to: " candidates)))))
 
 (defun projectile-grep-default-files ()
   "Try to find a default pattern for `projectile-grep'.
