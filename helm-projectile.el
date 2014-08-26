@@ -161,6 +161,15 @@
     (action . (lambda (file) (find-file file))))
   "Helm source definition.")
 
+(defvar helm-source-projectile-projects-list
+  `((name . "Projects")
+    (candidates . projectile-known-projects)
+    (persistent-action . dired)
+    (action ("Switch to project" . projectile-switch-project-by-name)
+	    ("Projectile commander" . ,(lambda (p)
+					 (projectile-switch-project-by-name p t)))
+ 	    ("Dired" . dired))))
+
 (defcustom helm-projectile-sources-list
   '(helm-source-projectile-projects
     helm-source-projectile-files-list
