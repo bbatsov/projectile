@@ -4,6 +4,8 @@
 
 ### New features
 
+* Add command projectile-find-other-file  Switch between files with
+  the same  name but different extensions.
 * Add Helm interface to switch project. For more details checkout the file
   README.md.
 * Make the mode line format customizable with `projectile-mode-line`
