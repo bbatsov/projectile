@@ -1086,7 +1086,8 @@ https://github.com/d11wtq/grizzl")))
 
 ;;; Interactive commands
 (defcustom projectile-other-file-alist
-  '(("cpp" . (".h" ".hpp" ".ipp"))
+  '(;; handle C/C++ extensions
+    ("cpp" . (".h" ".hpp" ".ipp"))
     ("ipp" . (".h" ".hpp" ".cpp"))
     ("hpp" . (".h" ".ipp" ".cpp"))
     ("cxx" . (".hxx" ".ixx"))
@@ -1096,6 +1097,14 @@ https://github.com/d11wtq/grizzl")))
     ("m" . (".h"))
     ("mm" . (".h"))
     ("h" . (".c" ".m" ".mm"))
+    ("cc" . (".hh"))
+    ("hh" . (".cc"))
+
+    ;; vertex shader and fragment shader extensions in glsl
+    ("vert" . (".frag"))
+    ("frag" . (".vert"))
+
+    ;; handle files with no extension
     (nil . (".lock" ".gpg"))
     ("lock" . (""))
     ("gpg" . (""))
