@@ -538,9 +538,10 @@ to `helm`, which just enables projectile to use the Helm completion to complete
 a project name. The benefit of using `helm-projectile-switch-project` is that on
 any selected project we can fire many actions, not limited to just the "switch
 to project" action, as in the case of using helm completion by setting
-`projectile-completion-system` to `helm`. Currently only three actions have been
-provided, these are "Switch to project", "Open Dired in project's directory" and
-"Switch to Eshell", but we will definitely add more in the future.
+`projectile-completion-system` to `helm`. Currently only four actions have been
+provided, these are "Switch to project", "Open Dired in project's directory",
+"Open project root in vc-dir or magit" and "Switch to Eshell", but we will
+definitely add more in the future.
 
 Obviously you need to have Helm installed for this to work :-)
 
