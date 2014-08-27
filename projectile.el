@@ -1120,18 +1120,20 @@ https://github.com/d11wtq/grizzl")))
   "Narrow to files with the same names but different extensions.
 If only one file exists, switch immediately.  If more than one file exist,
 prompt a list of possible files for users to choose.  Return the selection."
-  (interactive "P")
   (let* ((file-ext-list (cdr (assoc (file-name-extension (buffer-file-name)) projectile-other-file-alist)))
          (filename (file-name-base (buffer-file-name)))
          (file-list (mapcar (lambda (ext)
                               (concat filename ext))
                             file-ext-list))
-         (candidates (mapcan
-                      (lambda (file)
-                        (filter (lambda (project-file)
-                                  (string-match file project-file))
-                                (projectile-current-project-files)))
-                      file-list)))
+         (candidates (-filter (lambda (project-file)
+                                (string-match filename project-file))
+                              (projectile-current-project-files)))
+         (candidates (-flatten (mapcar
+                                (lambda (file)
+                                  (-filter (lambda (project-file)
+                                             (string-match file project-file))
+                                           candidates))
+                                file-list))))
     (if candidates
         (if (= (length candidates) 1)
             (car candidates)
