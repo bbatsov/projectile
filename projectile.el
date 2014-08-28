@@ -1102,24 +1102,28 @@ https://github.com/d11wtq/grizzl")))
     )
   "Alist of extensions for switching to file with the same name, using other extensions based on the extension of current file.")
 
-(defun projectile-find-other-file ()
-  "Switch between files with the same name but different extensions."
-  (interactive)
-  (-if-let (other-file (projectile-get-other-file))
+(defun projectile-find-other-file (&optional ignore-extensions)
+  "Switch between files with the same name but different extensions.
+With IGNORE-EXTENSIONS, only uses filename for searching other files."
+  (interactive "P")
+  (-if-let (other-file (projectile-get-other-file ignore-extensions))
       (find-file (expand-file-name other-file (projectile-project-root)))
     (error "No other file found")))
 
-(defun projectile-find-other-file-other-window ()
-  "Switch between files with the same name but different extensions in other window."
-  (interactive)
-  (-if-let (other-file (projectile-get-other-file))
+(defun projectile-find-other-file-other-window (&optional ignore-extensions)
+  "Switch between files with the same name but different extensions in other window.
+With IGNORE-EXTENSIONS, only uses filename for searching other files."
+  (interactive "P")
+  (-if-let (other-file (projectile-get-other-file ignore-extensions))
       (find-file-other-window (expand-file-name other-file (projectile-project-root)))
     (error "No other file found")))
 
-(defun projectile-get-other-file ()
+(defun projectile-get-other-file (&optional ignore-extensions)
   "Narrow to files with the same names but different extensions.
 If only one file exists, switch immediately.  If more than one file exist,
-prompt a list of possible files for users to choose.  Return the selection."
+prompt a list of possible files for users to choose.  Return the selection.
+
+With IGNORE-EXTENSIONS, only uses filename for searching other files."
   (let* ((file-ext-list (cdr (assoc (file-name-extension (buffer-file-name)) projectile-other-file-alist)))
          (filename (file-name-base (buffer-file-name)))
          (file-list (mapcar (lambda (ext)
@@ -1128,12 +1132,14 @@ prompt a list of possible files for users to choose.  Return the selection."
          (candidates (-filter (lambda (project-file)
                                 (string-match filename project-file))
                               (projectile-current-project-files)))
-         (candidates (-flatten (mapcar
-                                (lambda (file)
-                                  (-filter (lambda (project-file)
-                                             (string-match file project-file))
-                                           candidates))
-                                file-list))))
+         (candidates (if ignore-extensions
+                         candidates
+                       (-flatten (mapcar
+                                  (lambda (file)
+                                    (-filter (lambda (project-file)
+                                               (string-match file project-file))
+                                             candidates))
+                                  file-list)))))
     (if candidates
         (if (= (length candidates) 1)
             (car candidates)
