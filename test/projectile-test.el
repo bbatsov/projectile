@@ -425,3 +425,58 @@
     (should (projectile-ignored-buffer-p (generate-new-buffer "*nrepl messages*")))
     (should (projectile-ignored-buffer-p (generate-new-buffer "*something*")))
     (should-not (projectile-ignored-buffer-p (generate-new-buffer "test")))))
+
+(ert-deftest projectile-test-get-other-files ()
+  (let ((projectile-other-file-alist '(;; handle C/C++ extensions
+                                       ("cpp" . ("h" "hpp" "ipp"))
+                                       ("ipp" . ("h" "hpp" "cpp"))
+                                       ("hpp" . ("h" "ipp" "cpp"))
+                                       ("cxx" . ("hxx" "ixx"))
+                                       ("ixx" . ("cxx" "hxx"))
+                                       ("hxx" . ("ixx" "cxx"))
+                                       ("c" . ("h"))
+                                       ("m" . ("h"))
+                                       ("mm" . ("h"))
+                                       ("h" . ("c" "cpp" "ipp" "hpp" "m" "mm"))
+                                       ("cc" . ("hh"))
+                                       ("hh" . ("cc"))
+
+                                       ;; vertex shader and fragment shader extensions in glsl
+                                       ("vert" . ("frag"))
+                                       ("frag" . ("vert"))
+
+                                       ;; handle files with no extension
+                                       (nil . ("lock" "gpg"))
+                                       ("lock" . (""))
+                                       ("gpg" . (""))
+                                       ))
+        (source-tree '("src/test1.c"
+                       "src/test2.c"
+                       "src/test1.cpp"
+                       "src/test2.cpp"
+                       "src/Makefile"
+                       "src/test.vert"
+                       "src/test.frag"
+                       "include1/test1.h"
+                       "include1/test2.h"
+                       "include1/test1.hpp"
+                       "include2/test1.h"
+                       "include2/test2.h"
+                       "include2/test2.hpp")))
+    (should (equal '("include1/test1.h" "include2/test1.h")
+                   (projectile-get-other-files "src/test1.c" source-tree)))
+    (should (equal '("include1/test1.h" "include2/test1.h" "include1/test1.hpp")
+                   (projectile-get-other-files "src/test1.cpp" source-tree)))
+    (should (equal '("include1/test2.h" "include2/test2.h")
+                   (projectile-get-other-files "test2.c" source-tree)))
+    (should (equal '("include1/test2.h" "include2/test2.h" "include2/test2.hpp")
+                   (projectile-get-other-files "test2.cpp" source-tree)))
+    (should (equal '("src/test1.c" "src/test1.cpp" "include1/test1.hpp")
+                   (projectile-get-other-files "test1.h" source-tree)))
+    (should (equal '("src/test2.c" "src/test2.cpp" "include2/test2.hpp")
+                   (projectile-get-other-files "test2.h" source-tree)))
+    (should (equal '("src/test1.c" "src/test1.cpp" "include1/test1.hpp")
+                   (projectile-get-other-files "include1/test1.h" source-tree t)))
+    (should (equal '("src/Makefile")
+                   (projectile-get-other-files "Makefile.lock" source-tree)))
+    ))
