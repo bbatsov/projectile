@@ -28,7 +28,7 @@ it. Some of Projectile's features:
 * jump to a file in a directory
 * jump to a project buffer
 * jump to a test in project
-* toggle between files with same names but different extensions (i.e. .h <-> .cpp)
+* toggle between files with same names but different extensions (i.e. .h <-> .c/.cpp, Gemfile <-> Gemfile.lock...)
 * toggle between code and its test
 * jump to recently visited files in the project
 * switch between projects you have worked on
