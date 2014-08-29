@@ -1111,47 +1111,54 @@ https://github.com/d11wtq/grizzl")))
     )
   "Alist of extensions for switching to file with the same name, using other extensions based on the extension of current file.")
 
-(defun projectile-find-other-file (&optional ignore-extensions)
+(defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
-With IGNORE-EXTENSIONS, only uses filename for searching other files."
-  (interactive)
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) ignore-extensions))
+With FLEX-MATCHING, match any file that contains the base name of current file."
+  (interactive "P")
+  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
           (find-file (expand-file-name (car other-files) (projectile-project-root)))
         (find-file (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
 
-(defun projectile-find-other-file-other-window (&optional ignore-extensions)
+(defun projectile-find-other-file-other-window (&optional flex-matching)
   "Switch between files with the same name but different extensions in other window.
-With IGNORE-EXTENSIONS, only uses filename for searching other files."
-  (interactive)
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) ignore-extensions))
+With FLEX-MATCHING, match any file that contains the base name of current file."
+  (interactive "P")
+  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
           (find-file-other-window (expand-file-name (car other-files) (projectile-project-root)))
         (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
 
-(defun projectile-get-other-files (current-file project-files &optional ignore-extensions)
+(defun projectile-get-other-files (current-file project-file-list &optional flex-matching)
   "Narrow to files with the same names but different extensions.
 Returns a list of possible files for users to choose.
 
-With IGNORE-EXTENSIONS, only uses filename for searching other files."
+With FLEX-MATCHING, match any file that contains the base name of current file"
   (let* ((file-ext-list (cdr (assoc (file-name-extension current-file) projectile-other-file-alist)))
          (filename (file-name-base current-file))
          (file-list (mapcar (lambda (ext)
-                              (concat filename "." ext))
+                              (if flex-matching
+                                  (concat ".*" filename ".*" "\." ext "\\'")
+                                (concat "^" filename
+                                        (unless (equal ext "")
+                                          (concat  "\." ext))
+                                        "\\'")))
                             file-ext-list))
          (candidates (-filter (lambda (project-file)
                                 (string-match filename project-file))
-                              project-files))
-         (candidates (if ignore-extensions
-                         (delete current-file candidates)
-                       (-flatten (mapcar
-                                  (lambda (file)
-                                    (-filter (lambda (project-file)
-                                               (string-match file project-file))
-                                             candidates))
-                                  file-list)))))
+                              project-file-list))
+         (candidates
+          (-flatten (mapcar
+                     (lambda (file)
+                       (-filter (lambda (project-file)
+                                  (string-match file
+                                                (concat (file-name-base project-file)
+                                                        (unless (equal (file-name-extension project-file) nil)
+                                                          (concat  "\." (file-name-extension project-file))))))
+                                candidates))
+                     file-list))))
     candidates))
 
 (defun projectile-find-file (&optional arg)
