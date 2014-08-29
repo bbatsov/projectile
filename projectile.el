@@ -1096,7 +1096,7 @@ https://github.com/d11wtq/grizzl")))
     ("c" . ("h"))
     ("m" . ("h"))
     ("mm" . ("h"))
-    ("h" . ("c" "m" "mm"))
+    ("h" . ("c" "cpp" "ipp" "hpp" "m" "mm"))
     ("cc" . ("hh"))
     ("hh" . ("cc"))
 
