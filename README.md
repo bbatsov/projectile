@@ -538,10 +538,16 @@ to `helm`, which just enables projectile to use the Helm completion to complete
 a project name. The benefit of using `helm-projectile-switch-project` is that on
 any selected project we can fire many actions, not limited to just the "switch
 to project" action, as in the case of using helm completion by setting
-`projectile-completion-system` to `helm`. Currently only four actions have been
-provided, these are "Switch to project", "Open Dired in project's directory",
-"Open project root in vc-dir or magit" and "Switch to Eshell", but we will
-definitely add more in the future.
+`projectile-completion-system` to `helm`. Currently, there are five actions:
+"Switch to project", "Open Dired in project's directory", "Open project root in
+vc-dir or magit", "Switch to Eshell" and "Grep project files". We will add more
+and more actions in the future.
+
+Note that the helm grep is different from `projectile-grep` because the helm
+grep is incremental. To use it, select your projects (select multiple projects
+by pressing C-SPC), press "C-s" (or "C-u C-s" for recursive grep), and type your
+regexp. As you type the regexp in the mini buffer, the live grep results are
+displayed incrementally.
 
 Obviously you need to have Helm installed for this to work :-)
 

@@ -4,6 +4,7 @@
 
 ### New features
 
+* Add Helm action for incremental grep in the selected projects.
 * Add command projectile-find-other-file  Switch between files with
   the same  name but different extensions.
 * Add Helm interface to switch project. For more details checkout the file

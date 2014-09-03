@@ -92,6 +92,8 @@
                    (kbd "M-g") 'helm-projectile-vc)
                  (helm-projectile-define-key map
                    (kbd "M-e") 'helm-projectile-switch-to-eshell)
+                 (helm-projectile-define-key map
+                   (kbd "C-s") 'helm-find-files-grep)
                  map))
     (action . (("Switch to project" .
                 (lambda (project)
@@ -100,7 +102,8 @@
                ("Open Dired in project's directory `C-d'" . dired)
                ("Open project root in vc-dir or magit `M-g'" .
                 helm-projectile-vc)
-               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell))))
+               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+               ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
   "Helm source for known projectile projects.")
 
 (defvar helm-source-projectile-files-list
