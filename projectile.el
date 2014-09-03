@@ -1305,6 +1305,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-make '("Makefile"))
 (defvar projectile-grunt '("Gruntfile.js"))
 (defvar projectile-gulp '("gulpfile.js"))
+(defvar projectile-haskell-cabal '("*.cabal"))
 
 (defun projectile-go ()
   (-any? (lambda (file)
@@ -1336,6 +1337,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-make) 'make)
    ((projectile-verify-files projectile-gulp) 'gulp)
    ((projectile-verify-files projectile-grunt) 'grunt)
+   ((projectile-verify-files projectile-haskell-cabal) 'haskell-cabal)
    ((funcall projectile-go-function) 'go)
    (t 'generic)))
 
@@ -1794,6 +1796,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-gulp-test-cmd "gulp test")
 (defvar projectile-go-compile-cmd "go build ./...")
 (defvar projectile-go-test-cmd "go test ./...")
+(defvar projectile-haskell-cabal-compile-cmd "cabal build")
+(defvar projectile-haskell-cabal-test-cmd "cabal test")
 
 (cl-dolist (var '(projectile-rails-compile-cmd
                   projectile-ruby-compile-cmd
@@ -1818,7 +1822,9 @@ For git projects `magit-status' is used if available."
                   projectile-make-compile-cmd
                   projectile-make-test-cmd
                   projectile-grunt-compile-cmd
-                  projectile-grunt-test-cmd))
+                  projectile-grunt-test-cmd
+                  projectile-haskell-cabal-compile-cmd
+                  projectile-haskell-cabal-test-cmd))
   (put var 'safe-local-variable #'stringp))
 
 
@@ -1848,6 +1854,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grunt) projectile-grunt-compile-cmd)
    ((eq project-type 'gulp) projectile-gulp-compile-cmd)
    ((eq project-type 'go) projectile-go-compile-cmd)
+   ((eq project-type 'haskell-cabal) projectile-haskell-compile-cmd)
    (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
@@ -1869,6 +1876,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grunt) projectile-grunt-test-cmd)
    ((eq project-type 'gulp) projectile-gulp-test-cmd)
    ((eq project-type 'go) projectile-go-test-cmd)
+   ((eq project-type 'haskell-cabal) projectile-haskell-test-cmd)
    (t projectile-make-test-cmd)))
 
 (defun projectile-compilation-command (project)
