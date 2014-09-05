@@ -1854,7 +1854,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grunt) projectile-grunt-compile-cmd)
    ((eq project-type 'gulp) projectile-gulp-compile-cmd)
    ((eq project-type 'go) projectile-go-compile-cmd)
-   ((eq project-type 'haskell-cabal) projectile-haskell-compile-cmd)
+   ((eq project-type 'haskell-cabal) projectile-haskell-cabal-compile-cmd)
    (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
@@ -1876,7 +1876,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'grunt) projectile-grunt-test-cmd)
    ((eq project-type 'gulp) projectile-gulp-test-cmd)
    ((eq project-type 'go) projectile-go-test-cmd)
-   ((eq project-type 'haskell-cabal) projectile-haskell-test-cmd)
+   ((eq project-type 'haskell-cabal) projectile-haskell-cabal-test-cmd)
    (t projectile-make-test-cmd)))
 
 (defun projectile-compilation-command (project)
