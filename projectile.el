@@ -1344,8 +1344,9 @@ With a prefix ARG invalidates the cache first."
   (-all? 'projectile-verify-file files))
 
 (defun projectile-verify-file (file)
-  "Check whether FILE exists in the current project."
-  (projectile-file-exists-p (projectile-expand-root file)))
+  "Check whether FILE exists in the current project.
+Expands wildcards using `file-expand-wildcards' before checking."
+  (file-expand-wildcards (projectile-expand-root file)))
 
 (defun projectile-project-vcs ()
   "Determine the VCS used by the project if any."
