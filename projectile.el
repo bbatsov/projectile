@@ -1392,12 +1392,6 @@ With a prefix ARG invalidates the cache first."
   (find-file
    (projectile-find-implementation-or-test (buffer-file-name))))
 
-(defun projectile-test-affix (project-type)
-  "Find test files affix based on PROJECT-TYPE."
-  (or (funcall projectile-test-prefix-function project-type)
-      (funcall projectile-test-suffix-function project-type)
-      (error "Project type not supported!")))
-
 (defcustom projectile-test-prefix-function 'projectile-test-prefix
   "Function to find test files prefix based on PROJECT-TYPE."
   :group 'projectile
@@ -1407,6 +1401,12 @@ With a prefix ARG invalidates the cache first."
   "Function to find test files suffix based on PROJECT-TYPE."
   :group 'projectile
   :type 'function)
+
+(defun projectile-test-affix (project-type)
+  "Find test files affix based on PROJECT-TYPE."
+  (or (funcall projectile-test-prefix-function project-type)
+      (funcall projectile-test-suffix-function project-type)
+      (error "Project type not supported!")))
 
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
