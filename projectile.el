@@ -46,7 +46,13 @@
 
 (eval-when-compile
   (defvar ack-and-a-half-arguments)
-  (defvar ggtags-completion-table))
+  (defvar ggtags-completion-table)
+  (defvar tags-completion-table))
+
+(declare-function ack-and-a-half "ack-and-a-half")
+(declare-function ggtags-ensure-project "ggtags")
+(declare-function ggtags-update-tags "ggtags")
+(declare-function tags-completion-table "etags")
 
 ;;;; Compatibility
 (eval-and-compile
@@ -1591,6 +1597,7 @@ regular expression."
   (let ((find-tag-function (if (boundp 'ggtags-mode) 'ggtags-find-tag 'find-tag))
         (tags (if (boundp 'ggtags-mode)
                   (projectile--tags (all-completions "" ggtags-completion-table))
+                (require 'etags)
                 ;; we have to manually reset the tags-completion-table every time
                 (setq tags-completion-table nil)
                 (tags-completion-table)
