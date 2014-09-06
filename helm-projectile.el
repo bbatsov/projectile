@@ -46,6 +46,8 @@
 (require 'helm-files)
 (require 'cl-lib)
 
+(declare-function eshell "eshell")
+
 (defgroup helm-projectile nil
   "Helm support for projectile."
   :prefix "helm-projectile-"
