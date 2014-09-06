@@ -1067,7 +1067,7 @@ https://github.com/d11wtq/grizzl")))
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
   (let ((project-files (projectile-current-project-files))
-        default-directory (projectile-project-root))
+        (default-directory (projectile-project-root)))
     (dolist (filename project-files)
      (funcall action filename))))
 
