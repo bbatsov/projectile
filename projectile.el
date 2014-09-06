@@ -46,7 +46,13 @@
 
 (eval-when-compile
   (defvar ack-and-a-half-arguments)
-  (defvar ggtags-completion-table))
+  (defvar ggtags-completion-table)
+  (defvar tags-completion-table))
+
+(declare-function ack-and-a-half "ack-and-a-half")
+(declare-function ggtags-ensure-project "ggtags")
+(declare-function ggtags-update-tags "ggtags")
+(declare-function tags-completion-table "etags")
 
 ;;;; Compatibility
 (eval-and-compile
@@ -1067,7 +1073,7 @@ https://github.com/d11wtq/grizzl")))
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
   (let ((project-files (projectile-current-project-files))
-        default-directory (projectile-project-root))
+        (default-directory (projectile-project-root)))
     (dolist (filename project-files)
      (funcall action filename))))
 
@@ -1395,12 +1401,6 @@ Expands wildcards using `file-expand-wildcards' before checking."
   (find-file
    (projectile-find-implementation-or-test (buffer-file-name))))
 
-(defun projectile-test-affix (project-type)
-  "Find test files affix based on PROJECT-TYPE."
-  (or (funcall projectile-test-prefix-function project-type)
-      (funcall projectile-test-suffix-function project-type)
-      (error "Project type not supported!")))
-
 (defcustom projectile-test-prefix-function 'projectile-test-prefix
   "Function to find test files prefix based on PROJECT-TYPE."
   :group 'projectile
@@ -1410,6 +1410,12 @@ Expands wildcards using `file-expand-wildcards' before checking."
   "Function to find test files suffix based on PROJECT-TYPE."
   :group 'projectile
   :type 'function)
+
+(defun projectile-test-affix (project-type)
+  "Find test files affix based on PROJECT-TYPE."
+  (or (funcall projectile-test-prefix-function project-type)
+      (funcall projectile-test-suffix-function project-type)
+      (error "Project type not supported!")))
 
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
@@ -1594,6 +1600,7 @@ regular expression."
   (let ((find-tag-function (if (boundp 'ggtags-mode) 'ggtags-find-tag 'find-tag))
         (tags (if (boundp 'ggtags-mode)
                   (projectile--tags (all-completions "" ggtags-completion-table))
+                (require 'etags)
                 ;; we have to manually reset the tags-completion-table every time
                 (setq tags-completion-table nil)
                 (tags-completion-table)
