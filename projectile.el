@@ -615,7 +615,7 @@ Returns a project root directory path or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
-     (--first (projectile-file-exists-p (expand-file-name it dir))
+     (--first (file-expand-wildcards (expand-file-name it dir))
               (or list projectile-project-root-files (list))))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
