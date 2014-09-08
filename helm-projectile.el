@@ -120,6 +120,7 @@
     (mode-line . helm-ff-mode-line-string)
     (type . file)
     (action . (("Find file" . (lambda (file) (find-file file)))
+               ("Find file other window" . (lambda (file) (find-file-other-window file)))
                ("Open dired in file's directory" . helm-open-dired))))
   "Helm source definition.")
 
