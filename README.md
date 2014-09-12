@@ -302,7 +302,7 @@ Keybinding         | Description
 <kbd>C-c p 4 a</kbd> | Switch between files with the same name but different extensions in other window.
 <kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
 <kbd>C-c p l</kbd> | Display a list of all files in a directory (that's not necessarily a project)
-<kbd>C-c p s g</kbd> | Run grep on the files in the project.
+<kbd>C-c p g</kbd> | Run grep on the files in the project.
 <kbd>M-- C-c p s g</kbd> | Run grep on `projectile-grep-default-files` in the project.
 <kbd>C-c p v</kbd> | Run `vc-dir` on the root directory of the project.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
