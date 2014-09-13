@@ -525,11 +525,7 @@ for calling Helm with the Projectile file source. You can call it like this:
 M-x helm-projectile
 ```
 
-or even better - bind it to a keybinding like this:
-
-```el
-(global-set-key (kbd "C-c h") 'helm-projectile)
-```
+or even better - invoke the key binding <kbd>C-c p h</kbd>.
 
 For those who prefer helm to ido, the command `helm-projectile-switch-project`
 can be used to replace `projectile-switch-project` to switch project. Please
@@ -542,6 +538,10 @@ to project" action, as in the case of using helm completion by setting
 "Switch to project", "Open Dired in project's directory", "Open project root in
 vc-dir or magit", "Switch to Eshell" and "Grep project files". We will add more
 and more actions in the future.
+
+`helm-projectile` is capable of opening multiple files by marking the files with
+<kbd>C-SPC</kbd> or mark all files with <kdb>M-a</kbd>. Then, press <kdb>RET</kbd>,
+all the selected files will be opened.
 
 Note that the helm grep is different from `projectile-grep` because the helm
 grep is incremental. To use it, select your projects (select multiple projects
