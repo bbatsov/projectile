@@ -87,8 +87,10 @@
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
     (candidates . (lambda ()
-                    (cons (abbreviate-file-name (projectile-project-root))
-                          (projectile-relevant-known-projects))))
+                    (if (projectile-project-p)
+                        (cons (abbreviate-file-name (projectile-project-root))
+                              (projectile-relevant-known-projects))
+                      projectile-known-projects)))
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
                  (helm-projectile-define-key map (kbd "C-d") 'dired)
@@ -207,27 +209,25 @@
 (defun helm-projectile (&optional arg)
   "Use projectile with Helm instead of ido.
 
-With a prefix ARG invalidates the cache first."
+With a prefix ARG invalidates the cache first.
+If invoked outside of a project, displays a list of known projects to jump."
   (interactive "P")
-  (projectile-maybe-invalidate-cache arg)
-  (let ((helm-ff-transformer-show-only-basename nil))
-    (helm :sources helm-projectile-sources-list
+  (if (projectile-project-p)
+      (projectile-maybe-invalidate-cache arg))
+  (let ((helm-ff-transformer-show-only-basename nil)
+        (src (if (projectile-project-p)
+                 helm-projectile-sources-list
+               helm-source-projectile-projects)))
+    (helm :sources src
           :buffer "*helm projectile*"
-          :prompt (projectile-prepend-project-name "pattern: "))))
-
-(defun helm-projectile-switch-project ()
-  "Use Helm instead of ido to switch project in projectile."
-  (interactive)
-  (helm :sources helm-source-projectile-projects
-        :buffer "*helm projectile projects*"
-        :prompt (projectile-prepend-project-name "Switch to project: ")))
+          :prompt (projectile-prepend-project-name (if (projectile-project-p)
+                                                       "pattern: "
+                                                     "Switch to project: ")))))
 
 ;;;###autoload
 (eval-after-load 'projectile
   '(progn
-     (define-key projectile-command-map (kbd "h") 'helm-projectile)
-     (define-key projectile-command-map (kbd "H")
-       'helm-projectile-switch-project)))
+     (define-key projectile-command-map (kbd "h") 'helm-projectile)))
 
 (provide 'helm-projectile)
 
