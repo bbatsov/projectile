@@ -76,12 +76,12 @@
 
 (defun helm-projectile-switch-to-eshell (dir)
   (interactive)
-  (with-helm-default-directory dir
+  (with-helm-default-directory (expand-file-name dir (projectile-project-root))
       (eshell)))
 
 (defun helm-projectile-vc (dir)
   (interactive)
-  (with-helm-default-directory dir
+  (with-helm-default-directory (expand-file-name dir (projectile-project-root))
       (projectile-vc)))
 
 (defvar helm-source-projectile-projects
@@ -125,6 +125,30 @@
                ("Find file other window" . (lambda (file) (find-file-other-window file)))
                ("Open dired in file's directory" . helm-open-dired))))
   "Helm source definition.")
+
+(defun helm-projectile-find-dir (dir)
+  "Jump to a selected directory DIR from helm-projectile."
+  (dired (expand-file-name dir (projectile-project-root)))
+  (run-hooks 'projectile-find-dir-hook))
+
+(defvar helm-source-projectile-directories-list
+  `((name . "Projectile Directories")
+    (candidates . (lambda ()
+              (if projectile-find-dir-includes-top-level
+                  (append '("./") (projectile-current-project-dirs))
+                (projectile-current-project-dirs))))
+    (keymap . ,(let ((map (make-sparse-keymap)))
+                 (set-keymap-parent map helm-map)
+                 (helm-projectile-define-key map (kbd "C-d") 'helm-projectile-find-dir)
+                 (helm-projectile-define-key map
+                   (kbd "M-e") 'helm-projectile-switch-to-eshell)
+                 (helm-projectile-define-key map
+                   (kbd "C-s") 'helm-find-files-grep)
+                 map))
+    (action . (("Open Dired in project's directory `C-d'" . helm-projectile-find-dir)
+               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+               ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
+  "Helm source for listing project directories")
 
 (defvar helm-source-projectile-buffers-list
   `((name . "Projectile Buffers")
@@ -172,6 +196,7 @@
 (defcustom helm-projectile-sources-list
   '(helm-source-projectile-projects
     helm-source-projectile-files-list
+    helm-source-projectile-directories-list
     helm-source-projectile-buffers-list
     helm-source-projectile-recentf-list)
   "Default sources for `helm-projectile'."
