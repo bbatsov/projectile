@@ -76,19 +76,21 @@
 
 (defun helm-projectile-switch-to-eshell (dir)
   (interactive)
-  (with-helm-default-directory dir
+  (with-helm-default-directory (expand-file-name dir (projectile-project-root))
       (eshell)))
 
 (defun helm-projectile-vc (dir)
   (interactive)
-  (with-helm-default-directory dir
+  (with-helm-default-directory (expand-file-name dir (projectile-project-root))
       (projectile-vc)))
 
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
     (candidates . (lambda ()
-                    (cons (abbreviate-file-name (projectile-project-root))
-                          (projectile-relevant-known-projects))))
+                    (if (projectile-project-p)
+                        (cons (abbreviate-file-name (projectile-project-root))
+                              (projectile-relevant-known-projects))
+                      projectile-known-projects)))
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
                  (helm-projectile-define-key map (kbd "C-d") 'dired)
@@ -125,6 +127,30 @@
                ("Find file other window" . (lambda (file) (find-file-other-window file)))
                ("Open dired in file's directory" . helm-open-dired))))
   "Helm source definition.")
+
+(defun helm-projectile-find-dir (dir)
+  "Jump to a selected directory DIR from helm-projectile."
+  (dired (expand-file-name dir (projectile-project-root)))
+  (run-hooks 'projectile-find-dir-hook))
+
+(defvar helm-source-projectile-directories-list
+  `((name . "Projectile Directories")
+    (candidates . (lambda ()
+              (if projectile-find-dir-includes-top-level
+                  (append '("./") (projectile-current-project-dirs))
+                (projectile-current-project-dirs))))
+    (keymap . ,(let ((map (make-sparse-keymap)))
+                 (set-keymap-parent map helm-map)
+                 (helm-projectile-define-key map (kbd "C-d") 'helm-projectile-find-dir)
+                 (helm-projectile-define-key map
+                   (kbd "M-e") 'helm-projectile-switch-to-eshell)
+                 (helm-projectile-define-key map
+                   (kbd "C-s") 'helm-find-files-grep)
+                 map))
+    (action . (("Open Dired in project's directory `C-d'" . helm-projectile-find-dir)
+               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+               ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
+  "Helm source for listing project directories")
 
 (defvar helm-source-projectile-buffers-list
   `((name . "Projectile Buffers")
@@ -171,9 +197,11 @@
 
 (defcustom helm-projectile-sources-list
   '(helm-source-projectile-projects
-    helm-source-projectile-files-list
     helm-source-projectile-buffers-list
-    helm-source-projectile-recentf-list)
+    helm-source-projectile-recentf-list
+    helm-source-projectile-files-list
+    helm-source-projectile-directories-list
+    )
   "Default sources for `helm-projectile'."
   :group 'helm-projectile)
 
@@ -181,27 +209,25 @@
 (defun helm-projectile (&optional arg)
   "Use projectile with Helm instead of ido.
 
-With a prefix ARG invalidates the cache first."
+With a prefix ARG invalidates the cache first.
+If invoked outside of a project, displays a list of known projects to jump."
   (interactive "P")
-  (projectile-maybe-invalidate-cache arg)
-  (let ((helm-ff-transformer-show-only-basename nil))
-    (helm :sources helm-projectile-sources-list
+  (if (projectile-project-p)
+      (projectile-maybe-invalidate-cache arg))
+  (let ((helm-ff-transformer-show-only-basename nil)
+        (src (if (projectile-project-p)
+                 helm-projectile-sources-list
+               helm-source-projectile-projects)))
+    (helm :sources src
           :buffer "*helm projectile*"
-          :prompt (projectile-prepend-project-name "pattern: "))))
-
-(defun helm-projectile-switch-project ()
-  "Use Helm instead of ido to switch project in projectile."
-  (interactive)
-  (helm :sources helm-source-projectile-projects
-        :buffer "*helm projectile projects*"
-        :prompt (projectile-prepend-project-name "Switch to project: ")))
+          :prompt (projectile-prepend-project-name (if (projectile-project-p)
+                                                       "pattern: "
+                                                     "Switch to project: ")))))
 
 ;;;###autoload
 (eval-after-load 'projectile
   '(progn
-     (define-key projectile-command-map (kbd "h") 'helm-projectile)
-     (define-key projectile-command-map (kbd "H")
-       'helm-projectile-switch-project)))
+     (define-key projectile-command-map (kbd "h") 'helm-projectile)))
 
 (provide 'helm-projectile)
 
