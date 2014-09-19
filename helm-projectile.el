@@ -76,13 +76,15 @@
 
 (defun helm-projectile-switch-to-eshell (dir)
   (interactive)
-  (with-helm-default-directory (expand-file-name dir (projectile-project-root))
-      (eshell)))
+  (let ((projectile-require-project-root nil))
+    (with-helm-default-directory (expand-file-name dir (projectile-project-root))
+        (eshell))))
 
 (defun helm-projectile-vc (dir)
   (interactive)
-  (with-helm-default-directory (expand-file-name dir (projectile-project-root))
-      (projectile-vc)))
+  (let ((projectile-require-project-root nil))
+    (with-helm-default-directory (expand-file-name dir (projectile-project-root))
+        (projectile-vc))))
 
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
