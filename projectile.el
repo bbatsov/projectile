@@ -1896,19 +1896,23 @@ For git projects `magit-status' is used if available."
   (or (gethash project projectile-test-cmd-map)
       (projectile-default-test-command (projectile-project-type))))
 
-(defun projectile-compile-project (arg)
+(defun projectile-compile-project (arg &optional dir)
   "Run project compilation command.
 
 Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let* ((project-root (projectile-project-root))
+  (let* ((project-root (if dir
+                           dir
+                         (projectile-project-root)))
          (default-cmd (projectile-compilation-command project-root))
          (compilation-cmd (if (or compilation-read-command arg)
                               (compilation-read-command default-cmd)
                             default-cmd))
-         (default-directory project-root))
+         (default-directory (if dir
+                                dir
+                              project-root)))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (compilation-start compilation-cmd)))
 

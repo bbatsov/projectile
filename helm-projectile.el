@@ -86,6 +86,11 @@
     (with-helm-default-directory (expand-file-name dir (projectile-project-root))
         (projectile-vc))))
 
+(defun helm-projectile-compile-project (dir)
+  (let ((helm--reading-passwd-or-string t)
+        (default-directory dir))
+    (projectile-compile-project helm-current-prefix-arg dir)))
+
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
     (candidates . (lambda ()
@@ -102,6 +107,8 @@
                    (kbd "M-e") 'helm-projectile-switch-to-eshell)
                  (helm-projectile-define-key map
                    (kbd "C-s") 'helm-find-files-grep)
+                 (helm-projectile-define-key map
+                   (kbd "C-c") 'helm-projectile-compile-project)
                  map))
     (action . (("Switch to project" .
                 (lambda (project)
@@ -111,7 +118,9 @@
                ("Open project root in vc-dir or magit `M-g'" .
                 helm-projectile-vc)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-               ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
+               ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
+               ("Compile project `C-c'. With C-u, new compile command"
+                . helm-projectile-compile-project))))
   "Helm source for known projectile projects.")
 
 (defvar helm-source-projectile-files-list
