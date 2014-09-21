@@ -173,7 +173,7 @@
                 "Locate `C-x C-f, C-u to specify locate db'" 'helm-ff-locate)))
   "Helm source definition for Projectile files")
 
-(defun helm-projectile-find-dir (dir)
+(defun helm-projectile-dired-find-dir (dir)
   "Jump to a selected directory DIR from helm-projectile."
   (dired (expand-file-name dir (projectile-project-root)))
   (run-hooks 'projectile-find-dir-hook))
@@ -186,13 +186,13 @@
                 (projectile-current-project-dirs))))
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map (kbd "C-d") 'helm-projectile-find-dir)
+                 (helm-projectile-define-key map (kbd "C-d") 'helm-projectile-dired-find-dir)
                  (helm-projectile-define-key map
                    (kbd "M-e") 'helm-projectile-switch-to-eshell)
                  (helm-projectile-define-key map
                    (kbd "C-s") 'helm-find-files-grep)
                  map))
-    (action . (("Open Dired in project's directory `C-d'" . helm-projectile-find-dir)
+    (action . (("Open Dired in project's directory `C-d'" . helm-projectile-dired-find-dir)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
                ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
   "Helm source for listing project directories")
@@ -250,6 +250,58 @@
     )
   "Default sources for `helm-projectile'."
   :group 'helm-projectile)
+
+
+(defmacro helm-projectile-command (command source)
+  "Template for generic helm-projectile commands.
+COMMAND is a command name to be appended with \"helm-projectile\" prefix.
+SOURCE is a Helm source that should be Projectile specific."
+  `(defun ,(intern (concat "helm-projectile-" command)) (&optional arg)
+    "Use projectile with Helm for finding files in project
+
+With a prefix ARG invalidates the cache first."
+    (interactive "P")
+    (if (projectile-project-p)
+        (projectile-maybe-invalidate-cache arg))
+    (let ((helm-ff-transformer-show-only-basename nil))
+      (helm :sources ,source
+            :buffer "*helm projectile*"
+            :prompt (projectile-prepend-project-name "pattern: ")))))
+
+(helm-projectile-command "switch-project" 'helm-source-projectile-projects)
+(helm-projectile-command "find-file" 'helm-source-projectile-files-list)
+(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list)
+(helm-projectile-command "recentf" 'helm-source-projectile-recentf-list)
+(helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list)
+
+(defun helm-projectile-on ()
+  "Turn on helm-projectile key bindings"
+  (interactive)
+  (message "Turn on helm-projectile key bindings")
+  (helm-projectile-toggle 1))
+
+(defun helm-projectile-off ()
+  "Turn off helm-projectile key bindings"
+  (interactive)
+  (message "Turn off helm-projectile key bindings")
+  (helm-projectile-toggle -1))
+
+
+(defun helm-projectile-toggle (toggle)
+  "Toggle Helm version of Projectile commands"
+  (if (> toggle 0)
+      (progn
+        (define-key projectile-command-map (kbd "f") 'helm-projectile-find-file)
+        (define-key projectile-command-map (kbd "d") 'helm-projectile-find-dir)
+        (define-key projectile-command-map (kbd "p") 'helm-projectile-switch-project)
+        (define-key projectile-command-map (kbd "e") 'helm-projectile-recentf)
+        (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer))
+    (progn
+      (define-key projectile-command-map (kbd "f") 'projectile-find-file)
+      (define-key projectile-command-map (kbd "d") 'projectile-find-dir)
+      (define-key projectile-command-map (kbd "p") 'projectile-switch-project)
+      (define-key projectile-command-map (kbd "e") 'projectile-recentf)
+      (define-key projectile-command-map (kbd "b") 'projectile-switch-to-buffer))))
 
 ;;;###autoload
 (defun helm-projectile (&optional arg)

@@ -549,6 +549,33 @@ by pressing C-SPC), press "C-s" (or "C-u C-s" for recursive grep), and type your
 regexp. As you type the regexp in the mini buffer, the live grep results are
 displayed incrementally.
 
+`helm-projectile` also provides Helm versions of common Projectile commands. Currently,
+these are the supported commands:
+
+* `helm-projectile-switch-project`
+* `helm-projectile-find-file`
+* `helm-projectile-find-dir`
+* `helm-projectile-recentf`
+* `helm-projectile-switch-to-buffer`
+
+Why should you use these commands compared with the normal Projectile commands, even
+if the normal commands use `helm` as `projectile-completion-system`? The answer is,
+Helm specific commands give more useful features. For example, `helm-projectile-switch-project`
+allows opening a project in Dired, Magit or Eshell. `helm-projectile-find-file` reuses actions in
+`helm-find-files` (which is plenty) and able to open multiple files. Another reason is that in a large
+source tree, helm-projectile could be slow because it has to open all available sources.
+
+If you want to use these commands, you have to activate it to replace the normal Projectile
+commands:
+
+```lisp
+(require 'helm-projectile)
+(helm-projectile-on)
+```
+
+If you already activate helm-projectile key bindings and you don't like it, you can turn it off
+and use the normal Projectile bindings with command `helm-projectile-off`.
+
 Obviously you need to have Helm installed for this to work :-)
 
 ![Helm-Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png)
