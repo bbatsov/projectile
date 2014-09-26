@@ -60,13 +60,6 @@
   (with-current-buffer (helm-candidate-buffer)
     (expand-file-name candidate helm-projectile-current-project-root)))
 
-(defun helm-projectile-init-buffer-with-files (project-root files)
-  (with-current-buffer (helm-candidate-buffer project-root)
-    (set (make-local-variable 'helm-projectile-current-project-root)
-         project-root)
-    (dolist (file files)
-      (insert (concat file "\n")))))
-
 (defmacro helm-projectile-define-key (map key fun)
   (declare (indent 1))
   `(define-key ,map ,key
@@ -123,18 +116,15 @@
                 . helm-projectile-compile-project))))
   "Helm source for known projectile projects.")
 
-(defvar helm-source-projectile-files-list
-  `((name . "Projectile Files")
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-current-project-files))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,helm-generic-files-map)
-    (help-message . helm-find-file-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,(helm-make-actions
+(defun helm-projectile-init-buffer-with-files (project-root files)
+  (with-current-buffer (helm-candidate-buffer project-root)
+    (set (make-local-variable 'helm-projectile-current-project-root)
+         project-root)
+    (dolist (file files)
+      (insert (concat file "\n")))))
+
+(defvar helm-projectile-file-actions
+  (helm-make-actions
                 "Find File" 'helm-find-file-or-marked
                 "Find file in Dired" 'helm-point-file-in-dired
                 (lambda () (and (locate-library "elscreen") "Find file in Elscreen"))
@@ -149,7 +139,9 @@
                 "Find file in hex dump" 'hexl-find-file
                 "Complete at point `C-c i'" 'helm-insert-file-name-completion-at-point
                 "Insert as org link `C-c @'" 'helm-files-insert-as-org-link
-                "Find shell command `C-c /'" 'helm-ff-find-sh-command
+                "Find shell command `C-c /'" (lambda (dir)
+                                               (let ((helm-ff-default-directory (file-name-directory dir)))
+                                                 (helm-ff-find-sh-command helm-current-prefix-arg)))
                 "Open file externally `C-c C-x, C-u to choose'" 'helm-open-file-externally
                 "Grep File(s) `C-s, C-u Recurse'" 'helm-find-files-grep
                 "Zgrep File(s) `M-g z, C-u Recurse'" 'helm-ff-zgrep
@@ -170,7 +162,51 @@
                 "Switch to history `M-p'" 'helm-find-files-switch-to-hist
                 "Find file other frame `C-c C-o'" 'find-file-other-frame
                 "Print File `C-c p, C-u to refresh'" 'helm-ff-print
-                "Locate `C-x C-f, C-u to specify locate db'" 'helm-ff-locate)))
+                "Locate `C-x C-f, C-u to specify locate db'" 'helm-ff-locate)
+  "Action for files.")
+
+(defvar helm-source-projectile-files-dwim-list
+  `((name . "Projectile Files")
+    (init . (lambda ()
+              (let* ((project-files (projectile-current-project-files))
+                     (files (projectile-select-files project-files)))
+                (cond
+                 ((= (length files) 1)
+                  (find-file (expand-file-name (car files) (projectile-project-root)))
+                  (helm-exit-minibuffer))
+                 ((> (length files) 1)
+                  (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                          files))
+                 (t
+                  (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                          project-files))))))
+    (coerce . helm-projectile-coerce-file)
+    (candidates-in-buffer)
+    (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
+                 (define-key map (kbd "<left>") 'helm-previous-source)
+                 (define-key map (kbd "<right>") 'helm-next-source)
+                 map))
+    (help-message . helm-find-file-help-message)
+    (mode-line . helm-ff-mode-line-string)
+    (type . file)
+    (action . ,helm-projectile-file-actions))
+  "Helm source definition for Projectile files")
+
+(defvar helm-source-projectile-files-list
+  `((name . "Projectile Files")
+    (init . (lambda ()
+              (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                      (projectile-current-project-files))))
+    (coerce . helm-projectile-coerce-file)
+    (candidates-in-buffer)
+    (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
+                 (define-key map (kbd "<left>") 'helm-previous-source)
+                 (define-key map (kbd "<right>") 'helm-next-source)
+                 map))
+    (help-message . helm-find-file-help-message)
+    (mode-line . helm-ff-mode-line-string)
+    (type . file)
+    (action . ,helm-projectile-file-actions))
   "Helm source definition for Projectile files")
 
 (defun helm-projectile-dired-find-dir (dir)
@@ -270,34 +306,37 @@ With a prefix ARG invalidates the cache first."
 
 (helm-projectile-command "switch-project" 'helm-source-projectile-projects)
 (helm-projectile-command "find-file" 'helm-source-projectile-files-list)
+(helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list)
 (helm-projectile-command "find-dir" 'helm-source-projectile-directories-list)
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list)
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list)
 
 (defun helm-projectile-on ()
-  "Turn on helm-projectile key bindings"
+  "Turn on helm-projectile key bindings."
   (interactive)
   (message "Turn on helm-projectile key bindings")
   (helm-projectile-toggle 1))
 
 (defun helm-projectile-off ()
-  "Turn off helm-projectile key bindings"
+  "Turn off helm-projectile key bindings."
   (interactive)
   (message "Turn off helm-projectile key bindings")
   (helm-projectile-toggle -1))
 
 
 (defun helm-projectile-toggle (toggle)
-  "Toggle Helm version of Projectile commands"
+  "Toggle Helm version of Projectile commands."
   (if (> toggle 0)
       (progn
         (define-key projectile-command-map (kbd "f") 'helm-projectile-find-file)
+        (define-key projectile-command-map (kbd "g") 'helm-projectile-find-file-dwim)
         (define-key projectile-command-map (kbd "d") 'helm-projectile-find-dir)
         (define-key projectile-command-map (kbd "p") 'helm-projectile-switch-project)
         (define-key projectile-command-map (kbd "e") 'helm-projectile-recentf)
         (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer))
     (progn
       (define-key projectile-command-map (kbd "f") 'projectile-find-file)
+      (define-key projectile-command-map (kbd "g") 'helm-projectile-find-file-dwim)
       (define-key projectile-command-map (kbd "d") 'projectile-find-dir)
       (define-key projectile-command-map (kbd "p") 'projectile-switch-project)
       (define-key projectile-command-map (kbd "e") 'projectile-recentf)

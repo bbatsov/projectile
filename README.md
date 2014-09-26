@@ -24,6 +24,7 @@ manually as a project just create an empty `.projectile` file in
 it. Some of Projectile's features:
 
 * jump to a file in project
+* jump to files at point in project
 * jump to a directory in project
 * jump to a file in a directory
 * jump to a project buffer
@@ -199,6 +200,30 @@ This is the default.  With this setting, once you have selected your
 project via Projectile's completion system (see below), you will
 remain in the completion system to select a file to visit.
 
+###### `projectile-find-file-dwim`
+
+If point is on a filepath, Projectile first tries to search for that
+file in project:
+
+- If it finds just a file, it switches to that file instantly.  This
+works even if the filename is incomplete, but there's only a single file
+in the current project that matches the filename at point. For example,
+if there's only a single file named "projectile/projectile.el" but the
+current filename is "projectile/proj" (incomplete), projectile-find-file
+still switches to "projectile/projectile.el" immediately because this
+is the only filename that matches.
+
+- If it finds a list of files, the list is displayed for selecting. A
+list of files is displayed when a filename appears more than one in the
+project or the filename at point is a prefix of more than two files in a
+project. For example, if `projectile-find-file' is executed on a
+filepath like "projectile/", it lists the content of that directory.
+If it is executed on a partial filename like "projectile/a", a list of
+files with character 'a' in that directory is presented.
+
+- If it finds nothing, display a list of all files in project for
+  selecting.
+
 ###### `projectile-dired`
 
 ```el
@@ -296,7 +321,9 @@ Keybinding         | Description
 -------------------|------------------------------------------------------------
 <kbd>C-c p f</kbd> | Display a list of all files in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p F</kbd> | Display a list of all files in all known projects.
+<kbd>C-c p g</kbd> | Display a list of all files at point in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p 4 f</kbd> | Jump to a project's file using completion and show it in another window.
+<kbd>C-c p 4 g</kbd> | Jump to a project's file based on context at point and show it in another window.
 <kbd>C-c p d</kbd> | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p 4 d</kbd> | Switch to a project directory and show it in another window.
 <kbd>C-c p 4 a</kbd> | Switch between files with the same name but different extensions in other window.
@@ -554,6 +581,7 @@ these are the supported commands:
 
 * `helm-projectile-switch-project`
 * `helm-projectile-find-file`
+* `helm-projectile-find-file-dwim`
 * `helm-projectile-find-dir`
 * `helm-projectile-recentf`
 * `helm-projectile-switch-to-buffer`
