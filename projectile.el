@@ -1119,7 +1119,8 @@ https://github.com/d11wtq/grizzl")))
 
 (defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
-With FLEX-MATCHING, match any file that contains the base name of current file."
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
   (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
@@ -1129,7 +1130,8 @@ With FLEX-MATCHING, match any file that contains the base name of current file."
 
 (defun projectile-find-other-file-other-window (&optional flex-matching)
   "Switch between files with the same name but different extensions in other window.
-With FLEX-MATCHING, match any file that contains the base name of current file."
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
   (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
