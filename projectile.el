@@ -1119,7 +1119,8 @@ https://github.com/d11wtq/grizzl")))
 
 (defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
-With FLEX-MATCHING, match any file that contains the base name of current file."
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
   (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
@@ -1129,7 +1130,8 @@ With FLEX-MATCHING, match any file that contains the base name of current file."
 
 (defun projectile-find-other-file-other-window (&optional flex-matching)
   "Switch between files with the same name but different extensions in other window.
-With FLEX-MATCHING, match any file that contains the base name of current file."
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
   (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
@@ -1167,9 +1169,92 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                      file-list))))
     candidates))
 
+(defun projectile-select-files (project-files &optional arg)
+  "Select a list of files based on filename at point.
+
+With a prefix ARG invalidates the cache first."
+  (projectile-maybe-invalidate-cache arg)
+  (let* ((file (if (region-active-p)
+                   (buffer-substring (region-beginning) (region-end))
+                 (or (thing-at-point 'filename) "")))
+         (files (if file
+                    (-filter (lambda (project-file)
+                               (string-match file project-file))
+                             project-files)
+                  nil)))
+    files))
+
+(defun projectile-find-file-dwim (&optional arg)
+  "Jump to a project's files using completion based on context.
+
+With a prefix ARG invalidates the cache first.
+
+If point is on a filename, Projectile first tries to search for that
+file in project:
+
+- If it finds just a file, it switches to that file instantly.  This works even
+if the filename is incomplete, but there's only a single file in the current project
+that matches the filename at point.  For example, if there's only a single file named
+\"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
+`projectile-find-file' still switches to \"projectile/projectile.el\" immediately
+ because this is the only filename that matches.
+
+- If it finds a list of files, the list is displayed for selecting.  A list of
+files is displayed when a filename appears more than one in the project or the
+filename at point is a prefix of more than two files in a project.  For example,
+if `projectile-find-file' is executed on a filepath like \"projectile/\", it lists
+the content of that directory.  If it is executed on a partial filename like
+ \"projectile/a\", a list of files with character 'a' in that directory is presented.
+
+- If it finds nothing, display a list of all files in project for selecting."
+  (interactive "P")
+  (let* ((project-files (projectile-current-project-files))
+         (files (projectile-select-files project-files arg)))
+    (cond
+     ((= (length files) 1)
+      (find-file (expand-file-name (car files) (projectile-project-root))))
+     ((> (length files) 1)
+      (find-file (expand-file-name (projectile-completing-read "Switch to: " files) (projectile-project-root))))
+     (t (find-file (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
+    (run-hooks 'projectile-find-file-hook)))
+
+(defun projectile-find-file-dwim-other-window (&optional arg)
+  "Jump to a project's files using completion based on context in other window.
+
+With a prefix ARG invalidates the cache first.
+
+If point is on a filename, Projectile first tries to search for that
+file in project:
+
+- If it finds just a file, it switches to that file instantly.  This works even
+if the filename is incomplete, but there's only a single file in the current project
+that matches the filename at point.  For example, if there's only a single file named
+\"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
+`projectile-find-file' still switches to \"projectile/projectile.el\"
+immediately because this is the only filename that matches.
+
+- If it finds a list of files, the list is displayed for selecting.  A list of
+files is displayed when a filename appears more than one in the project or the
+filename at point is a prefix of more than two files in a project.  For example,
+if `projectile-find-file' is executed on a filepath like \"projectile/\", it lists
+the content of that directory.  If it is executed on a partial filename
+like \"projectile/a\", a list of files with character 'a' in that directory
+is presented.
+
+- If it finds nothing, display a list of all files in project for selecting."
+  (interactive "P")
+  (let* ((project-files (projectile-current-project-files))
+         (files (projectile-select-files project-files arg)))
+    (cond
+     ((= (length files) 1)
+      (find-file-other-window (expand-file-name (car files) (projectile-project-root))))
+     ((> (length files) 1)
+      (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " files) (projectile-project-root))))
+     (t (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
+    (run-hooks 'projectile-find-file-hook)))
+
 (defun projectile-find-file (&optional arg)
   "Jump to a project's file using completion.
-
 With a prefix ARG invalidates the cache first."
   (interactive "P")
   (projectile-maybe-invalidate-cache arg)
@@ -1896,19 +1981,23 @@ For git projects `magit-status' is used if available."
   (or (gethash project projectile-test-cmd-map)
       (projectile-default-test-command (projectile-project-type))))
 
-(defun projectile-compile-project (arg)
+(defun projectile-compile-project (arg &optional dir)
   "Run project compilation command.
 
 Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let* ((project-root (projectile-project-root))
+  (let* ((project-root (if dir
+                           dir
+                         (projectile-project-root)))
          (default-cmd (projectile-compilation-command project-root))
          (compilation-cmd (if (or compilation-read-command arg)
                               (compilation-read-command default-cmd)
                             default-cmd))
-         (default-directory project-root))
+         (default-directory (if dir
+                                dir
+                              project-root)))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (compilation-start compilation-cmd)))
 
@@ -2227,6 +2316,7 @@ is chosen."
     (define-key map (kbd "4 C-o") 'projectile-display-buffer)
     (define-key map (kbd "4 d") 'projectile-find-dir-other-window)
     (define-key map (kbd "4 f") 'projectile-find-file-other-window)
+    (define-key map (kbd "4 g") 'projectile-find-file-dwim-other-window)
     (define-key map (kbd "4 t") 'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "!") 'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") 'projectile-run-async-shell-command-in-root)
@@ -2237,6 +2327,7 @@ is chosen."
     (define-key map (kbd "D") 'projectile-dired)
     (define-key map (kbd "e") 'projectile-recentf)
     (define-key map (kbd "f") 'projectile-find-file)
+    (define-key map (kbd "g") 'projectile-find-file-dwim)
     (define-key map (kbd "F") 'projectile-find-file-in-known-projects)
     (define-key map (kbd "i") 'projectile-invalidate-cache)
     (define-key map (kbd "I") 'projectile-ibuffer)
