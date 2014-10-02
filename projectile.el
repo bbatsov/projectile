@@ -616,7 +616,7 @@ Returns a project root directory path or nil if not found."
    (or list projectile-project-root-files-bottom-up (list))))
 
 (defun projectile-root-top-down (dir &optional list)
-  "Identify a project root in DIR by looking at `projectile-project-root-files-top-down'.
+  "Identify a project root in DIR by looking at `projectile-project-root-files'.
 Returns a project root directory path or nil if not found."
   (projectile-locate-dominating-file
    dir
