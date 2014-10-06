@@ -139,9 +139,6 @@
                 "Find file in hex dump" 'hexl-find-file
                 "Complete at point `C-c i'" 'helm-insert-file-name-completion-at-point
                 "Insert as org link `C-c @'" 'helm-files-insert-as-org-link
-                "Find shell command `C-c /'" (lambda (dir)
-                                               (let ((helm-ff-default-directory (file-name-directory dir)))
-                                                 (helm-ff-find-sh-command helm-current-prefix-arg)))
                 "Open file externally `C-c C-x, C-u to choose'" 'helm-open-file-externally
                 "Grep File(s) `C-s, C-u Recurse'" 'helm-find-files-grep
                 "Zgrep File(s) `M-g z, C-u Recurse'" 'helm-ff-zgrep
@@ -308,7 +305,7 @@ With a prefix ARG invalidates the cache first."
 (helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: ")
 (helm-projectile-command "find-file" 'helm-source-projectile-files-list "Find file: ")
 (helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
-(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list "Find dir")
+(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list "Find dir: ")
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
 
