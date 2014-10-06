@@ -288,10 +288,11 @@
   :group 'helm-projectile)
 
 
-(defmacro helm-projectile-command (command source)
+(defmacro helm-projectile-command (command source prompt)
   "Template for generic helm-projectile commands.
 COMMAND is a command name to be appended with \"helm-projectile\" prefix.
-SOURCE is a Helm source that should be Projectile specific."
+SOURCE is a Helm source that should be Projectile specific.
+PROMPT is a string for displaying as a prompt."
   `(defun ,(intern (concat "helm-projectile-" command)) (&optional arg)
     "Use projectile with Helm for finding files in project
 
@@ -302,14 +303,44 @@ With a prefix ARG invalidates the cache first."
     (let ((helm-ff-transformer-show-only-basename nil))
       (helm :sources ,source
             :buffer "*helm projectile*"
-            :prompt (projectile-prepend-project-name "pattern: ")))))
+            :prompt (projectile-prepend-project-name ,prompt)))))
 
-(helm-projectile-command "switch-project" 'helm-source-projectile-projects)
-(helm-projectile-command "find-file" 'helm-source-projectile-files-list)
-(helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list)
-(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list)
-(helm-projectile-command "recentf" 'helm-source-projectile-recentf-list)
-(helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list)
+(helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: ")
+(helm-projectile-command "find-file" 'helm-source-projectile-files-list "Find file: ")
+(helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
+(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list "Find dir")
+(helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
+(helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
+
+(defun helm-projectile-find-other-file (&optional flex-matching)
+  "Switch between files with the same name but different extensions using Helm.
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
+  (interactive "P")
+  (-if-let (other-files (projectile-get-other-files (buffer-file-name)
+                                                    (projectile-current-project-files)
+                                                    flex-matching))
+      (if (= (length other-files) 1)
+          (find-file (expand-file-name (car other-files) (projectile-project-root)))
+        (progn
+          (let* ((helm-ff-transformer-show-only-basename nil))
+            (helm :sources `((name . "Projectile Other Files")
+                             (init . (lambda ()
+                                      (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                                              other-files)))
+                            (coerce . helm-projectile-coerce-file)
+                            (candidates-in-buffer)
+                            (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
+                                         (define-key map (kbd "<left>") 'helm-previous-source)
+                                         (define-key map (kbd "<right>") 'helm-next-source)
+                                         map))
+                            (help-message . helm-find-file-help-message)
+                            (mode-line . helm-ff-mode-line-string)
+                            (type . file)
+                            (action . ,helm-projectile-file-actions))
+                  :buffer "*helm projectile*"
+                  :prompt (projectile-prepend-project-name "Find other file: ")))))
+    (error "No other file found")))
 
 (defun helm-projectile-on ()
   "Turn on helm-projectile key bindings."
@@ -323,11 +354,11 @@ With a prefix ARG invalidates the cache first."
   (message "Turn off helm-projectile key bindings")
   (helm-projectile-toggle -1))
 
-
 (defun helm-projectile-toggle (toggle)
   "Toggle Helm version of Projectile commands."
   (if (> toggle 0)
       (progn
+        (define-key projectile-command-map (kbd "a") 'helm-projectile-find-other-file)
         (define-key projectile-command-map (kbd "f") 'helm-projectile-find-file)
         (define-key projectile-command-map (kbd "g") 'helm-projectile-find-file-dwim)
         (define-key projectile-command-map (kbd "d") 'helm-projectile-find-dir)
@@ -335,6 +366,7 @@ With a prefix ARG invalidates the cache first."
         (define-key projectile-command-map (kbd "e") 'helm-projectile-recentf)
         (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer))
     (progn
+      (define-key projectile-command-map (kbd "a") 'projectile-find-other-file)
       (define-key projectile-command-map (kbd "f") 'projectile-find-file)
       (define-key projectile-command-map (kbd "g") 'helm-projectile-find-file-dwim)
       (define-key projectile-command-map (kbd "d") 'projectile-find-dir)
