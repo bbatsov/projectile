@@ -576,6 +576,14 @@ Returns nil if no window configuration was found"
              (projectile-project-p))
     (projectile-restore-window-config (projectile-project-name))))
 
+(defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
+  (if (and (projectile-project-p) projectile-enable-caching)
+      (let* ((project-root (projectile-project-root))
+             (true-filename (file-truename filename))
+             (relative-filename (file-relative-name true-filename project-root)))
+        (if (projectile-file-cached-p relative-filename project-root)
+            (projectile-purge-file-from-cache relative-filename)))))
+
 
 ;;; Project root related utilities
 (defun projectile-parent (path)
@@ -2432,12 +2440,14 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
     (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t)
-    (ad-activate 'compilation-find-file))
+    (ad-activate 'compilation-find-file)
+    (ad-activate 'delete-file))
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t)
-    (ad-deactivate 'compilation-find-file))))
+    (ad-deactivate 'compilation-find-file)
+    (ad-deactivate 'delete-file))))
 
 ;;;###autoload
 (define-globalized-minor-mode projectile-global-mode
