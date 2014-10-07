@@ -67,19 +67,16 @@
        (interactive)
        (helm-quit-and-execute-action ,fun))))
 
-(defun helm-projectile-switch-to-eshell (dir)
-  (interactive)
-  (let ((projectile-require-project-root nil))
-    (with-helm-default-directory (expand-file-name dir (projectile-project-root))
-        (eshell))))
-
 (defun helm-projectile-vc (dir)
-  (interactive)
+  "A Helm action for jumping to project root using `vc-dir' or Magit.
+DIR is a directory to be switched"
   (let ((projectile-require-project-root nil))
     (with-helm-default-directory (expand-file-name dir (projectile-project-root))
         (projectile-vc))))
 
 (defun helm-projectile-compile-project (dir)
+  "A Helm action for compile a project.
+DIR is the project root."
   (let ((helm--reading-passwd-or-string t)
         (default-directory dir))
     (projectile-compile-project helm-current-prefix-arg dir)))
@@ -123,46 +120,70 @@
     (dolist (file files)
       (insert (concat file "\n")))))
 
+(defvar helm-projectile-find-file-map
+  (let ((map (copy-keymap helm-find-files-map)))
+    (define-key map (kbd "<left>") 'helm-previous-source)
+    (define-key map (kbd "<right>") 'helm-next-source)
+    (helm-projectile-define-key map (kbd "M-e") 'helm-projectile-switch-to-eshell)
+    (helm-projectile-define-key map (kbd "M-.") 'helm-projectile-ff-etags-select-action)
+    (helm-projectile-define-key map (kbd "M-!") 'helm-projectile-find-files-eshell-command-on-file-action)
+    map))
+
+(define-key helm-etags-map (kbd "C-c p f") (lambda ()
+                                             (interactive)
+                                             (helm-run-after-quit 'helm-projectile-find-file nil)))
+
+(defun helm-projectile-find-files-eshell-command-on-file-action (_candidate)
+  (interactive)
+  (let* ((helm-ff-default-directory (file-name-directory _candidate)))
+    (helm-find-files-eshell-command-on-file _candidate)))
+
+(defun helm-projectile-ff-etags-select-action (_candidate)
+  (interactive)
+  (let* ((helm-ff-default-directory (file-name-directory _candidate)))
+    (helm-ff-etags-select _candidate)))
+
+(defun helm-projectile-switch-to-eshell (dir)
+  (interactive)
+  (let* ((helm-ff-default-directory (file-name-directory dir)))
+    (helm-ff-switch-to-eshell dir)))
+
 (defvar helm-projectile-file-actions
   (helm-make-actions
-                "Find File" 'helm-find-file-or-marked
-                "Find file in Dired" 'helm-point-file-in-dired
-                (lambda () (and (locate-library "elscreen") "Find file in Elscreen"))
-                'helm-elscreen-find-file
-                "View file" 'view-file
-                "Checksum File" 'helm-ff-checksum
-                "Query replace on marked" 'helm-ff-query-replace-on-marked
-                "Serial rename files" 'helm-ff-serial-rename
-                "Serial rename by symlinking files" 'helm-ff-serial-rename-by-symlink
-                "Serial rename by copying files" 'helm-ff-serial-rename-by-copying
-                "Open file with default tool" 'helm-open-file-with-default-tool
-                "Find file in hex dump" 'hexl-find-file
-                "Complete at point `C-c i'" 'helm-insert-file-name-completion-at-point
-                "Insert as org link `C-c @'" 'helm-files-insert-as-org-link
-                "Find shell command `C-c /'" (lambda (dir)
-                                               (let ((helm-ff-default-directory (file-name-directory dir)))
-                                                 (helm-ff-find-sh-command helm-current-prefix-arg)))
-                "Open file externally `C-c C-x, C-u to choose'" 'helm-open-file-externally
-                "Grep File(s) `C-s, C-u Recurse'" 'helm-find-files-grep
-                "Zgrep File(s) `M-g z, C-u Recurse'" 'helm-ff-zgrep
-                "Switch to Eshell `M-e'" 'helm-ff-switch-to-eshell
-                "Etags `M-., C-u reload tag file'" 'helm-ff-etags-select
-                "Eshell command on file(s) `M-!, C-u take all marked as arguments.'"
-                'helm-find-files-eshell-command-on-file
-                "Find file as root `C-x @'" 'helm-find-file-as-root
-                "Ediff File `C-='" 'helm-find-files-ediff-files
-                "Ediff Merge File `C-c ='" 'helm-find-files-ediff-merge-files
-                "Delete File(s) `M-D'" 'helm-delete-marked-files
-                "Copy file(s) `M-C, C-u to follow'" 'helm-find-files-copy
-                "Rename file(s) `M-R, C-u to follow'" 'helm-find-files-rename
-                "Symlink files(s) `M-S, C-u to follow'" 'helm-find-files-symlink
-                "Relsymlink file(s) `C-u to follow'" 'helm-find-files-relsymlink
-                "Hardlink file(s) `M-H, C-u to follow'" 'helm-find-files-hardlink
-                "Find file other window `C-c o'" 'find-file-other-window
-                "Switch to history `M-p'" 'helm-find-files-switch-to-hist
-                "Find file other frame `C-c C-o'" 'find-file-other-frame
-                "Print File `C-c p, C-u to refresh'" 'helm-ff-print
-                "Locate `C-x C-f, C-u to specify locate db'" 'helm-ff-locate)
+   "Find File" 'helm-find-file-or-marked
+   "Find file in Dired" 'helm-point-file-in-dired
+   (lambda () (and (locate-library "elscreen") "Find file in Elscreen"))
+   'helm-elscreen-find-file
+   "View file" 'view-file
+   "Checksum File" 'helm-ff-checksum
+   "Query replace on marked" 'helm-ff-query-replace-on-marked
+   "Serial rename files" 'helm-ff-serial-rename
+   "Serial rename by symlinking files" 'helm-ff-serial-rename-by-symlink
+   "Serial rename by copying files" 'helm-ff-serial-rename-by-copying
+   "Open file with default tool" 'helm-open-file-with-default-tool
+   "Find file in hex dump" 'hexl-find-file
+   "Complete at point `C-c i'" 'helm-insert-file-name-completion-at-point
+   "Insert as org link `C-c @'" 'helm-files-insert-as-org-link
+   "Open file externally `C-c C-x, C-u to choose'" 'helm-open-file-externally
+   "Grep File(s) `C-s, C-u Recurse'" 'helm-find-files-grep
+   "Zgrep File(s) `M-g z, C-u Recurse'" 'helm-ff-zgrep
+   "Switch to Eshell `M-e'" 'helm-projectile-switch-to-eshell
+   "Etags `M-., C-u reload tag file'" 'helm-projectile-ff-etags-select-action
+   "Eshell command on file(s) `M-!, C-u take all marked as arguments.'" 'helm-projectile-find-files-eshell-command-on-file-action
+   "Find file as root `C-x @'" 'helm-find-file-as-root
+   "Ediff File `C-='" 'helm-find-files-ediff-files
+   "Ediff Merge File `C-c ='" 'helm-find-files-ediff-merge-files
+   "Delete File(s) `M-D'" 'helm-delete-marked-files
+   "Copy file(s) `M-C, C-u to follow'" 'helm-find-files-copy
+   "Rename file(s) `M-R, C-u to follow'" 'helm-find-files-rename
+   "Symlink files(s) `M-S, C-u to follow'" 'helm-find-files-symlink
+   "Relsymlink file(s) `C-u to follow'" 'helm-find-files-relsymlink
+   "Hardlink file(s) `M-H, C-u to follow'" 'helm-find-files-hardlink
+   "Find file other window `C-c o'" 'find-file-other-window
+   "Switch to history `M-p'" 'helm-find-files-switch-to-hist
+   "Find file other frame `C-c C-o'" 'find-file-other-frame
+   "Print File `C-c p, C-u to refresh'" 'helm-ff-print
+   "Locate `C-x C-f, C-u to specify locate db'" 'helm-ff-locate)
   "Action for files.")
 
 (defvar helm-source-projectile-files-dwim-list
@@ -199,10 +220,7 @@
                                                       (projectile-current-project-files))))
     (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
-    (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                 (define-key map (kbd "<left>") 'helm-previous-source)
-                 (define-key map (kbd "<right>") 'helm-next-source)
-                 map))
+    (keymap . ,helm-projectile-find-file-map)
     (help-message . helm-find-file-help-message)
     (mode-line . helm-ff-mode-line-string)
     (type . file)
@@ -308,7 +326,7 @@ With a prefix ARG invalidates the cache first."
 (helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: ")
 (helm-projectile-command "find-file" 'helm-source-projectile-files-list "Find file: ")
 (helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
-(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list "Find dir")
+(helm-projectile-command "find-dir" 'helm-source-projectile-directories-list "Find dir: ")
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
 
