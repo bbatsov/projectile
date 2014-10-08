@@ -169,7 +169,7 @@ DIR is the project root."
    "Switch to Eshell `M-e'" 'helm-projectile-switch-to-eshell
    "Etags `M-., C-u reload tag file'" 'helm-projectile-ff-etags-select-action
    "Eshell command on file(s) `M-!, C-u take all marked as arguments.'" 'helm-projectile-find-files-eshell-command-on-file-action
-   "Find file as root `C-x @'" 'helm-find-file-as-root
+   "Find file as root `C-c r'" 'helm-find-file-as-root
    "Ediff File `C-='" 'helm-find-files-ediff-files
    "Ediff Merge File `C-c ='" 'helm-find-files-ediff-merge-files
    "Delete File(s) `M-D'" 'helm-delete-marked-files
