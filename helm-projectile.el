@@ -162,7 +162,6 @@ DIR is the project root."
    "Serial rename by copying files" 'helm-ff-serial-rename-by-copying
    "Open file with default tool" 'helm-open-file-with-default-tool
    "Find file in hex dump" 'hexl-find-file
-   "Complete at point `C-c i'" 'helm-insert-file-name-completion-at-point
    "Insert as org link `C-c @'" 'helm-files-insert-as-org-link
    "Open file externally `C-c C-x, C-u to choose'" 'helm-open-file-externally
    "Grep File(s) `C-s, C-u Recurse'" 'helm-find-files-grep
