@@ -211,7 +211,7 @@ It is there because Helm requires it."
 
 (defun helm-projectile-switch-to-eshell (dir)
   (interactive)
-  (let* ((helm-ff-default-directory (file-name-directory dir)))
+  (let* ((helm-ff-default-directory (file-name-directory (projectile-expand-root dir))))
     (helm-ff-switch-to-eshell dir)))
 
 (defun helm-projectile-files-in-current-dired-buffer ()
