@@ -604,6 +604,9 @@ commands:
 If you already activate helm-projectile key bindings and you don't like it, you can turn it off
 and use the normal Projectile bindings with command `helm-projectile-off`.
 
+To fully learn Helm Projectile and see what it is capable of, you should refer to this guide:
+[Exploring large projects with Projectile and Helm Projectile](http://tuhdo.github.io/helm-projectile.html).
+
 Obviously you need to have Helm installed for this to work :-)
 
 ![Helm-Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png)
