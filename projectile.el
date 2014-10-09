@@ -2436,8 +2436,9 @@ Otherwise behave as if called interactively.
    (projectile-mode
     ;; initialize the projects cache if needed
     (unless projectile-projects-cache
-      (setq projectile-projects-cache (projectile-unserialize projectile-cache-file)
-            (make-hash-table :test 'equal)))
+      (setq projectile-projects-cache
+            (or (projectile-unserialize projectile-cache-file)
+                (make-hash-table :test 'equal))))
     (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook t t)
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
