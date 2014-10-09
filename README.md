@@ -105,11 +105,21 @@ project.
 
 Since the native indexing mode is much slower, by default the second
 method is used on all operating systems except Windows. To force the
-use of native indexing:
+use of native indexing in operating systems other than Windows:
 
 ```el
 (setq projectile-indexing-method 'native)
 ```
+
+To force the use of external indexing in Windows:
+
+```el
+(setq projectile-indexing-method 'alien)
+```
+
+This can speed up Projectile in Windows significantly. The disadvantage of this 
+method is that it's not well supported on Windows systems. If there's problem,
+you can always use native indexing mode.
 
 #### Caching
 
