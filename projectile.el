@@ -349,9 +349,7 @@ The saved data can be restored with `projectile-unserialize'."
       (insert-file-contents filename)
       (read (buffer-string)))))
 
-(defvar projectile-projects-cache
-  (or (projectile-unserialize projectile-cache-file)
-      (make-hash-table :test 'equal))
+(defvar projectile-projects-cache nil
   "A hashmap used to cache project file names to speed up related operations.")
 
 (defvar projectile-known-projects nil
@@ -2436,6 +2434,10 @@ Otherwise behave as if called interactively.
   :require 'projectile
   (cond
    (projectile-mode
+    ;; initialize the projects cache if needed
+    (unless projectile-projects-cache
+      (setq projectile-projects-cache (projectile-unserialize projectile-cache-file)
+            (make-hash-table :test 'equal)))
     (add-hook 'find-file-hook 'projectile-cache-files-find-file-hook t t)
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
