@@ -535,6 +535,7 @@ The cache is created both in memory and on the hard drive."
   "Invalidate if FORCE or project's dirconfig newer than cache."
   (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
                                           projectile-cache-file))
+    (setq projectile--project-root nil)
     (projectile-invalidate-cache nil)))
 
 
@@ -638,17 +639,22 @@ Returns a project root directory path or nil if not found."
    nil
    (or list projectile-project-root-files-top-down-recurring (list))))
 
+(defvar-local projectile--project-root nil "Cached value of `projectile-project-root`.")
+
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (file-truename
-   (let ((dir (file-truename default-directory)))
-     (or (--reduce-from
-          (or acc (funcall it dir)) nil
-          projectile-project-root-files-functions)
-         (if projectile-require-project-root
-             (error "You're not in a project")
-           default-directory)))))
+  (if projectile--project-root
+      projectile--project-root
+    (setq projectile--project-root
+          (file-truename
+           (let ((dir (file-truename default-directory)))
+             (or (--reduce-from
+                  (or acc (funcall it dir)) nil
+                  projectile-project-root-files-functions)
+                 (if projectile-require-project-root
+                     (error "You're not in a project")
+                   default-directory)))))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
