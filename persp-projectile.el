@@ -63,15 +63,18 @@ project, this advice creates a new perspective for that project."
 (defun projectile-persp-switch-project (project-to-switch)
   "Switch to a project or perspective we have visited before.
 If the perspective of corresponding project does not exist, this
-function will call `persp-switch' to create one and swith to that before
-`projectile-switch-project' invokes `projectile-switch-project-action'.
-Otherwise, this function calls `persp-switch' to an existing
-perspective of the project that we're switching to"
+function will call `persp-switch' to create one and switch to
+that before `projectile-switch-project' invokes
+`projectile-switch-project-action'.
+
+Otherwise, this function calls `persp-switch' to switch to an
+existing perspective of the project unless we're already in that
+perspective in which case `projectile-switch-project' is called."
   (interactive (list (projectile-completing-read "Switch to project: "
                                                  (projectile-relevant-known-projects))))
   (let* ((name (file-name-nondirectory (directory-file-name project-to-switch)))
          (persp (gethash name perspectives-hash)))
-    (if persp
+    (if (and persp (not (equal persp persp-curr)))
         (persp-switch name)
       (projectile-switch-project-by-name project-to-switch))))
 
