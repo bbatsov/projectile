@@ -188,18 +188,19 @@ DIR is the project root."
 (defvar helm-source-projectile-files-dwim-list
   `((name . "Projectile Files")
     (init . (lambda ()
-              (let* ((project-files (projectile-current-project-files))
-                     (files (projectile-select-files project-files)))
-                (cond
-                 ((= (length files) 1)
-                  (find-file (expand-file-name (car files) (projectile-project-root)))
-                  (helm-exit-minibuffer))
-                 ((> (length files) 1)
-                  (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                          files))
-                 (t
-                  (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                          project-files))))))
+              (when (or (not projectile-require-project-root) (projectile-project-p))
+                (let* ((project-files (projectile-current-project-files))
+                       (files (projectile-select-files project-files)))
+                  (cond
+                   ((= (length files) 1)
+                    (find-file (expand-file-name (car files) (projectile-project-root)))
+                    (helm-exit-minibuffer))
+                   ((> (length files) 1)
+                    (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                            files))
+                   (t
+                    (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                            project-files)))))))
     (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
     (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
@@ -215,8 +216,9 @@ DIR is the project root."
 (defvar helm-source-projectile-files-list
   `((name . "Projectile Files")
     (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-current-project-files))))
+              (when (or (not projectile-require-project-root) (projectile-project-p))
+                (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                        (projectile-current-project-files)))))
     (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
     (keymap . ,helm-projectile-find-file-map)
@@ -234,9 +236,10 @@ DIR is the project root."
 (defvar helm-source-projectile-directories-list
   `((name . "Projectile Directories")
     (candidates . (lambda ()
-              (if projectile-find-dir-includes-top-level
-                  (append '("./") (projectile-current-project-dirs))
-                (projectile-current-project-dirs))))
+                    (when (or (not projectile-require-project-root) (projectile-project-p))
+                      (if projectile-find-dir-includes-top-level
+                          (append '("./") (projectile-current-project-dirs))
+                        (projectile-current-project-dirs)))))
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
                  (helm-projectile-define-key map (kbd "C-d") 'helm-projectile-dired-find-dir)
@@ -253,20 +256,21 @@ DIR is the project root."
 (defvar helm-source-projectile-buffers-list
   `((name . "Projectile Buffers")
     (init . (lambda ()
-              ;; Issue #51 Create the list before `helm-buffer' creation.
-              (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
-              (let ((result (cl-loop for b in helm-projectile-buffers-list-cache
-                                     maximize (length b) into len-buf
-                                     maximize (length (with-current-buffer b
-                                                        (symbol-name major-mode)))
-                                     into len-mode
-                                     finally return (cons len-buf len-mode))))
-                (unless helm-buffer-max-length
-                  (setq helm-buffer-max-length (car result)))
-                (unless helm-buffer-max-len-mode
-                  ;; If a new buffer is longer that this value
-                  ;; this value will be updated
-                  (setq helm-buffer-max-len-mode (cdr result))))))
+              (when (or (not projectile-require-project-root) (projectile-project-p))
+                ;; Issue #51 Create the list before `helm-buffer' creation.
+                (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
+                (let ((result (cl-loop for b in helm-projectile-buffers-list-cache
+                                       maximize (length b) into len-buf
+                                       maximize (length (with-current-buffer b
+                                                          (symbol-name major-mode)))
+                                       into len-mode
+                                       finally return (cons len-buf len-mode))))
+                  (unless helm-buffer-max-length
+                    (setq helm-buffer-max-length (car result)))
+                  (unless helm-buffer-max-len-mode
+                    ;; If a new buffer is longer that this value
+                    ;; this value will be updated
+                    (setq helm-buffer-max-len-mode (cdr result)))))))
     (candidates . helm-projectile-buffers-list-cache)
     (type . buffer)
     (match helm-buffers-list--match-fn)
@@ -282,8 +286,9 @@ DIR is the project root."
   `((name . "Projectile Recent Files")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-recentf-files))))
+              (when (or (not projectile-require-project-root) (projectile-project-p))
+                (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                        (projectile-recentf-files)))))
     (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
     (keymap . ,helm-generic-files-map)
