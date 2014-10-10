@@ -231,6 +231,11 @@ DIR is the project root."
   (dired (expand-file-name dir (projectile-project-root)))
   (run-hooks 'projectile-find-dir-hook))
 
+(defun helm-projectile-dired-find-dir-other-window (dir)
+  "Jump to a selected directory DIR from helm-projectile."
+  (dired-other-window (expand-file-name dir (projectile-project-root)))
+  (run-hooks 'projectile-find-dir-hook))
+
 (defvar helm-source-projectile-directories-list
   `((name . "Projectile Directories")
     (candidates . (lambda ()
@@ -239,13 +244,12 @@ DIR is the project root."
                 (projectile-current-project-dirs))))
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map (kbd "C-d") 'helm-projectile-dired-find-dir)
-                 (helm-projectile-define-key map
-                   (kbd "M-e") 'helm-projectile-switch-to-eshell)
-                 (helm-projectile-define-key map
-                   (kbd "C-s") 'helm-find-files-grep)
+                 (helm-projectile-define-key map (kbd "C-c o") 'helm-projectile-dired-find-dir-other-window)
+                 (helm-projectile-define-key map (kbd "M-e") 'helm-projectile-switch-to-eshell)
+                 (helm-projectile-define-key map (kbd "C-s") 'helm-find-files-grep)
                  map))
-    (action . (("Open Dired in project's directory `C-d'" . helm-projectile-dired-find-dir)
+    (action . (("Open Dired" . helm-projectile-dired-find-dir)
+               ("Open Dired in other window`C-c o'" . helm-projectile-dired-find-dir)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
                ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
   "Helm source for listing project directories")
