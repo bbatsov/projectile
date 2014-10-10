@@ -19,6 +19,7 @@
 
 (defun project-root-in (directory)
   (let ((default-directory (f-expand directory)))
+    (setq projectile--project-root nil)
     (projectile-project-root)))
 
 (provide 'test-helper)
