@@ -2083,6 +2083,7 @@ With a prefix ARG invokes `projectile-commander' instead of
         (unless (projectile-restore-window-config (projectile-project-name))
           (funcall switch-project-action)
           (delete-other-windows))
+      (setq projectile--project-root nil)
       (funcall switch-project-action))
     (run-hooks 'projectile-switch-project-hook)))
 
