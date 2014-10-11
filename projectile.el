@@ -576,7 +576,7 @@ Returns nil if no window configuration was found"
     (projectile-restore-window-config (projectile-project-name))))
 
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
-  (if (and (projectile-project-p) projectile-enable-caching)
+  (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
              (true-filename (file-truename filename))
              (relative-filename (file-relative-name true-filename project-root)))
