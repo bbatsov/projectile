@@ -1650,6 +1650,18 @@ PROJECT-ROOT is the targeted directory. If nil, use
    ((member project-type '(maven symfony)) "Test")
    ((member project-type '(gradle grails)) "Spec")))
 
+(defun projectile-dirname-matching-count (file file-other)
+  "Count matching dirnames ascending file paths."
+  (length
+   (--take-while it (-zip-with 's-equals?
+                               (reverse (f-split (f-dirname file)))
+                               (reverse (f-split (f-dirname file-other)))))))
+
+(defun projectile-group-file-candidates (file candidates)
+  "Group file candidates by dirname matching count."
+  (--sort (> (car it) (car other))
+          (--group-by (projectile-dirname-matching-count file it) candidates)))
+
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
@@ -1662,7 +1674,10 @@ PROJECT-ROOT is the targeted directory. If nil, use
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
-     (t (projectile-completing-read "Switch to: " candidates)))))
+     (t (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
+          (if (= (length (car grouped-candidates)) 2)
+              (-last-item (car grouped-candidates))
+            (projectile-completing-read "Switch to: " (--mapcat (cdr it) grouped-candidates))))))))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
@@ -1676,7 +1691,10 @@ PROJECT-ROOT is the targeted directory. If nil, use
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
-     (t (projectile-completing-read "Switch to: " candidates)))))
+     (t (let ((grouped-candidates (projectile-group-file-candidates test-file candidates)))
+          (if (= (length (car grouped-candidates)) 2)
+              (-last-item (car grouped-candidates))
+            (projectile-completing-read "Switch to: " (--mapcat (cdr it) grouped-candidates))))))))
 
 (defun projectile-grep-default-files ()
   "Try to find a default pattern for `projectile-grep'.
