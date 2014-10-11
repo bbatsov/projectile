@@ -620,7 +620,7 @@ Returns a project root directory path or nil if not found."
    (or acc
        (projectile-locate-dominating-file dir it))
    nil
-   (or list projectile-project-root-files-bottom-up (list))))
+   (or list projectile-project-root-files-bottom-up)))
 
 (defun projectile-root-top-down (dir &optional list)
   "Identify a project root in DIR by looking at `projectile-project-root-files'.
@@ -629,7 +629,7 @@ Returns a project root directory path or nil if not found."
    dir
    (lambda (dir)
      (--first (projectile-file-exists-p (expand-file-name it dir))
-              (or list projectile-project-root-files (list))))))
+              (or list projectile-project-root-files)))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by looking at `projectile-project-root-files-top-down-recurring'.
@@ -643,7 +643,7 @@ Returns a project root directory path or nil if not found."
                (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
                    (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir)))))))))
    nil
-   (or list projectile-project-root-files-top-down-recurring (list))))
+   (or list projectile-project-root-files-top-down-recurring)))
 
 (defvar-local projectile--project-root nil "Cached value of `projectile-project-root`.")
 
