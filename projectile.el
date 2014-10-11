@@ -352,6 +352,9 @@ The saved data can be restored with `projectile-unserialize'."
 (defvar projectile-projects-cache nil
   "A hashmap used to cache project file names to speed up related operations.")
 
+(defvar projectile-project-root-cache (make-hash-table :test 'equal)
+  "Cached value of function `projectile-project-root`.")
+
 (defvar projectile-known-projects nil
   "List of locations where we have previously seen projects.
 The list of projects is ordered by the time they have been accessed.")
@@ -455,6 +458,7 @@ to invalidate."
              (completing-read "Remove cache for: "
                               (projectile-hash-keys projectile-projects-cache))
            (projectile-project-root))))
+    (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-projects-cache)
     (projectile-serialize-cache)
     (message "Invalidated Projectile cache for %s."
@@ -533,7 +537,6 @@ The cache is created both in memory and on the hard drive."
   "Invalidate if FORCE or project's dirconfig newer than cache."
   (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
                                           projectile-cache-file))
-    (setq projectile--project-root nil)
     (projectile-invalidate-cache nil)))
 
 
@@ -645,22 +648,27 @@ Returns a project root directory path or nil if not found."
    nil
    (or list projectile-project-root-files-top-down-recurring)))
 
-(defvar-local projectile--project-root nil "Cached value of `projectile-project-root`.")
-
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (if projectile--project-root
-      projectile--project-root
-    (setq projectile--project-root
-          (file-truename
-           (let ((dir (file-truename default-directory)))
-             (or (--reduce-from
-                  (or acc (funcall it dir)) nil
-                  projectile-project-root-files-functions)
-                 (if projectile-require-project-root
-                     (error "You're not in a project")
-                   default-directory)))))))
+  (file-truename
+   (let ((dir (file-truename default-directory)))
+     (or (--reduce-from
+          (or acc
+              (let* ((cache-key (format "%s-%s" it dir))
+                     (cache-value (gethash cache-key projectile-project-root-cache)))
+                (if cache-value
+                    (if (eq cache-value 'no-project-root)
+                        nil
+                      cache-value)
+                  (let ((value (funcall it dir)))
+                    (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
+                    value))))
+          nil
+          projectile-project-root-files-functions)
+         (if projectile-require-project-root
+             (error "You're not in a project")
+           default-directory)))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
@@ -2075,7 +2083,6 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (let* ((default-directory project-to-switch)
-         (projectile--project-root nil)
          (switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
