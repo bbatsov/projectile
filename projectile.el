@@ -2075,6 +2075,7 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (let* ((default-directory project-to-switch)
+         (projectile--project-root nil)
          (switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
