@@ -19,7 +19,7 @@
 
 (defun project-root-in (directory)
   (let ((default-directory (f-expand directory)))
-    (setq projectile--project-root nil)
+    (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (projectile-project-root)))
 
 (provide 'test-helper)
