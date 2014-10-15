@@ -4,8 +4,9 @@
 
 ### New features
 
+* Add the ability to retrieve files in all sub-projects under a project root.
 * Add `projectile-find-file-dwim` and `helm-projectile-find-file-dwim` commands.
-* Provide actual Helm command for small Projectile commands.
+* Provide actual Helm commands for common Projectile commands.
 * Use existing Helm actions and map in `helm-find-files` that allows `helm-source-projectile-files-list`
 to behave like `helm-find-files`, such as multifile selection and opening or delete on selected files.
 * Add compile action to `helm-projectile`.
