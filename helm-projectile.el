@@ -79,10 +79,7 @@
   "A Helm action for jumping to project root using `vc-dir' or Magit.
 DIR is a directory to be switched"
   (let ((projectile-require-project-root nil))
-    (cond
-     ((and (eq (projectile-project-vcs dir) 'git) (fboundp 'magit-status))
-      (magit-status dir))
-     (t (vc-dir dir)))))
+    (projectile-vc dir)))
 
 (defun helm-projectile-compile-project (dir)
   "A Helm action for compile a project.

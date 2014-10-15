@@ -1955,15 +1955,17 @@ to run the replacement."
   (interactive)
   (dired (projectile-project-root)))
 
-(defun projectile-vc ()
+(defun projectile-vc (&optional project-root)
   "Open `vc-dir' at the root of the project.
 
 For git projects `magit-status' is used if available."
   (interactive)
+  (or project-root (setq project-root (projectile-project-root)))
   (cond
-   ((and (eq (projectile-project-vcs) 'git) (fboundp 'magit-status))
-    (magit-status (projectile-project-root)))
-   (t (vc-dir (projectile-project-root)))))
+   ((and (eq (projectile-project-vcs project-root) 'git)
+         (fboundp 'magit-status))
+    (magit-status project-root))
+   (t (vc-dir project-root))))
 
 (defun projectile-recentf ()
   "Show a list of recently visited files in a project."
