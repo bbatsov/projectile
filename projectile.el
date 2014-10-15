@@ -1461,9 +1461,12 @@ With a prefix ARG invalidates the cache first."
 Expands wildcards using `file-expand-wildcards' before checking."
   (file-expand-wildcards (projectile-expand-root file)))
 
-(defun projectile-project-vcs ()
-  "Determine the VCS used by the project if any."
-  (let ((project-root (projectile-project-root)))
+(defun projectile-project-vcs (&optional dir)
+  "Determine the VCS used by the project if any.
+DIR is the targeted directory.  If nil, use `projectile-project-root'."
+  (let ((project-root (if dir
+                          dir
+                        (projectile-project-root))))
     (cond
      ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
      ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
