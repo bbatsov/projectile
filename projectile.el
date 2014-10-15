@@ -851,7 +851,7 @@ looping at a single point."
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
                       (lambda (s)
-                        (expand-file-name (concat s "/") default-directory))
+                        (file-name-as-directory (expand-file-name s default-directory)))
                       (projectile-files-via-ext-command (projectile-get-sub-projects-command)))))
 
     ;; check if there are more submodules to be processed
