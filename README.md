@@ -208,7 +208,10 @@ may prefer to alter the value of `projectile-switch-project-action`:
 
 This is the default.  With this setting, once you have selected your
 project via Projectile's completion system (see below), you will
-remain in the completion system to select a file to visit.
+remain in the completion system to select a file to visit. `projectile-find-file`
+is capable of retrieving files in all sub-projects under the project root,
+such as Git submodules. Currently, only Git is supported. Support for other VCS
+will be added in the future.
 
 ###### `projectile-find-file-dwim`
 
