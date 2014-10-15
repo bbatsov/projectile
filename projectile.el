@@ -1568,26 +1568,25 @@ With a prefix ARG invalidates the cache first."
 Expands wildcards using `file-expand-wildcards' before checking."
   (file-expand-wildcards (projectile-expand-root file)))
 
-(defun projectile-project-vcs (&optional dir)
+(defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
-DIR is the targeted directory.  If nil, use `projectile-project-root'."
-  (let ((project-root (if dir
-                          dir
-                        (projectile-project-root))))
-    (cond
-     ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
-     ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
-     ((projectile-file-exists-p (expand-file-name ".fossil" project-root)) 'fossil)
-     ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
-     ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
-     ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
-     ((projectile-locate-dominating-file project-root ".git") 'git)
-     ((projectile-locate-dominating-file project-root ".hg") 'hg)
-     ((projectile-locate-dominating-file project-root ".fossil") 'fossil)
-     ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
-     ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
-     ((projectile-locate-dominating-file project-root ".svn") 'svn)
-     (t 'none))))
+PROJECT-ROOT is the targeted directory. If nil, use
+`projectile-project-root'."
+  (or project-root (setq project-root (projectile-project-root)))
+  (cond
+   ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
+   ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
+   ((projectile-file-exists-p (expand-file-name ".fossil" project-root)) 'fossil)
+   ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
+   ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
+   ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
+   ((projectile-locate-dominating-file project-root ".git") 'git)
+   ((projectile-locate-dominating-file project-root ".hg") 'hg)
+   ((projectile-locate-dominating-file project-root ".fossil") 'fossil)
+   ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
+   ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
+   ((projectile-locate-dominating-file project-root ".svn") 'svn)
+   (t 'none)))
 
 (defun projectile-find-implementation-or-test (file-name)
   "Given a FILE-NAME return the matching implementation or test filename."
