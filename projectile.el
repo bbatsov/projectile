@@ -1524,6 +1524,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-grunt '("Gruntfile.js"))
 (defvar projectile-gulp '("gulpfile.js"))
 (defvar projectile-haskell-cabal '("*.cabal"))
+(defvar projectile-rust-cargo '("Cargo.toml"))
 
 (defun projectile-go ()
   (-any? (lambda (file)
@@ -1556,6 +1557,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-gulp) 'gulp)
    ((projectile-verify-files projectile-grunt) 'grunt)
    ((projectile-verify-files projectile-haskell-cabal) 'haskell-cabal)
+   ((projectile-verify-files projectile-rust-cargo) 'rust-cargo)
    ((funcall projectile-go-function) 'go)
    (t 'generic)))
 
@@ -2020,6 +2022,8 @@ For git projects `magit-status' is used if available."
 (defvar projectile-go-test-cmd "go test ./...")
 (defvar projectile-haskell-cabal-compile-cmd "cabal build")
 (defvar projectile-haskell-cabal-test-cmd "cabal test")
+(defvar projectile-rust-cargo-compile-cmd "cargo build")
+(defvar projectile-rust-cargo-test-cmd "cargo test")
 
 (cl-dolist (var '(projectile-rails-compile-cmd
                   projectile-ruby-compile-cmd
@@ -2046,7 +2050,9 @@ For git projects `magit-status' is used if available."
                   projectile-grunt-compile-cmd
                   projectile-grunt-test-cmd
                   projectile-haskell-cabal-compile-cmd
-                  projectile-haskell-cabal-test-cmd))
+                  projectile-haskell-cabal-test-cmd
+                  projectile-rust-cargo-compile-cmd
+                  projectile-rust-cargo-test-cmd))
   (put var 'safe-local-variable #'stringp))
 
 
@@ -2077,6 +2083,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'gulp) projectile-gulp-compile-cmd)
    ((eq project-type 'go) projectile-go-compile-cmd)
    ((eq project-type 'haskell-cabal) projectile-haskell-cabal-compile-cmd)
+   ((eq project-type 'rust-cargo) projectile-rust-cargo-compile-cmd)
    (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
@@ -2099,6 +2106,7 @@ For git projects `magit-status' is used if available."
    ((eq project-type 'gulp) projectile-gulp-test-cmd)
    ((eq project-type 'go) projectile-go-test-cmd)
    ((eq project-type 'haskell-cabal) projectile-haskell-cabal-test-cmd)
+   ((eq project-type 'rust-cargo) projectile-rust-cargo-test-cmd)
    (t projectile-make-test-cmd)))
 
 (defun projectile-compilation-command (project)
