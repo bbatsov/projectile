@@ -92,6 +92,24 @@ DIR is the project root."
         (default-directory dir))
     (projectile-compile-project helm-current-prefix-arg dir)))
 
+(defun helm-projectile-remove-known-project (_ignore)
+  "Delete selected projects.
+_IGNORE means the argument does not matter.
+It is there because Helm requires it."
+  (let* ((projects (helm-marked-candidates :with-wildcard t))
+         (len (length projects)))
+    (with-helm-display-marked-candidates
+      helm-marked-buffer-name
+      projects
+      (if (not (y-or-n-p (format "Delete *%s Projects(s)" len)))
+          (message "(No deletion performed)")
+        (progn
+          (mapc (lambda (p)
+                  (delete p projectile-known-projects))
+                projects)
+          (projectile-save-known-projects))
+        (message "%s Projects(s) deleted" len)))))
+
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
     (candidates . (lambda ()
@@ -106,7 +124,8 @@ DIR is the project root."
                    (kbd "M-g") 'helm-projectile-vc
                    (kbd "M-e") 'helm-projectile-switch-to-eshell
                    (kbd "C-s") 'helm-find-files-grep
-                   (kbd "C-c") 'helm-projectile-compile-project)
+                   (kbd "C-c") 'helm-projectile-compile-project
+                   (kbd "M-D") 'helm-projectile-remove-known-project)
                  map))
     (action . (("Switch to project" .
                 (lambda (project)
@@ -118,7 +137,8 @@ DIR is the project root."
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
                ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
                ("Compile project `C-c'. With C-u, new compile command"
-                . helm-projectile-compile-project))))
+                . helm-projectile-compile-project)
+               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project))))
   "Helm source for known projectile projects.")
 
 (defun helm-projectile-init-buffer-with-files (project-root files)
