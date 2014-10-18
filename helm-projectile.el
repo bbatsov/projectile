@@ -255,6 +255,20 @@ It is there because Helm requires it."
     (action . ,helm-projectile-file-actions))
   "Helm source definition for Projectile files")
 
+(defvar helm-source-projectile-files-in-all-projects-list
+  `((name . "Projectile Files in All Projects")
+    (init . (lambda ()
+              (let ((projectile-require-project-root nil))
+                (helm-projectile-init-buffer-with-files ""
+                                                        (projectile-files-in-all-projects)))))
+    (coerce . helm-projectile-coerce-file)
+    (candidates-in-buffer)
+    (keymap . ,helm-projectile-find-file-map)
+    (help-message . helm-find-file-help-message)
+    (mode-line . helm-ff-mode-line-string)
+    (type . file)
+    (action . ,helm-projectile-file-actions)))
+
 (defun helm-projectile-dired-find-dir (dir)
   "Jump to a selected directory DIR from helm-projectile."
   (dired (expand-file-name dir (projectile-project-root)))
@@ -358,6 +372,7 @@ With a prefix ARG invalidates the cache first."
 
 (helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: ")
 (helm-projectile-command "find-file" 'helm-source-projectile-files-list "Find file: ")
+(helm-projectile-command "find-file-in-known-projects" 'helm-source-projectile-files-in-all-projects-list "Find file in projects: ")
 (helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
 (helm-projectile-command "find-dir" 'helm-source-projectile-directories-list "Find dir: ")
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
@@ -411,6 +426,7 @@ Other file extensions can be customized with the variable `projectile-other-file
       (progn
         (define-key projectile-command-map (kbd "a") 'helm-projectile-find-other-file)
         (define-key projectile-command-map (kbd "f") 'helm-projectile-find-file)
+        (define-key projectile-command-map (kbd "F") 'helm-projectile-find-file-in-known-projects)
         (define-key projectile-command-map (kbd "g") 'helm-projectile-find-file-dwim)
         (define-key projectile-command-map (kbd "d") 'helm-projectile-find-dir)
         (define-key projectile-command-map (kbd "p") 'helm-projectile-switch-project)
@@ -419,6 +435,7 @@ Other file extensions can be customized with the variable `projectile-other-file
     (progn
       (define-key projectile-command-map (kbd "a") 'projectile-find-other-file)
       (define-key projectile-command-map (kbd "f") 'projectile-find-file)
+      (define-key projectile-command-map (kbd "F") 'projectile-find-file-in-known-projects)
       (define-key projectile-command-map (kbd "g") 'helm-projectile-find-file-dwim)
       (define-key projectile-command-map (kbd "d") 'projectile-find-dir)
       (define-key projectile-command-map (kbd "p") 'projectile-switch-project)
