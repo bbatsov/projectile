@@ -2228,19 +2228,21 @@ This command will first prompt for the directory the file is in."
       ;; target directory is not in a project
       (projectile-find-file))))
 
+(defun projectile-all-project-files ()
+  "Get a list of all files in all projects."
+  (-mapcat (lambda (project)
+             (when (file-exists-p project)
+               (let ((default-directory project))
+                 (-map (lambda (file)
+                         (expand-file-name file project))
+                       (projectile-current-project-files)))))
+           projectile-known-projects))
+
 (defun projectile-find-file-in-known-projects ()
   "Jump to a file in any of the known projects."
   (interactive)
-  (let ((projectile-require-project-root nil)
-        (all-files nil))
-    (-each projectile-known-projects
-      (lambda (project)
-        (when (file-exists-p project)
-          (let ((default-directory project))
-            (setq all-files (append all-files (-map (lambda (file)
-                                                      (expand-file-name file project))
-                                                    (projectile-current-project-files))))))))
-    (find-file (projectile-completing-read "Find file in projects: " all-files))))
+  (let ((projectile-require-project-root nil))
+    (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)))))
 
 (defcustom projectile-switch-project-hook nil
   "Hooks run when project is switched."
