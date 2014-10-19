@@ -213,6 +213,12 @@ is capable of retrieving files in all sub-projects under the project root,
 such as Git submodules. Currently, only Git is supported. Support for other VCS
 will be added in the future.
 
+###### `projectile-find-file-in-known-projects`
+
+Similar to `projectile-find-file` but lists all files in all known projects. Since
+the total number of fils could be huge, it is beneficial to enable caching for subsequent
+usages.
+
 ###### `projectile-find-file-dwim`
 
 If point is on a filepath, Projectile first tries to search for that
@@ -594,6 +600,7 @@ these are the supported commands:
 
 * `helm-projectile-switch-project`
 * `helm-projectile-find-file`
+* `helm-projectile-find-file-in-known-projects`
 * `helm-projectile-find-file-dwim`
 * `helm-projectile-find-dir`
 * `helm-projectile-recentf`
