@@ -4,6 +4,8 @@
 
 ### New features
 
+* Add a new Helm command: `helm-projectile-find-file-in-known-projects` that opens all files in all known projects.
+* Add an action for `helm-projectile-switch-project` to delete multiple marked projects.
 * Add the ability to retrieve files in all sub-projects under a project root.
 * Add `projectile-find-file-dwim` and `helm-projectile-find-file-dwim` commands.
 * Provide actual Helm commands for common Projectile commands.
