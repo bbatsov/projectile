@@ -260,7 +260,7 @@ It is there because Helm requires it."
     (init . (lambda ()
               (let ((projectile-require-project-root nil))
                 (helm-projectile-init-buffer-with-files ""
-                                                        (projectile-files-in-all-projects)))))
+                                                        (projectile-all-project-files)))))
     (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
     (keymap . ,helm-projectile-find-file-map)
