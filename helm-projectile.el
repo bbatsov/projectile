@@ -120,7 +120,7 @@ It is there because Helm requires it."
                    (kbd "M-g") 'helm-projectile-vc
                    (kbd "M-e") 'helm-projectile-switch-to-eshell
                    (kbd "C-s") 'helm-find-files-grep
-                   (kbd "C-c") 'helm-projectile-compile-project
+                   (kbd "M-c") 'helm-projectile-compile-project
                    (kbd "M-D") 'helm-projectile-remove-known-project)
                  map))
     (action . (("Switch to project" .
@@ -132,7 +132,7 @@ It is there because Helm requires it."
                 helm-projectile-vc)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
                ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
-               ("Compile project `C-c'. With C-u, new compile command"
+               ("Compile project `M-c'. With C-u, new compile command"
                 . helm-projectile-compile-project)
                ("Remove project(s) `M-D'" . helm-projectile-remove-known-project))))
   "Helm source for known projectile projects.")
