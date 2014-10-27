@@ -408,7 +408,7 @@ timer if no more items are in the cache."
   (let ((now (current-time)))
     (maphash (lambda (key value)
                (if (time-less-p (cdr value) now)
-                   (remhash key  projectile-file-exists-cache)))
+                   (remhash key projectile-file-exists-cache)))
              projectile-file-exists-cache)
     (setq projectile-file-exists-cache-timer
           (if (> (hash-table-count projectile-file-exists-cache) 0)
