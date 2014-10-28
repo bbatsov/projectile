@@ -54,14 +54,14 @@ The recommended way to install Projectile is via `package.el`.
 #### MELPA
 
 You can install a snapshot version of Projectile from the
-[MELPA](http://melpa.milkbox.net) repository. The version of
+[MELPA](http://melpa.org) repository. The version of
 Projectile there will always be up-to-date, but it might be unstable
 (albeit rarely).
 
 #### MELPA Stable
 
 You can install the last stable version of Projectile from the
-[MELPA Stable](http://melpa-stable.milkbox.net) repository.
+[MELPA Stable](http://stable.melpa.org) repository.
 
 ### el-get
 
