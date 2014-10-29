@@ -876,7 +876,9 @@ looping at a single point."
                (mapcar (lambda (f)
                          (concat s f))
                        (projectile-files-via-ext-command projectile-git-command))))
-           (projectile-get-all-sub-projects (projectile-project-root)))))
+           (condition-case nil
+               (projectile-get-all-sub-projects (projectile-project-root))
+             nil))))
 
 (defun projectile-get-repo-files ()
   "Get a list of the files in the project, including sub-projects."
