@@ -2423,6 +2423,10 @@ is chosen."
   "Open project root in vc-dir or magit."
   (projectile-vc))
 
+(def-projectile-commander-method ?r
+  "Replace a string in the project."
+  (projectile-replace))
+
 (def-projectile-commander-method ?R
   "Regenerate the project's [e|g]tags."
   (projectile-regenerate-tags))
