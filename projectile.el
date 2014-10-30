@@ -2252,10 +2252,20 @@ This command will first prompt for the directory the file is in."
   :group 'projectile
   :type 'hook)
 
+(defun projectile-keep-project-p (project)
+  "Determine wether we should cleanup this project or not.
+
+It handles the case of remote files as well. See `projectile-cleanup-known-projects'."
+  ;; Taken from from `recentf-keep-default-predicate'
+  (cond
+   ((file-remote-p project nil t) (file-readable-p project))
+   ((file-remote-p project))
+   ((file-readable-p project))))
+
 (defun projectile-cleanup-known-projects ()
   "Remove known projects that don't exist anymore."
   (interactive)
-  (let* ((separated-projects (-separate #'projectile-file-exists-p projectile-known-projects))
+  (let* ((separated-projects (-separate #'projectile-keep-project-p projectile-known-projects))
          (projects-kept (car separated-projects))
          (projects-removed (cadr separated-projects)))
     (setq projectile-known-projects projects-kept)
