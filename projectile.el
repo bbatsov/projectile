@@ -972,6 +972,7 @@ Operates on filenames relative to the project root."
     (and (not (s-starts-with? " " (buffer-name buffer)))
          (not (projectile-ignored-buffer-p buffer))
          (s-equals? (file-remote-p default-directory) (file-remote-p project-root))
+         (not (s-matches? "^http\\(s\\)?://" default-directory))
          (s-starts-with? project-root (file-truename default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
