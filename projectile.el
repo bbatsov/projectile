@@ -2210,10 +2210,13 @@ With a prefix ARG invokes `projectile-commander' instead of
                                   projectile-switch-project-action)))
     (if projectile-remember-window-configs
         (unless (projectile-restore-window-config (projectile-project-name))
+	  (run-hooks 'projectile-switch-project-hook)
           (funcall switch-project-action)
           (delete-other-windows))
-      (funcall switch-project-action))
-    (run-hooks 'projectile-switch-project-hook)))
+        (progn 
+          (run-hooks 'projectile-switch-project-hook)
+          (funcall switch-project-action)))
+    ))
 
 
 (defun projectile-find-file-in-directory (&optional directory)
