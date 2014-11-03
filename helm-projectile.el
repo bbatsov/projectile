@@ -338,7 +338,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (mode-line . helm-ff-mode-line-string)
     (type . file)
     (action . ,helm-projectile-file-actions))
-  "Helm source definition for Projectile files")
+  "Helm source definition for Projectile files based on context.")
 
 (defvar helm-source-projectile-files-list
   `((name . "Projectile Files")
@@ -356,7 +356,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (mode-line . helm-ff-mode-line-string)
     (type . file)
     (action . ,helm-projectile-file-actions))
-  "Helm source definition for Projectile files")
+  "Helm source definition for Projectile files.")
 
 (defvar helm-source-projectile-files-in-all-projects-list
   `((name . "Projectile Files in All Projects")
@@ -532,21 +532,78 @@ Other file extensions can be customized with the variable `projectile-other-file
           (let* ((helm-ff-transformer-show-only-basename nil))
             (helm :sources `((name . "Projectile Other Files")
                              (init . (lambda ()
-                                      (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                                              other-files)))
-                            (coerce . helm-projectile-coerce-file)
-                            (candidates-in-buffer)
-                            (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                                         (define-key map (kbd "<left>") 'helm-previous-source)
-                                         (define-key map (kbd "<right>") 'helm-next-source)
-                                         map))
-                            (help-message . helm-find-file-help-message)
-                            (mode-line . helm-ff-mode-line-string)
-                            (type . file)
-                            (action . ,helm-projectile-file-actions))
+                                       (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                                               other-files)))
+                             (coerce . helm-projectile-coerce-file)
+                             (candidates-in-buffer)
+                             (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
+                                          (define-key map (kbd "<left>") 'helm-previous-source)
+                                          (define-key map (kbd "<right>") 'helm-next-source)
+                                          map))
+                             (help-message . helm-find-file-help-message)
+                             (mode-line . helm-ff-mode-line-string)
+                             (type . file)
+                             (action . ,helm-projectile-file-actions))
                   :buffer "*helm projectile*"
                   :prompt (projectile-prepend-project-name "Find other file: ")))))
     (error "No other file found")))
+
+(defun helm-projectile-grep-or-ack (&optional use-ack-p ack-ignored-pattern ack-executable)
+  "Perform helm-grep at project root.
+USE-ACK-GREP-P indicates whether to use ack or not.
+If it is nil, or ack/ack-grep not found then use default grep command."
+  (let* ((default-directory (projectile-project-root))
+         (helm-ff-default-directory (projectile-project-root))
+         (follow (and helm-follow-mode-persistent
+                      (assoc-default 'follow helm-source-grep)))
+         (helm-grep-in-recurse t)
+         (grep-find-ignored-files (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir default-directory)))
+                                                (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
+         (grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir default-directory)))
+                                                      (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
+         (helm-grep-default-command (if use-ack-p
+                                        (concat ack-executable " -H --smart-case --no-group --no-color " ack-ignored-pattern " %p %f")
+                                      "grep -a -d recurse %e -n%cH -e %p %f"))
+         (helm-source-grep
+          (helm-build-async-source
+              (capitalize (helm-grep-command t))
+            :header-name (lambda (name)
+                           (let ((name (if use-ack-p
+                                           "Ack"
+                                         "Grep")))
+                             (concat name " " "(C-c ? Help)")))
+            :candidates-process 'helm-grep-collect-candidates
+            :filter-one-by-one 'helm-grep-filter-one-by-one
+            :candidate-number-limit 9999
+            :nohighlight t
+            :mode-line helm-grep-mode-line-string
+            ;; We need to specify keymap here and as :keymap arg [1]
+            ;; to make it available in further resuming.
+            :keymap helm-grep-map
+            :history 'helm-grep-history
+            :action (helm-make-actions
+                     "Find File" 'helm-grep-action
+                     "Find file other frame" 'helm-grep-other-frame
+                     (lambda () (and (locate-library "elscreen")
+                                     "Find file in Elscreen"))
+                     'helm-grep-jump-elscreen
+                     "Save results in grep buffer" 'helm-grep-save-results
+                     "Find file other window" 'helm-grep-other-window)
+            :persistent-action 'helm-grep-persistent-action
+            :persistent-help "Jump to line (`C-u' Record in mark ring)"
+            :requires-pattern 2)))
+    (helm
+     :sources 'helm-source-grep
+     :input (if (region-active-p)
+                (buffer-substring-no-properties (region-beginning) (region-end))
+              (thing-at-point 'symbol))
+     :buffer (format "*helm %s*" (if use-ack-p
+                                     "ack"
+                                   "grep"))
+     :default-directory (projectile-project-root)
+     :keymap helm-grep-map 
+     :history 'helm-grep-history
+     :truncate-lines t)))
 
 (defun helm-projectile-on ()
   "Turn on helm-projectile key bindings."
@@ -560,6 +617,38 @@ Other file extensions can be customized with the variable `projectile-other-file
   (message "Turn off helm-projectile key bindings")
   (helm-projectile-toggle -1))
 
+(defun helm-projectile-grep ()
+  "Helm version of projectile-grep."
+  (interactive)
+  (helm-projectile-grep-or-ack nil))
+
+(defun helm-projectile-ack ()
+  "Helm version of projectile-ack."
+  (interactive)
+  (unless (executable-find "ack-grep")
+    (error "ack-grep is not available."))
+  (let ((ack-ignored (mapconcat
+                      'identity
+                      (-union (-map (lambda (path)
+                                      (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
+                                    (projectile-ignored-directories))
+                              (-map (lambda (path)
+                                      (concat "--ignore-file=is:" (file-relative-name path default-directory)))
+                                    (projectile-ignored-files))) " "))
+        (helm-ack-grep-executable "ack"))
+    (helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable)))
+
+
+(defun helm-projectile-ag ()
+  "Helm version of projectile-ag."
+  (interactive)
+  (unless (executable-find "ag")
+    (error "ag not available"))
+  (if (require 'helm-ag nil  'noerror)
+      (let ((helm-ag-insert-at-point 'symbol))
+        (helm-do-ag (projectile-project-root)))
+    (error "helm-ag not available")))
+
 (defun helm-projectile-toggle (toggle)
   "Toggle Helm version of Projectile commands."
   (if (> toggle 0)
@@ -571,7 +660,10 @@ Other file extensions can be customized with the variable `projectile-other-file
         (define-key projectile-command-map (kbd "d") 'helm-projectile-find-dir)
         (define-key projectile-command-map (kbd "p") 'helm-projectile-switch-project)
         (define-key projectile-command-map (kbd "e") 'helm-projectile-recentf)
-        (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer))
+        (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer)
+        (define-key projectile-command-map (kbd "s a") 'helm-projectile-ack)
+        (define-key projectile-command-map (kbd "s g") 'helm-projectile-grep)
+        (define-key projectile-command-map (kbd "s s") 'helm-projectile-ag))
     (progn
       (define-key projectile-command-map (kbd "a") 'projectile-find-other-file)
       (define-key projectile-command-map (kbd "f") 'projectile-find-file)
@@ -580,7 +672,10 @@ Other file extensions can be customized with the variable `projectile-other-file
       (define-key projectile-command-map (kbd "d") 'projectile-find-dir)
       (define-key projectile-command-map (kbd "p") 'projectile-switch-project)
       (define-key projectile-command-map (kbd "e") 'projectile-recentf)
-      (define-key projectile-command-map (kbd "b") 'projectile-switch-to-buffer))))
+      (define-key projectile-command-map (kbd "b") 'projectile-switch-to-buffer)
+      (define-key projectile-command-map (kbd "s a") 'projectile-ack)
+      (define-key projectile-command-map (kbd "s g") 'projectile-grep)
+      (define-key projectile-command-map (kbd "s s") 'projectile-ag))))
 
 ;;;###autoload
 (defun helm-projectile (&optional arg)
