@@ -4,6 +4,9 @@
 
 ### New features
 
+* Replace Helm equivalent commands in `projectile-commander` when using Helm.
+* Add replacement commands projectile-grep, projectile-ack and projectile-ag with its Helm version.
+* Add virtual directory manager that allows to create/update (add or delete files) a Dired buffer based on Projectile files.
 * Add a new Helm command: `helm-projectile-find-file-in-known-projects` that opens all files in all known projects.
 * Add an action for `helm-projectile-switch-project` to delete multiple marked projects.
 * Add the ability to retrieve files in all sub-projects under a project root.

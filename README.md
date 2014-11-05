@@ -611,6 +611,10 @@ these are the supported commands:
 * `helm-projectile-find-dir`
 * `helm-projectile-recentf`
 * `helm-projectile-switch-to-buffer`
+* `helm-projectile-grep` (can be used for both grep or ack)
+* `helm-projectile-ag`
+* Replace Helm equivalent commands in `projectile-commander`
+* A virtual directory manager that is unique to Helm Projectile
 
 Why should you use these commands compared with the normal Projectile commands, even
 if the normal commands use `helm` as `projectile-completion-system`? The answer is,
