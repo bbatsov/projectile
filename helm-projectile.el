@@ -649,6 +649,39 @@ If it is nil, or ack/ack-grep not found then use default grep command."
         (helm-do-ag (projectile-project-root)))
     (error "helm-ag not available")))
 
+(defun helm-projectile-commander-bindings ()
+  (def-projectile-commander-method ?a
+    "Run ack on project."
+    (call-interactively 'helm-projectile-ack))
+
+  (def-projectile-commander-method ?A
+    "Find ag on project."
+    (call-interactively 'helm-projectile-ag))
+
+  (def-projectile-commander-method ?f
+    "Find file in project."
+    (helm-projectile-find-file))
+
+  (def-projectile-commander-method ?b
+    "Switch to project buffer."
+    (helm-projectile-switch-to-buffer))
+
+  (def-projectile-commander-method ?d
+    "Find directory in project."
+    (helm-projectile-find-dir))
+
+  (def-projectile-commander-method ?g
+    "Run grep on project."
+    (helm-projectile-grep))
+
+  (def-projectile-commander-method ?s
+    "Switch project."
+    (helm-projectile-switch-project))
+
+  (def-projectile-commander-method ?e
+    "Find recently visited file in project."
+    (helm-projectile-recentf)))
+
 (defun helm-projectile-toggle (toggle)
   "Toggle Helm version of Projectile commands."
   (if (> toggle 0)
@@ -663,7 +696,8 @@ If it is nil, or ack/ack-grep not found then use default grep command."
         (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer)
         (define-key projectile-command-map (kbd "s a") 'helm-projectile-ack)
         (define-key projectile-command-map (kbd "s g") 'helm-projectile-grep)
-        (define-key projectile-command-map (kbd "s s") 'helm-projectile-ag))
+        (define-key projectile-command-map (kbd "s s") 'helm-projectile-ag)
+        (helm-projectile-commander-bindings))
     (progn
       (define-key projectile-command-map (kbd "a") 'projectile-find-other-file)
       (define-key projectile-command-map (kbd "f") 'projectile-find-file)
@@ -675,7 +709,8 @@ If it is nil, or ack/ack-grep not found then use default grep command."
       (define-key projectile-command-map (kbd "b") 'projectile-switch-to-buffer)
       (define-key projectile-command-map (kbd "s a") 'projectile-ack)
       (define-key projectile-command-map (kbd "s g") 'projectile-grep)
-      (define-key projectile-command-map (kbd "s s") 'projectile-ag))))
+      (define-key projectile-command-map (kbd "s s") 'projectile-ag)
+      (projectile-commander-bindings))))
 
 ;;;###autoload
 (defun helm-projectile (&optional arg)

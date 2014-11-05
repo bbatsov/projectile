@@ -2407,70 +2407,73 @@ is chosen."
     (display-buffer (current-buffer) t))
   (projectile-commander))
 
-(def-projectile-commander-method ?a
-  "Run ack on project."
-  (call-interactively 'projectile-ack))
+(defun projectile-commander-bindings ()
+  (def-projectile-commander-method ?a
+    "Run ack on project."
+    (call-interactively 'projectile-ack))
 
-(def-projectile-commander-method ?A
-  "Find ag on project."
-  (call-interactively 'projectile-ag))
+  (def-projectile-commander-method ?A
+    "Find ag on project."
+    (call-interactively 'projectile-ag))
 
-(def-projectile-commander-method ?f
-  "Find file in project."
-  (projectile-find-file))
+  (def-projectile-commander-method ?f
+    "Find file in project."
+    (projectile-find-file))
 
-(def-projectile-commander-method ?T
-  "Find test file in project."
-  (projectile-find-test-file))
+  (def-projectile-commander-method ?T
+    "Find test file in project."
+    (projectile-find-test-file))
 
-(def-projectile-commander-method ?b
-  "Switch to project buffer."
-  (projectile-switch-to-buffer))
+  (def-projectile-commander-method ?b
+    "Switch to project buffer."
+    (projectile-switch-to-buffer))
 
-(def-projectile-commander-method ?d
-  "Find directory in project."
-  (projectile-find-dir))
+  (def-projectile-commander-method ?d
+    "Find directory in project."
+    (projectile-find-dir))
 
-(def-projectile-commander-method ?D
-  "Open project root in dired."
-  (projectile-dired))
+  (def-projectile-commander-method ?D
+    "Open project root in dired."
+    (projectile-dired))
 
-(def-projectile-commander-method ?v
-  "Open project root in vc-dir or magit."
-  (projectile-vc))
+  (def-projectile-commander-method ?v
+    "Open project root in vc-dir or magit."
+    (projectile-vc))
 
-(def-projectile-commander-method ?r
-  "Replace a string in the project."
-  (projectile-replace))
+  (def-projectile-commander-method ?r
+    "Replace a string in the project."
+    (projectile-replace))
 
-(def-projectile-commander-method ?R
-  "Regenerate the project's [e|g]tags."
-  (projectile-regenerate-tags))
+  (def-projectile-commander-method ?R
+    "Regenerate the project's [e|g]tags."
+    (projectile-regenerate-tags))
 
-(def-projectile-commander-method ?g
-  "Run grep on project."
-  (projectile-grep))
+  (def-projectile-commander-method ?g
+    "Run grep on project."
+    (projectile-grep))
 
-(def-projectile-commander-method ?s
-  "Switch project."
-  (projectile-switch-project))
+  (def-projectile-commander-method ?s
+    "Switch project."
+    (projectile-switch-project))
 
-(def-projectile-commander-method ?o
-  "Run multi-occur on project buffers."
-  (projectile-multi-occur))
+  (def-projectile-commander-method ?o
+    "Run multi-occur on project buffers."
+    (projectile-multi-occur))
 
-(def-projectile-commander-method ?j
-  "Find tag in project."
-  (projectile-find-tag))
+  (def-projectile-commander-method ?j
+    "Find tag in project."
+    (projectile-find-tag))
 
-(def-projectile-commander-method ?k
-  "Kill all project buffers."
-  (projectile-kill-buffers))
+  (def-projectile-commander-method ?k
+    "Kill all project buffers."
+    (projectile-kill-buffers))
 
-(def-projectile-commander-method ?e
-  "Find recently visited file in project."
-  (projectile-recentf))
-
+  (def-projectile-commander-method ?e
+    "Find recently visited file in project."
+    (projectile-recentf)))
+
+(projectile-commander-bindings)
+
 ;;; Minor mode
 (defvar projectile-command-map
   (let ((map (make-sparse-keymap)))
