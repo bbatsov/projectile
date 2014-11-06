@@ -54,11 +54,74 @@
   :group 'projectile
   :link `(url-link :tag "helm-projectile homepage" "https://github.com/bbatsov/projectile"))
 
+(defcustom helm-projectile-git-command "git ls-files -co --exclude-standard"
+  "Command used by projectile to get the files in a git project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom helm-projectile-hg-command "hg locate -I ."
+  "Command used by projectile to get the files in a hg project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom helm-projectile-fossil-command "fossil ls"
+  "Command used by projectile to get the files in a fossil project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom helm-projectile-bzr-command "bzr ls -R --versioned | grep -v '/$'"
+  "Command used by projectile to get the files in a bazaar project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom helm-projectile-darcs-command "darcs show files . "
+  "Command used by projectile to get the files in a darcs project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom helm-projectile-svn-command "svn list -R . | grep -v '/$'"
+  "Command used by projectile to get the files in a svn project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom helm-projectile-generic-command "find . -type f"
+  "Command used by projectile to get the files in a generic project."
+  :group 'projectile
+  :type 'string)
+
+(defun helm-projectile-get-ext-command ()
+  "Determine which external command to invoke based on the project's VCS."
+  (let ((vcs (projectile-project-vcs)))
+    (cond
+     ((eq vcs 'git) helm-projectile-git-command)
+     ((eq vcs 'hg) helm-projectile-hg-command)
+     ((eq vcs 'fossil) helm-projectile-fossil-command)
+     ((eq vcs 'bzr) helm-projectile-bzr-command)
+     ((eq vcs 'darcs) helm-projectile-darcs-command)
+     ((eq vcs 'svn) helm-projectile-svn-command)
+     (t helm-projectile-generic-command))))
+
 (defvar helm-projectile-current-project-root)
 
+(defun helm-projectile-current-project-files (project-root)
+  "Return a list of files for the current project.
+PROJECT-ROOT is a directory to be considered as project root."
+  (with-current-buffer (helm-candidate-buffer project-root)
+    (let ((default-directory project-root)
+          (file-list-string (and projectile-enable-caching
+                                 (mapconcat 'identity
+                                            (gethash project-root projectile-projects-cache)
+                                            "\n"))))
+      (when (or (null file-list-string) (string-empty-p file-list-string))
+        (setq file-list-string (shell-command-to-string (helm-projectile-get-ext-command)))
+        (when projectile-enable-caching
+          (projectile-cache-project project-root
+                                    (split-string file-list-string "\n" t))))
+      (insert file-list-string)
+      (current-buffer))))
+
 (defun helm-projectile-coerce-file (candidate)
-  (with-current-buffer (helm-candidate-buffer)
-    (expand-file-name candidate helm-projectile-current-project-root)))
+  (expand-file-name candidate (projectile-project-root)))
 
 (defmacro helm-projectile-define-key (keymap key def &rest bindings)
   "In KEYMAP, define key sequence KEY1 as DEF1, KEY2 as DEF2 ..."
@@ -343,8 +406,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-files-list
   `((name . "Projectile Files")
     (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-current-project-files))))
+              (helm-projectile-current-project-files (projectile-project-root))))
     (coerce . helm-projectile-coerce-file)
     (candidates-in-buffer)
     (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
@@ -407,10 +469,12 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 
 (defvar helm-source-projectile-directories-list
   `((name . "Projectile Directories")
-    (candidates . (lambda ()
-                    (if projectile-find-dir-includes-top-level
-                        (append '("./") (projectile-current-project-dirs))
-                      (projectile-current-project-dirs))))
+    (init . (lambda ()
+              (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                      (if projectile-find-dir-includes-top-level
+                                                          (append '("./") (projectile-current-project-dirs))
+                                                        (projectile-current-project-dirs)))))
+    (candidates-in-buffer)
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
                  (helm-projectile-define-key map
