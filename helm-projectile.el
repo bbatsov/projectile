@@ -550,7 +550,10 @@ Other file extensions can be customized with the variable `projectile-other-file
 
 (defun helm-projectile-grep-or-ack (&optional use-ack-p ack-ignored-pattern ack-executable)
   "Perform helm-grep at project root.
-USE-ACK-GREP-P indicates whether to use ack or not.
+USE-ACK-P indicates whether to use ack or not.
+ACK-IGNORED-PATTERN is a file regex to exclude from searching.
+ACK-EXECUTABLE is the actual ack binary name.
+It is usually \"ack\" or \"ack-grep\".
 If it is nil, or ack/ack-grep not found then use default grep command."
   (let* ((default-directory (projectile-project-root))
          (helm-ff-default-directory (projectile-project-root))
@@ -625,8 +628,6 @@ If it is nil, or ack/ack-grep not found then use default grep command."
 (defun helm-projectile-ack ()
   "Helm version of projectile-ack."
   (interactive)
-  (unless (executable-find "ack-grep")
-    (error "ack-grep is not available."))
   (let ((ack-ignored (mapconcat
                       'identity
                       (-union (-map (lambda (path)
@@ -635,7 +636,10 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                               (-map (lambda (path)
                                       (concat "--ignore-file=is:" (file-relative-name path default-directory)))
                                     (projectile-ignored-files))) " "))
-        (helm-ack-grep-executable "ack"))
+        (helm-ack-grep-executable (cond
+                                   ((executable-find "ack") "ack")
+                                   ((executable-find "ack-grep") "ack-grep")
+                                   (t (error "ack or ack-grep is not available.")))))
     (helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable)))
 
 
