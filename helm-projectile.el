@@ -582,35 +582,69 @@ With a prefix ARG invalidates the cache first."
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
 
+(defun helm-projectile-get-other-files (current-file helm-candidate-buffer &optional flex-matching)
+  "Fill a Helm buffer with candidates that are other files.
+CURRENT-FILE is the file of current buffer.
+
+HELM-CANDIDATE-BUFFER is the Helm buffer to be filled with other files
+as candidates.
+
+FLEX-MATCHING enables matching all candidates that contain the filename
+without extension."
+  (let* ((file-ext-list (cdr (assoc (file-name-extension current-file) projectile-other-file-alist)))
+         (filename (file-name-base current-file))
+         (file-list-regex (mapconcat (lambda (ext)
+                                       (if flex-matching
+                                           (concat "\\.*" filename "\\.*" "\." ext "$")
+                                         "/main.h\\|^main.h"
+                                         (let ((file-regex (concat filename (unless (equal ext "")
+                                                                              (concat  "\." ext)) "$")))
+                                           (concat (concat "/" file-regex)
+                                                   "\\|"
+                                                   (concat "^") file-regex))))
+                                     file-ext-list
+                                     "\\|")))
+    (with-current-buffer helm-candidate-buffer
+      (goto-char (point-min))
+      (delete-non-matching-lines file-list-regex)
+      (let ((default-directory (projectile-project-root))
+            (buf-content (buffer-string)))
+        (cond
+         ((= (how-many "\n") 1)
+          (find-file (substring buf-content 0 (string-match "\n" buf-content)))
+          (signal 'quit t))
+         ((= (how-many "\n") 0)
+          (error "No other file found.")))))))
+
 (defun helm-projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions using Helm.
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name)
-                                                    (projectile-current-project-files)
-                                                    flex-matching))
-      (if (= (length other-files) 1)
-          (find-file (expand-file-name (car other-files) (projectile-project-root)))
-        (progn
-          (let* ((helm-ff-transformer-show-only-basename nil))
-            (helm :sources `((name . "Projectile Other Files")
-                             (init . (lambda ()
-                                       (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                                               other-files)))
-                             (coerce . helm-projectile-coerce-file)
-                             (candidates-in-buffer)
-                             (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                                          (define-key map (kbd "<left>") 'helm-previous-source)
-                                          (define-key map (kbd "<right>") 'helm-next-source)
-                                          map))
-                             (help-message . helm-find-file-help-message)
-                             (mode-line . helm-ff-mode-line-string)
-                             (type . file)
-                             (action . ,helm-projectile-file-actions))
-                  :buffer "*helm projectile*"
-                  :prompt (projectile-prepend-project-name "Find other file: ")))))
-    (error "No other file found")))
+  (progn
+    (let ((helm-maybe-use-default-as-input t)
+          (helm-ff-transformer-show-only-basename nil))
+      (helm :sources `((init . (lambda ()
+                                 (helm-projectile-get-other-files
+                                  (buffer-file-name)
+                                  (helm-projectile-current-project-files (projectile-project-root))
+                                  flex-matching)
+                                 ))
+                       (name . "Projectile Other Files")
+                       (coerce . helm-projectile-coerce-file)
+                       (candidates-in-buffer)
+                       (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
+                                    (define-key map (kbd "<left>") 'helm-previous-source)
+                                    (define-key map (kbd "<right>") 'helm-next-source)
+                                    map))
+                       (help-message . helm-find-file-help-message)
+                       (mode-line . helm-ff-mode-line-string)
+                       (type . file)
+                       (action . ,helm-projectile-file-actions))
+
+            :buffer "*helm projectile*"
+            :prompt (projectile-prepend-project-name "Find other file: "))))
+  )
 
 (defun helm-projectile-grep-or-ack (&optional use-ack-p ack-ignored-pattern ack-executable)
   "Perform helm-grep at project root.
