@@ -1933,6 +1933,7 @@ to run the replacement."
   "Get the symbol at point and strip its properties."
   (substring-no-properties (or (thing-at-point 'symbol) "")))
 
+;;;###autoload
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
   (interactive)
