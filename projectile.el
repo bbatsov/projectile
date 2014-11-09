@@ -781,9 +781,12 @@ Files are returned as relative paths to the project root."
      (t projectile-generic-command))))
 
 (defun projectile-get-sub-projects-command ()
-  (let ((vcs (projectile-project-vcs)))
+  (let ((vcs (projectile-project-vcs))
+        (project-root (projectile-project-root)))
     (cond
-     ((eq vcs 'git) projectile-git-submodule-command)
+     ((projectile-file-exists-p (expand-file-name ".git" project-root))
+      (cond (eq vcs 'git)
+          projectile-git-submodule-command))
      (t ""))))
 
 (defun projectile-get-all-sub-projects (project &optional known-projects)
