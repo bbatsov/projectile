@@ -758,7 +758,7 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
+(defcustom projectile-svn-command "svn list -R . | grep -v '/$' | tr '\\n' '\\0'"
   "Command used by projectile to get the files in a svn project."
   :group 'projectile
   :type 'string)
