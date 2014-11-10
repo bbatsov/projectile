@@ -407,10 +407,12 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 
 (defvar helm-source-projectile-directories-list
   `((name . "Projectile Directories")
-    (candidates . (lambda ()
-                    (if projectile-find-dir-includes-top-level
-                        (append '("./") (projectile-current-project-dirs))
-                      (projectile-current-project-dirs))))
+    (init . (lambda ()
+              (helm-projectile-init-buffer-with-files (projectile-project-root)
+                                                      (if projectile-find-dir-includes-top-level
+                                                          (append '("./") (projectile-current-project-dirs))
+                                                        (projectile-current-project-dirs)))))
+    (candidates-in-buffer)
     (keymap . ,(let ((map (make-sparse-keymap)))
                  (set-keymap-parent map helm-map)
                  (helm-projectile-define-key map
