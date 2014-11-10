@@ -1911,7 +1911,7 @@ files in the project."
     (-reject 'file-directory-p
              (-map 'projectile-expand-root (projectile-dir-files directory)))))
 
-(defun projectile-replace (arg)
+(defun projectile-replace (&optional arg)
   "Replace a string in the project using `tags-query-replace'.
 
 With a prefix argument ARG prompts you for a directory on which
