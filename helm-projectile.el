@@ -75,6 +75,54 @@
             def (pop bindings)))
     (reverse ret)))
 
+(defun helm-projectile-hack-actions (actions &rest prescription)
+  "Given a Helm action list and a prescription, return a hacked
+Helm action list, after applying the PRESCRIPTION.
+
+The Helm action list ACTIONS is in the form:
+
+\(\(DESCRIPTION1 . FUNCTION1\)
+ \(DESCRIPTION2 . FUNCTION2\)
+ ...
+ \(DESCRIPTIONn . FUNCTIONn\)\)
+
+PRESCRIPTION is in the form:
+
+\(INSTRUCTION1 INSTRUCTION2 ... INSTRUCTIONn\)
+
+If an INSTRUCTION is a symbol, the action with function name
+INSTRUCTION is deleted.
+
+If an INSTRUCTION is of the form \(FUNCTION1 . FUNCTION2\), the
+action with function name FUNCTION1 will change it's function to
+FUNCTION2.
+
+If an INSTRUCTION is of the form \(FUNCTION . DESCRIPTION\), and
+if an action with function name FUNCTION exists in the original
+Helm action list, the action in the Helm action list, with
+function name FUNCTION will change it's description to
+DESCRIPTION. Otherwise, (FUNCTION . DESCRIPTION) will be added to
+the action list.
+
+Please check out how `helm-projectile-file-actions' is defined
+for an example of how this function is being used."
+  (let* ((to-delete (cl-remove-if (lambda (entry) (listp entry)) prescription))
+         (actions (cl-delete-if (lambda (action) (memq (cdr action) to-delete))
+                                (copy-alist actions)))
+         new)
+    (cl-dolist (action actions actions)
+      (when (setq new (cdr (assq (cdr action) prescription)))
+        (if (stringp new)
+            (setcar action new)
+          (setcdr action new))))
+    ;; Add new actions from PRESCRIPTION
+    (cl-dolist (instruction prescription)
+      (when (and (listp instruction)
+                 (null (rassq (car instruction) actions))
+                 (symbolp (car instruction)) (stringp (cdr instruction)))
+        (add-to-list 'actions (cons (cdr instruction) (car instruction)))))
+    actions))
+
 (defun helm-projectile-vc (dir)
   "A Helm action for jumping to project root using `vc-dir' or Magit.
 DIR is a directory to be switched"
@@ -275,42 +323,26 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     map))
 
 (defvar helm-projectile-file-actions
-  (helm-make-actions
-   "Find File" 'helm-find-file-or-marked
-   "Find file in Dired" 'helm-point-file-in-dired
-   (lambda () (and (locate-library "elscreen") "Find file in Elscreen"))
-   'helm-elscreen-find-file
-   "Create Dired buffer from files `C-c f'" 'helm-projectile-dired-files-new-action
-   "Add files to Dired buffer `C-c a'" 'helm-projectile-dired-files-add-action
-   "View file" 'view-file
-   "Checksum File" 'helm-ff-checksum
-   "Query replace on marked" 'helm-ff-query-replace-on-marked
-   "Serial rename files" 'helm-ff-serial-rename
-   "Serial rename by symlinking files" 'helm-ff-serial-rename-by-symlink
-   "Serial rename by copying files" 'helm-ff-serial-rename-by-copying
-   "Open file with default tool" 'helm-open-file-with-default-tool
-   "Find file in hex dump" 'hexl-find-file
-   "Insert as org link `C-c @'" 'helm-files-insert-as-org-link
-   "Open file externally `C-c C-x, C-u to choose'" 'helm-open-file-externally
-   "Grep File(s) `C-s, C-u Recurse'" 'helm-find-files-grep
-   "Zgrep File(s) `M-g z, C-u Recurse'" 'helm-ff-zgrep
-   "Switch to Eshell `M-e'" 'helm-projectile-switch-to-eshell
-   "Etags `M-., C-u reload tag file'" 'helm-projectile-ff-etags-select-action
-   "Eshell command on file(s) `M-!, C-u take all marked as arguments.'" 'helm-projectile-find-files-eshell-command-on-file-action
-   "Find file as root `C-c r'" 'helm-find-file-as-root
-   "Ediff File `C-='" 'helm-find-files-ediff-files
-   "Ediff Merge File `C-c ='" 'helm-find-files-ediff-merge-files
-   "Delete File(s) `M-D'" 'helm-delete-marked-files
-   "Copy file(s) `M-C, C-u to follow'" 'helm-find-files-copy
-   "Rename file(s) `M-R, C-u to follow'" 'helm-find-files-rename
-   "Symlink files(s) `M-S, C-u to follow'" 'helm-find-files-symlink
-   "Relsymlink file(s) `C-u to follow'" 'helm-find-files-relsymlink
-   "Hardlink file(s) `M-H, C-u to follow'" 'helm-find-files-hardlink
-   "Find file other window `C-c o'" 'find-file-other-window
-   "Switch to history `M-p'" 'helm-find-files-switch-to-hist
-   "Find file other frame `C-c C-o'" 'find-file-other-frame
-   "Print File `C-c p, C-u to refresh'" 'helm-ff-print
-   "Locate `C-x C-f, C-u to specify locate db'" 'helm-ff-locate)
+  (helm-projectile-hack-actions
+   (cdr (assq 'action (or helm-source-find-files
+                          (helm-make-source "Find Files" 'helm-source-ffiles))))
+   ;; Delete these actions
+   'helm-ff-browse-project
+   'helm-insert-file-name-completion-at-point
+   'helm-ff-find-sh-command
+   'helm-ff-cache-add-file
+   ;; Substitute these actions
+   '(helm-ff-switch-to-eshell . helm-projectile-switch-to-eshell)
+   '(helm-ff-etags-select     . helm-projectile-ff-etags-select-action)
+   '(helm-find-files-eshell-command-on-file
+     . helm-projectile-find-files-eshell-command-on-file-action)
+   ;; Change action descriptions
+   '(helm-find-file-as-root . "Find file as root `C-c r'")
+   ;; New actions
+   '(helm-projectile-dired-files-new-action
+     . "Create Dired buffer from files `C-c f'")
+   '(helm-projectile-dired-files-add-action
+     . "Add files to Dired buffer `C-c a'"))
   "Action for files.")
 
 (defvar helm-source-projectile-files-dwim-list
@@ -606,7 +638,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                                      "ack"
                                    "grep"))
      :default-directory (projectile-project-root)
-     :keymap helm-grep-map 
+     :keymap helm-grep-map
      :history 'helm-grep-history
      :truncate-lines t)))
 
