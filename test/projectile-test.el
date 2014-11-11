@@ -480,3 +480,44 @@
     (should (equal '("src/Makefile")
                    (projectile-get-other-files "Makefile.lock" source-tree)))
     ))
+
+
+(ert-deftest projectile-test-dirname-matching-count ()
+  (should (equal 2
+                 (projectile-dirname-matching-count "src/food/sea.c"
+                                                    "src/food/cat.c")))
+  (should (equal 0
+                 (projectile-dirname-matching-count "src/weed/sea.c"
+                                                    "src/food/sea.c"))))
+
+(ert-deftest projectile-test-find-matching-test ()
+  (with-sandbox
+   (f-mkdir "project" "app" "models" "weed")
+   (f-mkdir "project" "app" "models" "food")
+   (f-mkdir "project" "spec" "models" "weed")
+   (f-mkdir "project" "spec" "models" "food")
+   (f-touch "project/app/models/weed/sea.rb")
+   (f-touch "project/app/models/food/sea.rb")
+   (f-touch "project/spec/models/weed/sea_spec.rb")
+   (f-touch "project/spec/models/food/sea_spec.rb")
+   (let ((projectile-indexing-method 'native))
+     (noflet ((projectile-project-type () 'rails-rspec)
+              (projectile-project-root () (f-full "project/")))
+             (should (equal "spec/models/food/sea_spec.rb"
+                            (projectile-find-matching-test "app/models/food/sea.rb")))))))
+
+(ert-deftest projectile-test-find-matching-file ()
+  (with-sandbox
+   (f-mkdir "project" "app" "models" "weed")
+   (f-mkdir "project" "app" "models" "food")
+   (f-mkdir "project" "spec" "models" "weed")
+   (f-mkdir "project" "spec" "models" "food")
+   (f-touch "project/app/models/weed/sea.rb")
+   (f-touch "project/app/models/food/sea.rb")
+   (f-touch "project/spec/models/weed/sea_spec.rb")
+   (f-touch "project/spec/models/food/sea_spec.rb")
+   (let ((projectile-indexing-method 'native))
+     (noflet ((projectile-project-type () 'rails-rspec)
+              (projectile-project-root () (f-full "project/")))
+             (should (equal "app/models/food/sea.rb"
+                            (projectile-find-matching-file "spec/models/food/sea_spec.rb")))))))
