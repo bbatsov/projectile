@@ -562,13 +562,12 @@ If it is nil, or ack/ack-grep not found then use default grep command."
          (follow (and helm-follow-mode-persistent
                       (assoc-default 'follow helm-source-grep)))
          (helm-grep-in-recurse t)
-         (grep-find-ignored-files (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir default-directory)))
-                                                (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-         (grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir default-directory)))
-                                                      (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
+         (grep-find-ignored-files (-union projectile-globally-ignored-files  grep-find-ignored-files))
+         (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
          (helm-grep-default-command (if use-ack-p
                                         (concat ack-executable " -H --smart-case --no-group --no-color " ack-ignored-pattern " %p %f")
                                       "grep -a -d recurse %e -n%cH -e %p %f"))
+         (helm-grep-default-recurse-command helm-grep-default-command)
          (helm-source-grep
           (helm-build-async-source
               (capitalize (helm-grep-command t))
@@ -606,7 +605,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                                      "ack"
                                    "grep"))
      :default-directory (projectile-project-root)
-     :keymap helm-grep-map 
+     :keymap helm-grep-map
      :history 'helm-grep-history
      :truncate-lines t)))
 
