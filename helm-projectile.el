@@ -79,7 +79,7 @@
   "Given a Helm action list and a prescription, return a hacked
 Helm action list, after applying the PRESCRIPTION.
 
-The Helm action list ACTIONS is in the form:
+The Helm action list ACTIONS is of the form:
 
 \(\(DESCRIPTION1 . FUNCTION1\)
  \(DESCRIPTION2 . FUNCTION2\)
@@ -110,18 +110,19 @@ for an example of how this function is being used."
          (actions (cl-delete-if (lambda (action) (memq (cdr action) to-delete))
                                 (copy-alist actions)))
          new)
-    (cl-dolist (action actions actions)
+    (cl-dolist (action actions)
       (when (setq new (cdr (assq (cdr action) prescription)))
         (if (stringp new)
             (setcar action new)
           (setcdr action new))))
     ;; Add new actions from PRESCRIPTION
+    (setq new nil)
     (cl-dolist (instruction prescription)
       (when (and (listp instruction)
                  (null (rassq (car instruction) actions))
                  (symbolp (car instruction)) (stringp (cdr instruction)))
-        (add-to-list 'actions (cons (cdr instruction) (car instruction)))))
-    actions))
+        (push (cons (cdr instruction) (car instruction)) new)))
+    (append actions (nreverse new))))
 
 (defun helm-projectile-vc (dir)
   "A Helm action for jumping to project root using `vc-dir' or Magit.
