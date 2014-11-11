@@ -160,6 +160,11 @@ Otherwise consider the current directory the project root."
   :type 'symbol
   :options '(default recentf recently-active access-time modification-time))
 
+(defcustom projectile-verbose t
+  "Echo messages that are not errors."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-buffers-filter-function nil
   "A function used to filter the buffers in `projectile-project-buffers'.
 
@@ -461,8 +466,9 @@ to invalidate."
     (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-projects-cache)
     (projectile-serialize-cache)
-    (message "Invalidated Projectile cache for %s."
-             (propertize project-root 'face 'font-lock-keyword-face))))
+    (when projectile-verbose
+      (message "Invalidated Projectile cache for %s."
+               (propertize project-root 'face 'font-lock-keyword-face)))))
 
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
@@ -483,7 +489,8 @@ The cache is created both in memory and on the hard drive."
         (progn
           (puthash project-root (remove file project-cache) projectile-projects-cache)
           (projectile-serialize-cache)
-          (message "%s removed from cache" file))
+          (when projectile-verbose
+            (message "%s removed from cache" file)))
       (error "%s is not in the cache" file))))
 
 (defun projectile-purge-dir-from-cache (dir)
@@ -517,9 +524,10 @@ The cache is created both in memory and on the hard drive."
                (cons current-file (gethash current-project projectile-projects-cache))
                projectile-projects-cache)
       (projectile-serialize-cache)
-      (message "File %s added to project %s cache."
-               (propertize current-file 'face 'font-lock-keyword-face)
-               (propertize current-project 'face 'font-lock-keyword-face)))))
+      (when projectile-verbose
+        (message "File %s added to project %s cache."
+                 (propertize current-file 'face 'font-lock-keyword-face)
+                 (propertize current-project 'face 'font-lock-keyword-face))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
@@ -2289,7 +2297,8 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
   (setq projectile-known-projects
         (--reject (string= project it) projectile-known-projects))
   (projectile-save-known-projects)
-  (message "Project %s removed from the list of known projects." project))
+  (when projectile-verbose
+    (message "Project %s removed from the list of known projects." project)))
 
 (defun projectile-remove-current-project-from-known-projects ()
   "Remove the current project from the list of known projects."
