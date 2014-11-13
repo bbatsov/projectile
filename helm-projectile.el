@@ -231,11 +231,11 @@ It is there because Helm requires it."
   "Get all current Dired buffers."
   (mapcar (lambda (b)
             (with-current-buffer b (buffer-name)))
-          (filter (lambda (b)
-                    (with-current-buffer b
-                      (and (eq major-mode 'dired-mode)
-                           (buffer-name))))
-                  (buffer-list))))
+          (-filter (lambda (b)
+                     (with-current-buffer b
+                       (and (eq major-mode 'dired-mode)
+                            (buffer-name))))
+                   (buffer-list))))
 
 (defun helm-projectile-dired-files-new-action (candidate)
   "Create a Dired buffer from chosen files.
