@@ -595,13 +595,12 @@ If it is nil, or ack/ack-grep not found then use default grep command."
          (follow (and helm-follow-mode-persistent
                       (assoc-default 'follow helm-source-grep)))
          (helm-grep-in-recurse t)
-         (grep-find-ignored-files (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir default-directory)))
-                                                (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
-         (grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir default-directory)))
-                                                      (cdr (projectile-ignored-directories))) grep-find-ignored-directories))
+         (grep-find-ignored-files (-union projectile-globally-ignored-files  grep-find-ignored-files))
+         (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
          (helm-grep-default-command (if use-ack-p
                                         (concat ack-executable " -H --smart-case --no-group --no-color " ack-ignored-pattern " %p %f")
                                       "grep -a -d recurse %e -n%cH -e %p %f"))
+         (helm-grep-default-recurse-command helm-grep-default-command)
          (helm-source-grep
           (helm-build-async-source
               (capitalize (helm-grep-command t))
@@ -684,7 +683,14 @@ If it is nil, or ack/ack-grep not found then use default grep command."
   (unless (executable-find "ag")
     (error "ag not available"))
   (if (require 'helm-ag nil  'noerror)
-      (let ((helm-ag-insert-at-point 'symbol))
+      (let* ((helm-ag-insert-at-point 'symbol)
+             (grep-find-ignored-files (-union projectile-globally-ignored-files grep-find-ignored-files))
+             (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
+             (ignored (mapconcat (lambda (i)
+                                   (concat "--ignore " i))
+                                 (append grep-find-ignored-files grep-find-ignored-directories)
+                                 " "))
+             (helm-ag-base-command (concat helm-ag-base-command " " ignored)))
         (helm-do-ag (projectile-project-root)))
     (error "helm-ag not available")))
 
