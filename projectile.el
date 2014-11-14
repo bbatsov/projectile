@@ -573,22 +573,6 @@ Returns nil if no window configuration was found"
     (when window-config
       (set-window-configuration window-config))))
 
-(defadvice projectile-switch-project (before projectile-save-window-configuration-before-switching-projects activate)
-  "Save the current project's window configuration before switching projects."
-  (when (and projectile-remember-window-configs
-             (projectile-project-p))
-    (projectile-save-window-config (projectile-project-name))))
-
-(defadvice projectile-kill-buffers (before projectile-remove-window-configuration-before-kill-buffers activate)
-  "Remove's this project's window configuration from the table before killing buffers."
-  (remhash (projectile-project-name) projectile-window-config-map))
-
-(defadvice projectile-kill-buffers (after projectile-restore-window-configuration-after-kill-buffers activate)
-  "Restore previous (if any) project's window configuration after killing a project's buffers."
-  (when (and projectile-remember-window-configs
-             (projectile-project-p))
-    (projectile-restore-window-config (projectile-project-name))))
-
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
   (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
@@ -1966,16 +1950,18 @@ to run the replacement."
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
   (interactive)
-  (let* ((buffers (projectile-project-buffers))
-         (question
-          (format
-           "Are you sure you want to kill %d buffer(s) for '%s'? "
-           (length buffers)
-           (projectile-project-name))))
-    (if (yes-or-no-p question)
+  (let ((name (projectile-project-name))
+        (buffers (projectile-project-buffers)))
+    (remhash name projectile-window-config-map)
+    (if (yes-or-no-p
+         (format "Are you sure you want to kill %d buffer(s) for '%s'? "
+                 (length buffers) name))
         ;; we take care not to kill indirect buffers directly
         ;; as we might encounter them after their base buffers are killed
-        (mapc 'kill-buffer (-remove 'buffer-base-buffer buffers)))))
+        (mapc 'kill-buffer (-remove 'buffer-base-buffer buffers)))
+    (when (and projectile-remember-window-configs
+               (projectile-project-p))
+      (projectile-restore-window-config name))))
 
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
@@ -2222,12 +2208,14 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (let ((relevant-projects (projectile-relevant-known-projects)))
-    (if relevant-projects
-        (projectile-switch-project-by-name
-         (projectile-completing-read "Switch to project: " relevant-projects)
-         arg)
-      (error "There are no known projects"))))
+  (when (and projectile-remember-window-configs
+             (projectile-project-p))
+    (projectile-save-window-config (projectile-project-name)))
+  (-if-let (projects (projectile-relevant-known-projects))
+      (projectile-switch-project-by-name
+       (projectile-completing-read "Switch to project: " projects)
+       arg)
+    (error "There are no known projects")))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
