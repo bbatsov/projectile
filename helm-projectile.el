@@ -655,7 +655,8 @@ If it is nil, or ack/ack-grep not found then use default grep command."
 (defun helm-projectile-grep ()
   "Helm version of projectile-grep."
   (interactive)
-  (helm-projectile-grep-or-ack nil))
+  (funcall'run-with-timer 0.01 nil
+                          #'helm-projectile-grep-or-ack nil))
 
 (defun helm-projectile-ack ()
   "Helm version of projectile-ack."
@@ -672,7 +673,8 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                                    ((executable-find "ack") "ack")
                                    ((executable-find "ack-grep") "ack-grep")
                                    (t (error "ack or ack-grep is not available.")))))
-    (helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable)))
+    (funcall 'run-with-timer 0.01 nil
+             #'helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable)))
 
 
 (defun helm-projectile-ag ()
