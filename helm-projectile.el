@@ -146,14 +146,14 @@ It is there because Helm requires it."
     (with-helm-display-marked-candidates
       helm-marked-buffer-name
       projects
-      (if (not (y-or-n-p (format "Delete *%s Projects(s)" len)))
+      (if (not (y-or-n-p (format "Delete *%s projects(s)" len)))
           (message "(No deletion performed)")
         (progn
           (mapc (lambda (p)
                   (delete p projectile-known-projects))
                 projects)
           (projectile-save-known-projects))
-        (message "%s Projects(s) deleted" len)))))
+        (message "%s projects(s) deleted" len)))))
 
 (defvar helm-source-projectile-projects
   `((name . "Projectile projects")
@@ -326,7 +326,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-projectile-file-actions
   (helm-projectile-hack-actions
    (cdr (assq 'action (or helm-source-find-files
-                          (helm-make-source "Find Files" 'helm-source-ffiles))))
+                          (helm-make-source "Find files" 'helm-source-ffiles))))
    ;; Delete these actions
    'helm-ff-browse-project
    'helm-insert-file-name-completion-at-point
@@ -347,7 +347,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Action for files.")
 
 (defvar helm-source-projectile-files-dwim-list
-  `((name . "Projectile Files")
+  `((name . "Projectile files")
     (init . (lambda ()
               (let* ((project-files (projectile-current-project-files))
                      (files (projectile-select-files project-files)))
@@ -374,7 +374,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Helm source definition for Projectile files based on context.")
 
 (defvar helm-source-projectile-files-list
-  `((name . "Projectile Files")
+  `((name . "Projectile files")
     (init . (lambda ()
               (helm-projectile-init-buffer-with-files (projectile-project-root)
                                                       (projectile-current-project-files))))
@@ -392,7 +392,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Helm source definition for Projectile files.")
 
 (defvar helm-source-projectile-files-in-all-projects-list
-  `((name . "Projectile Files in All Projects")
+  `((name . "Projectile files in all Projects")
     (init . (lambda ()
               (let ((projectile-require-project-root nil))
                 (helm-projectile-init-buffer-with-files ""
@@ -406,7 +406,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (action . ,helm-projectile-file-actions)))
 
 (defvar helm-source-projectile-dired-files-list
-  `((name . "Projectile Files in current Dired buffer")
+  `((name . "Projectile files in current Dired buffer")
     (init . (lambda ()
               (helm-projectile-init-buffer-with-files (projectile-project-root)
                                                       (mapcar (lambda (file)
@@ -423,7 +423,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (help-message . "Select entries to remove in current Dired buffer (actual files won't be deleted)")
     (mode-line . helm-ff-mode-line-string)
     (type . file)
-    (action . (("Find File" . helm-find-file-or-marked)
+    (action . (("Find file" . helm-find-file-or-marked)
                ("Find file other window `C-c o'" . find-file-other-window)
                ("Remove entry(s) from Dired buffer `C-c d'" . helm-projectile-dired-files-delete-action))))
   "Helm source definition for Projectile delete files.")
@@ -439,7 +439,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   (run-hooks 'projectile-find-dir-hook))
 
 (defvar helm-source-projectile-directories-list
-  `((name . "Projectile Directories")
+  `((name . "Projectile directories")
     (init . (lambda ()
               (helm-projectile-init-buffer-with-files (projectile-project-root)
                                                       (if projectile-find-dir-includes-top-level
@@ -456,7 +456,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                    (kbd "C-s")   'helm-find-files-grep)
                  map))
     (action . (("Open Dired" . helm-projectile-dired-find-dir)
-               ("Open Dired in other window`C-c o'" . helm-projectile-dired-find-dir)
+               ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
                ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
                ("Create Dired buffer from files `C-c f'" . helm-projectile-dired-files-new-action)
                ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)
@@ -464,7 +464,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Helm source for listing project directories")
 
 (defvar helm-source-projectile-buffers-list
-  `((name . "Projectile Buffers")
+  `((name . "Projectile buffers")
     (init . (lambda ()
               ;; Issue #51 Create the list before `helm-buffer' creation.
               (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
@@ -492,7 +492,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
 
 (defvar helm-source-projectile-recentf-list
-  `((name . "Projectile Recent Files")
+  `((name . "Projectile recent files")
     ;; Needed for filenames with capitals letters.
     (init . (lambda ()
               (helm-projectile-init-buffer-with-files (projectile-project-root)
@@ -565,7 +565,7 @@ Other file extensions can be customized with the variable `projectile-other-file
           (find-file (expand-file-name (car other-files) (projectile-project-root)))
         (progn
           (let* ((helm-ff-transformer-show-only-basename nil))
-            (helm :sources `((name . "Projectile Other Files")
+            (helm :sources `((name . "Projectile other files")
                              (init . (lambda ()
                                        (helm-projectile-init-buffer-with-files (projectile-project-root)
                                                                                other-files)))
@@ -620,7 +620,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
             :keymap helm-grep-map
             :history 'helm-grep-history
             :action (helm-make-actions
-                     "Find File" 'helm-grep-action
+                     "Find file" 'helm-grep-action
                      "Find file other frame" 'helm-grep-other-frame
                      (lambda () (and (locate-library "elscreen")
                                      "Find file in Elscreen"))
