@@ -597,7 +597,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
          (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
          (helm-grep-default-command (if use-ack-p
                                         (concat ack-executable " -H --smart-case --no-group --no-color " ack-ignored-pattern " %p %f")
-                                      "grep -a -d recurse %e -n%cH -e %p %f"))
+                                      (concat "grep -a -d recurse %e -n%cH -e %p %f " (projectile-project-root))))
          (helm-grep-default-recurse-command helm-grep-default-command)
          (helm-source-grep
           (helm-build-async-source
