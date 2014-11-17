@@ -165,24 +165,24 @@ periods of time when opening files and browsing directories.
 The most common example would be interfacing with remote systems using
 TRAMP/ssh. By default all remote file existence checks are cached
 
-To disable remote file exists cache that use this snippet of code:
+To disable the file exists cache then use this snippet of code:
 
 ```el
-(setq projectile-file-exists-remote-cache-expire nil)
+(setq projectile-file-exists-cache-predicates nil)
 ```
 
 To change the remote file exists cache expire to 10 minutes use this snippet
 of code:
 
 ```el
-(setq projectile-file-exists-remote-cache-expire (* 10 60))
+(setq projectile-file-exists-cache-predicates `((file-remote-p ,(* 10 60))))
 ```
 
-You can also enable the cache for local file systems, that is normally not
+You can also enable the cache unconditionnaly for any file systems, that is normally not
 needed but possible:
 
 ```el
-(setq projectile-file-exists-local-cache-expire (* 5 60))
+(setq projectile-file-exists-cache-predicates `(((lambda (f) t) ,(* 5 60))))
 ```
 
 #### Using Projectile everywhere

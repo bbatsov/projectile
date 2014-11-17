@@ -103,24 +103,14 @@ using the native indexing method."
   :group 'projectile
   :type 'boolean)
 
-(defcustom projectile-file-exists-local-cache-expire nil
-  "Number of seconds before file existence cache expires for a
-file on a local file system.
-
- A value of nil disables this cache."
-
-  :group 'projectile
-  :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds")))
-
-(defcustom projectile-file-exists-remote-cache-expire (* 5 60)
-  "Number of seconds before file existence cache expires for a
-file on a remote file system such as tramp.
+(defcustom projectile-file-exists-cache-predicates '((file-remote-p 300))
+  "List of file existence predicates associated with their number of
+seconds before the cache expires for a file.
 
  A value of nil disables this cache."
   :group 'projectile
-  :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds")))
+  :type '(repeat (list (function :tag "Predicate")
+                       (integer :tag "Expires after"))))
 
 (defcustom projectile-require-project-root t
   "Require the presence of a project root to operate when true.
@@ -427,18 +417,21 @@ timer if no more items are in the cache."
           (if (> (hash-table-count projectile-file-exists-cache) 0)
               (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))))
 
+(defun projectile-expire-duration (item predicates)
+  "Return number of seconds before cache should expire for ITEM.
+
+Uses the information provided in PREDICATES."
+  (let* ((relevant-predicates (--filter (funcall (car it) item) predicates))
+         (expire-durations (--map (cadr it) relevant-predicates)))
+    (if expire-durations
+        (-min expire-durations)
+      nil)))
+
 (defun projectile-file-exists-p (filename)
   "Return t if file FILENAME exist.
 A wrapper around `file-exists-p' with additional caching support."
-  (let* ((file-remote (file-remote-p filename))
-         (expire-seconds
-          (if file-remote
-              (and projectile-file-exists-remote-cache-expire
-                   (> projectile-file-exists-remote-cache-expire 0)
-                   projectile-file-exists-remote-cache-expire)
-            (and projectile-file-exists-local-cache-expire
-                 (> projectile-file-exists-local-cache-expire 0)
-                 projectile-file-exists-local-cache-expire)))
+  (let* ((expire-seconds (projectile-expire-duration filename
+                                                     projectile-file-exists-cache-predicates))
          (remote-file-name-inhibit-cache (if expire-seconds
                                              expire-seconds
                                            remote-file-name-inhibit-cache)))
