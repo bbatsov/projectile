@@ -58,7 +58,7 @@
 
 (defun helm-projectile-coerce-file (candidate)
   (with-current-buffer (helm-candidate-buffer)
-    (expand-file-name candidate helm-projectile-current-project-root)))
+    (expand-file-name candidate (projectile-project-root))))
 
 (defmacro helm-projectile-define-key (keymap key def &rest bindings)
   "In KEYMAP, define key sequence KEY1 as DEF1, KEY2 as DEF2 ..."
@@ -347,7 +347,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Action for files.")
 
 (defvar helm-source-projectile-files-dwim-list
-  `((name . "Projectile files")
+  `((name . "Projectile files at point")
     (init . (lambda ()
               (let* ((project-files (projectile-current-project-files))
                      (files (projectile-select-files project-files)))
@@ -374,21 +374,20 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Helm source definition for Projectile files based on context.")
 
 (defvar helm-source-projectile-files-list
-  `((name . "Projectile files")
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-current-project-files))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                 (helm-projectile-define-key map
-                   (kbd "C-c f") 'helm-projectile-dired-files-new-action
-                   (kbd "C-c a") 'helm-projectile-dired-files-add-action)
-                 map))
-    (help-message . helm-find-file-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,helm-projectile-file-actions))
+  (helm-build-in-buffer-source "Projectile files"
+    :data (lambda ()
+            (projectile-current-project-files))
+    :fuzzy-match t
+    :coerce 'helm-projectile-coerce-file
+    :keymap (let ((map (copy-keymap helm-find-files-map)))
+              (helm-projectile-define-key map
+                (kbd "C-c f") 'helm-projectile-dired-files-new-action
+                (kbd "C-c a") 'helm-projectile-dired-files-add-action)
+              map)
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions
+    )
   "Helm source definition for Projectile files.")
 
 (defvar helm-source-projectile-files-in-all-projects-list
