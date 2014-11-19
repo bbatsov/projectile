@@ -873,7 +873,7 @@ looping at a single point."
                        (projectile-files-via-ext-command projectile-git-command))))
            (condition-case nil
                (projectile-get-all-sub-projects (projectile-project-root))
-             nil))))
+             (error nil)))))
 
 (defun projectile-get-repo-files ()
   "Get a list of the files in the project, including sub-projects."
