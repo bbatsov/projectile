@@ -841,7 +841,8 @@ Running \"git submodule\" any of those submodule returns this result:
 -da63813a86d46f17abf0a9303de1149ca7cee60a ../ruby-tmbundle
 
 So, each of those modules is point to itself! We must only check to avoid
-looping at a single point."
+looping at a single point. Thankfully, wich the command git submodule --quiet foreach 'echo $name',
+we can avoid such case."
   (let* ((default-directory project)
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
@@ -849,19 +850,14 @@ looping at a single point."
                         (file-name-as-directory (expand-file-name s default-directory)))
                       (projectile-files-via-ext-command (projectile-get-sub-projects-command)))))
 
-    ;; check if there are more submodules to be processed
-    ;; if not, returns found submodules since we reach the base case of recursion.
-    ;; or, if the current project already in the sub-project list;
-    ;; we are simply getting into a loop, so better terminate it here and returns nil
-    ;; because we already processed it..
     (cond
-     ((null submodules) known-projects)
-     ((member project known-projects) submodules)
+     ((null submodules)
+      nil)
      (t
-      (-flatten
-       ;; recursively get sub-projects of each sub-project
-       (mapcar (lambda (s)
-                 (projectile-get-all-sub-projects s (nconc known-projects submodules))) submodules))))))
+      (nconc submodules (-flatten
+                         ;; recursively get sub-projects of each sub-project
+                         (mapcar (lambda (s)
+                                   (projectile-get-all-sub-projects s submodules)) submodules)))))))
 
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
