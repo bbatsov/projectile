@@ -288,7 +288,13 @@ CANDIDATE is the selected file. Used when no file is explicitly marked."
         ;; Also use saved root directory, because after killing a buffer,
         ;; we could be outside of current project
         (let ((default-directory root))
-          (dired (cons dired-buffer-name files))))
+          (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
+                                            (if files
+                                                (mapcar (lambda (file)
+                                                          (replace-regexp-in-string root "" file))
+                                                        files)
+                                              (list candidate))))
+            (rename-buffer dired-buffer-name))))
     (error "You're not in a Dired buffer to add.")))
 
 (defun helm-projectile-dired-files-delete-action (candidate)
@@ -305,12 +311,13 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (kill-buffer dired-buffer-name)
     ;; similar reason to `helm-projectile-dired-files-add-action'
     (let ((default-directory root))
-      (dired (cons dired-buffer-name
-                   (if files
-                       (mapcar (lambda (file)
-                                 (replace-regexp-in-string (projectile-project-root) "" file))
-                               files)
-                     (list candidate)))))))
+      (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
+                                        (if files
+                                            (mapcar (lambda (file)
+                                                      (replace-regexp-in-string root "" file))
+                                                    files)
+                                          (list candidate))))
+        (rename-buffer dired-buffer-name)))))
 
 (defvar helm-projectile-find-file-map
   (let ((map (copy-keymap helm-find-files-map)))
@@ -403,27 +410,34 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (type . file)
     (action . ,helm-projectile-file-actions)))
 
+(defvar helm-projectile-dired-file-actions
+  (helm-projectile-hack-actions
+   helm-projectile-file-actions
+   ;; New actions
+   '(helm-projectile-dired-files-delete-action . "Remove entry(s) from Dired buffer `C-c d'")))
+
 (defvar helm-source-projectile-dired-files-list
-  `((name . "Projectile files in current Dired buffer")
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (mapcar (lambda (file)
-                                                                (replace-regexp-in-string (projectile-project-root) "" file))
-                                                              (helm-projectile-files-in-current-dired-buffer)))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (make-sparse-keymap)))
-                 (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map
-                   (kbd "C-c o") 'find-file-other-window
-                   (kbd "C-c d") 'helm-projectile-dired-files-delete-action)
-                 map))
-    (help-message . "Select entries to remove in current Dired buffer (actual files won't be deleted)")
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . (("Find file" . helm-find-file-or-marked)
-               ("Find file other window `C-c o'" . find-file-other-window)
-               ("Remove entry(s) from Dired buffer `C-c d'" . helm-projectile-dired-files-delete-action))))
+  (helm-build-in-buffer-source "Projectile files in current Dired buffer"
+    :data (lambda ()
+            (let ((default-directory (projectile-project-root)))
+              (when (eq major-mode 'dired-mode)
+                (mapcar (lambda (file)
+                          (replace-regexp-in-string default-directory "" file))
+                        (helm-projectile-files-in-current-dired-buffer)))))
+    :coerce 'helm-projectile-coerce-file
+    :filter-one-by-one (lambda (file)
+                         (let ((default-directory (projectile-project-root)))
+                           (helm-ff-filter-candidate-one-by-one file)))
+    :action-transformer 'helm-find-files-action-transformer
+    :keymap (let ((map (copy-keymap helm-find-files-map)))
+              (helm-projectile-define-key map
+                (kbd "C-c f") 'helm-projectile-dired-files-new-action
+                (kbd "C-c a") 'helm-projectile-dired-files-add-action
+                (kbd "C-c d") 'helm-projectile-dired-files-delete-action)
+              map)
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-dired-file-actions)
   "Helm source definition for Projectile delete files.")
 
 (defun helm-projectile-dired-find-dir (dir)
