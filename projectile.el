@@ -852,8 +852,8 @@ Running \"git submodule\" any of those submodule returns this result:
 -da63813a86d46f17abf0a9303de1149ca7cee60a ../ruby-tmbundle
 
 So, each of those modules is point to itself! We must only check to avoid
-looping at a single point. Thankfully, wich the command git submodule --quiet foreach 'echo $name',
-we can avoid such case."
+looping at a single point.  The sub-project listing command should be able
+to handle such case."
   (let* ((default-directory project)
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
