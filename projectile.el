@@ -739,7 +739,7 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $name' | tr '\\n' '\\0'"
+(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $path' | tr '\\n' '\\0'"
   "Command used by projectile to get the files in git submodules."
   :group 'projectile
   :type 'string)
