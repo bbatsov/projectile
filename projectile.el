@@ -549,7 +549,7 @@ The cache is created both in memory and on the hard drive."
   "Function for caching projects with `find-file-hook'."
   (when (projectile-project-p)
     (let ((known-projects (and (sequencep projectile-known-projects)
-                               (-copy projectile-known-projects))))
+                               (copy-sequence projectile-known-projects))))
       (projectile-add-known-project (projectile-project-root))
       (unless (equal known-projects projectile-known-projects)
         (projectile-merge-known-projects)))))
@@ -2342,7 +2342,7 @@ Also set `projectile-known-projects'."
         (projectile-unserialize projectile-known-projects-file))
   (setq projectile-known-projects-on-file
         (and (sequencep projectile-known-projects)
-             (-copy projectile-known-projects))))
+             (copy-sequence projectile-known-projects))))
 
 ;; load the known projects
 (projectile-load-known-projects)
@@ -2353,7 +2353,7 @@ Also set `projectile-known-projects'."
                         projectile-known-projects-file)
   (setq projectile-known-projects-on-file
         (and (sequencep projectile-known-projects)
-             (-copy projectile-known-projects))))
+             (copy-sequence projectile-known-projects))))
 
 (defun projectile-merge-known-projects ()
   "Merge any change from `projectile-known-projects-file' and save to disk.
