@@ -451,29 +451,31 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   (run-hooks 'projectile-find-dir-hook))
 
 (defvar helm-source-projectile-directories-list
-  `((name . "Projectile directories")
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (if projectile-find-dir-includes-top-level
-                                                          (append '("./") (projectile-current-project-dirs))
-                                                        (projectile-current-project-dirs)))))
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (make-sparse-keymap)))
-                 (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map
-                   (kbd "C-c o") 'helm-projectile-dired-find-dir-other-window
-                   (kbd "M-e")   'helm-projectile-switch-to-eshell
-                   (kbd "C-c f") 'helm-projectile-dired-files-new-action
-                   (kbd "C-c a") 'helm-projectile-dired-files-add-action
-                   (kbd "C-s")   'helm-find-files-grep)
-                 map))
-    (action . (("Open Dired" . helm-projectile-dired-find-dir)
-               ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
-               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-               ("Create Dired buffer from files `C-c f'" . helm-projectile-dired-files-new-action)
-               ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)
-               ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
-  "Helm source for listing project directories")
+  (helm-build-in-buffer-source "Projectile directories"
+    :data (lambda ()
+            (if projectile-find-dir-includes-top-level
+                (append '("./") (projectile-current-project-dirs))
+              (projectile-current-project-dirs)))
+    :coerce 'helm-projectile-coerce-file
+    :action-transformer 'helm-find-files-action-transformer
+    :keymap (let ((map (make-sparse-keymap)))
+              (set-keymap-parent map helm-map)
+              (helm-projectile-define-key map
+                (kbd "C-c o") 'helm-projectile-dired-find-dir-other-window
+                (kbd "M-e")   'helm-projectile-switch-to-eshell
+                (kbd "C-c f") 'helm-projectile-dired-files-new-action
+                (kbd "C-c a") 'helm-projectile-dired-files-add-action
+                (kbd "C-s")   'helm-find-files-grep)
+              map)
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action '(("Open Dired" . helm-projectile-dired-find-dir)
+              ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
+              ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+              ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep)
+              ("Create Dired buffer from files `C-c f'" . helm-projectile-dired-files-new-action)
+              ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)))
+  "Helm source for listing project directories.")
 
 (defvar helm-source-projectile-buffers-list
   `((name . "Projectile buffers")
