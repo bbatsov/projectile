@@ -356,30 +356,25 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Action for files.")
 
 (defvar helm-source-projectile-files-dwim-list
-  `((name . "Projectile files")
-    (init . (lambda ()
-              (let* ((project-files (projectile-current-project-files))
-                     (files (projectile-select-files project-files)))
-                (cond
-                 ((= (length files) 1)
-                  (find-file (expand-file-name (car files) (projectile-project-root)))
-                  (helm-exit-minibuffer))
-                 ((> (length files) 1)
-                  (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                          files))
-                 (t
-                  (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                          project-files))))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                 (define-key map (kbd "<left>") 'helm-previous-source)
-                 (define-key map (kbd "<right>") 'helm-next-source)
-                 map))
-    (help-message . helm-ff-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,helm-projectile-file-actions))
+  (helm-build-in-buffer-source "Projectile files"
+    :data (lambda ()
+            (let* ((project-files (projectile-current-project-files))
+                   (files (projectile-select-files project-files)))
+              (cond
+               ((= (length files) 1)
+                (find-file (expand-file-name (car files) (projectile-project-root)))
+                (helm-exit-minibuffer))
+               ((> (length files) 1) files)
+               (t  project-files))))
+    :coerce 'helm-projectile-coerce-file
+    :action-transformer 'helm-find-files-action-transformer
+    :keymap (let ((map (copy-keymap helm-find-files-map)))
+              (define-key map (kbd "<left>") 'helm-previous-source)
+              (define-key map (kbd "<right>") 'helm-next-source)
+              map)
+    :help-message helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions)
   "Helm source definition for Projectile files based on context.")
 
 (defvar helm-source-projectile-files-list
