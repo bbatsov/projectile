@@ -156,33 +156,35 @@ It is there because Helm requires it."
         (message "%s projects(s) deleted" len)))))
 
 (defvar helm-source-projectile-projects
-  `((name . "Projectile projects")
-    (candidates . (lambda ()
-                    (if (projectile-project-p)
-                        (cons (abbreviate-file-name (projectile-project-root))
-                              (projectile-relevant-known-projects))
-                      projectile-known-projects)))
-    (keymap . ,(let ((map (make-sparse-keymap)))
-                 (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map
-                   (kbd "C-d") 'dired
-                   (kbd "M-g") 'helm-projectile-vc
-                   (kbd "M-e") 'helm-projectile-switch-to-eshell
-                   (kbd "C-s") 'helm-find-files-grep
-                   (kbd "M-c") 'helm-projectile-compile-project
-                   (kbd "M-D") 'helm-projectile-remove-known-project)
-                 map))
-    (action . (("Switch to project" .
-                (lambda (project)
-                  (let ((projectile-completion-system 'helm))
-                    (projectile-switch-project-by-name project))))
-               ("Open Dired in project's directory `C-d'" . dired)
-               ("Open project root in vc-dir or magit `M-g'" . helm-projectile-vc)
-               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-               ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
-               ("Compile project `M-c'. With C-u, new compile command"
-                . helm-projectile-compile-project)
-               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project))))
+  (helm-build-in-buffer-source "Projectile projects"
+    :data (lambda ()
+            (if (projectile-project-p)
+                (cons (abbreviate-file-name (projectile-project-root))
+                      (projectile-relevant-known-projects))
+              projectile-known-projects))
+    :fuzzy-match t
+    :keymap (let ((map (make-sparse-keymap)))
+              (set-keymap-parent map helm-map)
+              (helm-projectile-define-key map
+                (kbd "C-d") 'dired
+                (kbd "M-g") 'helm-projectile-vc
+                (kbd "M-e") 'helm-projectile-switch-to-eshell
+                (kbd "C-s") 'helm-find-files-grep
+                (kbd "M-c") 'helm-projectile-compile-project
+                (kbd "M-D") 'helm-projectile-remove-known-project)
+              map)
+    :mode-line helm-ff-mode-line-string
+    :action '(("Switch to project" .
+               (lambda (project)
+                 (let ((projectile-completion-system 'helm))
+                   (projectile-switch-project-by-name project))))
+              ("Open Dired in project's directory `C-d'" . dired)
+              ("Open project root in vc-dir or magit `M-g'" . helm-projectile-vc)
+              ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+              ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
+              ("Compile project `M-c'. With C-u, new compile command"
+               . helm-projectile-compile-project)
+              ("Remove project(s) `M-D'" . helm-projectile-remove-known-project)))
   "Helm source for known projectile projects.")
 
 (defun helm-projectile-init-buffer-with-files (project-root files)
