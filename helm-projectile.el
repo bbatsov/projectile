@@ -187,13 +187,6 @@ It is there because Helm requires it."
               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project)))
   "Helm source for known projectile projects.")
 
-(defun helm-projectile-init-buffer-with-files (project-root files)
-  (with-current-buffer (helm-candidate-buffer project-root)
-    (set (make-local-variable 'helm-projectile-current-project-root)
-         project-root)
-    (dolist (file files)
-      (insert (concat file "\n")))))
-
 (define-key helm-etags-map (kbd "C-c p f") (lambda ()
                                              (interactive)
                                              (helm-run-after-quit 'helm-projectile-find-file nil)))
@@ -588,20 +581,16 @@ Other file extensions can be customized with the variable `projectile-other-file
           (find-file (expand-file-name (car other-files) (projectile-project-root)))
         (progn
           (let* ((helm-ff-transformer-show-only-basename nil))
-            (helm :sources `((name . "Projectile other files")
-                             (init . (lambda ()
-                                       (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                                               other-files)))
-                             (coerce . helm-projectile-coerce-file)
-                             (candidates-in-buffer)
-                             (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                                          (define-key map (kbd "<left>") 'helm-previous-source)
-                                          (define-key map (kbd "<right>") 'helm-next-source)
-                                          map))
-                             (help-message . helm-ff-help-message)
-                             (mode-line . helm-ff-mode-line-string)
-                             (type . file)
-                             (action . ,helm-projectile-file-actions))
+            (helm :sources (helm-build-in-buffer-source "Projectile other files"
+                             :data other-files
+                             :coerce 'helm-projectile-coerce-file
+                             :keymap (let ((map (copy-keymap helm-find-files-map)))
+                                       (define-key map (kbd "<left>") 'helm-previous-source)
+                                       (define-key map (kbd "<right>") 'helm-next-source)
+                                       map)
+                             :help-message helm-ff-help-message
+                             :mode-line helm-ff-mode-line-string
+                             :action helm-projectile-file-actions)
                   :buffer "*helm projectile*"
                   :prompt (projectile-prepend-project-name "Find other file: ")))))
     (error "No other file found")))
