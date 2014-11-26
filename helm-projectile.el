@@ -239,87 +239,102 @@ It is there because Helm requires it."
                             (buffer-name))))
                    (buffer-list))))
 
+(defvar helm-projectile-virtual-dired-remote-enable nil
+  "Enable virtual Dired manager in remote host. Disabled by default.")
+
 (defun helm-projectile-dired-files-new-action (candidate)
   "Create a Dired buffer from chosen files.
 CANDIDATE is the selected file, but choose the marked files if available."
-  (let ((new-name (completing-read "Select a Dired buffer:"
-                                   (helm-projectile-all-dired-buffers)))
-        (helm--reading-passwd-or-string t)
-        (files (mapcar (lambda (file)
-                         (replace-regexp-in-string (projectile-project-root) "" file))
-                       (helm-marked-candidates :with-wildcard t)))
-        (default-directory (projectile-project-root)))
-    ;; create a unique buffer that is unique to any directory in default-directory
-    ;; or opened buffer; when Dired is passed with a non-existence directory name,
-    ;; it only creates a buffer and insert everything. If a new name user supplied
-    ;; exists as default-directory, Dired throws error when insert anything that
-    ;; does not exist in current directory.
-    (with-current-buffer (dired (cons (make-temp-name new-name)
-                                      (if files
-                                          files
-                                        (list candidate))))
-      (when (get-buffer new-name)
-        (kill-buffer new-name))
-      (rename-buffer new-name))))
+  (if (and (file-remote-p (projectile-project-root))
+           (not helm-projectile-virtual-dired-remote-enable))
+      (message "Virtual Dired manager is disabled in remote host. Enable with %s."
+               (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    (let ((new-name (completing-read "Select a Dired buffer:"
+                                     (helm-projectile-all-dired-buffers)))
+          (helm--reading-passwd-or-string t)
+          (files (mapcar (lambda (file)
+                           (replace-regexp-in-string (projectile-project-root) "" file))
+                         (helm-marked-candidates :with-wildcard t)))
+          (default-directory (projectile-project-root)))
+      ;; create a unique buffer that is unique to any directory in default-directory
+      ;; or opened buffer; when Dired is passed with a non-existence directory name,
+      ;; it only creates a buffer and insert everything. If a new name user supplied
+      ;; exists as default-directory, Dired throws error when insert anything that
+      ;; does not exist in current directory.
+      (with-current-buffer (dired (cons (make-temp-name new-name)
+                                        (if files
+                                            files
+                                          (list candidate))))
+        (when (get-buffer new-name)
+          (kill-buffer new-name))
+        (rename-buffer new-name)))))
 
 (defun helm-projectile-dired-files-add-action (candidate)
   "Add files to a Dired buffer.
 CANDIDATE is the selected file. Used when no file is explicitly marked."
-  (if (eq (with-helm-current-buffer major-mode) 'dired-mode)
-      (let* ((helm--reading-passwd-or-string t)
-             (root (projectile-project-root)) ; store root for later use
-             (dired-buffer-name (or (and (eq major-mode 'dired-mode) (buffer-name))
-                                    (completing-read "Select a Dired buffer:"
-                                                     (helm-projectile-all-dired-buffers))))
-             (dired-files (with-current-buffer dired-buffer-name
-                            (helm-projectile-files-in-current-dired-buffer)))
-             (marked-files (helm-marked-candidates :with-wildcard t))
-             (files (sort (mapcar (lambda (file)
-                                    (replace-regexp-in-string (projectile-project-root) "" file))
-                                  (cl-nunion (if marked-files
-                                                 marked-files
-                                               (list candidate))
-                                             dired-files
-                                             :test #'string-equal))
-                          'string-lessp)))
-        (kill-buffer dired-buffer-name)
-        ;; Rebind default-directory because after killing a buffer, we
-        ;; could be in any buffer and default-directory is set to that
-        ;; random buffer
-        ;;
-        ;; Also use saved root directory, because after killing a buffer,
-        ;; we could be outside of current project
-        (let ((default-directory root))
-          (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
-                                            (if files
-                                                (mapcar (lambda (file)
-                                                          (replace-regexp-in-string root "" file))
-                                                        files)
-                                              (list candidate))))
-            (rename-buffer dired-buffer-name))))
-    (error "You're not in a Dired buffer to add.")))
+  (if (and (file-remote-p (projectile-project-root))
+           (not helm-projectile-virtual-dired-remote-enable))
+      (message "Virtual Dired manager is disabled in remote host. Enable with %s."
+               (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    (if (eq (with-helm-current-buffer major-mode) 'dired-mode)
+        (let* ((helm--reading-passwd-or-string t)
+               (root (projectile-project-root)) ; store root for later use
+               (dired-buffer-name (or (and (eq major-mode 'dired-mode) (buffer-name))
+                                      (completing-read "Select a Dired buffer:"
+                                                       (helm-projectile-all-dired-buffers))))
+               (dired-files (with-current-buffer dired-buffer-name
+                              (helm-projectile-files-in-current-dired-buffer)))
+               (marked-files (helm-marked-candidates :with-wildcard t))
+               (files (sort (mapcar (lambda (file)
+                                      (replace-regexp-in-string (projectile-project-root) "" file))
+                                    (cl-nunion (if marked-files
+                                                   marked-files
+                                                 (list candidate))
+                                               dired-files
+                                               :test #'string-equal))
+                            'string-lessp)))
+          (kill-buffer dired-buffer-name)
+          ;; Rebind default-directory because after killing a buffer, we
+          ;; could be in any buffer and default-directory is set to that
+          ;; random buffer
+          ;;
+          ;; Also use saved root directory, because after killing a buffer,
+          ;; we could be outside of current project
+          (let ((default-directory root))
+            (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
+                                              (if files
+                                                  (mapcar (lambda (file)
+                                                            (replace-regexp-in-string root "" file))
+                                                          files)
+                                                (list candidate))))
+              (rename-buffer dired-buffer-name))))
+      (error "You're not in a Dired buffer to add."))))
 
 (defun helm-projectile-dired-files-delete-action (candidate)
   "Delete selected entries from a Dired buffer.
 CANDIDATE is the selected file.  Used when no file is explicitly marked."
-  (let* ((helm--reading-passwd-or-string t)
-         (root (projectile-project-root))
-         (dired-buffer-name (with-helm-current-buffer (buffer-name)))
-         (dired-files (with-current-buffer dired-buffer-name
-                        (helm-projectile-files-in-current-dired-buffer)))
-         (files (sort (cl-set-exclusive-or (helm-marked-candidates :with-wildcard t)
-                                           dired-files
-                                           :test #'string-equal) #'string-lessp)))
-    (kill-buffer dired-buffer-name)
-    ;; similar reason to `helm-projectile-dired-files-add-action'
-    (let ((default-directory root))
-      (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
-                                        (if files
-                                            (mapcar (lambda (file)
-                                                      (replace-regexp-in-string root "" file))
-                                                    files)
-                                          (list candidate))))
-        (rename-buffer dired-buffer-name)))))
+  (if (and (file-remote-p (projectile-project-root))
+           (not helm-projectile-virtual-dired-remote-enable))
+      (message "Virtual Dired manager is disabled in remote host. Enable with %s."
+               (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    (let* ((helm--reading-passwd-or-string t)
+           (root (projectile-project-root))
+           (dired-buffer-name (with-helm-current-buffer (buffer-name)))
+           (dired-files (with-current-buffer dired-buffer-name
+                          (helm-projectile-files-in-current-dired-buffer)))
+           (files (sort (cl-set-exclusive-or (helm-marked-candidates :with-wildcard t)
+                                             dired-files
+                                             :test #'string-equal) #'string-lessp)))
+      (kill-buffer dired-buffer-name)
+      ;; similar reason to `helm-projectile-dired-files-add-action'
+      (let ((default-directory root))
+        (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
+                                          (if files
+                                              (mapcar (lambda (file)
+                                                        (replace-regexp-in-string root "" file))
+                                                      files)
+                                            (list candidate))))
+          (rename-buffer dired-buffer-name))))))
 
 (defvar helm-projectile-find-file-map
   (let ((map (copy-keymap helm-find-files-map)))
@@ -416,11 +431,14 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-dired-files-list
   (helm-build-in-buffer-source "Projectile files in current Dired buffer"
     :data (lambda ()
-            (let ((default-directory (projectile-project-root)))
-              (when (eq major-mode 'dired-mode)
-                (mapcar (lambda (file)
-                          (replace-regexp-in-string default-directory "" file))
-                        (helm-projectile-files-in-current-dired-buffer)))))
+            (if (and (file-remote-p (projectile-project-root))
+                     (not helm-projectile-virtual-dired-remote-enable))
+                nil
+              (let ((default-directory (projectile-project-root)))
+                (when (eq major-mode 'dired-mode)
+                  (mapcar (lambda (file)
+                            (replace-regexp-in-string default-directory "" file))
+                          (helm-projectile-files-in-current-dired-buffer))))))
     :coerce 'helm-projectile-coerce-file
     :filter-one-by-one (lambda (file)
                          (let ((default-directory (projectile-project-root)))
