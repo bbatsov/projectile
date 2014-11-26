@@ -520,20 +520,16 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
      . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
 
 (defvar helm-source-projectile-recentf-list
-  `((name . "Projectile recent files")
-    ;; Needed for filenames with capitals letters.
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-recentf-files))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,helm-generic-files-map)
-    (help-message . helm-ff-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,(cdr (helm-get-actions-from-type
-                     helm-source-locate))))
-  "Helm source definition.")
+  (helm-build-in-buffer-source "Projectile recent files"
+    :data (lambda ()
+            (projectile-recentf-files))
+    :coerce 'helm-projectile-coerce-file
+    :keymap helm-projectile-find-file-map
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions
+    )
+  "Helm source definition for recent files in current project.")
 
 (defvar helm-source-projectile-files-and-dired-list
   '(helm-source-projectile-dired-files-list
