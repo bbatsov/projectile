@@ -409,18 +409,17 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Helm source definition for Projectile files.")
 
 (defvar helm-source-projectile-files-in-all-projects-list
-  `((name . "Projectile files in all Projects")
-    (init . (lambda ()
-              (let ((projectile-require-project-root nil))
-                (helm-projectile-init-buffer-with-files ""
-                                                        (projectile-all-project-files)))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,helm-projectile-find-file-map)
-    (help-message . helm-ff-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,helm-projectile-file-actions)))
+  (helm-build-in-buffer-source "Projectile files in all Projects"
+    :data (lambda ()
+            (let ((projectile-require-project-root nil))
+              (projectile-all-project-files)))
+    :coerce 'helm-projectile-coerce-file
+    :keymap helm-projectile-find-file-map
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions
+    )
+  "Helm source definition for all Projectile files in all projects.")
 
 (defvar helm-projectile-dired-file-actions
   (helm-projectile-hack-actions
