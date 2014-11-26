@@ -491,33 +491,34 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
               ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)))
   "Helm source for listing project directories.")
 
-(defvar helm-source-projectile-buffers-list
-  `((name . "Projectile buffers")
-    (init . (lambda ()
-              ;; Issue #51 Create the list before `helm-buffer' creation.
-              (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
-              (let ((result (cl-loop for b in helm-projectile-buffers-list-cache
-                                     maximize (length b) into len-buf
-                                     maximize (length (with-current-buffer b
-                                                        (symbol-name major-mode)))
-                                     into len-mode
-                                     finally return (cons len-buf len-mode))))
-                (unless helm-buffer-max-length
-                  (setq helm-buffer-max-length (car result)))
-                (unless helm-buffer-max-len-mode
-                  ;; If a new buffer is longer that this value
-                  ;; this value will be updated
-                  (setq helm-buffer-max-len-mode (cdr result))))))
-    (candidates . helm-projectile-buffers-list-cache)
-    (type . buffer)
-    (match helm-buffers-list--match-fn)
-    (persistent-action . helm-buffers-list-persistent-action)
-    (keymap . ,helm-buffer-map)
-    (volatile)
-    (no-delay-on-input)
-    (mode-line . helm-buffer-mode-line-string)
-    (persistent-help
-     . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
+(defclass helm-source-projectile-buffer (helm-source-sync helm-type-buffer)
+  ((init :initform (lambda ()
+                     ;; Issue #51 Create the list before `helm-buffer' creation.
+                     (setq helm-buffers-list-cache (projectile-project-buffer-names))
+                     (let ((result (cl-loop for b in helm-buffers-list-cache
+                                            maximize (length b) into len-buf
+                                            maximize (length (with-current-buffer b
+                                                               (symbol-name major-mode)))
+                                            into len-mode
+                                            finally return (cons len-buf len-mode))))
+                       (unless helm-buffer-max-length
+                         (setq helm-buffer-max-length (car result)))
+                       (unless helm-buffer-max-len-mode
+                         ;; If a new buffer is longer that this value
+                         ;; this value will be updated
+                         (setq helm-buffer-max-len-mode (cdr result))))))
+   (candidates :initform helm-buffers-list-cache)
+   (matchplugin :initform nil)
+   (match :initform 'helm-buffers-list--match-fn)
+   (persistent-action :initform 'helm-buffers-list-persistent-action)
+   (keymap :initform helm-buffer-map)
+   (volatile :initform t)
+   (mode-line :initform helm-buffer-mode-line-string)
+   (persistent-help
+    :initform
+    "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
+
+(defvar helm-source-projectile-buffers-list (helm-make-source "Project buffers" 'helm-source-projectile-buffer))
 
 (defvar helm-source-projectile-recentf-list
   (helm-build-in-buffer-source "Projectile recent files"
