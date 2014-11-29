@@ -156,41 +156,36 @@ It is there because Helm requires it."
         (message "%s projects(s) deleted" len)))))
 
 (defvar helm-source-projectile-projects
-  `((name . "Projectile projects")
-    (candidates . (lambda ()
-                    (if (projectile-project-p)
-                        (cons (abbreviate-file-name (projectile-project-root))
-                              (projectile-relevant-known-projects))
-                      projectile-known-projects)))
-    (keymap . ,(let ((map (make-sparse-keymap)))
-                 (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map
-                   (kbd "C-d") 'dired
-                   (kbd "M-g") 'helm-projectile-vc
-                   (kbd "M-e") 'helm-projectile-switch-to-eshell
-                   (kbd "C-s") 'helm-find-files-grep
-                   (kbd "M-c") 'helm-projectile-compile-project
-                   (kbd "M-D") 'helm-projectile-remove-known-project)
-                 map))
-    (action . (("Switch to project" .
-                (lambda (project)
-                  (let ((projectile-completion-system 'helm))
-                    (projectile-switch-project-by-name project))))
-               ("Open Dired in project's directory `C-d'" . dired)
-               ("Open project root in vc-dir or magit `M-g'" . helm-projectile-vc)
-               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-               ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
-               ("Compile project `M-c'. With C-u, new compile command"
-                . helm-projectile-compile-project)
-               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project))))
+  (helm-build-in-buffer-source "Projectile projects"
+    :data (lambda ()
+            (if (projectile-project-p)
+                (cons (abbreviate-file-name (projectile-project-root))
+                      (projectile-relevant-known-projects))
+              projectile-known-projects))
+    :fuzzy-match t
+    :keymap (let ((map (make-sparse-keymap)))
+              (set-keymap-parent map helm-map)
+              (helm-projectile-define-key map
+                (kbd "C-d") 'dired
+                (kbd "M-g") 'helm-projectile-vc
+                (kbd "M-e") 'helm-projectile-switch-to-eshell
+                (kbd "C-s") 'helm-find-files-grep
+                (kbd "M-c") 'helm-projectile-compile-project
+                (kbd "M-D") 'helm-projectile-remove-known-project)
+              map)
+    :mode-line helm-ff-mode-line-string
+    :action '(("Switch to project" .
+               (lambda (project)
+                 (let ((projectile-completion-system 'helm))
+                   (projectile-switch-project-by-name project))))
+              ("Open Dired in project's directory `C-d'" . dired)
+              ("Open project root in vc-dir or magit `M-g'" . helm-projectile-vc)
+              ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+              ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
+              ("Compile project `M-c'. With C-u, new compile command"
+               . helm-projectile-compile-project)
+              ("Remove project(s) `M-D'" . helm-projectile-remove-known-project)))
   "Helm source for known projectile projects.")
-
-(defun helm-projectile-init-buffer-with-files (project-root files)
-  (with-current-buffer (helm-candidate-buffer project-root)
-    (set (make-local-variable 'helm-projectile-current-project-root)
-         project-root)
-    (dolist (file files)
-      (insert (concat file "\n")))))
 
 (define-key helm-etags-map (kbd "C-c p f") (lambda ()
                                              (interactive)
@@ -237,80 +232,102 @@ It is there because Helm requires it."
                             (buffer-name))))
                    (buffer-list))))
 
+(defvar helm-projectile-virtual-dired-remote-enable nil
+  "Enable virtual Dired manager in remote host. Disabled by default.")
+
 (defun helm-projectile-dired-files-new-action (candidate)
   "Create a Dired buffer from chosen files.
 CANDIDATE is the selected file, but choose the marked files if available."
-  (let ((new-name (completing-read "Select a Dired buffer:"
-                                   (helm-projectile-all-dired-buffers)))
-        (helm--reading-passwd-or-string t)
-        (files (mapcar (lambda (file)
-                         (replace-regexp-in-string (projectile-project-root) "" file))
-                       (helm-marked-candidates :with-wildcard t)))
-        (default-directory (projectile-project-root)))
-    ;; create a unique buffer that is unique to any directory in default-directory
-    ;; or opened buffer; when Dired is passed with a non-existence directory name,
-    ;; it only creates a buffer and insert everything. If a new name user supplied
-    ;; exists as default-directory, Dired throws error when insert anything that
-    ;; does not exist in current directory.
-    (with-current-buffer (dired (cons (make-temp-name new-name)
-                                      (if files
-                                          files
-                                        (list candidate))))
-      (when (get-buffer new-name)
-        (kill-buffer new-name))
-      (rename-buffer new-name))))
+  (if (and (file-remote-p (projectile-project-root))
+           (not helm-projectile-virtual-dired-remote-enable))
+      (message "Virtual Dired manager is disabled in remote host. Enable with %s."
+               (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    (let ((new-name (completing-read "Select a Dired buffer:"
+                                     (helm-projectile-all-dired-buffers)))
+          (helm--reading-passwd-or-string t)
+          (files (mapcar (lambda (file)
+                           (replace-regexp-in-string (projectile-project-root) "" file))
+                         (helm-marked-candidates :with-wildcard t)))
+          (default-directory (projectile-project-root)))
+      ;; create a unique buffer that is unique to any directory in default-directory
+      ;; or opened buffer; when Dired is passed with a non-existence directory name,
+      ;; it only creates a buffer and insert everything. If a new name user supplied
+      ;; exists as default-directory, Dired throws error when insert anything that
+      ;; does not exist in current directory.
+      (with-current-buffer (dired (cons (make-temp-name new-name)
+                                        (if files
+                                            files
+                                          (list candidate))))
+        (when (get-buffer new-name)
+          (kill-buffer new-name))
+        (rename-buffer new-name)))))
 
 (defun helm-projectile-dired-files-add-action (candidate)
   "Add files to a Dired buffer.
 CANDIDATE is the selected file. Used when no file is explicitly marked."
-  (if (eq (with-helm-current-buffer major-mode) 'dired-mode)
-      (let* ((helm--reading-passwd-or-string t)
-             (root (projectile-project-root)) ; store root for later use
-             (dired-buffer-name (or (and (eq major-mode 'dired-mode) (buffer-name))
-                                    (completing-read "Select a Dired buffer:"
-                                                     (helm-projectile-all-dired-buffers))))
-             (dired-files (with-current-buffer dired-buffer-name
-                            (helm-projectile-files-in-current-dired-buffer)))
-             (marked-files (helm-marked-candidates :with-wildcard t))
-             (files (sort (mapcar (lambda (file)
-                                    (replace-regexp-in-string (projectile-project-root) "" file))
-                                  (cl-nunion (if marked-files
-                                                 marked-files
-                                               (list candidate))
-                                             dired-files
-                                             :test #'string-equal))
-                          'string-lessp)))
-        (kill-buffer dired-buffer-name)
-        ;; Rebind default-directory because after killing a buffer, we
-        ;; could be in any buffer and default-directory is set to that
-        ;; random buffer
-        ;;
-        ;; Also use saved root directory, because after killing a buffer,
-        ;; we could be outside of current project
-        (let ((default-directory root))
-          (dired (cons dired-buffer-name files))))
-    (error "You're not in a Dired buffer to add.")))
+  (if (and (file-remote-p (projectile-project-root))
+           (not helm-projectile-virtual-dired-remote-enable))
+      (message "Virtual Dired manager is disabled in remote host. Enable with %s."
+               (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    (if (eq (with-helm-current-buffer major-mode) 'dired-mode)
+        (let* ((helm--reading-passwd-or-string t)
+               (root (projectile-project-root)) ; store root for later use
+               (dired-buffer-name (or (and (eq major-mode 'dired-mode) (buffer-name))
+                                      (completing-read "Select a Dired buffer:"
+                                                       (helm-projectile-all-dired-buffers))))
+               (dired-files (with-current-buffer dired-buffer-name
+                              (helm-projectile-files-in-current-dired-buffer)))
+               (marked-files (helm-marked-candidates :with-wildcard t))
+               (files (sort (mapcar (lambda (file)
+                                      (replace-regexp-in-string (projectile-project-root) "" file))
+                                    (cl-nunion (if marked-files
+                                                   marked-files
+                                                 (list candidate))
+                                               dired-files
+                                               :test #'string-equal))
+                            'string-lessp)))
+          (kill-buffer dired-buffer-name)
+          ;; Rebind default-directory because after killing a buffer, we
+          ;; could be in any buffer and default-directory is set to that
+          ;; random buffer
+          ;;
+          ;; Also use saved root directory, because after killing a buffer,
+          ;; we could be outside of current project
+          (let ((default-directory root))
+            (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
+                                              (if files
+                                                  (mapcar (lambda (file)
+                                                            (replace-regexp-in-string root "" file))
+                                                          files)
+                                                (list candidate))))
+              (rename-buffer dired-buffer-name))))
+      (error "You're not in a Dired buffer to add."))))
 
 (defun helm-projectile-dired-files-delete-action (candidate)
   "Delete selected entries from a Dired buffer.
 CANDIDATE is the selected file.  Used when no file is explicitly marked."
-  (let* ((helm--reading-passwd-or-string t)
-         (root (projectile-project-root))
-         (dired-buffer-name (with-helm-current-buffer (buffer-name)))
-         (dired-files (with-current-buffer dired-buffer-name
-                        (helm-projectile-files-in-current-dired-buffer)))
-         (files (sort (cl-set-exclusive-or (helm-marked-candidates :with-wildcard t)
-                                           dired-files
-                                           :test #'string-equal) #'string-lessp)))
-    (kill-buffer dired-buffer-name)
-    ;; similar reason to `helm-projectile-dired-files-add-action'
-    (let ((default-directory root))
-      (dired (cons dired-buffer-name
-                   (if files
-                       (mapcar (lambda (file)
-                                 (replace-regexp-in-string (projectile-project-root) "" file))
-                               files)
-                     (list candidate)))))))
+  (if (and (file-remote-p (projectile-project-root))
+           (not helm-projectile-virtual-dired-remote-enable))
+      (message "Virtual Dired manager is disabled in remote host. Enable with %s."
+               (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    (let* ((helm--reading-passwd-or-string t)
+           (root (projectile-project-root))
+           (dired-buffer-name (with-helm-current-buffer (buffer-name)))
+           (dired-files (with-current-buffer dired-buffer-name
+                          (helm-projectile-files-in-current-dired-buffer)))
+           (files (sort (cl-set-exclusive-or (helm-marked-candidates :with-wildcard t)
+                                             dired-files
+                                             :test #'string-equal) #'string-lessp)))
+      (kill-buffer dired-buffer-name)
+      ;; similar reason to `helm-projectile-dired-files-add-action'
+      (let ((default-directory root))
+        (with-current-buffer (dired (cons (make-temp-name dired-buffer-name)
+                                          (if files
+                                              (mapcar (lambda (file)
+                                                        (replace-regexp-in-string root "" file))
+                                                      files)
+                                            (list candidate))))
+          (rename-buffer dired-buffer-name))))))
 
 (defvar helm-projectile-find-file-map
   (let ((map (copy-keymap helm-find-files-map)))
@@ -347,30 +364,25 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Action for files.")
 
 (defvar helm-source-projectile-files-dwim-list
-  `((name . "Projectile files")
-    (init . (lambda ()
-              (let* ((project-files (projectile-current-project-files))
-                     (files (projectile-select-files project-files)))
-                (cond
-                 ((= (length files) 1)
-                  (find-file (expand-file-name (car files) (projectile-project-root)))
-                  (helm-exit-minibuffer))
-                 ((> (length files) 1)
-                  (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                          files))
-                 (t
-                  (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                          project-files))))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                 (define-key map (kbd "<left>") 'helm-previous-source)
-                 (define-key map (kbd "<right>") 'helm-next-source)
-                 map))
-    (help-message . helm-ff-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,helm-projectile-file-actions))
+  (helm-build-in-buffer-source "Projectile files"
+    :data (lambda ()
+            (let* ((project-files (projectile-current-project-files))
+                   (files (projectile-select-files project-files)))
+              (cond
+               ((= (length files) 1)
+                (find-file (expand-file-name (car files) (projectile-project-root)))
+                (helm-exit-minibuffer))
+               ((> (length files) 1) files)
+               (t  project-files))))
+    :coerce 'helm-projectile-coerce-file
+    :action-transformer 'helm-find-files-action-transformer
+    :keymap (let ((map (copy-keymap helm-find-files-map)))
+              (define-key map (kbd "<left>") 'helm-previous-source)
+              (define-key map (kbd "<right>") 'helm-next-source)
+              map)
+    :help-message helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions)
   "Helm source definition for Projectile files based on context.")
 
 (defvar helm-source-projectile-files-list
@@ -390,40 +402,49 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Helm source definition for Projectile files.")
 
 (defvar helm-source-projectile-files-in-all-projects-list
-  `((name . "Projectile files in all Projects")
-    (init . (lambda ()
-              (let ((projectile-require-project-root nil))
-                (helm-projectile-init-buffer-with-files ""
-                                                        (projectile-all-project-files)))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,helm-projectile-find-file-map)
-    (help-message . helm-ff-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,helm-projectile-file-actions)))
+  (helm-build-in-buffer-source "Projectile files in all Projects"
+    :data (lambda ()
+            (let ((projectile-require-project-root nil))
+              (projectile-all-project-files)))
+    :coerce 'helm-projectile-coerce-file
+    :keymap helm-projectile-find-file-map
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions
+    )
+  "Helm source definition for all Projectile files in all projects.")
+
+(defvar helm-projectile-dired-file-actions
+  (helm-projectile-hack-actions
+   helm-projectile-file-actions
+   ;; New actions
+   '(helm-projectile-dired-files-delete-action . "Remove entry(s) from Dired buffer `C-c d'")))
 
 (defvar helm-source-projectile-dired-files-list
-  `((name . "Projectile files in current Dired buffer")
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (mapcar (lambda (file)
-                                                                (replace-regexp-in-string (projectile-project-root) "" file))
-                                                              (helm-projectile-files-in-current-dired-buffer)))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (make-sparse-keymap)))
-                 (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map
-                   (kbd "C-c o") 'find-file-other-window
-                   (kbd "C-c d") 'helm-projectile-dired-files-delete-action)
-                 map))
-    (help-message . "Select entries to remove in current Dired buffer (actual files won't be deleted)")
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . (("Find file" . helm-find-file-or-marked)
-               ("Find file other window `C-c o'" . find-file-other-window)
-               ("Remove entry(s) from Dired buffer `C-c d'" . helm-projectile-dired-files-delete-action))))
+  (helm-build-in-buffer-source "Projectile files in current Dired buffer"
+    :data (lambda ()
+            (if (and (file-remote-p (projectile-project-root))
+                     (not helm-projectile-virtual-dired-remote-enable))
+                nil
+              (let ((default-directory (projectile-project-root)))
+                (when (eq major-mode 'dired-mode)
+                  (mapcar (lambda (file)
+                            (replace-regexp-in-string default-directory "" file))
+                          (helm-projectile-files-in-current-dired-buffer))))))
+    :coerce 'helm-projectile-coerce-file
+    :filter-one-by-one (lambda (file)
+                         (let ((default-directory (projectile-project-root)))
+                           (helm-ff-filter-candidate-one-by-one file)))
+    :action-transformer 'helm-find-files-action-transformer
+    :keymap (let ((map (copy-keymap helm-find-files-map)))
+              (helm-projectile-define-key map
+                (kbd "C-c f") 'helm-projectile-dired-files-new-action
+                (kbd "C-c a") 'helm-projectile-dired-files-add-action
+                (kbd "C-c d") 'helm-projectile-dired-files-delete-action)
+              map)
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-dired-file-actions)
   "Helm source definition for Projectile delete files.")
 
 (defun helm-projectile-dired-find-dir (dir)
@@ -437,73 +458,72 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   (run-hooks 'projectile-find-dir-hook))
 
 (defvar helm-source-projectile-directories-list
-  `((name . "Projectile directories")
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (if projectile-find-dir-includes-top-level
-                                                          (append '("./") (projectile-current-project-dirs))
-                                                        (projectile-current-project-dirs)))))
-    (candidates-in-buffer)
-    (keymap . ,(let ((map (make-sparse-keymap)))
-                 (set-keymap-parent map helm-map)
-                 (helm-projectile-define-key map
-                   (kbd "C-c o") 'helm-projectile-dired-find-dir-other-window
-                   (kbd "M-e")   'helm-projectile-switch-to-eshell
-                   (kbd "C-c f") 'helm-projectile-dired-files-new-action
-                   (kbd "C-c a") 'helm-projectile-dired-files-add-action
-                   (kbd "C-s")   'helm-find-files-grep)
-                 map))
-    (action . (("Open Dired" . helm-projectile-dired-find-dir)
-               ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
-               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-               ("Create Dired buffer from files `C-c f'" . helm-projectile-dired-files-new-action)
-               ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)
-               ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep))))
-  "Helm source for listing project directories")
+  (helm-build-in-buffer-source "Projectile directories"
+    :data (lambda ()
+            (if projectile-find-dir-includes-top-level
+                (append '("./") (projectile-current-project-dirs))
+              (projectile-current-project-dirs)))
+    :coerce 'helm-projectile-coerce-file
+    :action-transformer 'helm-find-files-action-transformer
+    :keymap (let ((map (make-sparse-keymap)))
+              (set-keymap-parent map helm-map)
+              (helm-projectile-define-key map
+                (kbd "C-c o") 'helm-projectile-dired-find-dir-other-window
+                (kbd "M-e")   'helm-projectile-switch-to-eshell
+                (kbd "C-c f") 'helm-projectile-dired-files-new-action
+                (kbd "C-c a") 'helm-projectile-dired-files-add-action
+                (kbd "C-s")   'helm-find-files-grep)
+              map)
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action '(("Open Dired" . helm-projectile-dired-find-dir)
+              ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
+              ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
+              ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep)
+              ("Create Dired buffer from files `C-c f'" . helm-projectile-dired-files-new-action)
+              ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)))
+  "Helm source for listing project directories.")
 
-(defvar helm-source-projectile-buffers-list
-  `((name . "Projectile buffers")
-    (init . (lambda ()
-              ;; Issue #51 Create the list before `helm-buffer' creation.
-              (setq helm-projectile-buffers-list-cache (projectile-project-buffer-names))
-              (let ((result (cl-loop for b in helm-projectile-buffers-list-cache
-                                     maximize (length b) into len-buf
-                                     maximize (length (with-current-buffer b
-                                                        (symbol-name major-mode)))
-                                     into len-mode
-                                     finally return (cons len-buf len-mode))))
-                (unless helm-buffer-max-length
-                  (setq helm-buffer-max-length (car result)))
-                (unless helm-buffer-max-len-mode
-                  ;; If a new buffer is longer that this value
-                  ;; this value will be updated
-                  (setq helm-buffer-max-len-mode (cdr result))))))
-    (candidates . helm-projectile-buffers-list-cache)
-    (type . buffer)
-    (match helm-buffers-list--match-fn)
-    (persistent-action . helm-buffers-list-persistent-action)
-    (keymap . ,helm-buffer-map)
-    (volatile)
-    (no-delay-on-input)
-    (mode-line . helm-buffer-mode-line-string)
-    (persistent-help
-     . "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
+(defclass helm-source-projectile-buffer (helm-source-sync helm-type-buffer)
+  ((init :initform (lambda ()
+                     ;; Issue #51 Create the list before `helm-buffer' creation.
+                     (setq helm-buffers-list-cache (projectile-project-buffer-names))
+                     (let ((result (cl-loop for b in helm-buffers-list-cache
+                                            maximize (length b) into len-buf
+                                            maximize (length (with-current-buffer b
+                                                               (symbol-name major-mode)))
+                                            into len-mode
+                                            finally return (cons len-buf len-mode))))
+                       (unless helm-buffer-max-length
+                         (setq helm-buffer-max-length (car result)))
+                       (unless helm-buffer-max-len-mode
+                         ;; If a new buffer is longer that this value
+                         ;; this value will be updated
+                         (setq helm-buffer-max-len-mode (cdr result))))))
+   (candidates :initform helm-buffers-list-cache)
+   (matchplugin :initform nil)
+   (match :initform 'helm-buffers-list--match-fn)
+   (persistent-action :initform 'helm-buffers-list-persistent-action)
+   (keymap :initform helm-buffer-map)
+   (volatile :initform t)
+   (mode-line :initform helm-buffer-mode-line-string)
+   (persistent-help
+    :initform
+    "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
+
+(defvar helm-source-projectile-buffers-list (helm-make-source "Project buffers" 'helm-source-projectile-buffer))
 
 (defvar helm-source-projectile-recentf-list
-  `((name . "Projectile recent files")
-    ;; Needed for filenames with capitals letters.
-    (init . (lambda ()
-              (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                      (projectile-recentf-files))))
-    (coerce . helm-projectile-coerce-file)
-    (candidates-in-buffer)
-    (keymap . ,helm-generic-files-map)
-    (help-message . helm-ff-help-message)
-    (mode-line . helm-ff-mode-line-string)
-    (type . file)
-    (action . ,(cdr (helm-get-actions-from-type
-                     helm-source-locate))))
-  "Helm source definition.")
+  (helm-build-in-buffer-source "Projectile recent files"
+    :data (lambda ()
+            (projectile-recentf-files))
+    :coerce 'helm-projectile-coerce-file
+    :keymap helm-projectile-find-file-map
+    :help-message 'helm-ff-help-message
+    :mode-line helm-ff-mode-line-string
+    :action helm-projectile-file-actions
+    )
+  "Helm source definition for recent files in current project.")
 
 (defvar helm-source-projectile-files-and-dired-list
   '(helm-source-projectile-dired-files-list
@@ -561,20 +581,16 @@ Other file extensions can be customized with the variable `projectile-other-file
           (find-file (expand-file-name (car other-files) (projectile-project-root)))
         (progn
           (let* ((helm-ff-transformer-show-only-basename nil))
-            (helm :sources `((name . "Projectile other files")
-                             (init . (lambda ()
-                                       (helm-projectile-init-buffer-with-files (projectile-project-root)
-                                                                               other-files)))
-                             (coerce . helm-projectile-coerce-file)
-                             (candidates-in-buffer)
-                             (keymap . ,(let ((map (copy-keymap helm-find-files-map)))
-                                          (define-key map (kbd "<left>") 'helm-previous-source)
-                                          (define-key map (kbd "<right>") 'helm-next-source)
-                                          map))
-                             (help-message . helm-ff-help-message)
-                             (mode-line . helm-ff-mode-line-string)
-                             (type . file)
-                             (action . ,helm-projectile-file-actions))
+            (helm :sources (helm-build-in-buffer-source "Projectile other files"
+                             :data other-files
+                             :coerce 'helm-projectile-coerce-file
+                             :keymap (let ((map (copy-keymap helm-find-files-map)))
+                                       (define-key map (kbd "<left>") 'helm-previous-source)
+                                       (define-key map (kbd "<right>") 'helm-next-source)
+                                       map)
+                             :help-message helm-ff-help-message
+                             :mode-line helm-ff-mode-line-string
+                             :action helm-projectile-file-actions)
                   :buffer "*helm projectile*"
                   :prompt (projectile-prepend-project-name "Find other file: ")))))
     (error "No other file found")))
