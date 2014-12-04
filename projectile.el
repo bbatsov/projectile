@@ -2052,35 +2052,35 @@ For git projects `magit-status' is used if available."
 (defvar projectile-rust-cargo-compile-cmd "cargo build")
 (defvar projectile-rust-cargo-test-cmd "cargo test")
 
-(cl-dolist (var '(projectile-rails-compile-cmd
-                  projectile-ruby-compile-cmd
-                  projectile-ruby-test-cmd
-                  projectile-ruby-rspec-cmd
-                  projectile-django-compile-cmd
-                  projectile-django-test-cmd
-                  projectile-python-compile-cmd
-                  projectile-python-test-cmd
-                  projectile-symfony-compile-cmd
-                  projectile-symfony-test-cmd
-                  projectile-scons-compile-cmd
-                  projectile-scons-test-cmd
-                  projectile-maven-compile-cmd
-                  projectile-maven-test-cmd
-                  projectile-lein-compile-cmd
-                  projectile-lein-test-cmd
-                  projectile-rebar-compile-cmd
-                  projectile-rebar-test-cmd
-                  projectile-sbt-compile-cmd
-                  projectile-sbt-test-cmd
-                  projectile-make-compile-cmd
-                  projectile-make-test-cmd
-                  projectile-grunt-compile-cmd
-                  projectile-grunt-test-cmd
-                  projectile-haskell-cabal-compile-cmd
-                  projectile-haskell-cabal-test-cmd
-                  projectile-rust-cargo-compile-cmd
-                  projectile-rust-cargo-test-cmd))
-  (put var 'safe-local-variable #'stringp))
+(--each '(projectile-rails-compile-cmd
+          projectile-ruby-compile-cmd
+          projectile-ruby-test-cmd
+          projectile-ruby-rspec-cmd
+          projectile-django-compile-cmd
+          projectile-django-test-cmd
+          projectile-python-compile-cmd
+          projectile-python-test-cmd
+          projectile-symfony-compile-cmd
+          projectile-symfony-test-cmd
+          projectile-scons-compile-cmd
+          projectile-scons-test-cmd
+          projectile-maven-compile-cmd
+          projectile-maven-test-cmd
+          projectile-lein-compile-cmd
+          projectile-lein-test-cmd
+          projectile-rebar-compile-cmd
+          projectile-rebar-test-cmd
+          projectile-sbt-compile-cmd
+          projectile-sbt-test-cmd
+          projectile-make-compile-cmd
+          projectile-make-test-cmd
+          projectile-grunt-compile-cmd
+          projectile-grunt-test-cmd
+          projectile-haskell-cabal-compile-cmd
+          projectile-haskell-cabal-test-cmd
+          projectile-rust-cargo-compile-cmd
+          projectile-rust-cargo-test-cmd)
+  (put it 'safe-local-variable #'stringp))
 
 
 (defvar projectile-compilation-cmd-map
@@ -2176,12 +2176,12 @@ fallback to the original function."
                (find-file-noselect filename))
            ;; Try to find the filename using projectile
            (and (projectile-project-p)
-                (loop with root = (projectile-project-root)
-                      for dir in (cons "" (projectile-current-project-dirs))
-                      for file = (expand-file-name filename
-                                                   (expand-file-name dir root))
-                      if (file-exists-p file)
-                      return (find-file-noselect file)))
+                (let ((root (projectile-project-root))
+                      (dirs (cons "" (projectile-current-project-dirs))))
+                  (->> dirs
+                    (--map (f-join root it filename))
+                    (-filter #'file-exists-p)
+                    (-first-item))))
            ;; Fall back to the old function `compilation-find-file'
            ad-do-it))))
 
@@ -2419,20 +2419,11 @@ available actions.
 
 See `def-projectile-commander-method' for defining new methods."
   (interactive)
-  (message "Commander [%s]: "
-           (apply #'string (mapcar #'car projectile-commander-methods)))
-  (let* ((ch (save-window-excursion
-               (select-window (minibuffer-window))
-               (read-char)))
-         (method (cl-find ch projectile-commander-methods :key #'car)))
-    (cond (method
-           (funcall (cl-caddr method)))
-          (t
-           (message "No method for character: ?\\%c" ch)
-           (ding)
-           (sleep-for 1)
-           (discard-input)
-           (projectile-commander)))))
+  (-let* ((choices (-map #'car projectile-commander-methods))
+          (prompt (concat "Commander [" choices "]: "))
+          (ch (read-char-choice prompt choices))
+          ((_ _ fn) (assq ch projectile-commander-methods)))
+    (funcall fn)))
 
 (defmacro def-projectile-commander-method (key description &rest body)
   "Define a new `projectile-commander' method.
@@ -2446,16 +2437,17 @@ is chosen."
   (let ((method `(lambda ()
                    ,@body)))
     `(setq projectile-commander-methods
-           (cl-sort (cons (list ,key ,description ,method)
-                          (cl-remove ,key projectile-commander-methods :key #'car))
-                    #'< :key #'car))))
+           (--sort (< (car it) (car other))
+                   (cons (list ,key ,description ,method)
+                         (assq-delete-all ,key projectile-commander-methods))))))
 
 (def-projectile-commander-method ?? "Commander help buffer."
   (ignore-errors (kill-buffer projectile-commander-help-buffer))
   (with-current-buffer (get-buffer-create projectile-commander-help-buffer)
     (insert "Projectile Commander Methods:\n\n")
-    (loop for (key line nil) in projectile-commander-methods
-          do (insert (format "%c:\t%s\n" key line)))
+    (--each projectile-commander-methods
+      (-let [(key line _) it]
+        (insert (format "%c:\t%s\n" key line))))
     (goto-char (point-min))
     (help-mode)
     (display-buffer (current-buffer) t))
