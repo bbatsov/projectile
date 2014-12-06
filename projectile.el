@@ -2178,10 +2178,11 @@ fallback to the original function."
            (and (projectile-project-p)
                 (let ((root (projectile-project-root))
                       (dirs (cons "" (projectile-current-project-dirs))))
-                  (->> dirs
-                    (--map (f-join root it filename))
-                    (-filter #'file-exists-p)
-                    (-first-item))))
+                  (-when-let (full-filename (->> dirs
+                                              (--map (f-join root it filename))
+                                              (-filter #'file-exists-p)
+                                              (-first-item)))
+                    (find-file-noselect full-filename))))
            ;; Fall back to the old function `compilation-find-file'
            ad-do-it))))
 
