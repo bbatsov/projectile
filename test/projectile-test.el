@@ -105,8 +105,20 @@
                      (projectile-get-project-directories))))))
 
 (ert-deftest projectile-test-file-truename ()
+  (with-sandbox
+  (f-mkdir "source-tree")
+  (f-mkdir "project-symlink")
+  (f-touch "source-tree/test.txt")
+  (f-symlink "../source-tree" "project-symlink/source-tree")
   (should (equal nil (projectile-file-truename nil)))
-  (should (equal (file-truename "test") (projectile-file-truename "test"))))
+  (let ((projectile-follow-symlinks nil))
+    (should (equal (expand-file-name "./project-symlink/source-tree/test.txt")
+  		   (projectile-file-truename "./project-symlink/source-tree/test.txt"))))
+  (let ((projectile-follow-symlinks t))
+    (should (equal (file-truename "./source-tree/test.txt")
+		   (projectile-file-truename "./project-symlink/source-tree/test.txt")))
+    (should (equal (file-truename "./source-tree/test.txt")
+		   (projectile-file-truename "./source-tree/test.txt"))))))
 
 (ert-deftest projectile-test-dir-files ()
   (noflet ((projectile-project-root () "/my/root/")
