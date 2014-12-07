@@ -60,6 +60,7 @@ project, this advice creates a new perspective for that project."
 (projectile-persp-bridge projectile-dired)
 (projectile-persp-bridge projectile-find-file)
 
+;;;###autoload
 (defun projectile-persp-switch-project (project-to-switch)
   "Switch to a project or perspective we have visited before.
 If the perspective of corresponding project does not exist, this

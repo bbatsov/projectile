@@ -519,6 +519,7 @@ The cache is created both in memory and on the hard drive."
   "Check if FILE is already in PROJECT cache."
   (member file (gethash project projectile-projects-cache)))
 
+;;;###autoload
 (defun projectile-cache-current-file ()
   "Add the currently visited file to the cache."
   (interactive)
@@ -1004,6 +1005,7 @@ opened through use of recentf."
   "Prepend the current project's name to STRING."
   (format "[%s] %s" (projectile-project-name) string))
 
+;;;###autoload
 (defun projectile-switch-to-buffer ()
   "Switch to a project buffer."
   (interactive)
@@ -1012,6 +1014,7 @@ opened through use of recentf."
     "Switch to buffer: "
     (projectile-project-buffer-names))))
 
+;;;###autoload
 (defun projectile-switch-to-buffer-other-window ()
   "Switch to a project buffer and show it in another window."
   (interactive)
@@ -1020,6 +1023,7 @@ opened through use of recentf."
     "Switch to buffer: "
     (projectile-project-buffer-names))))
 
+;;;###autoload
 (defun projectile-display-buffer ()
   "Display a project buffer in another window without selecting it."
   (interactive)
@@ -1028,6 +1032,7 @@ opened through use of recentf."
     "Display buffer: "
     (projectile-project-buffer-names))))
 
+;;;###autoload
 (defun projectile-project-buffers-other-buffer ()
   "Switch to the most recently selected buffer project buffer.
 Only buffers not visible in windows are returned."
@@ -1040,6 +1045,7 @@ Only buffers not visible in windows are returned."
              (not (get-buffer-window buffer 'visible)))
            (projectile-project-buffers)))
 
+;;;###autoload
 (defun projectile-multi-occur ()
   "Do a `multi-occur' in the project's buffers."
   (interactive)
@@ -1610,12 +1616,14 @@ PROJECT-ROOT is the targeted directory. If nil, use
           (projectile-expand-root test-file)
         (error "No matching test file found")))))
 
+;;;###autoload
 (defun projectile-find-implementation-or-test-other-window ()
   "Open matching implementation or test file in other window."
   (interactive)
   (find-file-other-window
    (projectile-find-implementation-or-test (buffer-file-name))))
 
+;;;###autoload
 (defun projectile-toggle-between-implementation-and-test ()
   "Toggle between an implementation file and its test file."
   (interactive)
@@ -1800,6 +1808,7 @@ regular expression."
                                        (directory-file-name pattern)))
              (projectile-ignored-directories-rel) " "))
 
+;;;###autoload
 (defun projectile-regenerate-tags ()
   "Regenerate the project's [e|g]tags."
   (interactive)
@@ -1833,6 +1842,7 @@ regular expression."
           "Error loading tags-file: %s"
           (visit-tags-table tags-file t))))))
 
+;;;###autoload
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
@@ -1862,18 +1872,21 @@ regular expression."
   `(let ((default-directory ,dir))
      ,@body))
 
+;;;###autoload
 (defun projectile-run-command-in-root ()
   "Invoke `execute-extended-command' in the project's root."
   (interactive)
   (projectile-with-default-dir (projectile-project-root)
     (call-interactively 'execute-extended-command)))
 
+;;;###autoload
 (defun projectile-run-shell-command-in-root ()
   "Invoke `shell-command' in the project's root."
   (interactive)
   (projectile-with-default-dir (projectile-project-root)
     (call-interactively 'shell-command)))
 
+;;;###autoload
 (defun projectile-run-async-shell-command-in-root ()
   "Invoke `async-shell-command' in the project's root."
   (interactive)
@@ -1970,6 +1983,7 @@ to run the replacement."
                (projectile-project-p))
       (projectile-restore-window-config name))))
 
+;;;###autoload
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
   (interactive)
@@ -1978,11 +1992,13 @@ to run the replacement."
       (when buffer-file-name
         (save-buffer)))))
 
+;;;###autoload
 (defun projectile-dired ()
   "Open `dired' at the root of the project."
   (interactive)
   (dired (projectile-project-root)))
 
+;;;###autoload
 (defun projectile-vc (&optional project-root)
   "Open `vc-dir' at the root of the project.
 
@@ -1995,6 +2011,7 @@ For git projects `magit-status' is used if available."
     (magit-status project-root))
    (t (vc-dir project-root))))
 
+;;;###autoload
 (defun projectile-recentf ()
   "Show a list of recently visited files in a project."
   (interactive)
@@ -2267,6 +2284,7 @@ This command will first prompt for the directory the file is in."
                        (projectile-current-project-files)))))
            projectile-known-projects))
 
+;;;###autoload
 (defun projectile-find-file-in-known-projects ()
   "Jump to a file in any of the known projects."
   (interactive)
@@ -2288,6 +2306,7 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
    ((file-remote-p project))
    ((file-readable-p project))))
 
+;;;###autoload
 (defun projectile-cleanup-known-projects ()
   "Remove known projects that don't exist anymore."
   (interactive)
@@ -2302,6 +2321,7 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
         (message "Projects removed: %s" (s-join ", " projects-removed))
       (message "No projects needed to be removed."))))
 
+;;;###autoload
 (defun projectile-clear-known-projects ()
   "Clear both `projectile-known-projects' and `projectile-known-projects-file'."
   (interactive)
@@ -2318,6 +2338,7 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
   (when projectile-verbose
     (message "Project %s removed from the list of known projects." project)))
 
+;;;###autoload
 (defun projectile-remove-current-project-from-known-projects ()
   "Remove the current project from the list of known projects."
   (interactive)

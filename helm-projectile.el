@@ -569,6 +569,7 @@ With a prefix ARG invalidates the cache first."
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
 
+;;;###autoload
 (defun helm-projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions using Helm.
 With FLEX-MATCHING, match any file that contains the base name of current file.
@@ -654,24 +655,28 @@ If it is nil, or ack/ack-grep not found then use default grep command."
      :history 'helm-grep-history
      :truncate-lines t)))
 
+;;;###autoload
 (defun helm-projectile-on ()
   "Turn on helm-projectile key bindings."
   (interactive)
   (message "Turn on helm-projectile key bindings")
   (helm-projectile-toggle 1))
 
+;;;###autoload
 (defun helm-projectile-off ()
   "Turn off helm-projectile key bindings."
   (interactive)
   (message "Turn off helm-projectile key bindings")
   (helm-projectile-toggle -1))
 
+;;;###autoload
 (defun helm-projectile-grep ()
   "Helm version of projectile-grep."
   (interactive)
   (funcall'run-with-timer 0.01 nil
                           #'helm-projectile-grep-or-ack nil))
 
+;;;###autoload
 (defun helm-projectile-ack ()
   "Helm version of projectile-ack."
   (interactive)
@@ -691,6 +696,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
              #'helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable)))
 
 
+;;;###autoload
 (defun helm-projectile-ag ()
   "Helm version of projectile-ag."
   (interactive)
