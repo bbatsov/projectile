@@ -20,6 +20,8 @@ try to follow these guidelines when you do so.
 * Read [how to properly contribute to open source projects on Github][2].
 * Use a topic branch to easily amend a pull request later, if necessary.
 * Write [good commit messages][3].
+* Mention related tickets in the commit messages (e.g. `[Fix #N] Add missing autoload cookies`)
+* Update the [changelog][5].
 * Use the same coding conventions as the rest of the project.
 * Verify your Emacs Lisp code with `checkdoc` (<kbd>C-c ? d</kbd>).
 * Open a [pull request][4] that relates to *only* one subject with a clear title
@@ -29,3 +31,4 @@ try to follow these guidelines when you do so.
 [2]: http://gun.io/blog/how-to-github-fork-branch-and-pull-request
 [3]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
 [4]: https://help.github.com/articles/using-pull-requests
+[5]: https://github.com/clojure-emacs/clojure-mode/blob/master/CHANGELOG.md
