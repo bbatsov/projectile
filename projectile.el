@@ -1692,7 +1692,9 @@ to `projectile-grep-default-files'."
     (dolist (root-dir roots)
       (require 'grep)
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
-      (if (and (eq (projectile-project-vcs) 'git) projectile-use-git-grep)
+      (if (and (eq (projectile-project-vcs) 'git)
+               projectile-use-git-grep
+               (fboundp 'vc-git-grep))
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories (-union (-map (lambda (dir) (s-chop-suffix "/" (file-relative-name dir root-dir)))
