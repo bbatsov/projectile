@@ -793,68 +793,9 @@ Files are returned as relative paths to the project root."
      ((eq vcs 'git) projectile-git-submodule-command)
      (t ""))))
 
-(defun projectile-get-all-sub-projects (project &optional known-projects)
+(defun projectile-get-all-sub-projects (project)
   "Get all sub-projects for a given projects.
-PROJECT is base directory to start search recursively.
-KNOWN-PROJECTS is all the currently known sub-projects.  It is used for testing
-already traversed sub-projects.
-
-The function handles also the case that a project has sub-projects that
-includes themselves as modules and could create a infinite loop when traverse
-the sub-project tree.  A sub-project is a another project inside current project
-that could also be consider a project when standing on its own.  Git submodule
-is an example of a sub-project.  This function is designed to extend with
-more VCS in general, since it uses the function `projectile-get-sub-projects-command'
-to return appropriate command for a VCS to list sup-project.
-
-Now, consider a project tree like this:
-
-root/
-    sub-project1/
-    sub-project2/
-    sub-project3/
-    .... main project's files and directories....
-
-Each such sub-project can also have sub-projects.  In the normal
-case, we can walk the directory tree all they way down.  The problem is,
-sub-projects can include itself as a sub-project! To solve this problem,
-the function checks that if it encounters existing sub-projects already
-processed before (this means the function walks up the directory tree again),
-it simply ignores to avoid infinite loop.
-
-An example is `yasnippet' Git project at the time of writing this:
-
-yasnippet/
-    snippets/  -> submodule
-    yasmate/   -> submodule
-
-
-Running \"git submodule\" inside `yasnippet/' returns this result:
-
- 16154e1462a8bbb2c5cf48e1101bd3f2c090e0fc snippets (remotes/origin/cleanup_html_tags-7-g16154e1)
- 0543618bd34a6715918992f01161c118f136bb37 yasmate (0543618)
-
-Running \"git submodule\" inside `yasnippet/yasmate' returns this result:
-
--993588a35d665427209936618a9e524679480e95 bundles/html-tmbundle
--d0c1ae22d326d310edaf126acf93588b7958f682 bundles/objc-tmbundle
--8091f39a6efd288c8793321e8822a639db3cc940 bundles/rails-tmbundle
--da63813a86d46f17abf0a9303de1149ca7cee60a bundles/ruby-tmbundle
-
-We change into the directory of either of those directory, for example:
-
-cd bundles/ruby-tmbundle
-
-Running \"git submodule\" any of those submodule returns this result:
-
--993588a35d665427209936618a9e524679480e95 ../html-tmbundle
--d0c1ae22d326d310edaf126acf93588b7958f682 ../objc-tmbundle
--8091f39a6efd288c8793321e8822a639db3cc940 ../rails-tmbundle
--da63813a86d46f17abf0a9303de1149ca7cee60a ../ruby-tmbundle
-
-So, each of those modules is point to itself! We must only check to avoid
-looping at a single point.  The sub-project listing command should be able
-to handle such case."
+PROJECT is base directory to start search recursively."
   (let* ((default-directory project)
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
@@ -869,7 +810,7 @@ to handle such case."
       (nconc submodules (-flatten
                          ;; recursively get sub-projects of each sub-project
                          (mapcar (lambda (s)
-                                   (projectile-get-all-sub-projects s submodules)) submodules)))))))
+                                   (projectile-get-all-sub-projects s)) submodules)))))))
 
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
@@ -2002,14 +1943,13 @@ to run the replacement."
 (defun projectile-vc (&optional project-root)
   "Open `vc-dir' at the root of the project.
 
-For git projects `magit-status' is used if available."
+For git projects `magit-status-internal' is used if available."
   (interactive)
   (or project-root (setq project-root (projectile-project-root)))
-  (cond
-   ((and (eq (projectile-project-vcs project-root) 'git)
-         (fboundp 'magit-status))
-    (magit-status project-root))
-   (t (vc-dir project-root))))
+  (if (and (eq (projectile-project-vcs project-root) 'git)
+           (fboundp 'magit-status-internal))
+      (magit-status-internal project-root)
+    (vc-dir project-root)))
 
 ;;;###autoload
 (defun projectile-recentf ()
