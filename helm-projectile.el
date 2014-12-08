@@ -47,6 +47,8 @@
 (require 'cl-lib)
 
 (declare-function eshell "eshell")
+(declare-function helm-do-ag "helm-ag")
+(defvar helm-ag-base-command)
 
 (defgroup helm-projectile nil
   "Helm support for projectile."
