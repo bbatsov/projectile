@@ -723,15 +723,6 @@ Files are returned as relative paths to the project root."
   (--map (file-relative-name it root)
          (projectile-index-directory directory (projectile-patterns-to-ignore))))
 
-(defun projectile-dir-files-external (root directory)
-  "Get the files for ROOT under DIRECTORY using external tools."
-  (let ((default-directory directory)
-        (files-list nil))
-    (setq files-list (-map (lambda (f)
-                             (file-relative-name (expand-file-name f directory) root))
-                           (projectile-get-repo-files)))
-    files-list))
-
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
   :group 'projectile
@@ -772,66 +763,40 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defun projectile-get-ext-command ()
-  "Determine which external command to invoke based on the project's VCS."
+(defun projectile-dir-files-external (root directory)
+  "Get the files for ROOT under DIRECTORY using external tools."
   (let ((vcs (projectile-project-vcs)))
-    (cond
-     ((eq vcs 'git) projectile-git-command)
-     ((eq vcs 'hg) projectile-hg-command)
-     ((eq vcs 'fossil) projectile-fossil-command)
-     ((eq vcs 'bzr) projectile-bzr-command)
-     ((eq vcs 'darcs) projectile-darcs-command)
-     ((eq vcs 'svn) projectile-svn-command)
-     (t projectile-generic-command))))
+    (if (eq vcs 'git)
+        (projectile-dir-files-git root directory)
+      (let ((default-directory directory))
+        (--map (file-relative-name (expand-file-name it directory) root)
+               (split-string (shell-command-to-string
+                              (pcase vcs
+                                (`hg     projectile-hg-command)
+                                (`fossil projectile-fossil-command)
+                                (`bzr    projectile-bzr-command)
+                                (`darcs  projectile-darcs-command)
+                                (`svn    projectile-svn-command)
+                                (_       projectile-generic-command)))
+                             "\0" t))))))
 
-(defun projectile-get-sub-projects-command ()
-  (let ((vcs (projectile-project-vcs)))
-    (cond
-     ((eq vcs 'git) projectile-git-submodule-command)
-     (t ""))))
-
-(defun projectile-get-all-sub-projects (project)
-  "Get all sub-projects for a given projects.
-PROJECT is base directory to start search recursively."
-  (let* ((default-directory project)
-         ;; search for sub-projects under current project `project'
-         (submodules (mapcar
-                      (lambda (s)
-                        (file-name-as-directory (expand-file-name s default-directory)))
-                      (projectile-files-via-ext-command (projectile-get-sub-projects-command)))))
-
-    (cond
-     ((null submodules)
-      nil)
-     (t
-      (nconc submodules (-flatten
-                         ;; recursively get sub-projects of each sub-project
-                         (mapcar (lambda (s)
-                                   (projectile-get-all-sub-projects s)) submodules)))))))
-
-(defun projectile-get-sub-projects-files ()
-  "Get files from sub-projects recursively."
-  (-flatten
-   (mapcar (lambda (s)
-             (let ((default-directory s))
-               (mapcar (lambda (f)
-                         (concat s f))
-                       (projectile-files-via-ext-command projectile-git-command))))
-           (condition-case nil
-               (projectile-get-all-sub-projects (projectile-project-root))
-             (error nil)))))
-
-(defun projectile-get-repo-files ()
-  "Get a list of the files in the project, including sub-projects."
-  (cond
-   ((eq (projectile-project-vcs) 'git)
-    (nconc (projectile-files-via-ext-command (projectile-get-ext-command))
-           (projectile-get-sub-projects-files)))
-   (t (projectile-files-via-ext-command (projectile-get-ext-command)))))
-
-(defun projectile-files-via-ext-command (command)
-  "Get a list of relative file names in the project root by executing COMMAND."
-  (split-string (shell-command-to-string command) "\0" t))
+(defun projectile-dir-files-git (root &optional directory)
+  (let* ((default-directory root)
+         (modules (-map 'expand-file-name
+                        (split-string (shell-command-to-string
+                                       projectile-git-submodule-command)
+                                      "\0" t))))
+    (when directory
+      (setq modules (--filter (file-in-directory-p it directory) modules))
+      (setq default-directory directory))
+    (--map (file-relative-name (expand-file-name it directory) root)
+           (-mapcat (lambda (file)
+                      (setq file (expand-file-name file))
+                      (if (member file modules)
+                          (projectile-dir-files-git (file-name-as-directory file))
+                        (list file)))
+                    (split-string (shell-command-to-string projectile-git-command)
+                                  "\0" t)))))
 
 (defun projectile-index-directory (directory patterns)
   "Index DIRECTORY taking into account PATTERNS.
