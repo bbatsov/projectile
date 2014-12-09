@@ -716,12 +716,12 @@ Files are returned as relative paths to the project root."
            (projectile-dir-files-external root directory))))))
 
 (defun projectile-dir-files-native (root directory)
-  "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
+  "Get the files for ROOT under DIRECTORY using just Emacs Lisp.
+Files are returned as relative paths to the project root."
   (message "Projectile is indexing %s. This may take a while."
            (propertize directory 'face 'font-lock-keyword-face))
-  ;; we need the files with paths relative to the project root
-  (-map (lambda (file) (file-relative-name file root))
-        (projectile-index-directory directory (projectile-patterns-to-ignore))))
+  (--map (file-relative-name it root)
+         (projectile-index-directory directory (projectile-patterns-to-ignore))))
 
 (defun projectile-dir-files-external (root directory)
   "Get the files for ROOT under DIRECTORY using external tools."
