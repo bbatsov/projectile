@@ -707,16 +707,13 @@ A thin wrapper around `file-truename' that handles nil."
 (defun projectile-dir-files (directory)
   "List the files in DIRECTORY and in its sub-directories.
 Files are returned as relative paths to the project root."
-  ;; check for a cache hit first if caching is enabled
-  (let ((files-list (and projectile-enable-caching
-                         (gethash directory projectile-projects-cache)))
-        (root (projectile-project-root)))
-    ;; cache disabled or cache miss
-    (or files-list
+  (or (and projectile-enable-caching
+           (gethash directory projectile-projects-cache))
+      (let ((root (projectile-project-root)))
         (if (eq projectile-indexing-method 'native)
             (projectile-dir-files-native root directory)
-          ;; use external tools to get the project files
-          (projectile-remove-ignored (projectile-dir-files-external root directory))))))
+          (projectile-remove-ignored
+           (projectile-dir-files-external root directory))))))
 
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
