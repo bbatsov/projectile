@@ -757,6 +757,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
   "Toggle Helm version of Projectile commands."
   (if (> toggle 0)
       (progn
+        (setq projectile-switch-project-action 'helm-projectile-find-file)
         (define-key projectile-command-map (kbd "a") 'helm-projectile-find-other-file)
         (define-key projectile-command-map (kbd "f") 'helm-projectile-find-file)
         (define-key projectile-command-map (kbd "F") 'helm-projectile-find-file-in-known-projects)
@@ -770,6 +771,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
         (define-key projectile-command-map (kbd "s s") 'helm-projectile-ag)
         (helm-projectile-commander-bindings))
     (progn
+      (setq projectile-switch-project-action 'projectile-find-file)
       (define-key projectile-command-map (kbd "a") 'projectile-find-other-file)
       (define-key projectile-command-map (kbd "f") 'projectile-find-file)
       (define-key projectile-command-map (kbd "F") 'projectile-find-file-in-known-projects)
