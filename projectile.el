@@ -907,8 +907,8 @@ Operates on filenames relative to the project root."
   "Get a list of project buffer files."
   (let ((project-root (projectile-project-root)))
     (->> (projectile-buffers-with-file (projectile-project-buffers))
-      (-map (lambda (buffer)
-              (file-relative-name (buffer-file-name buffer) project-root))))))
+         (-map (lambda (buffer)
+                 (file-relative-name (buffer-file-name buffer) project-root))))))
 
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
@@ -1154,7 +1154,7 @@ https://github.com/d11wtq/grizzl")))
   (let ((project-files (projectile-current-project-files))
         (default-directory (projectile-project-root)))
     (dolist (filename project-files)
-     (funcall action filename))))
+      (funcall action filename))))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
@@ -1377,11 +1377,11 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-sort-by-modification-time (files)
   "Sort FILES by modification time."
   (let ((default-directory (projectile-project-root)))
-   (-sort (lambda (file1 file2)
-            (let ((file1-mtime (nth 5 (file-attributes file1)))
-                  (file2-mtime (nth 5 (file-attributes file2))))
-              (not (time-less-p file1-mtime file2-mtime))))
-          files)))
+    (-sort (lambda (file1 file2)
+             (let ((file1-mtime (nth 5 (file-attributes file1)))
+                   (file2-mtime (nth 5 (file-attributes file2))))
+               (not (time-less-p file1-mtime file2-mtime))))
+           files)))
 
 (defun projectile-sort-by-access-time (files)
   "Sort FILES by access time."
@@ -1788,8 +1788,7 @@ regular expression."
   (when (projectile-project-p)
     (let ((tags-file (projectile-expand-root projectile-tags-file-name)))
       (when (file-exists-p tags-file)
-        (with-demoted-errors
-          "Error loading tags-file: %s"
+        (with-demoted-errors "Error loading tags-file: %s"
           (visit-tags-table tags-file t))))))
 
 ;;;###autoload
@@ -1805,8 +1804,8 @@ regular expression."
                 (tags-completion-table)
                 (projectile--tags tags-completion-table))))
     (funcall find-tag-function (projectile-completing-read "Find tag: "
-                                                            tags
-                                                            (projectile-symbol-at-point)))))
+                                                           tags
+                                                           (projectile-symbol-at-point)))))
 
 (defun projectile--tags (completion-table)
   "Find tags using COMPLETION-TABLE."
@@ -1863,9 +1862,9 @@ filenames."
   (let ((default-directory directory))
     (->> (s-trim (shell-command-to-string
                   (concat cmd " | cut -d: -f1 | uniq")))
-      (s-split "\n+")
-      (-filter 's-present?)
-      (--map (concat directory (s-chop-prefix "./" it))))))
+         (s-split "\n+")
+         (-filter 's-present?)
+         (--map (concat directory (s-chop-prefix "./" it))))))
 
 (defun projectile-files-with-string (string directory)
   "Return a list of all files containing STRING in DIRECTORY.
@@ -1973,8 +1972,8 @@ For git projects `magit-status-internal' is used if available."
   (if (boundp 'recentf-list)
       (let ((project-root (projectile-project-root)))
         (->> recentf-list
-          (-filter (lambda (file) (s-starts-with-p project-root file)))
-          (-map (lambda (file) (file-relative-name file project-root)))))
+             (-filter (lambda (file) (s-starts-with-p project-root file)))
+             (-map (lambda (file) (file-relative-name file project-root)))))
     nil))
 
 (defun projectile-serialize-cache ()
@@ -2145,9 +2144,9 @@ fallback to the original function."
                 (let ((root (projectile-project-root))
                       (dirs (cons "" (projectile-current-project-dirs))))
                   (-when-let (full-filename (->> dirs
-                                              (--map (f-join root it filename))
-                                              (-filter #'file-exists-p)
-                                              (-first-item)))
+                                                 (--map (f-join root it filename))
+                                                 (-filter #'file-exists-p)
+                                                 (-first-item)))
                     (find-file-noselect full-filename))))
            ;; Fall back to the old function `compilation-find-file'
            ad-do-it))))
