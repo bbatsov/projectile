@@ -123,7 +123,7 @@ To force the use of external indexing in Windows:
 (setq projectile-indexing-method 'alien)
 ```
 
-This can speed up Projectile in Windows significantly. The disadvantage of this 
+This can speed up Projectile in Windows significantly. The disadvantage of this
 method is that it's not well supported on Windows systems. If there's problem,
 you can always use native indexing mode.
 
@@ -200,12 +200,6 @@ This might not be a great idea if you start Projectile in your home folder for i
 When running `projectile-switch-project` (<kbd>C-c p p</kbd>) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
 `projectile-find-file`).
-
-When `projectile-remember-window-configs` is `t` (default is `nil`), the most
-recent window configuration of the target project is restored instead of calling
-`projectile-switch-project-action`.  If the target project has no window
-configuration in the current editing session, `projectile-switch-project-action`
-is otherwise invoked as described above.
 
 Depending on your personal workflow and habits, you
 may prefer to alter the value of `projectile-switch-project-action`:

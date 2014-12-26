@@ -298,12 +298,6 @@ Any function that does not take arguments will do."
   "If true, use `vc-git-grep' in git projects."
   :group 'projectile
   :type 'boolean)
-
-(defcustom projectile-remember-window-configs nil
-  "If true, restore the last window configuration when switching projects.
-If no configuration exists, just run `projectile-switch-project-action' as usual."
-  :group 'projectile
-  :type 'boolean)
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
@@ -563,28 +557,6 @@ The cache is created both in memory and on the hard drive."
     (projectile-invalidate-cache nil)))
 
 
-;;; Window configurations
-(defvar projectile-window-config-map
-  (make-hash-table :test 'equal)
-  "A mapping from project names to their latest window configurations.")
-
-(defun projectile-save-window-config (project-name)
-  "Save PROJECT-NAME's configuration to `projectile-window-config-map'."
-  (puthash project-name (current-window-configuration) projectile-window-config-map))
-
-(defun projectile-get-window-config (project-name)
-  "Return the window configuration corresponding to PROJECT-NAME.
-If no such window configuration exists,
-returns nil."
-  (gethash project-name projectile-window-config-map))
-
-(defun projectile-restore-window-config (project-name)
-  "Restore the window configuration corresponding to the PROJECT-NAME.
-Returns nil if no window configuration was found"
-  (let ((window-config (projectile-get-window-config project-name)))
-    (when window-config
-      (set-window-configuration window-config))))
-
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
   (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
@@ -1921,16 +1893,12 @@ to run the replacement."
   (interactive)
   (let ((name (projectile-project-name))
         (buffers (projectile-project-buffers)))
-    (remhash name projectile-window-config-map)
     (if (yes-or-no-p
          (format "Are you sure you want to kill %d buffer(s) for '%s'? "
                  (length buffers) name))
         ;; we take care not to kill indirect buffers directly
         ;; as we might encounter them after their base buffers are killed
-        (mapc 'kill-buffer (-remove 'buffer-base-buffer buffers)))
-    (when (and projectile-remember-window-configs
-               (projectile-project-p))
-      (projectile-restore-window-config name))))
+        (mapc 'kill-buffer (-remove 'buffer-base-buffer buffers)))))
 
 ;;;###autoload
 (defun projectile-save-project-buffers ()
@@ -2181,9 +2149,6 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (when (and projectile-remember-window-configs
-             (projectile-project-p))
-    (projectile-save-window-config (projectile-project-name)))
   (-if-let (projects (projectile-relevant-known-projects))
       (projectile-switch-project-by-name
        (projectile-completing-read "Switch to project: " projects)
@@ -2195,15 +2160,10 @@ With a prefix ARG invokes `projectile-commander' instead of
 Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
-  (let* ((default-directory project-to-switch)
-         (switch-project-action (if arg
+  (let* ((switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
-    (if projectile-remember-window-configs
-        (unless (projectile-restore-window-config (projectile-project-name))
-          (funcall switch-project-action)
-          (delete-other-windows))
-      (funcall switch-project-action))
+    (funcall switch-project-action)
     (run-hooks 'projectile-switch-project-hook)))
 
 
