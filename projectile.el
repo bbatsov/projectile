@@ -2160,7 +2160,8 @@ With a prefix ARG invokes `projectile-commander' instead of
 Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
-  (let* ((switch-project-action (if arg
+  (let* ((default-directory project-to-switch)
+         (switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
     (funcall switch-project-action)
