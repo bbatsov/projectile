@@ -548,7 +548,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   :group 'helm-projectile)
 
 
-(defmacro helm-projectile-command (command source prompt)
+(defmacro helm-projectile-command (command source prompt &optional hooks)
   "Template for generic helm-projectile commands.
 COMMAND is a command name to be appended with \"helm-projectile\" prefix.
 SOURCE is a Helm source that should be Projectile specific.
@@ -562,18 +562,46 @@ With a prefix ARG invalidates the cache first."
          (projectile-maybe-invalidate-cache arg))
      (let ((helm-ff-transformer-show-only-basename nil)
            ;; for consistency, we should just let Projectile take care of ignored files
-           (helm-boring-file-regexp-list nil))
+           (helm-boring-file-regexp-list nil)
+           (helm-after-action-hook (lambda ()
+                                     (run-hooks ,hooks))))
        (helm :sources ,source
              :buffer "*helm projectile*"
              :prompt (projectile-prepend-project-name ,prompt)))))
 
-(helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: ")
-(helm-projectile-command "find-file" helm-source-projectile-files-and-dired-list "Find file: ")
-(helm-projectile-command "find-file-in-known-projects" 'helm-source-projectile-files-in-all-projects-list "Find file in projects: ")
-(helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
-(helm-projectile-command "find-dir" helm-source-projectile-directories-and-dired-list "Find dir: ")
-(helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
-(helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
+(helm-projectile-command "switch-project"
+                         'helm-source-projectile-projects
+                         "Switch to project: "
+                         'projectile-switch-project-hook)
+
+(helm-projectile-command "find-file"
+                         helm-source-projectile-files-and-dired-list
+                         "Find file: "
+                         'projectile-find-file-hook)
+
+(helm-projectile-command "find-file-in-known-projects"
+                         'helm-source-projectile-files-in-all-projects-list
+                         "Find file in projects: "
+                         'projectile-find-file-hook)
+
+(helm-projectile-command "find-file-dwim"
+                         'helm-source-projectile-files-dwim-list
+                         "Find file: "
+                         'projectile-find-file-hook)
+
+(helm-projectile-command "find-dir"
+                         helm-source-projectile-directories-and-dired-list
+                         "Find dir: "
+                         'projectile-find-dir-hook)
+
+(helm-projectile-command "recentf"
+                         'helm-source-projectile-recentf-list
+                         "Recently visited file: "
+                         'projectile-find-file-hook)
+
+(helm-projectile-command "switch-to-buffer"
+                         'helm-source-projectile-buffers-list
+                         "Switch to buffer: ")
 
 ;;;###autoload
 (defun helm-projectile-find-other-file (&optional flex-matching)
@@ -587,7 +615,9 @@ Other file extensions can be customized with the variable `projectile-other-file
       (if (= (length other-files) 1)
           (find-file (expand-file-name (car other-files) (projectile-project-root)))
         (progn
-          (let* ((helm-ff-transformer-show-only-basename nil))
+          (let* ((helm-ff-transformer-show-only-basename nil)
+                 (helm-after-action-hook (lambda ()
+                                           (run-hooks 'projectile-find-file-hook))))
             (helm :sources (helm-build-in-buffer-source "Projectile other files"
                              :data other-files
                              :coerce 'helm-projectile-coerce-file
