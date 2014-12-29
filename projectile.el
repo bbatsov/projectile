@@ -92,8 +92,9 @@ method is that it's not well supported on Windows systems.
 By default alien indexing is the default on all operating
 systems, except Windows."
   :group 'projectile
-  :type 'symbol
-  :options '(native alien))
+  :type '(radio
+          (const :tag "Native" native)
+          (const :tag "Alien" alien)))
 
 (defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
   "When t enables project files caching.
@@ -131,8 +132,12 @@ Otherwise consider the current directory the project root."
 (defcustom projectile-completion-system 'ido
   "The completion system to be used by Projectile."
   :group 'projectile
-  :type 'symbol
-  :options '(ido grizzl helm default))
+  :type '(radio
+          (const :tag "Ido" ido)
+          (const :tag "Grizzl" grizzl)
+          (const :tag "Helm" helm)
+          (const :tag "Default" default)
+          (function :tag "Custom function")))
 
 (defcustom projectile-keymap-prefix (kbd "C-c p")
   "Projectile keymap prefix."
@@ -158,8 +163,12 @@ Otherwise consider the current directory the project root."
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files."
   :group 'projectile
-  :type 'symbol
-  :options '(default recentf recently-active access-time modification-time))
+  :type '(radio
+          (const :tag "default" default)
+          (const :tag "recentf" recentf)
+          (const :tag "recently active" recently-active)
+          (const :tag "access time" access-time)
+          (const :tag "modification time" modification-time)))
 
 (defcustom projectile-verbose t
   "Echo messages that are not errors."
