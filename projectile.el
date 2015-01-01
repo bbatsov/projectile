@@ -41,7 +41,6 @@
 (require 'f)
 (require 'dash)
 (require 'grep)           ; For `rgrep'
-(require 'pkg-info)       ; For `pkg-info-version-info'
 (require 'ibuffer)
 (require 'ibuf-ext)
 
@@ -53,6 +52,7 @@
 (declare-function ack-and-a-half "ack-and-a-half")
 (declare-function ggtags-ensure-project "ggtags")
 (declare-function ggtags-update-tags "ggtags")
+(declare-function pkg-info-version-info "pkg-info")
 (declare-function tags-completion-table "etags")
 
 ;;;; Compatibility
@@ -404,10 +404,12 @@ If the version number could not be determined, signal an error,
 if called interactively, or if SHOW-VERSION is non-nil, otherwise
 just return nil."
   (interactive (list t))
-  (let ((version (pkg-info-version-info 'projectile)))
-    (when show-version
-      (message "Projectile version: %s" version))
-    version))
+  (if (require 'pkg-info-version-info nil t)
+      (let ((version (pkg-info-version-info 'projectile)))
+        (when show-version
+          (message "Projectile version: %s" version))
+        version)
+    (error "Cannot determine version without package pkg-info")))
 
 
 ;;; Caching
