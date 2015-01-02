@@ -487,6 +487,7 @@ to invalidate."
   "Cache PROJECTs FILES.
 The cache is created both in memory and on the hard drive."
   (when projectile-enable-caching
+    (message "Empty cache. Projectile is initializing cache...")
     (puthash project files projectile-projects-cache)
     (projectile-serialize-cache)))
 
@@ -531,19 +532,17 @@ The cache is created both in memory and on the hard drive."
   (let* ((current-project (projectile-project-root))
          (abs-current-file (buffer-file-name (current-buffer)))
          (current-file (file-relative-name abs-current-file current-project)))
-    (if (gethash (projectile-project-root) projectile-projects-cache)
-        (unless (or (projectile-file-cached-p current-file current-project)
-                    (projectile-ignored-directory-p (file-name-directory abs-current-file))
-                    (projectile-ignored-file-p abs-current-file))
-          (puthash current-project
-                   (cons current-file (gethash current-project projectile-projects-cache))
-                   projectile-projects-cache)
-          (projectile-serialize-cache)
-          (message "File %s added to project %s cache."
-                   (propertize current-file 'face 'font-lock-keyword-face)
-                   (propertize current-project 'face 'font-lock-keyword-face)))
-      (message "Empty cache. Projectile is initializing cache...")
-      (projectile-current-project-files))))
+    (when (gethash (projectile-project-root) projectile-projects-cache)
+      (unless (or (projectile-file-cached-p current-file current-project)
+                  (projectile-ignored-directory-p (file-name-directory abs-current-file))
+                  (projectile-ignored-file-p abs-current-file))
+        (puthash current-project
+                 (cons current-file (gethash current-project projectile-projects-cache))
+                 projectile-projects-cache)
+        (projectile-serialize-cache)
+        (message "File %s added to project %s cache."
+                 (propertize current-file 'face 'font-lock-keyword-face)
+                 (propertize current-project 'face 'font-lock-keyword-face))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
