@@ -404,7 +404,7 @@ If the version number could not be determined, signal an error,
 if called interactively, or if SHOW-VERSION is non-nil, otherwise
 just return nil."
   (interactive (list t))
-  (if (require 'pkg-info-version-info nil t)
+  (if (require 'pkg-info nil t)
       (let ((version (pkg-info-version-info 'projectile)))
         (when show-version
           (message "Projectile version: %s" version))
