@@ -621,12 +621,15 @@ If you want to use these commands, you have to activate it to replace the normal
 commands:
 
 ```lisp
+;; (setq helm-projectile-fuzzy-match nil)
 (require 'helm-projectile)
 (helm-projectile-on)
 ```
 
 If you already activate helm-projectile key bindings and you don't like it, you can turn it off
-and use the normal Projectile bindings with command `helm-projectile-off`.
+and use the normal Projectile bindings with command `helm-projectile-off`. Similarly, if you want to
+disable fuzzy matching in Helm Projectile (it is enabled by default), you must set `helm-projectile-fuzzy-match`
+to nil before loading `helm-projectile`.
 
 To fully learn Helm Projectile and see what it is capable of, you should refer to this guide:
 [Exploring large projects with Projectile and Helm Projectile](http://tuhdo.github.io/helm-projectile.html).
