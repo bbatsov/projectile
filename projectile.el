@@ -45,11 +45,9 @@
 (require 'ibuf-ext)
 
 (eval-when-compile
-  (defvar ack-and-a-half-arguments)
   (defvar ggtags-completion-table)
   (defvar tags-completion-table))
 
-(declare-function ack-and-a-half "ack-and-a-half")
 (declare-function ggtags-ensure-project "ggtags")
 (declare-function ggtags-update-tags "ggtags")
 (declare-function pkg-info-version-info "pkg-info")
@@ -1692,31 +1690,6 @@ to `projectile-grep-default-files'."
           (grep-compute-defaults)
           (rgrep search-regexp (or files "* .*") root-dir))))))
 
-(defun projectile-ack (regexp &optional arg)
-  "Run an ack search with REGEXP in the project.
-
-With a prefix argument ARG prompts you for a directory on which the search is performed ."
-  (interactive
-   (list (read-from-minibuffer
-          (projectile-prepend-project-name "Ack search for: ")
-          (projectile-symbol-at-point))
-         current-prefix-arg))
-  (if (require 'ack-and-a-half nil 'noerror)
-      (let* ((saved-arguments ack-and-a-half-arguments)
-             (root (if arg
-                       (expand-file-name (projectile-complete-dir) (projectile-project-root))
-                     (projectile-project-root)))
-             (ack-and-a-half-arguments
-              (append saved-arguments
-                      (-union (-map (lambda (path)
-                                      (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
-                                    (projectile-ignored-directories))
-                              (-map (lambda (path)
-                                      (concat "--ignore-file=is:" (file-relative-name path root)))
-                                    (projectile-ignored-files))))))
-        (ack-and-a-half regexp t root))
-    (error "ack-and-a-half not available")))
-
 (defun projectile-ag (search-term &optional arg)
   "Run an ag search with SEARCH-TERM in the project.
 
@@ -2395,10 +2368,6 @@ is chosen."
   (projectile-commander))
 
 (defun projectile-commander-bindings ()
-  (def-projectile-commander-method ?a
-    "Run ack on project."
-    (call-interactively 'projectile-ack))
-
   (def-projectile-commander-method ?A
     "Find ag on project."
     (call-interactively 'projectile-ag))
@@ -2493,7 +2462,6 @@ is chosen."
     (define-key map (kbd "P") 'projectile-test-project)
     (define-key map (kbd "r") 'projectile-replace)
     (define-key map (kbd "R") 'projectile-regenerate-tags)
-    (define-key map (kbd "s a") 'projectile-ack)
     (define-key map (kbd "s g") 'projectile-grep)
     (define-key map (kbd "s s") 'projectile-ag)
     (define-key map (kbd "S") 'projectile-save-project-buffers)
@@ -2528,7 +2496,6 @@ is chosen."
    ["Open project in dired" projectile-dired]
    ["Switch to project" projectile-switch-project]
    ["Find in project (grep)" projectile-grep]
-   ["Find in project (ack)" projectile-ack]
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
    "--"
