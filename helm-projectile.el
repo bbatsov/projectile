@@ -58,6 +58,12 @@
 
 (defvar helm-projectile-current-project-root)
 
+;;;###autoload
+(defcustom helm-projectile-fuzzy-match t
+  "Enable fuzzy matching for Helm Projectile commands."
+  :group 'helm-projectile
+  :type 'boolean)
+
 (defun helm-projectile-coerce-file (candidate)
   (with-current-buffer (helm-candidate-buffer)
     (expand-file-name candidate (projectile-project-root))))
@@ -164,7 +170,7 @@ It is there because Helm requires it."
                 (cons (abbreviate-file-name (projectile-project-root))
                       (projectile-relevant-known-projects))
               projectile-known-projects))
-    :fuzzy-match t
+    :fuzzy-match helm-projectile-fuzzy-match
     :keymap (let ((map (make-sparse-keymap)))
               (set-keymap-parent map helm-map)
               (helm-projectile-define-key map
@@ -376,7 +382,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                 (helm-exit-minibuffer))
                ((> (length files) 1) files)
                (t  project-files))))
-    :fuzzy-match t
+    :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :action-transformer 'helm-find-files-action-transformer
     :keymap (let ((map (copy-keymap helm-find-files-map)))
@@ -392,7 +398,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   (helm-build-in-buffer-source "Projectile files"
     :data (lambda ()
             (projectile-current-project-files))
-    :fuzzy-match t
+    :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :keymap (let ((map (copy-keymap helm-find-files-map)))
               (helm-projectile-define-key map
@@ -467,7 +473,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
             (if projectile-find-dir-includes-top-level
                 (append '("./") (projectile-current-project-dirs))
               (projectile-current-project-dirs)))
-    :fuzzy-match t
+    :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :action-transformer 'helm-find-files-action-transformer
     :keymap (let ((map (make-sparse-keymap)))
@@ -522,7 +528,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   (helm-build-in-buffer-source "Projectile recent files"
     :data (lambda ()
             (projectile-recentf-files))
-    :fuzzy-match t
+    :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :keymap helm-projectile-find-file-map
     :help-message 'helm-ff-help-message
