@@ -2495,7 +2495,8 @@ is chosen."
    "--"
    ["Open project in dired" projectile-dired]
    ["Switch to project" projectile-switch-project]
-   ["Find in project (grep)" projectile-grep]
+   ["Search in project (grep)" projectile-grep]
+   ["Search in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
    "--"
