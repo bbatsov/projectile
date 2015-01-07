@@ -722,6 +722,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                                    (concat "--ignore " i))
                                  (append grep-find-ignored-files grep-find-ignored-directories)
                                  " "))
+             (helm-ag-command-option (read-string "option: " "" 'helm-ag-command-history))
              (helm-ag-base-command (concat helm-ag-base-command " " ignored)))
         (helm-do-ag (projectile-project-root)))
     (error "helm-ag not available")))
