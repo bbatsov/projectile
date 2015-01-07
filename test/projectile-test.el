@@ -87,15 +87,6 @@
     (should (equal '(("include/") . ("log" "tmp" "compiled"))
                    (projectile-parse-dirconfig-file)))))
 
-(ert-deftest projectile-test-ack ()
-  (let ((ack-and-a-half-arguments '()))
-    (noflet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/log"))
-             (ack-and-a-half (pattern regexp dir) '("result"))
-             (call-interactively
-              (function &optional record-flag keys)
-              (should (equal ack-and-a-half-arguments '("--ignore-dir=tmp" "--ignore-dir=log")))))
-      (projectile-ack "test"))))
-
 (ert-deftest projectile-test-get-project-directories ()
   (noflet ((projectile-project-root () "/my/root/")
            (projectile-parse-dirconfig-file () '(nil)))

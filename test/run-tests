@@ -8,7 +8,6 @@
 (add-to-list 'load-path projectile-test-path)
 
 (require 'projectile)
-(require 'ack-and-a-half)
 (require 'noflet)
 
 (load (expand-file-name "test-helper.el" projectile-test-path) nil t)
