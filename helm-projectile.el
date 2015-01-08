@@ -1,6 +1,6 @@
 ;;; helm-projectile.el --- Helm integration for Projectile
 
-;; Copyright (C) 2011-2013 Bozhidar Batsov
+;; Copyright (C) 2011-2015 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
