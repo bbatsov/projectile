@@ -374,14 +374,16 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-files-dwim-list
   (helm-build-in-buffer-source "Projectile files"
     :data (lambda ()
-            (let* ((project-files (projectile-current-project-files))
-                   (files (projectile-select-files project-files)))
-              (cond
-               ((= (length files) 1)
-                (find-file (expand-file-name (car files) (projectile-project-root)))
-                (helm-exit-minibuffer))
-               ((> (length files) 1) files)
-               (t  project-files))))
+            (condition-case nil
+                (let* ((project-files (projectile-current-project-files))
+                       (files (projectile-select-files project-files)))
+                  (cond
+                   ((= (length files) 1)
+                    (find-file (expand-file-name (car files) (projectile-project-root)))
+                    (helm-exit-minibuffer))
+                   ((> (length files) 1) files)
+                   (t  project-files)))
+              (error nil)))
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :action-transformer 'helm-find-files-action-transformer
@@ -397,7 +399,9 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-files-list
   (helm-build-in-buffer-source "Projectile files"
     :data (lambda ()
-            (projectile-current-project-files))
+            (condition-case nil
+                (projectile-current-project-files)
+              (error nil)))
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :keymap (let ((map (copy-keymap helm-find-files-map)))
@@ -414,8 +418,10 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-files-in-all-projects-list
   (helm-build-in-buffer-source "Projectile files in all Projects"
     :data (lambda ()
-            (let ((projectile-require-project-root nil))
-              (projectile-all-project-files)))
+            (condition-case nil
+                (let ((projectile-require-project-root nil))
+                  (projectile-all-project-files))
+              (error nil)))
     :coerce 'helm-projectile-coerce-file
     :keymap helm-projectile-find-file-map
     :help-message 'helm-ff-help-message
@@ -433,14 +439,16 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-dired-files-list
   (helm-build-in-buffer-source "Projectile files in current Dired buffer"
     :data (lambda ()
-            (if (and (file-remote-p (projectile-project-root))
-                     (not helm-projectile-virtual-dired-remote-enable))
-                nil
-              (let ((default-directory (projectile-project-root)))
-                (when (eq major-mode 'dired-mode)
-                  (mapcar (lambda (file)
-                            (replace-regexp-in-string default-directory "" file))
-                          (helm-projectile-files-in-current-dired-buffer))))))
+            (condition-case nil
+                (if (and (file-remote-p (projectile-project-root))
+                         (not helm-projectile-virtual-dired-remote-enable))
+                    nil
+                  (let ((default-directory (projectile-project-root)))
+                    (when (eq major-mode 'dired-mode)
+                      (mapcar (lambda (file)
+                                (replace-regexp-in-string default-directory "" file))
+                              (helm-projectile-files-in-current-dired-buffer)))))
+              (error nil)))
     :coerce 'helm-projectile-coerce-file
     :filter-one-by-one (lambda (file)
                          (let ((default-directory (projectile-project-root)))
@@ -470,9 +478,11 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-directories-list
   (helm-build-in-buffer-source "Projectile directories"
     :data (lambda ()
-            (if projectile-find-dir-includes-top-level
-                (append '("./") (projectile-current-project-dirs))
-              (projectile-current-project-dirs)))
+            (condition-case nil
+                (if projectile-find-dir-includes-top-level
+                    (append '("./") (projectile-current-project-dirs))
+                  (projectile-current-project-dirs))
+              (error nil)))
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :action-transformer 'helm-find-files-action-transformer
@@ -527,7 +537,9 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defvar helm-source-projectile-recentf-list
   (helm-build-in-buffer-source "Projectile recent files"
     :data (lambda ()
-            (projectile-recentf-files))
+            (condition-case nil
+                (projectile-recentf-files)
+              (error nil)))
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :keymap helm-projectile-find-file-map
@@ -553,19 +565,22 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
   "Default sources for `helm-projectile'."
   :group 'helm-projectile)
 
-
-(defmacro helm-projectile-command (command source prompt)
+(defmacro helm-projectile-command (command source prompt &optional not-require-root)
   "Template for generic helm-projectile commands.
 COMMAND is a command name to be appended with \"helm-projectile\" prefix.
 SOURCE is a Helm source that should be Projectile specific.
-PROMPT is a string for displaying as a prompt."
+PROMPT is a string for displaying as a prompt.
+NOT-REQUIRE-ROOT specifies the command doesn't need to be used in a
+project root."
   `(defun ,(intern (concat "helm-projectile-" command)) (&optional arg)
      "Use projectile with Helm for finding files in project
 
 With a prefix ARG invalidates the cache first."
      (interactive "P")
      (if (projectile-project-p)
-         (projectile-maybe-invalidate-cache arg))
+         (projectile-maybe-invalidate-cache arg)
+       (unless ,not-require-root
+         (error "You're not in a project")))
      (let ((helm-ff-transformer-show-only-basename nil)
            ;; for consistency, we should just let Projectile take care of ignored files
            (helm-boring-file-regexp-list nil))
@@ -573,7 +588,7 @@ With a prefix ARG invalidates the cache first."
              :buffer "*helm projectile*"
              :prompt (projectile-prepend-project-name ,prompt)))))
 
-(helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: ")
+(helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: " t)
 (helm-projectile-command "find-file" helm-source-projectile-files-and-dired-list "Find file: ")
 (helm-projectile-command "find-file-in-known-projects" 'helm-source-projectile-files-in-all-projects-list "Find file in projects: ")
 (helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
