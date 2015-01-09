@@ -250,12 +250,14 @@ CANDIDATE is the selected file, but choose the marked files if available."
            (not helm-projectile-virtual-dired-remote-enable))
       (message "Virtual Dired manager is disabled in remote host. Enable with %s."
                (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
-    (let ((new-name (completing-read "Select a Dired buffer:"
+    (let ((new-name (completing-read "Select or enter a new buffer name: "
                                      (helm-projectile-all-dired-buffers)))
           (helm--reading-passwd-or-string t)
-          (files (mapcar (lambda (file)
-                           (replace-regexp-in-string (projectile-project-root) "" file))
-                         (helm-marked-candidates :with-wildcard t)))
+          (files (filter (lambda (f)
+                           (not (string-empty-p f)))
+                         (mapcar (lambda (file)
+                                   (replace-regexp-in-string (projectile-project-root) "" file))
+                                 (helm-marked-candidates :with-wildcard t))))
           (default-directory (projectile-project-root)))
       ;; create a unique buffer that is unique to any directory in default-directory
       ;; or opened buffer; when Dired is passed with a non-existence directory name,
@@ -272,7 +274,7 @@ CANDIDATE is the selected file, but choose the marked files if available."
 
 (defun helm-projectile-dired-files-add-action (candidate)
   "Add files to a Dired buffer.
-CANDIDATE is the selected file. Used when no file is explicitly marked."
+CANDIDATE is the selected file.  Used when no file is explicitly marked."
   (if (and (file-remote-p (projectile-project-root))
            (not helm-projectile-virtual-dired-remote-enable))
       (message "Virtual Dired manager is disabled in remote host. Enable with %s."
@@ -342,7 +344,6 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     (helm-projectile-define-key map
       (kbd "C-c f") 'helm-projectile-dired-files-new-action
       (kbd "C-c a") 'helm-projectile-dired-files-add-action
-      (kbd "C-c f") 'helm-projectile-dired-from-files
       (kbd "M-e") 'helm-projectile-switch-to-eshell
       (kbd "M-.") 'helm-projectile-ff-etags-select-action
       (kbd "M-!") 'helm-projectile-find-files-eshell-command-on-file-action)
