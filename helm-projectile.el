@@ -685,27 +685,31 @@ If it is nil, or ack/ack-grep not found then use default grep command."
 (defun helm-projectile-grep ()
   "Helm version of projectile-grep."
   (interactive)
-  (funcall'run-with-timer 0.01 nil
-                          #'helm-projectile-grep-or-ack nil))
+  (if (projectile-project-p)
+      (funcall'run-with-timer 0.01 nil
+                              #'helm-projectile-grep-or-ack nil)
+    (error "You're not in a project")))
 
 ;;;###autoload
 (defun helm-projectile-ack ()
   "Helm version of projectile-ack."
   (interactive)
-  (let ((ack-ignored (mapconcat
-                      'identity
-                      (-union (-map (lambda (path)
-                                      (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
-                                    projectile-globally-ignored-directories)
-                              (-map (lambda (path)
-                                      (concat "--ignore-file=match:" (shell-quote-argument path)))
-                                    projectile-globally-ignored-files)) " "))
-        (helm-ack-grep-executable (cond
-                                   ((executable-find "ack") "ack")
-                                   ((executable-find "ack-grep") "ack-grep")
-                                   (t (error "ack or ack-grep is not available.")))))
-    (funcall 'run-with-timer 0.01 nil
-             #'helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable)))
+  (if (projectile-project-p)
+      (let ((ack-ignored (mapconcat
+                          'identity
+                          (-union (-map (lambda (path)
+                                          (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
+                                        projectile-globally-ignored-directories)
+                                  (-map (lambda (path)
+                                          (concat "--ignore-file=match:" (shell-quote-argument path)))
+                                        projectile-globally-ignored-files)) " "))
+            (helm-ack-grep-executable (cond
+                                       ((executable-find "ack") "ack")
+                                       ((executable-find "ack-grep") "ack-grep")
+                                       (t (error "ack or ack-grep is not available.")))))
+        (funcall 'run-with-timer 0.01 nil
+                 #'helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable))
+    (error "You're not in a project")))
 
 
 ;;;###autoload
@@ -715,15 +719,17 @@ If it is nil, or ack/ack-grep not found then use default grep command."
   (unless (executable-find "ag")
     (error "ag not available"))
   (if (require 'helm-ag nil  'noerror)
-      (let* ((helm-ag-insert-at-point 'symbol)
-             (grep-find-ignored-files (-union projectile-globally-ignored-files grep-find-ignored-files))
-             (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
-             (ignored (mapconcat (lambda (i)
-                                   (concat "--ignore " i))
-                                 (append grep-find-ignored-files grep-find-ignored-directories)
-                                 " "))
-             (helm-ag-base-command (concat helm-ag-base-command " " ignored)))
-        (helm-do-ag (projectile-project-root)))
+      (if (projectile-project-p)
+          (let* ((helm-ag-insert-at-point 'symbol)
+                 (grep-find-ignored-files (-union projectile-globally-ignored-files grep-find-ignored-files))
+                 (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
+                 (ignored (mapconcat (lambda (i)
+                                       (concat "--ignore " i))
+                                     (append grep-find-ignored-files grep-find-ignored-directories)
+                                     " "))
+                 (helm-ag-base-command (concat helm-ag-base-command " " ignored)))
+            (helm-do-ag (projectile-project-root)))
+        (error "You're not in a project"))
     (error "helm-ag not available")))
 
 (defun helm-projectile-commander-bindings ()
