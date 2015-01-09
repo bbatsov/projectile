@@ -339,14 +339,17 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 
 (defvar helm-projectile-find-file-map
   (let ((map (copy-keymap helm-find-files-map)))
-    (define-key map (kbd "<left>") 'helm-previous-source)
-    (define-key map (kbd "<right>") 'helm-next-source)
     (helm-projectile-define-key map
+      (kbd "C-c f") 'helm-projectile-dired-files-new-action
+      (kbd "C-c a") 'helm-projectile-dired-files-add-action
       (kbd "C-c f") 'helm-projectile-dired-from-files
       (kbd "M-e") 'helm-projectile-switch-to-eshell
       (kbd "M-.") 'helm-projectile-ff-etags-select-action
       (kbd "M-!") 'helm-projectile-find-files-eshell-command-on-file-action)
-    map))
+    (define-key map (kbd "<left>") 'helm-previous-source)
+    (define-key map (kbd "<right>") 'helm-next-source)
+    map)
+  "Mapping for file commands in Helm Projectile.")
 
 (defvar helm-projectile-file-actions
   (helm-projectile-hack-actions
@@ -387,10 +390,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :action-transformer 'helm-find-files-action-transformer
-    :keymap (let ((map (copy-keymap helm-find-files-map)))
-              (define-key map (kbd "<left>") 'helm-previous-source)
-              (define-key map (kbd "<right>") 'helm-next-source)
-              map)
+    :keymap helm-projectile-find-file-map
     :help-message helm-ff-help-message
     :mode-line helm-ff-mode-line-string
     :action helm-projectile-file-actions)
@@ -404,11 +404,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
               (error nil)))
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
-    :keymap (let ((map (copy-keymap helm-find-files-map)))
-              (helm-projectile-define-key map
-                (kbd "C-c f") 'helm-projectile-dired-files-new-action
-                (kbd "C-c a") 'helm-projectile-dired-files-add-action)
-              map)
+    :keymap helm-projectile-find-file-map
     :help-message 'helm-ff-help-message
     :mode-line helm-ff-mode-line-string
     :action helm-projectile-file-actions
@@ -423,7 +419,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                   (projectile-all-project-files))
               (error nil)))
     :coerce 'helm-projectile-coerce-file
-    :keymap helm-projectile-find-file-map
+    :keymap helm-find-files-map
     :help-message 'helm-ff-help-message
     :mode-line helm-ff-mode-line-string
     :action helm-projectile-file-actions
@@ -454,10 +450,8 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                          (let ((default-directory (projectile-project-root)))
                            (helm-ff-filter-candidate-one-by-one file)))
     :action-transformer 'helm-find-files-action-transformer
-    :keymap (let ((map (copy-keymap helm-find-files-map)))
+    :keymap (let ((map (copy-keymap helm-projectile-find-file-map)))
               (helm-projectile-define-key map
-                (kbd "C-c f") 'helm-projectile-dired-files-new-action
-                (kbd "C-c a") 'helm-projectile-dired-files-add-action
                 (kbd "C-c d") 'helm-projectile-dired-files-delete-action)
               map)
     :help-message 'helm-ff-help-message
@@ -489,6 +483,8 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     :keymap (let ((map (make-sparse-keymap)))
               (set-keymap-parent map helm-map)
               (helm-projectile-define-key map
+                (kbd "<left>") 'helm-previous-source
+                (kbd "<right>") 'helm-next-source
                 (kbd "C-c o") 'helm-projectile-dired-find-dir-other-window
                 (kbd "M-e")   'helm-projectile-switch-to-eshell
                 (kbd "C-c f") 'helm-projectile-dired-files-new-action
