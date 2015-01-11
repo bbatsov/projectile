@@ -1,11 +1,10 @@
 from projectile-testdata
-run apt-get -q -y update
-run apt-get install -y \
+run apt-get -q -y update && \
+    apt-get install -y \
     curl \
     git-core \
     openssh-server \
-    trickle \
-    && true
+    trickle
 
 run apt-get install -y inotify-tools
 

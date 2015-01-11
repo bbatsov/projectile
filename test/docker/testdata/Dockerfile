@@ -1,10 +1,9 @@
 from debian:unstable
 
-run apt-get -q -y update
-run apt-get install -y \
+run apt-get -q -y update && \
+    apt-get install -y \
     curl \
-    git-core \
-    && true
+    git-core
 
 run mkdir /testdata
 workdir /testdata
