@@ -634,16 +634,16 @@ If it is nil, or ack/ack-grep not found then use default grep command."
          (grep-find-ignored-files (-union projectile-globally-ignored-files  grep-find-ignored-files))
          (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
          (helm-grep-default-command (if use-ack-p
-                                        (concat ack-executable " -H --smart-case --no-group --no-color " ack-ignored-pattern " %p %f")
-                                      (concat "grep -a -d recurse %e -n%cH -e %p %f " (projectile-project-root))))
+                                        (concat ack-executable " -Hn --no-group --no-color " ack-ignored-pattern " %p %f")
+                                      "grep -a -r %e -n%cH -e %p %f ."))
          (helm-grep-default-recurse-command helm-grep-default-command)
          (helm-source-grep
           (helm-build-async-source
               (capitalize (helm-grep-command t))
             :header-name (lambda (name)
                            (let ((name (if use-ack-p
-                                           "Ack"
-                                         "Grep")))
+                                           "Helm Projectile Ack"
+                                         "Helm Projectile Grep")))
                              (concat name " " "(C-c ? Help)")))
             :candidates-process 'helm-grep-collect-candidates
             :filter-one-by-one 'helm-grep-filter-one-by-one
@@ -722,7 +722,6 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                  #'helm-projectile-grep-or-ack t ack-ignored helm-ack-grep-executable))
     (error "You're not in a project")))
 
-
 ;;;###autoload
 (defun helm-projectile-ag ()
   "Helm version of projectile-ag."
@@ -789,7 +788,6 @@ If it is nil, or ack/ack-grep not found then use default grep command."
         (define-key projectile-command-map (kbd "p") 'helm-projectile-switch-project)
         (define-key projectile-command-map (kbd "e") 'helm-projectile-recentf)
         (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer)
-        (define-key projectile-command-map (kbd "s a") 'helm-projectile-ack)
         (define-key projectile-command-map (kbd "s g") 'helm-projectile-grep)
         (define-key projectile-command-map (kbd "s s") 'helm-projectile-ag)
         (helm-projectile-commander-bindings))
@@ -803,7 +801,6 @@ If it is nil, or ack/ack-grep not found then use default grep command."
       (define-key projectile-command-map (kbd "p") 'projectile-switch-project)
       (define-key projectile-command-map (kbd "e") 'projectile-recentf)
       (define-key projectile-command-map (kbd "b") 'projectile-switch-to-buffer)
-      (define-key projectile-command-map (kbd "s a") 'projectile-ack)
       (define-key projectile-command-map (kbd "s g") 'projectile-grep)
       (define-key projectile-command-map (kbd "s s") 'projectile-ag)
       (projectile-commander-bindings))))
