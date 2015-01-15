@@ -216,7 +216,7 @@ will be added in the future.
 ###### `projectile-find-file-in-known-projects`
 
 Similar to `projectile-find-file` but lists all files in all known projects. Since
-the total number of fils could be huge, it is beneficial to enable caching for subsequent
+the total number of files could be huge, it is beneficial to enable caching for subsequent
 usages.
 
 ###### `projectile-find-file-dwim`
@@ -649,7 +649,7 @@ focus on the files of the current active project.
 A picture says a thousand words. See below screenshot to get a concrete idea.
 
 Only current project related files showing in minibuffer when I call
-`ido-swith-buffer`, and an indicator in mode line tells me which
+`ido-switch-buffer`, and an indicator in mode line tells me which
 project that I'm in.
 
 ![Persp-Projectile Screenshot 1](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile1.png)
