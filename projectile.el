@@ -592,7 +592,7 @@ Returns nil if no window configuration was found"
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
   (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
-             (true-filename (projectile-file-truename filename))
+             (true-filename (file-truename filename))
              (relative-filename (file-relative-name true-filename project-root)))
         (if (projectile-file-cached-p relative-filename project-root)
             (projectile-purge-file-from-cache relative-filename)))))
@@ -982,7 +982,7 @@ Operates on filenames relative to the project root."
          (not (projectile-ignored-buffer-p buffer))
          (s-equals? (file-remote-p default-directory) (file-remote-p project-root))
          (not (s-matches? "^http\\(s\\)?://" default-directory))
-         (s-starts-with? project-root (projectile-file-truename default-directory)))))
+         (s-starts-with? project-root (file-truename default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
@@ -2332,7 +2332,7 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
 
 (defun projectile-ignored-projects ()
   "A list of projects that should not be save in `projectile-known-projects'."
-  (-map 'projectile-file-truename projectile-ignored-projects))
+  (-map 'file-truename projectile-ignored-projects))
 
 (defun projectile-add-known-project (project-root)
   "Add PROJECT-ROOT to the list of known projects."
