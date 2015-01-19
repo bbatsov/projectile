@@ -253,8 +253,8 @@ CANDIDATE is the selected file, but choose the marked files if available."
     (let ((new-name (completing-read "Select or enter a new buffer name: "
                                      (helm-projectile-all-dired-buffers)))
           (helm--reading-passwd-or-string t)
-          (files (filter (lambda (f)
-                           (not (string-empty-p f)))
+          (files (cl-remove-if-not (lambda (f)
+                           (not (string= f "")))
                          (mapcar (lambda (file)
                                    (replace-regexp-in-string (projectile-project-root) "" file))
                                  (helm-marked-candidates :with-wildcard t))))
