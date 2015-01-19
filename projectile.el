@@ -1661,18 +1661,21 @@ This is a subset of `grep-read-files', where either a matching entry from
                (and ext (concat "*." ext)))))
       (or default-alias default-extension))))
 
-(defun projectile-grep (&optional arg)
+(defun projectile-grep (&optional regexp arg)
   "Perform rgrep in the project.
 
 With a prefix ARG asks for files (globbing-aware) which to grep in.
 With prefix ARG of `-' (such as `M--'), default the files (without prompt),
-to `projectile-grep-default-files'."
-  (interactive "P")
+to `projectile-grep-default-files'.
+
+With REGEXP given, don't query the user for a regexp."
+  (interactive "i\nP")
   (let* ((roots (projectile-get-project-directories))
-         (search-regexp (if (and transient-mark-mode mark-active)
-                            (buffer-substring (region-beginning) (region-end))
-                          (read-string (projectile-prepend-project-name "Grep for: ")
-                                       (projectile-symbol-at-point))))
+         (search-regexp (or regexp
+                            (if (and transient-mark-mode mark-active)
+                                (buffer-substring (region-beginning) (region-end))
+                              (read-string (projectile-prepend-project-name "Grep for: ")
+                                           (projectile-symbol-at-point)))))
          (files (and arg (or (and (equal current-prefix-arg '-)
                                   (projectile-grep-default-files))
                              (read-string (projectile-prepend-project-name "Grep in: ")

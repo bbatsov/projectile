@@ -34,6 +34,7 @@ buffers by name
 * Collect search tool (`grep`, `ag`, `ack`) keybindings under a common keymap prefix (`C-c p s`)
 * Remove `defcustom` `projectile-remember-window-configs` in favor of
   `persp-projectile.el`.
+* Add an argument specifying the regexp to search to `projectile-grep`.
 
 ### Bugs fixed
 
