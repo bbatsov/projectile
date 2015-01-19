@@ -250,6 +250,15 @@ CANDIDATE is the selected file, but choose the marked files if available."
            (not helm-projectile-virtual-dired-remote-enable))
       (message "Virtual Dired manager is disabled in remote host. Enable with %s."
                (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
+    ;; When RET is hit to exit the minibuffer after typing a new dired buffer
+    ;; name as part of completing-read below, emacs goes into infinite loop with
+    ;; "[Display not ready]" message.  Apparently new names are not accepted.
+    ;; One way to prevent this infinite loop is to set
+    ;; helm--reading-passwd-or-string to non-nil which prevents
+    ;; helm-maybe-exit-minibuffer from going into infinite loop.
+    ;; This hack probably is not an acceptible solution to the problem.
+    ;; 
+    (let ((helm--reading-passwd-or-string t))
     (let ((new-name (completing-read "Select or enter a new buffer name: "
                                      (helm-projectile-all-dired-buffers)))
           (helm--reading-passwd-or-string t)
@@ -271,6 +280,7 @@ CANDIDATE is the selected file, but choose the marked files if available."
         (when (get-buffer new-name)
           (kill-buffer new-name))
         (rename-buffer new-name)))))
+        )
 
 (defun helm-projectile-dired-files-add-action (candidate)
   "Add files to a Dired buffer.
