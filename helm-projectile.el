@@ -253,11 +253,11 @@ CANDIDATE is the selected file, but choose the marked files if available."
     (let ((new-name (completing-read "Select or enter a new buffer name: "
                                      (helm-projectile-all-dired-buffers)))
           (helm--reading-passwd-or-string t)
-          (files (filter (lambda (f)
-                           (not (string= f "")))
-                         (mapcar (lambda (file)
-                                   (replace-regexp-in-string (projectile-project-root) "" file))
-                                 (helm-marked-candidates :with-wildcard t))))
+          (files (-filter (lambda (f)
+                            (not (string= f "")))
+                          (mapcar (lambda (file)
+                                    (replace-regexp-in-string (projectile-project-root) "" file))
+                                  (helm-marked-candidates :with-wildcard t))))
           (default-directory (projectile-project-root)))
       ;; create a unique buffer that is unique to any directory in default-directory
       ;; or opened buffer; when Dired is passed with a non-existence directory name,
