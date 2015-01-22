@@ -2558,12 +2558,14 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t t)
     (add-hook 'projectile-find-dir-hook 'projectile-cache-projects-find-file-hook)
     (add-hook 'find-file-hook 'projectile-visit-project-tags-table t t)
+    (add-hook 'dired-before-readin-hook 'projectile-cache-projects-find-file-hook t t)
     (ad-activate 'compilation-find-file)
     (ad-activate 'delete-file))
    (t
     (remove-hook 'find-file-hook 'projectile-cache-files-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-cache-projects-find-file-hook t)
     (remove-hook 'find-file-hook 'projectile-visit-project-tags-table t)
+    (remove-hook 'dired-before-readin-hook 'projectile-cache-projects-find-file-hook t)
     (ad-deactivate 'compilation-find-file)
     (ad-deactivate 'delete-file))))
 
