@@ -1243,6 +1243,7 @@ With a prefix ARG invalidates the cache first."
                   nil)))
     files))
 
+;;;###autoload
 (defun projectile-find-file-dwim (&optional arg)
   "Jump to a project's files using completion based on context.
 
@@ -1277,6 +1278,7 @@ the content of that directory.  If it is executed on a partial filename like
      (t (find-file (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
     (run-hooks 'projectile-find-file-hook)))
 
+;;;###autoload
 (defun projectile-find-file-dwim-other-window (&optional arg)
   "Jump to a project's files using completion based on context in other window.
 
@@ -1312,6 +1314,7 @@ is presented.
      (t (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
     (run-hooks 'projectile-find-file-hook)))
 
+;;;###autoload
 (defun projectile-find-file (&optional arg)
   "Jump to a project's file using completion.
 With a prefix ARG invalidates the cache first."
@@ -1322,6 +1325,7 @@ With a prefix ARG invalidates the cache first."
     (find-file (expand-file-name file (projectile-project-root)))
     (run-hooks 'projectile-find-file-hook)))
 
+;;;###autoload
 (defun projectile-find-file-other-window (&optional arg)
   "Jump to a project's file using completion and show it in another window.
 
