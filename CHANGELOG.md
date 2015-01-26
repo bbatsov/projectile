@@ -4,6 +4,7 @@
 
 ### New features
 
+* Refactor `projectile-file-exists-(local|remote)-cache-expire`.
 * Replace Helm equivalent commands in `projectile-commander` when using Helm.
 * Add replacement commands projectile-grep, projectile-ack and projectile-ag with its Helm version.
 * Add virtual directory manager that allows to create/update (add or delete files) a Dired buffer based on Projectile files.

@@ -308,8 +308,7 @@
   (with-sandbox
    (f-mkdir "project" "dirA" "dirB")
    (f-touch "project/fileA")
-   (let ((projectile-file-exists-local-cache-expire nil)
-         (projectile-file-exists-remote-cache-expire nil))
+   (let ((projectile-file-exists-cache-predicates nil))
      (should (projectile-file-exists-p "project/fileA"))
      (should (projectile-file-exists-p "project/dirA/dirB"))
      (should-not (projectile-file-exists-p "project/dirA/fileB"))
@@ -323,10 +322,8 @@
   (with-sandbox
    (f-mkdir "dirA" "dirB")
    (f-touch "fileA")
-   (let* ((initial-time (current-time))
-          (projectile-file-exists-local-cache-expire 100)
-          (projectile-file-exists-remote-cache-expire nil))
-
+   (let ((initial-time (current-time))
+         (projectile-file-exists-cache-predicates '(((lambda (f) t) 100))))
      (noflet ((run-with-timer (&rest args) 'nooptimer))
        (noflet ((current-time () initial-time))
          (should (projectile-file-exists-p "fileA"))
