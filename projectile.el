@@ -1236,6 +1236,9 @@ With a prefix ARG invalidates the cache first."
   (let* ((file (if (region-active-p)
                    (buffer-substring (region-beginning) (region-end))
                  (or (thing-at-point 'filename) "")))
+         (file (if (string-match "\\.?\\./" file)
+                   (file-relative-name (file-truename file) (projectile-project-root))
+                 file))
          (files (if file
                     (-filter (lambda (project-file)
                                (string-match file project-file))
