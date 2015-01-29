@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 0.11.0
-;; Package-Requires: ((s "1.6.0") (f "0.17.1") (dash "1.5.0") (pkg-info "0.4"))
+;; Package-Requires: ((dash "1.5.0") (pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,8 +37,6 @@
 ;;; Code:
 
 (require 'thingatpt)
-(require 's)
-(require 'f)
 (require 'dash)
 (require 'grep)           ; For `rgrep'
 (require 'ibuffer)
@@ -55,6 +53,7 @@
 
 ;;;; Compatibility
 (eval-and-compile
+  ;; Added in Emacs 24.3.
   (unless (fboundp 'defvar-local)
     (defmacro defvar-local (var val &optional docstring)
       "Define VAR as a buffer-local variable with default value VAL.
@@ -63,7 +62,25 @@ buffer-local wherever it is set."
       (declare (debug defvar) (doc-string 3))
       `(progn
          (defvar ,var ,val ,docstring)
-         (make-variable-buffer-local ',var)))))
+         (make-variable-buffer-local ',var))))
+
+  ;; Added in Emacs 24.4
+  (unless (fboundp 'string-suffix-p)
+    (defun string-suffix-p (suffix string  &optional ignore-case)
+      "Return non-nil if SUFFIX is a suffix of STRING.
+If IGNORE-CASE is non-nil, the comparison is done without paying
+attention to case differences."
+      (let ((start-pos (- (length string) (length suffix))))
+        (and (>= start-pos 0)
+             (eq t (compare-strings suffix nil nil
+                                    string start-pos nil ignore-case))))))
+  )
+
+(defun projectile-trim-string (string)
+  "Remove whitespace at the beginning and end of STRING."
+  (->> string
+       (replace-regexp-in-string "\\`[ \t\n\r]+" "")
+       (replace-regexp-in-string "[ \t\n\r]+\\'" "")))
 
 
 ;;; Customization
@@ -514,9 +531,7 @@ The cache is created both in memory and on the hard drive."
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (puthash project-root
-             (-filter (lambda (file)
-                        (s-starts-with-p dir file))
-                      project-cache)
+             (--filter (string-prefix-p dir it) project-cache)
              projectile-projects-cache)))
 
 (defun projectile-file-cached-p (file project)
@@ -820,33 +835,16 @@ PROJECT is base directory to start search recursively."
   "Index DIRECTORY taking into account PATTERNS.
 The function calls itself recursively until all sub-directories
 have been indexed."
-  (let (files-list)
-    (dolist (current-file (file-name-all-completions "" directory) files-list)
-      (let ((absolute-file (expand-file-name current-file directory)))
-        (cond
-         ;; check for directories that are not ignored
-         ((and (s-ends-with-p "/" current-file)
-               ;; avoid loops & ignore some well known directories
-               (not (-any? (lambda (file)
-                             (string= (s-chop-suffix "/" current-file) file))
-                           '("." ".." ".svn" ".cvs")))
-               (not (projectile-ignored-directory-p absolute-file))
-               (not (and patterns
-                         (projectile-ignored-rel-p absolute-file
-                                                   directory patterns))))
-          (setq files-list (append files-list
-                                   (projectile-index-directory
-                                    (expand-file-name current-file directory)
-                                    patterns))))
-         ;; check for regular files that are not ignored
-         ((and (not (s-ends-with-p "/" current-file))
-               (not (projectile-ignored-file-p absolute-file))
-               (not (and patterns
-                         (projectile-ignored-rel-p absolute-file
-                                                   directory patterns))))
-          (setq files-list (cons
-                            (expand-file-name current-file directory)
-                            files-list))))))))
+  (--mapcat
+   (unless (or (and patterns (projectile-ignored-rel-p it directory patterns))
+               (member (file-name-nondirectory (directory-file-name it))
+                       '("." ".." ".svn" ".cvs")))
+     (if (file-directory-p it)
+         (unless (projectile-ignored-directory-p it)
+           (projectile-index-directory it patterns))
+       (unless (projectile-ignored-file-p it)
+         (list it))))
+   (directory-files directory t)))
 
 (defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
@@ -855,7 +853,7 @@ Operates on filenames relative to the project root."
   (let ((ignored (append (projectile-ignored-files-rel)
                          (projectile-ignored-directories-rel))))
     (-remove (lambda (file)
-               (--any-p  (s-starts-with-p it file) ignored))
+               (--any-p (string-prefix-p it file) ignored))
              files)))
 
 (defun projectile-buffers-with-file (buffers)
@@ -893,19 +891,20 @@ Operates on filenames relative to the project root."
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
-    (and (not (s-starts-with? " " (buffer-name buffer)))
+    (and (not (string-prefix-p " " (buffer-name buffer)))
          (not (projectile-ignored-buffer-p buffer))
-         (s-equals? (file-remote-p default-directory) (file-remote-p project-root))
-         (not (s-matches? "^http\\(s\\)?://" default-directory))
-         (s-starts-with? project-root (file-truename default-directory)))))
+         (string-equal (file-remote-p default-directory)
+                       (file-remote-p project-root))
+         (not (string-match-p "^http\\(s\\)?://" default-directory))
+         (string-prefix-p project-root (file-truename default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
   (or
    (member (buffer-name buffer) projectile-globally-ignored-buffers)
    (with-current-buffer buffer
-     (--any-p (s-matches? (concat "^" it "$")
-                          (symbol-name major-mode))
+     (--any-p (string-match-p (concat "^" it "$")
+                              (symbol-name major-mode))
               projectile-globally-ignored-modes))))
 
 (defun projectile-recently-active-files ()
@@ -984,11 +983,10 @@ Only buffers not visible in windows are returned."
 (defun projectile-ignored-rel-p (file directory patterns)
   "Check if FILE should be ignored relative to DIRECTORY according to PATTERNS."
   (let ((default-directory directory))
-    (-any? (lambda (pattern)
-             (or (s-ends-with? (s-chop-suffix "/" pattern)
-                               (s-chop-suffix "/" file))
-                 (member file (file-expand-wildcards pattern t))))
-           patterns)))
+    (--any-p (or (string-suffix-p (directory-file-name it)
+                                  (directory-file-name file))
+                 (member file (file-expand-wildcards it t)))
+             patterns)))
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
@@ -1028,17 +1026,14 @@ Only buffers not visible in windows are returned."
 
 (defun projectile-paths-to-ignore ()
   "Return a list of ignored project paths."
-  (-map (lambda (pattern)
-          (s-chop-prefix "/" pattern))
-        (-filter (lambda (pattern)
-                   (s-starts-with? "/" pattern))
-                 (cdr (projectile-parse-dirconfig-file)))))
+  (--mapcat (and (string-prefix-p "/" it)
+                 (directory-file-name it))
+            (cdr (projectile-parse-dirconfig-file))))
 
 (defun projectile-patterns-to-ignore ()
   "Return a list of relative file patterns."
-  (-remove (lambda (pattern)
-             (s-starts-with? "/" pattern))
-           (cdr (projectile-parse-dirconfig-file))))
+  (--remove (string-prefix-p "/" it)
+            (cdr (projectile-parse-dirconfig-file))))
 
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories."
@@ -1065,25 +1060,20 @@ Strings starting with + will be added to the list of directories
 to keep, and strings starting with - will be added to the list of
 directories to ignore.  For backward compatibility, without a
 prefix the string will be assumed to be an ignore string."
-  (let ((dirconfig-file (projectile-dirconfig-file)))
-    (when (projectile-file-exists-p dirconfig-file)
+  (let (keep ignore (dirconfig (projectile-dirconfig-file)))
+    (when (projectile-file-exists-p dirconfig)
       (with-temp-buffer
-        (insert-file-contents-literally dirconfig-file)
-        (let* ((split-string-default-separators "[\r\n]")
-               (strings (-map 's-trim (delete "" (split-string (buffer-string)))))
-               (separated-vals (--separate (s-starts-with? "+" it) strings)))
-          (cons (-map (lambda (dir) (projectile-ensure-trailing-slash
-                                     (projectile-strip-dir-prefix dir))) (car separated-vals))
-                (-map 'projectile-strip-dir-prefix (cadr separated-vals))))))))
-
-(defun projectile-ensure-trailing-slash (dir)
-  "Append / to DIR if missing."
-  (if (s-ends-with? "/" dir) dir
-    (concat dir "/")))
-
-(defun projectile-strip-dir-prefix (dir)
-  "Strip + or - prefix from DIR."
-  (s-chop-prefixes '("-" "+") dir))
+        (insert-file-contents-literally dirconfig)
+        (while (not (eobp))
+          (pcase (char-after)
+            (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
+            (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
+            (_  (push (buffer-substring     (point)  (line-end-position)) ignore)))
+          (forward-line)))
+      (cons (--map (file-name-as-directory (projectile-trim-string it))
+                   (delete "" (reverse keep)))
+            (-map  #'projectile-trim-string
+                   (delete "" (reverse ignore)))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
@@ -1433,12 +1423,10 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (or (-any? (lambda (prefix)
-               (s-starts-with? prefix (file-name-nondirectory file)))
-             projectile-test-files-prefixes)
-      (-any? (lambda (suffix)
-               (s-ends-with? suffix (file-name-sans-extension file)))
-             projectile-test-files-suffices)))
+  (or (--any? (string-prefix-p it (file-name-nondirectory file))
+              projectile-test-files-prefixes)
+      (--any? (string-suffix-p it (file-name-sans-extension file))
+              projectile-test-files-suffices)))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
@@ -1588,12 +1576,14 @@ PROJECT-ROOT is the targeted directory. If nil, use
    ((member project-type '(maven symfony)) "Test")
    ((member project-type '(gradle grails)) "Spec")))
 
-(defun projectile-dirname-matching-count (file file-other)
+(defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
-  (length
-   (--take-while it (-zip-with 's-equals?
-                               (reverse (f-split (f-dirname file)))
-                               (reverse (f-split (f-dirname file-other)))))))
+  (setq a (reverse (split-string (file-name-directory a) "/" t))
+        b (reverse (split-string (file-name-directory b) "/" t)))
+  (let ((common 0))
+    (while (and a b (string-equal (pop a) (pop b)))
+      (setq common (1+ common)))
+    common))
 
 (defun projectile-group-file-candidates (file candidates)
   "Group file candidates by dirname matching count."
@@ -1604,11 +1594,13 @@ PROJECT-ROOT is the targeted directory. If nil, use
   "Compute the name of the test matching FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
          (test-affix (projectile-test-affix (projectile-project-type)))
-         (candidates (-filter (lambda (current-file)
-                                (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
-                                  (or (s-equals? current-file-basename (concat test-affix basename))
-                                      (s-equals? current-file-basename (concat basename test-affix)))))
-                              (projectile-current-project-files))))
+         (candidates
+          (-filter (lambda (current-file)
+                     (let ((name (file-name-nondirectory
+                                  (file-name-sans-extension current-file))))
+                       (or (string-equal name (concat test-affix basename))
+                           (string-equal name (concat basename test-affix)))))
+                   (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
@@ -1621,11 +1613,13 @@ PROJECT-ROOT is the targeted directory. If nil, use
   "Compute the name of a file matching TEST-FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
          (test-affix (projectile-test-affix (projectile-project-type)))
-         (candidates (-filter (lambda (current-file)
-                                (let ((current-file-basename (file-name-nondirectory (file-name-sans-extension current-file))))
-                                  (or (s-equals? (concat test-affix current-file-basename) basename)
-                                      (s-equals? (concat current-file-basename test-affix) basename))))
-                              (projectile-current-project-files))))
+         (candidates
+          (-filter (lambda (current-file)
+                     (let ((name (file-name-nondirectory
+                                  (file-name-sans-extension current-file))))
+                       (or (string-equal (concat test-affix name) basename)
+                           (string-equal (concat name test-affix) basename))))
+                   (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
@@ -1685,9 +1679,8 @@ to `projectile-grep-default-files'."
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories
-               (-union (-map (lambda (dir)
-                               (s-chop-suffix "/" (file-relative-name dir root-dir)))
-                             (cdr (projectile-ignored-directories)))
+               (-union (--map (directory-file-name (file-relative-name it root-dir))
+                              (cdr (projectile-ignored-directories)))
                        grep-find-ignored-directories))
               (grep-find-ignored-files
                (-union (-map (lambda (file)
@@ -1739,8 +1732,8 @@ regular expression."
       (with-temp-buffer
         (setq exit-code
               (call-process-shell-command command nil (current-buffer))
-              shell-output
-              (s-trim (buffer-substring (point-min) (point-max)))))
+              shell-output (projectile-trim-string
+                            (buffer-substring (point-min) (point-max)))))
       (unless (zerop exit-code)
         (error shell-output))
       (visit-tags-table tags-file))))
@@ -1806,9 +1799,10 @@ regular expression."
 
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
-  (let ((dir (file-relative-name (expand-file-name directory) (projectile-project-root))))
-    (-filter (lambda (file) (s-starts-with-p dir file))
-             (projectile-current-project-files))))
+  (let ((dir (file-relative-name (expand-file-name directory)
+                                 (projectile-project-root))))
+    (--filter (string-prefix-p dir it)
+              (projectile-current-project-files))))
 
 (defun projectile-unixy-system-p ()
   "Check to see if unixy text utilities are installed."
@@ -1822,11 +1816,12 @@ equivalently to grep -H (colon-deliminated, with the relative
 filename as the first column).  Returns a list of expanded
 filenames."
   (let ((default-directory directory))
-    (->> (s-trim (shell-command-to-string
-                  (concat cmd " | cut -d: -f1 | uniq")))
-         (s-split "\n+")
+    (->> (shell-command-to-string (concat cmd " | cut -d: -f1 | uniq"))
+         projectile-trim-string
+         (split-string "\n+")
          (-filter 's-present?)
-         (--map (concat directory (s-chop-prefix "./" it))))))
+         (--map (concat directory
+                        (if (string-prefix-p "./" it) (substring it 2) it))))))
 
 (defun projectile-files-with-string (string directory)
   "Return a list of all files containing STRING in DIRECTORY.
@@ -1927,12 +1922,11 @@ For git projects `magit-status' is used if available."
 
 (defun projectile-recentf-files ()
   "Return a list of recently visited files in a project."
-  (if (boundp 'recentf-list)
-      (let ((project-root (projectile-project-root)))
-        (->> recentf-list
-             (-filter (lambda (file) (s-starts-with-p project-root file)))
-             (-map (lambda (file) (file-relative-name file project-root)))))
-    nil))
+  (and (boundp 'recentf-list)
+       (let ((project-root (projectile-project-root)))
+         (->> recentf-list
+              (--filter (string-prefix-p project-root it))
+              (--map (file-relative-name it project-root))))))
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
@@ -2218,7 +2212,8 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
     (setq projectile-known-projects projects-kept)
     (projectile-merge-known-projects)
     (if projects-removed
-        (message "Projects removed: %s" (s-join ", " projects-removed))
+        (message "Projects removed: %s"
+                 (mapconcat #'identity projects-removed ", "))
       (message "No projects needed to be removed."))))
 
 ;;;###autoload
