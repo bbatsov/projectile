@@ -1,7 +1,39 @@
 (require 'projectile)
+(require 'dash)
 (require 'ert)
 (require 'noflet)
-(require 'test-helper)
+
+(defmacro projectile-test-with-sandbox (&rest body)
+  "Evaluate BODY in an empty temporary directory."
+  (declare (indent 0))
+  `(let ((sandbox
+          (--if-let (bound-and-true-p projectile-test-path)
+              (file-name-as-directory (expand-file-name "sandbox" it))
+            (expand-file-name
+             (convert-standard-filename "test/sandbox/")
+             (file-name-directory (locate-library "projectile.el" t))))))
+     (when (file-directory-p sandbox)
+       (delete-directory sandbox t))
+     (make-directory sandbox t)
+     (let ((default-directory sandbox))
+       ,@body)))
+
+(defmacro projectile-test-with-files (files &rest body)
+  (declare (indent 1))
+  `(progn ,@(mapcar (lambda (file)
+                      (if (string-suffix-p "/" file)
+                          `(make-directory ,file t)
+                        `(with-temp-file ,file)))
+                    files)
+          ,@body))
+
+(defun projectile-test-should-root-in (root directory)
+  (let ((projectile-project-root-cache (make-hash-table :test 'equal)))
+    (should (equal (file-truename (file-name-as-directory root))
+                   (let ((default-directory
+                           (expand-file-name
+                            (file-name-as-directory directory))))
+                     (file-truename (projectile-project-root)))))))
 
 (ert-deftest projectile-test-project-get-name ()
   (noflet ((projectile-project-name () "project"))
@@ -80,11 +112,15 @@
 
 
 (ert-deftest projectile-test-parse-dirconfig-file ()
-  (noflet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
-           (file-exists-p (filename) t)
+  (noflet ((file-exists-p (filename) t)
            (file-truename (filename) filename)
-           (insert-file-contents-literally (filename) nil))
-    (should (equal '(("include/") . ("log" "tmp" "compiled"))
+           (insert-file-contents-literally
+            (filename)
+            (save-excursion
+              (insert
+               "\n-exclude\n+include\nno-prefix\n left-wspace\nright-wspace\t\n"))))
+    (should (equal '(("include/") .
+                     ("exclude" "no-prefix" "left-wspace" "right-wspace"))
                    (projectile-parse-dirconfig-file)))))
 
 (ert-deftest projectile-test-get-project-directories ()
@@ -171,263 +207,268 @@
       (should (projectile-maybe-invalidate-cache nil)))))
 
 (ert-deftest projectile-test-root-top-down ()
-  (with-sandbox
-   (f-mkdir "projectA" ".svn")
-   (f-mkdir "projectA" "src" ".svn")
-   (f-mkdir "projectA" "src" "html" ".svn")
-   (f-mkdir "projectA" ".git")
-   (f-mkdir "projectA" "src" "html")
-   (f-mkdir "projectA" "src" "framework" "lib")
-   (f-touch "projectA/src/framework.conf")
-   (f-touch "projectA/src/html/index.html")
-   (should (equal "projectA/src/"
-                  (projectile-root-top-down "projectA/src/framework/lib"
-                                            '("framework.conf" ".git"))))
-   (should (equal "projectA/src/"
-                  (projectile-root-top-down "projectA/src/framework/lib"
-                                            '(".git" "framework.conf"))))
-   (should (equal "projectA/src/html/"
-                  (projectile-root-top-down "projectA/src/html/"
-                                            '(".svn"))))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("projectA/.svn/"
+         "projectA/src/.svn/"
+         "projectA/src/html/.svn/"
+         "projectA/.git/"
+         "projectA/src/html/"
+         "projectA/src/framework/lib/"
+         "projectA/src/framework.conf"
+         "projectA/src/html/index.html")
+      (should (equal "projectA/src/"
+                     (projectile-root-top-down "projectA/src/framework/lib"
+                                               '("framework.conf" ".git"))))
+      (should (equal "projectA/src/"
+                     (projectile-root-top-down "projectA/src/framework/lib"
+                                               '(".git" "framework.conf"))))
+      (should (equal "projectA/src/html/"
+                     (projectile-root-top-down "projectA/src/html/"
+                                               '(".svn")))))))
 
 (ert-deftest projectile-test-root-top-down-recurring ()
-  (with-sandbox
-   (f-mkdir "projectA" ".svn")
-   (f-mkdir "projectA" "src" ".svn")
-   (f-mkdir "projectA" "src" "html" ".svn")
-   (f-mkdir "projectA" ".git")
-   (f-mkdir "projectA" "src" "html")
-   (f-mkdir "projectA" "src" "framework" "lib")
-   (f-touch "projectA/src/framework/framework.conf")
-   (f-touch "projectA/src/html/index.html")
-   (f-touch ".projectile")
-   (should (equal "projectA/"
-                  (projectile-root-top-down-recurring "projectA/src/html/"
-                                                      '("something" ".svn" ".git"))))
-   (should (equal "projectA/"
-                  (projectile-root-top-down-recurring "projectA/src/html/"
-                                                      '(".git"))))
-   (should-not (projectile-root-top-down-recurring "projectA/src/html/"
-                                                   '("elusivefile")))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("projectA/.svn/"
+         "projectA/src/.svn/"
+         "projectA/src/html/.svn/"
+         "projectA/.git/"
+         "projectA/src/html/"
+         "projectA/src/framework/lib/"
+         "projectA/src/framework/framework.conf"
+         "projectA/src/html/index.html"
+         ".projectile")
+      (should (equal "projectA/"
+                     (projectile-root-top-down-recurring
+                      "projectA/src/html/"
+                      '("something" ".svn" ".git"))))
+      (should (equal "projectA/"
+                     (projectile-root-top-down-recurring
+                      "projectA/src/html/"
+                      '(".git"))))
+      (should-not (projectile-root-top-down-recurring
+                   "projectA/src/html/"
+                   '("elusivefile"))))))
 
 (ert-deftest projectile-test-root-bottom-up ()
-  (with-sandbox
-   (f-mkdir "projectA" ".svn")
-   (f-mkdir "projectA" "src" ".svn")
-   (f-mkdir "projectA" "src" "html" ".svn")
-   (f-mkdir "projectA" ".git")
-   (f-mkdir "projectA" "src" "html")
-   (f-mkdir "projectA" "src" "framework" "lib")
-   (f-touch "projectA/src/framework/framework.conf")
-   (f-touch "projectA/src/html/index.html")
-   (f-touch "projectA/.projectile")
-   (should (equal "projectA/"
-                  (projectile-root-bottom-up "projectA/src/framework/lib"
-                                             '(".git" ".svn"))))
-   (should (equal "projectA/"
-                  (projectile-root-bottom-up "projectA/src/html"
-                                             '(".git" ".svn"))))
-   (should (equal "projectA/src/html/"
-                  (projectile-root-bottom-up "projectA/src/html"
-                                             '(".svn" ".git"))))
-   (should (equal "projectA/"
-                  (projectile-root-bottom-up "projectA/src/html"
-                                             '(".projectile" "index.html"))))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("projectA/.svn/"
+         "projectA/src/.svn/"
+         "projectA/src/html/.svn/"
+         "projectA/.git/"
+         "projectA/src/html/"
+         "projectA/src/framework/lib/"
+         "projectA/src/framework/framework.conf"
+         "projectA/src/html/index.html"
+         "projectA/.projectile")
+      (should (equal "projectA/"
+                     (projectile-root-bottom-up "projectA/src/framework/lib"
+                                                '(".git" ".svn"))))
+      (should (equal "projectA/"
+                     (projectile-root-bottom-up "projectA/src/html"
+                                                '(".git" ".svn"))))
+      (should (equal "projectA/src/html/"
+                     (projectile-root-bottom-up "projectA/src/html"
+                                                '(".svn" ".git"))))
+      (should (equal "projectA/"
+                     (projectile-root-bottom-up "projectA/src/html"
+                                                '(".projectile" "index.html")))))))
 
 (ert-deftest projectile-test-project-root ()
-  (with-sandbox
-   (f-mkdir "projectA" "src" ".svn")
-   (f-mkdir "projectA" "src" "html" ".svn")
-   (f-mkdir "projectA" "src" "html")
-   (f-mkdir "projectA" "src" "framework" "lib")
-   (f-mkdir "projectA" "build" "framework" "lib")
-   (f-mkdir "projectA" "requirements" "a" "b" "c" "d" "e" "f" "g")
-   (f-touch "projectA/src/framework/framework.conf")
-   (f-touch "projectA/requirements/a/b/c/requirements.txt")
-   (f-touch "projectA/src/html/index.html")
-   (f-touch "projectA/.projectile")
-   (f-touch "override")
-   (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
-         (projectile-project-root-files '("otherfile" "framework.conf" "requirements.txt"))
-         (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
-         (projectile-project-root-files-functions '(projectile-root-bottom-up
-                                                    projectile-root-top-down
-                                                    projectile-root-top-down-recurring)))
-     (should (f-same? "projectA"
-                      (project-root-in "projectA/requirements/a/b/c/d/e/f/g")))
-     (should (f-same? "projectA"
-                      (project-root-in "projectA/src/framework/lib")))
-     (should (f-same? "projectA"
-                      (project-root-in "projectA/src/html")))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("projectA/src/.svn/"
+         "projectA/src/html/.svn/"
+         "projectA/src/html/"
+         "projectA/src/framework/lib/"
+         "projectA/build/framework/lib/"
+         "projectA/requirements/a/b/c/d/e/f/g/"
+         "projectA/src/framework/framework.conf"
+         "projectA/requirements/a/b/c/requirements.txt"
+         "projectA/src/html/index.html"
+         "projectA/.projectile"
+         "override")
+      (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
+            (projectile-project-root-files '("otherfile" "framework.conf" "requirements.txt"))
+            (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
+            (projectile-project-root-files-functions '(projectile-root-bottom-up
+                                                       projectile-root-top-down
+                                                       projectile-root-top-down-recurring)))
+        (projectile-test-should-root-in "projectA" "projectA/requirements/a/b/c/d/e/f/g")
+        (projectile-test-should-root-in "projectA" "projectA/src/framework/lib")
+        (projectile-test-should-root-in "projectA" "projectA/src/html")
 
-     (setq projectile-project-root-files-functions '(projectile-root-top-down
-                                                     projectile-root-top-down-recurring
-                                                     projectile-root-bottom-up))
-     (should (f-same? "projectA/requirements/a/b/c"
-                      (project-root-in "projectA/requirements/a/b/c/d/e/f/g")))
-     (should (f-same? "projectA/src/framework"
-                      (project-root-in "projectA/src/framework/lib")))
-     (should (f-same? "projectA/src"
-                      (project-root-in "projectA/src/html"))))
+        (setq projectile-project-root-files-functions '(projectile-root-top-down
+                                                        projectile-root-top-down-recurring
+                                                        projectile-root-bottom-up))
+        (projectile-test-should-root-in "projectA/requirements/a/b/c"
+                                        "projectA/requirements/a/b/c/d/e/f/g")
+        (projectile-test-should-root-in "projectA/src/framework"
+                                        "projectA/src/framework/lib")
+        (projectile-test-should-root-in "projectA/src"
+                                        "projectA/src/html"))
 
-   (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
-         (projectile-project-root-files '("otherfile" "noframework.conf"))
-         (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
-         (projectile-project-root-files-functions '(projectile-root-top-down-recurring
-                                                    projectile-root-bottom-up
-                                                    projectile-root-top-down)))
-     (should (f-same? "projectA/src"
-                      (project-root-in "projectA/src/framework/lib")))
-     (should (f-same? "projectA/src"
-                      (project-root-in "projectA/src/html")))
-     (should (f-same? "projectA/"
-                      (project-root-in "projectA/build/framework/lib"))))
+      (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
+            (projectile-project-root-files '("otherfile" "noframework.conf"))
+            (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
+            (projectile-project-root-files-functions '(projectile-root-top-down-recurring
+                                                       projectile-root-bottom-up
+                                                       projectile-root-top-down)))
+        (projectile-test-should-root-in "projectA/src" "projectA/src/framework/lib")
+        (projectile-test-should-root-in "projectA/src" "projectA/src/html")
+        (projectile-test-should-root-in "projectA/" "projectA/build/framework/lib"))
 
-   (let ((projectile-project-root-files-bottom-up '("somefile" "override"))
-         (projectile-project-root-files '("otherfile" "anotherfile"))
-         (projectile-project-root-files-top-down-recurring '("someotherfile" "yetanotherfile"))
-         (projectile-project-root-files-functions '(projectile-root-bottom-up
-                                                    projectile-root-top-down
-                                                    projectile-root-top-down-recurring)))
-     (should (f-same? default-directory
-                      (project-root-in "projectA/src/framework/lib")))
-     (should (f-same? default-directory
-                      (project-root-in "projectA/src/html"))))
-   (let ((projectile-project-root-files-bottom-up '("somecoolfile"))
-         (projectile-project-root-files nil)
-         (projectile-project-root-files-top-down-recurring '(".svn"))
-         (projectile-project-root-files-functions '(projectile-root-bottom-up
-                                                    projectile-root-top-down
-                                                    projectile-root-top-down-recurring)))
-     (should (f-same? "projectA/src/"
-                      (project-root-in "projectA/src/")))
-     (should (f-same? "projectA/src/"
-                      (project-root-in "projectA/src/html"))))))
+      (let ((projectile-project-root-files-bottom-up '("somefile" "override"))
+            (projectile-project-root-files '("otherfile" "anotherfile"))
+            (projectile-project-root-files-top-down-recurring '("someotherfile" "yetanotherfile"))
+            (projectile-project-root-files-functions '(projectile-root-bottom-up
+                                                       projectile-root-top-down
+                                                       projectile-root-top-down-recurring)))
+        (projectile-test-should-root-in default-directory "projectA/src/framework/lib")
+        (projectile-test-should-root-in default-directory "projectA/src/html"))
+
+      (let ((projectile-project-root-files-bottom-up '("somecoolfile"))
+            (projectile-project-root-files nil)
+            (projectile-project-root-files-top-down-recurring '(".svn"))
+            (projectile-project-root-files-functions '(projectile-root-bottom-up
+                                                       projectile-root-top-down
+                                                       projectile-root-top-down-recurring)))
+        (projectile-test-should-root-in "projectA/src/" "projectA/src/")
+        (projectile-test-should-root-in "projectA/src/" "projectA/src/html")))))
 
 (ert-deftest projectile-test-file-exists-cache-disabled ()
-  (with-sandbox
-   (f-mkdir "project" "dirA" "dirB")
-   (f-touch "project/fileA")
-   (let ((projectile-file-exists-local-cache-expire nil)
-         (projectile-file-exists-remote-cache-expire nil))
-     (should (projectile-file-exists-p "project/fileA"))
-     (should (projectile-file-exists-p "project/dirA/dirB"))
-     (should-not (projectile-file-exists-p "project/dirA/fileB"))
-     (f-touch "project/dirA/fileB")
-     (should(projectile-file-exists-p "project/dirA/fileB"))
-     (should-not (projectile-file-exists-p "project/nofile"))
-     (f-delete "project/fileA")
-     (should-not (projectile-file-exists-p "project/fileA")))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("project/dirA/dirB/"
+         "project/fileA")
+      (let ((projectile-file-exists-local-cache-expire nil)
+            (projectile-file-exists-remote-cache-expire nil))
+        (should (projectile-file-exists-p "project/fileA"))
+        (should (projectile-file-exists-p "project/dirA/dirB"))
+        (should-not (projectile-file-exists-p "project/dirA/fileB"))
+        (with-temp-file "project/dirA/fileB")
+        (should(projectile-file-exists-p "project/dirA/fileB"))
+        (should-not (projectile-file-exists-p "project/nofile"))
+        (delete-file "project/fileA")
+        (should-not (projectile-file-exists-p "project/fileA"))))))
 
 (ert-deftest projectile-test-file-exists-cache ()
-  (with-sandbox
-   (f-mkdir "dirA" "dirB")
-   (f-touch "fileA")
-   (let* ((initial-time (current-time))
-          (projectile-file-exists-local-cache-expire 100)
-          (projectile-file-exists-remote-cache-expire nil))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("dirA/dirB/"
+         "fileA")
+      (let* ((initial-time (current-time))
+             (projectile-file-exists-local-cache-expire 100)
+             (projectile-file-exists-remote-cache-expire nil))
 
-     (noflet ((run-with-timer (&rest args) 'nooptimer))
-       (noflet ((current-time () initial-time))
-         (should (projectile-file-exists-p "fileA"))
-         (should (projectile-file-exists-p "dirA/dirB"))
-         (should-not (projectile-file-exists-p "dirA/fileB"))
-         (f-touch "dirA/fileB")
-         (should-not (projectile-file-exists-p "dirA/fileB"))
-         (f-delete "fileA")
-         (should (projectile-file-exists-p "fileA"))
-         (should (equal  projectile-file-exists-cache-timer 'nooptimer))
-         (projectile-file-exists-cache-cleanup)
-         (should (equal  projectile-file-exists-cache-timer 'nooptimer)))
+        (noflet ((run-with-timer (&rest args) 'nooptimer))
+          (noflet ((current-time () initial-time))
+            (should (projectile-file-exists-p "fileA"))
+            (should (projectile-file-exists-p "dirA/dirB"))
+            (should-not (projectile-file-exists-p "dirA/fileB"))
+            (with-temp-file "dirA/fileB")
+            (should-not (projectile-file-exists-p "dirA/fileB"))
+            (delete-file "fileA")
+            (should (projectile-file-exists-p "fileA"))
+            (should (equal  projectile-file-exists-cache-timer 'nooptimer))
+            (projectile-file-exists-cache-cleanup)
+            (should (equal  projectile-file-exists-cache-timer 'nooptimer)))
 
-       (noflet ((current-time () (time-add initial-time (seconds-to-time 50))))
-         (projectile-file-exists-cache-cleanup)
-         (should (projectile-file-exists-p "fileA"))
-         (should-not (projectile-file-exists-p "dirA/fileB"))
-         (should-not (projectile-file-exists-p "fileC"))
-         (f-touch "fileC")
-         (should (projectile-file-exists-p "fileA"))
-         (projectile-file-exists-cache-cleanup)
-         (should (equal projectile-file-exists-cache-timer 'nooptimer)))
+          (noflet ((current-time () (time-add initial-time (seconds-to-time 50))))
+            (projectile-file-exists-cache-cleanup)
+            (should (projectile-file-exists-p "fileA"))
+            (should-not (projectile-file-exists-p "dirA/fileB"))
+            (should-not (projectile-file-exists-p "fileC"))
+            (with-temp-file "fileC")
+            (should (projectile-file-exists-p "fileA"))
+            (projectile-file-exists-cache-cleanup)
+            (should (equal projectile-file-exists-cache-timer 'nooptimer)))
 
-       (noflet ((current-time () (time-add initial-time (seconds-to-time 120))))
-         (projectile-file-exists-cache-cleanup)
-         (should (projectile-file-exists-p "dirA/fileB"))
-         (should-not (projectile-file-exists-p "fileA"))
-         (should-not (projectile-file-exists-p "fileC"))
-         (should (equal  projectile-file-exists-cache-timer 'nooptimer))
-         (projectile-file-exists-cache-cleanup)
-         (should (equal projectile-file-exists-cache-timer 'nooptimer)))
+          (noflet ((current-time () (time-add initial-time (seconds-to-time 120))))
+            (projectile-file-exists-cache-cleanup)
+            (should (projectile-file-exists-p "dirA/fileB"))
+            (should-not (projectile-file-exists-p "fileA"))
+            (should-not (projectile-file-exists-p "fileC"))
+            (should (equal  projectile-file-exists-cache-timer 'nooptimer))
+            (projectile-file-exists-cache-cleanup)
+            (should (equal projectile-file-exists-cache-timer 'nooptimer)))
 
-       (noflet ((current-time () (time-add initial-time (seconds-to-time 220))))
-         (projectile-file-exists-cache-cleanup)
-         (should (projectile-file-exists-p "fileC"))
-         (should (equal  projectile-file-exists-cache-timer 'nooptimer))
-         (projectile-file-exists-cache-cleanup)
-         (should (equal projectile-file-exists-cache-timer 'nooptimer)))
+          (noflet ((current-time () (time-add initial-time (seconds-to-time 220))))
+            (projectile-file-exists-cache-cleanup)
+            (should (projectile-file-exists-p "fileC"))
+            (should (equal  projectile-file-exists-cache-timer 'nooptimer))
+            (projectile-file-exists-cache-cleanup)
+            (should (equal projectile-file-exists-cache-timer 'nooptimer)))
 
-       (noflet ((current-time () (time-add initial-time (seconds-to-time 1000))))
-         (should (equal  projectile-file-exists-cache-timer 'nooptimer))
-         (projectile-file-exists-cache-cleanup)
-         (should-not projectile-file-exists-cache-timer))))))
+          (noflet ((current-time () (time-add initial-time (seconds-to-time 1000))))
+            (should (equal  projectile-file-exists-cache-timer 'nooptimer))
+            (projectile-file-exists-cache-cleanup)
+            (should-not projectile-file-exists-cache-timer)))))))
 
 (ert-deftest projectile-test-cache-current-file ()
-  (with-sandbox
-   (f-mkdir "project")
-   (f-touch "project/.projectile")
-   (f-touch "project/file1.el")
-   (f-touch "project/file2.el")
-   (f-touch "project/file3.el")
-   (f-touch "project/file4.el")
-   (cd "project")
-   (let ((projectile-projects-cache (make-hash-table :test #'equal))
-         (projectile-enable-caching t))
-     (puthash (projectile-project-root)
-              '("file1.el")
-              projectile-projects-cache)
-     (noflet ((projectile-project-root () (f-full "./"))
-              (projectile-project-vcs () 'none))
-       (with-current-buffer (find-file-noselect  "file2.el")
-         (projectile-cache-current-file)
-         (dolist (f '("file1.el" "file2.el"))
-           (should (member f (gethash (projectile-project-root) projectile-projects-cache)))))
-       (with-current-buffer (find-file-noselect "file3.el")
-         (projectile-cache-current-file)
-         (dolist (f '("file1.el" "file2.el" "file3.el"))
-           (should (member f (gethash (projectile-project-root) projectile-projects-cache)))))
-       (with-current-buffer (find-file-noselect "file4.el")
-         (projectile-cache-current-file)
-         (dolist (f '("file1.el" "file2.el" "file3.el" "file4.el"))
-           (should (member f (gethash (projectile-project-root) projectile-projects-cache)))))))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("project/"
+         "project/.projectile"
+         "project/file1.el"
+         "project/file2.el"
+         "project/file3.el"
+         "project/file4.el")
+      (cd "project")
+      (let ((projectile-projects-cache (make-hash-table :test #'equal))
+            (projectile-enable-caching t))
+        (puthash (projectile-project-root)
+                 '("file1.el")
+                 projectile-projects-cache)
+        (noflet ((projectile-project-root () (file-truename default-directory))
+                 (projectile-project-vcs () 'none))
+          (with-current-buffer (find-file-noselect  "file2.el")
+            (projectile-cache-current-file)
+            (dolist (f '("file1.el" "file2.el"))
+              (should (member f (gethash (projectile-project-root)
+                                         projectile-projects-cache)))))
+          (with-current-buffer (find-file-noselect "file3.el")
+            (projectile-cache-current-file)
+            (dolist (f '("file1.el" "file2.el" "file3.el"))
+              (should (member f (gethash (projectile-project-root)
+                                         projectile-projects-cache)))))
+          (with-current-buffer (find-file-noselect "file4.el")
+            (projectile-cache-current-file)
+            (dolist (f '("file1.el" "file2.el" "file3.el" "file4.el"))
+              (should (member f (gethash (projectile-project-root)
+                                         projectile-projects-cache))))))))))
 
 (ert-deftest projectile-test-git-grep-prefix ()
   (require 'vc-git)
-  (with-sandbox
-   (f-mkdir "project" "c" "src")
-   (f-mkdir "project" "c" "include")
-   (f-mkdir "project" "go" "src" "package1")
-   (f-touch "project/.projectile")
-   (cd "project")
-   (f-write-bytes "foo(bar)" "go/src/package1/x.go")
-   (f-write-bytes "typedef struct bar_t" "c/include/x.h")
-   (f-write-bytes "struct bar_t *x" "c/src/x.c")
-   (dolist (test '(("go/src/package1/x.go" "foo" "*.go")
-                   ("c/src/x.c" "bar_t" "*.[ch]")
-                   ("c/include/x.h" "bar_t" "*.[ch]")))
-     (let ((projectile-use-git-grep t)
-           (current-prefix-arg '-)
-           (sym (cadr test)))
-       (noflet ((projectile-project-vcs () 'git)
-                (read-string (prompt initial &rest args)
-                             (if (should (equal sym initial)) initial))
-                (vc-git-grep (regexp files dir)
-                             (progn (should (equal sym regexp))
-                                    (should (equal (car (last test)) files))
-                                    (should (equal (projectile-project-root) dir)))))
-         (with-current-buffer (find-file-noselect (car test))
-           (save-excursion
-             (re-search-forward sym)
-             (projectile-grep ?-))))))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+	("project/c/src/"
+	 "project/c/include/"
+	 "project/go/src/package1/"
+	 "project/.projectile")
+      (cd "project")
+      (with-temp-file "go/src/package1/x.go" (insert "foo(bar)"))
+      (with-temp-file "c/include/x.h" (insert "typedef struct bar_t" ))
+      (with-temp-file "c/src/x.c" (insert "struct bar_t *x"))
+      (dolist (test '(("go/src/package1/x.go" "foo" "*.go")
+		      ("c/src/x.c" "bar_t" "*.[ch]")
+		      ("c/include/x.h" "bar_t" "*.[ch]")))
+	(let ((projectile-use-git-grep t)
+	      (current-prefix-arg '-)
+	      (sym (cadr test)))
+	  (noflet ((projectile-project-vcs () 'git)
+		   (read-string (prompt initial &rest args)
+				(if (should (equal sym initial)) initial))
+		   (vc-git-grep (regexp files dir)
+				(progn (should (equal sym regexp))
+				       (should (equal (car (last test)) files))
+				       (should (equal (projectile-project-root) dir)))))
+            (with-current-buffer (find-file-noselect (car test))
+	      (save-excursion
+		(re-search-forward sym)
+		(projectile-grep ?-)))))))))
 
 ;;;;;;;;; fresh tests
 
@@ -511,33 +552,43 @@
                                                     "src/food/sea.c"))))
 
 (ert-deftest projectile-test-find-matching-test ()
-  (with-sandbox
-   (f-mkdir "project" "app" "models" "weed")
-   (f-mkdir "project" "app" "models" "food")
-   (f-mkdir "project" "spec" "models" "weed")
-   (f-mkdir "project" "spec" "models" "food")
-   (f-touch "project/app/models/weed/sea.rb")
-   (f-touch "project/app/models/food/sea.rb")
-   (f-touch "project/spec/models/weed/sea_spec.rb")
-   (f-touch "project/spec/models/food/sea_spec.rb")
-   (let ((projectile-indexing-method 'native))
-     (noflet ((projectile-project-type () 'rails-rspec)
-              (projectile-project-root () (f-full "project/")))
-             (should (equal "spec/models/food/sea_spec.rb"
-                            (projectile-find-matching-test "app/models/food/sea.rb")))))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("project/app/models/weed/"
+         "project/app/models/food/"
+         "project/spec/models/weed/"
+         "project/spec/models/food/"
+         "project/app/models/weed/sea.rb"
+         "project/app/models/food/sea.rb"
+         "project/spec/models/weed/sea_spec.rb"
+         "project/spec/models/food/sea_spec.rb")
+      (let ((projectile-indexing-method 'native))
+        (noflet ((projectile-project-type () 'rails-rspec)
+                 (projectile-project-root
+                  () (file-truename (expand-file-name "project/"))))
+          (should (equal "spec/models/food/sea_spec.rb"
+                         (projectile-find-matching-test
+                          "app/models/food/sea.rb"))))))))
 
 (ert-deftest projectile-test-find-matching-file ()
-  (with-sandbox
-   (f-mkdir "project" "app" "models" "weed")
-   (f-mkdir "project" "app" "models" "food")
-   (f-mkdir "project" "spec" "models" "weed")
-   (f-mkdir "project" "spec" "models" "food")
-   (f-touch "project/app/models/weed/sea.rb")
-   (f-touch "project/app/models/food/sea.rb")
-   (f-touch "project/spec/models/weed/sea_spec.rb")
-   (f-touch "project/spec/models/food/sea_spec.rb")
-   (let ((projectile-indexing-method 'native))
-     (noflet ((projectile-project-type () 'rails-rspec)
-              (projectile-project-root () (f-full "project/")))
-             (should (equal "app/models/food/sea.rb"
-                            (projectile-find-matching-file "spec/models/food/sea_spec.rb")))))))
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("project/app/models/weed/"
+         "project/app/models/food/"
+         "project/spec/models/weed/"
+         "project/spec/models/food/"
+         "project/app/models/weed/sea.rb"
+         "project/app/models/food/sea.rb"
+         "project/spec/models/weed/sea_spec.rb"
+         "project/spec/models/food/sea_spec.rb")
+      (let ((projectile-indexing-method 'native))
+        (noflet ((projectile-project-type () 'rails-rspec)
+                 (projectile-project-root
+                  () (file-truename (expand-file-name "project/"))))
+          (should (equal "app/models/food/sea.rb"
+                         (projectile-find-matching-file
+                          "spec/models/food/sea_spec.rb"))))))))
+
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:
