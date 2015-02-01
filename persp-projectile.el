@@ -71,46 +71,32 @@ that before `projectile-switch-project' invokes
 
 Otherwise, this function calls `persp-switch' to switch to an
 existing perspective of the project unless we're already in that
-perspective in which case `projectile-switch-project' is called."
+perspective."
   (interactive (list (projectile-completing-read "Switch to project: "
                                                  (projectile-relevant-known-projects))))
   (let* ((name (file-name-nondirectory (directory-file-name project-to-switch)))
          (persp (gethash name perspectives-hash)))
     (cond
+     ;; project-specific perspective already exists
      ((and persp (not (equal persp persp-curr)))
-      ;; -> project-specific perspective already exists
       (persp-switch name))
+     ;; project-specific perspective doesn't exist
      ((not persp)
-      ;; -> project does not have a dedicated perspective
-      ;; -> chance user may want to make a new frame for it
       (let ((frame (selected-frame)))
         (persp-switch name)
         (projectile-switch-project-by-name project-to-switch)
+        ;; Clean up if we switched to a new frame. `helm' for one allows finding
+        ;; files in new frames so this is a real possibility.
         (when (not (equal frame (selected-frame)))
-          ;; made a new frame, clean up after ourselves
           (with-selected-frame frame
-            (when (gethash name perspectives-hash)
-              (persp-kill name)))
-          (persp-rename name)))))))
+            (persp-kill name))))))))
 
-;; TODO process-per-perspective so that each persp has its own *shell*, *term*,
-;; *eshell*, etc. Easy enough to do. Just keep track of all processes in the
-;; persp and rename them on persp-switch: [p1] has *shell* and is active, [p2]
-;; has *shell-p2*, now (persp-switch "p2") renames *shell* to *shell-p1* and
-;; *shell-p2* to *shell*. Belongs in `perspective.el' not here of course.
-
-;; NOTE projectile seems to recognise projects with `projectile-project-p' and
-;; automatically switch by hooking onto `find-file-hook'
-
-;; TODO when making a new frame perform persp-rename to projectile-project-name
-;; add-hook to 'after-make-frame-functions unlikely to work cause
-;; 'after-make-frame-functions has 'persp-init-frame added by (persp-mode t) and
-;; removed by (persp-mode -1). Cleaner way maybe defadvice say 'persp-init-frame.
-;; 
-;; (defun persp-projectile-rename-on-make-frame ()
-;;   (let* ((current-project (projectile-project-root))
-;;          (name (directory-file-name current-project)))
-;;     (persp-rename name)))
+(defadvice persp-init-frame (after projectile-persp-init-frame activate)
+  "Rename initial perspective to `projectile-project-name' when a
+new frame is created in a known project."
+  (with-selected-frame frame
+    (when (projectile-project-p)
+      (persp-rename (projectile-project-name)))))
 
 (define-key projectile-mode-map [remap projectile-switch-project] 'projectile-persp-switch-project)
 
