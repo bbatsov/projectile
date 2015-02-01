@@ -1904,12 +1904,16 @@ to run the replacement."
 (defun projectile-vc (&optional project-root)
   "Open `vc-dir' at the root of the project.
 
-For git projects `magit-status' is used if available."
+For git projects `magit-status-internal' is used if available."
   (interactive)
   (or project-root (setq project-root (projectile-project-root)))
-  (if (and (eq (projectile-project-vcs project-root) 'git)
-           (fboundp 'magit-status))
-      (magit-status project-root)
+  (if (eq (projectile-project-vcs project-root) 'git)
+      (cond ((fboundp 'magit-status-internal)
+             (magit-status-internal project-root))
+            ((fboundp 'magit-status)
+             (with-no-warnings (magit-status project-root)))
+            (t
+             (vc-dir project-root)))
     (vc-dir project-root)))
 
 ;;;###autoload
