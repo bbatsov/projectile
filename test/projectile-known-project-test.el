@@ -1,3 +1,7 @@
+(require 'projectile)
+(require 'ert)
+(require 'noflet)
+
 (ert-deftest projectile-test-add-known-project-adds-project-to-known-projects ()
   "An added project should be added to the list of known projects."
   (let (projectile-known-projects)
@@ -120,3 +124,7 @@ test temp directory"
                          '(some random data))))
       (when (file-exists-p this-test-file)
         (delete-file this-test-file)))))
+
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:
