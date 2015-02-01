@@ -531,9 +531,13 @@
                        "src/Makefile"
                        "src/test.vert"
                        "src/test.frag"
+                       "src/same_name.c"
+                       "src/some_module/same_name.c"
+                       "include1/same_name.h"
                        "include1/test1.h"
                        "include1/test2.h"
                        "include1/test1.hpp"
+                       "include2/some_module/same_name.h"
                        "include2/test1.h"
                        "include2/test2.h"
                        "include2/test2.hpp")))
@@ -553,6 +557,8 @@
                    (projectile-get-other-files "include1/test1.h" source-tree t)))
     (should (equal '("src/Makefile")
                    (projectile-get-other-files "Makefile.lock" source-tree)))
+    (should (equal '("src/some_module/same_name.c" "src/same_name.c")
+                   (projectile-get-other-files "include2/some_module/same_name.h" source-tree)))
     ))
 
 
