@@ -80,11 +80,14 @@
 
 
 (ert-deftest projectile-test-parse-dirconfig-file ()
-  (noflet ((buffer-string () " log\t\n-tmp \n-compiled\n+include\n")
+  (noflet ((buffer-string
+	    ()
+	    "\n-exclude\n+include\nno-prefix\n left-wspace\nright-wspace\t\n")
            (file-exists-p (filename) t)
            (file-truename (filename) filename)
            (insert-file-contents-literally (filename) nil))
-    (should (equal '(("include/") . ("log" "tmp" "compiled"))
+    (should (equal '(("include/") .
+		     ("exclude" "no-prefix" "left-wspace" "right-wspace"))
                    (projectile-parse-dirconfig-file)))))
 
 (ert-deftest projectile-test-get-project-directories ()
