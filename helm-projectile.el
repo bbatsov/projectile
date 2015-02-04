@@ -60,7 +60,8 @@
 
 ;;;###autoload
 (defcustom helm-projectile-fuzzy-match t
-  "Enable fuzzy matching for Helm Projectile commands."
+  "Enable fuzzy matching for Helm Projectile commands.
+This needs to be set before loading helm-projectile."
   :group 'helm-projectile
   :type 'boolean)
 
