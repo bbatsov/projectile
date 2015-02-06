@@ -1027,7 +1027,7 @@ Only buffers not visible in windows are returned."
 (defun projectile-paths-to-ignore ()
   "Return a list of ignored project paths."
   (--mapcat (and (string-prefix-p "/" it)
-                 (directory-file-name it))
+                 (list (directory-file-name it)))
             (cdr (projectile-parse-dirconfig-file))))
 
 (defun projectile-patterns-to-ignore ()
