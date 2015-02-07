@@ -2476,7 +2476,7 @@ is chosen."
     (define-key map (kbd "z") 'projectile-cache-current-file)
     (define-key map (kbd "ESC") 'projectile-project-buffers-other-buffer)
     map)
-  "Keymap for Projectile commands after `projectile-keymap-prefix'")
+  "Keymap for Projectile commands after `projectile-keymap-prefix'.")
 (fset 'projectile-command-map projectile-command-map)
 
 (defvar projectile-mode-map
