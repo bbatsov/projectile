@@ -26,7 +26,8 @@ to behave like `helm-find-files`, such as multifile selection and opening or del
 * Try to use projectile to find files in compilation buffers
 * Support `helm` as a completion system
 * New `defcustom` `projectile-globally-ignored-buffers` allows you ignore
-  buffers by name
+buffers by name
+* New command `projectile-project-info` displays basic info about the current project.
 
 ### Changes
 

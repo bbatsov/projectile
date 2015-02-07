@@ -1487,6 +1487,14 @@ With a prefix ARG invalidates the cache first."
    ((funcall projectile-go-function) 'go)
    (t 'generic)))
 
+(defun projectile-project-info ()
+  "Display info for current project."
+  (interactive)
+  (message "Project dir: %s ## Project VCS: %s ## Project type: %s"
+           (projectile-project-root)
+           (projectile-project-vcs)
+           (projectile-project-type)))
+
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
   (-all? 'projectile-verify-file files))
@@ -2512,6 +2520,7 @@ is chosen."
    ["Compile project" projectile-compile-project]
    ["Test project" projectile-test-project]
    "--"
+   ["Project info" projectile-project-info]
    ["About" projectile-version])
  "Search Files (Grep)...")
 
