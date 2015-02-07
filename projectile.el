@@ -2107,7 +2107,7 @@ fallback to the original function."
                 (let ((root (projectile-project-root))
                       (dirs (cons "" (projectile-current-project-dirs))))
                   (-when-let (full-filename (->> dirs
-                                                 (--map (f-join root it filename))
+                                                 (--map (expand-file-name filename (expand-file-name it root)))
                                                  (-filter #'file-exists-p)
                                                  (-first-item)))
                     (find-file-noselect full-filename))))
