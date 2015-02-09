@@ -224,7 +224,7 @@ and `projectile-buffers-with-file-or-process'."
 (defcustom projectile-project-root-files-top-down-recurring
   '(".svn" ; Svn VCS root dir
     "CVS"  ; Csv VCS root dir
-    )
+    "Makefile")
   "A list of files considered to mark the root of a project.
 This root files pattern stops at the parentmost match."
   :group 'projectile
