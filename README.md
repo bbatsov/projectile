@@ -39,7 +39,7 @@ it. Some of Projectile's features:
 * replace in project
 * multi-occur in project buffers
 * grep in project
-* regenerate project etags or gtags (requires [gtags](https://github.com/leoliu/ggtags)).
+* regenerate project etags or gtags (requires [ggtags](https://github.com/leoliu/ggtags)).
 * visit project in dired
 * run make in a project with a single key chord
 
