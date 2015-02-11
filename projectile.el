@@ -1824,12 +1824,11 @@ equivalently to grep -H (colon-deliminated, with the relative
 filename as the first column).  Returns a list of expanded
 filenames."
   (let ((default-directory directory))
-    (->> (shell-command-to-string (concat cmd " | cut -d: -f1 | uniq"))
-         projectile-trim-string
-         (split-string "\n+")
-         (-filter 's-present?)
-         (--map (concat directory
-                        (if (string-prefix-p "./" it) (substring it 2) it))))))
+    (--map (concat directory
+                   (if (string-prefix-p "./" it) (substring it 2) it))
+           (-> (shell-command-to-string (concat cmd " | cut -d: -f1 | uniq"))
+               projectile-trim-string
+               (split-string "\n+" t)))))
 
 (defun projectile-files-with-string (string directory)
   "Return a list of all files containing STRING in DIRECTORY.
