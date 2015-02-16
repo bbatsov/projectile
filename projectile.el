@@ -2529,7 +2529,7 @@ is chosen."
 ;;;###autoload
 (defcustom projectile-mode-line
   '(:eval (format " Projectile[%s]" (projectile-project-name)))
-  "Mode line ligher for Projectile.
+  "Mode line lighter for Projectile.
 
 The value of this variable is a mode line template as in
 `mode-line-format'.  See Info Node `(elisp)Mode Line Format' for
