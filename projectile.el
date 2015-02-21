@@ -170,7 +170,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re -f %s %s"
+(defcustom projectile-tags-command "ctags -Re -f \"%s\" \"%s\""
   "The command Projectile's going to use to generate a TAGS file."
   :group 'projectile
   :type 'string)
