@@ -1202,6 +1202,9 @@ Returns a list of possible files for users to choose.
 
 With FLEX-MATCHING, match any file that contains the base name of current file"
   (let* ((file-ext-list (cdr (assoc (file-name-extension current-file) projectile-other-file-alist)))
+         (fulldirname  (if (file-name-directory current-file)
+                           (file-name-directory current-file) "./"))
+         (dirname  (file-name-nondirectory (directory-file-name fulldirname)))
          (filename (file-name-base current-file))
          (file-list (mapcar (lambda (ext)
                               (if flex-matching
@@ -1223,7 +1226,13 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                                         (unless (equal (file-name-extension project-file) nil)
                                                           (concat  "\." (file-name-extension project-file))))))
                                 candidates))
-                     file-list))))
+                     file-list)))
+         (candidates
+          (-sort (lambda (file _)
+                   (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
+                     (unless (equal fulldirname (file-name-directory file))
+                     (equal dirname candidate-dirname))))
+                 candidates)))
     candidates))
 
 (defun projectile-select-files (project-files &optional arg)
