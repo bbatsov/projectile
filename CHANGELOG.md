@@ -37,6 +37,7 @@ buffers by name
 
 ### Bugs fixed
 
+* Fix `projectile-regenerate-tags` to work in directories that include spaces.
 * Prevent `projectile-kill-buffers` from trying to kill indirect
 buffers.
 * [#412](https://github.com/bbatsov/projectile/issues/412): Handle multiple possible targets in `projectile-toggle-between-implementation-or-test`.
