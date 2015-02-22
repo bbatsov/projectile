@@ -258,6 +258,12 @@ pattern that would have found a project root in a subdirectory."
   :group 'projectile
   :type '(repeat string))
 
+(defcustom projectile-globally-ignored-file-suffixes
+  nil
+  "A list of file suffixes globally ignored by projectile."
+  :group 'projectile
+  :type '(repeat string))
+
 (defcustom projectile-globally-ignored-directories
   '(".idea"
     ".eunit"
@@ -852,8 +858,10 @@ Operates on filenames relative to the project root."
   (let ((ignored (append (projectile-ignored-files-rel)
                          (projectile-ignored-directories-rel))))
     (-remove (lambda (file)
-               (--any-p (string-prefix-p it file) ignored))
+               (or (--any-p (string-prefix-p it file) ignored)
+                   (--any-p (string-suffix-p it file) projectile-globally-ignored-file-suffixes)))
              files)))
+
 
 (defun projectile-buffers-with-file (buffers)
   "Return only those BUFFERS backed by files."

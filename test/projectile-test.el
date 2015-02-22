@@ -111,6 +111,19 @@
         (should (equal (projectile-project-ignored) files))))))
 
 
+(ert-deftest projectile-remove-ignored-suffixes ()
+  (noflet ((projectile-project-root () "/path/to/project")
+           (projectile-project-name () "project")
+           (projectile-ignored-files-rel () ())
+           (projectile-ignored-directories-rel () ()))
+          (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz"))
+                 (files (mapcar 'projectile-expand-root file-names)))
+            (let ((projectile-globally-ignored-file-suffixes '(".o" ".so")))
+              (should (equal (projectile-remove-ignored files)
+                             (mapcar 'projectile-expand-root
+                                     '("foo.c" "foo.o.gz"))))))))
+
+
 (ert-deftest projectile-test-parse-dirconfig-file ()
   (noflet ((file-exists-p (filename) t)
            (file-truename (filename) filename)
