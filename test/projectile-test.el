@@ -210,7 +210,7 @@
 (ert-deftest projectile-test-tags-exclude-items ()
   (noflet ((projectile-ignored-directories-rel () (list ".git/" ".hg/")))
     (should (equal (projectile-tags-exclude-patterns)
-                   "--exclude=.git --exclude=.hg"))))
+                   "--exclude=\".git\" --exclude=\".hg\""))))
 
 (ert-deftest projectile-test-maybe-invalidate ()
   (noflet ((projectile-invalidate-cache (arg) t))
