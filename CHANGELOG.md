@@ -9,6 +9,7 @@
 
 ### Changes
 
+* Specify project path for `projectile-regenerate-tags`.
 * Handle files with special characters in `projectile-get-other-files`
 * [#1260](https://github.com/bbatsov/projectile/pull/1260): ignored-*-p: Now they match against regular expressions.
 * **(Breaking)** Remove the default prefix key (`C-c p`) for Projectile. Users now have to pick one themselves.

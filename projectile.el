@@ -167,7 +167,7 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-tags-command "ctags -Re -f \"%s\" %s"
+(defcustom projectile-tags-command "ctags -Re -f \"%s\" %s \"%s\""
   "The command Projectile's going to use to generate a TAGS file."
   :group 'projectile
   :type 'string)
@@ -2853,7 +2853,7 @@ SEARCH-TERM is a regexp."
            (tags-exclude (projectile-tags-exclude-patterns))
            (default-directory project-root)
            (tags-file (expand-file-name projectile-tags-file-name))
-           (command (format projectile-tags-command tags-file tags-exclude))
+           (command (format projectile-tags-command tags-file tags-exclude default-directory))
            shell-output exit-code)
       (with-temp-buffer
         (setq exit-code
