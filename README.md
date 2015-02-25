@@ -45,7 +45,7 @@ it. Some of Projectile's features:
 
 Here's a glimpse of Projectile in action:
 
-![Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/projectile.png)
+![Projectile Screenshot](screenshots/projectile.png)
 
 You can support my work on Projectile and [all my other projects](https://github.com/bbatsov) via [gratipay](https://www.gratipay.com/bbatsov).
 
@@ -292,7 +292,7 @@ Another completion option is [grizzl](https://github.com/d11wtq/grizzl):
 (setq projectile-completion-system 'grizzl)
 ```
 
-![Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/projectile-grizzl.png)
+![Projectile Screenshot](screenshots/projectile-grizzl.png)
 
 `grizzl`'s advantage is that it provides good fuzzy completion
 (compared to `ido`'s less than stellar built-in flex matching, but inferior to `ido-flx`).
@@ -635,7 +635,7 @@ To fully learn Helm Projectile and see what it is capable of, you should refer t
 
 Obviously you need to have Helm installed for this to work :-)
 
-![Helm-Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png)
+![Helm-Projectile Screenshot](screenshots/helm-projectile.png)
 
 ### Work with Perspective Mode
 
@@ -652,11 +652,11 @@ Only current project related files showing in minibuffer when I call
 `ido-switch-buffer`, and an indicator in mode line tells me which
 project that I'm in.
 
-![Persp-Projectile Screenshot 1](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile1.png)
+![Persp-Projectile Screenshot 1](screenshots/persp-projectile1.png)
 
 When I switch to a different project, I get a clean 'perspective'.
 
-![Persp-Projectile Screenshot 2](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile2.png)
+![Persp-Projectile Screenshot 2](screenshots/persp-projectile2.png)
 
 To integrate perspective with projectile, first of all, you need to
 install perspective. You can install it by:
