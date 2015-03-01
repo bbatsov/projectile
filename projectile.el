@@ -1685,6 +1685,7 @@ With a prefix ARG asks for files (globbing-aware) which to grep in.
 With prefix ARG of `-' (such as `M--'), default the files (without prompt),
 to `projectile-grep-default-files'."
   (interactive "P")
+  (require 'grep) ;; for `rgrep'
   (let* ((roots (projectile-get-project-directories))
          (search-regexp (if (and transient-mark-mode mark-active)
                             (buffer-substring (region-beginning) (region-end))
@@ -1695,7 +1696,6 @@ to `projectile-grep-default-files'."
                              (read-string (projectile-prepend-project-name "Grep in: ")
                                           (projectile-grep-default-files))))))
     (dolist (root-dir roots)
-      (require 'grep)   ;; for `rgrep'
       (require 'vc-git) ;; for `vc-git-grep'
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
       (if (and (eq (projectile-project-vcs) 'git)
