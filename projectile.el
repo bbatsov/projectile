@@ -1843,7 +1843,7 @@ filenames."
   (let ((default-directory directory))
     (--map (concat directory
                    (if (string-prefix-p "./" it) (substring it 2) it))
-           (-> (shell-command-to-string (concat cmd " | cut -d: -f1 | uniq"))
+           (-> (shell-command-to-string cmd)
                projectile-trim-string
                (split-string "\n+" t)))))
 
@@ -1856,17 +1856,17 @@ files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
              (cmd (cond ((executable-find "ag")
-                         (concat "ag --literal --nocolor --noheading -- "
+                         (concat "ag --literal --nocolor --noheading -l -- "
                                  search-term))
                         ((executable-find "ack")
-                         (concat "ack --noheading --nocolor -- "
+                         (concat "ack --noheading --nocolor -l -- "
                                  search-term))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat "git grep -H "
+                         (concat "git grep -HLI "
                                  search-term))
                         (t
-                         (concat "grep -rH "
+                         (concat "grep -rHLI "
                                  search-term
                                  " .")))))
         (projectile-files-from-cmd cmd directory))
