@@ -1837,9 +1837,8 @@ regular expression."
   "Use a grep-like CMD to search for files within DIRECTORY.
 
 CMD should include the necessary search params and should output
-equivalently to grep -H (colon-deliminated, with the relative
-filename as the first column).  Returns a list of expanded
-filenames."
+equivalently to grep -HLI (only unique matching filenames).
+Returns a list of expanded filenames."
   (let ((default-directory directory))
     (--map (concat directory
                    (if (string-prefix-p "./" it) (substring it 2) it))
