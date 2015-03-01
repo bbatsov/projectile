@@ -38,7 +38,6 @@
 
 (require 'thingatpt)
 (require 'dash)
-(require 'grep)           ; For `rgrep'
 (require 'ibuffer)
 (require 'ibuf-ext)
 
@@ -1696,7 +1695,8 @@ to `projectile-grep-default-files'."
                              (read-string (projectile-prepend-project-name "Grep in: ")
                                           (projectile-grep-default-files))))))
     (dolist (root-dir roots)
-      (require 'grep)
+      (require 'grep)   ;; for `rgrep'
+      (require 'vc-git) ;; for `vc-git-grep'
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
       (if (and (eq (projectile-project-vcs) 'git)
                projectile-use-git-grep
