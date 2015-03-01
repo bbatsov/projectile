@@ -654,11 +654,15 @@ Returns a project root directory path or nil if not found."
    nil
    (or list projectile-project-root-files-top-down-recurring)))
 
-(defun projectile-project-root ()
-  "Retrieves the root directory of a project if available.
-The current directory is assumed to be the project's root otherwise."
+(defun projectile-project-root (&optional path)
+  "Retrieve the project root directory for PATH which defaults to current
+directory.  Return directory of PATH if project root cannot be found."
+  (if path
+      (unless (file-directory-p path)
+        (setq path (file-name-directory path))) ; ensure PATH is a directory
+    (setq path default-directory))
   (file-truename
-   (let ((dir (file-truename default-directory)))
+   (let ((dir (file-truename path)))
      (or (--reduce-from
           (or acc
               (let* ((cache-key (format "%s-%s" it dir))
@@ -672,9 +676,10 @@ The current directory is assumed to be the project's root otherwise."
                     value))))
           nil
           projectile-project-root-files-functions)
+
          (if projectile-require-project-root
              (error "You're not in a project")
-           default-directory)))))
+           path)))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
