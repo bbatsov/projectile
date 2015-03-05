@@ -643,7 +643,7 @@ Obviously you need to have Helm installed for this to work :-)
 
 [Perspective](https://github.com/nex3/perspective-el) is a minor mode
 that provides the ability to manage different workspaces. If you need
-to open many projects at the same time, prerspective can help you keep
+to open many projects at the same time, perspective can help you keep
 each project related buffers and windows setting separate from other
 projects, similar to multiple spaces on MacOS, which allows you to
 focus on the files of the current active project.
