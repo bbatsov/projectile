@@ -377,27 +377,18 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
      . "Add files to Dired buffer `C-c a'"))
   "Action for files.")
 
-(defvar helm-source-projectile-files-dwim-list
+(defun helm-projectile-build-dwim-source (candidates)
+  "Dynamically build a Helm source definition for Projectile files based on context with CANDIDATES."
+  ""
   (helm-build-in-buffer-source "Projectile files"
-    :data (lambda ()
-            (condition-case nil
-                (let* ((project-files (projectile-current-project-files))
-                       (files (projectile-select-files project-files)))
-                  (cond
-                   ((= (length files) 1)
-                    (find-file (expand-file-name (car files) (projectile-project-root)))
-                    (helm-exit-minibuffer))
-                   ((> (length files) 1) files)
-                   (t  project-files)))
-              (error nil)))
+    :data candidates
     :fuzzy-match helm-projectile-fuzzy-match
     :coerce 'helm-projectile-coerce-file
     :action-transformer 'helm-find-files-action-transformer
     :keymap helm-projectile-find-file-map
     :help-message helm-ff-help-message
     :mode-line helm-ff-mode-line-string
-    :action helm-projectile-file-actions)
-  "Helm source definition for Projectile files based on context.")
+    :action helm-projectile-file-actions))
 
 (defvar helm-source-projectile-files-list
   (helm-build-in-buffer-source "Projectile files"
@@ -590,10 +581,23 @@ With a prefix ARG invalidates the cache first."
 (helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: " t)
 (helm-projectile-command "find-file" helm-source-projectile-files-and-dired-list "Find file: ")
 (helm-projectile-command "find-file-in-known-projects" 'helm-source-projectile-files-in-all-projects-list "Find file in projects: ")
-(helm-projectile-command "find-file-dwim" 'helm-source-projectile-files-dwim-list "Find file: ")
 (helm-projectile-command "find-dir" helm-source-projectile-directories-and-dired-list "Find dir: ")
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
+
+;;;###autoload
+(defun helm-projectile-find-file-dwim ()
+  "Find file at point based on context."
+  (interactive)
+  (let* ((project-files (projectile-current-project-files))
+         (files (projectile-select-files project-files)))
+    (if (= (length files) 1)
+        (find-file (expand-file-name (car files) (projectile-project-root)))
+      (helm :sources (helm-projectile-build-dwim-source (if (> (length files) 1)
+                                                            files
+                                                          project-files))
+            :buffer "*helm projectile*"
+            :prompt (projectile-prepend-project-name "Find file: ")))))
 
 ;;;###autoload
 (defun helm-projectile-find-other-file (&optional flex-matching)
