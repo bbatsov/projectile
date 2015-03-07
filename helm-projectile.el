@@ -641,7 +641,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
          (grep-find-ignored-files (-union projectile-globally-ignored-files  grep-find-ignored-files))
          (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
          (helm-grep-default-command (if use-ack-p
-                                        (concat ack-executable " -Hn --no-group --no-color " ack-ignored-pattern " %p %f")
+                                        (concat ack-executable " -H --no-group --no-color " ack-ignored-pattern " %p %f")
                                       "grep -a -r %e -n%cH -e %p %f ."))
          (helm-grep-default-recurse-command helm-grep-default-command)
          (helm-source-grep
@@ -796,6 +796,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
         (define-key projectile-command-map (kbd "e") 'helm-projectile-recentf)
         (define-key projectile-command-map (kbd "b") 'helm-projectile-switch-to-buffer)
         (define-key projectile-command-map (kbd "s g") 'helm-projectile-grep)
+        (define-key projectile-command-map (kbd "s a") 'helm-projectile-ack)
         (define-key projectile-command-map (kbd "s s") 'helm-projectile-ag)
         (helm-projectile-commander-bindings))
     (progn
