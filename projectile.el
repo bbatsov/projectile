@@ -1837,7 +1837,7 @@ regular expression."
   "Use a grep-like CMD to search for files within DIRECTORY.
 
 CMD should include the necessary search params and should output
-equivalently to grep -HLI (only unique matching filenames).
+equivalently to grep -HlI (only unique matching filenames).
 Returns a list of expanded filenames."
   (let ((default-directory directory))
     (--map (concat directory
@@ -1862,10 +1862,10 @@ files in the project."
                                  search-term))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat "git grep -HLI "
+                         (concat "git grep -HlI "
                                  search-term))
                         (t
-                         (concat "grep -rHLI "
+                         (concat "grep -rHlI "
                                  search-term
                                  " .")))))
         (projectile-files-from-cmd cmd directory))
