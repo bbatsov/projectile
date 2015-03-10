@@ -513,7 +513,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                          (setq helm-buffer-max-len-mode (cdr result))))))
    (candidates :initform helm-buffers-list-cache)
    (matchplugin :initform nil)
-   (match :initform 'helm-buffers-list--match-fn)
+   (match :initform 'helm-buffers-match-function)
    (persistent-action :initform 'helm-buffers-list-persistent-action)
    (keymap :initform helm-buffer-map)
    (volatile :initform t)
