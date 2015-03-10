@@ -37,6 +37,7 @@ to behave like `helm-find-files`, such as multifile selection and opening or del
 * Collect search tool (`grep`, `ag`, `ack`) keybindings under a common keymap prefix (`C-c p s`)
 * Remove `defcustom` `projectile-remember-window-configs` in favor of
   `persp-projectile.el`.
+* Progress reporter for the native indexing method.
 
 ### Bugs fixed
 

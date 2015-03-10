@@ -719,11 +719,14 @@ Files are returned as relative paths to the project root."
 
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
-  (message "Projectile is indexing %s. This may take a while."
-           (propertize directory 'face 'font-lock-keyword-face))
-  ;; we need the files with paths relative to the project root
-  (-map (lambda (file) (file-relative-name file root))
-        (projectile-index-directory directory (projectile-patterns-to-ignore))))
+  (let ((progress-reporter
+         (make-progress-reporter
+          (format "Projectile is indexing %s"
+                  (propertize directory 'face 'font-lock-keyword-face)))))
+    ;; we need the files with paths relative to the project root
+    (-map (lambda (file) (file-relative-name file root))
+          (projectile-index-directory directory (projectile-patterns-to-ignore)
+                                      progress-reporter))))
 
 (defun projectile-dir-files-external (root directory)
   "Get the files for ROOT under DIRECTORY using external tools."
@@ -835,17 +838,19 @@ PROJECT is base directory to start search recursively."
   "Get a list of relative file names in the project root by executing COMMAND."
   (split-string (shell-command-to-string command) "\0" t))
 
-(defun projectile-index-directory (directory patterns)
+(defun projectile-index-directory (directory patterns progress-reporter)
   "Index DIRECTORY taking into account PATTERNS.
 The function calls itself recursively until all sub-directories
-have been indexed."
+have been indexed.  The PROGRESS-REPORTER is updated while the
+function is executing."
   (--mapcat
    (unless (or (and patterns (projectile-ignored-rel-p it directory patterns))
                (member (file-name-nondirectory (directory-file-name it))
                        '("." ".." ".svn" ".cvs")))
+     (progress-reporter-update progress-reporter)
      (if (file-directory-p it)
          (unless (projectile-ignored-directory-p it)
-           (projectile-index-directory it patterns))
+           (projectile-index-directory it patterns progress-reporter))
        (unless (projectile-ignored-file-p it)
          (list it))))
    (directory-files directory t)))
