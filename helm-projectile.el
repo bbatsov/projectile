@@ -4,6 +4,7 @@
 
 ;; Author: Bozhidar Batsov
 ;; URL: https://github.com/bbatsov/projectile
+;; Package-Version: 20150310.523
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; Version: 0.11.0
