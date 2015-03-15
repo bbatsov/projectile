@@ -25,17 +25,23 @@ to behave like `helm-find-files`, such as multifile selection and opening or del
 * Add support for `cargo.toml` projects
 * Try to use projectile to find files in compilation buffers
 * Support `helm` as a completion system
-* New `defcustom` `projectile-globally-ignored-buffers` allows you ignore
+* New command `projectile-project-info` displays basic info about the current project.
+* New `defcustom` `projectile-globally-ignored-buffers` allows you to ignore
   buffers by name
+* New `defcustom` `projectile-globally-ignored-file-suffixes` allows
+  you to globally ignore files with particular extensions
 
 ### Changes
 
+* get-other-files returns more accurate results for files with the same name placed under different directories
 * Collect search tool (`grep`, `ag`, `ack`) keybindings under a common keymap prefix (`C-c p s`)
 * Remove `defcustom` `projectile-remember-window-configs` in favor of
   `persp-projectile.el`.
+* Progress reporter for the native indexing method.
 
 ### Bugs fixed
 
+* Fix `projectile-regenerate-tags` to work in directories that include spaces.
 * Prevent `projectile-kill-buffers` from trying to kill indirect
 buffers.
 * [#412](https://github.com/bbatsov/projectile/issues/412): Handle multiple possible targets in `projectile-toggle-between-implementation-or-test`.

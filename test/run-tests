@@ -8,10 +8,8 @@
 (add-to-list 'load-path projectile-test-path)
 
 (require 'projectile)
-(require 'ack-and-a-half)
 (require 'noflet)
 
-(load (expand-file-name "test-helper.el" projectile-test-path) nil t)
 (dolist (test-file (or argv (directory-files projectile-test-path t "-test.el$")))
   (load test-file nil t))
 

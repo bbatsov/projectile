@@ -6,6 +6,8 @@
 
 ## Synopsis
 
+[![Join the chat at https://gitter.im/bbatsov/projectile](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bbatsov/projectile?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 **Projectile** is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
 introducing external dependencies(when feasible). For instance -
@@ -31,7 +33,7 @@ it. Some of Projectile's features:
 * jump to a file in a directory
 * jump to a project buffer
 * jump to a test in project
-* toggle between files with same names but different extensions (i.e. .h <-> .c/.cpp, Gemfile <-> Gemfile.lock...)
+* toggle between files with same names but different extensions (e.g. `.h` <-> `.c/.cpp`, `Gemfile` <-> `Gemfile.lock`)
 * toggle between code and its test
 * jump to recently visited files in the project
 * switch between projects you have worked on
@@ -39,13 +41,13 @@ it. Some of Projectile's features:
 * replace in project
 * multi-occur in project buffers
 * grep in project
-* regenerate project etags or gtags (requires [gtags](https://github.com/leoliu/ggtags)).
+* regenerate project etags or gtags (requires [ggtags](https://github.com/leoliu/ggtags)).
 * visit project in dired
 * run make in a project with a single key chord
 
 Here's a glimpse of Projectile in action:
 
-![Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/projectile.png)
+![Projectile Screenshot](screenshots/projectile.png)
 
 You can support my work on Projectile and [all my other projects](https://github.com/bbatsov) via [gratipay](https://www.gratipay.com/bbatsov).
 
@@ -216,7 +218,7 @@ will be added in the future.
 ###### `projectile-find-file-in-known-projects`
 
 Similar to `projectile-find-file` but lists all files in all known projects. Since
-the total number of fils could be huge, it is beneficial to enable caching for subsequent
+the total number of files could be huge, it is beneficial to enable caching for subsequent
 usages.
 
 ###### `projectile-find-file-dwim`
@@ -292,7 +294,7 @@ Another completion option is [grizzl](https://github.com/d11wtq/grizzl):
 (setq projectile-completion-system 'grizzl)
 ```
 
-![Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/projectile-grizzl.png)
+![Projectile Screenshot](screenshots/projectile-grizzl.png)
 
 `grizzl`'s advantage is that it provides good fuzzy completion
 (compared to `ido`'s less than stellar built-in flex matching, but inferior to `ido-flx`).
@@ -635,13 +637,13 @@ To fully learn Helm Projectile and see what it is capable of, you should refer t
 
 Obviously you need to have Helm installed for this to work :-)
 
-![Helm-Projectile Screenshot](https://github.com/bbatsov/projectile/raw/master/screenshots/helm-projectile.png)
+![Helm-Projectile Screenshot](screenshots/helm-projectile.png)
 
 ### Work with Perspective Mode
 
 [Perspective](https://github.com/nex3/perspective-el) is a minor mode
 that provides the ability to manage different workspaces. If you need
-to open many projects at the same time, prerspective can help you keep
+to open many projects at the same time, perspective can help you keep
 each project related buffers and windows setting separate from other
 projects, similar to multiple spaces on MacOS, which allows you to
 focus on the files of the current active project.
@@ -649,14 +651,14 @@ focus on the files of the current active project.
 A picture says a thousand words. See below screenshot to get a concrete idea.
 
 Only current project related files showing in minibuffer when I call
-`ido-swith-buffer`, and an indicator in mode line tells me which
+`ido-switch-buffer`, and an indicator in mode line tells me which
 project that I'm in.
 
-![Persp-Projectile Screenshot 1](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile1.png)
+![Persp-Projectile Screenshot 1](screenshots/persp-projectile1.png)
 
 When I switch to a different project, I get a clean 'perspective'.
 
-![Persp-Projectile Screenshot 2](https://github.com/bbatsov/projectile/raw/master/screenshots/persp-projectile2.png)
+![Persp-Projectile Screenshot 2](screenshots/persp-projectile2.png)
 
 To integrate perspective with projectile, first of all, you need to
 install perspective. You can install it by:
