@@ -730,9 +730,9 @@ If it is nil, or ack/ack-grep not found then use default grep command."
     (error "You're not in a project")))
 
 ;;;###autoload
-(defun helm-projectile-ag ()
+(defun helm-projectile-ag (&optional options)
   "Helm version of projectile-ag."
-  (interactive)
+  (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag-command-history))))
   (unless (executable-find "ag")
     (error "ag not available"))
   (if (require 'helm-ag nil  'noerror)
@@ -744,6 +744,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                                        (concat "--ignore " i))
                                      (append grep-find-ignored-files grep-find-ignored-directories)
                                      " "))
+                 (helm-ag-command-option options)
                  (helm-ag-base-command (concat helm-ag-base-command " " ignored)))
             (helm-do-ag (projectile-project-root)))
         (error "You're not in a project"))
