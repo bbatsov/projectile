@@ -150,6 +150,7 @@ Otherwise consider the current directory the project root."
           (const :tag "Ido" ido)
           (const :tag "Grizzl" grizzl)
           (const :tag "Helm" helm)
+          (const :tag "Ivy" ivy)
           (const :tag "Default" default)
           (function :tag "Custom function")))
 
@@ -1116,6 +1117,12 @@ https://github.com/emacs-helm/helm")))
           (grizzl-completing-read prompt (grizzl-make-index choices))
         (user-error "Please install grizzl from \
 https://github.com/d11wtq/grizzl")))
+     ((eq projectile-completion-system 'ivy)
+      (if (fboundp 'ivy-read)
+          (ivy-read prompt (cl-delete-duplicates choices
+                                                 :test #'equal) initial-input)
+        (user-error "Please install ivy from \
+https://github.com/abo-abo/swiper")))
      (t (funcall projectile-completion-system prompt choices)))))
 
 (defun projectile-current-project-files ()
