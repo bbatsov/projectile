@@ -655,12 +655,12 @@ Returns a project root directory path or nil if not found."
    nil
    (or list projectile-project-root-files-top-down-recurring)))
 
-(defun projectile-project-root ()
-  "Retrieves the root directory of a project if available.
-The current directory is assumed to be the project's root otherwise."
+(defun projectile-project-root-of-filepath (filepath)
+  "Retrieves the root directory of the project to which filepath
+belongs, if available."
   (file-truename
-   (let ((dir (file-truename default-directory)))
-     (or (--reduce-from
+   (let ((dir (file-truename filepath)))
+     (--reduce-from
           (or acc
               (let* ((cache-key (format "%s-%s" it dir))
                      (cache-value (gethash cache-key projectile-project-root-cache)))
@@ -672,10 +672,18 @@ The current directory is assumed to be the project's root otherwise."
                     (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
                     value))))
           nil
-          projectile-project-root-files-functions)
-         (if projectile-require-project-root
-             (error "You're not in a project")
-           default-directory)))))
+          projectile-project-root-files-functions))))
+
+(defun projectile-project-root ()
+  "Retrieves the root directory of the project of the currently
+active buffer. The current directory is assumed to be the
+project's root if the current buffer does not belong to any
+project."
+  (file-truename
+   (or (projectile-project-root-of-filepath default-directory)  
+      (if projectile-require-project-root
+          (error "You're not in a project")
+        default-directory))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
