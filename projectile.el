@@ -1119,8 +1119,7 @@ https://github.com/emacs-helm/helm")))
 https://github.com/d11wtq/grizzl")))
      ((eq projectile-completion-system 'ivy)
       (if (fboundp 'ivy-read)
-          (ivy-read prompt (cl-delete-duplicates choices
-                                                 :test #'equal) initial-input)
+          (ivy-read prompt choices initial-input)
         (user-error "Please install ivy from \
 https://github.com/abo-abo/swiper")))
      (t (funcall projectile-completion-system prompt choices)))))
