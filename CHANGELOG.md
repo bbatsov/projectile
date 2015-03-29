@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 0.12.0 (03/29/2015)
+
 ### New features
 
 * Replace Helm equivalent commands in `projectile-commander` when using Helm.
