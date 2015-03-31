@@ -1,6 +1,7 @@
 # Changelog
 
 ## master (unreleased)
+* Add support for nested extensions (e.g. spec.js) to projectile-find-other-file
 
 ## 0.12.0 (03/29/2015)
 

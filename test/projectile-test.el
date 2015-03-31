@@ -523,6 +523,10 @@
                                        (nil . ("lock" "gpg"))
                                        ("lock" . (""))
                                        ("gpg" . (""))
+
+                                       ;; handle files with nested extensions
+                                       ("service.js" . ("service.spec.js"))
+                                       ("js" . ("js"))
                                        ))
         (source-tree '("src/test1.c"
                        "src/test2.c"
@@ -540,7 +544,15 @@
                        "include2/some_module/same_name.h"
                        "include2/test1.h"
                        "include2/test2.h"
-                       "include2/test2.hpp")))
+                       "include2/test2.hpp"
+
+                       "src/test1.service.js"
+                       "src/test2.service.spec.js"
+                       "include1/test1.service.spec.js"
+                       "include2/test1.service.spec.js"
+                       "include1/test2.js"
+                       "include2/test2.js")))
+    
     (should (equal '("include1/test1.h" "include2/test1.h")
                    (projectile-get-other-files "src/test1.c" source-tree)))
     (should (equal '("include1/test1.h" "include2/test1.h" "include1/test1.hpp")
@@ -559,6 +571,12 @@
                    (projectile-get-other-files "Makefile.lock" source-tree)))
     (should (equal '("src/some_module/same_name.c" "src/same_name.c")
                    (projectile-get-other-files "include2/some_module/same_name.h" source-tree)))
+    ;; nested extensions
+    (should (equal '("include1/test1.service.spec.js" "include2/test1.service.spec.js")
+                   (projectile-get-other-files "src/test1.service.js" source-tree)))
+    ;; fallback to outer extensions if no rule for nested extension defined
+    (should (equal '("include1/test2.js" "include2/test2.js")
+                   (projectile-get-other-files "src/test2.service.spec.js" source-tree)))
     ))
 
 

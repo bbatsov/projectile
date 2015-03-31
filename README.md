@@ -34,7 +34,7 @@ it. Some of Projectile's features:
 * jump to a project buffer
 * jump to a test in project
 * toggle between files with same names but different extensions (e.g. `.h` <-> `.c/.cpp`, `Gemfile` <-> `Gemfile.lock`)
-* toggle between code and its test
+* toggle between code and its test (e.g. `main.service.js` <-> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
 * kill all project buffers
