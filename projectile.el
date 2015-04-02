@@ -1899,7 +1899,8 @@ to run the replacement."
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
          (directory (if arg
-                        (read-directory-name "Replace in directory: ")
+                        (file-name-as-directory
+                         (read-directory-name "Replace in directory: "))
                       (projectile-project-root)))
          (files (projectile-files-with-string old-text directory)))
     (tags-query-replace old-text new-text nil (cons 'list files))))
