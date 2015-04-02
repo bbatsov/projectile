@@ -694,8 +694,10 @@ A thin wrapper around `file-truename' that handles nil."
   (let ((project-root
          (condition-case nil
              (projectile-project-root)
-           (error default-directory))))
-    (file-name-nondirectory (directory-file-name project-root))))
+           (error nil))))
+    (if project-root
+        (file-name-nondirectory (directory-file-name project-root))
+      "-")))
 
 
 ;;; Project indexing
