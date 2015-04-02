@@ -1207,20 +1207,20 @@ Other file extensions can be customized with the variable `projectile-other-file
     (error "No other file found")))
 
 (defun file-name-sans-extensions (file-name)
-	"Return FILENAME sans any extensions.
+  "Return FILE-NAME sans any extensions.
 The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
   (setq file-name (file-name-nondirectory file-name))
 	(substring file-name 0 (string-match "\\..*" file-name 1)))
 
 (defun file-name-extensions (file-name)
-	"Return FILENAME's extensions.
+  "Return FILE-NAME's extensions.
 The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
 	;would it make sense to return nil instead of an empty string if no extensions are found?
   (setq file-name (file-name-nondirectory file-name))
   (substring file-name (-if-let (extensions-start (string-match "\\..*" file-name 1)) (1+ extensions-start) (length file-name))))
 	
 (defun projectile-associated-file-name-extensions (file-name)
-	"Return projectile-other-file-extensions associated to FILENAME's extensions.
+  "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
 If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."  
 	(let ((current-extensions (file-name-extensions (file-name-nondirectory file-name))))
 		(catch 'break
@@ -1230,7 +1230,7 @@ If no associated other-file-extensions for the complete (nested) extension are f
 				(setq current-extensions (file-name-extensions current-extensions))))))
 
 (defun projectile-get-other-files (current-file project-file-list &optional flex-matching)
-	"Narrow to files with the same names but different extensions.
+  "Narrow to files with the same names but different extensions.
 Returns a list of possible files for users to choose.
 
 With FLEX-MATCHING, match any file that contains the base name of current file"
