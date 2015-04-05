@@ -330,7 +330,7 @@ Any function that does not take arguments will do."
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
-  "The timer object created when `project-enable-idle-timer' is non-nil.")
+  "The timer object created when `projectile-enable-idle-timer' is non-nil.")
 
 (defcustom projectile-idle-timer-seconds 30
   "The idle period to use when `projectile-enable-idle-timer' is non-nil."
