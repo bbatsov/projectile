@@ -7,10 +7,34 @@
 (add-to-list 'load-path projectile-root-path)
 (add-to-list 'load-path projectile-bench-path)
 
-(require 'ack-and-a-half)
-(require 'noflet)
 
-(load (expand-file-name "test-helper.el" projectile-bench-path) nil t)
+(require 'noflet)
+(require 'f)
+
+(defvar root-test-path
+  (f-dirname (f-this-file)))
+
+(defvar root-code-path
+  (f-parent root-test-path))
+
+(defvar root-sandbox-path
+  (f-expand "sandbox" root-test-path))
+
+(defmacro with-sandbox (&rest body)
+  "Evaluate BODY in an empty temporary directory."
+  `(let ((default-directory root-sandbox-path))
+     (when (f-dir? root-sandbox-path)
+       (f-delete root-sandbox-path :force))
+     (f-mkdir root-sandbox-path)
+     ,@body))
+
+(defun project-root-in (directory)
+  (let ((default-directory (f-expand directory)))
+    (setq projectile-project-root-cache (make-hash-table :test 'equal))
+    (projectile-project-root)))
+
+
+
 (load (expand-file-name "bench-helper.el" projectile-bench-path) nil t)
 
 (defvar bench-projectile-datadirs
