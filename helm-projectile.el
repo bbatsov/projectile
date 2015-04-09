@@ -638,8 +638,8 @@ If it is nil, or ack/ack-grep not found then use default grep command."
          (follow (and helm-follow-mode-persistent
                       (assoc-default 'follow helm-source-grep)))
          (helm-grep-in-recurse t)
-         (grep-find-ignored-files (-union projectile-globally-ignored-files  grep-find-ignored-files))
-         (grep-find-ignored-directories (-union projectile-globally-ignored-directories grep-find-ignored-directories))
+         (grep-find-ignored-files (-union (projectile-ignored-files-rel)  grep-find-ignored-files))
+         (grep-find-ignored-directories (-union (projectile-ignored-directories-rel) grep-find-ignored-directories))
          (helm-grep-default-command (if use-ack-p
                                         (concat ack-executable " -H --no-group --no-color " ack-ignored-pattern " %p %f")
                                       "grep -a -r %e -n%cH -e %p %f ."))
