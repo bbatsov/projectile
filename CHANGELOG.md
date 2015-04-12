@@ -2,6 +2,11 @@
 
 ## master (unreleased)
 
+### Changes
+
+* `projectile-compile-project` now offers appropriate completion
+  targets even when called from a subdirectory.
+
 ## 0.12.0 (03/29/2015)
 
 ### New features

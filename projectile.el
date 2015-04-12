@@ -2121,13 +2121,11 @@ with a prefix ARG."
   (let* ((project-root (if dir
                            dir
                          (projectile-project-root)))
+         (default-directory project-root)
          (default-cmd (projectile-compilation-command project-root))
          (compilation-cmd (if (or compilation-read-command arg)
                               (compilation-read-command default-cmd)
-                            default-cmd))
-         (default-directory (if dir
-                                dir
-                              project-root)))
+                            default-cmd)))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (compilation-start compilation-cmd)))
 
