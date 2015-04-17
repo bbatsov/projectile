@@ -40,6 +40,7 @@
 (require 'dash)
 (require 'ibuffer)
 (require 'ibuf-ext)
+(require 'json)
 
 (eval-when-compile
   (defvar ggtags-completion-table)
@@ -1490,6 +1491,17 @@ With a prefix ARG invalidates the cache first."
   :group 'projectile
   :type 'function)
 
+(defun projectile-composer ()
+  "Function to determine project type from composer.json."
+  (when (projectile-verify-file "composer.json")
+    (let ((composer-json (json-read-file (projectile-expand-root "composer.json"))))
+      (cdr (assoc 'type composer-json)))))
+
+(defcustom projectile-composer-function 'projectile-composer
+  "Function to determine Composer project type."
+  :group 'projectile
+  :type 'function)
+
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
   (cond
@@ -1514,6 +1526,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-haskell-cabal) 'haskell-cabal)
    ((projectile-verify-files projectile-rust-cargo) 'rust-cargo)
    ((projectile-verify-files projectile-r) 'r)
+   ((funcall projectile-composer-function) (funcall projectile-composer-function))
    ((funcall projectile-go-function) 'go)
    (t 'generic)))
 
