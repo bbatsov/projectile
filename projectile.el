@@ -1481,6 +1481,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-haskell-cabal '("*.cabal"))
 (defvar projectile-rust-cargo '("Cargo.toml"))
 (defvar projectile-r '("DESCRIPTION"))
+(defvar projectile-npm '("package.json" "node_modules"))
 
 (defun projectile-go ()
   (-any? (lambda (file)
@@ -1528,6 +1529,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-r) 'r)
    ((funcall projectile-composer-function) (funcall projectile-composer-function))
    ((funcall projectile-go-function) 'go)
+   ((projectile-verify-files projectile-npm) 'npm)
    (t 'generic)))
 
 (defun projectile-project-info ()
@@ -2025,6 +2027,8 @@ For git projects `magit-status-internal' is used if available."
 (defvar projectile-r-compile-cmd "R CMD INSTALL .")
 (defvar projectile-r-test-cmd (concat "R CMD check -o "
                                       temporary-file-directory " ."))
+(defvar projectile-npm-compile-cmd "npm start")
+(defvar projectile-npm-test-cmd "npm test")
 
 (--each '(projectile-rails-compile-cmd
           projectile-ruby-compile-cmd
@@ -2055,7 +2059,8 @@ For git projects `magit-status-internal' is used if available."
           projectile-rust-cargo-compile-cmd
           projectile-rust-cargo-test-cmd
           projectile-r-compile-cmd
-          projectile-r-test-cmd)
+          projectile-r-test-cmd
+          projectile-npm-test-cmd)
   (put it 'safe-local-variable #'stringp))
 
 
@@ -2088,6 +2093,7 @@ For git projects `magit-status-internal' is used if available."
    ((eq project-type 'haskell-cabal) projectile-haskell-cabal-compile-cmd)
    ((eq project-type 'rust-cargo) projectile-rust-cargo-compile-cmd)
    ((eq project-type 'r) projectile-r-compile-cmd)
+   ((eq project-type 'npm) projectile-npm-compile-cmd)
    (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
@@ -2112,6 +2118,7 @@ For git projects `magit-status-internal' is used if available."
    ((eq project-type 'haskell-cabal) projectile-haskell-cabal-test-cmd)
    ((eq project-type 'rust-cargo) projectile-rust-cargo-test-cmd)
    ((eq project-type 'r) projectile-r-test-cmd)
+   ((eq project-type 'npm) projectile-npm-test-cmd)
    (t projectile-make-test-cmd)))
 
 (defun projectile-compilation-command (project)
