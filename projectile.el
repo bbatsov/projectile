@@ -2015,6 +2015,7 @@ For git projects `magit-status-internal' is used if available."
 (defvar projectile-r-compile-cmd "R CMD INSTALL .")
 (defvar projectile-r-test-cmd (concat "R CMD check -o "
                                       temporary-file-directory " ."))
+(defvar projectile-npm-compile-cmd "npm start")
 (defvar projectile-npm-test-cmd "npm test")
 
 (--each '(projectile-rails-compile-cmd
@@ -2080,6 +2081,7 @@ For git projects `magit-status-internal' is used if available."
    ((eq project-type 'haskell-cabal) projectile-haskell-cabal-compile-cmd)
    ((eq project-type 'rust-cargo) projectile-rust-cargo-compile-cmd)
    ((eq project-type 'r) projectile-r-compile-cmd)
+   ((eq project-type 'npm) projectile-npm-compile-cmd)
    (t projectile-make-compile-cmd)))
 
 (defun projectile-default-test-command (project-type)
