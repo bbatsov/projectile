@@ -40,7 +40,6 @@
 (require 'dash)
 (require 'ibuffer)
 (require 'ibuf-ext)
-(require 'json)
 
 (eval-when-compile
   (defvar ggtags-completion-table)
@@ -1481,7 +1480,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-haskell-cabal '("*.cabal"))
 (defvar projectile-rust-cargo '("Cargo.toml"))
 (defvar projectile-r '("DESCRIPTION"))
-(defvar projectile-npm '("package.json" "node_modules"))
+(defvar projectile-npm '("package.json"))
 
 (defun projectile-go ()
   (-any? (lambda (file)
