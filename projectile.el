@@ -1467,6 +1467,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-django '("manage.py"))
 (defvar projectile-python-pip '("requirements.txt"))
 (defvar projectile-python-egg '("setup.py"))
+(defvar projectile-python-tox '("tox.ini"))
 (defvar projectile-scons '("SConstruct"))
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-gradle '("build.gradle"))
@@ -1498,6 +1499,7 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
    ((projectile-verify-files projectile-ruby-test) 'ruby-test)
    ((projectile-verify-files projectile-django) 'django)
+   ((projectile-verify-files projectile-python-tox) 'python-tox)
    ((projectile-verify-files projectile-python-pip)'python)
    ((projectile-verify-files projectile-python-egg) 'python)
    ((projectile-verify-files projectile-symfony) 'symfony)
@@ -1981,6 +1983,7 @@ For git projects `magit-status-internal' is used if available."
 (defvar projectile-django-test-cmd "python manage.py test")
 (defvar projectile-python-compile-cmd "python setup.py build")
 (defvar projectile-python-test-cmd "python -m unittest discover")
+(defvar projectile-python-tox-test-cmd "tox")
 (defvar projectile-symfony-compile-cmd "app/console server:run")
 (defvar projectile-symfony-test-cmd "phpunit -c app ")
 (defvar projectile-scons-compile-cmd "scons")
@@ -2021,6 +2024,7 @@ For git projects `magit-status-internal' is used if available."
           projectile-django-test-cmd
           projectile-python-compile-cmd
           projectile-python-test-cmd
+          projectile-python-tox-test-cmd
           projectile-symfony-compile-cmd
           projectile-symfony-test-cmd
           projectile-scons-compile-cmd
@@ -2083,6 +2087,7 @@ For git projects `magit-status-internal' is used if available."
    ((member project-type '(rails-rspec ruby-rspec)) projectile-ruby-rspec-cmd)
    ((member project-type '(rails-test ruby-test)) projectile-ruby-test-cmd)
    ((eq project-type 'django) projectile-django-test-cmd)
+   ((eq project-type 'python-tox) projectile-python-tox-test-cmd)
    ((eq project-type 'python) projectile-python-test-cmd)
    ((eq project-type 'symfony) projectile-symfony-test-cmd)
    ((eq project-type 'lein) projectile-lein-test-cmd)
