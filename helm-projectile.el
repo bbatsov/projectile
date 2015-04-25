@@ -676,7 +676,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
      :sources 'helm-source-grep
      :input (if (region-active-p)
                 (buffer-substring-no-properties (region-beginning) (region-end))
-              (thing-at-point 'symbol))
+              "")
      :buffer (format "*helm %s*" (if use-ack-p
                                      "ack"
                                    "grep"))
