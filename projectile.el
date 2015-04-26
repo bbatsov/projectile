@@ -621,7 +621,7 @@ which we're looking."
             ((equal file (setq file (file-name-directory
                                      (directory-file-name file))))
              (setq file nil))))
-    (if root (file-name-as-directory root))))
+    (and root (expand-file-name (file-name-as-directory root)))))
 
 (defun projectile-root-bottom-up (dir &optional list)
   "Identify a project root in DIR by looking at `projectile-project-root-files-bottom-up'.
@@ -658,24 +658,23 @@ Returns a project root directory path or nil if not found."
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (file-truename
-   (let ((dir (file-truename default-directory)))
-     (or (--reduce-from
-          (or acc
-              (let* ((cache-key (format "%s-%s" it dir))
-                     (cache-value (gethash cache-key projectile-project-root-cache)))
-                (if cache-value
-                    (if (eq cache-value 'no-project-root)
-                        nil
-                      cache-value)
-                  (let ((value (funcall it dir)))
-                    (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
-                    value))))
-          nil
-          projectile-project-root-files-functions)
-         (if projectile-require-project-root
-             (error "You're not in a project")
-           default-directory)))))
+  (let ((dir default-directory))
+    (or (--reduce-from
+         (or acc
+             (let* ((cache-key (format "%s-%s" it dir))
+                    (cache-value (gethash cache-key projectile-project-root-cache)))
+               (if cache-value
+                   (if (eq cache-value 'no-project-root)
+                       nil
+                     cache-value)
+                 (let ((value (funcall it (file-truename dir))))
+                   (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
+                   value))))
+         nil
+         projectile-project-root-files-functions)
+        (if projectile-require-project-root
+            (error "You're not in a project")
+          default-directory))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
