@@ -496,9 +496,9 @@
 
 (ert-deftest projectile-ignored-buffer-p-by-name ()
   (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
-    (should (projectile-ignored-buffer-p (generate-new-buffer "*nrepl messages*")))
-    (should (projectile-ignored-buffer-p (generate-new-buffer "*something*")))
-    (should-not (projectile-ignored-buffer-p (generate-new-buffer "test")))))
+    (should (projectile-ignored-buffer-p (get-buffer-create "*nrepl messages*")))
+    (should (projectile-ignored-buffer-p (get-buffer-create "*something*")))
+    (should-not (projectile-ignored-buffer-p (get-buffer-create "test")))))
 
 (ert-deftest projectile-test-get-other-files ()
   (let ((projectile-other-file-alist '(;; handle C/C++ extensions
