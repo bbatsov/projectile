@@ -5,7 +5,7 @@
 
 (defmacro projectile-test-with-sandbox (&rest body)
   "Evaluate BODY in an empty temporary directory."
-  (declare (indent 0))
+  (declare (indent 0) (debug (&rest form)))
   `(let ((sandbox
           (--if-let (bound-and-true-p projectile-test-path)
               (file-name-as-directory (expand-file-name "sandbox" it))
@@ -19,7 +19,7 @@
        ,@body)))
 
 (defmacro projectile-test-with-files (files &rest body)
-  (declare (indent 1))
+  (declare (indent 1) (debug (sexp &rest form)))
   `(progn ,@(mapcar (lambda (file)
                       (if (string-suffix-p "/" file)
                           `(make-directory ,file t)
