@@ -501,7 +501,9 @@ to invalidate."
     (projectile-serialize-cache)
     (when projectile-verbose
       (message "Invalidated Projectile cache for %s."
-               (propertize project-root 'face 'font-lock-keyword-face)))))
+               (propertize project-root 'face 'font-lock-keyword-face))))
+  (when (fboundp 'recentf-cleanup)
+    (recentf-cleanup)))
 
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
