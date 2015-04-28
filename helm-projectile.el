@@ -40,7 +40,6 @@
 ;;; Code:
 
 (require 'projectile)
-(require 'helm-config)
 (require 'helm-locate)
 (require 'helm-buffers)
 (require 'helm-files)
