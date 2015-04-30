@@ -5,7 +5,7 @@
 
 (defmacro projectile-test-with-sandbox (&rest body)
   "Evaluate BODY in an empty temporary directory."
-  (declare (indent 0))
+  (declare (indent 0) (debug (&rest form)))
   `(let ((sandbox
           (--if-let (bound-and-true-p projectile-test-path)
               (file-name-as-directory (expand-file-name "sandbox" it))
@@ -19,7 +19,7 @@
        ,@body)))
 
 (defmacro projectile-test-with-files (files &rest body)
-  (declare (indent 1))
+  (declare (indent 1) (debug (sexp &rest form)))
   `(progn ,@(mapcar (lambda (file)
                       (if (string-suffix-p "/" file)
                           `(make-directory ,file t)
@@ -203,7 +203,7 @@
           (mkdir deep-directory t)
           (with-temp-file root-file)
           (with-temp-file project-file)
-          (with-current-buffer (find-file-noselect project-file)
+          (with-current-buffer (find-file-noselect project-file t)
             (should (file-name-absolute-p (projectile-project-root)))))
       (ignore-errors (delete-directory root-directory t)))))
 
@@ -437,17 +437,17 @@
                  projectile-projects-cache)
         (noflet ((projectile-project-root () (file-truename default-directory))
                  (projectile-project-vcs () 'none))
-          (with-current-buffer (find-file-noselect  "file2.el")
+          (with-current-buffer (find-file-noselect  "file2.el" t)
             (projectile-cache-current-file)
             (dolist (f '("file1.el" "file2.el"))
               (should (member f (gethash (projectile-project-root)
                                          projectile-projects-cache)))))
-          (with-current-buffer (find-file-noselect "file3.el")
+          (with-current-buffer (find-file-noselect "file3.el" t)
             (projectile-cache-current-file)
             (dolist (f '("file1.el" "file2.el" "file3.el"))
               (should (member f (gethash (projectile-project-root)
                                          projectile-projects-cache)))))
-          (with-current-buffer (find-file-noselect "file4.el")
+          (with-current-buffer (find-file-noselect "file4.el" t)
             (projectile-cache-current-file)
             (dolist (f '("file1.el" "file2.el" "file3.el" "file4.el"))
               (should (member f (gethash (projectile-project-root)
@@ -478,7 +478,7 @@
 				(progn (should (equal sym regexp))
 				       (should (equal (car (last test)) files))
 				       (should (equal (projectile-project-root) dir)))))
-            (with-current-buffer (find-file-noselect (car test))
+            (with-current-buffer (find-file-noselect (car test) t)
 	      (save-excursion
 		(re-search-forward sym)
 		(projectile-grep ?-)))))))))
@@ -496,9 +496,9 @@
 
 (ert-deftest projectile-ignored-buffer-p-by-name ()
   (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
-    (should (projectile-ignored-buffer-p (generate-new-buffer "*nrepl messages*")))
-    (should (projectile-ignored-buffer-p (generate-new-buffer "*something*")))
-    (should-not (projectile-ignored-buffer-p (generate-new-buffer "test")))))
+    (should (projectile-ignored-buffer-p (get-buffer-create "*nrepl messages*")))
+    (should (projectile-ignored-buffer-p (get-buffer-create "*something*")))
+    (should-not (projectile-ignored-buffer-p (get-buffer-create "test")))))
 
 (ert-deftest projectile-test-get-other-files ()
   (let ((projectile-other-file-alist '(;; handle C/C++ extensions
