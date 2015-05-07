@@ -6,6 +6,7 @@
 
 * `projectile-compile-project` now offers appropriate completion
   targets even when called from a subdirectory.
+* `projectile-mode-line` was changed to P[%s] to save mode-line space.
 
 ## 0.12.0 (03/29/2015)
 
