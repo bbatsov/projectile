@@ -159,7 +159,7 @@ entire directory with `M-x projectile-purge-dir-from-cache`.
 
 ##### File exists cache
 
-Projectile does many file existence checks since that is how it identifies an
+Projectile does many file existence checks since that is how it identifies a
 project root. Normally this is fine, however in some situations the file system
 speed is much slower than usual and can make emacs "freeze" for extended
 periods of time when opening files and browsing directories.
@@ -278,7 +278,7 @@ top-level directory.
 
 ##### Ido
 
-By default Projectile uses `ido` as it completion system. `ido` is
+By default Projectile uses `ido` as its completion system. `ido` is
 extremely popular and it is built into Emacs.
 
 As already noted above if you're going to use the `ido` completion it's
@@ -336,7 +336,7 @@ ships with Emacs distribution.
 
 ### Interactive Commands
 
-Here's a list of the interactive Emacs Lisp functions, provided by projectile:
+Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 Keybinding         | Description
 -------------------|------------------------------------------------------------
@@ -376,7 +376,7 @@ Keybinding         | Description
 <kbd>C-c p p</kbd> | Display a list of known projects you can switch to.
 <kbd>C-c p S</kbd> | Save all project buffers.
 <kbd>C-c p m</kbd> | Run the commander (an interface to run commands with a single key).
-<kbd>C-c p ESC</kbd> | Switch to the most recently selected projectile buffer.
+<kbd>C-c p ESC</kbd> | Switch to the most recently selected Projectile buffer.
 
 If you ever forget any of Projectile's keybindings just do a:
 
@@ -660,7 +660,7 @@ When I switch to a different project, I get a clean 'perspective'.
 
 ![Persp-Projectile Screenshot 2](screenshots/persp-projectile2.png)
 
-To integrate perspective with projectile, first of all, you need to
+To integrate perspective with Projectile, first of all, you need to
 install perspective. You can install it by:
 
 ```
