@@ -821,11 +821,8 @@ If invoked outside of a project, displays a list of known projects to jump."
   (interactive "P")
   (if (projectile-project-p)
       (projectile-maybe-invalidate-cache arg))
-  (let ((helm-ff-transformer-show-only-basename nil)
-        (src (if (projectile-project-p)
-                 helm-projectile-sources-list
-               helm-source-projectile-projects)))
-    (helm :sources src
+  (let ((helm-ff-transformer-show-only-basename nil))
+    (helm :sources helm-projectile-sources-list
           :buffer "*helm projectile*"
           :prompt (projectile-prepend-project-name (if (projectile-project-p)
                                                        "pattern: "
