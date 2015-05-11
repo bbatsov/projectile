@@ -510,7 +510,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                          ;; If a new buffer is longer that this value
                          ;; this value will be updated
                          (setq helm-buffer-max-len-mode (cdr result))))))
-   (candidates :initform helm-buffers-list-cache)
+   (candidates :initform (cdr helm-buffers-list-cache))
    (matchplugin :initform nil)
    (match :initform 'helm-buffers-match-function)
    (persistent-action :initform 'helm-buffers-list-persistent-action)
