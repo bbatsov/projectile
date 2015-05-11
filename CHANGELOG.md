@@ -7,6 +7,10 @@
 * `projectile-compile-project` now offers appropriate completion
   targets even when called from a subdirectory.
 
+### Bugs fixed
+
+* [#721](https://github.com/bbatsov/projectile/issues/721#issuecomment-100830507): Remove current buffer from `helm-projectile-switch-project`.
+
 ## 0.12.0 (03/29/2015)
 
 ### New features
