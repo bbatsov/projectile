@@ -497,7 +497,9 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 (defclass helm-source-projectile-buffer (helm-source-sync helm-type-buffer)
   ((init :initform (lambda ()
                      ;; Issue #51 Create the list before `helm-buffer' creation.
-                     (setq helm-buffers-list-cache (cdr (projectile-project-buffer-names)))
+                     (setq helm-buffers-list-cache (condition-case nil
+                                                       (cdr (projectile-project-buffer-names))
+                                                     (error nil)))
                      (let ((result (cl-loop for b in helm-buffers-list-cache
                                             maximize (length b) into len-buf
                                             maximize (length (with-current-buffer b
