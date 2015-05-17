@@ -2136,6 +2136,10 @@ with a prefix ARG."
                               (compilation-read-command default-cmd)
                             default-cmd)))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
+    (save-some-buffers (not compilation-ask-about-save)
+                       (lambda ()
+                         (projectile-project-buffer-p (current-buffer)
+                                                      project-root)))
     (compilation-start compilation-cmd)))
 
 (defadvice compilation-find-file (around projectile-compilation-find-file)
