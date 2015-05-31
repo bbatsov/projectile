@@ -1476,7 +1476,8 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-maven '("pom.xml"))
 (defvar projectile-gradle '("build.gradle"))
 (defvar projectile-grails '("application.properties" "grails-app"))
-(defvar projectile-lein '("project.clj"))
+(defvar projectile-lein-test '("project.clj"))
+(defvar projectile-lein-midje '("project.clj" ".midje.clj"))
 (defvar projectile-rebar '("rebar"))
 (defvar projectile-sbt '("build.sbt"))
 (defvar projectile-make '("Makefile"))
@@ -1507,7 +1508,8 @@ With a prefix ARG invalidates the cache first."
    ((projectile-verify-files projectile-python-pip)'python)
    ((projectile-verify-files projectile-python-egg) 'python)
    ((projectile-verify-files projectile-symfony) 'symfony)
-   ((projectile-verify-files projectile-lein) 'lein)
+   ((projectile-verify-files projectile-lein-midje) 'lein-midje)
+   ((projectile-verify-files projectile-lein-test) 'lein-test)
    ((projectile-verify-files projectile-scons) 'scons)
    ((projectile-verify-files projectile-maven) 'maven)
    ((projectile-verify-files projectile-gradle) 'gradle)
@@ -1608,13 +1610,14 @@ PROJECT-ROOT is the targeted directory.  If nil, use
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
   (cond
-   ((member project-type '(django python)) "test_")))
+   ((member project-type '(django python)) "test_")
+   ((member project-type '(lein-midje)) "t_")))
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
   (cond
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
-   ((member project-type '(rails-test ruby-test lein go)) "_test")
+   ((member project-type '(rails-test ruby-test lein-test go)) "_test")
    ((member project-type '(scons)) "test")
    ((member project-type '(maven symfony)) "Test")
    ((member project-type '(gradle grails)) "Spec")))
@@ -2000,6 +2003,7 @@ For git projects `magit-status-internal' is used if available."
 (defvar projectile-grails-test-cmd "grails test-app")
 (defvar projectile-lein-compile-cmd "lein compile")
 (defvar projectile-lein-test-cmd "lein test")
+(defvar projectile-lein-midje-test-cmd "lein midje")
 (defvar projectile-rebar-compile-cmd "rebar")
 (defvar projectile-rebar-test-cmd "rebar eunit")
 (defvar projectile-sbt-compile-cmd "sbt compile")
@@ -2037,6 +2041,7 @@ For git projects `magit-status-internal' is used if available."
           projectile-maven-test-cmd
           projectile-lein-compile-cmd
           projectile-lein-test-cmd
+          projectile-lein-midje-test-cmd
           projectile-rebar-compile-cmd
           projectile-rebar-test-cmd
           projectile-sbt-compile-cmd
@@ -2069,7 +2074,7 @@ For git projects `magit-status-internal' is used if available."
    ((eq project-type 'django) projectile-django-compile-cmd)
    ((eq project-type 'python) projectile-python-compile-cmd)
    ((eq project-type 'symfony) projectile-symfony-compile-cmd)
-   ((eq project-type 'lein) projectile-lein-compile-cmd)
+   ((member project-type '(lein-test lein-midje)) projectile-lein-compile-cmd)
    ((eq project-type 'make) projectile-make-compile-cmd)
    ((eq project-type 'rebar) projectile-rebar-compile-cmd)
    ((eq project-type 'scons) projectile-scons-compile-cmd)
@@ -2094,7 +2099,8 @@ For git projects `magit-status-internal' is used if available."
    ((eq project-type 'python-tox) projectile-python-tox-test-cmd)
    ((eq project-type 'python) projectile-python-test-cmd)
    ((eq project-type 'symfony) projectile-symfony-test-cmd)
-   ((eq project-type 'lein) projectile-lein-test-cmd)
+   ((eq project-type 'lein-test) projectile-lein-test-cmd)
+   ((eq project-type 'lein-midje) projectile-lein-midje-test-cmd)
    ((eq project-type 'make) projectile-make-test-cmd)
    ((eq project-type 'rebar) projectile-rebar-test-cmd)
    ((eq project-type 'scons) projectile-scons-test-cmd)
