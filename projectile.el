@@ -199,6 +199,14 @@ and `projectile-buffers-with-file-or-process'."
   :group 'projectile
   :type 'symbol)
 
+(defcustom projectile-helm-fuzzy-matching nil
+  "A flag that specifies whether we activate helm fuzzy matching.
+
+Defaults to nil (exact matching)."
+
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
@@ -1112,6 +1120,7 @@ project-root for every file."
           (helm-comp-read prompt choices
                           :initial-input initial-input
                           :candidates-in-buffer t
+                          :fuzzy projectile-helm-fuzzy-matching
                           :must-match 'confirm)
         (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
