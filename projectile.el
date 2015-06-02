@@ -1724,7 +1724,7 @@ to `projectile-grep-default-files'."
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories
                (-union (--map (directory-file-name (file-relative-name it root-dir))
-                              (cdr (projectile-ignored-directories)))
+                              (projectile-ignored-directories))
                        grep-find-ignored-directories))
               (grep-find-ignored-files
                (-union (-map (lambda (file)
