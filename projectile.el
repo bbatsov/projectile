@@ -1496,9 +1496,12 @@ With a prefix ARG invalidates the cache first."
   :group 'projectile
   :type 'function)
 
+(defvar-local projectile-project-type nil "Buffer local var for overriding the project type")
+
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
   (cond
+   (projectile-project-type projectile-project-type)
    ((projectile-verify-files projectile-rails-rspec) 'rails-rspec)
    ((projectile-verify-files projectile-rails-test) 'rails-test)
    ((projectile-verify-files projectile-ruby-rspec) 'ruby-rspec)
