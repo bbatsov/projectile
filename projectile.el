@@ -1438,16 +1438,6 @@ With a prefix ARG invalidates the cache first."
                                           (projectile-current-project-test-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
 
-(defcustom projectile-test-files-prefixes '("test_")
-  "Some common prefixes of test files."
-  :group 'projectile
-  :type '(repeat string))
-
-(defcustom projectile-test-files-suffices '("_test" "_spec" "Spec" "Test" "-test")
-  "Some common suffices of test files."
-  :group 'projectile
-  :type '(repeat string))
-
 (defun projectile-test-files (files)
   "Return only the test FILES."
   (-filter 'projectile-test-file-p files))
@@ -1455,9 +1445,9 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
   (or (--any? (string-prefix-p it (file-name-nondirectory file))
-              projectile-test-files-prefixes)
-      (--any? (string-suffix-p it (file-name-sans-extension file))
-              projectile-test-files-suffices)))
+              (-non-nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
+      (--any? (string-suffix-p it (file-name-nondirectory file))
+              (-non-nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
@@ -1565,6 +1555,34 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    ((projectile-locate-dominating-file project-root ".svn") 'svn)
    (t 'none)))
 
+(defun projectile--test-name-for-impl-name (impl-file-path)
+  (let* ((project-type (projectile-project-type))
+         (impl-file-name (file-name-sans-extension (file-name-nondirectory impl-file-path)))
+         (impl-file-ext (file-name-extension impl-file-path))
+         (test-prefix (funcall projectile-test-prefix-function project-type))
+         (test-suffix (funcall projectile-test-suffix-function project-type)))
+    (cond
+     (test-prefix (concat test-prefix impl-file-name "." impl-file-ext))
+     (test-suffix (concat impl-file-name test-suffix "." impl-file-ext))
+     (t (error "Project type not supported!")))))
+
+(defun projectile-create-test-file-for (impl-file-path)
+  (let* ((test-file (projectile--test-name-for-impl-name impl-file-path))
+         (test-dir (replace-regexp-in-string "src/" "test/" (file-name-directory impl-file-path))))
+    (unless (file-exists-p (expand-file-name test-file test-dir))
+      (progn (unless (file-exists-p test-dir)
+               (make-directory test-dir :create-parents))
+             (concat test-dir test-file)))))
+
+(defcustom projectile-create-missing-test-files nil
+  "During toggling, if non-nil enables creating test files if not found.
+
+When not-nil, every call to projectile-find-implementation-or-test-*
+creates test files if not found on the file system. Defaults to nil.
+It assumes the test/ folder is at the same level as src/."
+  :group 'projectile
+  :type 'boolean)
+
 (defun projectile-find-implementation-or-test (file-name)
   "Given a FILE-NAME return the matching implementation or test filename."
   (unless file-name (error "The current buffer is not visiting a file"))
@@ -1578,7 +1596,9 @@ PROJECT-ROOT is the targeted directory.  If nil, use
     (let ((test-file (projectile-find-matching-test file-name)))
       (if test-file
           (projectile-expand-root test-file)
-        (error "No matching test file found")))))
+        (if projectile-create-missing-test-files
+            (projectile-create-test-file-for file-name)
+          (error "No matching test file found"))))))
 
 ;;;###autoload
 (defun projectile-find-implementation-or-test-other-window ()
