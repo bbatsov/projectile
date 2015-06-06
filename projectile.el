@@ -1486,7 +1486,9 @@ With a prefix ARG invalidates the cache first."
   :group 'projectile
   :type 'function)
 
-(defvar-local projectile-project-type nil "Buffer local var for overriding the project type")
+(defvar-local projectile-project-type nil
+  "Buffer local var for overriding the auto-detected project type.
+Normally you'd set this from .dir-locals.el.")
 
 (defun projectile-project-type ()
   "Determine the project's type based on its structure."
