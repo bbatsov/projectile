@@ -2,6 +2,12 @@
 
 ## master (unreleased)
 
+### New features
+
+* Add the ability to specify the project type via `.dir-locals.el`.
+* Add support for projects using Midje.
+* Add the ability to create missing tests automatically (controlled via the `projectile-create-missing-test-files` defcustom).
+
 ### Changes
 
 * `projectile-compile-project` now offers appropriate completion
