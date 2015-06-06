@@ -1478,8 +1478,10 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-r '("DESCRIPTION"))
 
 (defun projectile-go ()
+  "Check if a project contains Go source files."
   (-any? (lambda (file)
-           (string= (file-name-extension file) "go")) (projectile-current-project-files)))
+           (string= (file-name-extension file) "go"))
+         (projectile-current-project-files)))
 
 (defcustom projectile-go-function 'projectile-go
   "Function to determine if project's type is go."
