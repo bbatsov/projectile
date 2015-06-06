@@ -2605,7 +2605,7 @@ is chosen."
 
 ;;;###autoload
 (defcustom projectile-mode-line
-  '(:eval (format " Projectile[%s]" (projectile-project-name)))
+  '(:eval (format " P[%s]" (projectile-project-name)))
   "Mode line lighter for Projectile.
 
 The value of this variable is a mode line template as in
