@@ -718,10 +718,10 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                           'identity
                           (-union (-map (lambda (path)
                                           (concat "--ignore-dir=" (file-name-nondirectory (directory-file-name path))))
-                                        projectile-globally-ignored-directories)
+                                        projectile-ignored-directories)
                                   (-map (lambda (path)
                                           (concat "--ignore-file=match:" (shell-quote-argument path)))
-                                        projectile-globally-ignored-files)) " "))
+                                        projectile-ignored-files)) " "))
             (helm-ack-grep-executable (cond
                                        ((executable-find "ack") "ack")
                                        ((executable-find "ack-grep") "ack-grep")
