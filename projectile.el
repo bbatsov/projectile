@@ -208,6 +208,7 @@ and `projectile-buffers-with-file-or-process'."
     "build.gradle"       ; Gradle project file
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
+    "setup.py"           ; Setuptools file
     "tox.ini"            ; Tox file
     "package.json"       ; npm package file
     "gulpfile.js"        ; Gulp build file
