@@ -208,6 +208,7 @@ and `projectile-buffers-with-file-or-process'."
     "build.gradle"       ; Gradle project file
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
+    "setup.py"           ; Setuptools file
     "tox.ini"            ; Tox file
     "package.json"       ; npm package file
     "gulpfile.js"        ; Gulp build file
@@ -1460,7 +1461,7 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-ruby-test '("Gemfile" "lib" "test"))
 (defvar projectile-django '("manage.py"))
 (defvar projectile-python-pip '("requirements.txt"))
-(defvar projectile-python-egg '("setup.py"))
+(defvar projectile-python-pkg '("setup.py"))
 (defvar projectile-python-tox '("tox.ini"))
 (defvar projectile-scons '("SConstruct"))
 (defvar projectile-maven '("pom.xml"))
@@ -1503,7 +1504,7 @@ Normally you'd set this from .dir-locals.el.")
    ((projectile-verify-files projectile-django) 'django)
    ((projectile-verify-files projectile-python-tox) 'python-tox)
    ((projectile-verify-files projectile-python-pip)'python)
-   ((projectile-verify-files projectile-python-egg) 'python)
+   ((projectile-verify-files projectile-python-pkg) 'python)
    ((projectile-verify-files projectile-symfony) 'symfony)
    ((projectile-verify-files projectile-lein-midje) 'lein-midje)
    ((projectile-verify-files projectile-lein-test) 'lein-test)
