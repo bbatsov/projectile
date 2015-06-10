@@ -629,11 +629,8 @@ which we're looking."
 (defun projectile-root-bottom-up (dir &optional list)
   "Identify a project root in DIR by looking at `projectile-project-root-files-bottom-up'.
 Returns a project root directory path or nil if not found."
-  (--reduce-from
-   (or acc
-       (projectile-locate-dominating-file dir it))
-   nil
-   (or list projectile-project-root-files-bottom-up)))
+  (--some (projectile-locate-dominating-file dir it)
+          (or list projectile-project-root-files-bottom-up)))
 
 (defun projectile-root-top-down (dir &optional list)
   "Identify a project root in DIR by looking at `projectile-project-root-files'.
@@ -647,34 +644,28 @@ Returns a project root directory path or nil if not found."
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by looking at `projectile-project-root-files-top-down-recurring'.
 Returns a project root directory path or nil if not found."
-  (--reduce-from
-   (or acc
-       (projectile-locate-dominating-file
-        dir
-        (lambda (dir)
-          (and (projectile-file-exists-p (expand-file-name it dir))
-               (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
-                   (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir)))))))))
-   nil
-   (or list projectile-project-root-files-top-down-recurring)))
+  (--some (projectile-locate-dominating-file
+           dir
+           (lambda (dir)
+             (and (projectile-file-exists-p (expand-file-name it dir))
+                  (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
+                      (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir))))))))
+          (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
   (let ((dir default-directory))
-    (or (--reduce-from
-         (or acc
-             (let* ((cache-key (format "%s-%s" it dir))
-                    (cache-value (gethash cache-key projectile-project-root-cache)))
-               (if cache-value
-                   (if (eq cache-value 'no-project-root)
-                       nil
-                     cache-value)
-                 (let ((value (funcall it (file-truename dir))))
-                   (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
-                   value))))
-         nil
-         projectile-project-root-files-functions)
+    (or (--some (let* ((cache-key (format "%s-%s" it dir))
+                       (cache-value (gethash cache-key projectile-project-root-cache)))
+                  (if cache-value
+                      (if (eq cache-value 'no-project-root)
+                          nil
+                        cache-value)
+                    (let ((value (funcall it (file-truename dir))))
+                      (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
+                      value)))
+                projectile-project-root-files-functions)
         (if projectile-require-project-root
             (error "You're not in a project")
           default-directory))))
