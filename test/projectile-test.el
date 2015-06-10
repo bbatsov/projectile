@@ -230,13 +230,13 @@
          "projectA/src/framework/lib/"
          "projectA/src/framework.conf"
          "projectA/src/html/index.html")
-      (should (equal "projectA/src/"
+      (should (equal (expand-file-name "projectA/src/")
                      (projectile-root-top-down "projectA/src/framework/lib"
                                                '("framework.conf" ".git"))))
-      (should (equal "projectA/src/"
+      (should (equal (expand-file-name "projectA/src/")
                      (projectile-root-top-down "projectA/src/framework/lib"
                                                '(".git" "framework.conf"))))
-      (should (equal "projectA/src/html/"
+      (should (equal (expand-file-name "projectA/src/html/")
                      (projectile-root-top-down "projectA/src/html/"
                                                '(".svn")))))))
 
@@ -252,11 +252,11 @@
          "projectA/src/framework/framework.conf"
          "projectA/src/html/index.html"
          ".projectile")
-      (should (equal "projectA/"
+      (should (equal (expand-file-name "projectA/")
                      (projectile-root-top-down-recurring
                       "projectA/src/html/"
                       '("something" ".svn" ".git"))))
-      (should (equal "projectA/"
+      (should (equal (expand-file-name "projectA/")
                      (projectile-root-top-down-recurring
                       "projectA/src/html/"
                       '(".git"))))
@@ -276,16 +276,16 @@
          "projectA/src/framework/framework.conf"
          "projectA/src/html/index.html"
          "projectA/.projectile")
-      (should (equal "projectA/"
+      (should (equal (expand-file-name "projectA/")
                      (projectile-root-bottom-up "projectA/src/framework/lib"
                                                 '(".git" ".svn"))))
-      (should (equal "projectA/"
+      (should (equal (expand-file-name "projectA/")
                      (projectile-root-bottom-up "projectA/src/html"
                                                 '(".git" ".svn"))))
-      (should (equal "projectA/src/html/"
+      (should (equal (expand-file-name "projectA/src/html/")
                      (projectile-root-bottom-up "projectA/src/html"
                                                 '(".svn" ".git"))))
-      (should (equal "projectA/"
+      (should (equal (expand-file-name "projectA/")
                      (projectile-root-bottom-up "projectA/src/html"
                                                 '(".projectile" "index.html")))))))
 
