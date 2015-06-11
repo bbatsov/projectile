@@ -218,16 +218,8 @@ and `projectile-buffers-with-file-or-process'."
     "Cargo.toml"         ; Cargo project file
     "mix.exs"            ; Elixir mix project file
     )
-  "A list of files considered to mark the root of a project."
-  :group 'projectile
-  :type '(repeat string))
-
-(defcustom projectile-project-root-files-top-down-recurring
-  '(".svn" ; Svn VCS root dir
-    "CVS"  ; Csv VCS root dir
-    "Makefile")
   "A list of files considered to mark the root of a project.
-This root files pattern stops at the parentmost match."
+The topmost match has precedence."
   :group 'projectile
   :type '(repeat string))
 
@@ -240,8 +232,19 @@ This root files pattern stops at the parentmost match."
     "_darcs"      ; Darcs VCS root dir
     )
   "A list of files considered to mark the root of a project.
-This root files pattern overrides discovery of any root files
-pattern that would have found a project root in a subdirectory."
+The bottommost (parentmost) match has precedence."
+  :group 'projectile
+  :type '(repeat string))
+
+(defcustom projectile-project-root-files-top-down-recurring
+  '(".svn" ; Svn VCS root dir
+    "CVS"  ; Csv VCS root dir
+    "Makefile")
+  "A list of files considered to mark the root of a project.
+The search starts at the top and descends down till a directory
+that contains a match file but its parent does not.  Thus, it's a
+bottommost match in the topmost sequence of directories
+containing a root file."
   :group 'projectile
   :type '(repeat string))
 
@@ -626,55 +629,50 @@ which we're looking."
              (setq file nil))))
     (and root (expand-file-name (file-name-as-directory root)))))
 
-(defun projectile-root-bottom-up (dir &optional list)
-  "Identify a project root in DIR by looking at `projectile-project-root-files-bottom-up'.
-Returns a project root directory path or nil if not found."
-  (--reduce-from
-   (or acc
-       (projectile-locate-dominating-file dir it))
-   nil
-   (or list projectile-project-root-files-bottom-up)))
-
 (defun projectile-root-top-down (dir &optional list)
-  "Identify a project root in DIR by looking at `projectile-project-root-files'.
-Returns a project root directory path or nil if not found."
+  "Identify a project root in DIR by top-down search for files in LIST.
+If LIST is nil, use `projectile-project-root-files' instead.
+Return the first (topmost) matched directory or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
      (--first (projectile-file-exists-p (expand-file-name it dir))
               (or list projectile-project-root-files)))))
 
+(defun projectile-root-bottom-up (dir &optional list)
+  "Identify a project root in DIR by bottom-up search for files in LIST.
+If LIST is nil, use `projectile-project-root-files-bottom-up' instead.
+Return the first (bottommost) matched directory or nil if not found."
+  (--some (projectile-locate-dominating-file dir it)
+          (or list projectile-project-root-files-bottom-up)))
+
 (defun projectile-root-top-down-recurring (dir &optional list)
-  "Identify a project root in DIR by looking at `projectile-project-root-files-top-down-recurring'.
-Returns a project root directory path or nil if not found."
-  (--reduce-from
-   (or acc
-       (projectile-locate-dominating-file
-        dir
-        (lambda (dir)
-          (and (projectile-file-exists-p (expand-file-name it dir))
-               (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
-                   (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir)))))))))
-   nil
-   (or list projectile-project-root-files-top-down-recurring)))
+  "Identify a project root in DIR by recurring top-down search for files in LIST.
+If LIST is nil, use `projectile-project-root-files-top-down-recurring'
+instead.  Return the last (bottommost) matched directory in the
+topmost sequence of matched directories.  Nil otherwise."
+  (--some (projectile-locate-dominating-file
+           dir
+           (lambda (dir)
+             (and (projectile-file-exists-p (expand-file-name it dir))
+                  (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
+                      (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir))))))))
+          (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
   (let ((dir default-directory))
-    (or (--reduce-from
-         (or acc
-             (let* ((cache-key (format "%s-%s" it dir))
-                    (cache-value (gethash cache-key projectile-project-root-cache)))
-               (if cache-value
-                   (if (eq cache-value 'no-project-root)
-                       nil
-                     cache-value)
-                 (let ((value (funcall it (file-truename dir))))
-                   (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
-                   value))))
-         nil
-         projectile-project-root-files-functions)
+    (or (--some (let* ((cache-key (format "%s-%s" it dir))
+                       (cache-value (gethash cache-key projectile-project-root-cache)))
+                  (if cache-value
+                      (if (eq cache-value 'no-project-root)
+                          nil
+                        cache-value)
+                    (let ((value (funcall it (file-truename dir))))
+                      (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
+                      value)))
+                projectile-project-root-files-functions)
         (if projectile-require-project-root
             (error "You're not in a project")
           default-directory))))
