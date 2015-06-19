@@ -734,8 +734,6 @@ If it is nil, or ack/ack-grep not found then use default grep command."
 (defun helm-projectile-ag (&optional options)
   "Helm version of projectile-ag."
   (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag-command-history))))
-  (unless (executable-find "ag")
-    (error "ag not available"))
   (if (require 'helm-ag nil  'noerror)
       (if (projectile-project-p)
           (let* ((grep-find-ignored-files (-union (projectile-ignored-files-rel)  grep-find-ignored-files))
