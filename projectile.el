@@ -852,7 +852,8 @@ function is executing."
                        '("." ".." ".svn" ".cvs")))
      (progress-reporter-update progress-reporter)
      (if (file-directory-p it)
-         (unless (projectile-ignored-directory-p it)
+         (unless (projectile-ignored-directory-p
+                  (file-name-as-directory it))
            (projectile-index-directory it patterns progress-reporter))
        (unless (projectile-ignored-file-p it)
          (list it))))
