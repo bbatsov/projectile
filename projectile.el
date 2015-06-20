@@ -733,12 +733,10 @@ Files are returned as relative paths to the project root."
 
 (defun projectile-dir-files-external (root directory)
   "Get the files for ROOT under DIRECTORY using external tools."
-  (let ((default-directory directory)
-        (files-list nil))
-    (setq files-list (-map (lambda (f)
-                             (file-relative-name (expand-file-name f directory) root))
-                           (projectile-get-repo-files)))
-    files-list))
+  (let ((default-directory directory))
+    (-map (lambda (file)
+            (file-relative-name (expand-file-name file directory) root))
+          (projectile-get-repo-files))))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
