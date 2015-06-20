@@ -409,7 +409,7 @@ synchronized with `projectile-known-projects-file'.")
 (defcustom projectile-ignored-projects nil
   "A list of projects not to be added to `projectile-known-projects'."
   :group 'projectile
-  :type 'list
+  :type '(repeat :tag "Project list" directory)
   :package-version '(projectile . "0.11.0"))
 
 
