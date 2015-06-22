@@ -413,16 +413,16 @@ synchronized with `projectile-known-projects-file'.")
   :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-ignored-project-function nil
-  "Function to decide if a project is added to `projectile-known-projects`.
+  "Function to decide if a project is added to `projectile-known-projects'.
 
 Can be either nil, or a function that takes the truename of the
 project root as argument and returns non-nil if the project is to
 be ignored or nil otherwise.
 
 This function is only called if the project is not listed in
-`projectile-ignored-projects`.
+`projectile-ignored-projects'.
 
-A suitable candidate would be `remote-file-p` to ignore remote
+A suitable candidate would be `file-remote-p' to ignore remote
 projects."
   :group 'projectile
   :type '(choice
@@ -2352,7 +2352,7 @@ It handles the case of remote files as well. See `projectile-cleanup-known-proje
   (-map #'file-truename projectile-ignored-projects))
 
 (defun projectile-ignored-project-p (project-root)
-  "Return t if PROJECT-ROOT should not be added to `projectile-known-projects`."
+  "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'."
   (or (member project-root (projectile-ignored-projects))
       (and (functionp projectile-ignored-project-function)
            (funcall projectile-ignored-project-function project-root))))
