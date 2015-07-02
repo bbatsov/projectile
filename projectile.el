@@ -884,7 +884,9 @@ Operates on filenames relative to the project root."
                          (projectile-ignored-directories-rel))))
     (-remove (lambda (file)
                (or (--any-p (string-prefix-p it file) ignored)
-                   (--any-p (string-suffix-p it file) projectile-globally-ignored-file-suffixes)))
+                   (--any-p (string-suffix-p it file) projectile-globally-ignored-file-suffixes)
+                   (and (string-prefix-p "find: `" file)
+                        (string-match "': Permission denied" file))))
              files)))
 
 
