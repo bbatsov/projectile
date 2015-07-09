@@ -1,0 +1,1248 @@
+#+TITLE:                Bench-Experimental
+#+AUTHOR:               Thomas Frössman
+#+EMAIL:                thomasf@jossystem.se
+#+DATE:                 2014-11-12 ons
+#+DESCRIPTION:          
+#+KEYWORDS:             
+#+FILETAGS:             
+#+EXPORT_EXCLUDE_TAGS:  noexport
+#+CATEGORY:             
+#+OPTIONS:              H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:              TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT:           view:t toc:t ltoc:t mouse:underline buttons:0 path:http://thomasf.github.com/solarized-css/org-info.min.js
+#+HTML_HEAD:            <link rel="stylesheet" type="text/css" href="http://thomasf.github.com/solarized-css/solarized-light.min.css" />
+
+* new bench runner based on profile matrix
+
+Intresting note is that the no-cache profile actually is faster at doing
+projectile-sim1-04-projectile-list-project-file than cache-per-test because of
+more file operations in total.
+
+#+begin_example plain
+make fig-test 
+fig build projectile
+Building projectile...
+ ---> 9572f655d6c6
+Step 1 : COPY Cask /projectile/
+ ---> Using cache
+ ---> 065370047d6a
+Step 2 : COPY projectile.el /projectile/
+ ---> Using cache
+ ---> ca2f7182e9c7
+Step 3 : WORKDIR /projectile
+ ---> Using cache
+ ---> f40c8b28610f
+Step 4 : RUN cask
+ ---> Using cache
+ ---> d550830caa9e
+Step 5 : COPY test/docker/projectile/run.sh /run.sh
+ ---> Using cache
+ ---> 7f2b3d811efb
+Step 6 : COPY . /projectile/
+ ---> ce8b21f74096
+Removing intermediate container 5a3dd033c9c6
+Successfully built ce8b21f74096
+fig up --no-deps -d projectile
+Recreating projectile_projectile_1...
+fig logs
+Attaching to projectile_projectile_1, projectile_polipo_1, projectile_sshd_1
+projectile_1 | Initialized empty Git repository in /projectile/.git/
+polipo_1     | Established listening socket on port 8123.
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | no-cache ::  /testdata/ :: /projectile/test/projectile-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-bench.el
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 14 tests (2014-11-21 03:28:15+0000)
+projectile_1 | /testdata/ 0.000140737
+projectile_1 |    passed   1/14  00-connect-tramp
+projectile_1 | /testdata/ 0.034280441
+projectile_1 |    passed   2/14  projectile-find-linux-kernel-root
+projectile_1 | /testdata/ 0.014675841
+projectile_1 |    passed   3/14  projectile-find-linux-kernel-root2
+projectile_1 | /testdata/ 0.006740369
+projectile_1 |    passed   4/14  projectile-find-linux-kernel-root3
+projectile_1 | /testdata/ 0.026432256
+projectile_1 |    passed   5/14  projectile-find-projetile-root
+projectile_1 | /testdata/ 0.006587955
+projectile_1 |    passed   6/14  projectile-find-root-fn-bottom-up
+projectile_1 | /testdata/ 0.003821614
+projectile_1 |    passed   7/14  projectile-find-root-fn-nil
+projectile_1 | /testdata/ 0.010329421
+projectile_1 |    passed   8/14  projectile-find-root-fn-top-down
+projectile_1 | /testdata/ 0.004879144
+projectile_1 |    passed   9/14  projectile-find-root-fn-top-down-recurring
+projectile_1 | /testdata/ 0.068181961
+projectile_1 |    passed  10/14  projectile-nofiles-edge-to-shallow
+projectile_1 | /testdata/ 0.01860725
+projectile_1 |    passed  11/14  projectile-nofiles-random-order
+projectile_1 | /testdata/ 0.010790532
+projectile_1 |    passed  12/14  projectile-nofiles-shallow-to-deep
+projectile_1 | /testdata/ 0.032159879
+projectile_1 |    passed  13/14  projectile-nofiles-shallow-to-edge
+projectile_1 | /testdata/ 0.015161059
+projectile_1 |    passed  14/14  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 14 tests, 14 results as expected (2014-11-21 03:28:18+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | full-cache ::  /testdata/ :: /projectile/test/projectile-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-bench.el
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 14 tests (2014-11-21 03:28:19+0000)
+projectile_1 | /testdata/ 5.6932e-05
+projectile_1 |    passed   1/14  00-connect-tramp
+projectile_1 | /testdata/ 0.032990276
+projectile_1 |    passed   2/14  projectile-find-linux-kernel-root
+projectile_1 | /testdata/ 0.022561017
+projectile_1 |    passed   3/14  projectile-find-linux-kernel-root2
+projectile_1 | /testdata/ 0.004372155
+projectile_1 |    passed   4/14  projectile-find-linux-kernel-root3
+projectile_1 | /testdata/ 0.032185537
+projectile_1 |    passed   5/14  projectile-find-projetile-root
+projectile_1 | /testdata/ 0.002513824
+projectile_1 |    passed   6/14  projectile-find-root-fn-bottom-up
+projectile_1 | /testdata/ 0.003772919
+projectile_1 |    passed   7/14  projectile-find-root-fn-nil
+projectile_1 | /testdata/ 0.009240549
+projectile_1 |    passed   8/14  projectile-find-root-fn-top-down
+projectile_1 | /testdata/ 0.004731334
+projectile_1 |    passed   9/14  projectile-find-root-fn-top-down-recurring
+projectile_1 | /testdata/ 0.061351887
+projectile_1 |    passed  10/14  projectile-nofiles-edge-to-shallow
+projectile_1 | /testdata/ 0.02000448
+projectile_1 |    passed  11/14  projectile-nofiles-random-order
+projectile_1 | /testdata/ 0.019284581999999998
+projectile_1 |    passed  12/14  projectile-nofiles-shallow-to-deep
+projectile_1 | /testdata/ 0.033327239
+projectile_1 |    passed  13/14  projectile-nofiles-shallow-to-edge
+projectile_1 | /testdata/ 0.014978842999999999
+projectile_1 |    passed  14/14  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 14 tests, 14 results as expected (2014-11-21 03:28:22+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | cache-per-test ::  /testdata/ :: /projectile/test/projectile-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-bench.el
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 14 tests (2014-11-21 03:28:24+0000)
+projectile_1 | /testdata/ 0.000102573
+projectile_1 |    passed   1/14  00-connect-tramp
+projectile_1 | /testdata/ 0.03253726
+projectile_1 |    passed   2/14  projectile-find-linux-kernel-root
+projectile_1 | /testdata/ 0.020561592
+projectile_1 |    passed   3/14  projectile-find-linux-kernel-root2
+projectile_1 | /testdata/ 0.00262321
+projectile_1 |    passed   4/14  projectile-find-linux-kernel-root3
+projectile_1 | /testdata/ 0.030998859
+projectile_1 |    passed   5/14  projectile-find-projetile-root
+projectile_1 | /testdata/ 0.007378968
+projectile_1 |    passed   6/14  projectile-find-root-fn-bottom-up
+projectile_1 | /testdata/ 0.003760242
+projectile_1 |    passed   7/14  projectile-find-root-fn-nil
+projectile_1 | /testdata/ 0.010320015
+projectile_1 |    passed   8/14  projectile-find-root-fn-top-down
+projectile_1 | /testdata/ 0.004928425
+projectile_1 |    passed   9/14  projectile-find-root-fn-top-down-recurring
+projectile_1 | /testdata/ 0.074341878
+projectile_1 |    passed  10/14  projectile-nofiles-edge-to-shallow
+projectile_1 | /testdata/ 0.06452730899999999
+projectile_1 |    passed  11/14  projectile-nofiles-random-order
+projectile_1 | /testdata/ 0.049722377
+projectile_1 |    passed  12/14  projectile-nofiles-shallow-to-deep
+projectile_1 | /testdata/ 0.065868989
+projectile_1 |    passed  13/14  projectile-nofiles-shallow-to-edge
+projectile_1 | /testdata/ 0.036667917999999994
+projectile_1 |    passed  14/14  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 14 tests, 14 results as expected (2014-11-21 03:28:27+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | no-cache ::  /scp:sshd:/testdata/ :: /projectile/test/projectile-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-bench.el
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 14 tests (2014-11-21 03:28:28+0000)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.78cFr.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | /scp:sshd:/testdata/ 0.21359055
+projectile_1 |    passed   1/14  00-connect-tramp
+projectile_1 | /scp:sshd:/testdata/ 0.38055221300000003
+projectile_1 |    passed   2/14  projectile-find-linux-kernel-root
+projectile_1 | /scp:sshd:/testdata/ 0.050207388
+projectile_1 |    passed   3/14  projectile-find-linux-kernel-root2
+projectile_1 | /scp:sshd:/testdata/ 0.023781039
+projectile_1 |    passed   4/14  projectile-find-linux-kernel-root3
+projectile_1 | /scp:sshd:/testdata/ 0.068030423
+projectile_1 |    passed   5/14  projectile-find-projetile-root
+projectile_1 | /scp:sshd:/testdata/ 0.007114046000000001
+projectile_1 |    passed   6/14  projectile-find-root-fn-bottom-up
+projectile_1 | /scp:sshd:/testdata/ 0.008217368000000001
+projectile_1 |    passed   7/14  projectile-find-root-fn-nil
+projectile_1 | /scp:sshd:/testdata/ 0.264858339
+projectile_1 |    passed   8/14  projectile-find-root-fn-top-down
+projectile_1 | /scp:sshd:/testdata/ 0.034910187
+projectile_1 |    passed   9/14  projectile-find-root-fn-top-down-recurring
+projectile_1 | /scp:sshd:/testdata/ 2.398150166
+projectile_1 |    passed  10/14  projectile-nofiles-edge-to-shallow
+projectile_1 | /scp:sshd:/testdata/ 0.012151733
+projectile_1 |    passed  11/14  projectile-nofiles-random-order
+projectile_1 | /scp:sshd:/testdata/ 0.014580128999999999
+projectile_1 |    passed  12/14  projectile-nofiles-shallow-to-deep
+projectile_1 | /scp:sshd:/testdata/ 0.034768263
+projectile_1 |    passed  13/14  projectile-nofiles-shallow-to-edge
+projectile_1 | /scp:sshd:/testdata/ 0.015598289000000001
+projectile_1 |    passed  14/14  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 14 tests, 14 results as expected (2014-11-21 03:28:34+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | full-cache ::  /scp:sshd:/testdata/ :: /projectile/test/projectile-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-bench.el
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 14 tests (2014-11-21 03:28:36+0000)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.96kFr.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | /scp:sshd:/testdata/ 0.228614184
+projectile_1 |    passed   1/14  00-connect-tramp
+projectile_1 | /scp:sshd:/testdata/ 0.397469604
+projectile_1 |    passed   2/14  projectile-find-linux-kernel-root
+projectile_1 | /scp:sshd:/testdata/ 0.047580581000000004
+projectile_1 |    passed   3/14  projectile-find-linux-kernel-root2
+projectile_1 | /scp:sshd:/testdata/ 0.019748168
+projectile_1 |    passed   4/14  projectile-find-linux-kernel-root3
+projectile_1 | /scp:sshd:/testdata/ 0.058968076
+projectile_1 |    passed   5/14  projectile-find-projetile-root
+projectile_1 | /scp:sshd:/testdata/ 0.005750336
+projectile_1 |    passed   6/14  projectile-find-root-fn-bottom-up
+projectile_1 | /scp:sshd:/testdata/ 0.003009498
+projectile_1 |    passed   7/14  projectile-find-root-fn-nil
+projectile_1 | /scp:sshd:/testdata/ 0.269109882
+projectile_1 |    passed   8/14  projectile-find-root-fn-top-down
+projectile_1 | /scp:sshd:/testdata/ 0.040287349
+projectile_1 |    passed   9/14  projectile-find-root-fn-top-down-recurring
+projectile_1 | /scp:sshd:/testdata/ 2.13684624
+projectile_1 |    passed  10/14  projectile-nofiles-edge-to-shallow
+projectile_1 | /scp:sshd:/testdata/ 0.03868896
+projectile_1 |    passed  11/14  projectile-nofiles-random-order
+projectile_1 | /scp:sshd:/testdata/ 0.016671977999999997
+projectile_1 |    passed  12/14  projectile-nofiles-shallow-to-deep
+projectile_1 | /scp:sshd:/testdata/ 0.012194455
+projectile_1 |    passed  13/14  projectile-nofiles-shallow-to-edge
+projectile_1 | /scp:sshd:/testdata/ 0.038822569
+projectile_1 |    passed  14/14  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 14 tests, 14 results as expected (2014-11-21 03:28:42+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | cache-per-test ::  /scp:sshd:/testdata/ :: /projectile/test/projectile-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-bench.el
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 14 tests (2014-11-21 03:28:43+0000)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.114jzO.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | /scp:sshd:/testdata/ 0.192546084
+projectile_1 |    passed   1/14  00-connect-tramp
+projectile_1 | /scp:sshd:/testdata/ 0.5164427779999999
+projectile_1 |    passed   2/14  projectile-find-linux-kernel-root
+projectile_1 | /scp:sshd:/testdata/ 0.068935445
+projectile_1 |    passed   3/14  projectile-find-linux-kernel-root2
+projectile_1 | /scp:sshd:/testdata/ 0.016337742
+projectile_1 |    passed   4/14  projectile-find-linux-kernel-root3
+projectile_1 | /scp:sshd:/testdata/ 0.05299549
+projectile_1 |    passed   5/14  projectile-find-projetile-root
+projectile_1 | /scp:sshd:/testdata/ 0.035302099999999996
+projectile_1 |    passed   6/14  projectile-find-root-fn-bottom-up
+projectile_1 | /scp:sshd:/testdata/ 0.003053501
+projectile_1 |    passed   7/14  projectile-find-root-fn-nil
+projectile_1 | /scp:sshd:/testdata/ 0.227968178
+projectile_1 |    passed   8/14  projectile-find-root-fn-top-down
+projectile_1 | /scp:sshd:/testdata/ 0.035015492
+projectile_1 |    passed   9/14  projectile-find-root-fn-top-down-recurring
+projectile_1 | /scp:sshd:/testdata/ 2.132678465
+projectile_1 |    passed  10/14  projectile-nofiles-edge-to-shallow
+projectile_1 | /scp:sshd:/testdata/ 1.3234173900000001
+projectile_1 |    passed  11/14  projectile-nofiles-random-order
+projectile_1 | /scp:sshd:/testdata/ 0.892302401
+projectile_1 |    passed  12/14  projectile-nofiles-shallow-to-deep
+projectile_1 | /scp:sshd:/testdata/ 1.324762282
+projectile_1 |    passed  13/14  projectile-nofiles-shallow-to-edge
+projectile_1 | /scp:sshd:/testdata/ 0.278319365
+projectile_1 |    passed  14/14  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 14 tests, 14 results as expected (2014-11-21 03:28:53+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | no-cache ::  /testdata/ :: /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | Loading /projectile/test/projectile-user-simulation-1-bench.el (source)...
+projectile_1 | Running 8 tests (2014-11-21 03:28:54+0000)
+projectile_1 | /testdata/ 7.6019e-05
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | /testdata/ 0.034911184
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | /testdata/ 0.151326126
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | /testdata/ 0.011841058
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | /testdata/ 4.804808508
+projectile_1 | 
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | projectile-current-project-files                       1           4.804763135   4.804763135
+projectile_1 | projectile-dir-files                                   1           4.803567676   4.803567676
+projectile_1 | projectile-dir-files-external                          1           3.987109056   3.987109056
+projectile_1 | file-relative-name                                     47520       2.7746597420  5.838...e-05
+projectile_1 | projectile-remove-ignored                              1           0.816110628   0.816110628
+projectile_1 | expand-file-name                                       142673      0.6295796749  4.412...e-06
+projectile_1 | projectile-get-repo-files                              1           0.422194167   0.422194167
+projectile_1 | projectile-files-via-ext-command                       2           0.4201083770  0.2100541885
+projectile_1 | file-name-as-directory                                 95291       0.3720369040  3.904...e-06
+projectile_1 | shell-command-to-string                                2           0.326869898   0.163434949
+projectile_1 | process-file                                           2           0.30985403    0.154927015
+projectile_1 | file-remote-p                                          95055       0.2300825150  2.420...e-06
+projectile_1 | projectile-get-sub-projects-files                      1           0.166836361   0.166836361
+projectile_1 | projectile-get-all-sub-projects                        1           0.166393235   0.166393235
+projectile_1 | file-truename                                          288         0.0281991740  9.791...e-05
+projectile_1 | projectile-project-root                                24          0.008632602   0.0003596917
+projectile_1 | projectile-ignored-directories-rel                     1           0.004951785   0.004951785
+projectile_1 | projectile-ignored-directories                         1           0.004247855   0.004247855
+projectile_1 | projectile-expand-root                                 11          0.003785337   0.0003441215
+projectile_1 | projectile-parse-dirconfig-file                        3           0.0015855090  0.000528503
+projectile_1 | projectile-dirconfig-file                              3           0.001503737   0.0005012456
+projectile_1 | projectile-ignored-files-rel                           1           0.001492385   0.001492385
+projectile_1 | projectile-project-ignored                             2           0.001454665   0.0007273325
+projectile_1 | projectile-get-project-directories                     1           0.001176384   0.001176384
+projectile_1 | projectile-project-vcs                                 3           0.001155054   0.000385018
+projectile_1 | projectile-ignored-files                               1           0.001087877   0.001087877
+projectile_1 | projectile-paths-to-ignore                             2           0.000752583   0.0003762915
+projectile_1 | projectile-project-ignored-files                       1           0.000744985   0.000744985
+projectile_1 | projectile-project-ignored-directories                 1           0.000717647   0.000717647
+projectile_1 | directory-file-name                                    296         0.0006226629  2.103...e-06
+projectile_1 | projectile-get-sub-projects-command                    1           0.000447554   0.000447554
+projectile_1 | projectile-root-bottom-up                              1           0.000381133   0.000381133
+projectile_1 | projectile-locate-dominating-file                      2           0.0003704109  0.0001852054
+projectile_1 | projectile-get-ext-command                             1           0.000358756   0.000358756
+projectile_1 | projectile-file-exists-p                               14          0.00031867    2.276...e-05
+projectile_1 | file-exists-p                                          15          0.0001894340  1.262...e-05
+projectile_1 | projectile-sort-files                                  1           1.386e-06     1.386e-06
+projectile_1 | 
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | /testdata/ 0.216746943
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | /testdata/ 0.013146752
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | /testdata/ 0.000233962
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-21 03:29:02+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | full-cache ::  /testdata/ :: /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | Loading /projectile/test/projectile-user-simulation-1-bench.el (source)...
+projectile_1 | Running 8 tests (2014-11-21 03:29:03+0000)
+projectile_1 | /testdata/ 8.3389e-05
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | /testdata/ 0.034877692
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | Empty cache. Projectile is initializing cache...
+projectile_1 | /testdata/ 2.498288788
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | /testdata/ 0.01073471
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | /testdata/ 0.000861468
+projectile_1 | 
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | file-truename                                          12          0.001364893   0.0001137410
+projectile_1 | projectile-current-project-files                       1           0.000819036   0.000819036
+projectile_1 | projectile-project-root                                1           0.000808321   0.000808321
+projectile_1 | projectile-root-bottom-up                              1           0.00037551    0.00037551
+projectile_1 | projectile-locate-dominating-file                      2           0.000364113   0.0001820565
+projectile_1 | projectile-file-exists-p                               8           0.0001738290  2.172...e-05
+projectile_1 | file-exists-p                                          9           0.0001090889  1.212...e-05
+projectile_1 | expand-file-name                                       15          6.6508e-05    4.433...e-06
+projectile_1 | directory-file-name                                    20          5.077...e-05  2.538...e-06
+projectile_1 | file-name-as-directory                                 11          2.8177e-05    2.561...e-06
+projectile_1 | file-remote-p                                          9           2.398...e-05  2.665e-06
+projectile_1 | projectile-sort-files                                  1           1.157e-06     1.157e-06
+projectile_1 | 
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | /testdata/ 0.173685007
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | /testdata/ 0.013174382
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | /testdata/ 0.000217833
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-21 03:29:08+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | cache-per-test ::  /testdata/ :: /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | Loading /projectile/test/projectile-user-simulation-1-bench.el (source)...
+projectile_1 | Running 8 tests (2014-11-21 03:29:09+0000)
+projectile_1 | /testdata/ 4.3211e-05
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | /testdata/ 0.023915808
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | /testdata/ 0.096427839
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | /testdata/ 0.010351023
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | /testdata/ 4.674460467
+projectile_1 | 
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | projectile-current-project-files                       1           4.674434387   4.674434387
+projectile_1 | projectile-dir-files                                   1           4.673319962   4.673319962
+projectile_1 | projectile-dir-files-external                          1           3.853524519   3.853524519
+projectile_1 | file-relative-name                                     47520       2.6154860949  5.503...e-05
+projectile_1 | projectile-remove-ignored                              1           0.819461031   0.819461031
+projectile_1 | expand-file-name                                       142681      0.6237255850  4.371...e-06
+projectile_1 | projectile-get-repo-files                              1           0.397772887   0.397772887
+projectile_1 | projectile-files-via-ext-command                       2           0.39435837    0.197179185
+projectile_1 | file-name-as-directory                                 95292       0.3419480180  3.588...e-06
+projectile_1 | shell-command-to-string                                2           0.3068918459  0.1534459229
+projectile_1 | process-file                                           2           0.286508099   0.1432540495
+projectile_1 | file-remote-p                                          95062       0.2587712300  2.722...e-06
+projectile_1 | projectile-get-sub-projects-files                      1           0.168388756   0.168388756
+projectile_1 | projectile-get-all-sub-projects                        1           0.168005874   0.168005874
+projectile_1 | file-truename                                          288         0.0308569760  0.0001071422
+projectile_1 | projectile-project-root                                24          0.009923003   0.0004134584
+projectile_1 | projectile-ignored-directories-rel                     1           0.004994577   0.004994577
+projectile_1 | projectile-ignored-directories                         1           0.004311476   0.004311476
+projectile_1 | projectile-expand-root                                 11          0.0038721270  0.0003520115
+projectile_1 | projectile-project-vcs                                 3           0.002559894   0.0008532980
+projectile_1 | projectile-parse-dirconfig-file                        3           0.001481785   0.0004939283
+projectile_1 | projectile-ignored-files-rel                           1           0.001467912   0.001467912
+projectile_1 | projectile-dirconfig-file                              3           0.001432045   0.0004773483
+projectile_1 | projectile-project-ignored                             2           0.001400908   0.000700454
+projectile_1 | projectile-get-project-directories                     1           0.001099689   0.001099689
+projectile_1 | projectile-ignored-files                               1           0.001060128   0.001060128
+projectile_1 | projectile-get-ext-command                             1           0.000989708   0.000989708
+projectile_1 | projectile-root-bottom-up                              2           0.000916513   0.0004582565
+projectile_1 | projectile-locate-dominating-file                      4           0.000880308   0.000220077
+projectile_1 | projectile-paths-to-ignore                             2           0.0007250480  0.0003625240
+projectile_1 | projectile-project-ignored-files                       1           0.000707118   0.000707118
+projectile_1 | projectile-project-ignored-directories                 1           0.000701233   0.000701233
+projectile_1 | directory-file-name                                    302         0.0006998290  2.317...e-06
+projectile_1 | projectile-file-exists-p                               20          0.0004670249  2.335...e-05
+projectile_1 | projectile-get-sub-projects-command                    1           0.000357877   0.000357877
+projectile_1 | file-exists-p                                          9           0.0001044670  1.160...e-05
+projectile_1 | projectile-sort-files                                  1           1.018e-06     1.018e-06
+projectile_1 | 
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | /testdata/ 0.174181882
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | /testdata/ 0.010217803
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | /testdata/ 0.000277097
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-21 03:29:16+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | no-cache ::  /scp:sshd:/testdata/ :: /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | Loading /projectile/test/projectile-user-simulation-1-bench.el (source)...
+projectile_1 | Running 8 tests (2014-11-21 03:29:17+0000)
+projectile_1 | /scp:sshd:/testdata/ 0.229747719
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | /scp:sshd:/testdata/ 0.053055453
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.435F0O...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.435F0O... \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.435F0O...done
+projectile_1 | 
+projectile_1 | 
+projectile_1 | /scp:sshd:/testdata/ 0.303187304
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | /scp:sshd:/testdata/ 0.015190951
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | /scp:sshd:/testdata/ 84.405834445
+projectile_1 | 
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | projectile-current-project-files                       1           84.405792329  84.405792329
+projectile_1 | projectile-dir-files                                   1           84.385365564  84.385365564
+projectile_1 | projectile-dir-files-external                          1           83.444805948  83.444805948
+projectile_1 | file-relative-name                                     47520       66.505774213  0.0013995322
+projectile_1 | expand-file-name                                       475366      52.755008965  0.0001109776
+projectile_1 | file-remote-p                                          95054       33.384963563  0.0003512210
+projectile_1 | tramp-sh-handle-expand-file-name                       237690      22.825849171  9.603...e-05
+projectile_1 | tramp-handle-file-remote-p                             95054       22.659632813  0.0002383869
+projectile_1 | file-name-as-directory                                 522860      20.993373517  4.015...e-05
+projectile_1 | tramp-handle-file-name-as-directory                    142585      4.2077494070  2.951...e-05
+projectile_1 | projectile-remove-ignored                              1           0.939720452   0.939720452
+projectile_1 | projectile-get-repo-files                              1           0.54154919    0.54154919
+projectile_1 | projectile-files-via-ext-command                       2           0.5328800570  0.2664400285
+projectile_1 | shell-command-to-string                                2           0.445495331   0.2227476655
+projectile_1 | process-file                                           2           0.427574706   0.213787353
+projectile_1 | tramp-sh-handle-process-file                           2           0.42736171    0.213680855
+projectile_1 | projectile-get-sub-projects-files                      1           0.173257078   0.173257078
+projectile_1 | projectile-get-all-sub-projects                        1           0.170718402   0.170718402
+projectile_1 | projectile-project-root                                24          0.073199233   0.0030499680
+projectile_1 | file-truename                                          48          0.0573995550  0.0011958240
+projectile_1 | projectile-ignored-directories-rel                     1           0.054815326   0.054815326
+projectile_1 | projectile-ignored-directories                         1           0.043651107   0.043651107
+projectile_1 | projectile-expand-root                                 11          0.040900742   0.0037182492
+projectile_1 | projectile-parse-dirconfig-file                        3           0.023532802   0.0078442673
+projectile_1 | tramp-sh-handle-file-truename                          48          0.0233832450  0.0004871509
+projectile_1 | projectile-dirconfig-file                              3           0.020916885   0.006972295
+projectile_1 | projectile-get-project-directories                     1           0.020408281   0.020408281
+projectile_1 | projectile-root-bottom-up                              1           0.015424374   0.015424374
+projectile_1 | projectile-locate-dominating-file                      2           0.015403414   0.007701707
+projectile_1 | projectile-file-exists-p                               14          0.0145806490  0.0010414749
+projectile_1 | projectile-ignored-files-rel                           1           0.01133671    0.01133671
+projectile_1 | file-exists-p                                          14          0.009161268   0.0006543762
+projectile_1 | projectile-project-vcs                                 3           0.005641096   0.0018803653
+projectile_1 | projectile-project-ignored                             2           0.005530292   0.002765146
+projectile_1 | projectile-paths-to-ignore                             2           0.003989618   0.001994809
+projectile_1 | projectile-ignored-files                               1           0.003882596   0.003882596
+projectile_1 | projectile-project-ignored-files                       1           0.002998208   0.002998208
+projectile_1 | projectile-project-ignored-directories                 1           0.002541964   0.002541964
+projectile_1 | projectile-get-sub-projects-command                    1           0.002270997   0.002270997
+projectile_1 | projectile-get-ext-command                             1           0.001711692   0.001711692
+projectile_1 | directory-file-name                                    93          0.0014451880  1.553...e-05
+projectile_1 | tramp-handle-file-name-nondirectory                    48          0.000795
+projectile_1 | 8490  1.658...e-05
+projectile_1 | projectile-sort-files                                  1           1.14e-06      1.14e-06
+projectile_1 | 
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.435S-U.c...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.435S-U.c... \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.435S-U.c...done
+projectile_1 | 
+projectile_1 | 
+projectile_1 | /scp:sshd:/testdata/ 0.367163132
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | /scp:sshd:/testdata/ 0.035095769
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | Directory has changed on disk; type g to update Dired
+projectile_1 | /scp:sshd:/testdata/ 0.0089982
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-21 03:30:45+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | full-cache ::  /scp:sshd:/testdata/ :: /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | Loading /projectile/test/projectile-user-simulation-1-bench.el (source)...
+projectile_1 | Running 8 tests (2014-11-21 03:30:46+0000)
+projectile_1 | /scp:sshd:/testdata/ 0.222588549
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | /scp:sshd:/testdata/ 0.047995581
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.465e1O...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.465e1O... \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.465e1O...done
+projectile_1 | 
+projectile_1 | 
+projectile_1 | Empty cache. Projectile is initializing cache...
+projectile_1 | /scp:sshd:/testdata/ 107.424445916
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | /scp:sshd:/testdata/ 0.013618465
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | /scp:sshd:/testdata/ 0.012741635
+projectile_1 | 
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | projectile-current-project-files                       1           0.012680068   0.012680068
+projectile_1 | projectile-project-root                                1           0.012660838   0.012660838
+projectile_1 | projectile-root-bottom-up                              1           0.009815448   0.009815448
+projectile_1 | projectile-locate-dominating-file                      2           0.009796644   0.004898322
+projectile_1 | projectile-file-exists-p                               8           0.005170967   0.0006463708
+projectile_1 | expand-file-name                                       38          0.0041147490  0.0001082828
+projectile_1 | file-truename                                          2           0.002817712   0.001408856
+projectile_1 | file-exists-p                                          2           0.002567686   0.001283843
+projectile_1 | tramp-sh-handle-file-truename                          2           0.002529405   0.0012647025
+projectile_1 | file-remote-p                                          8           0.002487972   0.0003109965
+projectile_1 | tramp-sh-handle-expand-file-name                       20          0.002417681   0.0001208840
+projectile_1 | tramp-handle-file-remote-p                             8           0.00157961    0.0001974512
+projectile_1 | file-name-as-directory                                 38          0.001325631   3.488...e-05
+projectile_1 | directory-file-name                                    18          0.001114388   6.191...e-05
+projectile_1 | tramp-handle-file-name-as-directory                    9           0.000244973   2.721...e-05
+projectile_1 | tramp-handle-file-name-nondirectory                    2           3.8614e-05    1.9307e-05
+projectile_1 | projectile-sort-files                                  1           2.097e-06     2.097e-06
+projectile_1 | 
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.465r_U.c...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.465r_U.c... \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.465r_U.c...done
+projectile_1 | 
+projectile_1 | 
+projectile_1 | /scp:sshd:/testdata/ 0.411652702
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | /scp:sshd:/testdata/ 0.011494481
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | Directory has changed on disk; type g to update Dired
+projectile_1 | /scp:sshd:/testdata/ 0.011144434
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-21 03:32:36+0000)
+projectile_1 | 
+projectile_1 | 
+projectile_1 | 
+projectile_1 | -------------------------------
+projectile_1 | cache-per-test ::  /scp:sshd:/testdata/ :: /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | 
+projectile_1 | Eager macro-expansion failure: (void-function -map)
+projectile_1 | loading /projectile/test/projectile-user-simulation-1-bench.el
+projectile_1 | Loading /projectile/test/projectile-user-simulation-1-bench.el (source)...
+projectile_1 | Running 8 tests (2014-11-21 03:32:38+0000)
+projectile_1 | /scp:sshd:/testdata/ 0.208192306
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | /scp:sshd:/testdata/ 0.07548016
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.4941Vh...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.4941Vh... \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.4941Vh...done
+projectile_1 | 
+projectile_1 | 
+projectile_1 | /scp:sshd:/testdata/ 0.315128741
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | /scp:sshd:/testdata/ 0.045016951
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | /scp:sshd:/testdata/ 153.136280876
+projectile_1 | 
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | projectile-current-project-files                       1           153.13624064  153.13624064
+projectile_1 | projectile-dir-files                                   1           153.11389429  153.11389429
+projectile_1 | projectile-dir-files-external                          1           152.22763207  152.22763207
+projectile_1 | projectile-get-repo-files                              1           72.377717704  72.377717704
+projectile_1 | projectile-files-via-ext-command                       2           72.366590896  36.183295448
+projectile_1 | shell-command-to-string                                2           72.271159825  36.135579912
+projectile_1 | process-file                                           2           72.257355863  36.128677931
+projectile_1 | tramp-sh-handle-process-file                           2           72.257165129  36.128582564
+projectile_1 | file-relative-name                                     47520       64.205470066  0.0013511252
+projectile_1 | expand-file-name                                       475385      50.696170706  0.0001066423
+projectile_1 | file-remote-p                                          95060       32.759056944  0.0003446145
+projectile_1 | tramp-sh-handle-expand-file-name                       237696      22.165381879  9.325...e-05
+projectile_1 | tramp-handle-file-remote-p                             95060       21.671445203  0.0002279764
+projectile_1 | file-name-as-directory                                 522880      20.012401210  3.827...e-05
+projectile_1 | tramp-handle-file-name-as-directory                    142592      3.9241886190  2.752...e-05
+projectile_1 | projectile-remove-ignored                              1           0.885608119   0.885608119
+projectile_1 | projectile-get-sub-projects-files                      1           0.236764503   0.236764503
+projectile_1 | projectile-get-all-sub-projects                        1           0.234152744   0.234152744
+projectile_1 | projectile-project-root                                24          0.0708532889  0.0029522203
+projectile_1 | file-truename                                          48          0.0493225730  0.0010275536
+projectile_1 | tramp-sh-handle-file-truename                          48          0.0453580240  0.0009449588
+projectile_1 | projectile-ignored-files-rel                           1           0.033277674   0.033277674
+projectile_1 | projectile-project-ignored                             2           0.027203028   0.013601514
+projectile_1 | projectile-ignored-files                               1           0.026362634   0.026362634
+projectile_1 | projectile-project-ignored-files                       1           0.025509664   0.025509664
+projectile_1 | projectile-parse-dirconfig-file                        3           0.024324488   0.0081081626
+projectile_1 | projectile-dirconfig-file                              3           0.0234222100  0.0078074033
+projectile_1 | projectile-get-project-directories                     1           0.022328597   0.022328597
+projectile_1 | projectile-root-bottom-up                              2           0.021209136   0.010604568
+projectile_1 | projectile-locate-dominating-file                      4           0.021179205   0.0052948012
+projectile_1 | projectile-ignored-directories-rel                     1           0.020351455   0.020351455
+projectile_1 | projectile-file-exists-p                               20          0.013693814   0.0006846907
+projectile_1 | projectile-ignored-directories                         1           0.01091204    0.01091204
+projectile_1 | projectile-expand-root                                 11          0.009146473   0.0008314975
+projectile_1 | projectile-project-vcs                                 3           0.008178738   0.002726246
+projectile_1 | file-exists-p                                          8           0.006045918   0.0007557397
+projectile_1 | projectile-paths-to-ignore                             2           0.0026451210  0.0013225605
+projectile_1 | directory-file-name                                    86          0.0020400220  2.372...e-05
+projectile_1 | projectile-project-ignored-directories                 1           0.001701446   0.001701446
+projectile_1 | projectile-get-ext-command                             1           0.001405743   0.001405743
+projectile_1 | projectile-get-sub-projects-command                    1           0.001250911   0.001250911
+projectile_1 | tramp-handle-file-name-nondirectory                    48          0.
+projectile_1 | 0006883479  1.434...e-05
+projectile_1 | projectile-file-exists-cache-cleanup                   8           0.0002139200  2.674...e-05
+projectile_1 | projectile-sort-files                                  1           1.111e-06     1.111e-06
+projectile_1 | 
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.494O-C.c...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.494O-C.c... \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.494O-C.c...done
+projectile_1 | 
+projectile_1 | 
+projectile_1 | /scp:sshd:/testdata/ 0.400662788
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | /scp:sshd:/testdata/ 0.015752743
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | Directory has changed on disk; type g to update Dired
+projectile_1 | /scp:sshd:/testdata/ 0.010582632
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-21 03:35:14+0000)
+projectile_1 | 
+projectile_projectile_1 exited with code 0
+
+#+end_example
+
+
+* adding an alternative to file-remote-p
+
+#+begin_example elisp
+(defun projectile-file-remote-p (filename)
+  "This is an short cut for file-remote-p which has different features.
+ Replacing all occurrences in projectile.el will fail."
+  (or
+   (and (fboundp 'tramp-tramp-file-p) (tramp-tramp-file-p filename))
+   (file-remote-p filename)))
+#+end_example
+
+
+* less calls file-relative-name for listing project files
+
+This is a speed bump
+
+#+begin_example elisp
+(defun projectile-dir-files-external (root directory)
+  "Get the files for ROOT under DIRECTORY using external tools."
+  (let ((default-directory directory)
+        (files-list nil))
+    (setq files-list (-map (lambda (f)
+                             ;; (file-relative-name (expand-file-name f directory) root)
+                             (s-chop-prefix root (expand-file-name f directory))
+                             )
+                           (projectile-get-repo-files)))
+    files-list))
+#+end_example
+
+
+** bench before
+#+begin_example plain
+Attaching to projectile_projectile_1, projectile_polipo_1, projectile_sshd_1
+projectile_1 | Initialized empty Git repository in /projectile/.git/
+polipo_1     | Established listening socket on port 8123.
+projectile_1 | Running 42 tests (2014-11-12 22:27:27+0000)
+projectile_1 |    passed   1/42  projectile-clear-known-projects
+projectile_1 |    passed   2/42  projectile-ignored-buffer-p-by-name
+projectile_1 |    passed   3/42  projectile-switch-project-no-projects
+projectile_1 |    passed   4/42  projectile-test-ack
+projectile_1 |    passed   5/42  projectile-test-add-known-project-adds-project-to-known-projects
+projectile_1 |    passed   6/42  projectile-test-add-known-project-moves-projects-to-front-of-list
+projectile_1 | Empty cache. Projectile is initializing cache...
+projectile_1 |    passed   7/42  projectile-test-cache-current-file
+projectile_1 |    passed   8/42  projectile-test-dir-files
+projectile_1 |    passed   9/42  projectile-test-dirname-matching-count
+projectile_1 |    passed  10/42  projectile-test-expand-root
+projectile_1 |    passed  11/42  projectile-test-file-exists-cache
+projectile_1 |    passed  12/42  projectile-test-file-exists-cache-disabled
+projectile_1 |    passed  13/42  projectile-test-file-truename
+projectile_1 | Projectile is indexing /projectile/test/sandbox/project/. This may take a while.
+projectile_1 |    passed  14/42  projectile-test-find-matching-file
+projectile_1 | Projectile is indexing /projectile/test/sandbox/project/. This may take a while.
+projectile_1 |    passed  15/42  projectile-test-find-matching-test
+projectile_1 |    passed  16/42  projectile-test-get-other-files
+projectile_1 |    passed  17/42  projectile-test-get-project-directories
+projectile_1 |    passed  18/42  projectile-test-git-grep-prefix
+projectile_1 |    passed  19/42  projectile-test-ignored-directories
+projectile_1 |    passed  20/42  projectile-test-ignored-directory-p
+projectile_1 |    passed  21/42  projectile-test-ignored-file-p
+projectile_1 |    passed  22/42  projectile-test-ignored-files
+projectile_1 |    passed  23/42  projectile-test-loads-known-projects-through-serialization-functions
+projectile_1 |    passed  24/42  projectile-test-maybe-invalidate
+projectile_1 |    passed  25/42  projectile-test-parse-dirconfig-file
+projectile_1 |    passed  26/42  projectile-test-prepend-project-name
+projectile_1 |    passed  27/42  projectile-test-project-get-name
+projectile_1 |    passed  28/42  projectile-test-project-ignored
+projectile_1 |    passed  29/42  projectile-test-project-ignored-directories
+projectile_1 |    passed  30/42  projectile-test-project-ignored-files
+projectile_1 |    passed  31/42  projectile-test-project-root
+projectile_1 |    passed  32/42  projectile-test-project-root-is-absolute
+projectile_1 | No projects needed to be removed.
+projectile_1 | Projects removed: /tmp/projectile-cleanup9YqG
+projectile_1 |    passed  33/42  projectile-test-projects-cleaned
+projectile_1 |    passed  34/42  projectile-test-relevant-known-projects
+projectile_1 |    passed  35/42  projectile-test-root-bottom-up
+projectile_1 |    passed  36/42  projectile-test-root-top-down
+projectile_1 |    passed  37/42  projectile-test-root-top-down-recurring
+projectile_1 |    passed  38/42  projectile-test-saves-known-projects-through-serialization-functions
+projectile_1 |    passed  39/42  projectile-test-serialization-functions
+projectile_1 |    passed  40/42  projectile-test-setup-hook-functions-projectile-global-mode
+projectile_1 |    passed  41/42  projectile-test-setup-hook-functions-projectile-mode
+projectile_1 |    passed  42/42  projectile-test-tags-exclude-items
+projectile_1 | 
+projectile_1 | Ran 42 tests, 42 results as expected (2014-11-12 22:27:27+0000)
+projectile_1 | 
+projectile_1 | Loading /projectile/test/projectile-bench-user-simulation-1.el (source)...
+projectile_1 | Running 8 tests (2014-11-12 22:27:28+0000)
+projectile_1 | Duration: 0.0001s (/testdata/)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.33m0M.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | Duration: 0.6808s (/scp:sshd:/testdata/)
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | Duration: 0.0371s (/testdata/)
+projectile_1 | Duration: 0.0802s (/scp:sshd:/testdata/)
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | Duration: 0.4623s (/testdata/)
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/Makefile'...
+projectile_1 | Inserting `/scp:sshd:/testdata/someuser/repos/linux/Makefile' \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.33nnr...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.33nnr... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Process has finished.
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.33nnr...done
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/Makefile'...done
+projectile_1 | 
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/Makefile...
+projectile_1 | Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/Makefile... \
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/Makefile...done
+projectile_1 | 
+projectile_1 | Duration: 0.8437s (/scp:sshd:/testdata/)
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | Duration: 0.0690s (/testdata/)
+projectile_1 | Duration: 0.0427s (/scp:sshd:/testdata/)
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | Duration: 7.2670s (/testdata/)
+projectile_1 | Duration: 106.4280s (/scp:sshd:/testdata/)
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | tramp-file-name-handler                                475478      123.18835749  0.0002590831
+projectile_1 | projectile-current-project-files                       2           113.69499709  56.847498546
+projectile_1 | projectile-dir-files                                   2           113.64613929  56.823069648
+projectile_1 | projectile-dir-files-external                          2           111.92597058  55.962985294
+projectile_1 | file-relative-name                                     95040       71.221247060  0.0007493818
+projectile_1 | expand-file-name                                       618066      54.945605930  8.889...e-05
+projectile_1 | file-remote-p                                          190122      34.442975761  0.0001811624
+projectile_1 | projectile-get-repo-files                              2           22.529279689  11.264639844
+projectile_1 | projectile-files-via-ext-command                       4           22.513958108  5.6284895272
+projectile_1 | shell-command-to-string                                4           22.334352162  5.5835880405
+projectile_1 | file-name-as-directory                                 618172      22.021309806  3.562...e-05
+projectile_1 | projectile-remove-ignored                              2           1.718630045   0.8593150225
+projectile_1 | file-name-absolute-p                                   713228      1.0741219399  1.506...e-06
+projectile_1 | projectile-get-sub-projects-files                      2           0.426890726   0.213445363
+projectile_1 | projectile-get-all-sub-projects                        2           0.422440614   0.211220307
+projectile_1 | projectile-project-root                                48          0.0974311559  0.0020298157
+projectile_1 | file-truename                                          336         0.0845263959  0.0002515666
+projectile_1 | projectile-parse-dirconfig-file                        6           0.0523434059  0.008723901
+projectile_1 | projectile-dirconfig-file                              6           0.0511926530  0.0085321088
+projectile_1 | projectile-get-project-directories                     2           0.0488239569  0.0244119784
+projectile_1 | projectile-root-bottom-up                              4           0.045003707   0.0112509267
+projectile_1 | projectile-locate-dominating-file                      8           0.0449545359  0.0056193169
+projectile_1 | projectile-ignored-directories-rel                     2           0.034335576   0.017167788
+projectile_1 | projectile-ignored-directories                         2           0.023013605   0.0115068025
+projectile_1 | projectile-expand-root                                 22          0.0198959880  0.0009043630
+projectile_1 | projectile-ignored-files-rel                           2           0.017399412   0.008699706
+projectile_1 | projectile-file-exists-p                               40          0.0169112459  0.0004227811
+projectile_1 | projectile-project-vcs                                 6           0.0099008430  0.0016501405
+projectile_1 | file-exists-p                                          17          0.009418066   0.0005540038
+projectile_1 | projectile-project-ignored                             4           0.008238624   0.002059656
+projectile_1 | file-name-nondirectory                                 960         0.0082100170  8.552...e-06
+projectile_1 | projectile-ignored-files                               2           0.006190605   0.0030953025
+projectile_1 | projectile-paths-to-ignore                             4           0.004904691   0.0012261727
+projectile_1 | projectile-project-ignored-files                       2           0.004159157   0.0020795785
+projectile_1 | projectile-project-ignored-directories                 2           0.004099468   0.002049734
+projectile_1 | file-symlink-p                                         288         0.0031919910  1.108...e-05
+projectile_1 | directory-file-name                                    388         0.0025637429  6.607...e-06
+projectile_1 | file-name-directory                                    328         0.0023063380  7.031...e-06
+projectile_1 | projectile-get-ext-command                             2           0.001907107   0.0009535535
+projectile_1 | projectile-get-sub-projects-command                    2           0.0018281929  0.0009140964
+projectile_1 | projectile-file-exists-cache-cleanup                   3           8.0037e-05    2.667...e-05
+projectile_1 | projectile-sort-files                                  2     
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | Duration: 0.3220s (/testdata/)
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c'...
+projectile_1 | Inserting `/scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c' \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.33nuf.c...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.33nuf.c... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Process has finished.
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.33nuf.c...done
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c'...done
+projectile_1 | 
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c...
+projectile_1 | Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c... \
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c...done
+projectile_1 | 
+projectile_1 | Duration: 0.4349s (/scp:sshd:/testdata/)
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | Duration: 0.0257s (/testdata/)
+projectile_1 | Duration: 0.0277s (/scp:sshd:/testdata/)
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | Duration: 0.0005s (/testdata/)
+projectile_1 | Directory has changed on disk; type g to update Dired
+projectile_1 | Duration: 0.0090s (/scp:sshd:/testdata/)
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-12 22:29:25+0000)
+projectile_1 | 
+projectile_1 |       3.35e-06      1.675e-06
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 18 tests (2014-11-12 22:29:27+0000)
+projectile_1 | Duration: 0.0000s (/testdata/)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.145d2M.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | Duration: 0.2397s (/scp:sshd:/testdata/)
+projectile_1 |    passed   1/18  00-connect-tramp
+projectile_1 | Duration: 0.0226s (/testdata/)
+projectile_1 | Duration: 0.5759s (/scp:sshd:/testdata/)
+projectile_1 |    passed   2/18  projectile-find-linux-kernel-root
+projectile_1 | Duration: 0.0140s (/testdata/)
+projectile_1 | Duration: 0.0548s (/scp:sshd:/testdata/)
+projectile_1 |    passed   3/18  projectile-find-linux-kernel-root2
+projectile_1 | Duration: 0.0200s (/testdata/)
+projectile_1 | Duration: 0.1280s (/scp:sshd:/testdata/)
+projectile_1 |    passed   4/18  projectile-find-linux-kernel-root3
+projectile_1 | Duration: 0.0730s (/testdata/)
+projectile_1 | Duration: 0.0623s (/scp:sshd:/testdata/)
+projectile_1 |    passed   5/18  projectile-find-projetile-root
+projectile_1 | Duration: 0.0202s (/testdata/)
+projectile_1 | Duration: 0.1119s (/scp:sshd:/testdata/)
+projectile_1 |    passed   6/18  projectile-find-root-fn-bottom-up
+projectile_1 | Duration: 0.0162s (/testdata/)
+projectile_1 | Duration: 0.0052s (/scp:sshd:/testdata/)
+projectile_1 |    passed   7/18  projectile-find-root-fn-nil
+projectile_1 | Duration: 0.0458s (/testdata/)
+projectile_1 | Duration: 1.1594s (/scp:sshd:/testdata/)
+projectile_1 |    passed   8/18  projectile-find-root-fn-top-down
+projectile_1 | Duration: 0.0081s (/testdata/)
+projectile_1 | Duration: 0.2525s (/scp:sshd:/testdata/)
+projectile_1 |    passed   9/18  projectile-find-root-fn-top-down-recurring
+projectile_1 | Duration: 0.4635s (/testdata/)
+projectile_1 | Duration: 14.0955s (/scp:sshd:/testdata/)
+projectile_1 |    passed  10/18  projectile-nofiles-edge-to-shallow
+projectile_1 | Duration: 0.0589s (/testdata/)
+projectile_1 | Duration: 1.3203s (/scp:sshd:/testdata/)
+projectile_1 |    passed  11/18  projectile-nofiles-edge-to-shallow-keep-cache
+projectile_1 | Duration: 0.4470s (/testdata/)
+projectile_1 | Duration: 13.2162s (/scp:sshd:/testdata/)
+projectile_1 |    passed  12/18  projectile-nofiles-random-order
+projectile_1 | Duration: 0.0583s (/testdata/)
+projectile_1 | Duration: 1.3151s (/scp:sshd:/testdata/)
+projectile_1 |    passed  13/18  projectile-nofiles-random-order-keep-cache
+projectile_1 | Duration: 0.3230s (/testdata/)
+projectile_1 | Duration: 8.5620s (/scp:sshd:/testdata/)
+projectile_1 |    passed  14/18  projectile-nofiles-shallow-to-deep
+projectile_1 | Duration: 0.0440s (/testdata/)
+projectile_1 | Duration: 0.8720s (/scp:sshd:/testdata/)
+projectile_1 |    passed  15/18  projectile-nofiles-shallow-to-deep-keep-cache
+projectile_1 | Duration: 0.4429s (/testdata/)
+projectile_1 | Duration: 13.3163s (/scp:sshd:/testdata/)
+projectile_1 |    passed  16/18  projectile-nofiles-shallow-to-edge
+projectile_1 | Duration: 0.0578s (/testdata/)
+projectile_1 | Duration: 1.3918s (/scp:sshd:/testdata/)
+projectile_1 |    passed  17/18  projectile-nofiles-shallow-to-edge-keep-cache
+projectile_1 | Duration: 0.0326s (/testdata/)
+projectile_1 | Duration: 0.2809s (/scp:sshd:/testdata/)
+projectile_1 |    passed  18/18  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 18 tests, 18 results as expected (2014-11-12 22:30:26+0000)
+projectile_1 | 
+projectile_projectile_1 exited with code 0
+#+end_example
+
+** bench after
+#+begin_example plain
+Attaching to projectile_projectile_1, projectile_polipo_1, projectile_sshd_1
+projectile_1 | Initialized empty Git repository in /projectile/.git/
+polipo_1     | Established listening socket on port 8123.
+projectile_1 | Running 42 tests (2014-11-12 22:30:44+0000)
+projectile_1 |    passed   1/42  projectile-clear-known-projects
+projectile_1 |    passed   2/42  projectile-ignored-buffer-p-by-name
+projectile_1 |    passed   3/42  projectile-switch-project-no-projects
+projectile_1 |    passed   4/42  projectile-test-ack
+projectile_1 |    passed   5/42  projectile-test-add-known-project-adds-project-to-known-projects
+projectile_1 |    passed   6/42  projectile-test-add-known-project-moves-projects-to-front-of-list
+projectile_1 | Empty cache. Projectile is initializing cache...
+projectile_1 |    passed   7/42  projectile-test-cache-current-file
+projectile_1 |    passed   8/42  projectile-test-dir-files
+projectile_1 |    passed   9/42  projectile-test-dirname-matching-count
+projectile_1 |    passed  10/42  projectile-test-expand-root
+projectile_1 |    passed  11/42  projectile-test-file-exists-cache
+projectile_1 |    passed  12/42  projectile-test-file-exists-cache-disabled
+projectile_1 |    passed  13/42  projectile-test-file-truename
+projectile_1 | Projectile is indexing /projectile/test/sandbox/project/. This may take a while.
+projectile_1 |    passed  14/42  projectile-test-find-matching-file
+projectile_1 | Projectile is indexing /projectile/test/sandbox/project/. This may take a while.
+projectile_1 |    passed  15/42  projectile-test-find-matching-test
+projectile_1 |    passed  16/42  projectile-test-get-other-files
+projectile_1 |    passed  17/42  projectile-test-get-project-directories
+projectile_1 |    passed  18/42  projectile-test-git-grep-prefix
+projectile_1 |    passed  19/42  projectile-test-ignored-directories
+projectile_1 |    passed  20/42  projectile-test-ignored-directory-p
+projectile_1 |    passed  21/42  projectile-test-ignored-file-p
+projectile_1 |    passed  22/42  projectile-test-ignored-files
+projectile_1 |    passed  23/42  projectile-test-loads-known-projects-through-serialization-functions
+projectile_1 |    passed  24/42  projectile-test-maybe-invalidate
+projectile_1 |    passed  25/42  projectile-test-parse-dirconfig-file
+projectile_1 |    passed  26/42  projectile-test-prepend-project-name
+projectile_1 |    passed  27/42  projectile-test-project-get-name
+projectile_1 |    passed  28/42  projectile-test-project-ignored
+projectile_1 |    passed  29/42  projectile-test-project-ignored-directories
+projectile_1 |    passed  30/42  projectile-test-project-ignored-files
+projectile_1 |    passed  31/42  projectile-test-project-root
+projectile_1 |    passed  32/42  projectile-test-project-root-is-absolute
+projectile_1 | No projects needed to be removed.
+projectile_1 | Projects removed: /tmp/projectile-cleanup10dtG
+projectile_1 |    passed  33/42  projectile-test-projects-cleaned
+projectile_1 |    passed  34/42  projectile-test-relevant-known-projects
+projectile_1 |    passed  35/42  projectile-test-root-bottom-up
+projectile_1 |    passed  36/42  projectile-test-root-top-down
+projectile_1 |    passed  37/42  projectile-test-root-top-down-recurring
+projectile_1 |    passed  38/42  projectile-test-saves-known-projects-through-serialization-functions
+projectile_1 |    passed  39/42  projectile-test-serialization-functions
+projectile_1 |    passed  40/42  projectile-test-setup-hook-functions-projectile-global-mode
+projectile_1 |    passed  41/42  projectile-test-setup-hook-functions-projectile-mode
+projectile_1 |    passed  42/42  projectile-test-tags-exclude-items
+projectile_1 | 
+projectile_1 | Ran 42 tests, 42 results as expected (2014-11-12 22:30:44+0000)
+projectile_1 | 
+projectile_1 | Loading /projectile/test/projectile-bench-user-simulation-1.el (source)...
+projectile_1 | Running 8 tests (2014-11-12 22:30:46+0000)
+projectile_1 | Duration: 0.0001s (/testdata/)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.34s3M.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | Duration: 0.2943s (/scp:sshd:/testdata/)
+projectile_1 |    passed  1/8  00-connect-tramp
+projectile_1 | Duration: 0.0307s (/testdata/)
+projectile_1 | Duration: 0.0579s (/scp:sshd:/testdata/)
+projectile_1 |    passed  2/8  projectile-sim1-01-dired
+projectile_1 | Duration: 0.1171s (/testdata/)
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/Makefile'...
+projectile_1 | Inserting `/scp:sshd:/testdata/someuser/repos/linux/Makefile' \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.34tqr...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.34tqr... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Process has finished.
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/Makefile to /tmp/tramp.34tqr...done
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/Makefile'...done
+projectile_1 | 
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/Makefile...
+projectile_1 | Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/Makefile... \
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/Makefile...done
+projectile_1 | 
+projectile_1 | Duration: 0.3995s (/scp:sshd:/testdata/)
+projectile_1 |    passed  3/8  projectile-sim1-02-find-file-makefile
+projectile_1 | Duration: 0.0101s (/testdata/)
+projectile_1 | Duration: 0.0423s (/scp:sshd:/testdata/)
+projectile_1 |    passed  4/8  projectile-sim1-03-dired-sound
+projectile_1 | Duration: 1.9743s (/testdata/)
+projectile_1 | Duration: 39.8381s (/scp:sshd:/testdata/)
+projectile_1 | Function Name                                          Call Count  Elapsed Time  Average Time
+projectile_1 | =====================================================  ==========  ============  ============
+projectile_1 | tramp-file-name-handler                                95406       43.936244686  0.0004605186
+projectile_1 | projectile-current-project-files                       2           41.812370232  20.906185116
+projectile_1 | projectile-dir-files                                   2           41.78834929   20.894174645
+projectile_1 | projectile-dir-files-external                          2           40.037798015  20.018899007
+projectile_1 | projectile-get-repo-files                              2           22.456037597  11.228018798
+projectile_1 | projectile-files-via-ext-command                       4           22.440747798  5.6101869495
+projectile_1 | shell-command-to-string                                4           22.276482722  5.5691206805
+projectile_1 | expand-file-name                                       142976      17.125438698  0.0001197784
+projectile_1 | file-name-as-directory                                 143082      6.6117310059  4.620...e-05
+projectile_1 | projectile-remove-ignored                              2           1.749157733   0.8745788665
+projectile_1 | projectile-get-sub-projects-files                      2           0.353755141   0.1768775705
+projectile_1 | projectile-get-all-sub-projects                        2           0.349842015   0.1749210075
+projectile_1 | file-name-absolute-p                                   143120      0.2021165989  1.412...e-06
+projectile_1 | file-truename                                          336         0.1075164770  0.0003199895
+projectile_1 | projectile-project-root                                48          0.095399086   0.0019874809
+projectile_1 | projectile-ignored-files-rel                           2           0.039057972   0.019528986
+projectile_1 | projectile-ignored-directories-rel                     2           0.0349258219  0.0174629109
+projectile_1 | projectile-parse-dirconfig-file                        6           0.0269126780  0.0044854463
+projectile_1 | projectile-dirconfig-file                              6           0.0259284670  0.0043214111
+projectile_1 | projectile-ignored-directories                         2           0.0239979489  0.0119989744
+projectile_1 | projectile-get-project-directories                     2           0.023985815   0.0119929075
+projectile_1 | projectile-expand-root                                 22          0.0201084279  0.0009140194
+projectile_1 | projectile-root-bottom-up                              4           0.018888442   0.0047221105
+projectile_1 | projectile-locate-dominating-file                      8           0.0188402     0.002355025
+projectile_1 | projectile-file-exists-p                               40          0.013262693   0.0003315673
+projectile_1 | file-remote-p                                          86          0.0109910599  0.0001278030
+projectile_1 | projectile-project-vcs                                 6           0.010584695   0.0017641158
+projectile_1 | file-relative-name                                     22          0.0103463020  0.0004702864
+projectile_1 | file-name-nondirectory                                 960         0.0079608790  8.292...e-06
+projectile_1 | projectile-project-ignored                             4           0.007608895   0.0019022237
+projectile_1 | file-exists-p                                          17          0.007012681   0.0004125106
+projectile_1 | projectile-ignored-files                               2           0.004787849   0.0023939245
+projectile_1 | projectile-paths-to-ignore                             4           0.004453429   0.0011133572
+projectile_1 | projectile-project-ignored-directories                 2           0.00436964    0.00218482
+projectile_1 | projectile-project-ignored-files                       2           0.003256516   0.001628258
+projectile_1 | file-symlink-p                                         288         0.0030814370  1.069...e-05
+projectile_1 | directory-file-name                                    388         0.0022286470  5.743...e-06
+projectile_1 | file-name-directory                                    328         0.0022087870  6.734...e-06
+projectile_1 | projectile-get-ext-command                             2           0.002082326   0.001041163
+projectile_1 | projectile-get-sub-projects-command                    2           0.001968192   0.000984096
+projectile_1 | projectile-file-exists-cache-cleanup                   3           8.7556e-05    2.918...e-05
+projectile_1 | projectile-sort-files                                  2     
+projectile_1 |    passed  5/8  projectile-sim1-04-projectile-list-project-files
+projectile_1 | Duration: 0.1990s (/testdata/)
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c'...
+projectile_1 | Inserting `/scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c' \
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.34txf.c...
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.34txf.c... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Process has finished.
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Copying /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c to /tmp/tramp.34txf.c...done
+projectile_1 | Tramp: Inserting `/scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c'...done
+projectile_1 | 
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c...
+projectile_1 | Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c... \
+projectile_1 | Tramp: Checking `vc-registered' for /scp:sshd:/testdata/someuser/repos/linux/sound/firewire/fireworks/fireworks_pcm.c...done
+projectile_1 | 
+projectile_1 | Duration: 0.3763s (/scp:sshd:/testdata/)
+projectile_1 |    passed  6/8  projectile-sim1-05-find-file-snd/fw/fw/pcm\.c
+projectile_1 | Duration: 0.0130s (/testdata/)
+projectile_1 | Duration: 0.0458s (/scp:sshd:/testdata/)
+projectile_1 |    passed  7/8  projectile-sim1-06-dired-sound/fw
+projectile_1 | Duration: 0.0012s (/testdata/)
+projectile_1 | Directory has changed on disk; type g to update Dired
+projectile_1 | Duration: 0.0143s (/scp:sshd:/testdata/)
+projectile_1 |    passed  8/8  projectile-sim1-07-dired-sound
+projectile_1 | 
+projectile_1 | Ran 8 tests, 8 results as expected (2014-11-12 22:31:29+0000)
+projectile_1 | 
+projectile_1 |       3.282e-06     1.641e-06
+projectile_1 | Loading /projectile/test/projectile-bench.el (source)...
+projectile_1 | Running 18 tests (2014-11-12 22:31:31+0000)
+projectile_1 | Duration: 0.0000s (/testdata/)
+projectile_1 | Tramp: Opening connection for sshd using scp...
+projectile_1 | Opening connection for sshd using scp... \
+projectile_1 | Tramp: Sending command `exec ssh   -o ControlPath=/tmp/tramp.146Z4M.%r@%h:%p -o ControlMaster=auto -o ControlPersist=no -e none sshd'
+projectile_1 | Tramp: Waiting for prompts from remote shell...
+projectile_1 | Waiting for prompts from remote shell... \
+projectile_1 | Tramp: Waiting for prompts from remote shell...done
+projectile_1 | Tramp: Found remote shell prompt on `sshd'
+projectile_1 | Tramp: Opening connection for sshd using scp...done
+projectile_1 | Duration: 0.2295s (/scp:sshd:/testdata/)
+projectile_1 |    passed   1/18  00-connect-tramp
+projectile_1 | Duration: 0.0211s (/testdata/)
+projectile_1 | Duration: 0.5460s (/scp:sshd:/testdata/)
+projectile_1 |    passed   2/18  projectile-find-linux-kernel-root
+projectile_1 | Duration: 0.0174s (/testdata/)
+projectile_1 | Duration: 0.0555s (/scp:sshd:/testdata/)
+projectile_1 |    passed   3/18  projectile-find-linux-kernel-root2
+projectile_1 | Duration: 0.0216s (/testdata/)
+projectile_1 | Duration: 0.1278s (/scp:sshd:/testdata/)
+projectile_1 |    passed   4/18  projectile-find-linux-kernel-root3
+projectile_1 | Duration: 0.0145s (/testdata/)
+projectile_1 | Duration: 0.0679s (/scp:sshd:/testdata/)
+projectile_1 |    passed   5/18  projectile-find-projetile-root
+projectile_1 | Duration: 0.0274s (/testdata/)
+projectile_1 | Duration: 0.1409s (/scp:sshd:/testdata/)
+projectile_1 |    passed   6/18  projectile-find-root-fn-bottom-up
+projectile_1 | Duration: 0.0179s (/testdata/)
+projectile_1 | Duration: 0.0053s (/scp:sshd:/testdata/)
+projectile_1 |    passed   7/18  projectile-find-root-fn-nil
+projectile_1 | Duration: 0.0509s (/testdata/)
+projectile_1 | Duration: 1.1327s (/scp:sshd:/testdata/)
+projectile_1 |    passed   8/18  projectile-find-root-fn-top-down
+projectile_1 | Duration: 0.0073s (/testdata/)
+projectile_1 | Duration: 0.1899s (/scp:sshd:/testdata/)
+projectile_1 |    passed   9/18  projectile-find-root-fn-top-down-recurring
+projectile_1 | Duration: 0.4377s (/testdata/)
+projectile_1 | Duration: 14.1451s (/scp:sshd:/testdata/)
+projectile_1 |    passed  10/18  projectile-nofiles-edge-to-shallow
+projectile_1 | Duration: 0.0600s (/testdata/)
+projectile_1 | Duration: 1.3593s (/scp:sshd:/testdata/)
+projectile_1 |    passed  11/18  projectile-nofiles-edge-to-shallow-keep-cache
+projectile_1 | Duration: 0.4241s (/testdata/)
+projectile_1 | Duration: 13.4698s (/scp:sshd:/testdata/)
+projectile_1 |    passed  12/18  projectile-nofiles-random-order
+projectile_1 | Duration: 0.0750s (/testdata/)
+projectile_1 | Duration: 1.3278s (/scp:sshd:/testdata/)
+projectile_1 |    passed  13/18  projectile-nofiles-random-order-keep-cache
+projectile_1 | Duration: 0.2933s (/testdata/)
+projectile_1 | Duration: 8.8601s (/scp:sshd:/testdata/)
+projectile_1 |    passed  14/18  projectile-nofiles-shallow-to-deep
+projectile_1 | Duration: 0.0472s (/testdata/)
+projectile_1 | Duration: 0.9018s (/scp:sshd:/testdata/)
+projectile_1 |    passed  15/18  projectile-nofiles-shallow-to-deep-keep-cache
+projectile_1 | Duration: 0.4475s (/testdata/)
+projectile_1 | Duration: 13.3771s (/scp:sshd:/testdata/)
+projectile_1 |    passed  16/18  projectile-nofiles-shallow-to-edge
+projectile_1 | Duration: 0.0654s (/testdata/)
+projectile_1 | Duration: 1.4600s (/scp:sshd:/testdata/)
+projectile_1 |    passed  17/18  projectile-nofiles-shallow-to-edge-keep-cache
+projectile_1 | Duration: 0.0363s (/testdata/)
+projectile_1 | Duration: 0.3053s (/scp:sshd:/testdata/)
+projectile_1 |    passed  18/18  projectile-nofiles1
+projectile_1 | 
+projectile_1 | Ran 18 tests, 18 results as expected (2014-11-12 22:32:30+0000)
+projectile_1 | 
+projectile_projectile_1 exited with code 0
+
+#+end_example

@@ -1,0 +1,21 @@
+polipo:
+  build: test/docker/polipo/
+  expose:
+    - 8123
+
+sshd:
+  build: test/docker/sshd/
+  expose:
+    - 22
+  
+projectile:
+  build: .
+  links:
+    - sshd
+    - polipo
+  volumes:
+    - test/bench-logs:/bench-logs
+  environment:
+    CASKPROXY: '--proxy polipo:8123'
+  command: /run.sh
+    

@@ -1,0 +1,5 @@
+# logSyslog = true
+# logFile = /var/log/polipo/polipo.log
+# logLevel = 0xFF
+proxyAddress = 0.0.0.0
+cacheIsShared = false

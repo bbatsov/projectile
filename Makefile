@@ -1,13 +1,16 @@
 EMACS ?= emacs
 EMACSFLAGS =
 CASK = cask
+CASKPROXY ?=
 VAGRANT = vagrant
+FIG = fig
+DOCKER = docker
 
 OBJECTS = projectile.elc
 
 elpa:
-	$(CASK) install
-	$(CASK) update
+	$(CASK) install $(CASKPROXY)
+	$(CASK) update $(CASKPROXY)
 	touch $@
 
 .PHONY: build
@@ -23,6 +26,19 @@ test : build
 virtual-test :
 	$(VAGRANT) up
 	$(VAGRANT) ssh -c "make -C /vagrant EMACS=$(EMACS) clean test"
+
+.PHONY: fig-up
+fig-up :
+	$(DOCKER) build -t projectile-testdata test/docker/testdata
+	$(DOCKER) build -t projectile-testrunner test/docker/testrunner
+	$(FIG) build
+	$(FIG) up -d sshd polipo
+
+.PHONY: fig-bench
+fig-bench :
+	$(FIG) build projectile
+	$(FIG) up --no-deps -d projectile
+	$(FIG) logs
 
 .PHONY: clean
 clean :
