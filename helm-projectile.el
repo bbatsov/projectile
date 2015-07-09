@@ -359,8 +359,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
 
 (defvar helm-projectile-file-actions
   (helm-projectile-hack-actions
-   (cdr (assq 'action (or helm-source-find-files
-                          (helm-make-source "Find files" 'helm-source-ffiles))))
+   helm-find-files-actions
    ;; Delete these actions
    'helm-ff-browse-project
    'helm-insert-file-name-completion-at-point
