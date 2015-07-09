@@ -163,6 +163,19 @@ It is there because Helm requires it."
           (projectile-save-known-projects))
         (message "%s projects(s) deleted" len)))))
 
+(defvar helm-projectile-projects-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map helm-map)
+    (helm-projectile-define-key map
+      (kbd "C-d") 'dired
+      (kbd "M-g") 'helm-projectile-vc
+      (kbd "M-e") 'helm-projectile-switch-to-eshell
+      (kbd "C-s") 'helm-find-files-grep
+      (kbd "M-c") 'helm-projectile-compile-project
+      (kbd "M-D") 'helm-projectile-remove-known-project)
+    map)
+  "Mapping for known projectile projects.")
+
 (defvar helm-source-projectile-projects
   (helm-build-in-buffer-source "Projectile projects"
     :data (lambda ()
@@ -171,16 +184,7 @@ It is there because Helm requires it."
                       (projectile-relevant-known-projects))
               projectile-known-projects))
     :fuzzy-match helm-projectile-fuzzy-match
-    :keymap (let ((map (make-sparse-keymap)))
-              (set-keymap-parent map helm-map)
-              (helm-projectile-define-key map
-                (kbd "C-d") 'dired
-                (kbd "M-g") 'helm-projectile-vc
-                (kbd "M-e") 'helm-projectile-switch-to-eshell
-                (kbd "C-s") 'helm-find-files-grep
-                (kbd "M-c") 'helm-projectile-compile-project
-                (kbd "M-D") 'helm-projectile-remove-known-project)
-              map)
+    :keymap helm-projectile-projects-map
     :mode-line helm-ff-mode-line-string
     :action '(("Switch to project" .
                (lambda (project)
