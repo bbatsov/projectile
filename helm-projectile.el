@@ -40,10 +40,12 @@
 ;;; Code:
 
 (require 'projectile)
+(require 'cl-lib)
+(require 'helm)
+(require 'helm-types)
 (require 'helm-locate)
 (require 'helm-buffers)
 (require 'helm-files)
-(require 'cl-lib)
 
 (declare-function eshell "eshell")
 (declare-function helm-do-ag "helm-ag")
