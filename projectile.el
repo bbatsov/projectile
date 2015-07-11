@@ -1462,7 +1462,7 @@ With a prefix ARG invalidates the cache first."
   "Check if FILE is a test file."
   (or (--any? (string-prefix-p it (file-name-nondirectory file))
               (-non-nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
-      (--any? (string-suffix-p it (file-name-nondirectory file))
+      (--any? (string-suffix-p it (file-name-sans-extension (file-name-nondirectory file)))
               (-non-nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
 
 (defun projectile-current-project-test-files ()
