@@ -378,10 +378,14 @@ The saved data can be restored with `projectile-unserialize'."
 
 (defun projectile-unserialize (filename)
   "Read data serialized by `projectile-serialize' from FILENAME."
-  (when (file-exists-p filename)
-    (with-temp-buffer
-      (insert-file-contents filename)
-      (read (buffer-string)))))
+  (with-demoted-errors
+      "Error during file deserialization: %S"
+      (when (file-exists-p filename)
+        (with-temp-buffer
+          (insert-file-contents filename)
+          ;; this will blow up if the contents of the file aren't
+          ;; lisp data structures
+          (read (buffer-string))))))
 
 (defvar projectile-projects-cache nil
   "A hashmap used to cache project file names to speed up related operations.")
