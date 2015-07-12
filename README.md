@@ -525,40 +525,17 @@ the files in you repository, you could do:
 ((nil . ((projectile-git-command . "/path/to/other/git ls-files -zco --exclude-standard"))))
 ```
 
-#### Configure Project's Compilation Command
+#### Configure a Project's Compilation, Test and Run commands
 
-Overriding pieces of Projectile might require some hacking on your
-part -- reading the source, advising functions, etc.
+There are a few variables that are intended to be customized via `.dir-locals.el`.
 
-For example, by reading Projectile's source, you could discover that
-a project's compilation command can be specified with this code:
+* for compilation - `projectile-project-compilation-cmd`
+* for testing - `projectile-project-test-cmd`
+* for running - `projectile-project-run-cmd`
 
-```
-((nil . ((eval . (progn
-                   ;; require projectile; the following code will fail
-                   ;; without it.
-                   (require 'projectile)
-                   ;; provide a fake "recent" compilation cmd
-                   ;; which will be returned by the function
-                   ;; `projectile-compilation-command`
-                   (puthash (projectile-project-root)
-                            "./command-to-compile-your-project.sh"
-                            projectile-compilation-cmd-map))))))
-```
+They're all set to `nil` by default, but by setting them you'll override the
+default commands per each supported project type.
 
-#### Configure Project's Test Command
-
-Altering the test command works in the same way as altering the
-compilation command. Comments are left out in this example for
-brevity and clarity:
-
-```
-((nil . ((eval . (progn
-                   (require 'projectile)
-                   (puthash (projectile-project-root)
-                            "./test-project.sh"
-                            projectile-test-cmd-map))))))
-```
 
 ### Helm Integration
 
