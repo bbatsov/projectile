@@ -1476,14 +1476,15 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-project-types (make-hash-table)
   "A hash table holding all project types that are known to Projectile.")
 
-(defun projectile-register-project-type (project-type marker-files compile-command test-command)
+(defun projectile-register-project-type (project-type marker-files &optional compile-command test-command run-command)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 a COMPILE-COMMAND and a TEST-COMMAND."
   (puthash project-type (list 'marker-files marker-files
                               'compile-command compile-command
-                              'test-command test-command)
+                              'test-command test-command
+                              'run-command run-command)
            projectile-project-types))
 
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec") "bundle exec rails server" "bundle exec rspec")
@@ -2033,12 +2034,19 @@ For git projects `magit-status-internal' is used if available."
 (defvar projectile-test-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last test command used on them.")
+(defvar projectile-run-cmd-map
+  (make-hash-table :test 'equal)
+  "A mapping between projects and the last run command used on them.")
 (defvar projectile-project-compilation-cmd nil
   "The command to use with `projectile-compile-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
 (defvar projectile-project-test-cmd nil
   "The command to use with `projectile-test-project'.
+It takes precedence over the default command for the project type when set.
+Should be set via .dir-locals.el.")
+(defvar projectile-project-run-cmd nil
+  "The command to use with `projectile-run-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
 
@@ -2049,6 +2057,10 @@ Should be set via .dir-locals.el.")
 (defun projectile-default-test-command (project-type)
   "Retrieve default test command for PROJECT-TYPE."
   (plist-get (gethash project-type projectile-project-types) 'test-command))
+
+(defun projectile-default-run-command (project-type)
+  "Retrieve default run command for PROJECT-TYPE."
+  (plist-get (gethash project-type projectile-project-types) 'run-command))
 
 (defun projectile-compilation-command (project)
   "Retrieve the compilation command for PROJECT."
@@ -2061,6 +2073,12 @@ Should be set via .dir-locals.el.")
   (or (gethash project projectile-test-cmd-map)
       projectile-project-test-cmd
       (projectile-default-test-command (projectile-project-type))))
+
+(defun projectile-run-command (project)
+  "Retrieve the run command for PROJECT."
+  (or (gethash project projectile-run-cmd-map)
+      projectile-project-run-cmd
+      (projectile-default-run-command (projectile-project-type))))
 
 (defun projectile-compile-project (arg &optional dir)
   "Run project compilation command.
@@ -2120,6 +2138,22 @@ with a prefix ARG."
          (default-directory project-root))
     (puthash project-root test-cmd projectile-test-cmd-map)
     (compilation-start test-cmd)))
+
+(defun projectile-run-project (arg)
+  "Run project run command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (let* ((project-root (projectile-project-root))
+         (default-cmd (projectile-run-command project-root))
+         (run-cmd (if (or compilation-read-command arg)
+                      (compilation-read-command default-cmd)
+                    default-cmd))
+         (default-directory project-root))
+    (puthash project-root run-cmd projectile-run-cmd-map)
+    (compilation-start run-cmd)))
 
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects except the current one (if present)."

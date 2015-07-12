@@ -11,6 +11,7 @@
 * Add the ability to register new project types dynamically with `projectile-register-project-type`.
 * Add the ability to specify a project compilation and test commands via `.dir-locals.el`.
 This is done via the variables `projectile-project-compilation-cmd` and `projectile-project-test-cmd`.
+* [#489](https://github.com/bbatsov/projectile/issues/489): New interactive command `projectile-run-project`.
 
 ### Changes
 
