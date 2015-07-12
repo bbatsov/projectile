@@ -2520,6 +2520,7 @@ is chosen."
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
     (define-key map (kbd "T") #'projectile-find-test-file)
+    (define-key map (kbd "u") #'projectile-run-project)
     (define-key map (kbd "v") #'projectile-vc)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "ESC") #'projectile-project-buffers-other-buffer)
@@ -2559,6 +2560,7 @@ is chosen."
    "--"
    ["Compile project" projectile-compile-project]
    ["Test project" projectile-test-project]
+   ["Run project" projectile-run-project]
    "--"
    ["Project info" projectile-project-info]
    ["About" projectile-version])
