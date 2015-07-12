@@ -418,7 +418,7 @@ If you'd like to instruct Projectile to ignore certain files in a
 project, when indexing it you can do so in the `.projectile` file by
 adding each path to ignore, where the paths all are relative to the
 root directory and start with a slash. Everything ignored should be
-preceded with a - sign. Alternatively, not having any prefix at all
+preceded with a `-` sign. Alternatively, not having any prefix at all
 also means to ignore the directory or file pattern that follows.
 Here's an example for a typical Rails application:
 
