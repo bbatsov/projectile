@@ -2080,6 +2080,13 @@ Should be set via .dir-locals.el.")
       projectile-project-run-cmd
       (projectile-default-run-command (projectile-project-type))))
 
+(defun projectile-read-command (prompt command)
+  "Adapted from `compilation-read-command'."
+  (read-shell-command prompt command
+                      (if (equal (car compile-history) command)
+                          '(compile-history . 1)
+                        'compile-history)))
+
 (defun projectile-compile-project (arg &optional dir)
   "Run project compilation command.
 
@@ -2093,7 +2100,8 @@ with a prefix ARG."
          (default-directory project-root)
          (default-cmd (projectile-compilation-command project-root))
          (compilation-cmd (if (or compilation-read-command arg)
-                              (compilation-read-command default-cmd)
+                              (projectile-read-command "Compile command: "
+                                                       default-cmd)
                             default-cmd)))
     (puthash project-root compilation-cmd projectile-compilation-cmd-map)
     (save-some-buffers (not compilation-ask-about-save)
@@ -2133,7 +2141,8 @@ with a prefix ARG."
   (let* ((project-root (projectile-project-root))
          (default-cmd (projectile-test-command project-root))
          (test-cmd (if (or compilation-read-command arg)
-                       (compilation-read-command default-cmd)
+                       (projectile-read-command "Test command: "
+                                                default-cmd)
                      default-cmd))
          (default-directory project-root))
     (puthash project-root test-cmd projectile-test-cmd-map)
@@ -2149,7 +2158,8 @@ with a prefix ARG."
   (let* ((project-root (projectile-project-root))
          (default-cmd (projectile-run-command project-root))
          (run-cmd (if (or compilation-read-command arg)
-                      (compilation-read-command default-cmd)
+                      (projectile-read-command "Run command: "
+                                               default-cmd)
                     default-cmd))
          (default-directory project-root))
     (puthash project-root run-cmd projectile-run-cmd-map)
