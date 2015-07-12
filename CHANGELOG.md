@@ -9,6 +9,8 @@
 * Add the ability to create missing tests automatically (controlled via the `projectile-create-missing-test-files` defcustom).
 * Add the ability to dynamically decide if a project should be added to `projectile-known-projects` (via new `projectile-ignored-project-function` defcustom).
 * Add the ability to register new project types dynamically with `projectile-register-project-type`.
+* Add the ability to specify a project compilation and test commands via `.dir-locals.el`.
+This is done via the variables `projectile-project-compilation-cmd` and `projectile-project-test-cmd`.
 
 ### Changes
 

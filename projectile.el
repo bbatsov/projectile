@@ -2033,6 +2033,14 @@ For git projects `magit-status-internal' is used if available."
 (defvar projectile-test-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last test command used on them.")
+(defvar projectile-project-compilation-cmd nil
+  "The command to use with `projectile-compile-project'.
+It takes precedence over the default command for the project type when set.
+Should be set via .dir-locals.el.")
+(defvar projectile-project-test-cmd nil
+  "The command to use with `projectile-test-project'.
+It takes precedence over the default command for the project type when set.
+Should be set via .dir-locals.el.")
 
 (defun projectile-default-compilation-command (project-type)
   "Retrieve default compilation command for PROJECT-TYPE."
@@ -2045,11 +2053,13 @@ For git projects `magit-status-internal' is used if available."
 (defun projectile-compilation-command (project)
   "Retrieve the compilation command for PROJECT."
   (or (gethash project projectile-compilation-cmd-map)
+      projectile-project-compilation-cmd
       (projectile-default-compilation-command (projectile-project-type))))
 
 (defun projectile-test-command (project)
   "Retrieve the test command for PROJECT."
   (or (gethash project projectile-test-cmd-map)
+      projectile-project-test-cmd
       (projectile-default-test-command (projectile-project-type))))
 
 (defun projectile-compile-project (arg &optional dir)
