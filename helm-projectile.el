@@ -264,7 +264,8 @@ It is there because Helm requires it."
                    (buffer-list))))
 
 (defvar helm-projectile-virtual-dired-remote-enable nil
-  "Enable virtual Dired manager in remote host. Disabled by default.")
+  "Enable virtual Dired manager on remote host.
+Disabled by default.")
 
 (defun helm-projectile-dired-files-new-action (candidate)
   "Create a Dired buffer from chosen files.
