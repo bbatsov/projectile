@@ -334,7 +334,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                                                           files)
                                                 (list candidate))))
               (rename-buffer dired-buffer-name))))
-      (error "You're not in a Dired buffer to add."))))
+      (error "You're not in a Dired buffer to add"))))
 
 (defun helm-projectile-dired-files-delete-action (candidate)
   "Delete selected entries from a Dired buffer.
