@@ -568,7 +568,7 @@ vc-dir or magit", "Switch to Eshell" and "Grep project files". We will add more
 and more actions in the future.
 
 `helm-projectile` is capable of opening multiple files by marking the files with
-<kbd>C-SPC</kbd> or mark all files with <kdb>M-a</kbd>. Then, press <kdb>RET</kbd>,
+<kbd>C-SPC</kbd> or mark all files with <kbd>M-a</kbd>. Then, press <kbd>RET</kbd>,
 all the selected files will be opened.
 
 Note that the helm grep is different from `projectile-grep` because the helm
