@@ -189,7 +189,7 @@ It is there because Helm requires it."
       (kbd "C-s") #'helm-find-files-grep
       (kbd "M-c") #'helm-projectile-compile-project
       (kbd "M-t") #'helm-projectile-test-project
-      (kdb "M-r") #'helm-projectile-run-project
+      (kbd "M-r") #'helm-projectile-run-project
       (kbd "M-D") #'helm-projectile-remove-known-project)
     map)
   "Mapping for known projectile projects.")
