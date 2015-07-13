@@ -147,6 +147,20 @@ DIR is the project root."
         (default-directory dir))
     (projectile-compile-project helm-current-prefix-arg dir)))
 
+(defun helm-projectile-test-project (dir)
+  "A Helm action for test a project.
+DIR is the project root."
+  (let ((helm--reading-passwd-or-string t)
+        (default-directory dir))
+    (projectile-test-project helm-current-prefix-arg dir)))
+
+(defun helm-projectile-run-project (dir)
+  "A Helm action for run a project.
+DIR is the project root."
+  (let ((helm--reading-passwd-or-string t)
+        (default-directory dir))
+    (projectile-run-project helm-current-prefix-arg dir)))
+
 (defun helm-projectile-remove-known-project (_ignore)
   "Delete selected projects.
 _IGNORE means the argument does not matter.
@@ -174,6 +188,8 @@ It is there because Helm requires it."
       (kbd "M-e") 'helm-projectile-switch-to-eshell
       (kbd "C-s") 'helm-find-files-grep
       (kbd "M-c") 'helm-projectile-compile-project
+      (kbd "M-t") 'helm-projectile-test-project
+      (kdb "M-r") 'helm-projectile-run-project
       (kbd "M-D") 'helm-projectile-remove-known-project)
     map)
   "Mapping for known projectile projects.")
