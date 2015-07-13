@@ -170,7 +170,7 @@ It is there because Helm requires it."
     (with-helm-display-marked-candidates
       helm-marked-buffer-name
       projects
-      (if (not (y-or-n-p (format "Delete *%s projects(s)" len)))
+      (if (not (y-or-n-p (format "Delete *%s projects(s)? " len)))
           (message "(No deletion performed)")
         (progn
           (mapc (lambda (p)
