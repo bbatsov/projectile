@@ -203,7 +203,7 @@ It is there because Helm requires it."
               projectile-known-projects))
     :fuzzy-match helm-projectile-fuzzy-match
     :keymap helm-projectile-projects-map
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action '(("Switch to project" .
                (lambda (project)
                  (let ((projectile-completion-system 'helm))
@@ -408,7 +408,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     :action-transformer 'helm-find-files-action-transformer
     :keymap helm-projectile-find-file-map
     :help-message helm-ff-help-message
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action helm-projectile-file-actions))
 
 (defvar helm-source-projectile-files-list
@@ -421,7 +421,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     :coerce 'helm-projectile-coerce-file
     :keymap helm-projectile-find-file-map
     :help-message 'helm-ff-help-message
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action helm-projectile-file-actions
     )
   "Helm source definition for Projectile files.")
@@ -436,7 +436,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     :coerce 'helm-projectile-coerce-file
     :keymap helm-find-files-map
     :help-message 'helm-ff-help-message
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action helm-projectile-file-actions
     )
   "Helm source definition for all Projectile files in all projects.")
@@ -470,7 +470,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                 (kbd "C-c d") 'helm-projectile-dired-files-delete-action)
               map)
     :help-message 'helm-ff-help-message
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action helm-projectile-dired-file-actions)
   "Helm source definition for Projectile delete files.")
 
@@ -507,7 +507,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                 (kbd "C-s")   #'helm-find-files-grep)
               map)
     :help-message 'helm-ff-help-message
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action '(("Open Dired" . helm-projectile-dired-find-dir)
               ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
@@ -559,7 +559,7 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
     :coerce 'helm-projectile-coerce-file
     :keymap helm-projectile-find-file-map
     :help-message 'helm-ff-help-message
-    :mode-line helm-ff-mode-line-string
+    :mode-line helm-read-file-name-mode-line-string
     :action helm-projectile-file-actions
     )
   "Helm source definition for recent files in current project.")
@@ -645,7 +645,7 @@ Other file extensions can be customized with the variable `projectile-other-file
                                        (define-key map (kbd "<right>") 'helm-next-source)
                                        map)
                              :help-message helm-ff-help-message
-                             :mode-line helm-ff-mode-line-string
+                             :mode-line helm-read-file-name-mode-line-string
                              :action helm-projectile-file-actions)
                   :buffer "*helm projectile*"
                   :prompt (projectile-prepend-project-name "Find other file: ")))))
