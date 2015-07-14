@@ -542,7 +542,6 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
    (persistent-action :initform 'helm-buffers-list-persistent-action)
    (keymap :initform helm-buffer-map)
    (volatile :initform t)
-   (mode-line :initform helm-buffer-mode-line-string)
    (persistent-help
     :initform
     "Show this buffer / C-u \\[helm-execute-persistent-action]: Kill this buffer")))
@@ -681,7 +680,6 @@ If it is nil, or ack/ack-grep not found then use default grep command."
             :filter-one-by-one 'helm-grep-filter-one-by-one
             :candidate-number-limit 9999
             :nohighlight t
-            :mode-line helm-grep-mode-line-string
             ;; We need to specify keymap here and as :keymap arg [1]
             ;; to make it available in further resuming.
             :keymap helm-grep-map
