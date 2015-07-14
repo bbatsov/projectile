@@ -1230,16 +1230,129 @@ Other file extensions can be customized with the variable `projectile-other-file
         (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
 
+(defun file-name-sans-extensions (file-name)
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+  "Return FILE-NAME sans any extensions.
+The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+  (setq file-name (file-name-nondirectory file-name))
+  (substring file-name 0 (string-match "\\..*" file-name 1)))
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+(defun file-name-extensions (file-name)
+  "Return FILE-NAME's extensions.
+The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+  ;;would it make sense to return nil instead of an empty string if no extensions are found?
+  (setq file-name (file-name-nondirectory file-name))
+  (substring file-name (-if-let (extensions-start (string-match "\\..*" file-name 1)) (1+ extensions-start) (length file-name))))
+
+(defun projectile-associated-file-name-extensions (file-name)
+  "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
+If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."  
+  (let ((current-extensions (file-name-extensions (file-name-nondirectory file-name))))
+    (catch 'break
+      (while (not (string= "" current-extensions))
+        (-if-let (associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
+            (throw 'break associated-extensions))
+        (setq current-extensions (file-name-extensions current-extensions))))))
+=======
+	"Return FILENAME sans any extensions.
+=======
+  "Return FILE-NAME sans any extensions.
+>>>>>>> 3d1f745... FILENAME -> FILE-NAME; hope this also fixes indentation
+The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+  (setq file-name (file-name-nondirectory file-name))
+	(substring file-name 0 (string-match "\\..*" file-name 1)))
+=======
+>>>>>>> b283c93... Indentation fix
+
+(defun file-name-extensions (file-name)
+  "Return FILE-NAME's extensions.
+The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+  ;;would it make sense to return nil instead of an empty string if no extensions are found?
+  (setq file-name (file-name-nondirectory file-name))
+  (substring file-name (-if-let (extensions-start (string-match "\\..*" file-name 1)) (1+ extensions-start) (length file-name))))
+
+(defun projectile-associated-file-name-extensions (file-name)
+  "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
+If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."  
+<<<<<<< HEAD
+=======
+	"Return FILENAME sans any extensions.
+=======
+  "Return FILE-NAME sans any extensions.
+>>>>>>> 3d1f745... FILENAME -> FILE-NAME; hope this also fixes indentation
+The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+  (setq file-name (file-name-nondirectory file-name))
+	(substring file-name 0 (string-match "\\..*" file-name 1)))
+=======
+>>>>>>> b283c93... Indentation fix
+
+(defun file-name-extensions (file-name)
+  "Return FILE-NAME's extensions.
+The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+  ;;would it make sense to return nil instead of an empty string if no extensions are found?
+  (setq file-name (file-name-nondirectory file-name))
+  (substring file-name (-if-let (extensions-start (string-match "\\..*" file-name 1)) (1+ extensions-start) (length file-name))))
+
+(defun projectile-associated-file-name-extensions (file-name)
+  "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
+If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."  
+<<<<<<< HEAD
+>>>>>>> c5f84be... Nested extensions in projectile-get-other-files
+	(let ((current-extensions (file-name-extensions (file-name-nondirectory file-name))))
+		(catch 'break
+			(while (not (string= "" current-extensions))
+				(-if-let (associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
+						(throw 'break associated-extensions))
+				(setq current-extensions (file-name-extensions current-extensions))))))
+<<<<<<< HEAD
+>>>>>>> c5f84be... Nested extensions in projectile-get-other-files
+=======
+=======
+>>>>>>> b283c93... Indentation fix
+  (let ((current-extensions (file-name-extensions (file-name-nondirectory file-name))))
+    (catch 'break
+      (while (not (string= "" current-extensions))
+        (-if-let (associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
+            (throw 'break associated-extensions))
+        (setq current-extensions (file-name-extensions current-extensions))))))
+<<<<<<< HEAD
+>>>>>>> b283c93... Indentation fix
+=======
+>>>>>>> c5f84be... Nested extensions in projectile-get-other-files
+=======
+>>>>>>> b283c93... Indentation fix
+
 (defun projectile-get-other-files (current-file project-file-list &optional flex-matching)
   "Narrow to files with the same names but different extensions.
 Returns a list of possible files for users to choose.
 
 With FLEX-MATCHING, match any file that contains the base name of current file"
-  (let* ((file-ext-list (cdr (assoc (file-name-extension current-file) projectile-other-file-alist)))
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+  (let* ((file-ext-list (projectile-associated-file-name-extensions current-file))
+=======
+	(let* ((file-ext-list	(projectile-associated-file-name-extensions current-file))
+>>>>>>> c5f84be... Nested extensions in projectile-get-other-files
+=======
+  (let* ((file-ext-list (projectile-associated-file-name-extensions current-file))
+>>>>>>> b283c93... Indentation fix
+=======
+	(let* ((file-ext-list	(projectile-associated-file-name-extensions current-file))
+>>>>>>> c5f84be... Nested extensions in projectile-get-other-files
+=======
+  (let* ((file-ext-list (projectile-associated-file-name-extensions current-file))
+>>>>>>> b283c93... Indentation fix
          (fulldirname  (if (file-name-directory current-file)
                            (file-name-directory current-file) "./"))
          (dirname  (file-name-nondirectory (directory-file-name fulldirname)))
-         (filename (file-name-base current-file))
+         (filename (file-name-sans-extensions current-file))
          (file-list (mapcar (lambda (ext)
                               (if flex-matching
                                   (concat ".*" filename ".*" "\." ext "\\'")
