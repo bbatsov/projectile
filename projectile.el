@@ -796,7 +796,7 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-generic-command "find . -type f -print0"
+(defcustom projectile-generic-command "find . \\! -readable -prune -o \\( -type f -print0 \\)"
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
@@ -1245,7 +1245,7 @@ The extensions, in a filename, are what follows the first '.', with the exceptio
 
 (defun projectile-associated-file-name-extensions (file-name)
   "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
-If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."  
+If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."
   (let ((current-extensions (file-name-extensions (file-name-nondirectory file-name))))
     (catch 'break
       (while (not (string= "" current-extensions))
