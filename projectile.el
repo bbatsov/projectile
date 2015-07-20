@@ -1231,13 +1231,13 @@ Other file extensions can be customized with the variable `projectile-other-file
         (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
 
-(defun file-name-sans-extensions (file-name)
+(defun projectile--file-name-sans-extensions (file-name)
   "Return FILE-NAME sans any extensions.
 The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
   (setq file-name (file-name-nondirectory file-name))
   (substring file-name 0 (string-match "\\..*" file-name 1)))
 
-(defun file-name-extensions (file-name)
+(defun projectile--file-name-extensions (file-name)
   "Return FILE-NAME's extensions.
 The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
   ;;would it make sense to return nil instead of an empty string if no extensions are found?
@@ -1247,12 +1247,12 @@ The extensions, in a filename, are what follows the first '.', with the exceptio
 (defun projectile-associated-file-name-extensions (file-name)
   "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
 If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."
-  (let ((current-extensions (file-name-extensions (file-name-nondirectory file-name))))
+  (let ((current-extensions (projectile--file-name-extensions (file-name-nondirectory file-name))))
     (catch 'break
       (while (not (string= "" current-extensions))
         (-if-let (associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
             (throw 'break associated-extensions))
-        (setq current-extensions (file-name-extensions current-extensions))))))
+        (setq current-extensions (projectile--file-name-extensions current-extensions))))))
 
 (defun projectile-get-other-files (current-file project-file-list &optional flex-matching)
   "Narrow to files with the same names but different extensions.
@@ -1263,7 +1263,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
          (fulldirname  (if (file-name-directory current-file)
                            (file-name-directory current-file) "./"))
          (dirname  (file-name-nondirectory (directory-file-name fulldirname)))
-         (filename (file-name-sans-extensions current-file))
+         (filename (projectile--file-name-sans-extensions current-file))
          (file-list (mapcar (lambda (ext)
                               (if flex-matching
                                   (concat ".*" filename ".*" "\." ext "\\'")
