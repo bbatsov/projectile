@@ -40,6 +40,7 @@
 (require 'dash)
 (require 'ibuffer)
 (require 'ibuf-ext)
+(require 'compile)
 
 (eval-when-compile
   (defvar ggtags-completion-table)
