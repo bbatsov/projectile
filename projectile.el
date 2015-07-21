@@ -2260,9 +2260,10 @@ This command will first prompt for the directory the file is in."
   :type 'hook)
 
 (defun projectile-keep-project-p (project)
-  "Determine wether we should cleanup this project or not.
+  "Determine whether we should cleanup (remove) PROJECT or not.
 
-It handles the case of remote files as well. See `projectile-cleanup-known-projects'."
+It handles the case of remote projects as well.
+See `projectile-cleanup-known-projects'."
   ;; Taken from from `recentf-keep-default-predicate'
   (cond
    ((file-remote-p project nil t) (file-readable-p project))
