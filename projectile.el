@@ -797,7 +797,12 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-generic-command "find . \\! -readable -prune -o \\( -type f -print0 \\)"
+(defun projectile-detect-find-command ()
+  (if (zerop (shell-command "find /dev/null -readable"))
+      "find . \\! -readable -prune -o \\( -type f -print0 \\)"
+      "find . \\! -perm +444 -prune -o \\( -type f -print0 \\)"))
+
+(defcustom projectile-generic-command (projectile-detect-find-command)
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
