@@ -795,14 +795,7 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defun projectile--detect-find-command ()
-  "Determine the appropriate default find command based on its capabilities.
-Needed because of the differences between GNU find and BSD find."
-  (if (zerop (call-process "find" nil nil nil "/dev/null" "-readable"))
-      "find . \\! -readable -prune -o \\( -type f -print0 \\)"
-      "find . \\! -perm +444 -prune -o \\( -type f -print0 \\)"))
-
-(defcustom projectile-generic-command (projectile--detect-find-command)
+(defcustom projectile-generic-command "find . \\! -perm +444 -prune -o \\( -type f -print0 \\)"
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
