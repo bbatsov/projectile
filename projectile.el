@@ -690,11 +690,9 @@ The current directory is assumed to be the project's root otherwise."
     (or (--some (let* ((cache-key (format "%s-%s" it dir))
                        (cache-value (gethash cache-key projectile-project-root-cache)))
                   (if cache-value
-                      (if (eq cache-value 'no-project-root)
-                          nil
-                        cache-value)
+                      cache-value
                     (let ((value (funcall it (file-truename dir))))
-                      (puthash cache-key (or value 'no-project-root) projectile-project-root-cache)
+                      (puthash cache-key value projectile-project-root-cache)
                       value)))
                 projectile-project-root-files-functions)
         (if projectile-require-project-root
