@@ -795,17 +795,44 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defun projectile--detect-find-command ()
-  "Determine the appropriate default find command based on its capabilities.
-Needed because of the differences between GNU find and BSD find."
-  (if (zerop (call-process "find" nil nil nil "/dev/null" "-readable"))
-      "find . \\! -readable -prune -o \\( -type f -print0 \\)"
-      "find . \\! -perm +444 -prune -o \\( -type f -print0 \\)"))
-
-(defcustom projectile-generic-command (projectile--detect-find-command)
-  "Command used by projectile to get the files in a generic project."
+(defcustom projectile-generic-command nil
+  "Command used by projectile to get the files in a generic
+project. A system appropriate generic command will be detected if
+set to nil."
   :group 'projectile
   :type 'string)
+
+(defun projectile--test-find-command ()
+  "Generate an OS appropriate find command to test support for
+-readable option. Needed because Windows and other OSes have
+different /dev/null directories."
+  (let ((test-dir (if (or (eq system-type 'ms-dos)
+                          (eq system-type 'windows-nt))
+                      "nul"
+                    "/dev/null")))
+    (concat "find " test-dir " -readable")))
+
+(defun projectile--detect-and-set-find-command ()
+      "Determine the appropriate default find command based on its capabilities.
+Needed because of the differences between GNU find and BSD/older GNU finds."
+      (let* (message-log-max
+             (readable-arg (if (zerop
+                                (call-process-shell-command
+                                 (projectile--test-find-command)
+                                 nil
+                                 nil
+                                 nil))
+                               "-readable"
+                             "-perm +444")))
+
+        (setq projectile-generic-command
+              (concat "find . \\! " readable-arg " -prune -o \\( -type f -print0 \\)"))))
+
+(defun projectile--detect-find-command ()
+  "Use generic command if available. Otherwise, detect and
+initialize generic command for future use."
+  (or projectile-generic-command
+      (projectile--detect-and-set-find-command)))
 
 (defun projectile-get-ext-command ()
   "Determine which external command to invoke based on the project's VCS."
@@ -817,7 +844,7 @@ Needed because of the differences between GNU find and BSD find."
      ((eq vcs 'bzr) projectile-bzr-command)
      ((eq vcs 'darcs) projectile-darcs-command)
      ((eq vcs 'svn) projectile-svn-command)
-     (t projectile-generic-command))))
+     (t (projectile--detect-find-command)))))
 
 (defun projectile-get-sub-projects-command ()
   (let ((vcs (projectile-project-vcs)))
