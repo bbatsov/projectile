@@ -195,8 +195,9 @@ Otherwise consider the current directory the project root."
   "A function used to filter the buffers in `projectile-project-buffers'.
 
 The function should accept and return a list of Emacs buffers.
-Two example filter functions are shipped by default - `projectile-buffers-with-file'
-and `projectile-buffers-with-file-or-process'."
+Two example filter functions are shipped by default -
+`projectile-buffers-with-file' and
+`projectile-buffers-with-file-or-process'."
   :group 'projectile
   :type 'symbol)
 
