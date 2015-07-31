@@ -657,6 +657,7 @@ ACK-IGNORED-PATTERN is a file regex to exclude from searching.
 ACK-EXECUTABLE is the actual ack binary name.
 It is usually \"ack\" or \"ack-grep\".
 If it is nil, or ack/ack-grep not found then use default grep command."
+  (require 'grep)
   (let* ((default-directory (projectile-project-root))
          (helm-ff-default-directory (projectile-project-root))
          (follow (and helm-follow-mode-persistent
@@ -758,8 +759,8 @@ If it is nil, or ack/ack-grep not found then use default grep command."
   (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag-command-history))))
   (if (require 'helm-ag nil  'noerror)
       (if (projectile-project-p)
-          (let* ((grep-find-ignored-files (-union (projectile-ignored-files-rel)  grep-find-ignored-files))
-                 (grep-find-ignored-directories (-union (projectile-ignored-directories-rel) grep-find-ignored-directories))
+          (let* ((grep-find-ignored-files (-union (projectile-ignored-files-rel) grep-find-ignored-files helm-grep-ignored-files))
+                 (grep-find-ignored-directories (-union (projectile-ignored-directories-rel) grep-find-ignored-directories helm-grep-ignored-directories))
                  (ignored (mapconcat (lambda (i)
                                        (concat "--ignore " i))
                                      (append grep-find-ignored-files grep-find-ignored-directories)
