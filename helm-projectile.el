@@ -604,7 +604,7 @@ With a prefix ARG invalidates the cache first."
 
 (helm-projectile-command "switch-project" 'helm-source-projectile-projects "Switch to project: " t)
 (helm-projectile-command "find-file" helm-source-projectile-files-and-dired-list "Find file: ")
-(helm-projectile-command "find-file-in-known-projects" 'helm-source-projectile-files-in-all-projects-list "Find file in projects: ")
+(helm-projectile-command "find-file-in-known-projects" 'helm-source-projectile-files-in-all-projects-list "Find file in projects: " t)
 (helm-projectile-command "find-dir" helm-source-projectile-directories-and-dired-list "Find dir: ")
 (helm-projectile-command "recentf" 'helm-source-projectile-recentf-list "Recently visited file: ")
 (helm-projectile-command "switch-to-buffer" 'helm-source-projectile-buffers-list "Switch to buffer: ")
