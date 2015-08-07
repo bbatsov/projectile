@@ -800,7 +800,7 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-generic-command "find . \\! -perm /444 -prune -o \\( -type f -print0 \\)"
+(defcustom projectile-generic-command "find . -type f -print0"
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
