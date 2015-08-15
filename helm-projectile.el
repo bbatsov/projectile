@@ -274,14 +274,14 @@ CANDIDATE is the selected file, but choose the marked files if available."
            (not helm-projectile-virtual-dired-remote-enable))
       (message "Virtual Dired manager is disabled in remote host. Enable with %s."
                (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
-    (let ((new-name (completing-read "Select or enter a new buffer name: "
-                                     (helm-projectile-all-dired-buffers)))
-          (helm--reading-passwd-or-string t)
-          (files (-filter (lambda (f)
+    (let ((files (-filter (lambda (f)
                             (not (string= f "")))
                           (mapcar (lambda (file)
                                     (replace-regexp-in-string (projectile-project-root) "" file))
                                   (helm-marked-candidates :with-wildcard t))))
+          (new-name (completing-read "Select or enter a new buffer name: "
+                                     (helm-projectile-all-dired-buffers)))
+          (helm--reading-passwd-or-string t)
           (default-directory (projectile-project-root)))
       ;; create a unique buffer that is unique to any directory in default-directory
       ;; or opened buffer; when Dired is passed with a non-existence directory name,
@@ -304,14 +304,14 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
       (message "Virtual Dired manager is disabled in remote host. Enable with %s."
                (propertize "helm-projectile-virtual-dired-remote-enable" 'face 'font-lock-keyword-face))
     (if (eq (with-helm-current-buffer major-mode) 'dired-mode)
-        (let* ((helm--reading-passwd-or-string t)
+        (let* ((marked-files (helm-marked-candidates :with-wildcard t))
+               (helm--reading-passwd-or-string t)
                (root (projectile-project-root)) ; store root for later use
                (dired-buffer-name (or (and (eq major-mode 'dired-mode) (buffer-name))
                                       (completing-read "Select a Dired buffer:"
                                                        (helm-projectile-all-dired-buffers))))
                (dired-files (with-current-buffer dired-buffer-name
                               (helm-projectile-files-in-current-dired-buffer)))
-               (marked-files (helm-marked-candidates :with-wildcard t))
                (files (sort (mapcar (lambda (file)
                                       (replace-regexp-in-string (projectile-project-root) "" file))
                                     (cl-nunion (if marked-files
