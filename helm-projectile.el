@@ -41,6 +41,7 @@
 
 (require 'projectile)
 (require 'cl-lib)
+(require 'grep)
 (require 'helm)
 (require 'helm-types)
 (require 'helm-locate)
@@ -657,7 +658,6 @@ ACK-IGNORED-PATTERN is a file regex to exclude from searching.
 ACK-EXECUTABLE is the actual ack binary name.
 It is usually \"ack\" or \"ack-grep\".
 If it is nil, or ack/ack-grep not found then use default grep command."
-  (require 'grep)
   (let* ((default-directory (projectile-project-root))
          (helm-ff-default-directory (projectile-project-root))
          (follow (and helm-follow-mode-persistent
