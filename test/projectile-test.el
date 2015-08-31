@@ -481,7 +481,7 @@
             (with-current-buffer (find-file-noselect (car test) t)
 	      (save-excursion
 		(re-search-forward sym)
-		(projectile-grep ?-)))))))))
+		(projectile-grep nil ?-)))))))))
 
 ;;;;;;;;; fresh tests
 
