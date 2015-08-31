@@ -434,7 +434,6 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                 (let ((projectile-require-project-root nil))
                   (projectile-all-project-files))
               (error nil)))
-    :coerce 'helm-projectile-coerce-file
     :keymap helm-find-files-map
     :help-message 'helm-ff-help-message
     :mode-line helm-read-file-name-mode-line-string
