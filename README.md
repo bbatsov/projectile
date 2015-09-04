@@ -2,7 +2,6 @@
 [![MELPA](http://melpa.org/packages/projectile-badge.svg)](http://melpa.org/#/projectile)
 [![MELPA Stable](http://stable.melpa.org/packages/projectile-badge.svg)](http://stable.melpa.org/#/projectile)
 [![Build Status](https://travis-ci.org/bbatsov/projectile.png?branch=master)](https://travis-ci.org/bbatsov/projectile)
-[![Gratipay](http://img.shields.io/gratipay/bbatsov.svg)](https://www.gratipay.com/bbatsov/)
 
 ## Synopsis
 
@@ -49,9 +48,7 @@ Here's a glimpse of Projectile in action:
 
 ![Projectile Screenshot](screenshots/projectile.png)
 
-You can support my work on Projectile and [all my other projects](https://github.com/bbatsov) via [gratipay](https://www.gratipay.com/bbatsov).
-
-[![Support via Gratipay](https://cdn.rawgit.com/gratipay/gratipay-badge/2.1.3/dist/gratipay.png)](https://gratipay.com/bbatsov)
+You can support my work on Projectile via [Salt](https://salt.bountysource.com/teams/projectile).
 
 ## Installation
 
@@ -741,9 +738,7 @@ Run all tests with:
 $ make test
 ```
 
-You can also support my work on Projectile and [all my other projects](https://github.com/bbatsov) via [gratipay](https://www.gratipay.com/bbatsov).
-
-[![Support via Gratipay](https://cdn.rawgit.com/gratipay/gratipay-badge/2.1.3/dist/gratipay.png)](https://gratipay.com/bbatsov)
+You can also support my work on Projectile via [Salt](https://salt.bountysource.com/teams/projectile).
 
 ## Changelog
 
