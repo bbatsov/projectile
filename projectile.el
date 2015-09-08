@@ -41,6 +41,7 @@
 (require 'ibuffer)
 (require 'ibuf-ext)
 (require 'compile)
+(require 'grep)
 
 (eval-when-compile
   (defvar ggtags-completion-table)
@@ -1829,12 +1830,16 @@ regular expression."
           (projectile-prepend-project-name (format "Ag %ssearch for: " (if current-prefix-arg "regexp " "")))
           (projectile-symbol-at-point))
          current-prefix-arg))
-  (if (fboundp 'ag-regexp)
+  (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
+            (ag-ignore-list (-union ag-ignore-list
+                                    (append
+                                     (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
+                                     grep-find-ignored-files grep-find-ignored-directories)))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
-    (error "Ag is not available")))
+    (error "Package 'ag' is not available")))
 
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."

@@ -5,4 +5,5 @@
 
 (development
  (depends-on "noflet")
- (depends-on "helm"))
+ (depends-on "helm")
+ (depends-on "ag"))
