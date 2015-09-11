@@ -639,6 +639,31 @@
                          (projectile-find-matching-file
                           "spec/models/food/sea_spec.rb"))))))))
 
+(ert-deftest projectile-test-exclude-out-of-project-submodules ()
+  (projectile-test-with-files
+      (;; VSC root is here
+       "project/"
+       "project/.git/"
+       "project/.gitmodules"
+       ;; Current project root is here:
+       "project/web-ui/"
+       "project/web-ui/.projectile"
+       ;; VCS git submodule will return the following submodules,
+       ;; relative to current project root, 'project/web-ui/':
+       "project/web-ui/vendor/client-submodule/"
+       "project/server/vendor/server-submodule/")
+    (let ((project (file-truename (expand-file-name "project/web-ui"))))
+      (noflet ((projectile-files-via-ext-command
+                (arg) (when (string= default-directory project)
+                        '("vendor/client-submodule"
+                          "../server/vendor/server-submodule")))
+               (projectile-project-root
+                () project))
+
+        ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
+        (should (equal (list (expand-file-name "vendor/client-submodule/" project))
+                       (projectile-get-all-sub-projects project)))))))
+
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:
