@@ -769,7 +769,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
                  (helm-ag-command-option options)
                  (helm-ag-base-command (concat helm-ag-base-command " " ignored))
                  (current-prefix-arg nil))
-            (helm-do-ag (projectile-project-root)))
+            (helm-do-ag (projectile-project-root) (or (car (projectile-parse-dirconfig-file)) nil)))
         (error "You're not in a project"))
     (error "helm-ag not available")))
 
