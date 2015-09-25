@@ -650,15 +650,16 @@ Other file extensions can be customized with the variable `projectile-other-file
                   :prompt (projectile-prepend-project-name "Find other file: ")))))
     (error "No other file found")))
 
-(defun helm-projectile-grep-or-ack (&optional use-ack-p ack-ignored-pattern ack-executable)
+(defun helm-projectile-grep-or-ack (&optional dir use-ack-p ack-ignored-pattern ack-executable)
   "Perform helm-grep at project root.
+DIR directory where to search
 USE-ACK-P indicates whether to use ack or not.
 ACK-IGNORED-PATTERN is a file regex to exclude from searching.
 ACK-EXECUTABLE is the actual ack binary name.
 It is usually \"ack\" or \"ack-grep\".
 If it is nil, or ack/ack-grep not found then use default grep command."
-  (let* ((default-directory (projectile-project-root))
-         (helm-ff-default-directory (projectile-project-root))
+  (let* ((default-directory (or dir (projectile-project-root)))
+         (helm-ff-default-directory default-directory)
          (follow (and helm-follow-mode-persistent
                       (assoc-default 'follow helm-source-grep)))
          (helm-grep-in-recurse t)
@@ -705,7 +706,7 @@ If it is nil, or ack/ack-grep not found then use default grep command."
      :buffer (format "*helm %s*" (if use-ack-p
                                      "ack"
                                    "grep"))
-     :default-directory (projectile-project-root)
+     :default-directory default-directory
      :keymap helm-grep-map
      :history 'helm-grep-history
      :truncate-lines t)))
@@ -725,13 +726,13 @@ If it is nil, or ack/ack-grep not found then use default grep command."
   (helm-projectile-toggle -1))
 
 ;;;###autoload
-(defun helm-projectile-grep ()
-  "Helm version of projectile-grep."
+(defun helm-projectile-grep (&optional dir)
+  "Helm version of `projectile-grep'.
+DIR is the project root, if not set then current directory is used"
   (interactive)
-  (if (projectile-project-p)
-      (funcall'run-with-timer 0.01 nil
-                              #'helm-projectile-grep-or-ack nil)
-    (error "You're not in a project")))
+  (let ((project-root (or dir (projectile-project-root) (error "You're not in a project"))))
+    (funcall'run-with-timer 0.01 nil
+                              #'helm-projectile-grep-or-ack project-root nil)))
 
 ;;;###autoload
 (defun helm-projectile-ack ()
