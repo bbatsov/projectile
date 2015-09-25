@@ -187,7 +187,7 @@ It is there because Helm requires it."
       (kbd "C-d") #'dired
       (kbd "M-g") #'helm-projectile-vc
       (kbd "M-e") #'helm-projectile-switch-to-eshell
-      (kbd "C-s") #'helm-find-files-grep
+      (kbd "C-s") #'helm-projectile-grep
       (kbd "M-c") #'helm-projectile-compile-project
       (kbd "M-t") #'helm-projectile-test-project
       (kbd "M-r") #'helm-projectile-run-project
@@ -212,7 +212,7 @@ It is there because Helm requires it."
               ("Open Dired in project's directory `C-d'" . dired)
               ("Open project root in vc-dir or magit `M-g'" . helm-projectile-vc)
               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-              ("Grep in projects `C-s'.  With C-u, recurse" . helm-find-files-grep)
+              ("Grep in projects `C-s'" . helm-projectile-grep)
               ("Compile project `M-c'. With C-u, new compile command"
                . helm-projectile-compile-project)
               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project)))
@@ -504,14 +504,14 @@ CANDIDATE is the selected file.  Used when no file is explicitly marked."
                 (kbd "M-e")   #'helm-projectile-switch-to-eshell
                 (kbd "C-c f") #'helm-projectile-dired-files-new-action
                 (kbd "C-c a") #'helm-projectile-dired-files-add-action
-                (kbd "C-s")   #'helm-find-files-grep)
+                (kbd "C-s")   #'helm-projectile-grep)
               map)
     :help-message 'helm-ff-help-message
     :mode-line helm-read-file-name-mode-line-string
     :action '(("Open Dired" . helm-projectile-dired-find-dir)
               ("Open Dired in other window `C-c o'" . helm-projectile-dired-find-dir)
               ("Switch to Eshell `M-e'" . helm-projectile-switch-to-eshell)
-              ("Grep in projects `C-s C-u Recurse'" . helm-find-files-grep)
+              ("Grep in projects `C-s'" . helm-projectile-grep)
               ("Create Dired buffer from files `C-c f'" . helm-projectile-dired-files-new-action)
               ("Add files to Dired buffer `C-c a'" . helm-projectile-dired-files-add-action)))
   "Helm source for listing project directories.")
