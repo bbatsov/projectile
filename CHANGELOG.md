@@ -25,6 +25,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
 * [#667](https://github.com/bbatsov/projectile/issues/667) Use `file-truename` when caching filenames to prevent duplicate/symlinked filepaths from appearing when opening a project file.
 * [#625](https://github.com/bbatsov/projectile/issues/625): Ensure the directory has a trailing slash while searching for it.
 * [#763](https://github.com/bbatsov/projectile/issues/763): Check for `projectile-use-git-grep` in `helm-projectile-grep`
+* Fix `projectile-parse-dirconfig-file` to parse non-ASCII characters properly.
 
 ## 0.12.0 (03/29/2015)
 
