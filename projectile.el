@@ -2088,20 +2088,30 @@ For hg projects `monky-status' is used if available."
 (defvar projectile-compilation-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last compilation command used on them.")
+
 (defvar projectile-test-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last test command used on them.")
+
 (defvar projectile-run-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last run command used on them.")
+
 (defvar projectile-project-compilation-cmd nil
   "The command to use with `projectile-compile-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+
+(defvar projectile-project-compilation-dir nil
+  "The directory to use with `projectile-compile-project'.
+The directory path is relative to the project root.
+Should be set via .dir-locals.el.")
+
 (defvar projectile-project-test-cmd nil
   "The command to use with `projectile-test-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+
 (defvar projectile-project-run-cmd nil
   "The command to use with `projectile-run-project'.
 It takes precedence over the default command for the project type when set.
@@ -2119,9 +2129,9 @@ Should be set via .dir-locals.el.")
   "Retrieve default run command for PROJECT-TYPE."
   (plist-get (gethash project-type projectile-project-types) 'run-command))
 
-(defun projectile-compilation-command (project)
-  "Retrieve the compilation command for PROJECT."
-  (or (gethash project projectile-compilation-cmd-map)
+(defun projectile-compilation-command (compile-dir)
+  "Retrieve the compilation command for COMPILE-DIR."
+  (or (gethash compile-dir projectile-compilation-cmd-map)
       projectile-project-compilation-cmd
       (projectile-default-compilation-command (projectile-project-type))))
 
@@ -2144,6 +2154,14 @@ Should be set via .dir-locals.el.")
                           '(compile-history . 1)
                         'compile-history)))
 
+(defun projectile-compilation-dir ()
+  "Choose the directory to use for project compilation."
+  (if projectile-project-compilation-dir
+      (file-truename
+       (concat (file-name-as-directory (projectile-project-root))
+               (file-name-as-directory projectile-project-compilation-dir)))
+    (projectile-project-root)))
+
 (defun projectile-compile-project (arg &optional dir)
   "Run project compilation command.
 
@@ -2151,16 +2169,14 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let* ((project-root (if dir
-                           dir
-                         (projectile-project-root)))
-         (default-directory project-root)
-         (default-cmd (projectile-compilation-command project-root))
+  (let* ((project-root (projectile-project-root))
+         (default-directory (or dir (projectile-compilation-dir)))
+         (default-cmd (projectile-compilation-command default-directory))
          (compilation-cmd (if (or compilation-read-command arg)
                               (projectile-read-command "Compile command: "
                                                        default-cmd)
                             default-cmd)))
-    (puthash project-root compilation-cmd projectile-compilation-cmd-map)
+    (puthash default-directory compilation-cmd projectile-compilation-cmd-map)
     (save-some-buffers (not compilation-ask-about-save)
                        (lambda ()
                          (projectile-project-buffer-p (current-buffer)

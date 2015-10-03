@@ -14,6 +14,7 @@
 This is done via the variables `projectile-project-compilation-cmd` and `projectile-project-test-cmd`.
 * [#489](https://github.com/bbatsov/projectile/issues/489): New interactive command `projectile-run-project`.
 * Optionally run [monky](http://ananthakumaran.in/monky/) on Mercurial projects.
+* Add the ability to specify a project compilation directory relative to the root directory via `.dir-locals.el` with the variable `projectile-project-compilation-dir`.
 
 ### Changes
 
