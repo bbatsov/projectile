@@ -21,6 +21,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
   targets even when called from a subdirectory.
 * Add an argument specifying the regexp to search to `projectile-grep`.
 * Use `help-projectile-grep` instead of `helm-find-file` when selecting a project.
+* Omit current buffer from `projectile-switch-to-buffer` and `projectile-switch-to-buffer-other-window` choices.
 
 ### Bugs fixed
 

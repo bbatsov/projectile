@@ -968,23 +968,29 @@ opened through use of recentf."
   "Prepend the current project's name to STRING."
   (format "[%s] %s" (projectile-project-name) string))
 
+(defun projectile-read-buffer-to-switch (prompt)
+  "Read the name of a buffer to switch to, prompting with PROMPT.
+
+This function excludes the current buffer from the offered
+choices."
+  (projectile-completing-read
+   prompt
+   (-remove-item (buffer-name (current-buffer))
+                 (projectile-project-buffer-names))))
+
 ;;;###autoload
 (defun projectile-switch-to-buffer ()
   "Switch to a project buffer."
   (interactive)
   (switch-to-buffer
-   (projectile-completing-read
-    "Switch to buffer: "
-    (projectile-project-buffer-names))))
+   (projectile-read-buffer-to-switch "Switch to buffer: ")))
 
 ;;;###autoload
 (defun projectile-switch-to-buffer-other-window ()
   "Switch to a project buffer and show it in another window."
   (interactive)
   (switch-to-buffer-other-window
-   (projectile-completing-read
-    "Switch to buffer: "
-    (projectile-project-buffer-names))))
+   (projectile-read-buffer-to-switch "Switch to buffer: ")))
 
 ;;;###autoload
 (defun projectile-display-buffer ()
