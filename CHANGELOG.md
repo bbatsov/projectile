@@ -18,6 +18,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
 * `projectile-compile-project` now offers appropriate completion
   targets even when called from a subdirectory.
 * Add an argument specifying the regexp to search to `projectile-grep`.
+* Use `help-projectile-grep` instead of `helm-find-file` when selecting a project.
 
 ### Bugs fixed
 
