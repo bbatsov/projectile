@@ -2246,7 +2246,7 @@ With a prefix ARG invokes `projectile-commander' instead of
                                   projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
     (funcall switch-project-action)
-    (run-hooks 'projectile-switch-project-hook)))
+    (run-hooks 'projectile-after-switch-project-hook)))
 
 
 (defun projectile-find-file-in-directory (&optional directory)
@@ -2282,8 +2282,8 @@ This command will first prompt for the directory the file is in."
   (let ((projectile-require-project-root nil))
     (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)))))
 
-(defcustom projectile-switch-project-hook nil
-  "Hooks run when project is switched."
+(defcustom projectile-after-switch-project-hook nil
+  "Hooks run right after project is switched."
   :group 'projectile
   :type 'hook)
 
