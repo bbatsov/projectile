@@ -2244,6 +2244,7 @@ With a prefix ARG invokes `projectile-commander' instead of
          (switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
+    (run-hooks 'projectile-before-switch-project-hook)
     (funcall switch-project-action)
     (run-hooks 'projectile-switch-project-hook)))
 
@@ -2283,6 +2284,11 @@ This command will first prompt for the directory the file is in."
 
 (defcustom projectile-switch-project-hook nil
   "Hooks run when project is switched."
+  :group 'projectile
+  :type 'hook)
+
+(defcustom projectile-before-switch-project-hook nil
+  "Hooks run when right before project is switched."
   :group 'projectile
   :type 'hook)
 
