@@ -127,7 +127,7 @@
 (ert-deftest projectile-test-parse-dirconfig-file ()
   (noflet ((file-exists-p (filename) t)
            (file-truename (filename) filename)
-           (insert-file-contents-literally
+           (insert-file-contents
             (filename)
             (save-excursion
               (insert

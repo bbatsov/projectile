@@ -1113,7 +1113,7 @@ prefix the string will be assumed to be an ignore string."
   (let (keep ignore (dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
       (with-temp-buffer
-        (insert-file-contents-literally dirconfig)
+        (insert-file-contents dirconfig)
         (while (not (eobp))
           (pcase (char-after)
             (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
