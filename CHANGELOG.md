@@ -17,6 +17,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
 
 ### Changes
 
+* Rename `projectile-switch-project-hook` to `projectile-after-switch-project-hook`.
 * `projectile-compile-project` now offers appropriate completion
   targets even when called from a subdirectory.
 * Add an argument specifying the regexp to search to `projectile-grep`.
