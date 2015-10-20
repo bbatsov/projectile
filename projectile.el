@@ -53,6 +53,10 @@
 (declare-function pkg-info-version-info "pkg-info")
 (declare-function tags-completion-table "etags")
 
+(defvar grep-files-aliases)
+(defvar grep-find-ignored-directories)
+(defvar grep-find-ignored-files)
+
 ;;;; Compatibility
 (eval-and-compile
   ;; Added in Emacs 24.3.

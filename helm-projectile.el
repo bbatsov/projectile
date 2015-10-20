@@ -52,6 +52,9 @@
 (declare-function helm-do-ag "helm-ag")
 (defvar helm-ag-base-command)
 
+(defvar grep-find-ignored-directories)
+(defvar grep-find-ignored-files)
+
 (defgroup helm-projectile nil
   "Helm support for projectile."
   :prefix "helm-projectile-"
