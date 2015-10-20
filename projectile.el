@@ -1528,11 +1528,12 @@ With a prefix ARG invalidates the cache first."
 (defvar projectile-project-types (make-hash-table)
   "A hash table holding all project types that are known to Projectile.")
 
-(defun projectile-register-project-type (project-type marker-files &optional compile-command test-command run-command)
+(defun projectile-register-project-type
+    (project-type marker-files &optional compile-command test-command run-command)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-a COMPILE-COMMAND and a TEST-COMMAND."
+a COMPILE-COMMAND, a TEST-COMMAND, and a RUN-COMMAND."
   (puthash project-type (list 'marker-files marker-files
                               'compile-command compile-command
                               'test-command test-command
