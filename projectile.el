@@ -1810,10 +1810,8 @@ With REGEXP given, don't query the user for a regexp."
   (require 'grep) ;; for `rgrep'
   (let* ((roots (projectile-get-project-directories))
          (search-regexp (or regexp
-                            (if (and transient-mark-mode mark-active)
-                                (buffer-substring (region-beginning) (region-end))
-                              (read-string (projectile-prepend-project-name "Grep for: ")
-                                           (projectile-symbol-at-point)))))
+                            (read-string (projectile-prepend-project-name "Grep for: ")
+                                         (projectile-symbol-or-selection-at-point))))
          (files (and arg (or (and (equal current-prefix-arg '-)
                                   (projectile-grep-default-files))
                              (read-string (projectile-prepend-project-name "Grep in: ")
@@ -1846,7 +1844,7 @@ regular expression."
   (interactive
    (list (read-from-minibuffer
           (projectile-prepend-project-name (format "Ag %ssearch for: " (if current-prefix-arg "regexp " "")))
-          (projectile-symbol-at-point))
+          (projectile-symbol-or-selection-at-point))
          current-prefix-arg))
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
@@ -1912,7 +1910,7 @@ regular expression."
                 (projectile--tags tags-completion-table))))
     (funcall find-tag-function (projectile-completing-read "Find tag: "
                                                            tags
-                                                           (projectile-symbol-at-point)))))
+                                                           (projectile-symbol-or-selection-at-point)))))
 
 (defun projectile--tags (completion-table)
   "Find tags using COMPLETION-TABLE."
@@ -2008,7 +2006,7 @@ to run the replacement."
   (interactive "P")
   (let* ((old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
-                    (projectile-symbol-at-point)))
+                    (projectile-symbol-or-selection-at-point)))
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
@@ -2018,6 +2016,12 @@ to run the replacement."
                       (projectile-project-root)))
          (files (projectile-files-with-string old-text directory)))
     (tags-query-replace old-text new-text nil (cons 'list files))))
+
+(defun projectile-symbol-or-selection-at-point ()
+  "Get the symbol or selected text at point."
+  (if (use-region-p)
+      (buffer-substring-no-properties (region-beginning) (region-end))
+    (projectile-symbol-at-point)))
 
 (defun projectile-symbol-at-point ()
   "Get the symbol at point and strip its properties."
