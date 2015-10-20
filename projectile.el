@@ -338,6 +338,17 @@ Any function that does not take arguments will do."
   "If true, use `vc-git-grep' in git projects."
   :group 'projectile
   :type 'boolean)
+
+(defcustom projectile-test-prefix-function 'projectile-test-prefix
+  "Function to find test files prefix based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
+(defcustom projectile-test-suffix-function 'projectile-test-suffix
+  "Function to find test files suffix based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
@@ -1682,16 +1693,6 @@ It assumes the test/ folder is at the same level as src/."
   (interactive)
   (find-file
    (projectile-find-implementation-or-test (buffer-file-name))))
-
-(defcustom projectile-test-prefix-function 'projectile-test-prefix
-  "Function to find test files prefix based on PROJECT-TYPE."
-  :group 'projectile
-  :type 'function)
-
-(defcustom projectile-test-suffix-function 'projectile-test-suffix
-  "Function to find test files suffix based on PROJECT-TYPE."
-  :group 'projectile
-  :type 'function)
 
 (defun projectile-test-affix (project-type)
   "Find test files affix based on PROJECT-TYPE."
