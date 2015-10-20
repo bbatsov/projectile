@@ -7,7 +7,7 @@
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; Version: 0.12.0
-;; Package-Requires: ((helm "1.4.0") (projectile "0.12.0") (dash "1.5.0") (cl-lib "0.3"))
+;; Package-Requires: ((helm "1.7.7") (projectile "0.12.0") (dash "1.5.0") (cl-lib "0.3"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -83,7 +83,7 @@ This needs to be set before loading helm-projectile."
        `(define-key ,keymap ,key
           (lambda ()
             (interactive)
-            (helm-quit-and-execute-action ,def)))
+            (helm-exit-and-execute-action ,def)))
        ret)
       (setq key (pop bindings)
             def (pop bindings)))
@@ -221,9 +221,10 @@ It is there because Helm requires it."
               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project)))
   "Helm source for known projectile projects.")
 
-(define-key helm-etags-map (kbd "C-c p f") (lambda ()
-                                             (interactive)
-                                             (helm-run-after-quit 'helm-projectile-find-file nil)))
+(define-key helm-etags-map (kbd "C-c p f")
+  (lambda ()
+    (interactive)
+    (helm-run-after-exit 'helm-projectile-find-file nil)))
 
 (defun helm-projectile-find-files-eshell-command-on-file-action (_candidate)
   (interactive)
