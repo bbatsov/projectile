@@ -1530,15 +1530,15 @@ With a prefix ARG invalidates the cache first."
   "A hash table holding all project types that are known to Projectile.")
 
 (defun projectile-register-project-type
-    (project-type marker-files &optional compile-command test-command run-command)
+    (project-type marker-files &optional compile-cmd test-cmd run-cmd)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-a COMPILE-COMMAND, a TEST-COMMAND, and a RUN-COMMAND."
+a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
   (puthash project-type (list 'marker-files marker-files
-                              'compile-command compile-command
-                              'test-command test-command
-                              'run-command run-command)
+                              'compile-command compile-cmd
+                              'test-command test-cmd
+                              'run-command run-cmd)
            projectile-project-types))
 
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec") "bundle exec rails server" "bundle exec rspec")
