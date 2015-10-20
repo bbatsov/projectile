@@ -44,6 +44,7 @@
 (require 'grep)
 
 (eval-when-compile
+  (defvar ag-ignore-list)
   (defvar ggtags-completion-table)
   (defvar tags-completion-table))
 
