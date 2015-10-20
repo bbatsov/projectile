@@ -156,14 +156,14 @@ DIR is the project root."
 DIR is the project root."
   (let ((helm--reading-passwd-or-string t)
         (default-directory dir))
-    (projectile-test-project helm-current-prefix-arg dir)))
+    (projectile-test-project helm-current-prefix-arg)))
 
 (defun helm-projectile-run-project (dir)
   "A Helm action for run a project.
 DIR is the project root."
   (let ((helm--reading-passwd-or-string t)
         (default-directory dir))
-    (projectile-run-project helm-current-prefix-arg dir)))
+    (projectile-run-project helm-current-prefix-arg)))
 
 (defun helm-projectile-remove-known-project (_ignore)
   "Delete selected projects.
