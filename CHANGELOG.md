@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 0.13.0 (10/21/2015)
+
 ### New features
 
 * Add `projectile-before-switch-project-hook`.
