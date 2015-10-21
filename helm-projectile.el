@@ -7,7 +7,7 @@
 ;; Created: 2011-31-07
 ;; Keywords: project, convenience
 ;; Version: 0.12.0
-;; Package-Requires: ((helm "1.4.0") (projectile "0.12.0") (dash "1.5.0") (cl-lib "0.3"))
+;; Package-Requires: ((helm "1.7.7") (projectile "0.12.0") (dash "1.5.0") (cl-lib "0.3"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -52,6 +52,9 @@
 (declare-function helm-do-ag "helm-ag")
 (defvar helm-ag-base-command)
 
+(defvar grep-find-ignored-directories)
+(defvar grep-find-ignored-files)
+
 (defgroup helm-projectile nil
   "Helm support for projectile."
   :prefix "helm-projectile-"
@@ -80,7 +83,7 @@ This needs to be set before loading helm-projectile."
        `(define-key ,keymap ,key
           (lambda ()
             (interactive)
-            (helm-quit-and-execute-action ,def)))
+            (helm-exit-and-execute-action ,def)))
        ret)
       (setq key (pop bindings)
             def (pop bindings)))
@@ -153,14 +156,14 @@ DIR is the project root."
 DIR is the project root."
   (let ((helm--reading-passwd-or-string t)
         (default-directory dir))
-    (projectile-test-project helm-current-prefix-arg dir)))
+    (projectile-test-project helm-current-prefix-arg)))
 
 (defun helm-projectile-run-project (dir)
   "A Helm action for run a project.
 DIR is the project root."
   (let ((helm--reading-passwd-or-string t)
         (default-directory dir))
-    (projectile-run-project helm-current-prefix-arg dir)))
+    (projectile-run-project helm-current-prefix-arg)))
 
 (defun helm-projectile-remove-known-project (_ignore)
   "Delete selected projects.
@@ -218,9 +221,10 @@ It is there because Helm requires it."
               ("Remove project(s) `M-D'" . helm-projectile-remove-known-project)))
   "Helm source for known projectile projects.")
 
-(define-key helm-etags-map (kbd "C-c p f") (lambda ()
-                                             (interactive)
-                                             (helm-run-after-quit 'helm-projectile-find-file nil)))
+(define-key helm-etags-map (kbd "C-c p f")
+  (lambda ()
+    (interactive)
+    (helm-run-after-exit 'helm-projectile-find-file nil)))
 
 (defun helm-projectile-find-files-eshell-command-on-file-action (_candidate)
   (interactive)
