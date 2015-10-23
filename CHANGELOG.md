@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* Add [boot-clj](https://github.com/boot-clj/boot) project type.
+
 ## 0.13.0 (10/21/2015)
 
 ### New features
