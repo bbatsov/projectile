@@ -213,6 +213,7 @@ Two example filter functions are shipped by default -
     "SConstruct"         ; Scons project file
     "pom.xml"            ; Maven project file
     "build.sbt"          ; SBT project file
+    "gradlew"            ; Gradle wrapper script
     "build.gradle"       ; Gradle project file
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
@@ -1552,6 +1553,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'scons '("SConstruct") "scons" "scons test")
 (projectile-register-project-type 'maven '("pom.xml") "mvn clean install" "mvn test")
 (projectile-register-project-type 'gradle '("build.gradle") "gradle build" "gradle test")
+(projectile-register-project-type 'gradlew '("gradlew") "./gradlew build" "./gradlew test")
 (projectile-register-project-type 'grails '("application.properties" "grails-app") "grails package" "grails test-app")
 (projectile-register-project-type 'lein-test '("project.clj") "lein compile" "lein test")
 (projectile-register-project-type 'lein-midje '("project.clj" ".midje.clj") "lein compile" "lein midje")
@@ -1717,7 +1719,7 @@ It assumes the test/ folder is at the same level as src/."
    ((member project-type '(rails-test ruby-test lein-test boot-clj go)) "_test")
    ((member project-type '(scons)) "test")
    ((member project-type '(maven symfony)) "Test")
-   ((member project-type '(gradle grails)) "Spec")))
+   ((member project-type '(gradle gradlew grails)) "Spec")))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
