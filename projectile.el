@@ -1250,6 +1250,26 @@ Other file extensions can be customized with the variable `projectile-other-file
         (find-file (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
 
+(defun projectile-find-other-file-maybe-create (&optional flex-matching)
+  "Switch between files with the same name but different extensions, if no other file exist user can create it.
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
+  (interactive "P")
+    (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
+        (if (= (length other-files) 1)
+            (find-file (expand-file-name (car other-files) (projectile-project-root)))
+          (find-file (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
+      (let* ((dest-dir (projectile-complete-dir))
+             (file-ext-list (projectile-associated-file-name-extensions (buffer-file-name))))
+        (find-file (expand-file-name
+                    (concat (projectile--file-name-sans-extensions (buffer-file-name))
+                            "."
+                            (if (= (length file-ext-list) 1)
+                                (car file-ext-list)
+                              (projectile-completing-read "Choose extencion: " file-ext-list ))))
+                   (projectile-project-root)))))
+
+
 (defun projectile-find-other-file-other-window (&optional flex-matching)
   "Switch between files with the same name but different extensions in other window.
 With FLEX-MATCHING, match any file that contains the base name of current file.
@@ -1260,6 +1280,26 @@ Other file extensions can be customized with the variable `projectile-other-file
           (find-file-other-window (expand-file-name (car other-files) (projectile-project-root)))
         (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
+
+(defun projectile-find-other-file-other-window-maybe-create (&optional flex-matching)
+  "Switch between files with the same name but different extensions in other window, if no other file exist user can create it.
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
+  (interactive "P")
+    (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
+        (if (= (length other-files) 1)
+            (find-file-other-window (expand-file-name (car other-files) (projectile-project-root)))
+          (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
+      (let* ((dest-dir (projectile-complete-dir))
+             (file-ext-list (projectile-associated-file-name-extensions (buffer-file-name))))
+        (find-file-other-window (expand-file-name
+                    (concat (projectile--file-name-sans-extensions (buffer-file-name))
+                            "."
+                            (if (= (length file-ext-list) 1)
+                                (car file-ext-list)
+                              (projectile-completing-read "Choose extencion: " file-ext-list ))))
+                   (projectile-project-root)))))
+
 
 (defun projectile--file-name-sans-extensions (file-name)
   "Return FILE-NAME sans any extensions.
