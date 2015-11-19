@@ -7,6 +7,7 @@
 * Add [boot-clj](https://github.com/boot-clj/boot) project type.
 * Add support for projects using gradlew script.
 * Prefer Haskell stack projects over cabal projects.
+* Add ability to use elisp functions for test, compile and run commands.
 
 ## 0.13.0 (10/21/2015)
 
