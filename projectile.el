@@ -1495,9 +1495,12 @@ With a prefix ARG invalidates the cache first."
     (dired-other-window (expand-file-name dir (projectile-project-root)))
     (run-hooks 'projectile-find-dir-hook)))
 
-(defun projectile-complete-dir ()
+(defun projectile-complete-dir (&optional custom-promt)
+  (unless (string-or-null-p custom-promt)
+        (signal 'wrong-type-argument custom-promt))
+
   (projectile-completing-read
-   "Find dir: "
+   (or custom-promt "Find dir: ")
    (if projectile-find-dir-includes-top-level
        (append '("./") (projectile-current-project-dirs))
      (projectile-current-project-dirs))))

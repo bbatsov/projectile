@@ -8,6 +8,10 @@
 * Add support for projects using gradlew script.
 * Prefer Haskell stack projects over cabal projects.
 
+### Changes
+
+* Add optional custom promt to function `projectile-complete-dir`.
+
 ## 0.13.0 (10/21/2015)
 
 ### New features
