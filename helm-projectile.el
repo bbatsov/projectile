@@ -761,7 +761,7 @@ DIR is the project root, if not set then current directory is used"
 ;;;###autoload
 (defun helm-projectile-ag (&optional options)
   "Helm version of projectile-ag."
-  (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag-command-history))))
+  (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag--extra-options-history))))
   (if (require 'helm-ag nil  'noerror)
       (if (projectile-project-p)
           (let* ((grep-find-ignored-files (-union (projectile-ignored-files-rel) grep-find-ignored-files))
