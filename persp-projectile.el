@@ -53,14 +53,17 @@
 The advice provides bridge between perspective and projectile
 functions when switch between projects.  After switching to a new
 project, this advice creates a new perspective for that project."
-  `(defadvice ,func-name (before projectile-create-perspective-after-switching-projects activate)
-     "Create a dedicated perspective for current project's window after switching projects."
-     (let ((project-name (projectile-project-name)))
-       (when (projectile-project-p)
-         (persp-switch project-name)))))
+  (let ((advice-name (intern (concat func-name "--projectile-persp-bridge")))
+        (func-name-symbol (intern func-name)))
+    `(defun ,advice-name ()
+       "Create a dedicated perspective for current project's window after switching projects."
+       (let ((project-name (projectile-project-name)))
+         (when (projectile-project-p)
+           (persp-switch project-name))))
+    `(advice-add ',func-name-symbol :before #',advice-name)))
 
-(projectile-persp-bridge projectile-dired)
-(projectile-persp-bridge projectile-find-file)
+(projectile-persp-bridge "projectile-dired")
+(projectile-persp-bridge "projectile-find-file")
 
 ;;;###autoload
 (defun projectile-persp-switch-project (project-to-switch)
@@ -92,12 +95,13 @@ perspective."
           (with-selected-frame frame
             (persp-kill name))))))))
 
-(defadvice persp-init-frame (after projectile-persp-init-frame activate)
+(defun persp-init-frame--projectile ()
   "Rename initial perspective to `projectile-project-name' when a
 new frame is created in a known project."
   (with-selected-frame frame
     (when (projectile-project-p)
       (persp-rename (projectile-project-name)))))
+(advice-add 'persp-init-frame :after #'persp-init-frame--projectile)
 
 (define-key projectile-mode-map [remap projectile-switch-project] 'projectile-persp-switch-project)
 

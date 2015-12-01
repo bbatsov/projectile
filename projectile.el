@@ -640,13 +640,14 @@ The cache is created both in memory and on the hard drive."
     (projectile-invalidate-cache nil)))
 
 
-(defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
+(defun delete-file--purge-from-projectile-cache (filename &optional trash)
   (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
              (true-filename (file-truename filename))
              (relative-filename (file-relative-name true-filename project-root)))
         (if (projectile-file-cached-p relative-filename project-root)
             (projectile-purge-file-from-cache relative-filename)))))
+(advice-add 'delete-file :before #'delete-file--purge-from-projectile-cache)
 
 
 ;;; Project root related utilities
@@ -2204,25 +2205,26 @@ with a prefix ARG."
                                                       project-root)))
     (compilation-start compilation-cmd)))
 
-(defadvice compilation-find-file (around projectile-compilation-find-file)
+(defun compilation-find-file--projectile-compilation-find-file (orig-fun &rest args)
   "Try to find a buffer for FILENAME, if we cannot find it,
 fallback to the original function."
-  (let ((filename (ad-get-arg 1)))
-    (setf ad-return-value
-          (or
-           (if (file-exists-p (expand-file-name filename))
-               (find-file-noselect filename))
-           ;; Try to find the filename using projectile
-           (and (projectile-project-p)
-                (let ((root (projectile-project-root))
-                      (dirs (cons "" (projectile-current-project-dirs))))
-                  (-when-let (full-filename (->> dirs
-                                                 (--map (expand-file-name filename (expand-file-name it root)))
-                                                 (-filter #'file-exists-p)
-                                                 (-first-item)))
-                    (find-file-noselect full-filename))))
-           ;; Fall back to the old function `compilation-find-file'
-           ad-do-it))))
+  (let ((filename (car (cdr args)))) ;; extract second element of args
+    (or
+     (if (file-exists-p (expand-file-name filename))
+         (find-file-noselect filename))
+     ;; Try to find the filename using projectile
+     (and (projectile-project-p)
+          (let ((root (projectile-project-root))
+                (dirs (cons "" (projectile-current-project-dirs))))
+            (-when-let (full-filename (->> dirs
+                                           (--map (expand-file-name filename (expand-file-name it root)))
+                                           (-filter #'file-exists-p)
+                                           (-first-item)))
+              (find-file-noselect full-filename))))
+     ;; Fall back to the old function `compilation-find-file'
+     (apply orig-fun args))))
+(advice-add 'compilation-find-file
+            :around #'compilation-find-file--projectile-compilation-find-file)
 
 ;; TODO - factor this duplication out
 (defun projectile-test-project (arg)

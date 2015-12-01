@@ -7,6 +7,7 @@
 * Add [boot-clj](https://github.com/boot-clj/boot) project type.
 * Add support for projects using gradlew script.
 * Prefer Haskell stack projects over cabal projects.
+* Convert defadvice to defun + advice-add: new style advice from nadvice.el
 
 ## 0.13.0 (10/21/2015)
 
