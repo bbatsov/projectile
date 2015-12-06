@@ -1716,7 +1716,7 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
   (cond
-   ((member project-type '(django python python-tox)) "test_")
+   ((member project-type '(django python-pip python-pkg python-tox)) "test_")
    ((member project-type '(lein-midje)) "t_")))
 
 (defun projectile-test-suffix (project-type)
