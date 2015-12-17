@@ -1544,7 +1544,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
            projectile-project-types))
 
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec") "bundle exec rails server" "bundle exec rspec")
-(projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test") "bundle exec railse server" "bundle exec rake test")
+(projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test") "bundle exec rails server" "bundle exec rake test")
 (projectile-register-project-type 'symfony '("composer.json" "app" "src" "vendor") "app/console server:run" "phpunit -c app ")
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec") "bundle exec rake" "bundle exec rspec")
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test") "bundle exec rake" "bundle exec rake test")
@@ -1716,7 +1716,7 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
   (cond
-   ((member project-type '(django python python-tox)) "test_")
+   ((member project-type '(django python-pip python-pkg python-tox)) "test_")
    ((member project-type '(lein-midje)) "t_")))
 
 (defun projectile-test-suffix (project-type)
