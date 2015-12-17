@@ -2184,14 +2184,14 @@ Should be set via .dir-locals.el.")
     (projectile-project-root)))
 
 (defun projectile-maybe-read-command (arg default-cmd prompt)
-  "Prompt user for command unless default-cmd is elisp function"
+  "Prompt user for command unless DEFAULT-CMD is an Elisp function."
   (if (and (or (stringp default-cmd) (null default-cmd))
            (or compilation-read-command arg))
       (projectile-read-command prompt default-cmd)
     default-cmd))
 
 (defun projectile-run-compilation (cmd)
-  "Run external or elisp compilation command"
+  "Run external or Elisp compilation command CMD."
   (if (functionp cmd)
       (funcall cmd)
     (compilation-start cmd)))
