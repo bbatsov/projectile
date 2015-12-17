@@ -536,6 +536,11 @@ There are a few variables that are intended to be customized via `.dir-locals.el
 
 They're all set to `nil` by default, but by setting them you'll override the
 default commands per each supported project type.
+These variables can be strings to run external commands or Emacs Lisp functions:
+
+```
+(setq projectile-test-cmd #'custom-test-function)
+```
 
 
 ### Helm Integration
