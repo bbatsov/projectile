@@ -572,6 +572,14 @@ The project name will not appear by default when editing remote files
 (via TRAMP), as recalculating the project name (this is done on every
 keystroke) is a fairly slow operation there.
 
+## Extensions
+
+There are a number of packages that built on top of the basic functionality provided by Projectile:
+
+* [helm-projectile](https://github.com/bbatsov/helm-projectile) provides Helm integration
+* [persp-projectile](https://github.com/bbatsov/helm-projectile) provides perspective.el integration
+* [projectile-rails](https://github.com/asok/projectile-rails) provides extra functionality for Ruby on Rails projects
+
 ## Caveats
 
 * Some operations like search (grep) depend (presently) on external
