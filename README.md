@@ -573,10 +573,6 @@ By default the minor mode indicator of Projectile appears in the form
 * Some operations like search(grep) depend (presently) on external
   utilities such as `find`.
 
-## Would you like to know more?
-
-Check out the [Projectile's project page](http://batsov.com/projectile).
-
 ## Known issues
 
 Check out the project's
