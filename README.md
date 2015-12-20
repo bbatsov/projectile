@@ -568,6 +568,10 @@ By default the minor mode indicator of Projectile appears in the form
 `projectile-mode-line`, which expects a sexp like
 `'(:eval (format " Proj[%s]" (projectile-project-name)))`.
 
+The project name will not appear by default when editing remote files
+(via TRAMP), as recalculating the project name (this is done on every
+keystroke) is a fairly slow operation there.
+
 ## Caveats
 
 * Some operations like search(grep) depend (presently) on external
