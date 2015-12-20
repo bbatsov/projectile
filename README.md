@@ -566,7 +566,7 @@ additional functions to the hook using `add-hook`:
 By default the minor mode indicator of Projectile appears in the form
 " Projectile[ProjectName]". This is configurable via the custom variable
 `projectile-mode-line`, which expects a sexp like
-`'(:eval (format " Proj[%s]" (projectile-project-name)))`
+`'(:eval (format " Proj[%s]" (projectile-project-name)))`.
 
 ## Caveats
 
