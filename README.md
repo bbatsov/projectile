@@ -128,7 +128,7 @@ you can always use native indexing mode.
 
 #### Caching
 
-#### Project files
+##### Project files
 
 Since indexing a big project is not exactly quick (especially in Emacs
 Lisp), Projectile supports caching of the project's files. The caching
