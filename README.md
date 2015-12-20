@@ -570,11 +570,6 @@ By default the minor mode indicator of Projectile appears in the form
 
 ## Caveats
 
-* Traversing the project directory programmatically (instead of using
-  something like GNU find) is not very fast. On the other hand - it's
-  portable. Unlike
-  [find-file-in-project](https://github.com/bbatsov/find-file-in-project),
-  projectile's jump-to-file will work on any OS.
 * Some operations like search(grep) depend (presently) on external
   utilities such as `find`.
 
