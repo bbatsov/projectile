@@ -574,7 +574,7 @@ keystroke) is a fairly slow operation there.
 
 ## Caveats
 
-* Some operations like search(grep) depend (presently) on external
+* Some operations like search (grep) depend (presently) on external
   utilities such as `find`.
 
 ## Known issues
