@@ -228,6 +228,8 @@ Two example filter functions are shipped by default -
     "Cargo.toml"         ; Cargo project file
     "mix.exs"            ; Elixir mix project file
     "stack.yaml"         ; Haskell's stack tool based project
+    "TAGS"               ; etags/ctags are usually in the root of project
+    "GTAGS"              ; GNU Global tags
     )
   "A list of files considered to mark the root of a project.
 The topmost match has precedence."
