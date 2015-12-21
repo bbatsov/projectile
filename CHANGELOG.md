@@ -9,6 +9,7 @@
 * Prefer Haskell stack projects over cabal projects.
 * Add ability to use elisp functions for test, compile and run commands.
 * Consider `TAGS` and `GTAGS` root markers.
+* Add relation between the `.h`, `.cxx`, `.ixx` and `.hxx` files in `projectile-other-file-alist`.
 
 ## 0.13.0 (10/21/2015)
 
