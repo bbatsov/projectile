@@ -19,7 +19,7 @@ byte-compile-strict : elpa
 		$(EMACSFLAGS)                            \
 		--eval "(progn                           \
 			(setq byte-compile-error-on-warn t)  \
-			(batch-byte-compile))" projectile.el helm-projectile.el
+			(batch-byte-compile))" projectile.el
 
 .PHONY: test
 test : byte-compile-strict
