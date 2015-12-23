@@ -285,7 +285,7 @@ more powerful alternative to `ido`'s built-in `flex` matching.
 
 ##### Grizzl
 
-Another completion option is [grizzl](https://github.com/d11wtq/grizzl):
+Another completion option is [grizzl](https://github.com/grizzl/grizzl):
 
 ```el
 (setq projectile-completion-system 'grizzl)
