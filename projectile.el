@@ -207,6 +207,22 @@ Two example filter functions are shipped by default -
   :group 'projectile
   :type 'symbol)
 
+(defcustom projectile-project-name nil
+  "If this value is non-nil, it will be used as project name.
+
+It has precedence over function `projectile-project-name-function'."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "0.14.0"))
+
+(defcustom projectile-project-name-function 'projectile-default-project-name
+  "A function that receives the project-root and returns the project name.
+
+If variable `projectile-project-name' is non-nil, this function will not be used."
+  :group 'projectile
+  :type 'symbol
+  :package-version '(projectile . "0.14.0"))
+
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
@@ -738,15 +754,21 @@ A thin wrapper around `file-truename' that handles nil."
       (projectile-project-root)
     (error nil)))
 
+(defun projectile-default-project-name (project-root)
+  "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
+  (file-name-nondirectory (directory-file-name project-root)))
+
 (defun projectile-project-name ()
   "Return project name."
-  (let ((project-root
-         (condition-case nil
-             (projectile-project-root)
-           (error nil))))
-    (if project-root
-        (file-name-nondirectory (directory-file-name project-root))
-      "-")))
+  (if projectile-project-name
+      projectile-project-name
+      (let ((project-root
+             (condition-case nil
+                 (projectile-project-root)
+               (error nil))))
+        (if project-root
+            (funcall projectile-project-name-function project-root)
+          "-"))))
 
 
 ;;; Project indexing
@@ -2458,7 +2480,7 @@ overwriting each other's changes."
 
 (defun projectile-ibuffer-by-project (project-root)
   "Open an IBuffer window showing all buffers in PROJECT-ROOT."
-  (let ((project-name (file-name-nondirectory (directory-file-name project-root))))
+  (let ((project-name (funcall projectile-project-name-function project-root)))
     (ibuffer nil (format "*%s Buffers*" project-name)
              (list (cons 'projectile-files project-root)))))
 
