@@ -762,13 +762,13 @@ A thin wrapper around `file-truename' that handles nil."
   "Return project name."
   (if projectile-project-name
       projectile-project-name
-      (let ((project-root
-             (condition-case nil
-                 (projectile-project-root)
-               (error nil))))
-        (if project-root
-            (funcall projectile-project-name-function project-root)
-          "-"))))
+    (let ((project-root
+           (condition-case nil
+               (projectile-project-root)
+             (error nil))))
+      (if project-root
+          (funcall projectile-project-name-function project-root)
+        "-"))))
 
 
 ;;; Project indexing
@@ -1227,8 +1227,8 @@ https://github.com/abo-abo/swiper")))
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
   (-remove #'null (-distinct
-                  (-map #'file-name-directory
-                        (projectile-current-project-files)))))
+                   (-map #'file-name-directory
+                         (projectile-current-project-files)))))
 
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
@@ -1344,7 +1344,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
           (-sort (lambda (file _)
                    (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
                      (unless (equal fulldirname (file-name-directory file))
-                     (equal dirname candidate-dirname))))
+                       (equal dirname candidate-dirname))))
                  candidates)))
     candidates))
 
@@ -2280,12 +2280,31 @@ with a prefix ARG."
     (puthash project-root run-cmd projectile-run-cmd-map)
     (projectile-run-compilation run-cmd)))
 
+(defun projectile-open-projects ()
+  "Return a list of all open projects.
+An open project is a project with any open buffers."
+  (-distinct
+   (-non-nil
+    (-map (lambda (buffer)
+                      (with-current-buffer buffer
+                        (when (projectile-project-p)
+                          (abbreviate-file-name (projectile-project-root)))))
+          (buffer-list)))))
+
+(defun projectile--remove-current-project (projects)
+  "Remove the current project (if any) from the list of PROJECTS."
+  (if (projectile-project-p)
+      (-difference projects
+                   (list (abbreviate-file-name (projectile-project-root))))
+    projects))
+
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects except the current one (if present)."
-  (if (projectile-project-p)
-      (-difference projectile-known-projects
-                   (list (abbreviate-file-name (projectile-project-root))))
-    projectile-known-projects))
+  (projectile--remove-current-project projectile-known-projects))
+
+(defun projectile-relevant-open-projects ()
+  "Return a list of open projects except the current one (if present)."
+  (projectile--remove-current-project (projectile-open-projects)))
 
 (defun projectile-switch-project (&optional arg)
   "Switch to a project we have visited before.
@@ -2298,6 +2317,18 @@ With a prefix ARG invokes `projectile-commander' instead of
        (projectile-completing-read "Switch to project: " projects)
        arg)
     (error "There are no known projects")))
+
+(defun projectile-switch-open-project (&optional arg)
+  "Switch to a project we have currently opened.
+Invokes the command referenced by `projectile-switch-project-action' on switch.
+With a prefix ARG invokes `projectile-commander' instead of
+`projectile-switch-project-action.'"
+  (interactive "P")
+  (-if-let (projects (projectile-relevant-open-projects))
+      (projectile-switch-project-by-name
+       (projectile-completing-read "Switch to open project: " projects)
+       arg)
+    (error "There are no open projects")))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
@@ -2634,6 +2665,7 @@ is chosen."
     (define-key map (kbd "m") #'projectile-commander)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
+    (define-key map (kbd "q") #'projectile-switch-open-project)
     (define-key map (kbd "P") #'projectile-test-project)
     (define-key map (kbd "r") #'projectile-replace)
     (define-key map (kbd "R") #'projectile-regenerate-tags)
@@ -2671,6 +2703,7 @@ is chosen."
    "--"
    ["Open project in dired" projectile-dired]
    ["Switch to project" projectile-switch-project]
+   ["Switch to open project" projectile-switch-open-project]
    ["Search in project (grep)" projectile-grep]
    ["Search in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
