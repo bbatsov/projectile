@@ -1934,25 +1934,16 @@ regular expression."
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
-  (let ((find-tag-function (if (boundp 'ggtags-mode) 'ggtags-find-tag 'find-tag))
-        (tags (if (boundp 'ggtags-mode)
-                  (projectile--tags (all-completions "" ggtags-completion-table))
-                (require 'etags)
-                ;; we have to manually reset the tags-completion-table every time
-                (setq tags-completion-table nil)
-                (tags-completion-table)
-                (projectile--tags tags-completion-table))))
-    (funcall find-tag-function (projectile-completing-read "Find tag: "
-                                                           tags
-                                                           (projectile-symbol-or-selection-at-point)))))
-
-(defun projectile--tags (completion-table)
-  "Find tags using COMPLETION-TABLE."
-  (-reject #'null
-           (-map (lambda (x)
-                   (unless (integerp x)
-                     (prin1-to-string x t)))
-                 completion-table)))
+  (projectile-visit-project-tags-table)
+  ;; Auto-discover the user's preference for tags
+  (let ((find-tag-fn (cond
+                      ((fboundp 'ggtags-find-tag-dwim)
+                       'ggtags-find-tag-dwim)
+                      ((fboundp 'etags-select-find-tag)
+                       'etags-select-find-tag)
+                      (t
+                       'find-tag))))
+    (call-interactively find-tag-fn)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
