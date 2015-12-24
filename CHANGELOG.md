@@ -11,6 +11,7 @@
 * Consider `TAGS` and `GTAGS` root markers.
 * Add relation between the `.h`, `.cxx`, `.ixx` and `.hxx` files in `projectile-other-file-alist`.
 * Add support to specify project name either via `.dir-locals.el` or by providing a customized `projectile-project-name-function'.
+* Prefer ag's internal .gitignore parsing
 
 ## 0.13.0 (10/21/2015)
 
