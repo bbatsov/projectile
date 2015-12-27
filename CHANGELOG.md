@@ -4,6 +4,7 @@
 
 ### New features
 
+* Add [emacs-cask](https://github.com/cask/cask) project type.
 * Add [boot-clj](https://github.com/boot-clj/boot) project type.
 * Add support for projects using gradlew script.
 * Prefer Haskell stack projects over cabal projects.
