@@ -1697,12 +1697,6 @@ It assumes the test/ folder is at the same level as src/."
   (find-file
    (projectile-find-implementation-or-test (buffer-file-name))))
 
-(defun projectile-test-affix (project-type)
-  "Find test files affix based on PROJECT-TYPE."
-  (or (funcall projectile-test-prefix-function project-type)
-      (funcall projectile-test-suffix-function project-type)
-      (error "Project type not supported!")))
-
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
   (cond
@@ -1735,13 +1729,16 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
-         (test-affix (projectile-test-affix (projectile-project-type)))
+         (test-prefix (projectile-test-prefix (projectile-project-type)))
+         (test-suffix (projectile-test-suffix (projectile-project-type)))
          (candidates
           (-filter (lambda (current-file)
                      (let ((name (file-name-nondirectory
                                   (file-name-sans-extension current-file))))
-                       (or (string-equal name (concat test-affix basename))
-                           (string-equal name (concat basename test-affix)))))
+                       (or (when test-prefix
+                             (string-equal name (concat test-prefix basename)))
+                           (when test-suffix
+                             (string-equal name (concat basename test-suffix))))))
                    (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
@@ -1754,13 +1751,16 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-         (test-affix (projectile-test-affix (projectile-project-type)))
+         (test-prefix (projectile-test-prefix (projectile-project-type)))
+         (test-suffix (projectile-test-suffix (projectile-project-type)))
          (candidates
           (-filter (lambda (current-file)
                      (let ((name (file-name-nondirectory
                                   (file-name-sans-extension current-file))))
-                       (or (string-equal (concat test-affix name) basename)
-                           (string-equal (concat name test-affix) basename))))
+                       (or (when test-prefix
+                             (string-equal (concat test-prefix name) basename))
+                           (when test-suffix
+                             (string-equal (concat name test-suffix) basename)))))
                    (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
