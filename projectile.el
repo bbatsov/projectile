@@ -2238,21 +2238,22 @@ with a prefix ARG."
   "Try to find a buffer for FILENAME, if we cannot find it,
 fallback to the original function."
   (let ((filename (ad-get-arg 1)))
-    (setf ad-return-value
-          (or
-           (if (file-exists-p (expand-file-name filename))
-               (find-file-noselect filename))
-           ;; Try to find the filename using projectile
-           (and (projectile-project-p)
-                (let ((root (projectile-project-root))
-                      (dirs (cons "" (projectile-current-project-dirs))))
-                  (-when-let (full-filename (->> dirs
-                                                 (--map (expand-file-name filename (expand-file-name it root)))
-                                                 (-filter #'file-exists-p)
-                                                 (-first-item)))
-                    (find-file-noselect full-filename))))
-           ;; Fall back to the old function `compilation-find-file'
-           ad-do-it))))
+    (ad-set-arg 1
+                (or
+                 (if (file-exists-p (expand-file-name filename))
+                     filename)
+                 ;; Try to find the filename using projectile
+                 (and (projectile-project-p)
+                      (let ((root (projectile-project-root))
+                            (dirs (cons "" (projectile-current-project-dirs))))
+                        (-when-let (full-filename (->> dirs
+                                                       (--map (expand-file-name filename (expand-file-name it root)))
+                                                       (-filter #'file-exists-p)
+                                                       (-first-item)))
+                          full-filename)))
+                 ;; Fall back to the old argument
+                 filename))
+    ad-do-it))
 
 ;; TODO - factor this duplication out
 (defun projectile-test-project (arg)
