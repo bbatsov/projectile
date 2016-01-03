@@ -19,6 +19,10 @@
 * Prefer ag's internal .gitignore parsing.
 * Always use external find-tag implementations.
 
+### Bugs fixed
+
+* [#871](https://github.com/bbatsov/projectile/issues/871): Stop advice for `compilation-find-file` to override other advices.
+
 ## 0.13.0 (10/21/2015)
 
 ### New features
