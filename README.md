@@ -526,6 +526,13 @@ the files in you repository, you could do:
 ((nil . ((projectile-git-command . "/path/to/other/git ls-files -zco --exclude-standard"))))
 ```
 
+If you want to use a different project name than how Projectile named 
+your project, you could customize it with the following:
+
+```
+((nil . ((projectile-project-name . "your-project-name-here"))))
+```
+
 #### Configure a Project's Compilation, Test and Run commands
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
