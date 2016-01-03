@@ -9,7 +9,7 @@
 
 **Projectile** is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
-introducing external dependencies(when feasible). For instance -
+introducing external dependencies (when feasible). For instance -
 finding project files has a portable implementation written in pure
 Emacs Lisp without the use of GNU `find` (but for performance sake an
 indexing mechanism backed by external commands exists as well).
