@@ -362,6 +362,7 @@ Keybinding         | Description
 <kbd>C-c p k</kbd> | Kills all project buffers.
 <kbd>C-c p D</kbd> | Opens the root of the project in `dired`.
 <kbd>C-c p e</kbd> | Shows a list of recently visited project files.
+<kbd>C-c p E</kbd> | Opens the `.dirs-local.el` file of the project.
 <kbd>C-c p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
 <kbd>C-c p !</kbd> | Runs `shell-command` in the root directory of the project.
 <kbd>C-c p &</kbd> | Runs `async-shell-command` in the root directory of the project.
@@ -497,6 +498,9 @@ The top-level alist member referenced with the key `nil` applies to the
 entire project. A key with the name `eval` will evaluate its
 arguments. In the example above, this is used to create a function. It
 could also be used to e.g. add such a function to a key map.
+
+You can also quickly visit the the `.dir-locals.el` file with <kbd>C-c
+p E</kbd> (<kbd>M-x projectile-edit-dir-locals RET</kbd>).
 
 Here are a few examples of how to use this feature with Projectile.
 
