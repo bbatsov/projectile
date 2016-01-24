@@ -392,6 +392,12 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-grep-finished-hook nil
+  "Hooks run when `projectile-grep' finishes."
+  :group 'projectile
+  :type 'hook
+  :package-version '(projectile . "0.14.0"))
+
 (defcustom projectile-test-prefix-function 'projectile-test-prefix
   "Function to find test files prefix based on PROJECT-TYPE."
   :group 'projectile
@@ -1907,7 +1913,8 @@ With REGEXP given, don't query the user for a regexp."
                              (projectile-ignored-files))
                        grep-find-ignored-files)))
           (grep-compute-defaults)
-          (rgrep search-regexp (or files "* .*") root-dir))))))
+          (rgrep search-regexp (or files "* .*") root-dir))))
+    (run-hooks 'projectile-grep-finished-hook)))
 
 (defun projectile-ag (search-term &optional arg)
   "Run an ag search with SEARCH-TERM in the project.

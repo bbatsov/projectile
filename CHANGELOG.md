@@ -15,6 +15,7 @@
 * Add a command to switch between open projects (`projectile-switch-open-project`).
 * Add a command to edit the .dir-locals.el file of the project (`projectile-edit-dir-locals`).
 * Add file local variable `projectile-project-root`, which allows overriding the project root on a per-file basis. This allows navigating a different project from, say, an org file in a another git repository.
+* Add `projectile-grep-finished-hook`.
 
 ### Changes
 
