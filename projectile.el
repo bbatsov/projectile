@@ -307,7 +307,8 @@ containing a root file."
   :type '(repeat string))
 
 (defcustom projectile-project-root-files-functions
-  '(projectile-root-bottom-up
+  '(projectile-root-file-local
+    projectile-root-bottom-up
     projectile-root-top-down
     projectile-root-top-down-recurring)
   "A list of functions for finding project roots."
@@ -724,6 +725,13 @@ which we're looking."
                                      (directory-file-name file))))
              (setq file nil))))
     (and root (expand-file-name (file-name-as-directory root)))))
+
+(defvar-local projectile-custom-root nil
+  "Defines a custom Projectile project root.
+   This is intended to be used as a file local variable.")
+
+(defun projectile-root-file-local (dir)
+  projectile-custom-root)
 
 (defun projectile-root-top-down (dir &optional list)
   "Identify a project root in DIR by top-down search for files in LIST.

@@ -474,6 +474,14 @@ To customize project root files settings:
 M-x customize-group RET projectile RET
 ```
 
+#### File-local project root definitions
+
+If you want to override the projectile project root for a specific
+file, you can set the file-local variable `projectile-custom-root`. This
+can be useful if you have files within one project that are related to
+a different project (for instance, Org files in one git repo that
+correspond to other projects).
+
 ### Storing project settings
 
 From project to project some things may differ even in same language -
