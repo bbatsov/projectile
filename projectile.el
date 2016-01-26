@@ -1810,8 +1810,8 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
-         (test-prefix (projectile-test-prefix (projectile-project-type)))
-         (test-suffix (projectile-test-suffix (projectile-project-type)))
+         (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
+         (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
           (-filter (lambda (current-file)
                      (let ((name (file-name-nondirectory
@@ -1832,8 +1832,8 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-         (test-prefix (projectile-test-prefix (projectile-project-type)))
-         (test-suffix (projectile-test-suffix (projectile-project-type)))
+         (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
+         (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
           (-filter (lambda (current-file)
                      (let ((name (file-name-nondirectory
