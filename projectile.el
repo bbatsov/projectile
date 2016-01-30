@@ -1795,8 +1795,8 @@ It assumes the test/ folder is at the same level as src/."
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
-  (setq a (reverse (split-string (file-name-directory a) "/" t))
-        b (reverse (split-string (file-name-directory b) "/" t)))
+  (setq a (reverse (split-string (or (file-name-directory a) "") "/" t))
+        b (reverse (split-string (or (file-name-directory b) "") "/" t)))
   (let ((common 0))
     (while (and a b (string-equal (pop a) (pop b)))
       (setq common (1+ common)))
