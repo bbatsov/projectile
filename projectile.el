@@ -477,6 +477,12 @@ The saved data can be restored with `projectile-unserialize'."
   "List of locations where we have previously seen projects.
 The list of projects is ordered by the time they have been accessed.")
 
+(defun projectile-forget-project (project)
+  "Remove a project from `projectile-known-projects'."
+  (interactive (list (completing-read "Forget project: "
+                                      projectile-known-projects)))
+  (delete project projectile-known-projects))
+
 (defvar projectile-known-projects-on-file nil
   "List of known projects reference point.
 
@@ -491,7 +497,8 @@ synchronized with `projectile-known-projects-file'.")
   :type 'string)
 
 (defcustom projectile-ignored-projects nil
-  "A list of projects not to be added to `projectile-known-projects'."
+  "A list of projects not to be added to `projectile-known-projects'.
+See also `projectile-forget-project'."
   :group 'projectile
   :type '(repeat :tag "Project list" directory)
   :package-version '(projectile . "0.11.0"))
