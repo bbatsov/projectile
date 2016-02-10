@@ -31,4 +31,4 @@ try to follow these guidelines when you do so.
 [2]: http://gun.io/blog/how-to-github-fork-branch-and-pull-request
 [3]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
 [4]: https://help.github.com/articles/using-pull-requests
-[5]: https://github.com/clojure-emacs/clojure-mode/blob/master/CHANGELOG.md
+[5]: https://github.com/bbatsov/projectile/blob/master/CHANGELOG.md
