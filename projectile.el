@@ -912,15 +912,10 @@ Files are returned as relative paths to the project root."
      (t ""))))
 
 (defun projectile-get-all-sub-projects (project)
-  "Get all sub-projects for a given projects.
-PROJECT is base directory to start search recursively."
-  (let* ((default-directory project)
-         ;; search for sub-projects under current project `project'
-         (submodules (mapcar
-                      (lambda (s)
-                        (file-name-as-directory (expand-file-name s default-directory)))
-                      (projectile-files-via-ext-command (projectile-get-sub-projects-command)))))
+  "Get all sub-projects for a given project.
 
+PROJECT is base directory to start search recursively."
+  (let ((submodules (projectile-get-immediate-sub-projects project)))
     (cond
      ((null submodules)
       nil)
@@ -929,6 +924,33 @@ PROJECT is base directory to start search recursively."
                          ;; recursively get sub-projects of each sub-project
                          (mapcar (lambda (s)
                                    (projectile-get-all-sub-projects s)) submodules)))))))
+
+(defun projectile-get-immediate-sub-projects (path)
+  "Get immediate sub-projects for a given project without recursing.
+
+PATH is the vcs root or project root from which to start
+searching, and should end with an appropriate path delimiter, such as
+'/' or a '\\'.
+
+If the vcs get-sub-projects query returns results outside of path,
+they are excluded from the results of this function."
+  (let* ((default-directory path)
+         ;; search for sub-projects under current project `project'
+         (submodules (mapcar
+                      (lambda (s)
+                        (file-name-as-directory (expand-file-name s default-directory)))
+                      (projectile-files-via-ext-command (projectile-get-sub-projects-command))))
+         (project-child-folder-regex
+          (concat "\\`"
+                  (regexp-quote path))))
+
+    ;; If project root is inside of an VCS folder, but not actually an
+    ;; VCS root itself, submodules external to the project will be
+    ;; included in the VCS get sub-projects result. Let's remove them.
+    (-filter (lambda (submodule)
+               (string-match-p project-child-folder-regex
+                               submodule))
+             submodules)))
 
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
