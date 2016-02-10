@@ -596,7 +596,10 @@
                                                     "src/food/cat.c")))
   (should (equal 0
                  (projectile-dirname-matching-count "src/weed/sea.c"
-                                                    "src/food/sea.c"))))
+                                                    "src/food/sea.c")))
+  (should (equal 0
+                 (projectile-dirname-matching-count "test/demo-test.el"
+                                                    "demo.el"))))
 
 (ert-deftest projectile-test-find-matching-test ()
   (projectile-test-with-sandbox

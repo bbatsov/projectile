@@ -26,6 +26,7 @@
 
 * [#871](https://github.com/bbatsov/projectile/issues/871): Stop advice for `compilation-find-file` to override other advices.
 * [#557](https://github.com/bbatsov/projectile/issues/557): stack overflow in `projectile-find-tag'.
+* [#955](https://github.com/bbatsov/projectile/issues/955): Error while toggling between test and source file.
 
 ## 0.13.0 (10/21/2015)
 
