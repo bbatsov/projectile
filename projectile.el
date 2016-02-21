@@ -1902,6 +1902,10 @@ This is a subset of `grep-read-files', where either a matching entry from
                (and ext (concat "*." ext)))))
       (or default-alias default-extension))))
 
+(defun projectile--globally-ignored-file-suffixes-glob ()
+  "Return ignored file suffixes as a list of glob patterns."
+  (--map (concat "*" it) projectile-globally-ignored-file-suffixes))
+
 (defun projectile-grep (&optional regexp arg)
   "Perform rgrep in the project.
 
@@ -1933,9 +1937,10 @@ With REGEXP given, don't query the user for a regexp."
                               (projectile-ignored-directories))
                        grep-find-ignored-directories))
               (grep-find-ignored-files
-               (-union (-map (lambda (file)
-                               (file-relative-name file root-dir))
-                             (projectile-ignored-files))
+               (-union (append (-map (lambda (file)
+                                       (file-relative-name file root-dir))
+                                     (projectile-ignored-files))
+                               (projectile--globally-ignored-file-suffixes-glob))
                        grep-find-ignored-files)))
           (grep-compute-defaults)
           (rgrep search-regexp (or files "* .*") root-dir))))
@@ -1958,6 +1963,7 @@ regular expression."
                               (-union ag-ignore-list
                                       (append
                                        (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
+                                       (projectile--globally-ignored-file-suffixes-glob)
                                        grep-find-ignored-files grep-find-ignored-directories))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
