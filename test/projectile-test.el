@@ -182,7 +182,8 @@
       (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
 
 (ert-deftest projectile-test-projects-cleaned ()
-  (let* ((directories (cl-loop repeat 3 collect (make-temp-file "projectile-cleanup" t)))
+  (let* ((projectile-known-projects-file (projectile-test-tmp-file-path))
+         (directories (cl-loop repeat 3 collect (make-temp-file "projectile-cleanup" t)))
          (projectile-known-projects directories))
     (unwind-protect
         (progn
@@ -191,7 +192,8 @@
           (delete-directory (car directories))
           (projectile-cleanup-known-projects)
           (should (equal projectile-known-projects (cdr directories))))
-      (--each directories (ignore-errors (delete-directory it))))))
+      (--each directories (ignore-errors (delete-directory it)))
+      (delete-file projectile-known-projects-file nil))))
 
 (ert-deftest projectile-test-project-root-is-absolute ()
   (let* ((root-directory (make-temp-file "projectile-absolute" t))
