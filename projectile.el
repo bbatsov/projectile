@@ -408,6 +408,16 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-use-true-name t
+  "When non-nil, the symbolic links are followed through to get the true name of
+the file/directory.
+
+For example, when non-nil, true name of the current directory is used to find
+the project root (in `projectile-project-root') and the true name of the visiting
+file is added to the project cache (in `projectile-cache-current-file')."
+  :group 'projectile
+  :type 'boolean)
+
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
@@ -661,18 +671,20 @@ The cache is created both in memory and on the hard drive."
   (interactive)
   (let ((current-project (projectile-project-root)))
     (when (gethash (projectile-project-root) projectile-projects-cache)
-      (let* ((abs-current-file (file-truename (buffer-file-name (current-buffer))))
-            (current-file (file-relative-name abs-current-file current-project)))
-      (unless (or (projectile-file-cached-p current-file current-project)
-                  (projectile-ignored-directory-p (file-name-directory abs-current-file))
-                  (projectile-ignored-file-p abs-current-file))
-        (puthash current-project
-                 (cons current-file (gethash current-project projectile-projects-cache))
-                 projectile-projects-cache)
-        (projectile-serialize-cache)
-        (message "File %s added to project %s cache."
-                 (propertize current-file 'face 'font-lock-keyword-face)
-                 (propertize current-project 'face 'font-lock-keyword-face)))))))
+      (let* ((abs-current-file (if projectile-use-true-name
+                                   (file-truename (buffer-file-name (current-buffer)))
+                                 (buffer-file-name (current-buffer))))
+             (current-file (file-relative-name abs-current-file current-project)))
+        (unless (or (projectile-file-cached-p current-file current-project)
+                    (projectile-ignored-directory-p (file-name-directory abs-current-file))
+                    (projectile-ignored-file-p abs-current-file))
+          (puthash current-project
+                   (cons current-file (gethash current-project projectile-projects-cache))
+                   projectile-projects-cache)
+          (projectile-serialize-cache)
+          (message "File %s added to project %s cache."
+                   (propertize current-file 'face 'font-lock-keyword-face)
+                   (propertize current-project 'face 'font-lock-keyword-face)))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
@@ -700,7 +712,9 @@ The cache is created both in memory and on the hard drive."
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
   (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
-             (true-filename (file-truename filename))
+             (true-filename (if projectile-use-true-name
+                                (file-truename filename)
+                              filename))
              (relative-filename (file-relative-name true-filename project-root)))
         (if (projectile-file-cached-p relative-filename project-root)
             (projectile-purge-file-from-cache relative-filename)))))
@@ -781,19 +795,15 @@ The current directory is assumed to be the project's root otherwise."
                        (cache-value (gethash cache-key projectile-project-root-cache)))
                   (if cache-value
                       cache-value
-                    (let ((value (funcall it (file-truename dir))))
+                    (let ((value (funcall it (if projectile-use-true-name
+                                                 (file-truename dir)
+                                               dir))))
                       (puthash cache-key value projectile-project-root-cache)
                       value)))
                 projectile-project-root-files-functions)
         (if projectile-require-project-root
             (error "You're not in a project")
           default-directory))))
-
-(defun projectile-file-truename (file-name)
-  "Return the truename of FILE-NAME.
-A thin wrapper around `file-truename' that handles nil."
-  (when file-name
-    (file-truename file-name)))
 
 (defun projectile-project-p ()
   "Check if we're in a project."
@@ -1049,7 +1059,9 @@ Operates on filenames relative to the project root."
          (string-equal (file-remote-p default-directory)
                        (file-remote-p project-root))
          (not (string-match-p "^http\\(s\\)?://" default-directory))
-         (string-prefix-p project-root (file-truename default-directory)))))
+         (string-prefix-p project-root (if projectile-use-true-name
+                                           (file-truename default-directory)
+                                         default-directory)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
@@ -1426,7 +1438,10 @@ With a prefix ARG invalidates the cache first."
                    (buffer-substring (region-beginning) (region-end))
                  (or (thing-at-point 'filename) "")))
          (file (if (string-match "\\.?\\./" file)
-                   (file-relative-name (file-truename file) (projectile-project-root))
+                   (file-relative-name (if projectile-use-true-name
+                                           (file-truename file)
+                                         file)
+                                       (projectile-project-root))
                  file))
          (files (if file
                     (-filter (lambda (project-file)
@@ -2268,9 +2283,11 @@ Should be set via .dir-locals.el.")
 (defun projectile-compilation-dir ()
   "Choose the directory to use for project compilation."
   (if projectile-project-compilation-dir
-      (file-truename
-       (concat (file-name-as-directory (projectile-project-root))
-               (file-name-as-directory projectile-project-compilation-dir)))
+      (let ((dir (concat (file-name-as-directory (projectile-project-root))
+                         (file-name-as-directory projectile-project-compilation-dir))))
+        (if projectile-use-true-name
+            (file-truename dir)
+          dir))
     (projectile-project-root)))
 
 (defun projectile-maybe-read-command (arg default-cmd prompt)
@@ -2513,7 +2530,9 @@ See `projectile-cleanup-known-projects'."
 
 (defun projectile-ignored-projects ()
   "A list of projects that should not be save in `projectile-known-projects'."
-  (-map #'file-truename projectile-ignored-projects))
+  (if projectile-use-true-name
+      (-map #'file-truename projectile-ignored-projects)
+    projectile-ignored-projects))
 
 (defun projectile-ignored-project-p (project-root)
   "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'."
