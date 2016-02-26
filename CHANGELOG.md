@@ -22,6 +22,7 @@
 * New command `projectile-run-shell` (<kbd>C-c p x s</kbd>).
 * New command `projectile-run-eshell` (<kbd>C-c p x e</kbd>).
 * New command `projectile-run-term` (<kbd>C-c p x t</kbd>).
+* Let user unignore files in `.projectile` with the ! prefix.
 
 ### Changes
 

@@ -328,6 +328,12 @@ containing a root file."
   :group 'projectile
   :type '(repeat string))
 
+(defcustom projectile-globally-unignored-files nil
+  "A list of files globally unignored by projectile."
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile "0.14.0"))
+
 (defcustom projectile-globally-ignored-file-suffixes
   nil
   "A list of file suffixes globally ignored by projectile."
@@ -348,6 +354,12 @@ containing a root file."
   "A list of directories globally ignored by projectile."
   :group 'projectile
   :type '(repeat string))
+
+(defcustom projectile-globally-unignored-directories nil
+  "A list of directories globally unignored by projectile."
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile "0.14.0"))
 
 (defcustom projectile-globally-ignored-modes
   '("erc-mode"
@@ -833,7 +845,7 @@ A thin wrapper around `file-truename' that handles nil."
 (defun projectile-get-project-directories ()
   "Get the list of project directories that are of interest to the user."
   (-map (lambda (subdir) (concat (projectile-project-root) subdir))
-        (or (car (projectile-parse-dirconfig-file)) '(""))))
+        (or (nth 0 (projectile-parse-dirconfig-file)) '(""))))
 
 (defun projectile-dir-files (directory)
   "List the files in DIRECTORY and in its sub-directories.
@@ -847,7 +859,7 @@ Files are returned as relative paths to the project root."
         (if (eq projectile-indexing-method 'native)
             (projectile-dir-files-native root directory)
           ;; use external tools to get the project files
-          (projectile-remove-ignored (projectile-dir-files-external root directory))))))
+          (projectile-adjust-files (projectile-dir-files-external root directory))))))
 
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
@@ -857,7 +869,7 @@ Files are returned as relative paths to the project root."
                   (propertize directory 'face 'font-lock-keyword-face)))))
     ;; we need the files with paths relative to the project root
     (-map (lambda (file) (file-relative-name file root))
-          (projectile-index-directory directory (projectile-patterns-to-ignore)
+          (projectile-index-directory directory (projectile-filtering-patterns)
                                       progress-reporter))))
 
 (defun projectile-dir-files-external (root directory)
@@ -876,6 +888,12 @@ Files are returned as relative paths to the project root."
   "Command used by projectile to get the files in git submodules."
   :group 'projectile
   :type 'string)
+
+(defcustom projectile-git-ignored-command "git ls-files -zcoi --exclude-standard"
+  "Command used by projectile to get the ignored files in a git project."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile "0.14.0"))
 
 (defcustom projectile-hg-command "hg locate -0 -I ."
   "Command used by projectile to get the files in a hg project."
@@ -924,6 +942,13 @@ Files are returned as relative paths to the project root."
     (cond
      ((eq vcs 'git) projectile-git-submodule-command)
      (t ""))))
+
+(defun projectile-get-ext-ignored-command ()
+  "Determine which external command to invoke based on the project's VCS."
+  (let ((vcs (projectile-project-vcs)))
+    (cond
+     ((eq vcs 'git) projectile-git-ignored-command)
+     (t (error "VCS command for ignored files not implemented yet")))))
 
 (defun projectile-get-all-sub-projects (project)
   "Get all sub-projects for a given project.
@@ -986,6 +1011,11 @@ they are excluded from the results of this function."
            (projectile-get-sub-projects-files)))
    (t (projectile-files-via-ext-command (projectile-get-ext-command)))))
 
+(defun projectile-get-repo-ignored-files ()
+  "Get a list of the files ignored in the project."
+  (let ((cmd (projectile-get-ext-ignored-command)))
+    (projectile-files-via-ext-command cmd)))
+
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
   (split-string (shell-command-to-string command) "\0" t))
@@ -1008,17 +1038,45 @@ function is executing."
          (list it))))
    (directory-files directory t)))
 
-(defun projectile-remove-ignored (files)
+(defun projectile-adjust-files (files)
+  "First remove ignored files from FILES, then add back unignored files."
+  (projectile-add-unignored (projectile-remove-ignored files)))
+
+(defun projectile-remove-ignored (files &optional subdirectories)
   "Remove ignored files and folders from FILES.
 
-Operates on filenames relative to the project root."
+Operates on filenames relative to the project root.  Optionally,
+you can filter ignored files in subdirectories by setting
+SUBDIRECTORIES to a non-nil value."
   (let ((ignored (append (projectile-ignored-files-rel)
                          (projectile-ignored-directories-rel))))
     (-remove (lambda (file)
-               (or (--any-p (string-prefix-p it file) ignored)
+               (or (--any-p (string-prefix-p it (if subdirectories
+                                                    (file-name-nondirectory file)
+                                                  file))
+                            ignored)
                    (--any-p (string-suffix-p it file) projectile-globally-ignored-file-suffixes)))
              files)))
 
+(defun projectile-keep-ignored-files (files)
+  "Filter FILES to retain only those that are ignored."
+  (when files
+    (-filter (lambda (file)
+               (--some (string-prefix-p it file) files))
+             (projectile-get-repo-ignored-files))))
+
+(defun projectile-add-unignored (files)
+  "This adds unignored files to FILES.
+
+Useful because the VCS may not return ignored files at all.  In
+this case unignored files will be absent from FILES."
+  (let ((unignored-files (projectile-keep-ignored-files
+                          (projectile-unignored-files-rel)))
+        (unignored-paths (projectile-remove-ignored
+                          (projectile-keep-ignored-files
+                           (projectile-unignored-directories-rel))
+                          'subdirectories)))
+    (append files unignored-files unignored-paths)))
 
 (defun projectile-buffers-with-file (buffers)
   "Return only those BUFFERS backed by files."
@@ -1142,6 +1200,35 @@ Only buffers not visible in windows are returned."
   (multi-occur (projectile-project-buffers)
                (car (occur-read-primary-args))))
 
+(defun projectile-normalise-paths (patterns)
+  "Remove leading `/' from the elements of PATTERNS."
+  (-non-nil (--map (and (string-prefix-p "/" it)
+                        ;; remove the leading /
+                        (substring it 1))
+                   patterns)))
+
+(defun projectile-expand-paths (paths)
+  "Expand the elements of PATHS.
+
+Elements containing wildcards are expanded and spliced into the
+resulting paths.  The returned PATHS are absolute, based on the
+projectile project root."
+  (let ((default-directory (projectile-project-root)))
+    (-flatten (-map
+               (lambda (pattern)
+                 (or (file-expand-wildcards pattern t)
+                     (projectile-expand-root pattern)))
+               paths))))
+
+(defun projectile-normalise-patterns (patterns)
+  "Remove paths from PATTERNS."
+  (--remove (string-prefix-p "/" it) patterns))
+
+(defun projectile-make-relative-to-root (files)
+  "Make FILES relative to the project root."
+  (let ((project-root (projectile-project-root)))
+    (--map (file-relative-name it project-root) files)))
+
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
   (member directory (projectile-ignored-directories)))
@@ -1150,71 +1237,128 @@ Only buffers not visible in windows are returned."
   "Check if FILE should be ignored."
   (member file (projectile-ignored-files)))
 
+(defun projectile-check-pattern-p (file pattern)
+  "Check if FILE meets PATTERN."
+  (or (string-suffix-p (directory-file-name pattern)
+                       (directory-file-name file))
+      (member file (file-expand-wildcards pattern t))))
+
 (defun projectile-ignored-rel-p (file directory patterns)
-  "Check if FILE should be ignored relative to DIRECTORY according to PATTERNS."
+  "Check if FILE should be ignored relative to DIRECTORY
+according to PATTERNS: (ignored . unignored)"
   (let ((default-directory directory))
-    (--any-p (or (string-suffix-p (directory-file-name it)
-                                  (directory-file-name file))
-                 (member file (file-expand-wildcards it t)))
-             patterns)))
+    (and (--any-p (projectile-check-pattern-p file it) (car patterns))
+         (--none-p (projectile-check-pattern-p file it) (cdr patterns)))))
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
-  (-map
-   #'projectile-expand-root
-   (append
-    projectile-globally-ignored-files
-    (projectile-project-ignored-files))))
+  (-difference
+   (-map
+    #'projectile-expand-root
+    (append
+     projectile-globally-ignored-files
+     (projectile-project-ignored-files)))
+   (projectile-unignored-files)))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
+  (-difference
+   (-map
+    #'file-name-as-directory
+    (-map
+     #'projectile-expand-root
+     (append
+      projectile-globally-ignored-directories
+      (projectile-project-ignored-directories))))
+   (projectile-unignored-directories)))
+
+(defun projectile-ignored-directories-rel ()
+  "Return list of ignored directories, relative to the root."
+  (projectile-make-relative-to-root (projectile-ignored-directories)))
+
+(defun projectile-ignored-files-rel ()
+  "Return list of ignored files, relative to the root."
+  (projectile-make-relative-to-root (projectile-ignored-files)))
+
+(defun projectile-project-ignored-files ()
+  "Return list of project ignored files. Unignored files are not
+included."
+  (-remove 'file-directory-p (projectile-project-ignored)))
+
+(defun projectile-project-ignored-directories ()
+  "Return list of project ignored directories. Unignored
+directories are not included."
+  (-filter 'file-directory-p (projectile-project-ignored)))
+
+(defun projectile-paths-to-ignore ()
+  "Return a list of ignored project paths."
+  (projectile-normalise-paths (nth 1 (projectile-parse-dirconfig-file))))
+
+(defun projectile-patterns-to-ignore ()
+  "Return a list of relative file patterns."
+  (projectile-normalise-patterns (nth 1 (projectile-parse-dirconfig-file))))
+
+(defun projectile-project-ignored ()
+  "Return list of project ignored files/directories. Unignored
+files/directories are not included."
+  (let ((paths (projectile-paths-to-ignore)))
+    (projectile-expand-paths paths)))
+
+(defun projectile-unignored-files ()
+  "Return list of unignored files."
+  (-map
+   #'projectile-expand-root
+   (append
+    projectile-globally-unignored-files
+    (projectile-project-unignored-files))))
+
+(defun projectile-unignored-directories ()
+  "Return list of unignored directories."
   (-map
    #'file-name-as-directory
    (-map
     #'projectile-expand-root
     (append
-     projectile-globally-ignored-directories
-     (projectile-project-ignored-directories)))))
+     projectile-globally-unignored-directories
+     (projectile-project-unignored-directories)))))
 
-(defun projectile-ignored-directories-rel ()
-  "Return list of ignored directories, relative to the root."
-  (let ((project-root (projectile-project-root)))
-    (--map (file-relative-name it project-root) (projectile-ignored-directories))))
+(defun projectile-unignored-directories-rel ()
+  "Return list of unignored directories, relative to the root."
+  (projectile-make-relative-to-root (projectile-unignored-directories)))
 
-(defun projectile-ignored-files-rel ()
-  "Return list of ignored files, relative to the root."
-  (let ((project-root (projectile-project-root)))
-    (--map (file-relative-name it project-root) (projectile-ignored-files))))
+(defun projectile-unignored-files-rel ()
+  "Return list of unignored files, relative to the root."
+  (projectile-make-relative-to-root (projectile-unignored-files)))
 
-(defun projectile-project-ignored-files ()
-  "Return list of project ignored files."
-  (-remove 'file-directory-p (projectile-project-ignored)))
+(defun projectile-project-unignored-files ()
+  "Return list of project unignored files."
+  (-remove 'file-directory-p (projectile-project-unignored)))
 
-(defun projectile-project-ignored-directories ()
-  "Return list of project ignored directories."
-  (-filter 'file-directory-p (projectile-project-ignored)))
+(defun projectile-project-unignored-directories ()
+  "Return list of project unignored directories."
+  (-filter 'file-directory-p (projectile-project-unignored)))
 
-(defun projectile-paths-to-ignore ()
-  "Return a list of ignored project paths."
-  (-non-nil (--map (and (string-prefix-p "/" it)
-                        ;; remove the leading /
-                        (substring it 1))
-                   (cdr (projectile-parse-dirconfig-file)))))
+(defun projectile-paths-to-ensure ()
+  "Return a list of unignored project paths."
+  (projectile-normalise-paths (nth 2 (projectile-parse-dirconfig-file))))
 
-(defun projectile-patterns-to-ignore ()
+(defun projectile-files-to-ensure ()
+  (-flatten (--map (file-expand-wildcards it t)
+                   (projectile-patterns-to-ensure))))
+
+(defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
-  (--remove (string-prefix-p "/" it)
-            (cdr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (nth 2 (projectile-parse-dirconfig-file))))
 
-(defun projectile-project-ignored ()
+(defun projectile-filtering-patterns ()
+  (cons (projectile-patterns-to-ignore)
+        (projectile-patterns-to-ensure)))
+
+(defun projectile-project-unignored ()
   "Return list of project ignored files/directories."
-  (let ((paths (projectile-paths-to-ignore))
-        (default-directory (projectile-project-root)))
-    (-flatten (-map
-               (lambda (pattern)
-                 (or (file-expand-wildcards pattern t)
-                     (projectile-expand-root pattern)))
-               paths))))
+  (delete-dups (append (projectile-expand-paths (projectile-paths-to-ensure))
+                       (projectile-expand-paths (projectile-files-to-ensure)))))
+
 
 (defun projectile-dirconfig-file ()
   "Return the absolute path to the project's dirconfig file."
@@ -1223,15 +1367,16 @@ Only buffers not visible in windows are returned."
 (defun projectile-parse-dirconfig-file ()
   "Parse project ignore file and return directories to ignore and keep.
 
-The return value will be a cons, the car being the list of
-directories to keep, and the cdr being the list of files or
-directories to ignore.
+The return value will be a list of three elements, the car being
+the list of directories to keep, the cadr being the list of files
+or directories to ignore, and the caddr being the list of files
+or directories to ensure.
 
 Strings starting with + will be added to the list of directories
 to keep, and strings starting with - will be added to the list of
 directories to ignore.  For backward compatibility, without a
 prefix the string will be assumed to be an ignore string."
-  (let (keep ignore (dirconfig (projectile-dirconfig-file)))
+  (let (keep ignore ensure (dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
       (with-temp-buffer
         (insert-file-contents dirconfig)
@@ -1239,12 +1384,15 @@ prefix the string will be assumed to be an ignore string."
           (pcase (char-after)
             (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
             (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
+            (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
             (_  (push (buffer-substring     (point)  (line-end-position)) ignore)))
           (forward-line)))
-      (cons (--map (file-name-as-directory (projectile-trim-string it))
+      (list (--map (file-name-as-directory (projectile-trim-string it))
                    (delete "" (reverse keep)))
             (-map  #'projectile-trim-string
-                   (delete "" (reverse ignore)))))))
+                   (delete "" (reverse ignore)))
+            (-map  #'projectile-trim-string
+                   (delete "" (reverse ensure)))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
