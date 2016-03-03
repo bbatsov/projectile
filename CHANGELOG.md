@@ -16,6 +16,7 @@
 * Add a command to edit the .dir-locals.el file of the project (`projectile-edit-dir-locals`).
 * Add file local variable `projectile-project-root`, which allows overriding the project root on a per-file basis. This allows navigating a different project from, say, an org file in a another git repository.
 * Add `projectile-grep-finished-hook`.
+* Ignore file suffixes listed in `projectile-globally-ignored-file-suffixes` when using `projectile-grep` and `projectile-ag`.
 
 ### Changes
 
