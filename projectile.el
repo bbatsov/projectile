@@ -48,12 +48,17 @@
   (defvar ggtags-completion-table)
   (defvar tags-completion-table)
   (defvar tags-loop-scan)
-  (defvar tags-loop-operate))
+  (defvar tags-loop-operate)
+  (defvar eshell-buffer-name)
+  (defvar explicit-shell-file-name))
 
 (declare-function ggtags-ensure-project "ggtags")
 (declare-function ggtags-update-tags "ggtags")
 (declare-function pkg-info-version-info "pkg-info")
 (declare-function tags-completion-table "etags")
+(declare-function make-term "term")
+(declare-function term-mode "term")
+(declare-function term-char-mode "term")
 
 (defvar grep-files-aliases)
 (defvar grep-find-ignored-directories)
@@ -2066,6 +2071,41 @@ regular expression."
   (projectile-with-default-dir (projectile-project-root)
     (call-interactively 'async-shell-command)))
 
+;;;###autoload
+(defun projectile-run-shell ()
+  "Invoke `shell' in the project's root."
+  (interactive)
+  (projectile-with-default-dir (projectile-project-root)
+    (shell (concat "*shell " (projectile-project-name) "*"))))
+
+;;;###autoload
+(defun projectile-run-eshell ()
+  "Invoke `eshell' in the project's root."
+  (interactive)
+  (let ((eshell-buffer-name (concat "*eshell " (projectile-project-name) "*")))
+     (projectile-with-default-dir (projectile-project-root)
+       (eshell))))
+
+;;;###autoload
+(defun projectile-run-term (program)
+  "Invoke `term' in the project's root."
+  (interactive (list nil))
+  (let* ((term (concat "term " (projectile-project-name)))
+         (buffer (concat "*" term "*")))
+    (unless (get-buffer buffer)
+      (require 'term)
+      (let ((program (or program
+                         (read-from-minibuffer "Run program: "
+                                               (or explicit-shell-file-name
+                                                   (getenv "ESHELL")
+                                                   (getenv "SHELL")
+                                                   "/bin/sh")))))
+        (projectile-with-default-dir (projectile-project-root)
+          (set-buffer (make-term term program))
+          (term-mode)
+          (term-char-mode))))
+    (switch-to-buffer buffer)))
+
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
   (let ((dir (file-relative-name (expand-file-name directory)
@@ -2854,6 +2894,9 @@ is chosen."
     (define-key map (kbd "T") #'projectile-find-test-file)
     (define-key map (kbd "u") #'projectile-run-project)
     (define-key map (kbd "v") #'projectile-vc)
+    (define-key map (kbd "x e") #'projectile-run-eshell)
+    (define-key map (kbd "x t") #'projectile-run-term)
+    (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "ESC") #'projectile-project-buffers-other-buffer)
     map)
@@ -2887,6 +2930,10 @@ is chosen."
    ["Search in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
+   "--"
+   ["Run shell" projectile-run-shell]
+   ["Run eshell" projectile-run-eshell]
+   ["Run term" projectile-run-term]
    "--"
    ["Cache current file" projectile-cache-current-file]
    ["Invalidate cache" projectile-invalidate-cache]
