@@ -11,6 +11,7 @@
 * Add ability to use elisp functions for test, compile and run commands.
 * Consider `TAGS` and `GTAGS` root markers.
 * Add relation between the `.h`, `.cxx`, `.ixx` and `.hxx` files in `projectile-other-file-alist`.
+* Add relation between the `.hpp` and `.cc` files in `projectile-other-file-alist`.
 * Add support to specify project name either via `.dir-locals.el` or by providing a customized `projectile-project-name-function'.
 * Add a command to switch between open projects (`projectile-switch-open-project`).
 * Add a command to edit the .dir-locals.el file of the project (`projectile-edit-dir-locals`).

@@ -1315,7 +1315,7 @@ https://github.com/abo-abo/swiper")))
   '(;; handle C/C++ extensions
     ("cpp" . ("h" "hpp" "ipp"))
     ("ipp" . ("h" "hpp" "cpp"))
-    ("hpp" . ("h" "ipp" "cpp"))
+    ("hpp" . ("h" "ipp" "cpp" "cc"))
     ("cxx" . ("h" "hxx" "ixx"))
     ("ixx" . ("h" "hxx" "cxx"))
     ("hxx" . ("h" "ixx" "cxx"))
@@ -1323,7 +1323,7 @@ https://github.com/abo-abo/swiper")))
     ("m" . ("h"))
     ("mm" . ("h"))
     ("h" . ("c" "cpp" "ipp" "hpp" "cxx" "ixx" "hxx" "m" "mm"))
-    ("cc" . ("hh"))
+    ("cc" . ("hh" "hpp"))
     ("hh" . ("cc"))
 
     ;; vertex shader and fragment shader extensions in glsl
