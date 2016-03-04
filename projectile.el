@@ -521,6 +521,7 @@ projects."
 
 ;;; Version information
 
+;;;###autoload
 (defun projectile-version (&optional show-version)
   "Get the Projectile version as string.
 
@@ -595,6 +596,7 @@ A wrapper around `file-exists-p' with additional caching support."
                 (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))
         (equal value 'found)))))
 
+;;;###autoload
 (defun projectile-invalidate-cache (arg)
   "Remove the current project's files from `projectile-projects-cache'.
 
@@ -623,6 +625,7 @@ The cache is created both in memory and on the hard drive."
     (puthash project files projectile-projects-cache)
     (projectile-serialize-cache)))
 
+;;;###autoload
 (defun projectile-purge-file-from-cache (file)
   "Purge FILE from the cache of the current project."
   (interactive
@@ -639,6 +642,7 @@ The cache is created both in memory and on the hard drive."
             (message "%s removed from cache" file)))
       (error "%s is not in the cache" file))))
 
+;;;###autoload
 (defun projectile-purge-dir-from-cache (dir)
   "Purge DIR from the cache of the current project."
   (interactive
@@ -1333,6 +1337,7 @@ https://github.com/abo-abo/swiper")))
     )
   "Alist of extensions for switching to file with the same name, using other extensions based on the extension of current file.")
 
+;;;###autoload
 (defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
 With FLEX-MATCHING, match any file that contains the base name of current file.
@@ -1344,6 +1349,7 @@ Other file extensions can be customized with the variable `projectile-other-file
         (find-file (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
     (error "No other file found")))
 
+;;;###autoload
 (defun projectile-find-other-file-other-window (&optional flex-matching)
   "Switch between files with the same name but different extensions in other window.
 With FLEX-MATCHING, match any file that contains the base name of current file.
@@ -1568,6 +1574,7 @@ With a prefix ARG invalidates the cache first."
                (not (time-less-p file1-atime file2-atime))))
            files)))
 
+;;;###autoload
 (defun projectile-find-dir (&optional arg)
   "Jump to a project's directory using completion.
 
@@ -1578,6 +1585,7 @@ With a prefix ARG invalidates the cache first."
     (dired (expand-file-name dir (projectile-project-root)))
     (run-hooks 'projectile-find-dir-hook)))
 
+;;;###autoload
 (defun projectile-find-dir-other-window (&optional arg)
   "Jump to a project's directory in other window using completion.
 
@@ -1596,6 +1604,7 @@ With a prefix ARG invalidates the cache first."
        (append '("./") (projectile-current-project-dirs))
      (projectile-current-project-dirs))))
 
+;;;###autoload
 (defun projectile-find-test-file (&optional arg)
   "Jump to a project's test file using completion.
 
@@ -1705,6 +1714,7 @@ Normally you'd set this from .dir-locals.el.")
         (projectile-detect-project-type)
         'generic)))
 
+;;;###autoload
 (defun projectile-project-info ()
   "Display info for current project."
   (interactive)
@@ -1902,6 +1912,7 @@ This is a subset of `grep-read-files', where either a matching entry from
                (and ext (concat "*." ext)))))
       (or default-alias default-extension))))
 
+;;;###autoload
 (defun projectile-grep (&optional regexp arg)
   "Perform rgrep in the project.
 
@@ -1941,6 +1952,7 @@ With REGEXP given, don't query the user for a regexp."
           (rgrep search-regexp (or files "* .*") root-dir))))
     (run-hooks 'projectile-grep-finished-hook)))
 
+;;;###autoload
 (defun projectile-ag (search-term &optional arg)
   "Run an ag search with SEARCH-TERM in the project.
 
@@ -2096,6 +2108,7 @@ files in the project."
     (-reject #'file-directory-p
              (-map #'projectile-expand-root (projectile-dir-files directory)))))
 
+;;;###autoload
 (defun projectile-replace (&optional arg)
   "Replace a string in the project using `tags-query-replace'.
 
@@ -2286,6 +2299,7 @@ Should be set via .dir-locals.el.")
       (funcall cmd)
     (compilation-start cmd)))
 
+;;;###autoload
 (defun projectile-compile-project (arg &optional dir)
   "Run project compilation command.
 
@@ -2326,6 +2340,7 @@ fallback to the original function."
     ad-do-it))
 
 ;; TODO - factor this duplication out
+;;;###autoload
 (defun projectile-test-project (arg)
   "Run project test command.
 
@@ -2340,6 +2355,7 @@ with a prefix ARG."
     (puthash project-root test-cmd projectile-test-cmd-map)
     (projectile-run-compilation test-cmd)))
 
+;;;###autoload
 (defun projectile-run-project (arg)
   "Run project run command.
 
@@ -2380,6 +2396,7 @@ An open project is a project with any open buffers."
   "Return a list of open projects except the current one (if present)."
   (projectile--remove-current-project (projectile-open-projects)))
 
+;;;###autoload
 (defun projectile-switch-project (&optional arg)
   "Switch to a project we have visited before.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
@@ -2392,6 +2409,7 @@ With a prefix ARG invokes `projectile-commander' instead of
        arg)
     (error "There are no known projects")))
 
+;;;###autoload
 (defun projectile-switch-open-project (&optional arg)
   "Switch to a project we have currently opened.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
@@ -2417,7 +2435,7 @@ With a prefix ARG invokes `projectile-commander' instead of
     (funcall switch-project-action)
     (run-hooks 'projectile-after-switch-project-hook)))
 
-
+;;;###autoload
 (defun projectile-find-file-in-directory (&optional directory)
   "Jump to a file in a (maybe regular) DIRECTORY.
 
@@ -2495,6 +2513,7 @@ See `projectile-cleanup-known-projects'."
   (setq projectile-known-projects nil)
   (projectile-save-known-projects))
 
+;;;###autoload
 (defun projectile-remove-known-project (&optional project)
   "Remove PROJECT from the list of known projects."
   (interactive (list (projectile-completing-read "Remove from known projects: "
@@ -2582,6 +2601,7 @@ overwriting each other's changes."
     (ibuffer nil (format "*%s Buffers*" project-name)
              (list (cons 'projectile-files project-root)))))
 
+;;;###autoload
 (defun projectile-ibuffer (prefix)
   "Open an IBuffer window showing all buffers in the current project.
 
@@ -2735,6 +2755,7 @@ is chosen."
   resume:
   "))))")
 
+;;;###autoload
 (defun projectile-edit-dir-locals ()
   "Edit or create a .dir-locals.el file of the project."
   (interactive)
