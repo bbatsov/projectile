@@ -457,12 +457,12 @@ The saved data can be restored with `projectile-unserialize'."
   "Read data serialized by `projectile-serialize' from FILENAME."
   (with-demoted-errors
       "Error during file deserialization: %S"
-      (when (file-exists-p filename)
-        (with-temp-buffer
-          (insert-file-contents filename)
-          ;; this will blow up if the contents of the file aren't
-          ;; lisp data structures
-          (read (buffer-string))))))
+    (when (file-exists-p filename)
+      (with-temp-buffer
+        (insert-file-contents filename)
+        ;; this will blow up if the contents of the file aren't
+        ;; lisp data structures
+        (read (buffer-string))))))
 
 (defvar projectile-projects-cache nil
   "A hashmap used to cache project file names to speed up related operations.")
@@ -662,17 +662,17 @@ The cache is created both in memory and on the hard drive."
   (let ((current-project (projectile-project-root)))
     (when (gethash (projectile-project-root) projectile-projects-cache)
       (let* ((abs-current-file (file-truename (buffer-file-name (current-buffer))))
-            (current-file (file-relative-name abs-current-file current-project)))
-      (unless (or (projectile-file-cached-p current-file current-project)
-                  (projectile-ignored-directory-p (file-name-directory abs-current-file))
-                  (projectile-ignored-file-p abs-current-file))
-        (puthash current-project
-                 (cons current-file (gethash current-project projectile-projects-cache))
-                 projectile-projects-cache)
-        (projectile-serialize-cache)
-        (message "File %s added to project %s cache."
-                 (propertize current-file 'face 'font-lock-keyword-face)
-                 (propertize current-project 'face 'font-lock-keyword-face)))))))
+             (current-file (file-relative-name abs-current-file current-project)))
+        (unless (or (projectile-file-cached-p current-file current-project)
+                    (projectile-ignored-directory-p (file-name-directory abs-current-file))
+                    (projectile-ignored-file-p abs-current-file))
+          (puthash current-project
+                   (cons current-file (gethash current-project projectile-projects-cache))
+                   projectile-projects-cache)
+          (projectile-serialize-cache)
+          (message "File %s added to project %s cache."
+                   (propertize current-file 'face 'font-lock-keyword-face)
+                   (propertize current-project 'face 'font-lock-keyword-face)))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
@@ -2360,9 +2360,9 @@ An open project is a project with any open buffers."
   (-distinct
    (-non-nil
     (-map (lambda (buffer)
-                      (with-current-buffer buffer
-                        (when (projectile-project-p)
-                          (abbreviate-file-name (projectile-project-root)))))
+            (with-current-buffer buffer
+              (when (projectile-project-p)
+                (abbreviate-file-name (projectile-project-root)))))
           (buffer-list)))))
 
 (defun projectile--remove-current-project (projects)
