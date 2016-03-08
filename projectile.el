@@ -46,7 +46,9 @@
 (eval-when-compile
   (defvar ag-ignore-list)
   (defvar ggtags-completion-table)
-  (defvar tags-completion-table))
+  (defvar tags-completion-table)
+  (defvar tags-loop-scan)
+  (defvar tags-loop-operate))
 
 (declare-function ggtags-ensure-project "ggtags")
 (declare-function ggtags-update-tags "ggtags")
@@ -2099,16 +2101,17 @@ files in the project."
                          (concat "ag --literal --nocolor --noheading -l -- "
                                  search-term))
                         ((executable-find "ack")
-                         (concat "ack --noheading --nocolor -l -- "
+                         (concat "ack --literal --noheading --nocolor -l -- "
                                  search-term))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat "git grep -HlI "
-                                 search-term))
+                         (concat "git grep -HlI " search-term))
                         (t
-                         (concat "grep -rHlI "
-                                 search-term
-                                 " .")))))
+                         ;; -r: recursive
+                         ;; -H: show filename for each match
+                         ;; -l: show only file names with matches
+                         ;; -I: no binary files
+                         (format "grep -rHlI %s ." search-term)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (-reject #'file-directory-p
@@ -2116,7 +2119,7 @@ files in the project."
 
 ;;;###autoload
 (defun projectile-replace (&optional arg)
-  "Replace a string in the project using `tags-query-replace'.
+  "Replace literal string in project using non-regexp `tags-query-replace'.
 
 With a prefix argument ARG prompts you for a directory on which
 to run the replacement."
@@ -2132,6 +2135,43 @@ to run the replacement."
                          (read-directory-name "Replace in directory: "))
                       (projectile-project-root)))
          (files (projectile-files-with-string old-text directory)))
+    ;; Adapted from `tags-query-replace' for literal strings (not regexp)
+    (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
+                                  '((case-fold-search nil)))
+                            (if (search-forward ',old-text nil t)
+                                ;; When we find a match, move back to
+                                ;; the beginning of it so
+                                ;; perform-replace will see it.
+                                (goto-char (match-beginning 0))))
+          tags-loop-operate `(perform-replace ',old-text ',new-text t nil nil
+                                              nil multi-query-replace-map))
+    (tags-loop-continue (or (cons 'list files) t))))
+
+;;;###autoload
+(defun projectile-replace-regexp (&optional arg)
+  "Replace a regexp in the project using `tags-query-replace'.
+
+With a prefix argument ARG prompts you for a directory on which
+to run the replacement."
+  (interactive "P")
+  (let* ((old-text (read-string
+                    (projectile-prepend-project-name "Replace regexp: ")
+                    (projectile-symbol-or-selection-at-point)))
+         (new-text (read-string
+                    (projectile-prepend-project-name
+                     (format "Replace regexp %s with: " old-text))))
+         (directory (if arg
+                        (file-name-as-directory
+                         (read-directory-name "Replace regexp in directory: "))
+                      (projectile-project-root)))
+         (files
+          ;; We have to reject directories as a workaround to work with git submodules.
+          ;;
+          ;; We can't narrow the list of files with
+          ;; `projectile-files-with-string' because those regexp tools
+          ;; don't support Emacs regular expressions.
+          (-reject #'file-directory-p
+                   (-map #'projectile-expand-root (projectile-dir-files directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 
 (defun projectile-symbol-or-selection-at-point ()

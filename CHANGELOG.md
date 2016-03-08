@@ -18,6 +18,7 @@
 * Add file local variable `projectile-project-root`, which allows overriding the project root on a per-file basis. This allows navigating a different project from, say, an org file in a another git repository.
 * Add `projectile-grep-finished-hook`.
 * Ignore file suffixes listed in `projectile-globally-ignored-file-suffixes` when using `projectile-grep` and `projectile-ag`.
+* Add `projectile-replace-regexp`, which supports replacement by regexp within a project. `projectile-replace` is now used solely for literal replacements.
 
 ### Changes
 
@@ -30,6 +31,7 @@
 * [#557](https://github.com/bbatsov/projectile/issues/557): stack overflow in `projectile-find-tag'.
 * [#955](https://github.com/bbatsov/projectile/issues/955): Error while toggling between test and source file.
 * [#952](https://github.com/bbatsov/projectile/issues/952): VCS submodules brought in even thought not descendent of project root.
+* [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
 
 ## 0.13.0 (10/21/2015)
 
