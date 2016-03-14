@@ -1345,7 +1345,7 @@ https://github.com/abo-abo/swiper")))
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
+  (-if-let (other-files (projectile-get-other-files (buffer-file-name (buffer-base-buffer)) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
           (find-file (expand-file-name (car other-files) (projectile-project-root)))
         (find-file (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
@@ -1357,7 +1357,7 @@ Other file extensions can be customized with the variable `projectile-other-file
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
+  (-if-let (other-files (projectile-get-other-files (buffer-file-name (buffer-base-buffer)) (projectile-current-project-files) flex-matching))
       (if (= (length other-files) 1)
           (find-file-other-window (expand-file-name (car other-files) (projectile-project-root)))
         (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
