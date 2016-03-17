@@ -79,6 +79,11 @@ Projectile is naturally part of the
 user - Projectile is already properly configured and ready for
 action.
 
+### Debian and Ubuntu
+
+Users of Debian 9 or later or Ubuntu 16.10 or later may simply
+`apt-get install elpa-projectile`.
+
 ## Usage
 
 ### Basic setup
