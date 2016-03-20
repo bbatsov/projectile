@@ -19,6 +19,9 @@
 * Add `projectile-grep-finished-hook`.
 * Ignore file suffixes listed in `projectile-globally-ignored-file-suffixes` when using `projectile-grep` and `projectile-ag`.
 * Add `projectile-replace-regexp`, which supports replacement by regexp within a project. `projectile-replace` is now used solely for literal replacements.
+* New command `projectile-run-shell` (<kbd>C-c p x s</kbd>).
+* New command `projectile-run-eshell` (<kbd>C-c p x e</kbd>).
+* New command `projectile-run-term` (<kbd>C-c p x t</kbd>).
 
 ### Changes
 
