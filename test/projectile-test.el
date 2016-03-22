@@ -455,6 +455,23 @@
               (should (member f (gethash (projectile-project-root)
                                          projectile-projects-cache))))))))))
 
+(ert-deftest projectile-test-old-project-root-gone ()
+  "Ensure that we don't cache a project root if the path has changed."
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("project/"
+         "project/.projectile")
+      (cd "project")
+      (let* ((projectile-project-root-cache (make-hash-table :test #'equal))
+             (correct-project-root (projectile-project-root)))
+        ;; If this project has been moved, then we will have stale
+        ;; paths in the cache.
+        (puthash
+         (format "projectile-root-bottom-up-%s" correct-project-root)
+         "/this/path/does/not/exist"
+         projectile-project-root-cache)
+        (should (string= (projectile-project-root) correct-project-root))))))
+
 (ert-deftest projectile-test-git-grep-prefix ()
   (require 'vc-git)
   (projectile-test-with-sandbox

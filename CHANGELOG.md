@@ -36,6 +36,7 @@
 * [#952](https://github.com/bbatsov/projectile/issues/952): VCS submodules brought in even thought not descendent of project root.
 * [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
 * [#957](https://github.com/bbatsov/projectile/pull/957): When opening a specified file from the terminal, do not error inside of `projectile-cache-current-file`.
+* [#984](https://github.com/bbatsov/projectile/pull/984): Error when a project is a symlink that changes target.
 
 ## 0.13.0 (10/21/2015)
 
