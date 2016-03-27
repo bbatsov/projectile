@@ -1276,8 +1276,10 @@ https://github.com/emacs-helm/helm")))
         (user-error "Please install grizzl from \
 https://github.com/d11wtq/grizzl")))
      ((eq projectile-completion-system 'ivy)
-      (if (fboundp 'ivy-completing-read)
-          (ivy-completing-read prompt choices nil nil initial-input)
+      (if (fboundp 'ivy-read)
+          (ivy-read prompt choices
+                    :initial-input initial-input
+                    :caller 'projectile-completing-read)
         (user-error "Please install ivy from \
 https://github.com/abo-abo/swiper")))
      (t (funcall projectile-completion-system prompt choices)))))
