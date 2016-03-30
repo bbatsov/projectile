@@ -2839,10 +2839,10 @@ is chosen."
 (define-skeleton projectile-skel-dir-locals
   "Insert a .dir-locals.el template."
   nil
-  "((nil . (("
+  "((nil . ("
   ("" '(projectile-skel-variable-cons) \n)
   resume:
-  "))))")
+  ")))")
 
 ;;;###autoload
 (defun projectile-edit-dir-locals ()
