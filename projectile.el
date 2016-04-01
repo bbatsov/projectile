@@ -790,7 +790,7 @@ The current directory is assumed to be the project's root otherwise."
   (let ((dir default-directory))
     (or (--some (let* ((cache-key (format "%s-%s" it dir))
                        (cache-value (gethash cache-key projectile-project-root-cache)))
-                  (if cache-value
+                  (if (and cache-value (file-exists-p cache-value))
                       cache-value
                     (let ((value (funcall it (file-truename dir))))
                       (puthash cache-key value projectile-project-root-cache)
