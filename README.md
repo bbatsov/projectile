@@ -88,13 +88,14 @@ Users of Debian 9 or later or Ubuntu 16.10 or later may simply
 
 ### Basic setup
 
-You can enable Projectile globally like this:
+To add a project to Projectile, open a file in the project and enable `projectile-mode` in that buffer.  
+
+To make Projectile automatically remember projects that you access files in, enable Projectile globally:
 
 ```el
 (projectile-global-mode)
 ```
-
-To enable Projectile only in select modes:
+To enable Projectile only in certain modes, add `projectile-mode` to the major mode's hook, like this:
 
 ```el
 (add-hook 'ruby-mode-hook 'projectile-mode)
