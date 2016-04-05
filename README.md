@@ -466,6 +466,19 @@ If both directories to keep and ignore are specified, the directories
 to keep first apply, restricting what files are considered. The paths
 and patterns to ignore are then applied to that set.
 
+Finally, you can override ignored files. This is especially useful
+when some files ignored by your VCS should be considered as part of
+your project by projectile:
+
+```
+!/src/foo
+!*.yml
+```
+
+When a path is overridden, its contents are still subject to ignore
+patterns. To override those files as well, specify their full path
+with a bang prefix.
+
 ### Customizing project root files
 
 You can set the values of `projectile-project-root-files`,

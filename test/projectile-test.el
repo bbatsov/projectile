@@ -110,7 +110,6 @@
                                         "/path/to/project/compiled"))))
         (should (equal (projectile-project-ignored) files))))))
 
-
 (ert-deftest projectile-remove-ignored-suffixes ()
   (noflet ((projectile-project-root () "/path/to/project")
            (projectile-project-name () "project")
@@ -123,6 +122,41 @@
                              (mapcar 'projectile-expand-root
                                      '("foo.c" "foo.o.gz"))))))))
 
+(ert-deftest projectile-add-unignored-files ()
+  (noflet ((projectile-get-repo-ignored-files () '("unignored-file"
+                                                   "path/unignored-file2")))
+    (let ((projectile-globally-unignored-files '("unignored-file")))
+      (should (equal (projectile-add-unignored '("file"))
+                     '("file" "unignored-file"))))
+    ;; Files inside ignored paths need to be explicitely unignored
+    (let ((projectile-globally-unignored-files '("unignored-file"
+                                               "path/unignored-file2")))
+      (should (equal (projectile-add-unignored '("file"))
+                     '("file" "unignored-file" "path/unignored-file2"))))))
+
+(ert-deftest projectile-add-unignored-files-no-vcs ()
+  (noflet ((projectile-project-vcs () 'none))
+    ;; Fail when no VCS command for ignored files is found
+    (let ((projectile-globally-unignored-files '("unignored-file")))
+      (should-error (projectile-add-unignored '("file"))))
+    ;; But only fail if unignored files are requested
+    (let (projectile-globally-unignored-files)
+      (should (equal (projectile-add-unignored '("file")) '("file"))))))
+
+(ert-deftest projectile-add-unignored-directories ()
+  (noflet ((projectile-project-vcs () 'git)
+           (projectile-get-repo-ignored-files () '("path/unignored-file")))
+    (let ((projectile-globally-unignored-directories '("path")))
+      (should (equal (projectile-add-unignored '("file"))
+                     '("file" "path/unignored-file")))
+      ;; Ignored files inside unignored paths need to be explicitely
+      ;; unignored
+      (let ((projectile-globally-ignored-files '("unignored-file")))
+        (should (equal (projectile-add-unignored '("file"))
+                       '("file")))
+        (let ((projectile-globally-unignored-files '("path/unignored-file")))
+          (should (equal (projectile-add-unignored '("file"))
+                       '("file" "path/unignored-file"))))))))
 
 (ert-deftest projectile-test-parse-dirconfig-file ()
   (noflet ((file-exists-p (filename) t)
@@ -132,8 +166,9 @@
             (save-excursion
               (insert
                "\n-exclude\n+include\nno-prefix\n left-wspace\nright-wspace\t\n"))))
-    (should (equal '(("include/") .
-                     ("exclude" "no-prefix" "left-wspace" "right-wspace"))
+    (should (equal '(("include/")
+                     ("exclude" "no-prefix" "left-wspace" "right-wspace")
+                     nil)
                    (projectile-parse-dirconfig-file)))))
 
 (ert-deftest projectile-test-get-project-directories ()
@@ -151,13 +186,14 @@
 (ert-deftest projectile-test-dir-files ()
   (noflet ((projectile-project-root () "/my/root/")
            (projectile-patterns-to-ignore () nil)
-           (projectile-index-directory (dir patterns) (should (equal dir "a/"))
+           (projectile-index-directory (dir patterns progress-reporter)
+                                       (should (equal dir "a/"))
                                        '("/my/root/a/b/c" "/my/root/a/d/e"))
            (projectile-get-repo-files () '("/my/root/a/b/c" "/my/root/a/d/e"))
            (cd (directory) "/my/root/a/" nil))
-    (let ((projectile-use-native-indexing t))
+    (let ((projectile-indexing-method 'native))
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "a/"))))
-    (let ((projectile-use-native-indexing nil))
+    (let ((projectile-indexing-method 'alien))
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "a/"))))))
 
 (ert-deftest projectile-test-setup-hook-functions-projectile-mode ()
