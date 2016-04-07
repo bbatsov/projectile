@@ -23,6 +23,7 @@
 * New command `projectile-run-eshell` (<kbd>C-c p x e</kbd>).
 * New command `projectile-run-term` (<kbd>C-c p x t</kbd>).
 * Let user unignore files in `.projectile` with the ! prefix.
+* Add the ability to omit ignored patterns/paths for `projectile-ag` (controlled via the `projectile-ag-use-ignored` defcustom).
 
 ### Changes
 

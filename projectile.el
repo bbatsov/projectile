@@ -417,6 +417,11 @@ Any function that does not take arguments will do."
   :type 'hook
   :package-version '(projectile . "0.14.0"))
 
+(defcustom projectile-ag-use-ignored t
+  "If true, use ignored paths/patterns in search."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-test-prefix-function 'projectile-test-prefix
   "Function to find test files prefix based on PROJECT-TYPE."
   :group 'projectile
@@ -2128,13 +2133,13 @@ regular expression."
          current-prefix-arg))
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
-            (ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
-                              ;; ag supports git ignore files
-                              (-union ag-ignore-list
-                                      (append
-                                       (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
-                                       (projectile--globally-ignored-file-suffixes-glob)
-                                       grep-find-ignored-files grep-find-ignored-directories))))
+            (ag-ignore-list (if projectile-ag-use-ignored
+                                ;; ag supports git ignore files
+                                (-union ag-ignore-list
+                                        (append
+                                         (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
+                                         (projectile--globally-ignored-file-suffixes-glob)
+                                         grep-find-ignored-files grep-find-ignored-directories))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
