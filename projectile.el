@@ -352,6 +352,7 @@ containing a root file."
     ".svn"
     ".stack-work")
   "A list of directories globally ignored by projectile."
+  :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
 
