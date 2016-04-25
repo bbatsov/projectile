@@ -1946,14 +1946,17 @@ It assumes the test/ folder is at the same level as src/."
       (let ((impl-file (projectile-find-matching-file file-name)))
         (if impl-file
             (projectile-expand-root impl-file)
-          (error "No matching source file found")))
+          (error
+           (format "No matching source file found for project type: %s"
+                   (projectile-project-type)))))
     ;; find the matching test file
     (let ((test-file (projectile-find-matching-test file-name)))
       (if test-file
           (projectile-expand-root test-file)
         (if projectile-create-missing-test-files
             (projectile-create-test-file-for file-name)
-          (error "No matching test file found"))))))
+          (error "No matching test file found for project type: %s"
+                 (projectile-project-type)))))))
 
 ;;;###autoload
 (defun projectile-find-implementation-or-test-other-window ()
