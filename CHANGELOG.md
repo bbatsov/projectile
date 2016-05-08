@@ -28,6 +28,7 @@
 
 * Prefer ag's internal .gitignore parsing.
 * Always use external find-tag implementations.
+* Specify --with-keep.source argument when installing R projects
 
 ### Bugs fixed
 
