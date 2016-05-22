@@ -2535,7 +2535,7 @@ Should be set via .dir-locals.el.")
   "Run external or Elisp compilation command CMD."
   (if (functionp cmd)
       (funcall cmd)
-    (compilation-start cmd)))
+    (compile cmd)))
 
 ;;;###autoload
 (defun projectile-compile-project (arg &optional dir)
