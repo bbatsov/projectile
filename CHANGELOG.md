@@ -6,6 +6,7 @@
 
 * Add [emacs-cask](https://github.com/cask/cask) project type.
 * Add [boot-clj](https://github.com/boot-clj/boot) project type.
+* Add [racket](http://racket-lang.org) project type.
 * Add support for projects using gradlew script.
 * Prefer Haskell stack projects over cabal projects.
 * Add ability to use elisp functions for test, compile and run commands.
