@@ -10,4 +10,6 @@ pages:
 - Configuration: configuration.md
 - Contributing: contributing.md
 - Support: support.md
+extra_css:
+  - css/extra.css
 theme: readthedocs
