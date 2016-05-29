@@ -28,7 +28,7 @@ We're also encouraging users to ask Projectile-related questions on StackOverflo
 
 When doing so you should use the
 [Projectile](http://stackoverflow.com/questions/tagged/projectile) tag (ideally combined
-with the tag `ruby`).
+with the tag `emacs`).
 
 ## Bountysource
 
