@@ -189,7 +189,7 @@ Another completion option is [grizzl](https://github.com/grizzl/grizzl):
 (setq projectile-completion-system 'grizzl)
 ```
 
-![Projectile Screenshot](doc/screenshots/projectile-grizzl.png)
+![Projectile Screenshot](screenshots/projectile-grizzl.png)
 
 `grizzl`'s advantage is that it provides good fuzzy completion
 (compared to `ido`'s less than stellar built-in flex matching, but inferior to `ido-flx`).

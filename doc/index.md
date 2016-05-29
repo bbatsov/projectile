@@ -37,6 +37,6 @@ it. Some of Projectile's features:
 
 Here's a glimpse of Projectile in action:
 
-![Projectile Screenshot](doc/screenshots/projectile.png)
+![Projectile Screenshot](screenshots/projectile.png)
 
 You can support my work on Projectile via [Salt](https://salt.bountysource.com/teams/projectile).
