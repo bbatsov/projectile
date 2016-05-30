@@ -1120,7 +1120,7 @@ this case unignored files will be absent from FILES."
          (string-equal (file-remote-p default-directory)
                        (file-remote-p project-root))
          (not (string-match-p "^http\\(s\\)?://" default-directory))
-         (string-prefix-p project-root (file-truename default-directory)))))
+         (string-prefix-p project-root (file-truename default-directory) (eq system-type 'windows-nt)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."

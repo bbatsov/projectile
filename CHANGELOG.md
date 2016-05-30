@@ -40,6 +40,7 @@
 * [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
 * [#957](https://github.com/bbatsov/projectile/pull/957): When opening a specified file from the terminal, do not error inside of `projectile-cache-current-file`.
 * [#984](https://github.com/bbatsov/projectile/pull/984): Error when a project is a symlink that changes target.
+* [#1013](https://github.com/bbatsov/projectile/issues/1013): projectile-project-buffer-p may return incorrect result on Windows.
 
 ## 0.13.0 (2015-10-21)
 
