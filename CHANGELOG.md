@@ -4,6 +4,7 @@
 
 ### New features
 
+* Add [elixir](http://elixir-lang.org) project type.
 * Add [emacs-cask](https://github.com/cask/cask) project type.
 * Add [boot-clj](https://github.com/boot-clj/boot) project type.
 * Add [racket](http://racket-lang.org) project type.
