@@ -2,7 +2,7 @@
 
 ### Basic setup
 
-To add a project to Projectile, open a file in the project and enable `projectile-mode` in that buffer.
+To add a project to Projectile, open a file in the project and enable `projectile-mode` in that buffer. If you have a projects directory, you can tell Projectile about all of the projects in it with the command `M-x projectile-discover-projects-in-directory`.
 
 To make Projectile automatically remember projects that you access files in, enable Projectile globally:
 

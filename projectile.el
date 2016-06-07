@@ -721,6 +721,23 @@ The cache is created both in memory and on the hard drive."
                                           projectile-cache-file))
     (projectile-invalidate-cache nil)))
 
+;;;###autoload
+(defun projectile-discover-projects-in-directory (directory)
+  "Discover any projects in DIRECTORY and add them to the projectile cache.
+This function is not recursive and only adds projects with roots
+at the top level of DIRECTORY."
+  (interactive
+   (list (read-directory-name "Starting directory: ")))
+  (let ((subdirs (directory-files directory t)))
+    (mapcar
+     (lambda (dir)
+       (when (and (file-directory-p dir)
+                  (not (member (file-name-nondirectory dir) '(".." "."))))
+         (let ((default-directory dir))
+           (when (projectile-project-p)
+             (projectile-add-known-project (projectile-project-root))))))
+     subdirs)))
+
 
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
   (if (and projectile-enable-caching (projectile-project-p))
@@ -3081,6 +3098,7 @@ is chosen."
    ["Open project in dired" projectile-dired]
    ["Switch to project" projectile-switch-project]
    ["Switch to open project" projectile-switch-open-project]
+   ["Discover projects in directory" projectile-discover-projects-in-directory]
    ["Search in project (grep)" projectile-grep]
    ["Search in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
