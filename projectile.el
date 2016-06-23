@@ -1987,7 +1987,8 @@ It assumes the test/ folder is at the same level as src/."
    ((member project-type '(rails-test ruby-test lein-test boot-clj go)) "_test")
    ((member project-type '(scons)) "test")
    ((member project-type '(maven symfony)) "Test")
-   ((member project-type '(gradle gradlew grails)) "Spec")))
+   ((member project-type '(gradle gradlew grails)) "Spec")
+   ((member project-type '(sbt)) "Spec")))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
