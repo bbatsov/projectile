@@ -2174,7 +2174,8 @@ regular expression."
                             (buffer-substring (point-min) (point-max)))))
       (unless (zerop exit-code)
         (error shell-output))
-      (visit-tags-table tags-file))))
+      (visit-tags-table tags-file)
+      (message "Regenerated %s" tags-file))))
 
 (defun projectile-visit-project-tags-table ()
   "Visit the current project's tags table."
