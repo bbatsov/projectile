@@ -1833,6 +1833,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'r '("DESCRIPTION") "R CMD INSTALL --with-keep.source ." (concat "R CMD check -o " temporary-file-directory " ."))
 (projectile-register-project-type 'go #'projectile-go "go build ./..." "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt") nil "raco test .")
+(projectile-register-project-type 'elixir '("mix.exs") "mix compile" "mix test")
 
 (defun projectile-cabal ()
   "Check if a project contains *.cabal files but no stack.yaml file."
@@ -1984,7 +1985,7 @@ It assumes the test/ folder is at the same level as src/."
    ((member project-type '(rebar)) "_SUITE")
    ((member project-type '(emacs-cask)) "-test")
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
-   ((member project-type '(rails-test ruby-test lein-test boot-clj go)) "_test")
+   ((member project-type '(rails-test ruby-test lein-test boot-clj go elixir)) "_test")
    ((member project-type '(scons)) "test")
    ((member project-type '(maven symfony)) "Test")
    ((member project-type '(gradle gradlew grails)) "Spec")
