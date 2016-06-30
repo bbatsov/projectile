@@ -897,7 +897,7 @@ Files are returned as relative paths to the project root."
   :type 'string
   :package-version '(projectile "0.14.0"))
 
-(defcustom projectile-hg-command "hg locate -0 -I ."
+(defcustom projectile-hg-command "hg locate -f -0 -I ."
   "Command used by projectile to get the files in a hg project."
   :group 'projectile
   :type 'string)
