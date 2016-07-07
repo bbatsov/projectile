@@ -25,6 +25,7 @@
 * New command `projectile-run-eshell` (<kbd>C-c p x e</kbd>).
 * New command `projectile-run-term` (<kbd>C-c p x t</kbd>).
 * Let user unignore files in `.projectile` with the ! prefix.
+* Add a command to add all projects in a directory to the cache (`projectile-discover-projects-in-directory`).
 
 ### Changes
 
