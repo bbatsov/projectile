@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 0.14.0 (2016-07-08)
+
 ### New features
 
 * Add [elixir](http://elixir-lang.org) project type.
