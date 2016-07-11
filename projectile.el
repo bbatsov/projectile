@@ -722,8 +722,11 @@ The cache is created both in memory and on the hard drive."
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook ()
   "Function for caching files with `find-file-hook'."
-  (when (and projectile-enable-caching (projectile-project-p))
-    (projectile-cache-current-file)))
+  (let ((project-root (projectile-project-p)))
+    (when (and projectile-enable-caching
+               project-root
+               (not (projectile-ignored-project-p project-root)))
+      (projectile-cache-current-file))))
 
 (defun projectile-cache-projects-find-file-hook ()
   "Function for caching projects with `find-file-hook'."

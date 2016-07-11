@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Bugs fixed
+
+* [#1024](https://github.com/bbatsov/projectile/issues/1024): Do not cache ignored project files.
+
 ## 0.14.0 (2016-07-08)
 
 ### New features
