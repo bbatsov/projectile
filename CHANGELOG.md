@@ -5,6 +5,7 @@
 ### Changes
 
 * Ignore backup files in `projectile-get-other-files`.
+* Ignore Ensime cache directory, `.ensime_cache`.
 
 ### Bugs fixed
 

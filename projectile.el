@@ -363,6 +363,7 @@ containing a root file."
 
 (defcustom projectile-globally-ignored-directories
   '(".idea"
+    ".ensime_cache"
     ".eunit"
     ".git"
     ".hg"
