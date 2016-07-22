@@ -24,6 +24,20 @@ This can speed up Projectile in Windows significantly. The disadvantage of this
 method is that it's not well supported on Windows systems. If there's problem,
 you can always use native indexing mode.
 
+##### OSX
+
+Note that on OSX, `alien` indexing may not work well with the default
+`find` command. Installing the Gnu command line tools (or at least
+find) should solve this.  If you've installed
+[Homebrew](http://brew.sh/) then just use the following commands:
+
+```shell
+brew install coreutils
+brew install findutils --with-default-names
+```
+
+(More info on installing the GNU utilities can be [found here.](https://www.topbug.net/blog/2013/04/14/install-and-use-gnu-command-line-tools-in-mac-os-x/))
+
 #### Caching
 
 ##### Project files
