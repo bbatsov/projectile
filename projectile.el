@@ -1871,7 +1871,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal "cabal build" "cabal test")
 (projectile-register-project-type 'rust-cargo '("Cargo.toml") "cargo build" "cargo test")
 (projectile-register-project-type 'r '("DESCRIPTION") "R CMD INSTALL --with-keep.source ." (concat "R CMD check -o " temporary-file-directory " ."))
-(projectile-register-project-type 'go #'projectile-go "go build ./..." "go test ./...")
+(projectile-register-project-type 'go 'projectile-go-function "go build ./..." "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt") nil "raco test .")
 (projectile-register-project-type 'elixir '("mix.exs") "mix compile" "mix test")
 
@@ -2198,7 +2198,7 @@ regular expression."
   "Regenerate the project's [e|g]tags."
   (interactive)
   (if (and (boundp 'ggtags-mode)
-       (memq projectile-tags-backend '(auto ggtags)))
+           (memq projectile-tags-backend '(auto ggtags)))
       (progn
         (let* ((ggtags-project-root (projectile-project-root))
                (default-directory ggtags-project-root))
@@ -2231,20 +2231,20 @@ regular expression."
 (defun projectile-determine-find-tag-fn ()
   "Determine which function to use for a call to `projectile-find-tag'."
   (cond
-    ((eq projectile-tags-backend 'auto)
-      (cond
-        ((fboundp 'ggtags-find-tag-dwim)
-          'ggtags-find-tag-dwim)
-        ((fboundp 'etags-select-find-tag)
-          'etags-select-find-tag)
-        (t 'find-tag)))
-    ((eq projectile-tags-backend 'ggtags)
-      (if (fboundp 'ggtags-find-tag-dwim)
+   ((eq projectile-tags-backend 'auto)
+    (cond
+     ((fboundp 'ggtags-find-tag-dwim)
+      'ggtags-find-tag-dwim)
+     ((fboundp 'etags-select-find-tag)
+      'etags-select-find-tag)
+     (t 'find-tag)))
+   ((eq projectile-tags-backend 'ggtags)
+    (if (fboundp 'ggtags-find-tag-dwim)
         'ggtags-find-tag-dwim 'find-tag))
-    ((eq projectile-tags-backend 'etags-select)
-      (if (fboundp 'etags-select-find-tag)
+   ((eq projectile-tags-backend 'etags-select)
+    (if (fboundp 'etags-select-find-tag)
         'etags-select-find-tag 'find-tag))
-    (t 'find-tag)))
+   (t 'find-tag)))
 
 ;;;###autoload
 (defun projectile-find-tag ()
@@ -2294,8 +2294,8 @@ regular expression."
   "Invoke `eshell' in the project's root."
   (interactive)
   (let ((eshell-buffer-name (concat "*eshell " (projectile-project-name) "*")))
-     (projectile-with-default-dir (projectile-project-root)
-       (eshell))))
+    (projectile-with-default-dir (projectile-project-root)
+      (eshell))))
 
 ;;;###autoload
 (defun projectile-run-term (program)
@@ -2886,7 +2886,7 @@ overwriting each other's changes."
     (projectile-save-known-projects)))
 
 (define-ibuffer-filter projectile-files
-  "Show Ibuffer with all buffers in the current project."
+    "Show Ibuffer with all buffers in the current project."
   (:reader (read-directory-name "Project root: " (ignore-errors (projectile-project-root)))
            :description nil)
   (with-current-buffer buf
