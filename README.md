@@ -75,6 +75,9 @@ You can install Projectile with the following command:
 
 <kbd>M-x</kbd> `package-install` <kbd>[RET]</kbd> `projectile` <kbd>[RET]</kbd>
 
+Alternatively, users of Debian 9 or later or Ubuntu 16.04 or later may
+simply `apt-get install elpa-projectile`.
+
 ### Basic Usage
 
 Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c p f</kbd>.
