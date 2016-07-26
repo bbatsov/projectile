@@ -594,6 +594,7 @@
                        "src/some_module/same_name.c"
                        "include1/same_name.h"
                        "include1/test1.h"
+                       "include1/test1.h~"
                        "include1/test2.h"
                        "include1/test1.hpp"
                        "include2/some_module/same_name.h"
