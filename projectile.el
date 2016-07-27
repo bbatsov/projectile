@@ -1871,7 +1871,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal "cabal build" "cabal test")
 (projectile-register-project-type 'rust-cargo '("Cargo.toml") "cargo build" "cargo test")
 (projectile-register-project-type 'r '("DESCRIPTION") "R CMD INSTALL --with-keep.source ." (concat "R CMD check -o " temporary-file-directory " ."))
-(projectile-register-project-type 'go 'projectile-go-function "go build ./..." "go test ./...")
+(projectile-register-project-type 'go projectile-go-function "go build ./..." "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt") nil "raco test .")
 (projectile-register-project-type 'elixir '("mix.exs") "mix compile" "mix test")
 
