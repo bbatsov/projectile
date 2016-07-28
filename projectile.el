@@ -1831,6 +1831,22 @@ With a prefix ARG invalidates the cache first."
   "Return a list of test files for the current project."
   (projectile-test-files (projectile-current-project-files)))
 
+(defun projectile-cabal ()
+  "Check if a project contains *.cabal files but no stack.yaml file."
+  (and (projectile-verify-file "*.cabal")
+       (not (projectile-verify-file "stack.yaml"))))
+
+(defun projectile-go ()
+  "Check if a project contains Go source files."
+  (-any? (lambda (file)
+           (string= (file-name-extension file) "go"))
+         (projectile-current-project-files)))
+
+(defcustom projectile-go-function 'projectile-go
+  "Function to determine if project's type is go."
+  :group 'projectile
+  :type 'function)
+
 (defvar projectile-project-types (make-hash-table)
   "A hash table holding all project types that are known to Projectile.")
 
