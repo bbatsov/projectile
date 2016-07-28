@@ -1844,6 +1844,22 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
                               'run-command run-cmd)
            projectile-project-types))
 
+(defun projectile-cabal ()
+  "Check if a project contains *.cabal files but no stack.yaml file."
+  (and (projectile-verify-file "*.cabal")
+       (not (projectile-verify-file "stack.yaml"))))
+
+(defun projectile-go ()
+  "Check if a project contains Go source files."
+  (-any? (lambda (file)
+           (string= (file-name-extension file) "go"))
+         (projectile-current-project-files)))
+
+(defcustom projectile-go-function 'projectile-go
+  "Function to determine if project's type is go."
+  :group 'projectile
+  :type 'function)
+
 (projectile-register-project-type 'emacs-cask '("Cask") "cask install")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec") "bundle exec rails server" "bundle exec rspec")
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test") "bundle exec rails server" "bundle exec rake test")
@@ -1874,22 +1890,6 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'go projectile-go-function "go build ./..." "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt") nil "raco test .")
 (projectile-register-project-type 'elixir '("mix.exs") "mix compile" "mix test")
-
-(defun projectile-cabal ()
-  "Check if a project contains *.cabal files but no stack.yaml file."
-  (and (projectile-verify-file "*.cabal")
-       (not (projectile-verify-file "stack.yaml"))))
-
-(defun projectile-go ()
-  "Check if a project contains Go source files."
-  (-any? (lambda (file)
-           (string= (file-name-extension file) "go"))
-         (projectile-current-project-files)))
-
-(defcustom projectile-go-function 'projectile-go
-  "Function to determine if project's type is go."
-  :group 'projectile
-  :type 'function)
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
