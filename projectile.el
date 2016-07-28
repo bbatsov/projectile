@@ -1615,6 +1615,8 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                 candidates))
                      file-list)))
          (candidates
+          (-filter (lambda (file) (not (backup-file-name-p file))) candidates))
+         (candidates
           (-sort (lambda (file _)
                    (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
                      (unless (equal fulldirname (file-name-directory file))

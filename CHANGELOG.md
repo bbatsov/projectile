@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+* Ignore backup files in `projectile-get-other-files`.
+
 ### Bugs fixed
 
 * [#1024](https://github.com/bbatsov/projectile/issues/1024): Do not cache ignored project files.
