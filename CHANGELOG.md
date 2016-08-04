@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New Features
+
+* Consider Ensime configuration file as root marker, `.ensime`.
+
 ### Changes
 
 * Ignore backup files in `projectile-get-other-files`.
