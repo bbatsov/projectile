@@ -1456,6 +1456,7 @@ project-root for every file."
           (helm-comp-read prompt choices
                           :initial-input initial-input
                           :candidates-in-buffer t
+                          :fuzzy t
                           :must-match 'confirm)
         (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
