@@ -1,4 +1,5 @@
 /elpa
+/.elpa
 /.cask
 *.elc
 *~
