@@ -288,6 +288,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "build.sbt"          ; SBT project file
     "gradlew"            ; Gradle wrapper script
     "build.gradle"       ; Gradle project file
+    ".ensime"            ; Ensime configuration file
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
     "setup.py"           ; Setuptools file
@@ -363,6 +364,7 @@ containing a root file."
 
 (defcustom projectile-globally-ignored-directories
   '(".idea"
+    ".ensime_cache"
     ".eunit"
     ".git"
     ".hg"
