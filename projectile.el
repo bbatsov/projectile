@@ -2637,7 +2637,7 @@ fallback to the original function."
                         (-when-let (full-filename (->> dirs
                                                        (mapcar (lambda (it) (expand-file-name filename (expand-file-name it root))))
                                                        (-filter #'file-exists-p)
-                                                       (-first-item)))
+                                                       (car)))
                           full-filename)))
                  ;; Fall back to the old argument
                  filename))
