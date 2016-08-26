@@ -2546,8 +2546,8 @@ to run the replacement."
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
   (interactive)
-  (--each (projectile-project-buffers)
-    (with-current-buffer it
+  (dolist (buf (projectile-project-buffers))
+    (with-current-buffer buf
       (when buffer-file-name
         (save-buffer)))))
 
