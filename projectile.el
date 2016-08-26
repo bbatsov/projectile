@@ -1308,7 +1308,9 @@ according to PATTERNS: (ignored . unignored)"
     (and (cl-some
           (lambda (it) (projectile-check-pattern-p file it))
           (car patterns))
-         (--none-p (projectile-check-pattern-p file it) (cdr patterns)))))
+         (cl-notany
+          (lambda (it) (projectile-check-pattern-p file it))
+          (cdr patterns)))))
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
