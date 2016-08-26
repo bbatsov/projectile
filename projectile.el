@@ -2349,12 +2349,15 @@ regular expression."
   "Return a list of files in DIRECTORY."
   (let ((dir (file-relative-name (expand-file-name directory)
                                  (projectile-project-root))))
-    (cl-remove-if-not (lambda (it) (string-prefix-p dir it))
-                      (projectile-current-project-files))))
+    (cl-remove-if-not
+     (lambda (it) (string-prefix-p dir it))
+     (projectile-current-project-files))))
 
 (defun projectile-unixy-system-p ()
   "Check to see if unixy text utilities are installed."
-  (--all? (executable-find it) '("grep" "cut" "uniq")))
+  (cl-every
+   (lambda (it) (executable-find it))
+   '("grep" "cut" "uniq")))
 
 (defun projectile-files-from-cmd (cmd directory)
   "Use a grep-like CMD to search for files within DIRECTORY.
