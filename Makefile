@@ -1,7 +1,7 @@
 emacs ?= emacs
 bemacs = $(emacs) -batch -l test/elpa.el
 
-elpa: compile test
+elpa: update compile test
 
 update:
 	$(emacs) -batch -l test/make-update.el
