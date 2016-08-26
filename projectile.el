@@ -815,8 +815,8 @@ Return the first (topmost) matched directory or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
-     (--first (projectile-file-exists-p (expand-file-name it dir))
-              (or list projectile-project-root-files)))))
+     (cl-find-if (lambda (it) (projectile-file-exists-p (expand-file-name it dir)))
+                 (or list projectile-project-root-files)))))
 
 (defun projectile-root-bottom-up (dir &optional list)
   "Identify a project root in DIR by bottom-up search for files in LIST.
