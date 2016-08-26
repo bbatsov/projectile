@@ -1197,6 +1197,9 @@ this case unignored files will be absent from FILES."
                         (symbol-name major-mode)))
       projectile-globally-ignored-modes))))
 
+(defun projectile-difference (list1 list2)
+  (cl-set-difference list1 list2 :test #'equal))
+
 (defun projectile-recently-active-files ()
   "Get list of recently active files.
 
@@ -1204,8 +1207,9 @@ Files are ordered by recently active buffers, and then recently
 opened through use of recentf."
   (let ((project-buffer-files (projectile-project-buffer-files)))
     (append project-buffer-files
-            (-difference (projectile-recentf-files)
-                         project-buffer-files))))
+            (projectile-difference
+             (projectile-recentf-files)
+             project-buffer-files))))
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
@@ -1325,7 +1329,7 @@ according to PATTERNS: (ignored . unignored)"
 
 (defun projectile-ignored-files ()
   "Return list of ignored files."
-  (-difference
+  (projectile-difference
    (mapcar
     #'projectile-expand-root
     (append
@@ -1335,7 +1339,7 @@ according to PATTERNS: (ignored . unignored)"
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
-  (-difference
+  (projectile-difference
    (mapcar
     #'file-name-as-directory
     (mapcar
@@ -1785,13 +1789,13 @@ With a prefix ARG invalidates the cache first."
   "Sort FILES by a recent first scheme."
   (let ((project-recentf-files (projectile-recentf-files)))
     (append project-recentf-files
-            (-difference files project-recentf-files))))
+            (projectile-difference files project-recentf-files))))
 
 (defun projectile-sort-by-recently-active-first (files)
   "Sort FILES by most recently active buffers or opened files."
   (let ((project-recently-active-files (projectile-recently-active-files)))
     (append project-recently-active-files
-            (-difference files project-recently-active-files))))
+            (projectile-difference files project-recently-active-files))))
 
 (defun projectile-sort-by-modification-time (files)
   "Sort FILES by modification time."
@@ -2742,7 +2746,7 @@ An open project is a project with any open buffers."
 (defun projectile--remove-current-project (projects)
   "Remove the current project (if any) from the list of PROJECTS."
   (if (projectile-project-p)
-      (-difference projects
+      (projectile-difference projects
                    (list (abbreviate-file-name (projectile-project-root))))
     projects))
 
@@ -2938,11 +2942,11 @@ overwriting each other's changes."
          (known-on-last-sync projectile-known-projects-on-file)
          (known-on-file
           (projectile-unserialize projectile-known-projects-file))
-         (removed-after-sync (-difference known-on-last-sync known-now))
+         (removed-after-sync (projectile-difference known-on-last-sync known-now))
          (removed-in-other-process
-          (-difference known-on-last-sync known-on-file))
+          (projectile-difference known-on-last-sync known-on-file))
          (result (delete-dups
-                  (-difference
+                  (projectile-difference
                    (append known-now known-on-file)
                    (append removed-after-sync removed-in-other-process)))))
     (setq projectile-known-projects result)
