@@ -1098,11 +1098,17 @@ SUBDIRECTORIES to a non-nil value."
   (let ((ignored (append (projectile-ignored-files-rel)
                          (projectile-ignored-directories-rel))))
     (-remove (lambda (file)
-               (or (--any-p (string-prefix-p it (if subdirectories
-                                                    (file-name-nondirectory file)
-                                                  file))
-                            ignored)
-                   (--any-p (string-suffix-p it file) projectile-globally-ignored-file-suffixes)))
+               (or (cl-some
+                    (lambda (it)
+                      (string-prefix-p
+                       it (if subdirectories
+                              (file-name-nondirectory file)
+                            file)))
+                    ignored)
+                   (cl-some
+                    (lambda (it)
+                      (string-suffix-p it file))
+                    projectile-globally-ignored-file-suffixes)))
              files)))
 
 (defun projectile-keep-ignored-files (files)
@@ -1174,9 +1180,11 @@ this case unignored files will be absent from FILES."
   (or
    (member (buffer-name buffer) projectile-globally-ignored-buffers)
    (with-current-buffer buffer
-     (--any-p (string-match-p (concat "^" it "$")
-                              (symbol-name major-mode))
-              projectile-globally-ignored-modes))))
+     (cl-some
+      (lambda (it)
+        (string-match-p (concat "^" it "$")
+                        (symbol-name major-mode)))
+      projectile-globally-ignored-modes))))
 
 (defun projectile-recently-active-files ()
   "Get list of recently active files.
@@ -1297,7 +1305,9 @@ projectile project root."
   "Check if FILE should be ignored relative to DIRECTORY
 according to PATTERNS: (ignored . unignored)"
   (let ((default-directory directory))
-    (and (--any-p (projectile-check-pattern-p file it) (car patterns))
+    (and (cl-some
+          (lambda (it) (projectile-check-pattern-p file it))
+          (car patterns))
          (--none-p (projectile-check-pattern-p file it) (cdr patterns)))))
 
 (defun projectile-ignored-files ()
