@@ -2988,7 +2988,7 @@ is chosen."
   (ignore-errors (kill-buffer projectile-commander-help-buffer))
   (with-current-buffer (get-buffer-create projectile-commander-help-buffer)
     (insert "Projectile Commander Methods:\n\n")
-    (--each projectile-commander-methods
+    (dolist (it projectile-commander-methods)
       (-let [(key line _) it]
         (insert (format "%c:\t%s\n" key line))))
     (goto-char (point-min))
