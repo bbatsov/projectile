@@ -1248,7 +1248,7 @@ Only buffers not visible in windows are returned."
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
-  (-non-nil (mapcar (lambda (it) (and (string-prefix-p "/" it)
+  (delq nil (mapcar (lambda (it) (and (string-prefix-p "/" it)
                                       ;; remove the leading /
                                       (substring it 1)))
                     patterns)))
@@ -1827,9 +1827,9 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
   (or (--any? (string-prefix-p it (file-name-nondirectory file))
-              (-non-nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
+              (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
       (--any? (string-suffix-p it (file-name-sans-extension (file-name-nondirectory file)))
-              (-non-nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
+              (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
@@ -2679,12 +2679,12 @@ with a prefix ARG."
   "Return a list of all open projects.
 An open project is a project with any open buffers."
   (-distinct
-   (-non-nil
-    (mapcar (lambda (buffer)
-            (with-current-buffer buffer
-              (when (projectile-project-p)
-                (abbreviate-file-name (projectile-project-root)))))
-          (buffer-list)))))
+   (delq nil
+         (mapcar (lambda (buffer)
+                   (with-current-buffer buffer
+                     (when (projectile-project-p)
+                       (abbreviate-file-name (projectile-project-root)))))
+                 (buffer-list)))))
 
 (defun projectile--remove-current-project (projects)
   "Remove the current project (if any) from the list of PROJECTS."
