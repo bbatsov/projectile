@@ -1504,8 +1504,9 @@ https://github.com/abo-abo/swiper")))
     (unless files
       (when projectile-enable-caching
         (message "Empty cache. Projectile is initializing cache..."))
-      (setq files (-mapcat #'projectile-dir-files
-                           (projectile-get-project-directories)))
+      (setq files (cl-mapcan
+                   #'projectile-dir-files
+                   (projectile-get-project-directories)))
       ;; cache the resulting list of files
       (when projectile-enable-caching
         (projectile-cache-project (projectile-project-root) files)))
@@ -2789,13 +2790,14 @@ This command will first prompt for the directory the file is in."
 
 (defun projectile-all-project-files ()
   "Get a list of all files in all projects."
-  (-mapcat (lambda (project)
-             (when (file-exists-p project)
-               (let ((default-directory project))
-                 (mapcar (lambda (file)
-                         (expand-file-name file project))
-                       (projectile-current-project-files)))))
-           projectile-known-projects))
+  (cl-mapcan
+   (lambda (project)
+     (when (file-exists-p project)
+       (let ((default-directory project))
+         (mapcar (lambda (file)
+                   (expand-file-name file project))
+                 (projectile-current-project-files)))))
+   projectile-known-projects))
 
 ;;;###autoload
 (defun projectile-find-file-in-known-projects ()
