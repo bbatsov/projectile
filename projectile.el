@@ -2897,10 +2897,8 @@ See `projectile-cleanup-known-projects'."
   "Remove known projects that don't exist anymore."
   (interactive)
   (projectile-merge-known-projects)
-  (let* ((separated-projects
-          (-separate #'projectile-keep-project-p projectile-known-projects))
-         (projects-kept (car separated-projects))
-         (projects-removed (cadr separated-projects)))
+  (let ((projects-kept (cl-remove-if-not #'projectile-keep-project-p projectile-known-projects))
+        (projects-removed (cl-remove-if #'projectile-keep-project-p projectile-known-projects)))
     (setq projectile-known-projects projects-kept)
     (projectile-merge-known-projects)
     (if projects-removed
