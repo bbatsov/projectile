@@ -3035,10 +3035,10 @@ available actions.
 
 See `def-projectile-commander-method' for defining new methods."
   (interactive)
-  (-let* ((choices (mapcar #'car projectile-commander-methods))
-          (prompt (concat "Commander [" choices "]: "))
-          (ch (read-char-choice prompt choices))
-          ((_ _ fn) (assq ch projectile-commander-methods)))
+  (let* ((choices (mapcar #'car projectile-commander-methods))
+         (prompt (concat "Commander [" choices "]: "))
+         (ch (read-char-choice prompt choices))
+         (fn (nth 2 (assq ch projectile-commander-methods))))
     (funcall fn)))
 
 (defmacro def-projectile-commander-method (key description &rest body)
@@ -3062,8 +3062,7 @@ is chosen."
   (with-current-buffer (get-buffer-create projectile-commander-help-buffer)
     (insert "Projectile Commander Methods:\n\n")
     (dolist (it projectile-commander-methods)
-      (-let [(key line _) it]
-        (insert (format "%c:\t%s\n" key line))))
+      (insert (format "%c:\t%s\n" (car it) (cadr it))))
     (goto-char (point-min))
     (help-mode)
     (display-buffer (current-buffer) t))
