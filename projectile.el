@@ -1689,11 +1689,11 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
          (candidates
           (cl-remove-if-not (lambda (file) (not (backup-file-name-p file))) candidates))
          (candidates
-          (-sort (lambda (file _)
-                   (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
-                     (unless (equal fulldirname (file-name-directory file))
-                       (equal dirname candidate-dirname))))
-                 candidates)))
+          (cl-sort (copy-sequence candidates)
+                   (lambda (file _)
+                     (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
+                       (unless (equal fulldirname (file-name-directory file))
+                         (equal dirname candidate-dirname)))))))
     candidates))
 
 (defun projectile-select-files (project-files &optional arg)
@@ -1833,20 +1833,22 @@ With a prefix ARG invalidates the cache first."
 (defun projectile-sort-by-modification-time (files)
   "Sort FILES by modification time."
   (let ((default-directory (projectile-project-root)))
-    (-sort (lambda (file1 file2)
-             (let ((file1-mtime (nth 5 (file-attributes file1)))
-                   (file2-mtime (nth 5 (file-attributes file2))))
-               (not (time-less-p file1-mtime file2-mtime))))
-           files)))
+    (cl-sort
+     (copy-sequence files)
+     (lambda (file1 file2)
+       (let ((file1-mtime (nth 5 (file-attributes file1)))
+             (file2-mtime (nth 5 (file-attributes file2))))
+         (not (time-less-p file1-mtime file2-mtime)))))))
 
 (defun projectile-sort-by-access-time (files)
   "Sort FILES by access time."
   (let ((default-directory (projectile-project-root)))
-    (-sort (lambda (file1 file2)
-             (let ((file1-atime (nth 4 (file-attributes file1)))
-                   (file2-atime (nth 4 (file-attributes file2))))
-               (not (time-less-p file1-atime file2-atime))))
-           files)))
+    (cl-sort
+     (copy-sequence files)
+     (lambda (file1 file2)
+       (let ((file1-atime (nth 4 (file-attributes file1)))
+             (file2-atime (nth 4 (file-attributes file2))))
+         (not (time-less-p file1-atime file2-atime)))))))
 
 ;;;###autoload
 (defun projectile-find-dir (&optional arg)
@@ -2121,8 +2123,7 @@ It assumes the test/ folder is at the same level as src/."
 
 (defun projectile-group-file-candidates (file candidates)
   "Group file candidates by dirname matching count."
-  (cl-sort (lambda (it other) (> (car it) (car other)))
-           (copy-sequence
+  (cl-sort (copy-sequence
             (let (value result)
               (while (setq value (pop candidates))
                 (let* ((key (projectile-dirname-matching-count file value))
@@ -2132,7 +2133,8 @@ It assumes the test/ folder is at the same level as src/."
                     (push (list key value) result))))
               (mapcar (lambda (x)
                         (cons (car x) (nreverse (cdr x))))
-                      (nreverse result))))))
+                      (nreverse result))))
+           (lambda (it other) (> (car it) (car other)))))
 
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
@@ -3063,9 +3065,10 @@ is chosen."
   (let ((method `(lambda ()
                    ,@body)))
     `(setq projectile-commander-methods
-           (--sort (< (car it) (car other))
-                   (cons (list ,key ,description ,method)
-                         (assq-delete-all ,key projectile-commander-methods))))))
+           (cl-sort (copy-sequence
+                     (cons (list ,key ,description ,method)
+                           (assq-delete-all ,key projectile-commander-methods)))
+                    (lambda (it other) (< (car it) (car other)))))))
 
 (def-projectile-commander-method ?? "Commander help buffer."
   (ignore-errors (kill-buffer projectile-commander-help-buffer))
