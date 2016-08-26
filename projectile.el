@@ -1585,11 +1585,20 @@ https://github.com/abo-abo/swiper")))
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
-      (if (= (length other-files) 1)
-          (find-file (expand-file-name (car other-files) (projectile-project-root)))
-        (find-file (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
-    (error "No other file found")))
+  (let (other-files)
+    (if (setq other-files (projectile-get-other-files
+                           (buffer-file-name)
+                           (projectile-current-project-files)
+                           flex-matching))
+        (if (= (length other-files) 1)
+            (find-file (expand-file-name (car other-files) (projectile-project-root)))
+          (find-file
+           (expand-file-name
+            (projectile-completing-read
+             "Switch to: "
+             other-files)
+            (projectile-project-root))))
+      (error "No other file found"))))
 
 ;;;###autoload
 (defun projectile-find-other-file-other-window (&optional flex-matching)
@@ -1597,11 +1606,24 @@ Other file extensions can be customized with the variable `projectile-other-file
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (-if-let (other-files (projectile-get-other-files (buffer-file-name) (projectile-current-project-files) flex-matching))
-      (if (= (length other-files) 1)
-          (find-file-other-window (expand-file-name (car other-files) (projectile-project-root)))
-        (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " other-files) (projectile-project-root))))
-    (error "No other file found")))
+  (let (other-files)
+    (if (setq other-files
+              (projectile-get-other-files
+               (buffer-file-name)
+               (projectile-current-project-files)
+               flex-matching))
+        (if (= (length other-files) 1)
+            (find-file-other-window
+             (expand-file-name
+              (car other-files)
+              (projectile-project-root)))
+          (find-file-other-window
+           (expand-file-name
+            (projectile-completing-read
+             "Switch to: "
+             other-files)
+            (projectile-project-root))))
+      (error "No other file found"))))
 
 (defun projectile--file-name-sans-extensions (file-name)
   "Return FILE-NAME sans any extensions.
@@ -1614,15 +1636,20 @@ The extensions, in a filename, are what follows the first '.', with the exceptio
 The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
   ;;would it make sense to return nil instead of an empty string if no extensions are found?
   (setq file-name (file-name-nondirectory file-name))
-  (substring file-name (-if-let (extensions-start (string-match "\\..*" file-name 1)) (1+ extensions-start) (length file-name))))
+  (let (extensions-start)
+    (substring file-name
+               (if (setq extensions-start (string-match "\\..*" file-name 1))
+                   (1+ extensions-start)
+                 (length file-name)))))
 
 (defun projectile-associated-file-name-extensions (file-name)
   "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
 If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."
-  (let ((current-extensions (projectile--file-name-extensions (file-name-nondirectory file-name))))
+  (let ((current-extensions (projectile--file-name-extensions (file-name-nondirectory file-name)))
+        associated-extensions)
     (catch 'break
       (while (not (string= "" current-extensions))
-        (-if-let (associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
+        (if (setq associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
             (throw 'break associated-extensions))
         (setq current-extensions (projectile--file-name-extensions current-extensions))))))
 
@@ -2687,7 +2714,8 @@ with a prefix ARG."
 (defadvice compilation-find-file (around projectile-compilation-find-file)
   "Try to find a buffer for FILENAME, if we cannot find it,
 fallback to the original function."
-  (let ((filename (ad-get-arg 1)))
+  (let ((filename (ad-get-arg 1))
+        full-filename)
     (ad-set-arg 1
                 (or
                  (if (file-exists-p (expand-file-name filename))
@@ -2696,7 +2724,7 @@ fallback to the original function."
                  (and (projectile-project-p)
                       (let ((root (projectile-project-root))
                             (dirs (cons "" (projectile-current-project-dirs))))
-                        (-when-let (full-filename
+                        (when (setq full-filename
                                     (car (cl-remove-if-not
                                           #'file-exists-p
                                           (mapcar
@@ -2774,11 +2802,12 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (-if-let (projects (projectile-relevant-known-projects))
-      (projectile-switch-project-by-name
-       (projectile-completing-read "Switch to project: " projects)
-       arg)
-    (error "There are no known projects")))
+  (let (projects)
+    (if (setq projects (projectile-relevant-known-projects))
+        (projectile-switch-project-by-name
+         (projectile-completing-read "Switch to project: " projects)
+         arg)
+      (error "There are no known projects"))))
 
 ;;;###autoload
 (defun projectile-switch-open-project (&optional arg)
@@ -2787,11 +2816,12 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (-if-let (projects (projectile-relevant-open-projects))
-      (projectile-switch-project-by-name
-       (projectile-completing-read "Switch to open project: " projects)
-       arg)
-    (error "There are no open projects")))
+  (let (projects)
+    (if (setq projects (projectile-relevant-open-projects))
+        (projectile-switch-project-by-name
+         (projectile-completing-read "Switch to open project: " projects)
+         arg)
+      (error "There are no open projects"))))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
