@@ -1032,10 +1032,11 @@ they are excluded from the results of this function."
     ;; If project root is inside of an VCS folder, but not actually an
     ;; VCS root itself, submodules external to the project will be
     ;; included in the VCS get sub-projects result. Let's remove them.
-    (-filter (lambda (submodule)
-               (string-match-p project-child-folder-regex
-                               submodule))
-             submodules)))
+    (cl-remove-if-not
+     (lambda (submodule)
+       (string-match-p project-child-folder-regex
+                       submodule))
+     submodules)))
 
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
@@ -1107,9 +1108,10 @@ SUBDIRECTORIES to a non-nil value."
 (defun projectile-keep-ignored-files (files)
   "Filter FILES to retain only those that are ignored."
   (when files
-    (-filter (lambda (file)
-               (cl-some (lambda (it) (string-prefix-p it file)) files))
-             (projectile-get-repo-ignored-files))))
+    (cl-remove-if-not
+     (lambda (file)
+       (cl-some (lambda (it) (string-prefix-p it file)) files))
+     (projectile-get-repo-ignored-files))))
 
 (defun projectile-add-unignored (files)
   "This adds unignored files to FILES.
@@ -1136,9 +1138,10 @@ this case unignored files will be absent from FILES."
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
   (let* ((project-root (projectile-project-root))
-         (all-buffers (-filter (lambda (buffer)
-                                 (projectile-project-buffer-p buffer project-root))
-                               (buffer-list))))
+         (all-buffers (cl-remove-if-not
+                       (lambda (buffer)
+                         (projectile-project-buffer-p buffer project-root))
+                       (buffer-list))))
     (if projectile-buffers-filter-function
         (funcall projectile-buffers-filter-function all-buffers)
       all-buffers)))
@@ -1235,9 +1238,10 @@ Only buffers not visible in windows are returned."
 
 (defun projectile-project-buffers-non-visible ()
   "Get a list of non visible project buffers."
-  (-filter (lambda (buffer)
-             (not (get-buffer-window buffer 'visible)))
-           (projectile-project-buffers)))
+  (cl-remove-if-not
+   (lambda (buffer)
+     (not (get-buffer-window buffer 'visible)))
+   (projectile-project-buffers)))
 
 ;;;###autoload
 (defun projectile-multi-occur ()
@@ -1334,7 +1338,7 @@ included."
 (defun projectile-project-ignored-directories ()
   "Return list of project ignored directories. Unignored
 directories are not included."
-  (-filter 'file-directory-p (projectile-project-ignored)))
+  (cl-remove-if-not 'file-directory-p (projectile-project-ignored)))
 
 (defun projectile-paths-to-ignore ()
   "Return a list of ignored project paths."
@@ -1382,7 +1386,7 @@ files/directories are not included."
 
 (defun projectile-project-unignored-directories ()
   "Return list of project unignored directories."
-  (-filter 'file-directory-p (projectile-project-unignored)))
+  (cl-remove-if-not 'file-directory-p (projectile-project-unignored)))
 
 (defun projectile-paths-to-ensure ()
   "Return a list of unignored project paths."
@@ -1605,21 +1609,23 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                           (concat "\." ext))
                                         "\\'")))
                             file-ext-list))
-         (candidates (-filter (lambda (project-file)
-                                (string-match filename project-file))
-                              project-file-list))
+         (candidates (cl-remove-if-not
+                      (lambda (project-file)
+                        (string-match filename project-file))
+                      project-file-list))
          (candidates
           (-flatten (mapcar
                      (lambda (file)
-                       (-filter (lambda (project-file)
-                                  (string-match file
-                                                (concat (file-name-base project-file)
-                                                        (unless (equal (file-name-extension project-file) nil)
-                                                          (concat "\." (file-name-extension project-file))))))
-                                candidates))
+                       (cl-remove-if-not
+                        (lambda (project-file)
+                          (string-match file
+                                        (concat (file-name-base project-file)
+                                                (unless (equal (file-name-extension project-file) nil)
+                                                  (concat "\." (file-name-extension project-file))))))
+                        candidates))
                      file-list)))
          (candidates
-          (-filter (lambda (file) (not (backup-file-name-p file))) candidates))
+          (cl-remove-if-not (lambda (file) (not (backup-file-name-p file))) candidates))
          (candidates
           (-sort (lambda (file _)
                    (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
@@ -1640,9 +1646,10 @@ With a prefix ARG invalidates the cache first."
                    (file-relative-name (file-truename file) (projectile-project-root))
                  file))
          (files (if file
-                    (-filter (lambda (project-file)
-                               (string-match file project-file))
-                             project-files)
+                    (cl-remove-if-not
+                     (lambda (project-file)
+                       (string-match file project-file))
+                     project-files)
                   nil)))
     files))
 
@@ -1822,7 +1829,7 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-test-files (files)
   "Return only the test FILES."
-  (-filter 'projectile-test-file-p files))
+  (cl-remove-if-not 'projectile-test-file-p files))
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
@@ -2060,14 +2067,15 @@ It assumes the test/ folder is at the same level as src/."
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
-          (-filter (lambda (current-file)
-                     (let ((name (file-name-nondirectory
-                                  (file-name-sans-extension current-file))))
-                       (or (when test-prefix
-                             (string-equal name (concat test-prefix basename)))
-                           (when test-suffix
-                             (string-equal name (concat basename test-suffix))))))
-                   (projectile-current-project-files))))
+          (cl-remove-if-not
+           (lambda (current-file)
+             (let ((name (file-name-nondirectory
+                          (file-name-sans-extension current-file))))
+               (or (when test-prefix
+                     (string-equal name (concat test-prefix basename)))
+                   (when test-suffix
+                     (string-equal name (concat basename test-suffix))))))
+           (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
@@ -2082,14 +2090,15 @@ It assumes the test/ folder is at the same level as src/."
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
-          (-filter (lambda (current-file)
-                     (let ((name (file-name-nondirectory
-                                  (file-name-sans-extension current-file))))
-                       (or (when test-prefix
-                             (string-equal (concat test-prefix name) basename))
-                           (when test-suffix
-                             (string-equal (concat name test-suffix) basename)))))
-                   (projectile-current-project-files))))
+          (cl-remove-if-not
+           (lambda (current-file)
+             (let ((name (file-name-nondirectory
+                          (file-name-sans-extension current-file))))
+               (or (when test-prefix
+                     (string-equal (concat test-prefix name) basename))
+                   (when test-suffix
+                     (string-equal (concat name test-suffix) basename)))))
+           (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
@@ -2637,7 +2646,7 @@ fallback to the original function."
                             (dirs (cons "" (projectile-current-project-dirs))))
                         (-when-let (full-filename (->> dirs
                                                        (mapcar (lambda (it) (expand-file-name filename (expand-file-name it root))))
-                                                       (-filter #'file-exists-p)
+                                                       (cl-remove-if-not #'file-exists-p)
                                                        (car)))
                           full-filename)))
                  ;; Fall back to the old argument
