@@ -2429,8 +2429,9 @@ files in the project."
                          (format "grep -rHlI %s ." search-term)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
-    (-reject #'file-directory-p
-             (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
+    (cl-remove-if
+     #'file-directory-p
+     (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
 
 ;;;###autoload
 (defun projectile-replace (&optional arg)
@@ -2485,8 +2486,9 @@ to run the replacement."
           ;; We can't narrow the list of files with
           ;; `projectile-files-with-string' because those regexp tools
           ;; don't support Emacs regular expressions.
-          (-reject #'file-directory-p
-                   (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
+          (cl-remove-if
+           #'file-directory-p
+           (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 
 (defun projectile-symbol-or-selection-at-point ()
