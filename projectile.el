@@ -2887,8 +2887,8 @@ overwriting each other's changes."
           (-difference known-on-last-sync known-on-file))
          (result (-distinct
                   (-difference
-                   (-concat known-now known-on-file)
-                   (-concat removed-after-sync removed-in-other-process)))))
+                   (append known-now known-on-file)
+                   (append removed-after-sync removed-in-other-process)))))
     (setq projectile-known-projects result)
     (projectile-save-known-projects)))
 
