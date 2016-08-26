@@ -824,34 +824,38 @@ Return the first (topmost) matched directory or nil if not found."
   "Identify a project root in DIR by bottom-up search for files in LIST.
 If LIST is nil, use `projectile-project-root-files-bottom-up' instead.
 Return the first (bottommost) matched directory or nil if not found."
-  (--some (projectile-locate-dominating-file dir it)
-          (or list projectile-project-root-files-bottom-up)))
+  (cl-some (lambda (it) (projectile-locate-dominating-file dir it))
+           (or list projectile-project-root-files-bottom-up)))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by recurring top-down search for files in LIST.
 If LIST is nil, use `projectile-project-root-files-top-down-recurring'
 instead.  Return the last (bottommost) matched directory in the
 topmost sequence of matched directories.  Nil otherwise."
-  (--some (projectile-locate-dominating-file
-           dir
-           (lambda (dir)
-             (and (projectile-file-exists-p (expand-file-name it dir))
-                  (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
-                      (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir))))))))
-          (or list projectile-project-root-files-top-down-recurring)))
+  (cl-some
+   (lambda (it)
+     (projectile-locate-dominating-file
+      dir
+      (lambda (dir)
+        (and (projectile-file-exists-p (expand-file-name it dir))
+             (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
+                 (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir)))))))))
+   (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
   (let ((dir default-directory))
-    (or (--some (let* ((cache-key (format "%s-%s" it dir))
-                       (cache-value (gethash cache-key projectile-project-root-cache)))
-                  (if (and cache-value (file-exists-p cache-value))
-                      cache-value
-                    (let ((value (funcall it (file-truename dir))))
-                      (puthash cache-key value projectile-project-root-cache)
-                      value)))
-                projectile-project-root-files-functions)
+    (or (cl-some
+         (lambda (it)
+           (let* ((cache-key (format "%s-%s" it dir))
+                  (cache-value (gethash cache-key projectile-project-root-cache)))
+             (if (and cache-value (file-exists-p cache-value))
+                 cache-value
+               (let ((value (funcall it (file-truename dir))))
+                 (puthash cache-key value projectile-project-root-cache)
+                 value))))
+         projectile-project-root-files-functions)
         (if projectile-require-project-root
             (error "You're not in a project")
           default-directory))))
@@ -1106,7 +1110,7 @@ SUBDIRECTORIES to a non-nil value."
   "Filter FILES to retain only those that are ignored."
   (when files
     (-filter (lambda (file)
-               (--some (string-prefix-p it file) files))
+               (cl-some (lambda (it) (string-prefix-p it file)) files))
              (projectile-get-repo-ignored-files))))
 
 (defun projectile-add-unignored (files)
