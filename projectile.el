@@ -2381,11 +2381,16 @@ CMD should include the necessary search params and should output
 equivalently to grep -HlI (only unique matching filenames).
 Returns a list of expanded filenames."
   (let ((default-directory directory))
-    (mapcar (lambda (it) (concat directory
-                                 (if (string-prefix-p "./" it) (substring it 2) it)))
-            (-> (shell-command-to-string cmd)
-                projectile-trim-string
-                (split-string "\n+" t)))))
+    (mapcar (lambda (it)
+              (concat directory
+                      (if (string-prefix-p "./" it)
+                          (substring it 2)
+                        it)))
+            (split-string
+             (projectile-trim-string
+              (shell-command-to-string cmd))
+             "\n+"
+             t))))
 
 (defun projectile-files-with-string (string directory)
   "Return a list of all files containing STRING in DIRECTORY.
