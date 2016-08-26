@@ -1000,6 +1000,12 @@ Files are returned as relative paths to the project root."
      ((eq vcs 'git) projectile-git-ignored-command)
      (t (error "VCS command for ignored files not implemented yet")))))
 
+(defun projectile-flatten (lst)
+  "Take a nested list LST and return its contents as a single, flat list."
+  (if (and (listp lst) (listp (cdr lst)))
+      (cl-mapcan 'projectile-flatten lst)
+    (list lst)))
+
 (defun projectile-get-all-sub-projects (project)
   "Get all sub-projects for a given project.
 
@@ -1009,7 +1015,7 @@ PROJECT is base directory to start search recursively."
      ((null submodules)
       nil)
      (t
-      (nconc submodules (-flatten
+      (nconc submodules (projectile-flatten
                          ;; recursively get sub-projects of each sub-project
                          (mapcar (lambda (s)
                                    (projectile-get-all-sub-projects s)) submodules)))))))
@@ -1044,7 +1050,7 @@ they are excluded from the results of this function."
 
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
-  (-flatten
+  (projectile-flatten
    (mapcar (lambda (s)
              (let ((default-directory s))
                (mapcar (lambda (f)
@@ -1287,7 +1293,7 @@ Elements containing wildcards are expanded and spliced into the
 resulting paths.  The returned PATHS are absolute, based on the
 projectile project root."
   (let ((default-directory (projectile-project-root)))
-    (-flatten (mapcar
+    (projectile-flatten (mapcar
                (lambda (pattern)
                  (or (file-expand-wildcards pattern t)
                      (projectile-expand-root pattern)))
@@ -1420,7 +1426,7 @@ files/directories are not included."
   (projectile-normalise-paths (nth 2 (projectile-parse-dirconfig-file))))
 
 (defun projectile-files-to-ensure ()
-  (-flatten (mapcar (lambda (it) (file-expand-wildcards it t))
+  (projectile-flatten (mapcar (lambda (it) (file-expand-wildcards it t))
                     (projectile-patterns-to-ensure))))
 
 (defun projectile-patterns-to-ensure ()
@@ -1643,7 +1649,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                         (string-match filename project-file))
                       project-file-list))
          (candidates
-          (-flatten (mapcar
+          (projectile-flatten (mapcar
                      (lambda (file)
                        (cl-remove-if-not
                         (lambda (project-file)
