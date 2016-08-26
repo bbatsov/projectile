@@ -1280,7 +1280,7 @@ projectile project root."
 
 (defun projectile-normalise-patterns (patterns)
   "Remove paths from PATTERNS."
-  (--remove (string-prefix-p "/" it) patterns))
+  (cl-remove-if (lambda (it) (string-prefix-p "/" it)) patterns))
 
 (defun projectile-make-relative-to-root (files)
   "Make FILES relative to the project root."
