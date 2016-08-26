@@ -2116,7 +2116,7 @@ It assumes the test/ folder is at the same level as src/."
      ((= (length candidates) 1) (car candidates))
      (t (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
           (if (= (length (car grouped-candidates)) 2)
-              (-last-item (car grouped-candidates))
+              (car (last (car grouped-candidates)))
             (projectile-completing-read
              "Switch to: "
              (apply 'append (mapcar 'cdr grouped-candidates)))))))))
@@ -2141,7 +2141,7 @@ It assumes the test/ folder is at the same level as src/."
      ((= (length candidates) 1) (car candidates))
      (t (let ((grouped-candidates (projectile-group-file-candidates test-file candidates)))
           (if (= (length (car grouped-candidates)) 2)
-              (-last-item (car grouped-candidates))
+              (car (last (car grouped-candidates)))
             (projectile-completing-read
              "Switch to: "
              (apply 'append (mapcar 'cdr grouped-candidates)))))))))
