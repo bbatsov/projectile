@@ -118,9 +118,13 @@ attention to case differences."
 
 (defun projectile-trim-string (string)
   "Remove whitespace at the beginning and end of STRING."
-  (->> string
-       (replace-regexp-in-string "\\`[ \t\n\r]+" "")
-       (replace-regexp-in-string "[ \t\n\r]+\\'" "")))
+  (replace-regexp-in-string
+   "[ 	\n\r]+\\'"
+   ""
+   (replace-regexp-in-string
+    "\\`[ 	\n\r]+"
+    ""
+    string)))
 
 
 ;;; Customization
@@ -1163,9 +1167,13 @@ this case unignored files will be absent from FILES."
 (defun projectile-project-buffer-files ()
   "Get a list of project buffer files."
   (let ((project-root (projectile-project-root)))
-    (->> (projectile-buffers-with-file (projectile-project-buffers))
-         (mapcar (lambda (buffer)
-                 (file-relative-name (buffer-file-name buffer) project-root))))))
+    (mapcar
+     (lambda (buffer)
+       (file-relative-name
+        (buffer-file-name buffer)
+        project-root))
+     (projectile-buffers-with-file
+      (projectile-project-buffers)))))
 
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
@@ -2537,9 +2545,11 @@ For hg projects `monky-status' is used if available."
   "Return a list of recently visited files in a project."
   (and (boundp 'recentf-list)
        (let ((project-root (projectile-project-root)))
-         (->> recentf-list
-              (cl-remove-if-not (lambda (it) (string-prefix-p project-root it)))
-              (mapcar (lambda (it) (file-relative-name it project-root)))))))
+         (mapcar
+          (lambda (it) (file-relative-name it project-root))
+          (cl-remove-if-not
+           (lambda (it) (string-prefix-p project-root it))
+           recentf-list)))))
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
@@ -2666,10 +2676,15 @@ fallback to the original function."
                  (and (projectile-project-p)
                       (let ((root (projectile-project-root))
                             (dirs (cons "" (projectile-current-project-dirs))))
-                        (-when-let (full-filename (->> dirs
-                                                       (mapcar (lambda (it) (expand-file-name filename (expand-file-name it root))))
-                                                       (cl-remove-if-not #'file-exists-p)
-                                                       (car)))
+                        (-when-let (full-filename
+                                    (car (cl-remove-if-not
+                                          #'file-exists-p
+                                          (mapcar
+                                           (lambda (it)
+                                             (expand-file-name
+                                              filename
+                                              (expand-file-name it root)))
+                                           dirs))))
                           full-filename)))
                  ;; Fall back to the old argument
                  filename))
