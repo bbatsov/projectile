@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 0.14.0
-;; Package-Requires: ((dash "2.11.0") (pkg-info "0.4"))
+;; Package-Requires: ((pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,8 +36,8 @@
 ;;
 ;;; Code:
 
+(require 'cl-lib)
 (require 'thingatpt)
-(require 'dash)
 (require 'ibuffer)
 (require 'ibuf-ext)
 (require 'compile)
