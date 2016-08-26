@@ -1899,9 +1899,10 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 
 (defun projectile-go ()
   "Check if a project contains Go source files."
-  (-any? (lambda (file)
-           (string= (file-name-extension file) "go"))
-         (projectile-current-project-files)))
+  (cl-some
+   (lambda (file)
+     (string= (file-name-extension file) "go"))
+   (projectile-current-project-files)))
 
 (defcustom projectile-go-function 'projectile-go
   "Function to determine if project's type is go."
