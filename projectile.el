@@ -1204,7 +1204,9 @@ this case unignored files will be absent from FILES."
       projectile-globally-ignored-modes))))
 
 (defun projectile-difference (list1 list2)
-  (cl-set-difference list1 list2 :test #'equal))
+  (cl-remove-if
+   (lambda (x) (member x list2))
+   list1))
 
 (defun projectile-recently-active-files ()
   "Get list of recently active files.
