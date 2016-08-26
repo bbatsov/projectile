@@ -1492,34 +1492,41 @@ project-root for every file."
 (cl-defun projectile-completing-read (prompt choices
                                       &key initial-input action)
   "Present a project tailored PROMPT with CHOICES."
-  (let ((prompt (projectile-prepend-project-name prompt)))
-    (cond
-      ((eq projectile-completion-system 'ido)
-       (ido-completing-read prompt choices nil nil initial-input))
-      ((eq projectile-completion-system 'default)
-       (completing-read prompt choices nil nil initial-input))
-      ((eq projectile-completion-system 'helm)
-       (if (fboundp 'helm-comp-read)
-           (helm-comp-read prompt choices
-                           :initial-input initial-input
-                           :candidates-in-buffer t
-                           :must-match 'confirm)
-         (user-error "Please install helm from \
+  (let ((prompt (projectile-prepend-project-name prompt))
+        res)
+    (setq res
+          (cond
+            ((eq projectile-completion-system 'ido)
+             (ido-completing-read prompt choices nil nil initial-input))
+            ((eq projectile-completion-system 'default)
+             (completing-read prompt choices nil nil initial-input))
+            ((eq projectile-completion-system 'helm)
+             (if (fboundp 'helm-comp-read)
+                 (helm-comp-read prompt choices
+                                 :initial-input initial-input
+                                 :candidates-in-buffer t
+                                 :must-match 'confirm)
+               (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
-      ((eq projectile-completion-system 'grizzl)
-       (if (and (fboundp 'grizzl-completing-read)
-                (fboundp 'grizzl-make-index))
-           (grizzl-completing-read prompt (grizzl-make-index choices))
-         (user-error "Please install grizzl from \
+            ((eq projectile-completion-system 'grizzl)
+             (if (and (fboundp 'grizzl-completing-read)
+                      (fboundp 'grizzl-make-index))
+                 (grizzl-completing-read prompt (grizzl-make-index choices))
+               (user-error "Please install grizzl from \
 https://github.com/d11wtq/grizzl")))
-      ((eq projectile-completion-system 'ivy)
-       (if (fboundp 'ivy-read)
-           (ivy-read prompt choices
-                     :initial-input initial-input
-                     :caller 'projectile-completing-read)
-         (user-error "Please install ivy from \
+            ((eq projectile-completion-system 'ivy)
+             (if (fboundp 'ivy-read)
+                 (ivy-read prompt choices
+                           :initial-input initial-input
+                           :action (prog1 action
+                                     (setq action nil))
+                           :caller 'projectile-completing-read)
+               (user-error "Please install ivy from \
 https://github.com/abo-abo/swiper")))
-      (t (funcall projectile-completion-system prompt choices)))))
+            (t (funcall projectile-completion-system prompt choices))))
+    (if action
+        (funcall action res)
+      res)))
 
 (defun projectile-current-project-files ()
   "Return a list of files for the current project."
@@ -1801,10 +1808,12 @@ is presented.
 With a prefix ARG invalidates the cache first."
   (interactive "P")
   (projectile-maybe-invalidate-cache arg)
-  (let ((file (projectile-completing-read "Find file: "
-                                          (projectile-current-project-files))))
-    (find-file (expand-file-name file (projectile-project-root)))
-    (run-hooks 'projectile-find-file-hook)))
+  (projectile-completing-read
+   "Find file: "
+   (projectile-current-project-files)
+   :action `(lambda (file)
+              (find-file (expand-file-name file ,(projectile-project-root)))
+              (run-hooks 'projectile-find-file-hook))))
 
 ;;;###autoload
 (defun projectile-find-file-other-window (&optional arg)
@@ -2828,9 +2837,10 @@ With a prefix ARG invokes `projectile-commander' instead of
   (interactive "P")
   (let (projects)
     (if (setq projects (projectile-relevant-known-projects))
-        (projectile-switch-project-by-name
-         (projectile-completing-read "Switch to project: " projects)
-         arg)
+        (projectile-completing-read
+         "Switch to project: " projects
+         :action (lambda (project)
+                   (projectile-switch-project-by-name project arg)))
       (error "There are no known projects"))))
 
 ;;;###autoload
@@ -2943,15 +2953,17 @@ See `projectile-cleanup-known-projects'."
 ;;;###autoload
 (defun projectile-remove-known-project (&optional project)
   "Remove PROJECT from the list of known projects."
-  (interactive (list (projectile-completing-read "Remove from known projects: "
-                                                 projectile-known-projects)))
+  (interactive (list (projectile-completing-read
+                      "Remove from known projects: " projectile-known-projects
+                      :action 'projectile-remove-known-project)))
+  (unless (called-interactively-p 'any)
   (setq projectile-known-projects
         (cl-remove-if
          (lambda (proj) (string= project proj))
          projectile-known-projects))
   (projectile-merge-known-projects)
   (when projectile-verbose
-    (message "Project %s removed from the list of known projects." project)))
+      (message "Project %s removed from the list of known projects." project))))
 
 ;;;###autoload
 (defun projectile-remove-current-project-from-known-projects ()
