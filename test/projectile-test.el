@@ -198,19 +198,15 @@
 
 (ert-deftest projectile-test-setup-hook-functions-projectile-mode ()
   (projectile-mode 1)
-  (should (and (memq 'projectile-cache-files-find-file-hook find-file-hook)
-               (memq 'projectile-cache-projects-find-file-hook find-file-hook)))
+  (should (memq 'projectile-find-file-hook-function find-file-hook))
   (projectile-mode -1)
-  (should (and (not (memq 'projectile-cache-files-find-file-hook find-file-hook))
-               (not (memq 'projectile-cache-projects-find-file-hook find-file-hook)))))
+  (should (not (memq 'projectile-find-file-hook-function find-file-hook))))
 
 (ert-deftest projectile-test-setup-hook-functions-projectile-global-mode ()
   (projectile-global-mode 1)
-  (should (and (memq 'projectile-cache-files-find-file-hook find-file-hook)
-               (memq 'projectile-cache-projects-find-file-hook find-file-hook)))
+  (should (memq 'projectile-find-file-hook-function find-file-hook))
   (projectile-global-mode -1)
-  (should (and (not (memq 'projectile-cache-files-find-file-hook find-file-hook))
-               (not (memq 'projectile-cache-projects-find-file-hook find-file-hook)))))
+  (should (not (memq 'projectile-find-file-hook-function find-file-hook))))
 
 (ert-deftest projectile-test-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
