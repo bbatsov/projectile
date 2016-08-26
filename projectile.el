@@ -1903,12 +1903,13 @@ Normally you'd set this from .dir-locals.el.")
 
 (defun projectile-detect-project-type ()
   "Detect the type of the current project."
-  (let ((project-type (-first (lambda (project-type)
-                                (let ((marker (plist-get (gethash project-type projectile-project-types) 'marker-files)))
-                                  (if (listp marker)
-                                      (and (projectile-verify-files marker) project-type)
-                                    (and (funcall marker) project-type))))
-                              (projectile-hash-keys projectile-project-types))))
+  (let ((project-type (cl-find-if
+                       (lambda (project-type)
+                         (let ((marker (plist-get (gethash project-type projectile-project-types) 'marker-files)))
+                           (if (listp marker)
+                               (and (projectile-verify-files marker) project-type)
+                             (and (funcall marker) project-type))))
+                       (projectile-hash-keys projectile-project-types))))
     (when project-type
       (puthash (projectile-project-root) project-type projectile-project-type-cache))
     project-type))
