@@ -1103,19 +1103,20 @@ you can filter ignored files in subdirectories by setting
 SUBDIRECTORIES to a non-nil value."
   (let ((ignored (append (projectile-ignored-files-rel)
                          (projectile-ignored-directories-rel))))
-    (-remove (lambda (file)
-               (or (cl-some
-                    (lambda (it)
-                      (string-prefix-p
-                       it (if subdirectories
-                              (file-name-nondirectory file)
-                            file)))
-                    ignored)
-                   (cl-some
-                    (lambda (it)
-                      (string-suffix-p it file))
-                    projectile-globally-ignored-file-suffixes)))
-             files)))
+    (cl-remove-if
+     (lambda (file)
+       (or (cl-some
+            (lambda (it)
+              (string-prefix-p
+               it (if subdirectories
+                      (file-name-nondirectory file)
+                    file)))
+            ignored)
+           (cl-some
+            (lambda (it)
+              (string-suffix-p it file))
+            projectile-globally-ignored-file-suffixes)))
+     files)))
 
 (defun projectile-keep-ignored-files (files)
   "Filter FILES to retain only those that are ignored."
@@ -1355,7 +1356,7 @@ according to PATTERNS: (ignored . unignored)"
 (defun projectile-project-ignored-files ()
   "Return list of project ignored files. Unignored files are not
 included."
-  (-remove 'file-directory-p (projectile-project-ignored)))
+  (cl-remove-if 'file-directory-p (projectile-project-ignored)))
 
 (defun projectile-project-ignored-directories ()
   "Return list of project ignored directories. Unignored
@@ -1404,7 +1405,7 @@ files/directories are not included."
 
 (defun projectile-project-unignored-files ()
   "Return list of project unignored files."
-  (-remove 'file-directory-p (projectile-project-unignored)))
+  (cl-remove-if 'file-directory-p (projectile-project-unignored)))
 
 (defun projectile-project-unignored-directories ()
   "Return list of project unignored directories."
@@ -1529,9 +1530,10 @@ https://github.com/abo-abo/swiper")))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
-  (-remove #'null (delete-dups
-                   (mapcar #'file-name-directory
-                           (projectile-current-project-files)))))
+  (delete-dups
+   (delq nil
+         (mapcar #'file-name-directory
+                 (projectile-current-project-files)))))
 
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
@@ -2498,7 +2500,7 @@ to run the replacement."
                  (length buffers) name))
         ;; we take care not to kill indirect buffers directly
         ;; as we might encounter them after their base buffers are killed
-        (mapc #'kill-buffer (-remove 'buffer-base-buffer buffers)))))
+        (mapc #'kill-buffer (cl-remove-if 'buffer-base-buffer buffers)))))
 
 ;;;###autoload
 (defun projectile-save-project-buffers ()
