@@ -695,7 +695,7 @@ The cache is created both in memory and on the hard drive."
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (puthash project-root
-             (--filter (string-prefix-p dir it) project-cache)
+             (cl-remove-if-not (lambda (it) (string-prefix-p dir it)) project-cache)
              projectile-projects-cache)))
 
 (defun projectile-file-cached-p (file project)
@@ -1128,12 +1128,12 @@ this case unignored files will be absent from FILES."
 
 (defun projectile-buffers-with-file (buffers)
   "Return only those BUFFERS backed by files."
-  (--filter (buffer-file-name it) buffers))
+  (cl-remove-if-not (lambda (it) (buffer-file-name it)) buffers))
 
 (defun projectile-buffers-with-file-or-process (buffers)
   "Return only those BUFFERS backed by files or processes."
-  (--filter (or (buffer-file-name it)
-                (get-buffer-process it)) buffers))
+  (cl-remove-if-not (lambda (it) (or (buffer-file-name it)
+                                     (get-buffer-process it))) buffers))
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
@@ -2329,8 +2329,8 @@ regular expression."
   "Return a list of files in DIRECTORY."
   (let ((dir (file-relative-name (expand-file-name directory)
                                  (projectile-project-root))))
-    (--filter (string-prefix-p dir it)
-              (projectile-current-project-files))))
+    (cl-remove-if-not (lambda (it) (string-prefix-p dir it))
+                      (projectile-current-project-files))))
 
 (defun projectile-unixy-system-p ()
   "Check to see if unixy text utilities are installed."
@@ -2508,7 +2508,7 @@ For hg projects `monky-status' is used if available."
   (and (boundp 'recentf-list)
        (let ((project-root (projectile-project-root)))
          (->> recentf-list
-              (--filter (string-prefix-p project-root it))
+              (cl-remove-if-not (lambda (it) (string-prefix-p project-root it)))
               (--map (file-relative-name it project-root))))))
 
 (defun projectile-serialize-cache ()
