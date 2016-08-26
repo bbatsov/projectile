@@ -1232,8 +1232,8 @@ This function excludes the current buffer from the offered
 choices."
   (projectile-completing-read
    prompt
-   (-remove-item (buffer-name (current-buffer))
-                 (projectile-project-buffer-names))))
+   (delete (buffer-name (current-buffer))
+           (projectile-project-buffer-names))))
 
 ;;;###autoload
 (defun projectile-switch-to-buffer ()
