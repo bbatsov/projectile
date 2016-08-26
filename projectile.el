@@ -1845,10 +1845,10 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (or (--any? (string-prefix-p it (file-name-nondirectory file))
-              (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
-      (--any? (string-suffix-p it (file-name-sans-extension (file-name-nondirectory file)))
-              (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
+  (or (cl-some (lambda (it) (string-prefix-p it (file-name-nondirectory file)))
+               (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
+      (cl-some (lambda (it) (string-suffix-p it (file-name-sans-extension (file-name-nondirectory file))))
+               (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
