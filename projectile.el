@@ -79,7 +79,7 @@ buffer-local wherever it is set."
 
   ;; Added in Emacs 24.4
   (unless (fboundp 'string-suffix-p)
-    (defun string-suffix-p (suffix string  &optional ignore-case)
+    (defun string-suffix-p (suffix string &optional ignore-case)
       "Return non-nil if SUFFIX is a suffix of STRING.
 If IGNORE-CASE is non-nil, the comparison is done without paying
 attention to case differences."
@@ -114,9 +114,7 @@ attention to case differences."
                                     (goto-char (match-end 0))))
                            (progress-reporter-update progress-reporter (point)))
                          table))))
-           table))))
-
-  )
+           table)))))
 
 (defun projectile-trim-string (string)
   "Remove whitespace at the beginning and end of STRING."
@@ -1595,16 +1593,16 @@ Returns a list of possible files for users to choose.
 
 With FLEX-MATCHING, match any file that contains the base name of current file"
   (let* ((file-ext-list (projectile-associated-file-name-extensions current-file))
-         (fulldirname  (if (file-name-directory current-file)
-                           (file-name-directory current-file) "./"))
-         (dirname  (file-name-nondirectory (directory-file-name fulldirname)))
+         (fulldirname (if (file-name-directory current-file)
+                          (file-name-directory current-file) "./"))
+         (dirname (file-name-nondirectory (directory-file-name fulldirname)))
          (filename (projectile--file-name-sans-extensions current-file))
          (file-list (mapcar (lambda (ext)
                               (if flex-matching
                                   (concat ".*" filename ".*" "\." ext "\\'")
                                 (concat "^" filename
                                         (unless (equal ext "")
-                                          (concat  "\." ext))
+                                          (concat "\." ext))
                                         "\\'")))
                             file-ext-list))
          (candidates (-filter (lambda (project-file)
@@ -1617,7 +1615,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                   (string-match file
                                                 (concat (file-name-base project-file)
                                                         (unless (equal (file-name-extension project-file) nil)
-                                                          (concat  "\." (file-name-extension project-file))))))
+                                                          (concat "\." (file-name-extension project-file))))))
                                 candidates))
                      file-list)))
          (candidates
@@ -1744,12 +1742,12 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-sort-files (files)
   "Sort FILES according to `projectile-sort-order'."
-  (pcase projectile-sort-order
-    (`default files)
-    (`recentf (projectile-sort-by-recentf-first files))
-    (`recently-active (projectile-sort-by-recently-active-first files))
-    (`modification-time (projectile-sort-by-modification-time files))
-    (`access-time (projectile-sort-by-access-time files))))
+  (cl-case projectile-sort-order
+    (default files)
+    (recentf (projectile-sort-by-recentf-first files))
+    (recently-active (projectile-sort-by-recently-active-first files))
+    (modification-time (projectile-sort-by-modification-time files))
+    (access-time (projectile-sort-by-access-time files))))
 
 (defun projectile-sort-by-recentf-first (files)
   "Sort FILES by a recent first scheme."
@@ -2481,19 +2479,19 @@ For hg projects `monky-status' is used if available."
   (interactive)
   (or project-root (setq project-root (projectile-project-root)))
   (let ((vcs (projectile-project-vcs project-root)))
-    (pcase vcs
-      (`git
+    (cl-case vcs
+      (git
        (cond ((fboundp 'magit-status-internal)
               (magit-status-internal project-root))
              ((fboundp 'magit-status)
               (with-no-warnings (magit-status project-root)))
              (t
               (vc-dir project-root))))
-      (`hg
+      (hg
        (if (fboundp 'monky-status)
            (monky-status project-root)
          (vc-dir project-root)))
-      (_ (vc-dir project-root)))))
+      (t (vc-dir project-root)))))
 
 ;;;###autoload
 (defun projectile-recentf ()
