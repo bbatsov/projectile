@@ -1072,18 +1072,20 @@ they are excluded from the results of this function."
 The function calls itself recursively until all sub-directories
 have been indexed.  The PROGRESS-REPORTER is updated while the
 function is executing."
-  (--mapcat
-   (unless (or (and patterns (projectile-ignored-rel-p it directory patterns))
-               (member (file-name-nondirectory (directory-file-name it))
-                       '("." ".." ".svn" ".cvs")))
-     (progress-reporter-update progress-reporter)
-     (if (file-directory-p it)
-         (unless (projectile-ignored-directory-p
-                  (file-name-as-directory it))
-           (projectile-index-directory it patterns progress-reporter))
-       (unless (projectile-ignored-file-p it)
-         (list it))))
-   (directory-files directory t)))
+  (apply 'append
+         (mapcar
+          (lambda (it)
+            (unless (or (and patterns (projectile-ignored-rel-p it directory patterns))
+                        (member (file-name-nondirectory (directory-file-name it))
+                                '("." ".." ".svn" ".cvs")))
+              (progress-reporter-update progress-reporter)
+              (if (file-directory-p it)
+                  (unless (projectile-ignored-directory-p
+                           (file-name-as-directory it))
+                    (projectile-index-directory it patterns progress-reporter))
+                (unless (projectile-ignored-file-p it)
+                  (list it)))))
+          (directory-files directory t))))
 
 (defun projectile-adjust-files (files)
   "First remove ignored files from FILES, then add back unignored files."
@@ -2094,7 +2096,9 @@ It assumes the test/ folder is at the same level as src/."
      (t (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
           (if (= (length (car grouped-candidates)) 2)
               (-last-item (car grouped-candidates))
-            (projectile-completing-read "Switch to: " (--mapcat (cdr it) grouped-candidates))))))))
+            (projectile-completing-read
+             "Switch to: "
+             (apply 'append (mapcar 'cdr grouped-candidates)))))))))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
@@ -2117,7 +2121,9 @@ It assumes the test/ folder is at the same level as src/."
      (t (let ((grouped-candidates (projectile-group-file-candidates test-file candidates)))
           (if (= (length (car grouped-candidates)) 2)
               (-last-item (car grouped-candidates))
-            (projectile-completing-read "Switch to: " (--mapcat (cdr it) grouped-candidates))))))))
+            (projectile-completing-read
+             "Switch to: "
+             (apply 'append (mapcar 'cdr grouped-candidates)))))))))
 
 (defun projectile-grep-default-files ()
   "Try to find a default pattern for `projectile-grep'.
