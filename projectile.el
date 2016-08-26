@@ -2205,15 +2205,15 @@ With REGEXP given, don't query the user for a regexp."
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories
-               (-union (mapcar (lambda (it) (directory-file-name (file-relative-name it root-dir)))
-                               (projectile-ignored-directories))
-                       grep-find-ignored-directories))
+               (cl-union (mapcar (lambda (it) (directory-file-name (file-relative-name it root-dir)))
+                                 (projectile-ignored-directories))
+                         grep-find-ignored-directories))
               (grep-find-ignored-files
-               (-union (append (mapcar (lambda (file)
-                                       (file-relative-name file root-dir))
-                                     (projectile-ignored-files))
-                               (projectile--globally-ignored-file-suffixes-glob))
-                       grep-find-ignored-files)))
+               (cl-union (append (mapcar (lambda (file)
+                                           (file-relative-name file root-dir))
+                                         (projectile-ignored-files))
+                                 (projectile--globally-ignored-file-suffixes-glob))
+                         grep-find-ignored-files)))
           (grep-compute-defaults)
           (rgrep search-regexp (or files "* .*") root-dir))))
     (run-hooks 'projectile-grep-finished-hook)))
@@ -2233,7 +2233,7 @@ regular expression."
       (let ((ag-command (if arg 'ag-regexp 'ag))
             (ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
                               ;; ag supports git ignore files
-                              (-union ag-ignore-list
+                              (cl-union ag-ignore-list
                                       (append
                                        (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
                                        (projectile--globally-ignored-file-suffixes-glob)
