@@ -890,7 +890,7 @@ A thin wrapper around `file-truename' that handles nil."
 ;;; Project indexing
 (defun projectile-get-project-directories ()
   "Get the list of project directories that are of interest to the user."
-  (-map (lambda (subdir) (concat (projectile-project-root) subdir))
+  (mapcar (lambda (subdir) (concat (projectile-project-root) subdir))
         (or (nth 0 (projectile-parse-dirconfig-file)) '(""))))
 
 (defun projectile-dir-files (directory)
@@ -914,14 +914,14 @@ Files are returned as relative paths to the project root."
           (format "Projectile is indexing %s"
                   (propertize directory 'face 'font-lock-keyword-face)))))
     ;; we need the files with paths relative to the project root
-    (-map (lambda (file) (file-relative-name file root))
+    (mapcar (lambda (file) (file-relative-name file root))
           (projectile-index-directory directory (projectile-filtering-patterns)
                                       progress-reporter))))
 
 (defun projectile-dir-files-external (root directory)
   "Get the files for ROOT under DIRECTORY using external tools."
   (let ((default-directory directory))
-    (-map (lambda (file)
+    (mapcar (lambda (file)
             (file-relative-name (expand-file-name file directory) root))
           (projectile-get-repo-files))))
 
@@ -1153,7 +1153,7 @@ this case unignored files will be absent from FILES."
   "Get a list of project buffer files."
   (let ((project-root (projectile-project-root)))
     (->> (projectile-buffers-with-file (projectile-project-buffers))
-         (-map (lambda (buffer)
+         (mapcar (lambda (buffer)
                  (file-relative-name (buffer-file-name buffer) project-root))))))
 
 (defun projectile-project-buffer-p (buffer project-root)
@@ -1187,7 +1187,7 @@ opened through use of recentf."
 
 (defun projectile-project-buffer-names ()
   "Get a list of project buffer names."
-  (-map #'buffer-name (projectile-project-buffers)))
+  (mapcar #'buffer-name (projectile-project-buffers)))
 
 (defun projectile-prepend-project-name (string)
   "Prepend the current project's name to STRING."
@@ -1260,7 +1260,7 @@ Elements containing wildcards are expanded and spliced into the
 resulting paths.  The returned PATHS are absolute, based on the
 projectile project root."
   (let ((default-directory (projectile-project-root)))
-    (-flatten (-map
+    (-flatten (mapcar
                (lambda (pattern)
                  (or (file-expand-wildcards pattern t)
                      (projectile-expand-root pattern)))
@@ -1299,7 +1299,7 @@ according to PATTERNS: (ignored . unignored)"
 (defun projectile-ignored-files ()
   "Return list of ignored files."
   (-difference
-   (-map
+   (mapcar
     #'projectile-expand-root
     (append
      projectile-globally-ignored-files
@@ -1309,9 +1309,9 @@ according to PATTERNS: (ignored . unignored)"
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
   (-difference
-   (-map
+   (mapcar
     #'file-name-as-directory
-    (-map
+    (mapcar
      #'projectile-expand-root
      (append
       projectile-globally-ignored-directories
@@ -1352,7 +1352,7 @@ files/directories are not included."
 
 (defun projectile-unignored-files ()
   "Return list of unignored files."
-  (-map
+  (mapcar
    #'projectile-expand-root
    (append
     projectile-globally-unignored-files
@@ -1360,9 +1360,9 @@ files/directories are not included."
 
 (defun projectile-unignored-directories ()
   "Return list of unignored directories."
-  (-map
+  (mapcar
    #'file-name-as-directory
-   (-map
+   (mapcar
     #'projectile-expand-root
     (append
      projectile-globally-unignored-directories
@@ -1435,9 +1435,9 @@ prefix the string will be assumed to be an ignore string."
           (forward-line)))
       (list (mapcar (lambda (it) (file-name-as-directory (projectile-trim-string it)))
                     (delete "" (reverse keep)))
-            (-map #'projectile-trim-string
+            (mapcar #'projectile-trim-string
                   (delete "" (reverse ignore)))
-            (-map #'projectile-trim-string
+            (mapcar #'projectile-trim-string
                   (delete "" (reverse ensure)))))))
 
 (defun projectile-expand-root (name)
@@ -1503,7 +1503,7 @@ https://github.com/abo-abo/swiper")))
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
   (-remove #'null (-distinct
-                   (-map #'file-name-directory
+                   (mapcar #'file-name-directory
                          (projectile-current-project-files)))))
 
 (defun projectile-hash-keys (hash)
@@ -2160,7 +2160,7 @@ With REGEXP given, don't query the user for a regexp."
                                (projectile-ignored-directories))
                        grep-find-ignored-directories))
               (grep-find-ignored-files
-               (-union (append (-map (lambda (file)
+               (-union (append (mapcar (lambda (file)
                                        (file-relative-name file root-dir))
                                      (projectile-ignored-files))
                                (projectile--globally-ignored-file-suffixes-glob))
@@ -2374,7 +2374,7 @@ files in the project."
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (-reject #'file-directory-p
-             (-map #'projectile-expand-root (projectile-dir-files directory)))))
+             (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
 
 ;;;###autoload
 (defun projectile-replace (&optional arg)
@@ -2430,7 +2430,7 @@ to run the replacement."
           ;; `projectile-files-with-string' because those regexp tools
           ;; don't support Emacs regular expressions.
           (-reject #'file-directory-p
-                   (-map #'projectile-expand-root (projectile-dir-files directory)))))
+                   (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 
 (defun projectile-symbol-or-selection-at-point ()
@@ -2680,7 +2680,7 @@ with a prefix ARG."
 An open project is a project with any open buffers."
   (-distinct
    (-non-nil
-    (-map (lambda (buffer)
+    (mapcar (lambda (buffer)
             (with-current-buffer buffer
               (when (projectile-project-p)
                 (abbreviate-file-name (projectile-project-root)))))
@@ -2762,7 +2762,7 @@ This command will first prompt for the directory the file is in."
   (-mapcat (lambda (project)
              (when (file-exists-p project)
                (let ((default-directory project))
-                 (-map (lambda (file)
+                 (mapcar (lambda (file)
                          (expand-file-name file project))
                        (projectile-current-project-files)))))
            projectile-known-projects))
@@ -2837,7 +2837,7 @@ See `projectile-cleanup-known-projects'."
 
 (defun projectile-ignored-projects ()
   "A list of projects that should not be save in `projectile-known-projects'."
-  (-map #'file-truename projectile-ignored-projects))
+  (mapcar #'file-truename projectile-ignored-projects))
 
 (defun projectile-ignored-project-p (project-root)
   "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'."
@@ -2938,7 +2938,7 @@ available actions.
 
 See `def-projectile-commander-method' for defining new methods."
   (interactive)
-  (-let* ((choices (-map #'car projectile-commander-methods))
+  (-let* ((choices (mapcar #'car projectile-commander-methods))
           (prompt (concat "Commander [" choices "]: "))
           (ch (read-char-choice prompt choices))
           ((_ _ fn) (assq ch projectile-commander-methods)))
