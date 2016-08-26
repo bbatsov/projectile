@@ -2854,7 +2854,9 @@ See `projectile-cleanup-known-projects'."
   (interactive (list (projectile-completing-read "Remove from known projects: "
                                                  projectile-known-projects)))
   (setq projectile-known-projects
-        (--reject (string= project it) projectile-known-projects))
+        (cl-remove-if
+         (lambda (it) (string= project it))
+         projectile-known-projects))
   (projectile-merge-known-projects)
   (when projectile-verbose
     (message "Project %s removed from the list of known projects." project)))
