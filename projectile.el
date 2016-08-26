@@ -1976,7 +1976,7 @@ Normally you'd set this from .dir-locals.el.")
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
-  (-all? 'projectile-verify-file files))
+  (cl-every 'projectile-verify-file files))
 
 (defun projectile-verify-file (file)
   "Check whether FILE exists in the current project.
