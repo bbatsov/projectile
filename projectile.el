@@ -2121,8 +2121,18 @@ It assumes the test/ folder is at the same level as src/."
 
 (defun projectile-group-file-candidates (file candidates)
   "Group file candidates by dirname matching count."
-  (--sort (> (car it) (car other))
-          (--group-by (projectile-dirname-matching-count file it) candidates)))
+  (cl-sort (lambda (it other) (> (car it) (car other)))
+           (copy-sequence
+            (let (value result)
+              (while (setq value (pop candidates))
+                (let* ((key (projectile-dirname-matching-count file value))
+                       (kv (assoc key result)))
+                  (if kv
+                      (setcdr kv (cons value (cdr kv)))
+                    (push (list key value) result))))
+              (mapcar (lambda (x)
+                        (cons (car x) (nreverse (cdr x))))
+                      (nreverse result))))))
 
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
