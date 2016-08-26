@@ -1502,9 +1502,9 @@ https://github.com/abo-abo/swiper")))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
-  (-remove #'null (-distinct
+  (-remove #'null (delete-dups
                    (mapcar #'file-name-directory
-                         (projectile-current-project-files)))))
+                           (projectile-current-project-files)))))
 
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
@@ -2678,7 +2678,7 @@ with a prefix ARG."
 (defun projectile-open-projects ()
   "Return a list of all open projects.
 An open project is a project with any open buffers."
-  (-distinct
+  (delete-dups
    (delq nil
          (mapcar (lambda (buffer)
                    (with-current-buffer buffer
@@ -2849,7 +2849,7 @@ See `projectile-cleanup-known-projects'."
   "Add PROJECT-ROOT to the list of known projects."
   (unless (projectile-ignored-project-p project-root)
     (setq projectile-known-projects
-          (-distinct
+          (delete-dups
            (cons (abbreviate-file-name project-root)
                  projectile-known-projects)))))
 
@@ -2885,7 +2885,7 @@ overwriting each other's changes."
          (removed-after-sync (-difference known-on-last-sync known-now))
          (removed-in-other-process
           (-difference known-on-last-sync known-on-file))
-         (result (-distinct
+         (result (delete-dups
                   (-difference
                    (append known-now known-on-file)
                    (append removed-after-sync removed-in-other-process)))))
