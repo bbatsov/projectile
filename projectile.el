@@ -1250,10 +1250,10 @@ Only buffers not visible in windows are returned."
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
-  (-non-nil (--map (and (string-prefix-p "/" it)
-                        ;; remove the leading /
-                        (substring it 1))
-                   patterns)))
+  (-non-nil (mapcar (lambda (it) (and (string-prefix-p "/" it)
+                                      ;; remove the leading /
+                                      (substring it 1)))
+                    patterns)))
 
 (defun projectile-expand-paths (paths)
   "Expand the elements of PATHS.
@@ -1275,7 +1275,7 @@ projectile project root."
 (defun projectile-make-relative-to-root (files)
   "Make FILES relative to the project root."
   (let ((project-root (projectile-project-root)))
-    (--map (file-relative-name it project-root) files)))
+    (mapcar (lambda (it) (file-relative-name it project-root)) files)))
 
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
@@ -1391,8 +1391,8 @@ files/directories are not included."
   (projectile-normalise-paths (nth 2 (projectile-parse-dirconfig-file))))
 
 (defun projectile-files-to-ensure ()
-  (-flatten (--map (file-expand-wildcards it t)
-                   (projectile-patterns-to-ensure))))
+  (-flatten (mapcar (lambda (it) (file-expand-wildcards it t))
+                    (projectile-patterns-to-ensure))))
 
 (defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
@@ -1433,14 +1433,14 @@ prefix the string will be assumed to be an ignore string."
             (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
             (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
-            (_  (push (buffer-substring     (point)  (line-end-position)) ignore)))
+            (_ (push (buffer-substring (point) (line-end-position)) ignore)))
           (forward-line)))
-      (list (--map (file-name-as-directory (projectile-trim-string it))
-                   (delete "" (reverse keep)))
-            (-map  #'projectile-trim-string
-                   (delete "" (reverse ignore)))
-            (-map  #'projectile-trim-string
-                   (delete "" (reverse ensure)))))))
+      (list (mapcar (lambda (it) (file-name-as-directory (projectile-trim-string it)))
+                    (delete "" (reverse keep)))
+            (-map #'projectile-trim-string
+                  (delete "" (reverse ignore)))
+            (-map #'projectile-trim-string
+                  (delete "" (reverse ensure)))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
@@ -2127,7 +2127,7 @@ This is a subset of `grep-read-files', where either a matching entry from
 
 (defun projectile--globally-ignored-file-suffixes-glob ()
   "Return ignored file suffixes as a list of glob patterns."
-  (--map (concat "*" it) projectile-globally-ignored-file-suffixes))
+  (mapcar (lambda (it) (concat "*" it)) projectile-globally-ignored-file-suffixes))
 
 ;;;###autoload
 (defun projectile-grep (&optional regexp arg)
@@ -2157,8 +2157,8 @@ With REGEXP given, don't query the user for a regexp."
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories
-               (-union (--map (directory-file-name (file-relative-name it root-dir))
-                              (projectile-ignored-directories))
+               (-union (mapcar (lambda (it) (directory-file-name (file-relative-name it root-dir)))
+                               (projectile-ignored-directories))
                        grep-find-ignored-directories))
               (grep-find-ignored-files
                (-union (append (-map (lambda (file)
@@ -2343,11 +2343,11 @@ CMD should include the necessary search params and should output
 equivalently to grep -HlI (only unique matching filenames).
 Returns a list of expanded filenames."
   (let ((default-directory directory))
-    (--map (concat directory
-                   (if (string-prefix-p "./" it) (substring it 2) it))
-           (-> (shell-command-to-string cmd)
-               projectile-trim-string
-               (split-string "\n+" t)))))
+    (mapcar (lambda (it) (concat directory
+                                 (if (string-prefix-p "./" it) (substring it 2) it)))
+            (-> (shell-command-to-string cmd)
+                projectile-trim-string
+                (split-string "\n+" t)))))
 
 (defun projectile-files-with-string (string directory)
   "Return a list of all files containing STRING in DIRECTORY.
@@ -2509,7 +2509,7 @@ For hg projects `monky-status' is used if available."
        (let ((project-root (projectile-project-root)))
          (->> recentf-list
               (cl-remove-if-not (lambda (it) (string-prefix-p project-root it)))
-              (--map (file-relative-name it project-root))))))
+              (mapcar (lambda (it) (file-relative-name it project-root)))))))
 
 (defun projectile-serialize-cache ()
   "Serializes the memory cache to the hard drive."
@@ -2637,7 +2637,7 @@ fallback to the original function."
                       (let ((root (projectile-project-root))
                             (dirs (cons "" (projectile-current-project-dirs))))
                         (-when-let (full-filename (->> dirs
-                                                       (--map (expand-file-name filename (expand-file-name it root)))
+                                                       (mapcar (lambda (it) (expand-file-name filename (expand-file-name it root))))
                                                        (-filter #'file-exists-p)
                                                        (-first-item)))
                           full-filename)))
