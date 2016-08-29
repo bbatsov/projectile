@@ -697,7 +697,7 @@ The cache is created both in memory and on the hard drive."
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (puthash project-root
-             (cl-remove-if-not (lambda (it) (string-prefix-p dir it)) project-cache)
+             (cl-remove-if-not (lambda (str) (string-prefix-p dir str)) project-cache)
              projectile-projects-cache)))
 
 (defun projectile-file-cached-p (file project)
@@ -819,14 +819,14 @@ Return the first (topmost) matched directory or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
-     (cl-find-if (lambda (it) (projectile-file-exists-p (expand-file-name it dir)))
+     (cl-find-if (lambda (f) (projectile-file-exists-p (expand-file-name f dir)))
                  (or list projectile-project-root-files)))))
 
 (defun projectile-root-bottom-up (dir &optional list)
   "Identify a project root in DIR by bottom-up search for files in LIST.
 If LIST is nil, use `projectile-project-root-files-bottom-up' instead.
 Return the first (bottommost) matched directory or nil if not found."
-  (cl-some (lambda (it) (projectile-locate-dominating-file dir it))
+  (cl-some (lambda (name) (projectile-locate-dominating-file dir name))
            (or list projectile-project-root-files-bottom-up)))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
@@ -835,13 +835,13 @@ If LIST is nil, use `projectile-project-root-files-top-down-recurring'
 instead.  Return the last (bottommost) matched directory in the
 topmost sequence of matched directories.  Nil otherwise."
   (cl-some
-   (lambda (it)
+   (lambda (f)
      (projectile-locate-dominating-file
       dir
       (lambda (dir)
-        (and (projectile-file-exists-p (expand-file-name it dir))
+        (and (projectile-file-exists-p (expand-file-name f dir))
              (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
-                 (not (projectile-file-exists-p (expand-file-name it (projectile-parent dir)))))))))
+                 (not (projectile-file-exists-p (expand-file-name f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root ()
@@ -849,12 +849,12 @@ topmost sequence of matched directories.  Nil otherwise."
 The current directory is assumed to be the project's root otherwise."
   (let ((dir default-directory))
     (or (cl-some
-         (lambda (it)
-           (let* ((cache-key (format "%s-%s" it dir))
+         (lambda (func)
+           (let* ((cache-key (format "%s-%s" func dir))
                   (cache-value (gethash cache-key projectile-project-root-cache)))
              (if (and cache-value (file-exists-p cache-value))
                  cache-value
-               (let ((value (funcall it (file-truename dir))))
+               (let ((value (funcall func (file-truename dir))))
                  (puthash cache-key value projectile-project-root-cache)
                  value))))
          projectile-project-root-files-functions)
@@ -1084,17 +1084,17 @@ have been indexed.  The PROGRESS-REPORTER is updated while the
 function is executing."
   (apply 'append
          (mapcar
-          (lambda (it)
-            (unless (or (and patterns (projectile-ignored-rel-p it directory patterns))
-                        (member (file-name-nondirectory (directory-file-name it))
+          (lambda (f)
+            (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
+                        (member (file-name-nondirectory (directory-file-name f))
                                 '("." ".." ".svn" ".cvs")))
               (progress-reporter-update progress-reporter)
-              (if (file-directory-p it)
+              (if (file-directory-p f)
                   (unless (projectile-ignored-directory-p
-                           (file-name-as-directory it))
-                    (projectile-index-directory it patterns progress-reporter))
-                (unless (projectile-ignored-file-p it)
-                  (list it)))))
+                           (file-name-as-directory f))
+                    (projectile-index-directory f patterns progress-reporter))
+                (unless (projectile-ignored-file-p f)
+                  (list f)))))
           (directory-files directory t))))
 
 (defun projectile-adjust-files (files)
@@ -1112,15 +1112,16 @@ SUBDIRECTORIES to a non-nil value."
     (cl-remove-if
      (lambda (file)
        (or (cl-some
-            (lambda (it)
+            (lambda (dir)
               (string-prefix-p
-               it (if subdirectories
-                      (file-name-nondirectory file)
-                    file)))
+               dir
+               (if subdirectories
+                   (file-name-nondirectory file)
+                 file)))
             ignored)
            (cl-some
-            (lambda (it)
-              (string-suffix-p it file))
+            (lambda (suf)
+              (string-suffix-p suf file))
             projectile-globally-ignored-file-suffixes)))
      files)))
 
@@ -1129,7 +1130,7 @@ SUBDIRECTORIES to a non-nil value."
   (when files
     (cl-remove-if-not
      (lambda (file)
-       (cl-some (lambda (it) (string-prefix-p it file)) files))
+       (cl-some (lambda (f) (string-prefix-p f file)) files))
      (projectile-get-repo-ignored-files))))
 
 (defun projectile-add-unignored (files)
@@ -1147,12 +1148,12 @@ this case unignored files will be absent from FILES."
 
 (defun projectile-buffers-with-file (buffers)
   "Return only those BUFFERS backed by files."
-  (cl-remove-if-not (lambda (it) (buffer-file-name it)) buffers))
+  (cl-remove-if-not (lambda (b) (buffer-file-name b)) buffers))
 
 (defun projectile-buffers-with-file-or-process (buffers)
   "Return only those BUFFERS backed by files or processes."
-  (cl-remove-if-not (lambda (it) (or (buffer-file-name it)
-                                     (get-buffer-process it))) buffers))
+  (cl-remove-if-not (lambda (b) (or (buffer-file-name b)
+                               (get-buffer-process b))) buffers))
 
 (defun projectile-project-buffers ()
   "Get a list of project buffers."
@@ -1198,8 +1199,8 @@ this case unignored files will be absent from FILES."
    (member (buffer-name buffer) projectile-globally-ignored-buffers)
    (with-current-buffer buffer
      (cl-some
-      (lambda (it)
-        (string-match-p (concat "^" it "$")
+      (lambda (mode)
+        (string-match-p (concat "^" mode "$")
                         (symbol-name major-mode)))
       projectile-globally-ignored-modes))))
 
@@ -1283,9 +1284,9 @@ Only buffers not visible in windows are returned."
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
-  (delq nil (mapcar (lambda (it) (and (string-prefix-p "/" it)
-                                      ;; remove the leading /
-                                      (substring it 1)))
+  (delq nil (mapcar (lambda (pat) (and (string-prefix-p "/" pat)
+                                       ;; remove the leading /
+                                       (substring pat 1)))
                     patterns)))
 
 (defun projectile-expand-paths (paths)
@@ -1303,12 +1304,12 @@ projectile project root."
 
 (defun projectile-normalise-patterns (patterns)
   "Remove paths from PATTERNS."
-  (cl-remove-if (lambda (it) (string-prefix-p "/" it)) patterns))
+  (cl-remove-if (lambda (pat) (string-prefix-p "/" pat)) patterns))
 
 (defun projectile-make-relative-to-root (files)
   "Make FILES relative to the project root."
   (let ((project-root (projectile-project-root)))
-    (mapcar (lambda (it) (file-relative-name it project-root)) files)))
+    (mapcar (lambda (f) (file-relative-name f project-root)) files)))
 
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
@@ -1329,10 +1330,10 @@ projectile project root."
 according to PATTERNS: (ignored . unignored)"
   (let ((default-directory directory))
     (and (cl-some
-          (lambda (it) (projectile-check-pattern-p file it))
+          (lambda (pat) (projectile-check-pattern-p file pat))
           (car patterns))
          (cl-notany
-          (lambda (it) (projectile-check-pattern-p file it))
+          (lambda (pat) (projectile-check-pattern-p file pat))
           (cdr patterns)))))
 
 (defun projectile-ignored-files ()
@@ -1428,8 +1429,8 @@ files/directories are not included."
   (projectile-normalise-paths (nth 2 (projectile-parse-dirconfig-file))))
 
 (defun projectile-files-to-ensure ()
-  (projectile-flatten (mapcar (lambda (it) (file-expand-wildcards it t))
-                    (projectile-patterns-to-ensure))))
+  (projectile-flatten (mapcar (lambda (pat) (file-expand-wildcards pat t))
+                              (projectile-patterns-to-ensure))))
 
 (defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
@@ -1472,12 +1473,12 @@ prefix the string will be assumed to be an ignore string."
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
             (_ (push (buffer-substring (point) (line-end-position)) ignore)))
           (forward-line)))
-      (list (mapcar (lambda (it) (file-name-as-directory (projectile-trim-string it)))
+      (list (mapcar (lambda (f) (file-name-as-directory (projectile-trim-string f)))
                     (delete "" (reverse keep)))
             (mapcar #'projectile-trim-string
-                  (delete "" (reverse ignore)))
+                    (delete "" (reverse ignore)))
             (mapcar #'projectile-trim-string
-                  (delete "" (reverse ensure)))))))
+                    (delete "" (reverse ensure)))))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
@@ -1899,9 +1900,9 @@ With a prefix ARG invalidates the cache first."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (or (cl-some (lambda (it) (string-prefix-p it (file-name-nondirectory file)))
+  (or (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
                (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
-      (cl-some (lambda (it) (string-suffix-p it (file-name-sans-extension (file-name-nondirectory file))))
+      (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
                (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
 
 (defun projectile-current-project-test-files ()
@@ -2136,7 +2137,7 @@ It assumes the test/ folder is at the same level as src/."
               (mapcar (lambda (x)
                         (cons (car x) (nreverse (cdr x))))
                       (nreverse result))))
-           (lambda (it other) (> (car it) (car other)))))
+           (lambda (a b) (> (car a) (car b)))))
 
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
@@ -2216,7 +2217,7 @@ This is a subset of `grep-read-files', where either a matching entry from
 
 (defun projectile--globally-ignored-file-suffixes-glob ()
   "Return ignored file suffixes as a list of glob patterns."
-  (mapcar (lambda (it) (concat "*" it)) projectile-globally-ignored-file-suffixes))
+  (mapcar (lambda (pat) (concat "*" pat)) projectile-globally-ignored-file-suffixes))
 
 ;;;###autoload
 (defun projectile-grep (&optional regexp arg)
@@ -2246,7 +2247,7 @@ With REGEXP given, don't query the user for a regexp."
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-directories
-               (cl-union (mapcar (lambda (it) (directory-file-name (file-relative-name it root-dir)))
+               (cl-union (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
                                  (projectile-ignored-directories))
                          grep-find-ignored-directories))
               (grep-find-ignored-files
@@ -2419,13 +2420,13 @@ regular expression."
   (let ((dir (file-relative-name (expand-file-name directory)
                                  (projectile-project-root))))
     (cl-remove-if-not
-     (lambda (it) (string-prefix-p dir it))
+     (lambda (f) (string-prefix-p dir f))
      (projectile-current-project-files))))
 
 (defun projectile-unixy-system-p ()
   "Check to see if unixy text utilities are installed."
   (cl-every
-   (lambda (it) (executable-find it))
+   (lambda (x) (executable-find x))
    '("grep" "cut" "uniq")))
 
 (defun projectile-files-from-cmd (cmd directory)
@@ -2435,11 +2436,11 @@ CMD should include the necessary search params and should output
 equivalently to grep -HlI (only unique matching filenames).
 Returns a list of expanded filenames."
   (let ((default-directory directory))
-    (mapcar (lambda (it)
+    (mapcar (lambda (str)
               (concat directory
-                      (if (string-prefix-p "./" it)
-                          (substring it 2)
-                        it)))
+                      (if (string-prefix-p "./" str)
+                          (substring str 2)
+                        str)))
             (split-string
              (projectile-trim-string
               (shell-command-to-string cmd))
@@ -2607,9 +2608,9 @@ For hg projects `monky-status' is used if available."
   (and (boundp 'recentf-list)
        (let ((project-root (projectile-project-root)))
          (mapcar
-          (lambda (it) (file-relative-name it project-root))
+          (lambda (f) (file-relative-name f project-root))
           (cl-remove-if-not
-           (lambda (it) (string-prefix-p project-root it))
+           (lambda (f) (string-prefix-p project-root f))
            recentf-list)))))
 
 (defun projectile-serialize-cache ()
@@ -2742,10 +2743,10 @@ fallback to the original function."
                                     (car (cl-remove-if-not
                                           #'file-exists-p
                                           (mapcar
-                                           (lambda (it)
+                                           (lambda (f)
                                              (expand-file-name
                                               filename
-                                              (expand-file-name it root)))
+                                              (expand-file-name f root)))
                                            dirs))))
                           full-filename)))
                  ;; Fall back to the old argument
@@ -2934,7 +2935,7 @@ See `projectile-cleanup-known-projects'."
                                                  projectile-known-projects)))
   (setq projectile-known-projects
         (cl-remove-if
-         (lambda (it) (string= project it))
+         (lambda (proj) (string= project proj))
          projectile-known-projects))
   (projectile-merge-known-projects)
   (when projectile-verbose
@@ -3070,14 +3071,14 @@ is chosen."
            (cl-sort (copy-sequence
                      (cons (list ,key ,description ,method)
                            (assq-delete-all ,key projectile-commander-methods)))
-                    (lambda (it other) (< (car it) (car other)))))))
+                    (lambda (a b) (< (car a) (car b)))))))
 
 (def-projectile-commander-method ?? "Commander help buffer."
   (ignore-errors (kill-buffer projectile-commander-help-buffer))
   (with-current-buffer (get-buffer-create projectile-commander-help-buffer)
     (insert "Projectile Commander Methods:\n\n")
-    (dolist (it projectile-commander-methods)
-      (insert (format "%c:\t%s\n" (car it) (cadr it))))
+    (dolist (met projectile-commander-methods)
+      (insert (format "%c:\t%s\n" (car met) (cadr met))))
     (goto-char (point-min))
     (help-mode)
     (display-buffer (current-buffer) t))
