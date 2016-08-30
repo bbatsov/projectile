@@ -63,12 +63,11 @@ You can support the development of Projectile via
 
 ## Running the tests in batch mode
 
-Install [cask](https://github.com/cask/cask) if you haven't
-already, then:
-
 ```
 $ cd /path/to/projectile
-$ cask
+$ make update
+$ make compile
+$ make test
 ```
 
 Run all tests with:
@@ -77,5 +76,4 @@ Run all tests with:
 $ make test
 ```
 
-(Note: tests may not run correctly inside Emacs' `shell-mode` buffers. Running
-them in a terminal is recommended.)
+Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use <kbd>M-x</kbd> `compile` (or `helm-make`).
