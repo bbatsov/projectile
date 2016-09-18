@@ -263,7 +263,7 @@ Two example filter functions are shipped by default -
 `projectile-buffers-with-file' and
 `projectile-buffers-with-file-or-process'."
   :group 'projectile
-  :type 'symbol)
+  :type 'function)
 
 (defcustom projectile-project-name nil
   "If this value is non-nil, it will be used as project name.
@@ -278,7 +278,7 @@ It has precedence over function `projectile-project-name-function'."
 
 If variable `projectile-project-name' is non-nil, this function will not be used."
   :group 'projectile
-  :type 'symbol
+  :type 'function
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-project-root-files
@@ -425,7 +425,7 @@ it for functions working with buffers."
 
 Any function that does not take arguments will do."
   :group 'projectile
-  :type 'symbol)
+  :type 'function)
 
 (defcustom projectile-find-dir-includes-top-level nil
   "If true, add top-level dir to options offered by `projectile-find-dir'."
