@@ -54,7 +54,7 @@
 ### Bugs fixed
 
 * [#871](https://github.com/bbatsov/projectile/issues/871): Stop advice for `compilation-find-file` to override other advices.
-* [#557](https://github.com/bbatsov/projectile/issues/557): stack overflow in `projectile-find-tag'.
+* [#557](https://github.com/bbatsov/projectile/issues/557): stack overflow in `projectile-find-tag`.
 * [#955](https://github.com/bbatsov/projectile/issues/955): Error while toggling between test and source file.
 * [#952](https://github.com/bbatsov/projectile/issues/952): VCS submodules brought in even thought not descendent of project root.
 * [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
