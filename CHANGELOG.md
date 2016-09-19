@@ -32,7 +32,7 @@
 * Consider `TAGS` and `GTAGS` root markers.
 * Add relation between the `.h`, `.cxx`, `.ixx` and `.hxx` files in `projectile-other-file-alist`.
 * Add relation between the `.hpp` and `.cc` files in `projectile-other-file-alist`.
-* Add support to specify project name either via `.dir-locals.el` or by providing a customized `projectile-project-name-function'.
+* Add support to specify project name either via `.dir-locals.el` or by providing a customized `projectile-project-name-function`.
 * Add a command to switch between open projects (`projectile-switch-open-project`).
 * Add a command to edit the .dir-locals.el file of the project (`projectile-edit-dir-locals`).
 * Add file local variable `projectile-project-root`, which allows overriding the project root on a per-file basis. This allows navigating a different project from, say, an org file in a another git repository.
@@ -60,7 +60,7 @@
 * [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
 * [#957](https://github.com/bbatsov/projectile/pull/957): When opening a specified file from the terminal, do not error inside of `projectile-cache-current-file`.
 * [#984](https://github.com/bbatsov/projectile/pull/984): Error when a project is a symlink that changes target.
-* [#1013](https://github.com/bbatsov/projectile/issues/1013): projectile-project-buffer-p may return incorrect result on Windows.
+* [#1013](https://github.com/bbatsov/projectile/issues/1013): `projectile-project-buffer-p` may return incorrect result on Windows.
 
 ## 0.13.0 (2015-10-21)
 
