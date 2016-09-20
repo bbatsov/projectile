@@ -583,7 +583,7 @@ just return nil."
   (if (require 'pkg-info nil t)
       (let ((version (pkg-info-version-info 'projectile)))
         (when show-version
-          (message "Projectile version: %s" version))
+          (message "Projectile %s" version))
         version)
     (error "Cannot determine version without package pkg-info")))
 
