@@ -2845,12 +2845,15 @@ With a prefix ARG invokes `projectile-commander' instead of
 Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
-  (let* ((default-directory project-to-switch)
-         (switch-project-action (if arg
+  (let ((switch-project-action (if arg
                                     'projectile-commander
                                   projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
-    (funcall switch-project-action)
+    ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals before calling SWITCH-PROJECT-ACTION
+    (with-temp-buffer
+      (let ((default-directory project-to-switch))
+        (hack-dir-local-variables-non-file-buffer)
+        (funcall switch-project-action)))
     (run-hooks 'projectile-after-switch-project-hook)))
 
 ;;;###autoload
