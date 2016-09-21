@@ -1084,6 +1084,76 @@ they are excluded from the results of this function."
     (when cmd
       (projectile-files-via-ext-command cmd))))
 
+(defun projectile-call-process-to-string (program &rest args)
+  "Invoke the executable PROGRAM with ARGS and return the output as a string."
+  (with-temp-buffer
+    (apply 'call-process program nil (current-buffer) nil args)
+    (buffer-string)))
+
+(defun projectile-shell-command-to-string (command)
+  "Try to run COMMAND without actually using a shell and return the output.
+
+The function `eshell-search-path' will be used to search the PATH
+environment variable for an appropriate executable using the text
+occuring before the first space.  If no executable is found,
+fallback to `shell-command-to-string'."
+  (cl-destructuring-bind
+      (the-command . args) (split-string command " ")
+    (let ((binary-path (eshell-search-path the-command)))
+      (if binary-path
+          (apply 'projectile-call-process-to-string binary-path args)
+        (shell-command-to-string command)))))
+
+(defun projectile-check-cvs-status (&optional project-path)
+  "Check the status of the current project, or the project
+in the given directory if `project-path` is non-nil"
+  (let* ((project-path (or project-path (projectile-project-root)))
+         (project-status nil)
+         (to-check-for (list "edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")))
+    (save-excursion
+      (vc-dir project-path)
+      ;; wait until vc-dir is done
+      (while (vc-dir-busy)
+        (sleep-for 0 100))
+      ;; check for status
+      (save-excursion
+        (save-match-data
+          (loop for check in to-check-for do
+                (goto-char (point-min))
+                (when (search-forward check nil t)
+                  (setq project-status (cons check project-status))))))
+      (kill-buffer)
+      project-status)))
+
+(defun projectile-check-cvs-status-of-known-projects ()
+  "Return all dirty projects"
+  (let ((projects projectile-known-projects)
+        (status ())
+        (tmp-status nil))
+    (loop for project in projects do
+          (progn
+            (setq tmp-status (projectile-check-cvs-status project))
+            (when tmp-status
+              (setq status (cons (list project tmp-status) status)))))
+    (when (= (length status) 0)
+      (error "There are no modified known projects"))
+    status))
+
+(defun projectile-see-dirty-projects ()
+  "See all dirty known project followed by version control
+(uncommited changes or unpushed commits)."
+  (interactive)
+    (let ((status nil)
+          (mod-proj nil))
+      (message "Checking for modifications in known projects...")
+      (setq status (projectile-check-cvs-status-of-known-projects))
+      (while (not (= (length status) 0))
+              (setq mod-proj (cons (car (pop status)) mod-proj)))
+    (if (= (length mod-proj) 0)
+        (error "There are no modified known projects")
+      (projectile-vc
+       (projectile-completing-read "See project: " mod-proj)))))
+
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
   (split-string (shell-command-to-string command) "\0" t))
