@@ -136,11 +136,8 @@
 
 (ert-deftest projectile-add-unignored-files-no-vcs ()
   (noflet ((projectile-project-vcs () 'none))
-    ;; Fail when no VCS command for ignored files is found
+    ;; on an unsupported VCS we simply return the list of globally unignored files
     (let ((projectile-globally-unignored-files '("unignored-file")))
-      (should-error (projectile-add-unignored '("file"))))
-    ;; But only fail if unignored files are requested
-    (let (projectile-globally-unignored-files)
       (should (equal (projectile-add-unignored '("file")) '("file"))))))
 
 (ert-deftest projectile-add-unignored-directories ()
@@ -608,7 +605,7 @@
                        "include2/test1.service.spec.js"
                        "include1/test2.js"
                        "include2/test2.js")))
-    
+
     (should (equal '("include1/test1.h" "include2/test1.h")
                    (projectile-get-other-files "src/test1.c" source-tree)))
     (should (equal '("include1/test1.h" "include2/test1.h" "include1/test1.hpp")
