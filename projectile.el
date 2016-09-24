@@ -1104,17 +1104,16 @@ fallback to `shell-command-to-string'."
           (apply 'projectile-call-process-to-string binary-path args)
         (shell-command-to-string command)))))
 
-(defun projectile-check-cvs-status (&optional project-path)
-  "Check the status of the current project, or the project
-in the given directory if `project-path` is non-nil"
-  (let* ((project-path (or project-path (projectile-project-root)))
+(defun projectile-check-cvs-status (&optional PROJECT-PATH)
+  "Check the status of the current project.
+If PROJECT-PATH is a project, check this one instead."
+  (let* ((PROJECT-PATH (or PROJECT-PATH (projectile-project-root)))
          (project-status nil)
          (to-check-for (list "edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")))
     (save-excursion
-      (vc-dir project-path)
+      (vc-dir PROJECT-PATH)
       ;; wait until vc-dir is done
-      (while (vc-dir-busy)
-        (sleep-for 0 100))
+      (while (vc-dir-busy) (sleep-for 0 100))
       ;; check for status
       (save-excursion
         (save-match-data
@@ -1126,33 +1125,34 @@ in the given directory if `project-path` is non-nil"
       project-status)))
 
 (defun projectile-check-cvs-status-of-known-projects ()
-  "Return all dirty projects"
+  "Return the list of dirty projects.
+The list is composed of sublists~: (project-path, project-status).
+Raise an error if their is no dirty project."
   (let ((projects projectile-known-projects)
         (status ())
         (tmp-status nil))
     (loop for project in projects do
           (progn
-            (setq tmp-status (projectile-check-cvs-status project))
+            (condition-case nil
+                (setq tmp-status (projectile-check-cvs-status project))
+                (error nil))
             (when tmp-status
               (setq status (cons (list project tmp-status) status)))))
     (when (= (length status) 0)
-      (error "There are no modified known projects"))
+      (error "No dirty projects has been found"))
     status))
 
 (defun projectile-see-dirty-projects ()
-  "See all dirty known project followed by version control
-(uncommited changes or unpushed commits)."
+  "Choose among the list of all dirty projects."
   (interactive)
-    (let ((status nil)
-          (mod-proj nil))
-      (message "Checking for modifications in known projects...")
-      (setq status (projectile-check-cvs-status-of-known-projects))
-      (while (not (= (length status) 0))
-              (setq mod-proj (cons (car (pop status)) mod-proj)))
-    (if (= (length mod-proj) 0)
-        (error "There are no modified known projects")
+  (let ((status nil)
+        (mod-proj nil))
+    (message "Checking for modifications in known projects...")
+    (setq status (projectile-check-cvs-status-of-known-projects))
+    (while (not (= (length status) 0))
+      (setq mod-proj (cons (car (pop status)) mod-proj)))
       (projectile-vc
-       (projectile-completing-read "See project: " mod-proj)))))
+       (projectile-completing-read "See project: " mod-proj))))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
