@@ -1079,16 +1079,16 @@ they are excluded from the results of this function."
 (defun projectile-call-process-to-string (program &rest args)
   "Invoke the executable PROGRAM with ARGS and return the output as a string."
   (with-temp-buffer
-     (apply 'call-process program nil (current-buffer) nil args)
-     (buffer-string)))
+    (apply 'call-process program nil (current-buffer) nil args)
+    (buffer-string)))
 
 (defun projectile-shell-command-to-string (command)
   "Try to run COMMAND without actually using a shell and return the output.
 
 The function `eshell-search-path' will be used to search the PATH
 environment variable for an appropriate executable using the text
-occuring before the first space. If no executable is found,
-fallback to `shell-command-to-string'"
+occuring before the first space.  If no executable is found,
+fallback to `shell-command-to-string'."
   (cl-destructuring-bind
       (the-command . args) (split-string command " ")
     (let ((binary-path (eshell-search-path the-command)))
@@ -2867,8 +2867,8 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (let ((switch-project-action (if arg
-                                    'projectile-commander
-                                  projectile-switch-project-action)))
+                                   'projectile-commander
+                                 projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
     ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals before calling SWITCH-PROJECT-ACTION
     (with-temp-buffer
