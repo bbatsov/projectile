@@ -17,6 +17,7 @@
 * [#1024](https://github.com/bbatsov/projectile/issues/1024): Do not cache ignored project files.
 * [#1022](https://github.com/bbatsov/projectile/issues/1022): Scan for Fossil's checkout DB, not its config DB.
 * [#1007](https://github.com/bbatsov/projectile/issues/1007): Make use of `projectile-go-function`.
+* [#1044](https://github.com/bbatsov/projectile/issues/1044): Replace `shell-command-to-string` invocations with `call-process` invocations where possible to avoid shell startup cost.
 
 ## 0.14.0 (2016-07-08)
 
@@ -60,9 +61,7 @@
 * [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
 * [#957](https://github.com/bbatsov/projectile/pull/957): When opening a specified file from the terminal, do not error inside of `projectile-cache-current-file`.
 * [#984](https://github.com/bbatsov/projectile/pull/984): Error when a project is a symlink that changes target.
-
 * [#1013](https://github.com/bbatsov/projectile/issues/1013): `projectile-project-buffer-p` may return incorrect result on Windows.
-* [#1044](https://github.com/bbatsov/projectile/issues/1044): Replace `shell-command-to-string` invocations with `call-process` invocations where possible to avoid shell startup cost.
 
 ## 0.13.0 (2015-10-21)
 
