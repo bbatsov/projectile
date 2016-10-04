@@ -224,13 +224,13 @@ Otherwise consider the current directory the project root."
   "The tag backend that Projectile should use.
 
 If set to 'auto', `projectile-find-tag' will automatically choose
-which backend to use. Preference order is ggtags -> etags-select
--> find-tag. Variable can also be set to specify which backend to
-use. If selected backend is unavailable, fall back to `find-tag'.
+which backend to use.  Preference order is ggtags -> etags-select
+-> `find-tag'.  Variable can also be set to specify which backend to
+use.  If selected backend is unavailable, fall back to `find-tag'.
 
 If this variable is set to 'auto' and ggtags is available, or if
 set to 'ggtags', then ggtags will be used for
-`projectile-regenerate-tags'. For all other settings
+`projectile-regenerate-tags'.  For all other settings
 `projectile-tags-command' will be used."
   :group 'projectile
   :type '(radio
@@ -2846,8 +2846,8 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (let ((switch-project-action (if arg
-                                    'projectile-commander
-                                  projectile-switch-project-action)))
+                                   'projectile-commander
+                                 projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
     ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals before calling SWITCH-PROJECT-ACTION
     (with-temp-buffer
