@@ -37,12 +37,11 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'compile)
-(require 'eshell)
-(require 'grep)
-(require 'ibuf-ext)
-(require 'ibuffer)
 (require 'thingatpt)
+(require 'ibuffer)
+(require 'ibuf-ext)
+(require 'compile)
+(require 'grep)
 
 (eval-when-compile
   (defvar ag-ignore-list)
@@ -1076,29 +1075,9 @@ they are excluded from the results of this function."
     (when cmd
       (projectile-files-via-ext-command cmd))))
 
-(defun projectile-call-process-to-string (program &rest args)
-  "Invoke the executable PROGRAM with ARGS and return the output as a string."
-  (with-temp-buffer
-    (apply 'call-process program nil (current-buffer) nil args)
-    (buffer-string)))
-
-(defun projectile-shell-command-to-string (command)
-  "Try to run COMMAND without actually using a shell and return the output.
-
-The function `eshell-search-path' will be used to search the PATH
-environment variable for an appropriate executable using the text
-occuring before the first space.  If no executable is found,
-fallback to `shell-command-to-string'."
-  (cl-destructuring-bind
-      (the-command . args) (split-string command " ")
-    (let ((binary-path (eshell-search-path the-command)))
-      (if binary-path
-          (apply 'projectile-call-process-to-string binary-path args)
-        (shell-command-to-string command)))))
-
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
-  (split-string (projectile-shell-command-to-string command) "\0" t))
+  (split-string (shell-command-to-string command) "\0" t))
 
 (defun projectile-index-directory (directory patterns progress-reporter)
   "Index DIRECTORY taking into account PATTERNS.
@@ -2867,8 +2846,8 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (let ((switch-project-action (if arg
-                                   'projectile-commander
-                                 projectile-switch-project-action)))
+                                    'projectile-commander
+                                  projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
     ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals before calling SWITCH-PROJECT-ACTION
     (with-temp-buffer

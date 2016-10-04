@@ -717,27 +717,6 @@
         (should (equal (list (expand-file-name "vendor/client-submodule/" project))
                        (projectile-get-all-sub-projects project)))))))
 
-(ert-deftest projectile-test-projectile-shell-command-to-string-fallback ()
-  (let ((command "command arg1 arg2")
-        (command-path "/path/to/command")
-        shell-command-args call-process-args)
-    (noflet ((shell-command-to-string (&rest args)
-                                      (setq shell-command-args args))
-             (call-process (&rest args)
-                           (setq call-process-args args)))
-      (noflet ((eshell-search-path (_command) nil))
-        (projectile-shell-command-to-string command)
-        (should (equal shell-command-args (list command)))
-        (should (equal call-process-args nil)))
-      (setq shell-command-args nil
-            call-process-args nil)
-      (noflet ((eshell-search-path (_command-name) command-path))
-        (projectile-shell-command-to-string command)
-        (should (equal shell-command-args nil))
-        (should (equal (car call-process-args) command-path))
-        (should (equal (-slice call-process-args 4)
-                       (cdr (split-string command " "))))))))
-
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:

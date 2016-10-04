@@ -6,5 +6,4 @@
 (development
  (depends-on "noflet")
  (depends-on "helm")
- (depends-on "ag")
- (depends-on "el-mock"))
+ (depends-on "ag"))
