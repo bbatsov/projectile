@@ -20,7 +20,7 @@ Patches in any form are always welcome! GitHub pull requests are even better! :-
 
 Before submitting a patch or a pull request make sure all tests are
 passing and that your patch is in line with the [contribution
-guidelines](https://github.com/bbatsov/projectile/blob/master/.github/CONTRIBUTING.md).
+guidelines](https://github.com/bbatsov/projectile/blob/master/CONTRIBUTING.md).
 
 ## Documentation
 
