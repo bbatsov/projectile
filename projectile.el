@@ -317,6 +317,7 @@ The topmost match has precedence."
     ".git"        ; Git VCS root dir
     ".hg"         ; Mercurial VCS root dir
     ".fslckout"   ; Fossil VCS root dir
+    "_FOSSIL_"    ; Fossil VCS root DB on Windows
     ".bzr"        ; Bazaar VCS root dir
     "_darcs"      ; Darcs VCS root dir
     )
@@ -371,6 +372,7 @@ containing a root file."
     ".git"
     ".hg"
     ".fslckout"
+    "_FOSSIL_"
     ".bzr"
     "_darcs"
     ".tox"
