@@ -34,6 +34,7 @@ Keybinding         | Description
 <kbd>C-c p s g</kbd> | Run grep on the files in the project.
 <kbd>M-- C-c p s g</kbd> | Run grep on `projectile-grep-default-files` in the project.
 <kbd>C-c p v</kbd> | Run `vc-dir` on the root directory of the project.
+<kbd>C-c p V</kbd> | Browse dirty version controlled projects.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
 <kbd>C-c p 4 b</kbd> | Switch to a project buffer and show it in another window.
 <kbd>C-c p 4 C-o</kbd> | Display a project buffer in another window without selecting it.

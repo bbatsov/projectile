@@ -34,6 +34,7 @@ it. Some of Projectile's features:
 * regenerate project etags or gtags (requires [ggtags](https://github.com/leoliu/ggtags)).
 * visit project in dired
 * run make in a project with a single key chord
+* browse dirty version controlled projects
 
 Here's a glimpse of Projectile in action:
 
