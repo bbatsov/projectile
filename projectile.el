@@ -356,7 +356,7 @@ containing a root file."
   "A list of files globally unignored by projectile."
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile "0.14.0"))
+  :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-globally-ignored-file-suffixes
   nil
@@ -385,7 +385,7 @@ containing a root file."
   "A list of directories globally unignored by projectile."
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile "0.14.0"))
+  :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-globally-ignored-modes
   '("erc-mode"
@@ -952,7 +952,7 @@ Files are returned as relative paths to the project root."
   "Command used by projectile to get the ignored files in a git project."
   :group 'projectile
   :type 'string
-  :package-version '(projectile "0.14.0"))
+  :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-hg-command "hg locate -f -0 -I ."
   "Command used by projectile to get the files in a hg project."
@@ -3415,7 +3415,7 @@ entirely."
   :group 'projectile
   :type 'sexp
   :risky t
-  :package-version '(projectile "0.12.0"))
+  :package-version '(projectile . "0.12.0"))
 
 (defun projectile-find-file-hook-function ()
   "Called by `find-file-hook' when `projectile-mode' is on."
