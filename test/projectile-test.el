@@ -199,12 +199,6 @@
   (projectile-mode -1)
   (should (not (memq 'projectile-find-file-hook-function find-file-hook))))
 
-(ert-deftest projectile-test-setup-hook-functions-projectile-global-mode ()
-  (projectile-global-mode 1)
-  (should (memq 'projectile-find-file-hook-function find-file-hook))
-  (projectile-global-mode -1)
-  (should (not (memq 'projectile-find-file-hook-function find-file-hook))))
-
 (ert-deftest projectile-test-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
     (noflet ((projectile-project-root () "/path/to/project1"))

@@ -3330,6 +3330,7 @@ Otherwise behave as if called interactively.
   :keymap projectile-mode-map
   :group 'projectile
   :require 'projectile
+  :global t
   (cond
    (projectile-mode
     ;; initialize the projects cache if needed
@@ -3349,9 +3350,7 @@ Otherwise behave as if called interactively.
     (ad-deactivate 'delete-file))))
 
 ;;;###autoload
-(define-globalized-minor-mode projectile-global-mode
-  projectile-mode
-  projectile-mode)
+(define-obsolete-function-alias 'projectile-global-mode 'projectile-mode)
 
 (provide 'projectile)
 

@@ -4,15 +4,10 @@
 
 To add a project to Projectile, open a file in the project and enable `projectile-mode` in that buffer. If you have a projects directory, you can tell Projectile about all of the projects in it with the command `M-x projectile-discover-projects-in-directory`.
 
-To make Projectile automatically remember projects that you access files in, enable Projectile globally:
+To make Projectile automatically remember projects that you access files in, enable Projectile mode:
 
 ```el
-(projectile-global-mode)
-```
-To enable Projectile only in certain modes, add `projectile-mode` to the major mode's hook, like this:
-
-```el
-(add-hook 'ruby-mode-hook 'projectile-mode)
+(projectile-mode)
 ```
 
 If you're going to use the default `ido` completion it's
