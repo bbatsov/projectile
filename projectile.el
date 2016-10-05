@@ -984,6 +984,14 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-vcs-dirty-state '("edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")
+  "List of states checked by `projectile-browse-dirty-projects'.
+Possible checked states are:
+\"edited\", \"unregistered\", \"needs-update\", \"needs-merge\", unlocked-changes\" and \"conflict\",
+as defined in `vc.el'."
+  :group 'projectile
+  :type '(repeat (string)))
+
 (defun projectile-get-ext-command ()
   "Determine which external command to invoke based on the project's VCS."
   (let ((vcs (projectile-project-vcs)))
@@ -1104,12 +1112,11 @@ fallback to `shell-command-to-string'."
           (apply 'projectile-call-process-to-string binary-path args)
         (shell-command-to-string command)))))
 
-(defun projectile-check-cvs-status (&optional PROJECT-PATH)
+(defun projectile-check-vcs-status (&optional PROJECT-PATH)
   "Check the status of the current project.
 If PROJECT-PATH is a project, check this one instead."
   (let* ((PROJECT-PATH (or PROJECT-PATH (projectile-project-root)))
-         (project-status nil)
-         (to-check-for (list "edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")))
+         (project-status nil))
     (save-excursion
       (vc-dir PROJECT-PATH)
       ;; wait until vc-dir is done
@@ -1117,42 +1124,41 @@ If PROJECT-PATH is a project, check this one instead."
       ;; check for status
       (save-excursion
         (save-match-data
-          (loop for check in to-check-for do
-                (goto-char (point-min))
-                (when (search-forward check nil t)
-                  (setq project-status (cons check project-status))))))
+          (dolist (check projectile-vcs-dirty-state)
+            (goto-char (point-min))
+            (when (search-forward check nil t)
+              (setq project-status (cons check project-status))))))
       (kill-buffer)
       project-status)))
 
-(defun projectile-check-cvs-status-of-known-projects ()
+(defun projectile-check-vcs-status-of-known-projects ()
   "Return the list of dirty projects.
 The list is composed of sublists~: (project-path, project-status).
 Raise an error if their is no dirty project."
   (let ((projects projectile-known-projects)
         (status ())
         (tmp-status nil))
-    (loop for project in projects do
-          (progn
-            (condition-case nil
-                (setq tmp-status (projectile-check-cvs-status project))
-                (error nil))
-            (when tmp-status
-              (setq status (cons (list project tmp-status) status)))))
+    (dolist (project projects)
+      (condition-case nil
+          (setq tmp-status (projectile-check-vcs-status project))
+        (error nil))
+      (when tmp-status
+        (setq status (cons (list project tmp-status) status))))
     (when (= (length status) 0)
-      (error "No dirty projects has been found"))
+      (message "No dirty projects has been found"))
     status))
 
-(defun projectile-see-dirty-projects ()
-  "Choose among the list of all dirty projects."
+(defun projectile-browse-dirty-projects ()
+  "Browse dirty version controlled projects."
   (interactive)
   (let ((status nil)
         (mod-proj nil))
     (message "Checking for modifications in known projects...")
-    (setq status (projectile-check-cvs-status-of-known-projects))
+    (setq status (projectile-check-vcs-status-of-known-projects))
     (while (not (= (length status) 0))
       (setq mod-proj (cons (car (pop status)) mod-proj)))
       (projectile-vc
-       (projectile-completing-read "See project: " mod-proj))))
+       (projectile-completing-read "Select project: " mod-proj))))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
@@ -3218,6 +3224,10 @@ is chosen."
     "Open project root in vc-dir or magit."
     (projectile-vc))
 
+  (def-projectile-commander-method ?V
+    "Browse dirty projects"
+    (projectile-browse-dirty-projects))
+
   (def-projectile-commander-method ?r
     "Replace a string in the project."
     (projectile-replace))
@@ -3329,6 +3339,7 @@ is chosen."
     (define-key map (kbd "T") #'projectile-find-test-file)
     (define-key map (kbd "u") #'projectile-run-project)
     (define-key map (kbd "v") #'projectile-vc)
+    (define-key map (kbd "V") #'projectile-browse-dirty-projects)
     (define-key map (kbd "x e") #'projectile-run-eshell)
     (define-key map (kbd "x t") #'projectile-run-term)
     (define-key map (kbd "x s") #'projectile-run-shell)
@@ -3366,6 +3377,7 @@ is chosen."
    ["Search in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
+   ["Browse dirty projects" projectile-browse-dirty-projects]
    "--"
    ["Run shell" projectile-run-shell]
    ["Run eshell" projectile-run-eshell]
