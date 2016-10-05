@@ -741,7 +741,7 @@ The cache is created both in memory and on the hard drive."
                (not (projectile-ignored-project-p project-root)))
       (projectile-cache-current-file))))
 
-(defun projectile-cache-projects-find-file-hook ()
+(defun projectile-track-known-projects-find-file-hook ()
   "Function for caching projects with `find-file-hook'."
   (when (and projectile-track-known-projects-automatically (projectile-project-p))
     (let ((known-projects (and (sequencep projectile-known-projects)
@@ -3339,7 +3339,7 @@ entirely."
   "Called by `find-file-hook' when `projectile-mode' is on."
   (unless (file-remote-p default-directory)
     (projectile-cache-files-find-file-hook)
-    (projectile-cache-projects-find-file-hook)
+    (projectile-track-known-projects-find-file-hook)
     (projectile-visit-project-tags-table)))
 
 ;;;###autoload
@@ -3368,13 +3368,13 @@ Otherwise behave as if called interactively.
             (or (projectile-unserialize projectile-cache-file)
                 (make-hash-table :test 'equal))))
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
-    (add-hook 'projectile-find-dir-hook #'projectile-cache-projects-find-file-hook t)
-    (add-hook 'dired-before-readin-hook #'projectile-cache-projects-find-file-hook t t)
+    (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
+    (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
     (ad-activate 'compilation-find-file)
     (ad-activate 'delete-file))
    (t
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
-    (remove-hook 'dired-before-readin-hook #'projectile-cache-projects-find-file-hook t)
+    (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
     (ad-deactivate 'compilation-find-file)
     (ad-deactivate 'delete-file))))
 
