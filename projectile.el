@@ -1158,8 +1158,8 @@ Raise an error if their is no dirty project."
     (setq status (projectile-check-vcs-status-of-known-projects))
     (while (not (= (length status) 0))
       (setq mod-proj (cons (car (pop status)) mod-proj)))
-      (projectile-vc
-       (projectile-completing-read "Select project: " mod-proj))))
+    (projectile-vc
+     (projectile-completing-read "Select project: " mod-proj))))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
@@ -1575,42 +1575,41 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root)))
 
-(cl-defun projectile-completing-read (prompt choices
-                                      &key initial-input action)
+(cl-defun projectile-completing-read (prompt choices &key initial-input action)
   "Present a project tailored PROMPT with CHOICES."
   (let ((prompt (projectile-prepend-project-name prompt))
         res)
     (setq res
           (cond
-            ((eq projectile-completion-system 'ido)
-             (ido-completing-read prompt choices nil nil initial-input))
-            ((eq projectile-completion-system 'default)
-             (completing-read prompt choices nil nil initial-input))
-            ((eq projectile-completion-system 'helm)
-             (if (fboundp 'helm)
-                 (helm :sources
-                       `((name . ,prompt)
-                         (candidates . ,choices)
-                         (action . ,(prog1 action
-                                      (setq action nil)))))
-               (user-error "Please install helm from \
+           ((eq projectile-completion-system 'ido)
+            (ido-completing-read prompt choices nil nil initial-input))
+           ((eq projectile-completion-system 'default)
+            (completing-read prompt choices nil nil initial-input))
+           ((eq projectile-completion-system 'helm)
+            (if (fboundp 'helm)
+                (helm :sources
+                      `((name . ,prompt)
+                        (candidates . ,choices)
+                        (action . ,(prog1 action
+                                     (setq action nil)))))
+              (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
-            ((eq projectile-completion-system 'grizzl)
-             (if (and (fboundp 'grizzl-completing-read)
-                      (fboundp 'grizzl-make-index))
-                 (grizzl-completing-read prompt (grizzl-make-index choices))
-               (user-error "Please install grizzl from \
+           ((eq projectile-completion-system 'grizzl)
+            (if (and (fboundp 'grizzl-completing-read)
+                     (fboundp 'grizzl-make-index))
+                (grizzl-completing-read prompt (grizzl-make-index choices))
+              (user-error "Please install grizzl from \
 https://github.com/d11wtq/grizzl")))
-            ((eq projectile-completion-system 'ivy)
-             (if (fboundp 'ivy-read)
-                 (ivy-read prompt choices
-                           :initial-input initial-input
-                           :action (prog1 action
-                                     (setq action nil))
-                           :caller 'projectile-completing-read)
-               (user-error "Please install ivy from \
+           ((eq projectile-completion-system 'ivy)
+            (if (fboundp 'ivy-read)
+                (ivy-read prompt choices
+                          :initial-input initial-input
+                          :action (prog1 action
+                                    (setq action nil))
+                          :caller 'projectile-completing-read)
+              (user-error "Please install ivy from \
 https://github.com/abo-abo/swiper")))
-            (t (funcall projectile-completion-system prompt choices))))
+           (t (funcall projectile-completion-system prompt choices))))
     (if action
         (funcall action res)
       res)))
@@ -3044,12 +3043,12 @@ See `projectile-cleanup-known-projects'."
                       "Remove from known projects: " projectile-known-projects
                       :action 'projectile-remove-known-project)))
   (unless (called-interactively-p 'any)
-  (setq projectile-known-projects
-        (cl-remove-if
-         (lambda (proj) (string= project proj))
-         projectile-known-projects))
-  (projectile-merge-known-projects)
-  (when projectile-verbose
+    (setq projectile-known-projects
+          (cl-remove-if
+           (lambda (proj) (string= project proj))
+           projectile-known-projects))
+    (projectile-merge-known-projects)
+    (when projectile-verbose
       (message "Project %s removed from the list of known projects." project))))
 
 ;;;###autoload
