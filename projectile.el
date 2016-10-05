@@ -563,6 +563,15 @@ projects."
           function)
   :package-version '(projectile . "0.13.0"))
 
+(defcustom projectile-track-known-projects-automatically t
+  "Controls whether Projectile will automatically register known projects.
+
+When set to nil you'll have always add projects explicitly with
+`projectile-add-known-project'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "0.15.0"))
+
 
 ;;; Version information
 
@@ -734,7 +743,7 @@ The cache is created both in memory and on the hard drive."
 
 (defun projectile-cache-projects-find-file-hook ()
   "Function for caching projects with `find-file-hook'."
-  (when (projectile-project-p)
+  (when (and projectile-track-known-projects-automatically (projectile-project-p))
     (let ((known-projects (and (sequencep projectile-known-projects)
                                (copy-sequence projectile-known-projects))))
       (projectile-add-known-project (projectile-project-root))

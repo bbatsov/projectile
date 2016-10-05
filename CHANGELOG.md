@@ -5,6 +5,7 @@
 ### New Features
 
 * Consider Ensime configuration file as root marker, `.ensime`.
+* [#1057](https://github.com/bbatsov/projectile/issues/1057): Make it possible to disable automatic project tracking via `projectile-track-known-projects-automatically`.
 
 ### Changes
 
