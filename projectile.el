@@ -990,7 +990,8 @@ Possible checked states are:
 \"edited\", \"unregistered\", \"needs-update\", \"needs-merge\", unlocked-changes\" and \"conflict\",
 as defined in `vc.el'."
   :group 'projectile
-  :type '(repeat (string)))
+  :type '(repeat (string))
+  :package-version '(projectile . "0.15.0"))
 
 (defun projectile-get-ext-command ()
   "Determine which external command to invoke based on the project's VCS."
