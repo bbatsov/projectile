@@ -1146,7 +1146,7 @@ Raise an error if their is no dirty project."
       (when tmp-status
         (setq status (cons (list project tmp-status) status))))
     (when (= (length status) 0)
-      (message "No dirty projects has been found"))
+      (message "No dirty projects have been found"))
     status))
 
 (defun projectile-browse-dirty-projects ()
