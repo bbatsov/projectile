@@ -1461,13 +1461,13 @@ according to PATTERNS: (ignored . unignored)"
   (projectile-make-relative-to-root (projectile-ignored-files)))
 
 (defun projectile-project-ignored-files ()
-  "Return list of project ignored files. Unignored files are not
-included."
+  "Return list of project ignored files.
+Unignored files are not included."
   (cl-remove-if 'file-directory-p (projectile-project-ignored)))
 
 (defun projectile-project-ignored-directories ()
-  "Return list of project ignored directories. Unignored
-directories are not included."
+  "Return list of project ignored directories.
+Unignored directories are not included."
   (cl-remove-if-not 'file-directory-p (projectile-project-ignored)))
 
 (defun projectile-paths-to-ignore ()
@@ -1479,8 +1479,8 @@ directories are not included."
   (projectile-normalise-patterns (nth 1 (projectile-parse-dirconfig-file))))
 
 (defun projectile-project-ignored ()
-  "Return list of project ignored files/directories. Unignored
-files/directories are not included."
+  "Return list of project ignored files/directories.
+Unignored files/directories are not included."
   (let ((paths (projectile-paths-to-ignore)))
     (projectile-expand-paths paths)))
 
