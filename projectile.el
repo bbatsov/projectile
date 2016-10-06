@@ -2877,6 +2877,10 @@ with a prefix ARG."
          (test-cmd (projectile-maybe-read-command arg default-cmd "Test command: "))
          (default-directory project-root))
     (puthash project-root test-cmd projectile-test-cmd-map)
+    (save-some-buffers (not compilation-ask-about-save)
+                       (lambda ()
+                         (projectile-project-buffer-p (current-buffer)
+                                                      project-root)))
     (projectile-run-compilation test-cmd)))
 
 ;;;###autoload

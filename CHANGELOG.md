@@ -20,6 +20,7 @@
 * [#1024](https://github.com/bbatsov/projectile/issues/1024): Do not cache ignored project files.
 * [#1022](https://github.com/bbatsov/projectile/issues/1022): Scan for Fossil's checkout DB, not its config DB.
 * [#1007](https://github.com/bbatsov/projectile/issues/1007): Make use of `projectile-go-function`.
+* [#1011](https://github.com/bbatsov/projectile/issues/1011): Save project files before running project tests.
 
 ## 0.14.0 (2016-07-08)
 
