@@ -3428,7 +3428,11 @@ entirely."
   :package-version '(projectile . "0.12.0"))
 
 (defun projectile-find-file-hook-function ()
-  "Called by `find-file-hook' when `projectile-mode' is on."
+  "Called by `find-file-hook' when `projectile-mode' is on.
+
+The function does pretty much nothing when triggered on remote files
+as all the operations it normally performs are extremely slow over
+tramp."
   (unless (file-remote-p default-directory)
     (projectile-cache-files-find-file-hook)
     (projectile-track-known-projects-find-file-hook)
