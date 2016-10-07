@@ -1596,8 +1596,10 @@ project-root for every file."
                 (helm :sources
                       `((name . ,prompt)
                         (candidates . ,choices)
-                        (action . ,(prog1 action
-                                     (setq action nil)))))
+                        (action . ,(if action
+                                       (prog1 action
+                                         (setq action nil))
+                                     #'identity))))
               (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
            ((eq projectile-completion-system 'grizzl)
