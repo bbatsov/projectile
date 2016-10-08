@@ -2290,7 +2290,8 @@ It assumes the test/ folder is at the same level as src/."
                      (string-equal (concat test-prefix name) basename))
                    (when test-suffix
                      (string-equal (concat name test-suffix) basename)))))
-           (projectile-current-project-files))))
+           (delete (file-relative-name test-file (projectile-project-root))
+                   (projectile-current-project-files)))))
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
