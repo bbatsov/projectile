@@ -131,7 +131,10 @@ attention to case differences."
 (defgroup projectile nil
   "Manage and navigate projects easily."
   :group 'tools
-  :group 'convenience)
+  :group 'convenience
+  :link '(url-link :tag "Github" "https://github.com/bbatsov/projectile")
+  :link '(url-link :tag "Online Manual" "https://projectile.readthedocs.org")
+  :link '(emacs-commentary-link :tag "Commentary" "projectile"))
 
 (defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
   "Specifies the indexing method used by Projectile.
