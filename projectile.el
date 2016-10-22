@@ -2168,11 +2168,14 @@ PROJECT-ROOT is the targeted directory.  If nil, use
 
 (defun projectile-create-test-file-for (impl-file-path)
   (let* ((test-file (projectile--test-name-for-impl-name impl-file-path))
-         (test-dir (replace-regexp-in-string "src/" "test/" (file-name-directory impl-file-path))))
-    (unless (file-exists-p (expand-file-name test-file test-dir))
+         (project-root (projectile-project-root))
+         (relative-dir (file-name-directory (file-relative-name impl-file-path project-root)))
+         (test-dir (expand-file-name (replace-regexp-in-string "src/" "test/" relative-dir) project-root))
+         (test-path (expand-file-name test-file test-dir)))
+    (unless (file-exists-p test-path)
       (progn (unless (file-exists-p test-dir)
                (make-directory test-dir :create-parents))
-             (concat test-dir test-file)))))
+             test-path))))
 
 (defcustom projectile-create-missing-test-files nil
   "During toggling, if non-nil enables creating test files if not found.
