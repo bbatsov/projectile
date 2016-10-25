@@ -1597,12 +1597,15 @@ project-root for every file."
            ((eq projectile-completion-system 'helm)
             (if (fboundp 'helm)
                 (helm :sources
-                      `((name . ,prompt)
-                        (candidates . ,choices)
-                        (action . ,(if action
-                                       (prog1 action
-                                         (setq action nil))
-                                     #'identity))))
+                      (helm-build-sync-source "Projectile"
+                        :candidates choices
+                        :action (if action
+                                    (prog1 action
+                                      (setq action nil))
+                                  #'identity))
+                      :prompt prompt
+                      :input initial-input
+                      :buffer "*helm-projectile*")
               (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
            ((eq projectile-completion-system 'grizzl)
