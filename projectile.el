@@ -2331,6 +2331,15 @@ This is a subset of `grep-read-files', where either a matching entry from
   "Return ignored file suffixes as a list of glob patterns."
   (mapcar (lambda (pat) (concat "*" pat)) projectile-globally-ignored-file-suffixes))
 
+(defun projectile--read-search-string-with-default (prefix-label)
+  (let* ((prefix-label (projectile-prepend-project-name prefix-label))
+         (default-value (projectile-symbol-or-selection-at-point))
+         (default-label (if (or (not default-value)
+                                (string= default-value ""))
+                            ""
+                          (format " (default %s)" default-value))))
+    (read-string (format "%s%s: " prefix-label default-label) nil nil default-value)))
+
 ;;;###autoload
 (defun projectile-grep (&optional regexp arg)
   "Perform rgrep in the project.
@@ -2344,8 +2353,7 @@ With REGEXP given, don't query the user for a regexp."
   (require 'grep) ;; for `rgrep'
   (let* ((roots (projectile-get-project-directories))
          (search-regexp (or regexp
-                            (read-string (projectile-prepend-project-name "Grep for: ")
-                                         (projectile-symbol-or-selection-at-point))))
+                            (projectile--read-search-string-with-default "Grep for")))
          (files (and arg (or (and (equal current-prefix-arg '-)
                                   (projectile-grep-default-files))
                              (read-string (projectile-prepend-project-name "Grep in: ")
@@ -2379,9 +2387,8 @@ With REGEXP given, don't query the user for a regexp."
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression."
   (interactive
-   (list (read-from-minibuffer
-          (projectile-prepend-project-name (format "Ag %ssearch for: " (if current-prefix-arg "regexp " "")))
-          (projectile-symbol-or-selection-at-point))
+   (list (projectile--read-search-string-with-default
+          (format "Ag %ssearch for" (if current-prefix-arg "regexp " "")))
          current-prefix-arg))
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
