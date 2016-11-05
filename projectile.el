@@ -1598,7 +1598,7 @@ project-root for every file."
            ((eq projectile-completion-system 'helm)
             (if (fboundp 'helm)
                 (helm :sources
-                      (helm-build-sync-source "Projectile"
+                      (helm-make-source "Projectile" 'helm-source-sync
                         :candidates choices
                         :action (if action
                                     (prog1 action
