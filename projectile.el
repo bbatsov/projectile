@@ -307,6 +307,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "mix.exs"            ; Elixir mix project file
     "stack.yaml"         ; Haskell's stack tool based project
     "info.rkt"           ; Racket package description file
+    "DESCRIPTION"        ; R package description file
     "TAGS"               ; etags/ctags are usually in the root of project
     "GTAGS"              ; GNU Global tags
     )
