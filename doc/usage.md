@@ -82,7 +82,7 @@ commands. Here's an example that adds `super-p` as the extra prefix:
 
 You can also bind the `projectile-command-map` to any other map you'd
 like (including the global keymap).  Prelude does this for its
-[prelude-mode-map](https://github.com/bbatsov/prelude/blob/master/core/prelude-mode.el#L68).
+[prelude-mode-map](https://github.com/bbatsov/prelude/blob/master/core/prelude-mode.el#L71).
 
 For some common commands you might want to take a little shortcut and
 leverage the fairly unused `Super` key (by default `Command` on Mac
