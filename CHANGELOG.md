@@ -14,6 +14,7 @@
 * Ignore Ensime cache directory, `.ensime_cache`.
 * [#364](https://github.com/bbatsov/projectile/issues/364): `projectile-add-known-project` can now be used interactively.
 * `projectile-mode` is now a global mode.
+* `projectile-find-tag` now defaults to xref on Emacs 25.1+.
 
 ### Bugs fixed
 

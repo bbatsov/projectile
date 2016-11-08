@@ -227,9 +227,10 @@ Otherwise consider the current directory the project root."
   "The tag backend that Projectile should use.
 
 If set to 'auto', `projectile-find-tag' will automatically choose
-which backend to use.  Preference order is ggtags -> etags-select
--> `find-tag'.  Variable can also be set to specify which backend to
-use.  If selected backend is unavailable, fall back to `find-tag'.
+which backend to use.  Preference order is ggtags -> xref
+-> etags-select -> `find-tag'.  Variable can also be set to specify which
+backend to use.  If selected backend is unavailable, fall back to
+`find-tag'.
 
 If this variable is set to 'auto' and ggtags is available, or if
 set to 'ggtags', then ggtags will be used for
@@ -238,6 +239,7 @@ set to 'ggtags', then ggtags will be used for
   :group 'projectile
   :type '(radio
           (const :tag "auto" auto)
+          (const :tag "xref" xref)
           (const :tag "ggtags" ggtags)
           (const :tag "etags" etags-select)
           (const :tag "standard" find-tag))
@@ -2444,21 +2446,26 @@ regular expression."
 
 (defun projectile-determine-find-tag-fn ()
   "Determine which function to use for a call to `projectile-find-tag'."
-  (cond
-   ((eq projectile-tags-backend 'auto)
-    (cond
-     ((fboundp 'ggtags-find-tag-dwim)
-      'ggtags-find-tag-dwim)
-     ((fboundp 'etags-select-find-tag)
-      'etags-select-find-tag)
-     (t 'find-tag)))
-   ((eq projectile-tags-backend 'ggtags)
-    (if (fboundp 'ggtags-find-tag-dwim)
-        'ggtags-find-tag-dwim 'find-tag))
-   ((eq projectile-tags-backend 'etags-select)
-    (if (fboundp 'etags-select-find-tag)
-        'etags-select-find-tag 'find-tag))
-   (t 'find-tag)))
+  (or
+   (cond
+    ((eq projectile-tags-backend 'auto)
+     (cond
+      ((fboundp 'ggtags-find-tag-dwim)
+       'ggtags-find-tag-dwim)
+      ((fboundp 'xref-find-definitions)
+       'xref-find-definitions)
+      ((fboundp 'etags-select-find-tag)
+       'etags-select-find-tag)))
+    ((eq projectile-tags-backend 'xref)
+     (when (fboundp 'xref-find-definitions)
+       'xref-find-definitions))
+    ((eq projectile-tags-backend 'ggtags)
+     (when (fboundp 'ggtags-find-tag-dwim)
+       'ggtags-find-tag-dwim))
+    ((eq projectile-tags-backend 'etags-select)
+     (when (fboundp 'etags-select-find-tag)
+       'etags-select-find-tag)))
+   'find-tag))
 
 ;;;###autoload
 (defun projectile-find-tag ()
