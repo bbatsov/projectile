@@ -15,6 +15,7 @@
 * [#364](https://github.com/bbatsov/projectile/issues/364): `projectile-add-known-project` can now be used interactively.
 * `projectile-mode` is now a global mode.
 * `projectile-find-tag` now defaults to xref on Emacs 25.1+.
+* `projectile-mode-line` now defaults to just "Projectile" to avoid potential performance problems when mode line must be redisplayed.
 
 ### Bugs fixed
 
