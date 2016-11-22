@@ -1598,7 +1598,8 @@ project-root for every file."
            ((eq projectile-completion-system 'default)
             (completing-read prompt choices nil nil initial-input))
            ((eq projectile-completion-system 'helm)
-            (if (fboundp 'helm)
+            (if (and (fboundp 'helm)
+                     (fboundp 'helm-make-source))
                 (helm :sources
                       (helm-make-source "Projectile" 'helm-source-sync
                         :candidates choices
