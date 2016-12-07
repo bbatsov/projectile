@@ -460,6 +460,21 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-test-file-p-function 'projectile-test-file-suffix-prefix-p
+  "Function to determine if a FILE is a test file."
+  :group 'projectile
+  :type 'function)
+
+(defcustom projectile-find-matching-file-function 'projectile-find-matching-file-default
+  "Function to compute the name of a test matching FILE-PATH."
+  :group 'projectile
+  :type 'function)
+
+(defcustom projectile-find-matching-test-function 'projectile-find-matching-test-default
+  "Function to compute the name of a file matching TEST-FILE-PATH."
+  :group 'projectile
+  :type 'function)
+
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
@@ -2044,12 +2059,16 @@ With a prefix ARG invalidates the cache first."
   "Return only the test FILES."
   (cl-remove-if-not 'projectile-test-file-p files))
 
-(defun projectile-test-file-p (file)
-  "Check if FILE is a test file."
+(defun projectile-test-file-suffix-prefix-p (file)
+  "Check if FILE is a test file based on the suffix or prefix of the file."
   (or (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
                (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
       (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
                (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
+
+(defun projectile-test-file-p (file)
+  "Check if FILE is a test file."
+  (funcall projectile-test-file-p-function file))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
@@ -2288,9 +2307,12 @@ It assumes the test/ folder is at the same level as src/."
                       (nreverse result))))
            (lambda (a b) (> (car a) (car b)))))
 
-(defun projectile-find-matching-test (file)
+(defun projectile-find-matching-test (file-path)
   "Compute the name of the test matching FILE."
-  (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
+  (funcall projectile-find-matching-test-function file-path))
+
+(defun projectile-find-matching-test-default (file-path)
+  (let* ((basename (file-name-nondirectory (file-name-sans-extension file-path)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
@@ -2306,16 +2328,19 @@ It assumes the test/ folder is at the same level as src/."
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
-     (t (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
+     (t (let ((grouped-candidates (projectile-group-file-candidates file-path candidates)))
           (if (= (length (car grouped-candidates)) 2)
               (car (last (car grouped-candidates)))
             (projectile-completing-read
              "Switch to: "
              (apply 'append (mapcar 'cdr grouped-candidates)))))))))
 
-(defun projectile-find-matching-file (test-file)
+(defun projectile-find-matching-file (test-file-path)
   "Compute the name of a file matching TEST-FILE."
-  (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
+  (funcall projectile-find-matching-file-function test-file-path))
+
+(defun projectile-find-matching-file-default (test-file-path)
+  (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file-path)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
@@ -2331,7 +2356,7 @@ It assumes the test/ folder is at the same level as src/."
     (cond
      ((null candidates) nil)
      ((= (length candidates) 1) (car candidates))
-     (t (let ((grouped-candidates (projectile-group-file-candidates test-file candidates)))
+     (t (let ((grouped-candidates (projectile-group-file-candidates test-file-path candidates)))
           (if (= (length (car grouped-candidates)) 2)
               (car (last (car grouped-candidates)))
             (projectile-completing-read
