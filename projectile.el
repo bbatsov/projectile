@@ -895,17 +895,44 @@ A thin wrapper around `file-truename' that handles nil."
   "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
   (file-name-nondirectory (directory-file-name project-root)))
 
+(defvar-local projectile-cached-project-name nil
+  "Cached name of the current Projectile project. If non-nil, it
+is used as the return value of `projectile-project-name' for
+performance (unless the variable `projectile-project-name' is
+also set). If nil, it is recalculated the next time
+`projectile-project-name' is called.
+
+This variable is reset automatically when Projectile detects that
+the `buffer-file-name' has changed. It can also be reset manually
+by calling `projectile-reset-cached-project-name'.")
+
+(defvar-local projectile-cached-buffer-file-name nil
+  "The last known value of `buffer-file-name' for the current
+buffer. This is used to detect a change in `buffer-file-name',
+which triggers a reset of `projectile-cached-project-name'.")
+
+(defun projectile-reset-cached-project-name ()
+  "Resets the value of `projectile-cached-project-name' to nil,
+so that it is automatically recalculated the next time
+`projectile-project-name' is called."
+  (interactive)
+  (setq projectile-cached-project-name nil))
+
 (defun projectile-project-name ()
   "Return project name."
-  (if projectile-project-name
-      projectile-project-name
-    (let ((project-root
-           (condition-case nil
-               (projectile-project-root)
-             (error nil))))
-      (if project-root
-          (funcall projectile-project-name-function project-root)
-        "-"))))
+  (or projectile-project-name
+      (and (equal projectile-cached-buffer-file-name buffer-file-name)
+           projectile-cached-project-name)
+      (progn
+        (setq projectile-cached-buffer-file-name buffer-file-name)
+        (setq projectile-cached-project-name
+              (let ((project-root
+                     (condition-case nil
+                         (projectile-project-root)
+                       (error nil))))
+                (if project-root
+                    (funcall projectile-project-name-function project-root)
+                  "-"))))))
 
 
 ;;; Project indexing
