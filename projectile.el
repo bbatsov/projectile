@@ -912,9 +912,10 @@ buffer. This is used to detect a change in `buffer-file-name',
 which triggers a reset of `projectile-cached-project-name'.")
 
 (defun projectile-reset-cached-project-name ()
-  "Resets the value of `projectile-cached-project-name' to nil,
-so that it is automatically recalculated the next time
-`projectile-project-name' is called."
+  "Reset the value of `projectile-cached-project-name' to nil.
+
+This means that it is automatically recalculated the next time
+function `projectile-project-name' is called."
   (interactive)
   (setq projectile-cached-project-name nil))
 
