@@ -300,7 +300,6 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "requirements.txt"   ; Pip file
     "setup.py"           ; Setuptools file
     "tox.ini"            ; Tox file
-    "package.json"       ; npm package file
     "gulpfile.js"        ; Gulp build file
     "Gruntfile.js"       ; Grunt project file
     "bower.json"         ; Bower project file
