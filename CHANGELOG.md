@@ -16,6 +16,9 @@
 * `projectile-mode` is now a global mode.
 * `projectile-find-tag` now defaults to xref on Emacs 25.1+.
 * Add relation between `.h` and `.cc` files in `projectile-other-file-alist`.
+* Cache the name of the current project for mode-line display of the project name.
+* [#1078](https://github.com/bbatsov/projectile/issues/1078): For projectile-grep/ag use default value like grep/rgrep/ag.
+* Don't treat `package.json` as a project marker.
 
 ### Bugs fixed
 
