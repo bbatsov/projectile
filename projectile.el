@@ -3020,6 +3020,7 @@ With a prefix ARG invokes `projectile-commander' instead of
     (with-temp-buffer
       (let ((default-directory project-to-switch))
         (hack-dir-local-variables-non-file-buffer)
+        (run-hooks 'projectile-before-project-action-hook)
         (funcall switch-project-action)))
     (run-hooks 'projectile-after-switch-project-hook)))
 
