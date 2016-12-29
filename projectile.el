@@ -713,7 +713,7 @@ The cache is created both in memory and on the hard drive."
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (puthash project-root
-             (cl-remove-if-not (lambda (str) (string-prefix-p dir str)) project-cache)
+             (cl-remove-if (lambda (str) (string-prefix-p dir str)) project-cache)
              projectile-projects-cache)))
 
 (defun projectile-file-cached-p (file project)
