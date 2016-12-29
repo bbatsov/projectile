@@ -3016,11 +3016,11 @@ With a prefix ARG invokes `projectile-commander' instead of
                                    'projectile-commander
                                  projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
-    ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals before calling SWITCH-PROJECT-ACTION
-    (with-temp-buffer
-      (let ((default-directory project-to-switch))
-        (hack-dir-local-variables-non-file-buffer)
-        (funcall switch-project-action)))
+    (let ((default-directory project-to-switch))
+      ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals before calling SWITCH-PROJECT-ACTION
+      (with-temp-buffer
+        (hack-dir-local-variables-non-file-buffer))
+      (funcall switch-project-action))
     (run-hooks 'projectile-after-switch-project-hook)))
 
 ;;;###autoload
