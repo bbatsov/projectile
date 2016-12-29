@@ -2985,13 +2985,13 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (let (projects)
-    (if (setq projects (projectile-relevant-known-projects))
+  (let ((projects (projectile-relevant-known-projects)))
+    (if projects
         (projectile-completing-read
          "Switch to project: " projects
          :action (lambda (project)
                    (projectile-switch-project-by-name project arg)))
-      (error "There are no known projects"))))
+      (user-error "There are no known projects"))))
 
 ;;;###autoload
 (defun projectile-switch-open-project (&optional arg)
@@ -3000,12 +3000,12 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (let (projects)
-    (if (setq projects (projectile-relevant-open-projects))
+  (let ((projects (projectile-relevant-open-projects)))
+    (if projects
         (projectile-switch-project-by-name
          (projectile-completing-read "Switch to open project: " projects)
          arg)
-      (error "There are no open projects"))))
+      (user-error "There are no open projects"))))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
