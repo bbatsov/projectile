@@ -3021,7 +3021,8 @@ With a prefix ARG invokes `projectile-commander' instead of
       (with-temp-buffer
         (hack-dir-local-variables-non-file-buffer))
       (funcall switch-project-action))
-    (run-hooks 'projectile-after-switch-project-hook)))
+    (run-hooks 'projectile-after-switch-project-hook)
+    (run-hook-with-args 'projectile-after-switch-which-project-hook project-to-switch)))
 
 ;;;###autoload
 (defun projectile-find-file-in-directory (&optional directory)
@@ -3060,6 +3061,11 @@ This command will first prompt for the directory the file is in."
 
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
+  :group 'projectile
+  :type 'hook)
+
+(defcustom projectile-after-switch-which-project-hook nil
+  "Hooks run right after project is switched with arg PROJECT-TO-SWITCH."
   :group 'projectile
   :type 'hook)
 
