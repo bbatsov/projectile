@@ -142,8 +142,8 @@ attention to case differences."
 There are two indexing methods - native and alien.
 
 The native method is implemented in Emacs Lisp (therefore it is
-native to Emacs).  It's advantage is that is portable and will
-work everywhere that Emacs does.  It's disadvantage is that is a
+native to Emacs).  Its advantage is that it is portable and will
+work everywhere that Emacs does.  Its disadvantage is that it is a
 bit slow (especially for large projects).  Generally it's a good
 idea to pair the native indexing method with caching.
 
