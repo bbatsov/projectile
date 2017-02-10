@@ -1403,11 +1403,13 @@ Only buffers not visible in windows are returned."
    (projectile-project-buffers)))
 
 ;;;###autoload
-(defun projectile-multi-occur ()
-  "Do a `multi-occur' in the project's buffers."
-  (interactive)
+(defun projectile-multi-occur (&optional nlines)
+  "Do a `multi-occur' in the project's buffers.
+With a prefix argument, show NLINES of context."
+  (interactive "P")
   (multi-occur (projectile-project-buffers)
-               (car (occur-read-primary-args))))
+               (car (occur-read-primary-args))
+               nlines))
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
