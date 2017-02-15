@@ -2096,7 +2096,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'django '("manage.py") "python manage.py runserver" "python manage.py test")
 (projectile-register-project-type 'python-pip '("requirements.txt") "python setup.by build" "python -m unittest discover")
 (projectile-register-project-type 'python-pkg '("setup.py") "python setup.py build" "python -m unittest discover")
-(projectile-register-project-type 'python-tox '("tox.ini") nil "tox")
+(projectile-register-project-type 'python-tox '("tox.ini") "tox -r --notest" "tox")
 (projectile-register-project-type 'scons '("SConstruct") "scons" "scons test")
 (projectile-register-project-type 'maven '("pom.xml") "mvn clean install" "mvn test")
 (projectile-register-project-type 'gradle '("build.gradle") "gradle build" "gradle test")
