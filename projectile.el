@@ -2123,6 +2123,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
 Normally you'd set this from .dir-locals.el.")
+(put 'projectile-project-type 'safe-local-variable #'symbolp)
 
 (defun projectile-detect-project-type ()
   "Detect the type of the current project."
