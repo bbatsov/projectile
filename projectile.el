@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 0.15.0-cvs
-;; Package-Requires: ((pkg-info "0.4"))
+;; Package-Requires: ((emacs "24.1") (pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -1631,11 +1631,11 @@ project-root for every file."
                      (fboundp 'helm-make-source))
                 (helm :sources
                       (helm-make-source "Projectile" 'helm-source-sync
-                        :candidates choices
-                        :action (if action
-                                    (prog1 action
-                                      (setq action nil))
-                                  #'identity))
+                                        :candidates choices
+                                        :action (if action
+                                                    (prog1 action
+                                                      (setq action nil))
+                                                  #'identity))
                       :prompt prompt
                       :input initial-input
                       :buffer "*helm-projectile*")
