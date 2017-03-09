@@ -1,7 +1,7 @@
 site_name: "Projectile"
 repo_url: https://github.com/bbatsov/projectile
 site_favicon: favicon.ico
-copyright: "Copyright (C) 2016 Bozhidar Batsov and Projectile contributors"
+copyright: "Copyright (C) 2017 Bozhidar Batsov and Projectile contributors"
 docs_dir: doc
 pages:
 - Home: index.md
