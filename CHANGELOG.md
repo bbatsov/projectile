@@ -9,6 +9,7 @@
 
 ### Changes
 
+* [#1129](https://github.com/bbatsov/projectile/pull/1129): Fix TRAMP issues.
 * Add R DESCRIPTION file to `projectile-project-root-files`.
 * Ignore backup files in `projectile-get-other-files`.
 * Ignore Ensime cache directory, `.ensime_cache`.

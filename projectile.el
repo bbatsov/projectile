@@ -863,17 +863,23 @@ topmost sequence of matched directories.  Nil otherwise."
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  (let ((dir default-directory))
-    (or (cl-some
-         (lambda (func)
-           (let* ((cache-key (format "%s-%s" func dir))
-                  (cache-value (gethash cache-key projectile-project-root-cache)))
-             (if (and cache-value (file-exists-p cache-value))
-                 cache-value
-               (let ((value (funcall func (file-truename dir))))
-                 (puthash cache-key value projectile-project-root-cache)
-                 value))))
-         projectile-project-root-files-functions)
+  ;; The `is-local' and `is-connected' variables are used to fix the behavior where Emacs hangs
+  ;; because of Projectile when you open a file over TRAMP. It basically prevents Projectile from trying
+  ;; to find information about files for which it's not possible to get that information right now.
+  (let* ((dir default-directory)
+         (is-local (not (file-remote-p dir)))      ;; `true' if the file is local
+         (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
+    (or (when (or is-local is-connected)
+          (cl-some
+           (lambda (func)
+             (let* ((cache-key (format "%s-%s" func dir))
+                    (cache-value (gethash cache-key projectile-project-root-cache)))
+               (if (and cache-value (file-exists-p cache-value))
+                   cache-value
+                 (let ((value (funcall func (file-truename dir))))
+                   (puthash cache-key value projectile-project-root-cache)
+                   value))))
+           projectile-project-root-files-functions))
         (if projectile-require-project-root
             (error "You're not in a project")
           default-directory))))
@@ -3475,9 +3481,7 @@ is chosen."
 
 ;;;###autoload
 (defcustom projectile-mode-line
-  '(:eval (if (file-remote-p default-directory)
-              " Projectile"
-            (format " Projectile[%s]" (projectile-project-name))))
+  '(:eval (format " Projectile[%s]" (projectile-project-name)))
   "Mode line lighter for Projectile.
 
 The value of this variable is a mode line template as in
