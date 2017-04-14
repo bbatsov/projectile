@@ -229,6 +229,22 @@ should install and add to the PATH
 [Exuberant Ctags](http://ctags.sourceforge.net/) instead of a plain ctags, which
 ships with Emacs distribution.
 
+### Adding Custom Project Types
+If a project you are working on is recognized incorrectly or you want to add your own type of projects you can add following to your Emacs initialization code
+
+```el
+(projectile-register-project-type 'npm '("package.json") "npm build" "npm test" "npm start" ".spec" nil)
+```
+What this does is:
+1. add your own type of project, in this case `npm` package.
+2. add a file in a root of the project that helps to identify the type, in this case it is `package.json`.
+3. add *compile-command*, in this case it is `npm build`.
+4. add *test-command*, in this case it is `npm test`.
+5. add *run-command*, in this case it is `npm start`.
+6. add test files suffix for toggling between implementation/test files, in this case it is `.spec`, so the implementation/test file pair could be `service.js`/`service.spec.js` for example.
+7. add test files prefix for toggling between implementation/test files, in this case it is `nil`. 
+
+
 ### Customizing project root files
 
 You can set the values of `projectile-project-root-files`,

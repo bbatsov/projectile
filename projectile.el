@@ -2067,16 +2067,22 @@ With a prefix ARG invalidates the cache first."
   "A hash table holding all project types that are known to Projectile.")
 
 (defun projectile-register-project-type
-    (project-type marker-files &optional compile-cmd test-cmd run-cmd)
+    (project-type marker-files &optional compile-cmd test-cmd run-cmd spec-suffix spec-prefix)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
-  (puthash project-type (list 'marker-files marker-files
+a COMPILE-CMD, a TEST-CMD, a RUN-CMD, SPEC-SUFFIX and a SPEC-PREFIX."
+  (let ((project-plist (list 'marker-files marker-files
                               'compile-command compile-cmd
                               'test-command test-cmd
-                              'run-command run-cmd)
-           projectile-project-types))
+                              'run-command run-cmd)))
+    ;; There is no way for the function to distinguish between an explicit argument of nil and an omitted argument. However, the body of the function is free to consider nil an abbreviation for some other meaningful value
+    (when spec-suffix
+      (plist-put project-plist 'spec-suffix spec-suffix))
+    (when spec-prefix
+      (plist-put project-plist 'spec-prefix spec-prefix))
+    (puthash project-type project-plist
+             projectile-project-types)))
 
 (defun projectile-cabal ()
   "Check if a project contains *.cabal files but no stack.yaml file."
@@ -2125,6 +2131,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
 (projectile-register-project-type 'go projectile-go-function "go build ./..." "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt") nil "raco test .")
 (projectile-register-project-type 'elixir '("mix.exs") "mix compile" "mix test")
+(projectile-register-project-type 'npm '("package.json") "npm build" "npm test")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
@@ -2254,24 +2261,36 @@ It assumes the test/ folder is at the same level as src/."
   (find-file
    (projectile-find-implementation-or-test (buffer-file-name))))
 
+
+(defun projectile--registration-value-or-default (project-type key &optional default-value)
+  "Returs project registration value for a KEY for a project PROJECT-TYPE or if nothing DEFAULT-VALUE"
+  (let ((project (gethash project-type projectile-project-types)))
+    (if (and project (plist-member project key))
+        (plist-get project key)
+      default-value)))
+
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
-  (cond
-   ((member project-type '(django python-pip python-pkg python-tox)) "test_")
-   ((member project-type '(emacs-cask)) "test-")
-   ((member project-type '(lein-midje)) "t_")))
+  (cl-flet ((prefix (apply-partially #'projectile--registration-value-or-default project-type 'spec-prefix)))
+      (cond
+       ((member project-type '(django python-pip python-pkg python-tox))  (prefix "test_"))
+       ((member project-type '(emacs-cask)) (prefix "test-"))
+       ((member project-type '(lein-midje)) (prefix "t_"))
+       (t (prefix)))))
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
-  (cond
-   ((member project-type '(rebar)) "_SUITE")
-   ((member project-type '(emacs-cask)) "-test")
-   ((member project-type '(rails-rspec ruby-rspec)) "_spec")
-   ((member project-type '(rails-test ruby-test lein-test boot-clj go elixir)) "_test")
-   ((member project-type '(scons)) "test")
-   ((member project-type '(maven symfony)) "Test")
-   ((member project-type '(gradle gradlew grails)) "Spec")
-   ((member project-type '(sbt)) "Spec")))
+  (cl-flet ((suffix (apply-partially #'projectile--registration-value-or-default project-type 'spec-suffix)))
+    (cond
+     ((member project-type '(rebar)) (suffix "_SUITE"))
+     ((member project-type '(emacs-cask)) (suffix "-test"))
+     ((member project-type '(rails-rspec ruby-rspec)) (suffix "_spec"))
+     ((member project-type '(rails-test ruby-test lein-test boot-clj go elixir)) (suffix "_test"))
+     ((member project-type '(scons)) (suffix "test"))
+     ((member project-type '(maven symfony)) (suffix "Test"))
+     ((member project-type '(gradle gradlew grails)) (suffix "Spec"))
+     ((member project-type '(sbt)) (suffix "Spec"))
+     (t (suffix)))))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
