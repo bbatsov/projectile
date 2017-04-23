@@ -2839,7 +2839,7 @@ For hg projects `monky-status' is used if available."
     (cl-case vcs
       (git
        (cond ((fboundp 'magit-status-internal)
-              (magit-status-internal project-root))
+              (magit-status-internal (expand-file-name project-root)))
              ((fboundp 'magit-status)
               (with-no-warnings (magit-status project-root)))
              (t
