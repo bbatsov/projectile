@@ -47,7 +47,7 @@ Keybinding         | Description
 <kbd>C-c p k</kbd> | Kills all project buffers.
 <kbd>C-c p D</kbd> | Opens the root of the project in `dired`.
 <kbd>C-c p e</kbd> | Shows a list of recently visited project files.
-<kbd>C-c p E</kbd> | Opens the `.dirs-local.el` file of the project.
+<kbd>C-c p E</kbd> | Opens the root `dir-locals-file` of the project.
 <kbd>C-c p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
 <kbd>C-c p !</kbd> | Runs `shell-command` in the root directory of the project.
 <kbd>C-c p &</kbd> | Runs `async-shell-command` in the root directory of the project.
