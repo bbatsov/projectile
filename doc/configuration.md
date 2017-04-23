@@ -143,7 +143,7 @@ files with character 'a' in that directory is presented.
 ###### `projectile-dired`
 
 ```el
-(setq projectile-switch-project-action 'projectile-dired)
+(setq projectile-switch-project-action #'projectile-dired)
 ```
 
 With this setting, once you have selected your project, the top-level
@@ -153,7 +153,7 @@ buffer.
 ###### `projectile-find-dir`
 
 ```el
-(setq projectile-switch-project-action 'projectile-find-dir)
+(setq projectile-switch-project-action #'projectile-find-dir)
 ```
 
 With this setting, once you have selected your project, you will
@@ -209,7 +209,7 @@ You might want to combine default completion with `icomplete-mode` for optimum r
 You can also set `projectile-completion-system` to a function:
 
 ```el
-(setq projectile-completion-system 'my-custom-completion-fn)
+(setq projectile-completion-system #'my-custom-completion-fn)
 (setq projectile-completion-system
       (lambda (prompt choices)
         ;; ...
@@ -272,64 +272,66 @@ correspond to other projects).
 
 ### Storing project settings
 
-From project to project some things may differ even in same language -
-different coding styles, separate auto-completion sources, etc.  If
-you need to set some variables according to selected project, you can
-use standard Emacs feature called
-[Per-Directory Local Variables](http://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html). To
-use it you must create file named `.dir-locals.el` inside project
-directory. This file must contain something like this:
+From project to project, some things may differ even in the same
+language - coding styles, auto-completion sources, etc.  If you need
+to set some variables according to the selected project, you can use a
+standard Emacs feature called
+[Per-directory Local Variables](http://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html).
+To use it you must create a file named `.dir-locals.el` (as specified
+by the constant `dir-locals-file`) inside the project directory.  This
+file should contain something like this:
 
-```
+```el
 ((nil . ((secret-ftp-password . "secret")
          (compile-command . "make target-x")
          (eval . (progn
                    (defun my-project-specific-function ()
                      ;; ...
-                     ))))
- (c-mode . (c-file-style . "BSD")))
+                     )))))
+ (c-mode . ((c-file-style . "BSD"))))
 ```
 
-The top-level alist member referenced with the key `nil` applies to the
-entire project. A key with the name `eval` will evaluate its
-arguments. In the example above, this is used to create a function. It
-could also be used to e.g. add such a function to a key map.
+The top-level alist member referenced with the key `nil` applies to
+the entire project.  A key with the name `eval` will evaluate its
+corresponding value.  In the example above, this is used to create a
+function.  It could also be used to e.g. add such a function to a key
+map.
 
-You can also quickly visit the the `.dir-locals.el` file with <kbd>C-c
-p E</kbd> (<kbd>M-x projectile-edit-dir-locals RET</kbd>).
+You can also quickly visit or create the `dir-locals-file` with
+<kbd>C-c p E</kbd> (<kbd>M-x projectile-edit-dir-locals RET</kbd>).
 
 Here are a few examples of how to use this feature with Projectile.
 
 #### Configuring Projectile's Behavior
 
-Projectile offers many customizable variables (via `defcustom`) that
-allows us to customize its behavior. Because of how `dir-locals.el`
-works, it can be used to set these customizations on a per-project basis.
+Projectile exposes many variables (via `defcustom`) which allow users
+to customize its behavior.  Directory variables can be used to set
+these customizations on a per-project basis.
 
 You could enable caching for a project in this way:
 
-```
+```el
 ((nil . ((projectile-enable-caching . t))))
 ```
 
 If one of your projects had a file that you wanted Projectile to
 ignore, you would customize Projectile by:
 
-```
-((nil . ((projectile-globally-ignored-files . '("MyBinaryFile")))))
+```el
+((nil . ((projectile-globally-ignored-files . ("MyBinaryFile")))))
 ```
 
-If you wanted to wrap the git command that Projectile uses to find list
+If you wanted to wrap the git command that Projectile uses to list
 the files in you repository, you could do:
 
-```
+```el
 ((nil . ((projectile-git-command . "/path/to/other/git ls-files -zco --exclude-standard"))))
 ```
 
 If you want to use a different project name than how Projectile named
 your project, you could customize it with the following:
 
-```
+```el
 ((nil . ((projectile-project-name . "your-project-name-here"))))
 ```
 
@@ -341,11 +343,12 @@ There are a few variables that are intended to be customized via `.dir-locals.el
 * for testing - `projectile-project-test-cmd`
 * for running - `projectile-project-run-cmd`
 
-They're all set to `nil` by default, but by setting them you'll override the
-default commands per each supported project type.
-These variables can be strings to run external commands or Emacs Lisp functions:
+When these variables have their default value of `nil`, Projectile
+runs the default command for the current project type.  You can
+override this behavior by setting them to either a string to run an
+external command or an Emacs Lisp function:
 
-```
+```el
 (setq projectile-test-cmd #'custom-test-function)
 ```
 
@@ -365,7 +368,7 @@ and set `projectile-enable-idle-timer` to non-nil.  By default,
 additional functions to the hook using `add-hook`:
 
 ```el
-(add-hook 'projectile-idle-timer-hook 'my-projectile-idle-timer-function)
+(add-hook 'projectile-idle-timer-hook #'my-projectile-idle-timer-function)
 ```
 
 ### Mode line indicator
