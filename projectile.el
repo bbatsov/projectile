@@ -1724,6 +1724,10 @@ https://github.com/abo-abo/swiper")))
     ("vert" . ("frag"))
     ("frag" . ("vert"))
 
+    ;; usefull for some web mvc-ish programming
+    ("js" . ("html"))
+    ("html" . ("js"))
+    
     ;; handle files with no extension
     (nil . ("lock" "gpg"))
     ("lock" . (""))
