@@ -3286,9 +3286,8 @@ overwriting each other's changes."
     "Show Ibuffer with all buffers in the current project."
   (:reader (read-directory-name "Project root: " (ignore-errors (projectile-project-root)))
            :description nil)
-  (with-current-buffer buf
-    (equal (file-name-as-directory (expand-file-name qualifier))
-           (ignore-errors (projectile-project-root)))))
+  (string-prefix-p (file-name-as-directory (expand-file-name qualifier))
+                   (expand-file-name (buffer-local-value 'default-directory buf))))
 
 (defun projectile-ibuffer-by-project (project-root)
   "Open an IBuffer window showing all buffers in PROJECT-ROOT."
