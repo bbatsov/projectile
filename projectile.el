@@ -860,6 +860,7 @@ topmost sequence of matched directories.  Nil otherwise."
                  (not (projectile-file-exists-p (expand-file-name f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
 
+;;;###autoload
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
