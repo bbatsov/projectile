@@ -7,6 +7,7 @@
 * Consider Ensime configuration file as root marker, `.ensime`.
 * [#1057](https://github.com/bbatsov/projectile/issues/1057): Make it possible to disable automatic project tracking via `projectile-track-known-projects-automatically`.
 * Added ability to specify test files suffix and prefix at the project registration.
+* [#1140](https://github.com/bbatsov/projectile/pull/1140): Add command `projectile-ag-regexp`.
 
 ### Changes
 
