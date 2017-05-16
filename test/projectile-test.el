@@ -142,7 +142,8 @@
 
 (ert-deftest projectile-add-unignored-directories ()
   (noflet ((projectile-project-vcs () 'git)
-           (projectile-get-repo-ignored-files () '("path/unignored-file")))
+           (projectile-get-repo-ignored-files () '("path/unignored-file"))
+           (projectile-get-repo-ignored-directory (dir) (list (concat dir "unignored-file"))))
     (let ((projectile-globally-unignored-directories '("path")))
       (should (equal (projectile-add-unignored '("file"))
                      '("file" "path/unignored-file")))
