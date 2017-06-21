@@ -1182,14 +1182,12 @@ If PROJECT-PATH is a project, check this one instead."
 The list is composed of sublists~: (project-path, project-status).
 Raise an error if their is no dirty project."
   (let ((projects projectile-known-projects)
-        (status ())
-        (tmp-status nil))
+        (status ()))
     (dolist (project projects)
-      (condition-case nil
-          (setq tmp-status (projectile-check-vcs-status project))
-        (error nil))
-      (when tmp-status
-        (setq status (cons (list project tmp-status) status))))
+      (when (and (projectile-keep-project-p project) (not (string= 'none (projectile-project-vcs project))))
+        (let ((tmp-status (projectile-check-vcs-status project)))
+          (when tmp-status
+            (setq status (cons (list project tmp-status) status))))))
     (when (= (length status) 0)
       (message "No dirty projects have been found"))
     status))
