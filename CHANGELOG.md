@@ -21,6 +21,7 @@
 * Cache the name of the current project for mode-line display of the project name.
 * [#1078](https://github.com/bbatsov/projectile/issues/1078): For projectile-grep/ag use default value like grep/rgrep/ag.
 * Don't treat `package.json` as a project marker.
+* [#987](https://github.com/bbatsov/projectile/issues/987): projectile-ag ignores ag-ignore-list when projectile-project-vcs is git
 
 ### Bugs fixed
 
