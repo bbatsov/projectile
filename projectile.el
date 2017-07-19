@@ -860,29 +860,55 @@ topmost sequence of matched directories.  Nil otherwise."
                  (not (projectile-file-exists-p (expand-file-name f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
 
+(defvar-local projectile-cached-project-root nil
+  "Cached root of the current Projectile project. If non-nil, it
+is used as the return value of `projectile-project-root' for
+performance (unless the variable `projectile-project-root' is
+also set). If nil, it is recalculated the next time
+`projectile-project-root' is called.
+
+This variable is reset automatically when Projectile detects that
+the `buffer-file-name' has changed. It can also be reset manually
+by calling `projectile-reset-cached-project-root'.")
+
+(defvar-local projectile-cached-buffer-file-name nil
+  "The last known value of `buffer-file-name' for the current
+buffer. This is used to detect a change in `buffer-file-name',
+which triggers a reset of `projectile-cached-project-root' and
+`projectile-cached-project-name'.")
+
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
   ;; The `is-local' and `is-connected' variables are used to fix the behavior where Emacs hangs
   ;; because of Projectile when you open a file over TRAMP. It basically prevents Projectile from trying
   ;; to find information about files for which it's not possible to get that information right now.
-  (let* ((dir default-directory)
-         (is-local (not (file-remote-p dir)))      ;; `true' if the file is local
-         (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
-    (or (when (or is-local is-connected)
-          (cl-some
-           (lambda (func)
-             (let* ((cache-key (format "%s-%s" func dir))
-                    (cache-value (gethash cache-key projectile-project-root-cache)))
-               (if (and cache-value (file-exists-p cache-value))
-                   cache-value
-                 (let ((value (funcall func (file-truename dir))))
-                   (puthash cache-key value projectile-project-root-cache)
-                   value))))
-           projectile-project-root-files-functions))
-        (if projectile-require-project-root
-            (error "You're not in a project")
-          default-directory))))
+  (or (cl-subst nil 'none
+                (or (and (equal projectile-cached-buffer-file-name buffer-file-name)
+                         projectile-cached-project-root)
+                    (progn
+                      (setq projectile-cached-buffer-file-name buffer-file-name)
+                      (setq projectile-cached-project-root
+                            (or (let* ((dir default-directory)
+                                       (is-local (not (file-remote-p dir)))      ;; `true' if the file is local
+                                       (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
+                                  (when (or is-local is-connected)
+                                    (cl-some
+                                     (lambda (func)
+                                       (let* ((cache-key (format "%s-%s" func dir))
+                                              (cache-value (gethash cache-key projectile-project-root-cache)))
+                                         (if (and cache-value (file-exists-p cache-value))
+                                             cache-value
+                                           (let ((value (funcall func (file-truename dir))))
+                                             (puthash cache-key value projectile-project-root-cache)
+                                             value))))
+                                     projectile-project-root-files-functions)))
+                                ;; set cached to none so is non-nil so we don't try
+                                ;; and look it up again
+                                'none)))))
+      (if projectile-require-project-root
+          (error "You're not in a project")
+        default-directory)))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
@@ -911,10 +937,13 @@ This variable is reset automatically when Projectile detects that
 the `buffer-file-name' has changed. It can also be reset manually
 by calling `projectile-reset-cached-project-name'.")
 
-(defvar-local projectile-cached-buffer-file-name nil
-  "The last known value of `buffer-file-name' for the current
-buffer. This is used to detect a change in `buffer-file-name',
-which triggers a reset of `projectile-cached-project-name'.")
+(defun projectile-reset-cached-project-root ()
+  "Reset the value of `projectile-cached-project-root' to nil.
+
+This means that it is automatically recalculated the next time
+function `projectile-project-root' is called."
+  (interactive)
+  (setq projectile-cached-project-root nil))
 
 (defun projectile-reset-cached-project-name ()
   "Reset the value of `projectile-cached-project-name' to nil.
