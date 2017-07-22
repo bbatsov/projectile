@@ -2533,13 +2533,15 @@ regular expression."
          current-prefix-arg))
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
-            (ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
-                              ;; ag supports git ignore files
-                              (cl-union ag-ignore-list
+            (ag-ignore-list (cl-union ag-ignore-list
+                                      (projectile--globally-ignored-file-suffixes-glob)
+                                      ;; ag supports git ignore files directly
+                                      (unless (eq (projectile-project-vcs) 'git)
                                         (append
-                                         (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
-                                         (projectile--globally-ignored-file-suffixes-glob)
-                                         grep-find-ignored-files grep-find-ignored-directories))))
+                                         (projectile-ignored-files-rel)
+                                         (projectile-ignored-directories-rel)
+                                         grep-find-ignored-files
+                                         grep-find-ignored-directories))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
