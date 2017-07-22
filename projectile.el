@@ -1135,6 +1135,12 @@ they are excluded from the results of this function."
     (when cmd
       (projectile-files-via-ext-command cmd))))
 
+(defun projectile-get-repo-ignored-directory (dir)
+  "Get a list of the files ignored in the project in the directory DIR."
+  (let ((cmd (projectile-get-ext-ignored-command)))
+    (when cmd
+      (projectile-files-via-ext-command (concat cmd " " dir)))))
+
 (defun projectile-call-process-to-string (program &rest args)
   "Invoke the executable PROGRAM with ARGS and return the output as a string."
   (with-temp-buffer
@@ -1263,6 +1269,15 @@ SUBDIRECTORIES to a non-nil value."
        (cl-some (lambda (f) (string-prefix-p f file)) files))
      (projectile-get-repo-ignored-files))))
 
+(defun projectile-keep-ignored-directories (directories)
+  "Get ignored files within each of DIRECTORIES."
+  (when directories
+    (let (result)
+      (dolist (dir directories result)
+        (setq result (append result
+                             (projectile-get-repo-ignored-directory dir))))
+      result)))
+
 (defun projectile-add-unignored (files)
   "This adds unignored files to FILES.
 
@@ -1271,7 +1286,7 @@ this case unignored files will be absent from FILES."
   (let ((unignored-files (projectile-keep-ignored-files
                           (projectile-unignored-files-rel)))
         (unignored-paths (projectile-remove-ignored
-                          (projectile-keep-ignored-files
+                          (projectile-keep-ignored-directories
                            (projectile-unignored-directories-rel))
                           'subdirectories)))
     (append files unignored-files unignored-paths)))
