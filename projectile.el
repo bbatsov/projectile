@@ -880,15 +880,19 @@ which triggers a reset of `projectile-cached-project-root' and
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
-  ;; The `is-local' and `is-connected' variables are used to fix the behavior where Emacs hangs
-  ;; because of Projectile when you open a file over TRAMP. It basically prevents Projectile from trying
-  ;; to find information about files for which it's not possible to get that information right now.
   (or (cl-subst nil 'none
                 (or (and (equal projectile-cached-buffer-file-name buffer-file-name)
                          projectile-cached-project-root)
                     (progn
                       (setq projectile-cached-buffer-file-name buffer-file-name)
                       (setq projectile-cached-project-root
+                            ;; The `is-local' and `is-connected' variables are
+                            ;; used to fix the behavior where Emacs hangs
+                            ;; because of Projectile when you open a file over
+                            ;; TRAMP. It basically prevents Projectile from
+                            ;; trying to find information about files for which
+                            ;; it's not possible to get that information right
+                            ;; now.
                             (or (let* ((dir default-directory)
                                        (is-local (not (file-remote-p dir)))      ;; `true' if the file is local
                                        (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
