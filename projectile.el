@@ -880,6 +880,10 @@ which triggers a reset of `projectile-cached-project-root' and
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
 The current directory is assumed to be the project's root otherwise."
+  ;; the cached value will be 'none in the case of no project root (this is to
+  ;; ensure it is not reevaluated each time when not inside a project) so use
+  ;; cl-subst to replace this 'none value with nil so a nil value is used
+  ;; instead
   (or (cl-subst nil 'none
                 (or (and (equal projectile-cached-buffer-file-name buffer-file-name)
                          projectile-cached-project-root)
