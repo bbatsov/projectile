@@ -3169,8 +3169,12 @@ With a prefix ARG invokes `projectile-commander' instead of
       ;; the current project, in the minibuffer. This is a simple hack
       ;; to tell the `projectile-project-name' function to ignore the
       ;; current buffer and the caching mechanism, and just return the
-      ;; value of the `projectile-project-name' variable.
-      (let ((projectile-project-name (funcall projectile-project-name-function
+      ;; value of the `projectile-project-name' variable.  We also
+      ;; need to ignore the cached project-root value otherwise we end
+      ;; up still showing files from the current project rather than
+      ;; the new project
+      (let ((projectile-cached-project-root nil)
+            (projectile-project-name (funcall projectile-project-name-function
                                               project-to-switch)))
         (funcall switch-project-action)))
     (run-hooks 'projectile-after-switch-project-hook)))
