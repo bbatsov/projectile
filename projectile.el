@@ -1272,27 +1272,40 @@ function is executing."
   "First remove ignored files from FILES, then add back unignored files."
   (projectile-add-unignored (projectile-remove-ignored files)))
 
-(defun projectile-remove-ignored (files &optional subdirectories)
+(defun projectile--stringi= (string1 string2)
+  "Match STRING1 and STRING2 case insensitively."
+  (equal (compare-strings string1 nil nil string2 nil nil t) t))
+
+(defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
 
-Operates on filenames relative to the project root.  Optionally,
-you can filter ignored files in subdirectories by setting
-SUBDIRECTORIES to a non-nil value."
-  (let ((ignored (append (projectile-ignored-files-rel)
-                         (projectile-ignored-directories-rel))))
+If ignored directory prefixed with '*', then ignore all
+directories/subdirectories with matching filename,
+otherwise operates relative to project root."
+  (let ((ignored-files (projectile-ignored-files-rel))
+        (ignored-dirs (projectile-ignored-directories-rel)))
     (cl-remove-if
      (lambda (file)
        (or (cl-some
+            (lambda (f)
+              (string= f (file-name-nondirectory file)))
+            ignored-files)
+           (cl-some
             (lambda (dir)
-              (string-prefix-p
-               dir
-               (if subdirectories
-                   (file-name-nondirectory file)
-                 file)))
-            ignored)
+              ;; if the directory is prefixed with '*' then ignore all directories matching that name
+              (if (string-prefix-p "*" dir)
+                  ;; remove '*' and trailing slash from ignored directory name
+                  (let ((d (substring dir 1 (if (equal (substring dir -1) "/") -1 nil))))
+                    (cl-some
+                     (lambda (p)
+                       (string= d p))
+                     ;; split path by '/', remove empty strings, and check if any subdirs match name 'd'
+                     (delete "" (split-string (or (file-name-directory file) "") "/"))))
+                (string-prefix-p dir file)))
+            ignored-dirs)
            (cl-some
             (lambda (suf)
-              (string-suffix-p suf file))
+              (projectile--stringi= suf (file-name-extension file t)))
             projectile-globally-ignored-file-suffixes)))
      files)))
 
@@ -1322,8 +1335,7 @@ this case unignored files will be absent from FILES."
                           (projectile-unignored-files-rel)))
         (unignored-paths (projectile-remove-ignored
                           (projectile-keep-ignored-directories
-                           (projectile-unignored-directories-rel))
-                          'subdirectories)))
+                           (projectile-unignored-directories-rel)))))
     (append files unignored-files unignored-paths)))
 
 (defun projectile-buffers-with-file (buffers)
