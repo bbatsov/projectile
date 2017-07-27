@@ -2253,7 +2253,7 @@ TEST-PREFIX which specifies test file prefix."
                                   :compile "mix compile"
                                   :test "mix test")
 (projectile-register-project-type 'npm '("package.json")
-                                  :compile "npm build"
+                                  :compile "npm install"
                                   :test "npm test")
 
 (defvar-local projectile-project-type nil
