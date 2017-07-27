@@ -2598,6 +2598,28 @@ regular expression."
         (funcall ag-command search-term (projectile-project-root)))
     (error "Package 'ag' is not available")))
 
+;;;###autoload
+(defun projectile-ag-regexp (search-term)
+  "Run an ag search with SEARCH-TERM in the project.
+
+SEARCH-TERM is interpreted as a regular expression."
+  (interactive
+   (list (projectile--read-search-string-with-default
+          (format "Ag %ssearch for" (if current-prefix-arg "regexp " "")))
+         current-prefix-arg))
+  (if (require 'ag nil 'noerror)
+      (let ((ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
+                              ;; ag supports git ignore files
+                              (cl-union ag-ignore-list
+                                        (append
+                                         (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
+                                         (projectile--globally-ignored-file-suffixes-glob)
+                                         grep-find-ignored-files grep-find-ignored-directories))))
+            ;; reset the prefix arg, otherwise it will affect ag-regexp
+            (current-prefix-arg nil))
+        (ag-regexp search-term (projectile-project-root)))
+    (error "Package 'ag' is not available")))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
