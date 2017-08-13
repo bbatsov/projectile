@@ -2598,6 +2598,46 @@ regular expression."
         (funcall ag-command search-term (projectile-project-root)))
     (error "Package 'ag' is not available")))
 
+;;;###autoload
+(defun projectile-find-all-occurrences (&optional arg)
+    "List all occurrences of the text being searched using completion.
+With a prefix argument ARG prompts you for a directory on which to run search in."
+    (interactive "P")
+    (let* ((text-to-search (read-string
+                            (projectile-prepend-project-name "Find all: ")
+                            (projectile-symbol-or-selection-at-point)))
+           (directory (if arg
+                          (file-name-as-directory
+                           (read-directory-name "Find in directory: "))
+                        (projectile-project-root)))
+           (file-to-search (projectile-files-with-string text-to-search directory)))
+      (projectile-completing-read
+       "All occurrences: "
+       (reduce #'append
+               (mapcar (lambda (file)
+                         (with-temp-buffer
+                           (insert-file-contents file)
+                           (let ((lines (split-string (buffer-string) "\n")))
+                             (cl-remove-if nil
+                                           (mapcar (lambda (line)
+                                                     (let ((present-in-linep (search text-to-search line)))
+                                                       (cond (present-in-linep (concat (cadr (split-string file (projectile-project-root)))
+                                                                                       " => line "
+                                                                                       (number-to-string (1+ (cl-position line lines)))))
+                                                             (t nil))))
+                                                   lines)))))
+                       file-to-search))
+       :action `(lambda (item)
+                  (let ((file (car (split-string item " => line ")))
+                        (line-number (string-to-number (cadr (split-string item " => line ")))))
+                    (find-file (expand-file-name file ,(projectile-project-root)))
+                    (beginning-of-buffer)
+                    (forward-line (1- line-number))
+                    (search-forward text-to-search)
+                    (set-mark-command nil)
+                    (search-backward text-to-search)
+                    (run-hooks 'projectile-find-file-hook))))))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
