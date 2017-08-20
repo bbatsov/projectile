@@ -1793,26 +1793,34 @@ https://github.com/abo-abo/swiper")))
   file."
   :type 'alist)
 
+(defun projectile--find-other-file (&optional flex-matching ff-variant)
+  "Switch between files with the same name but different extensions.
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable
+`projectile-other-file-alist'.  With FF-VARIANT set to a defun, use that
+instead of `find-file'.   A typical example of such a defun would be
+`find-file-other-window' or `find-file-other-frame'"
+  (let ((ff (or ff-variant #'find-file))
+        (other-files (projectile-get-other-files
+                      (buffer-file-name)
+                      (projectile-current-project-files)
+                      flex-matching)))
+    (if other-files
+        (let ((file-name (if (= (length other-files) 1)
+                             (car other-files)
+                           (projectile-completing-read "Switch to: "
+                                                       other-files))))
+          (funcall ff (expand-file-name file-name
+                                        (projectile-project-root))))
+      (error "No other file found"))))
+
 ;;;###autoload
 (defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (let (other-files)
-    (if (setq other-files (projectile-get-other-files
-                           (buffer-file-name)
-                           (projectile-current-project-files)
-                           flex-matching))
-        (if (= (length other-files) 1)
-            (find-file (expand-file-name (car other-files) (projectile-project-root)))
-          (find-file
-           (expand-file-name
-            (projectile-completing-read
-             "Switch to: "
-             other-files)
-            (projectile-project-root))))
-      (error "No other file found"))))
+  (projectile--find-other-file flex-matching))
 
 ;;;###autoload
 (defun projectile-find-other-file-other-window (&optional flex-matching)
@@ -1820,24 +1828,8 @@ Other file extensions can be customized with the variable `projectile-other-file
 With FLEX-MATCHING, match any file that contains the base name of current file.
 Other file extensions can be customized with the variable `projectile-other-file-alist'."
   (interactive "P")
-  (let (other-files)
-    (if (setq other-files
-              (projectile-get-other-files
-               (buffer-file-name)
-               (projectile-current-project-files)
-               flex-matching))
-        (if (= (length other-files) 1)
-            (find-file-other-window
-             (expand-file-name
-              (car other-files)
-              (projectile-project-root)))
-          (find-file-other-window
-           (expand-file-name
-            (projectile-completing-read
-             "Switch to: "
-             other-files)
-            (projectile-project-root))))
-      (error "No other file found"))))
+  (projectile--find-other-file flex-matching
+                               #'find-file-other-window))
 
 (defun projectile--file-name-sans-extensions (file-name)
   "Return FILE-NAME sans any extensions.
