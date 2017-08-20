@@ -2008,18 +2008,26 @@ is presented.
      (t (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
     (run-hooks 'projectile-find-file-hook)))
 
+
+(defun projectile--find-file (invalidate-cache &optional ff-variant)
+  "Jump to a project's file using completion.
+With INVALIDATE-CACHE invalidates the cache first.  With FF-VARIANT set to a
+defun, use that instead of `find-file'.   A typical example of such a defun
+would be `find-file-other-window' or `find-file-other-frame'"
+  (interactive "P")
+  (projectile-maybe-invalidate-cache invalidate-cache)
+  (let ((file (projectile-completing-read "Find file: "
+                                          (projectile-current-project-files)))
+        (ff (or ff-variant #'find-file)))
+    (funcall ff (expand-file-name file (projectile-project-root)))
+    (run-hooks 'projectile-find-file-hook)))
+
 ;;;###autoload
 (defun projectile-find-file (&optional arg)
   "Jump to a project's file using completion.
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (projectile-maybe-invalidate-cache arg)
-  (projectile-completing-read
-   "Find file: "
-   (projectile-current-project-files)
-   :action `(lambda (file)
-              (find-file (expand-file-name file ,(projectile-project-root)))
-              (run-hooks 'projectile-find-file-hook))))
+  (projectile--find-file arg))
 
 ;;;###autoload
 (defun projectile-find-file-other-window (&optional arg)
@@ -2027,11 +2035,7 @@ With a prefix ARG invalidates the cache first."
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (projectile-maybe-invalidate-cache arg)
-  (let ((file (projectile-completing-read "Find file: "
-                                          (projectile-current-project-files))))
-    (find-file-other-window (expand-file-name file (projectile-project-root)))
-    (run-hooks 'projectile-find-file-hook)))
+  (projectile--find-file arg #'find-file-other-window))
 
 (defun projectile-sort-files (files)
   "Sort FILES according to `projectile-sort-order'."
