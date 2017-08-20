@@ -2102,6 +2102,14 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (projectile--find-dir arg #'dired-other-window))
 
+;;;###autoload
+(defun projectile-find-dir-other-frame (&optional arg)
+  "Jump to a project's directory in other window using completion.
+
+With a prefix ARG invalidates the cache first."
+  (interactive "P")
+  (projectile--find-dir arg #'dired-other-frame))
+
 (defun projectile-complete-dir ()
   (projectile-completing-read
    "Find dir: "
@@ -3557,6 +3565,7 @@ is chosen."
     (define-key map (kbd "4 t") #'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "5 a") #'projectile-find-other-file-other-frame)
     (define-key map (kbd "5 b") #'projectile-switch-to-buffer-other-frame)
+    (define-key map (kbd "5 d") #'projectile-find-dir-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "a") #'projectile-find-other-file)
