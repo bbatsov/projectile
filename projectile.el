@@ -2037,6 +2037,14 @@ With a prefix ARG invalidates the cache first."
   (interactive "P")
   (projectile--find-file arg #'find-file-other-window))
 
+;;;###autoload
+(defun projectile-find-file-other-frame (&optional arg)
+  "Jump to a project's file using completion and show it in another frame.
+
+With a prefix ARG invalidates the cache first."
+  (interactive "P")
+  (projectile--find-file arg #'find-file-other-frame))
+
 (defun projectile-sort-files (files)
   "Sort FILES according to `projectile-sort-order'."
   (cl-case projectile-sort-order
@@ -3570,6 +3578,7 @@ is chosen."
     (define-key map (kbd "5 a") #'projectile-find-other-file-other-frame)
     (define-key map (kbd "5 b") #'projectile-switch-to-buffer-other-frame)
     (define-key map (kbd "5 d") #'projectile-find-dir-other-frame)
+    (define-key map (kbd "5 f") #'projectile-find-file-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "a") #'projectile-find-other-file)
