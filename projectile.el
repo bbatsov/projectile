@@ -1445,6 +1445,13 @@ choices."
    (projectile-read-buffer-to-switch "Switch to buffer: ")))
 
 ;;;###autoload
+(defun projectile-switch-to-buffer-other-frame ()
+  "Switch to a project buffer and show it in another window."
+  (interactive)
+  (switch-to-buffer-other-frame
+   (projectile-read-buffer-to-switch "Switch to buffer: ")))
+
+;;;###autoload
 (defun projectile-display-buffer ()
   "Display a project buffer in another window without selecting it."
   (interactive)
@@ -3544,6 +3551,7 @@ is chosen."
     (define-key map (kbd "4 g") #'projectile-find-file-dwim-other-window)
     (define-key map (kbd "4 t") #'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "5 a") #'projectile-find-other-file-other-frame)
+    (define-key map (kbd "5 b") #'projectile-switch-to-buffer-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "a") #'projectile-find-other-file)
