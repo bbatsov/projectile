@@ -1831,6 +1831,15 @@ Other file extensions can be customized with the variable `projectile-other-file
   (projectile--find-other-file flex-matching
                                #'find-file-other-window))
 
+;;;###autoload
+(defun projectile-find-other-file-other-frame (&optional flex-matching)
+  "Switch between files with the same name but different extensions in other window.
+With FLEX-MATCHING, match any file that contains the base name of current file.
+Other file extensions can be customized with the variable `projectile-other-file-alist'."
+  (interactive "P")
+  (projectile--find-other-file flex-matching
+                               #'find-file-other-frame))
+
 (defun projectile--file-name-sans-extensions (file-name)
   "Return FILE-NAME sans any extensions.
 The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
@@ -3534,6 +3543,7 @@ is chosen."
     (define-key map (kbd "4 f") #'projectile-find-file-other-window)
     (define-key map (kbd "4 g") #'projectile-find-file-dwim-other-window)
     (define-key map (kbd "4 t") #'projectile-find-implementation-or-test-other-window)
+    (define-key map (kbd "5 a") #'projectile-find-other-file-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "a") #'projectile-find-other-file)
