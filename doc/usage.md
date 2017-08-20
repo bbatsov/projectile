@@ -28,7 +28,6 @@ Keybinding         | Description
 <kbd>C-c p 4 g</kbd> | Jump to a project's file based on context at point and show it in another window.
 <kbd>C-c p d</kbd> | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p 4 d</kbd> | Switch to a project directory and show it in another window.
-<kbd>C-c p 4 a</kbd> | Switch between files with the same name but different extensions in other window.
 <kbd>C-c p T</kbd> | Display a list of all test files(specs, features, etc) in the project.
 <kbd>C-c p l</kbd> | Display a list of all files in a directory (that's not necessarily a project)
 <kbd>C-c p s g</kbd> | Run grep on the files in the project.
@@ -39,6 +38,8 @@ Keybinding         | Description
 <kbd>C-c p 4 b</kbd> | Switch to a project buffer and show it in another window.
 <kbd>C-c p 4 C-o</kbd> | Display a project buffer in another window without selecting it.
 <kbd>C-c p a</kbd> | Switch between files with the same name but different extensions.
+<kbd>C-c p 4 a</kbd> | Switch between files with the same name but different extensions in other window.
+<kbd>C-c p 5 a</kbd> | Switch between files with the same name but different extensions in other frame.
 <kbd>C-c p o</kbd> | Runs `multi-occur` on all project buffers currently open.
 <kbd>C-c p r</kbd> | Runs interactive query-replace on all files in the projects.
 <kbd>C-c p i</kbd> | Invalidates the project cache (if existing).
