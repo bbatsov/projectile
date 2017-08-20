@@ -2074,16 +2074,25 @@ With a prefix ARG invalidates the cache first."
              (file2-atime (nth 4 (file-attributes file2))))
          (not (time-less-p file1-atime file2-atime)))))))
 
+(defun projectile--find-dir (invalidate-cache &optional dired-variant)
+  "Jump to a project's directory using completion.
+
+With INVALIDATE-CACHE invalidates the cache first.  With DIRED-VARIANT set to a
+defun, use that instead of `dired'.  A typical example of such a defun would be
+`dired-other-window' or `dired-other-frame'"
+  (projectile-maybe-invalidate-cache invalidate-cache)
+  (let ((dir (projectile-complete-dir))
+        (dired-v (or dired-variant #'dired)))
+    (funcall dired-v (expand-file-name dir (projectile-project-root)))
+    (run-hooks 'projectile-find-dir-hook)))
+
 ;;;###autoload
 (defun projectile-find-dir (&optional arg)
   "Jump to a project's directory using completion.
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (projectile-maybe-invalidate-cache arg)
-  (let ((dir (projectile-complete-dir)))
-    (dired (expand-file-name dir (projectile-project-root)))
-    (run-hooks 'projectile-find-dir-hook)))
+  (projectile--find-dir arg))
 
 ;;;###autoload
 (defun projectile-find-dir-other-window (&optional arg)
@@ -2091,11 +2100,7 @@ With a prefix ARG invalidates the cache first."
 
 With a prefix ARG invalidates the cache first."
   (interactive "P")
-  (when arg
-    (projectile-invalidate-cache nil))
-  (let ((dir (projectile-complete-dir)))
-    (dired-other-window (expand-file-name dir (projectile-project-root)))
-    (run-hooks 'projectile-find-dir-hook)))
+  (projectile--find-dir arg #'dired-other-window))
 
 (defun projectile-complete-dir ()
   (projectile-completing-read
