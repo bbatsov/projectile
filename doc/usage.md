@@ -36,6 +36,7 @@ Keybinding         | Description
 <kbd>C-c p V</kbd> | Browse dirty version controlled projects.
 <kbd>C-c p b</kbd> | Display a list of all project buffers currently open.
 <kbd>C-c p 4 b</kbd> | Switch to a project buffer and show it in another window.
+<kbd>C-c p 5 b</kbd> | Switch to a project buffer and show it in another frame.
 <kbd>C-c p 4 C-o</kbd> | Display a project buffer in another window without selecting it.
 <kbd>C-c p a</kbd> | Switch between files with the same name but different extensions.
 <kbd>C-c p 4 a</kbd> | Switch between files with the same name but different extensions in other window.
