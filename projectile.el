@@ -1937,6 +1937,29 @@ With a prefix ARG invalidates the cache first."
                   nil)))
     files))
 
+(defun projectile--find-file-dwim (invalidate-cache &optional ff-variant)
+  "Jump to a project's files using completion based on context.
+
+With a INVALIDATE-CACHE invalidates the cache first.
+
+With FF-VARIANT set to a defun, use that instead of `find-file'.
+A typical example of such a defun would be `find-file-other-window' or
+`find-file-other-frame'
+
+Subroutine for `projectile-find-file-dwim' and
+`projectile-find-file-dwim-other-window'"
+  (let* ((project-files (projectile-current-project-files))
+         (files (projectile-select-files project-files invalidate-cache))
+         (file (cond ((= (length files) 1)
+                      (car files))
+                     ((> (length files) 1)
+                      (projectile-completing-read "Switch to: " files))
+                     (t
+                      (projectile-completing-read "Switch to: " project-files))))
+         (ff (or ff-variant #'find-file)))
+    (funcall ff (expand-file-name file (projectile-project-root)))
+    (run-hooks 'projectile-find-file-hook)))
+
 ;;;###autoload
 (defun projectile-find-file-dwim (&optional arg)
   "Jump to a project's files using completion based on context.
@@ -1962,15 +1985,7 @@ the content of that directory.  If it is executed on a partial filename like
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
-  (let* ((project-files (projectile-current-project-files))
-         (files (projectile-select-files project-files arg)))
-    (cond
-     ((= (length files) 1)
-      (find-file (expand-file-name (car files) (projectile-project-root))))
-     ((> (length files) 1)
-      (find-file (expand-file-name (projectile-completing-read "Switch to: " files) (projectile-project-root))))
-     (t (find-file (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
-    (run-hooks 'projectile-find-file-hook)))
+  (projectile--find-file-dwim arg))
 
 ;;;###autoload
 (defun projectile-find-file-dwim-other-window (&optional arg)
@@ -1998,15 +2013,7 @@ is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
-  (let* ((project-files (projectile-current-project-files))
-         (files (projectile-select-files project-files arg)))
-    (cond
-     ((= (length files) 1)
-      (find-file-other-window (expand-file-name (car files) (projectile-project-root))))
-     ((> (length files) 1)
-      (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " files) (projectile-project-root))))
-     (t (find-file-other-window (expand-file-name (projectile-completing-read "Switch to: " project-files) (projectile-project-root)))))
-    (run-hooks 'projectile-find-file-hook)))
+  (projectile--find-file-dwim arg #'find-file-other-window))
 
 
 (defun projectile--find-file (invalidate-cache &optional ff-variant)
