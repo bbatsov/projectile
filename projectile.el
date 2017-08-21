@@ -1973,13 +1973,13 @@ file in project:
 if the filename is incomplete, but there's only a single file in the current project
 that matches the filename at point.  For example, if there's only a single file named
 \"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
-`projectile-find-file' still switches to \"projectile/projectile.el\" immediately
+`projectile-find-file-dwim' still switches to \"projectile/projectile.el\" immediately
  because this is the only filename that matches.
 
 - If it finds a list of files, the list is displayed for selecting.  A list of
 files is displayed when a filename appears more than one in the project or the
 filename at point is a prefix of more than two files in a project.  For example,
-if `projectile-find-file' is executed on a filepath like \"projectile/\", it lists
+if `projectile-find-file-dwim' is executed on a filepath like \"projectile/\", it lists
 the content of that directory.  If it is executed on a partial filename like
  \"projectile/a\", a list of files with character 'a' in that directory is presented.
 
@@ -2000,13 +2000,13 @@ file in project:
 if the filename is incomplete, but there's only a single file in the current project
 that matches the filename at point.  For example, if there's only a single file named
 \"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
-`projectile-find-file' still switches to \"projectile/projectile.el\"
+`projectile-find-file-dwim-other-window' still switches to \"projectile/projectile.el\"
 immediately because this is the only filename that matches.
 
 - If it finds a list of files, the list is displayed for selecting.  A list of
 files is displayed when a filename appears more than one in the project or the
 filename at point is a prefix of more than two files in a project.  For example,
-if `projectile-find-file' is executed on a filepath like \"projectile/\", it lists
+if `projectile-find-file-dwim-other-window' is executed on a filepath like \"projectile/\", it lists
 the content of that directory.  If it is executed on a partial filename
 like \"projectile/a\", a list of files with character 'a' in that directory
 is presented.
