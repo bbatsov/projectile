@@ -2965,6 +2965,18 @@ to run the replacement."
   (dired (projectile-project-root)))
 
 ;;;###autoload
+(defun projectile-dired-other-window ()
+  "Open `dired'  at the root of the project in another window."
+  (interactive)
+  (dired-other-window (projectile-project-root)))
+
+;;;###autoload
+(defun projectile-dired-other-frame ()
+  "Open `dired' at the root of the project in another frame."
+  (interactive)
+  (dired-other-frame (projectile-project-root)))
+
+;;;###autoload
 (defun projectile-vc (&optional project-root)
   "Open `vc-dir' at the root of the project.
 
@@ -3613,12 +3625,14 @@ is chosen."
     (define-key map (kbd "4 b") #'projectile-switch-to-buffer-other-window)
     (define-key map (kbd "4 C-o") #'projectile-display-buffer)
     (define-key map (kbd "4 d") #'projectile-find-dir-other-window)
+    (define-key map (kbd "4 D") #'projectile-dired-other-window)
     (define-key map (kbd "4 f") #'projectile-find-file-other-window)
     (define-key map (kbd "4 g") #'projectile-find-file-dwim-other-window)
     (define-key map (kbd "4 t") #'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "5 a") #'projectile-find-other-file-other-frame)
     (define-key map (kbd "5 b") #'projectile-switch-to-buffer-other-frame)
     (define-key map (kbd "5 d") #'projectile-find-dir-other-frame)
+    (define-key map (kbd "5 D") #'projectile-dired-other-frame)
     (define-key map (kbd "5 f") #'projectile-find-file-other-frame)
     (define-key map (kbd "5 g") #'projectile-find-file-dwim-other-frame)
     (define-key map (kbd "5 t") #'projectile-find-implementation-or-test-other-frame)
