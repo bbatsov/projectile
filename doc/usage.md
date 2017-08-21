@@ -51,6 +51,8 @@ Keybinding         | Description
 <kbd>C-c p j</kbd> | Find tag in project's `TAGS` file.
 <kbd>C-c p k</kbd> | Kills all project buffers.
 <kbd>C-c p D</kbd> | Opens the root of the project in `dired`.
+<kbd>C-c p 4 D</kbd> | Opens the root of the project in `dired` in another window.
+<kbd>C-c p 5 D</kbd> | Opens the root of the project in `dired` in another frame.
 <kbd>C-c p e</kbd> | Shows a list of recently visited project files.
 <kbd>C-c p E</kbd> | Opens the root `dir-locals-file` of the project.
 <kbd>C-c p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
