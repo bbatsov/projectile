@@ -2015,6 +2015,33 @@ is presented.
   (interactive "P")
   (projectile--find-file-dwim arg #'find-file-other-window))
 
+;;;###autoload
+(defun projectile-find-file-dwim-other-frame (&optional arg)
+  "Jump to a project's files using completion based on context in other frame.
+
+With a prefix ARG invalidates the cache first.
+
+If point is on a filename, Projectile first tries to search for that
+file in project:
+
+- If it finds just a file, it switches to that file instantly.  This works even
+if the filename is incomplete, but there's only a single file in the current project
+that matches the filename at point.  For example, if there's only a single file named
+\"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
+`projectile-find-file-dwim-other-frame' still switches to \"projectile/projectile.el\"
+immediately because this is the only filename that matches.
+
+- If it finds a list of files, the list is displayed for selecting.  A list of
+files is displayed when a filename appears more than one in the project or the
+filename at point is a prefix of more than two files in a project.  For example,
+if `projectile-find-file-dwim-other-frame' is executed on a filepath like \"projectile/\", it lists
+the content of that directory.  If it is executed on a partial filename
+like \"projectile/a\", a list of files with character 'a' in that directory
+is presented.
+
+- If it finds nothing, display a list of all files in project for selecting."
+  (interactive "P")
+  (projectile--find-file-dwim arg #'find-file-other-frame))
 
 (defun projectile--find-file (invalidate-cache &optional ff-variant)
   "Jump to a project's file using completion.
@@ -3586,6 +3613,7 @@ is chosen."
     (define-key map (kbd "5 b") #'projectile-switch-to-buffer-other-frame)
     (define-key map (kbd "5 d") #'projectile-find-dir-other-frame)
     (define-key map (kbd "5 f") #'projectile-find-file-other-frame)
+    (define-key map (kbd "5 g") #'projectile-find-file-dwim-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "a") #'projectile-find-other-file)
