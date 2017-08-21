@@ -27,6 +27,7 @@ Keybinding         | Description
 <kbd>C-c p 4 f</kbd> | Jump to a project's file using completion and show it in another window.
 <kbd>C-c p 4 g</kbd> | Jump to a project's file based on context at point and show it in another window.
 <kbd>C-c p 5 f</kbd> | Jump to a project's file using completion and show it in another frame.
+<kbd>C-c p 5 g</kbd> | Jump to a project's file based on context at point and show it in another frame.
 <kbd>C-c p d</kbd> | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 <kbd>C-c p 4 d</kbd> | Switch to a project directory and show it in another window.
 <kbd>C-c p 5 d</kbd> | Switch to a project directory and show it in another frame.
