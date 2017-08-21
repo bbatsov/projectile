@@ -2445,6 +2445,13 @@ It assumes the test/ folder is at the same level as src/."
    (projectile-find-implementation-or-test (buffer-file-name))))
 
 ;;;###autoload
+(defun projectile-find-implementation-or-test-other-frame ()
+  "Open matching implementation or test file in other frame."
+  (interactive)
+  (find-file-other-frame
+   (projectile-find-implementation-or-test (buffer-file-name))))
+
+;;;###autoload
 (defun projectile-toggle-between-implementation-and-test ()
   "Toggle between an implementation file and its test file."
   (interactive)
@@ -3614,6 +3621,7 @@ is chosen."
     (define-key map (kbd "5 d") #'projectile-find-dir-other-frame)
     (define-key map (kbd "5 f") #'projectile-find-file-other-frame)
     (define-key map (kbd "5 g") #'projectile-find-file-dwim-other-frame)
+    (define-key map (kbd "5 t") #'projectile-find-implementation-or-test-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "a") #'projectile-find-other-file)
