@@ -60,6 +60,7 @@ Keybinding         | Description
 <kbd>C-c p P</kbd> | Runs a standard test command for your type of project.
 <kbd>C-c p t</kbd> | Toggle between an implementation file and its test file.
 <kbd>C-c p 4 t</kbd> | Jump to implementation or test file in other window.
+<kbd>C-c p 5 t</kbd> | Jump to implementation or test file in other frame.
 <kbd>C-c p z</kbd> | Adds the currently visited file to the cache.
 <kbd>C-c p p</kbd> | Display a list of known projects you can switch to.
 <kbd>C-c p S</kbd> | Save all project buffers.
