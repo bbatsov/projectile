@@ -2243,9 +2243,9 @@ tests the project, RUN which specifies a command that runs the
 project, TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix."
   (let ((project-plist (list 'marker-files marker-files
-                              'compile-command compile
-                              'test-command test
-                              'run-command run)))
+                             'compile-command compile
+                             'test-command test
+                             'run-command run)))
     ;; There is no way for the function to distinguish between an
     ;; explicit argument of nil and an omitted argument. However, the
     ;; body of the function is free to consider nil an abbreviation
@@ -2585,11 +2585,11 @@ Fallback to DEFAULT-VALUE for missing attributes."
   "Find default test files prefix based on PROJECT-TYPE."
   (cl-flet ((prefix (&optional pfx)
                     (projectile-project-type-attribute project-type 'test-prefix pfx)))
-      (cond
-       ((member project-type '(django python-pip python-pkg python-tox))  (prefix "test_"))
-       ((member project-type '(emacs-cask)) (prefix "test-"))
-       ((member project-type '(lein-midje)) (prefix "t_"))
-       (t (prefix)))))
+    (cond
+     ((member project-type '(django python-pip python-pkg python-tox))  (prefix "test_"))
+     ((member project-type '(emacs-cask)) (prefix "test-"))
+     ((member project-type '(lein-midje)) (prefix "t_"))
+     (t (prefix)))))
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
