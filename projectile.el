@@ -2259,48 +2259,6 @@ TEST-PREFIX which specifies test file prefix."
     (puthash project-type project-plist
              projectile-project-types)))
 
-(defun projectile-cmake-run-target (target)
-  "Run CMake TARGET, generating build dir if needed."
-  (interactive "sTarget: ")
-  (let ((configure-cmd (format "cmake -E chdir %s cmake .."
-                               projectile-build-dir))
-        (build-cmd (format "cmake --build %s --target %s"
-                           projectile-build-dir
-                           target)))
-    (compile (if (file-accessible-directory-p projectile-build-dir)
-                 build-cmd
-               (mkdir projectile-build-dir)
-               (format "%s && %s" configure-cmd build-cmd)))))
-
-(defun projectile-cmake-compile ()
-  "Compile the current cmake project."
-  (interactive)
-  (projectile-cmake-run-target ""))
-
-(defun projectile-cmake-test ()
-  "Run the current cmake projects test suite."
-  (interactive)
-  (projectile-cmake-run-target "test"))
-
-(defun projectile-meson-run-target (target)
-  "Run meson TARGET, generating build dir if needed."
-  (interactive "sTarget: ")
-  (let* ((configure-cmd (format "meson %s" projectile-build-dir))
-         (build-cmd (format "ninja -C %s %s" projectile-build-dir target)))
-    (compile (if (file-accessible-directory-p projectile-build-dir)
-                 build-cmd
-               (format "%s && %s" configure-cmd build-cmd)))))
-
-(defun projectile-meson-compile ()
-  "Compile the current meson project."
-  (interactive)
-  (projectile-meson-run-target ""))
-
-(defun projectile-meson-test ()
-  "Run the current meson projects test suite."
-  (interactive)
-  (projectile-meson-run-target "test"))
-
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
   (and (projectile-verify-file "*.cabal")
@@ -2406,14 +2364,14 @@ TEST-PREFIX which specifies test file prefix."
                                   :compile "npm install"
                                   :test "npm test")
 (projectile-register-project-type 'meson '("meson.build")
-                                  :compile #'projectile-meson-compile
-                                  :test #'projectile-meson-test)
+                                  :compilation-dir "build"
+                                  :configure "meson %s"
+                                  :compile "ninja"
+                                  :test "ninja test")
 (projectile-register-project-type 'cmake '("CMakeLists.txt")
-                                  :compile #'projectile-cmake-compile
-                                  :test #'projectile-cmake-test)
-(projectile-register-project-type 'nix '("default.nix")
-                                  :compile "nix-build"
-                                  :test "nix-build")
+                                  :configure "cmake %s"
+                                  :compile "cmake --build ."
+                                  :test "ctest")
 
 ;; Project detection goes in reverse order of registration.
 ;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
