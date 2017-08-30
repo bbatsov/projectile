@@ -3248,33 +3248,6 @@ with a prefix ARG."
                                                       project-root)))
     (projectile-run-compilation compilation-cmd)))
 
-(defadvice compilation-find-file (around projectile-compilation-find-file)
-  "Try to find a buffer for FILENAME, if we cannot find it,
-fallback to the original function."
-  (let ((filename (ad-get-arg 1))
-        full-filename)
-    (ad-set-arg 1
-                (or
-                 (if (file-exists-p (expand-file-name filename))
-                     filename)
-                 ;; Try to find the filename using projectile
-                 (and (projectile-project-p)
-                      (let ((root (projectile-project-root))
-                            (dirs (cons "" (projectile-current-project-dirs))))
-                        (when (setq full-filename
-                                    (car (cl-remove-if-not
-                                          #'file-exists-p
-                                          (mapcar
-                                           (lambda (f)
-                                             (expand-file-name
-                                              filename
-                                              (expand-file-name f root)))
-                                           dirs))))
-                          full-filename)))
-                 ;; Fall back to the old argument
-                 filename))
-    ad-do-it))
-
 ;; TODO - factor this duplication out
 ;;;###autoload
 (defun projectile-test-project (arg)
@@ -3309,6 +3282,33 @@ with a prefix ARG."
          (default-directory project-root))
     (puthash project-root run-cmd projectile-run-cmd-map)
     (projectile-run-compilation run-cmd)))
+
+(defadvice compilation-find-file (around projectile-compilation-find-file)
+  "Try to find a buffer for FILENAME, if we cannot find it,
+fallback to the original function."
+  (let ((filename (ad-get-arg 1))
+        full-filename)
+    (ad-set-arg 1
+                (or
+                 (if (file-exists-p (expand-file-name filename))
+                     filename)
+                 ;; Try to find the filename using projectile
+                 (and (projectile-project-p)
+                      (let ((root (projectile-project-root))
+                            (dirs (cons "" (projectile-current-project-dirs))))
+                        (when (setq full-filename
+                                    (car (cl-remove-if-not
+                                          #'file-exists-p
+                                          (mapcar
+                                           (lambda (f)
+                                             (expand-file-name
+                                              filename
+                                              (expand-file-name f root)))
+                                           dirs))))
+                          full-filename)))
+                 ;; Fall back to the old argument
+                 filename))
+    ad-do-it))
 
 (defun projectile-open-projects ()
   "Return a list of all open projects.
