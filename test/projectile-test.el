@@ -656,7 +656,8 @@
 
 (ert-deftest projectile-test-compilation-directory ()
   (defun helper (project-root rel-dir)
-    (noflet ((projectile-project-root () project-root))
+    (noflet ((projectile-project-root () project-root)
+             (projectile-project-type () 'generic))
             (let ((projectile-project-compilation-dir rel-dir))
               (projectile-compilation-dir))))
 
@@ -664,6 +665,20 @@
   (should (equal "/root/build/" (helper "/root/" "build/")))
   (should (equal "/root/build/" (helper "/root/" "./build")))
   (should (equal "/root/local/build/" (helper "/root/" "local/build"))))
+
+(ert-deftest projectile-test-compilation-directory-with-default-directory ()
+  (projectile-register-project-type 'default-dir-project '("file.txt")
+                                    :compilation-dir "build")
+  (defun helper (project-root &optional rel-dir)
+    (noflet ((projectile-project-root () project-root)
+             (projectile-project-type () 'default-dir-project))
+            (if (null rel-dir)
+                (projectile-compilation-dir)
+              (let ((projectile-project-compilation-dir rel-dir))
+                (projectile-compilation-dir)))))
+
+  (should (equal "/root/build/"       (helper "/root/")))
+  (should (equal "/root/buildings/"   (helper "/root/" "buildings"))))
 
 (ert-deftest projectile-detect-project-type-of-rails-like-npm-test ()
   (projectile-test-with-sandbox

@@ -221,11 +221,6 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-build-dir "build"
-  "The directory Projectile will use for build systems that build out of tree."
-  :group 'projectile
-  :type 'string)
-
 (defcustom projectile-tags-file-name "TAGS"
   "The tags filename Projectile's going to use."
   :group 'projectile
@@ -1728,11 +1723,11 @@ project-root for every file."
                      (fboundp 'helm-make-source))
                 (helm :sources
                       (helm-make-source "Projectile" 'helm-source-sync
-                                        :candidates choices
-                                        :action (if action
-                                                    (prog1 action
-                                                      (setq action nil))
-                                                  #'identity))
+                        :candidates choices
+                        :action (if action
+                                    (prog1 action
+                                      (setq action nil))
+                                  #'identity))
                       :prompt prompt
                       :input initial-input
                       :buffer "*helm-projectile*")
@@ -2233,11 +2228,12 @@ With a prefix ARG invalidates the cache first."
   "A hash table holding all project types that are known to Projectile.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key configure compile test run test-suffix test-prefix)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
+COMPILATION-DIR the directory to run the tests- and compilations in,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
           before the command is run,
@@ -2247,6 +2243,7 @@ RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix."
   (let ((project-plist (list 'marker-files marker-files
+                             'compilation-dir compilation-dir
                              'configure-command configure
                              'compile-command compile
                              'test-command test
@@ -3193,6 +3190,10 @@ Should be set via .dir-locals.el.")
   "Retrieve default compilation command for PROJECT-TYPE."
   (plist-get (gethash project-type projectile-project-types) 'compile-command))
 
+(defun projectile-default-compilation-dir (project-type)
+  "Retrieve default compilation directory for PROJECT-TYPE."
+  (plist-get (gethash project-type projectile-project-types) 'compilation-dir))
+
 (defun projectile-default-test-command (project-type)
   "Retrieve default test command for PROJECT-TYPE."
   (plist-get (gethash project-type projectile-project-types) 'test-command))
@@ -3234,12 +3235,15 @@ Should be set via .dir-locals.el.")
                         'compile-history)))
 
 (defun projectile-compilation-dir ()
-  "Choose the directory to use for project compilation."
-  (if projectile-project-compilation-dir
-      (file-truename
-       (concat (file-name-as-directory (projectile-project-root))
-               (file-name-as-directory projectile-project-compilation-dir)))
-    (projectile-project-root)))
+  "Retrieve the compilation directory for this project."
+  (let* ((type (projectile-project-type))
+         (directory (or projectile-project-compilation-dir
+                        (projectile-default-compilation-dir type))))
+    (if directory
+        (file-truename
+         (concat (file-name-as-directory (projectile-project-root))
+                 (file-name-as-directory directory)))
+      (projectile-project-root))))
 
 (defun projectile-maybe-read-command (arg default-cmd prompt)
   "Prompt user for command unless DEFAULT-CMD is an Elisp function."
