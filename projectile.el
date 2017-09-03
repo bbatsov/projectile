@@ -4,6 +4,7 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
+;; Package-Version: 20170827.2053
 ;; Keywords: project, convenience
 ;; Version: 0.15.0-cvs
 ;; Package-Requires: ((emacs "24.1") (pkg-info "0.4"))
@@ -2710,7 +2711,7 @@ regular expression."
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
             (ag-ignore-list (delq nil
-                                  (delete-dups
+                                  
                                    (append
                                     ag-ignore-list
                                     (projectile--globally-ignored-file-suffixes-glob)
@@ -2719,7 +2720,7 @@ regular expression."
                                       (append (projectile-ignored-files-rel)
                                               (projectile-ignored-directories-rel)
                                               grep-find-ignored-files
-                                              grep-find-ignored-directories))))))
+                                              grep-find-ignored-directories)))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
