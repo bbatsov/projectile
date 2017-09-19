@@ -14,6 +14,7 @@
 
 ### Changes
 
+* ignore-*-p functions match against regular expressions.
 * Cache the root of the current project to increase performance
 * [#1129](https://github.com/bbatsov/projectile/pull/1129): Fix TRAMP issues.
 * Add R DESCRIPTION file to `projectile-project-root-files`.
