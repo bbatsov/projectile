@@ -1376,7 +1376,11 @@ this case unignored files will be absent from FILES."
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
   (or
-   (member (buffer-name buffer) projectile-globally-ignored-buffers)
+   (with-current-buffer buffer
+     (cl-some
+      (lambda (name)
+        (string-match-p name (buffer-name)))
+      projectile-globally-ignored-buffers))
    (with-current-buffer buffer
      (cl-some
       (lambda (mode)
@@ -1502,17 +1506,23 @@ projectile project root."
 
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored."
-  (member directory (projectile-ignored-directories)))
+  (cl-some
+   (lambda (name)
+     (string-match-p name directory))
+   projectile-globally-ignored-directories))
 
 (defun projectile-ignored-file-p (file)
   "Check if FILE should be ignored."
-  (member file (projectile-ignored-files)))
+  (cl-some
+   (lambda (name)
+     (string-match-p name file))
+   (projectile-ignored-files)))
 
 (defun projectile-check-pattern-p (file pattern)
   "Check if FILE meets PATTERN."
   (or (string-suffix-p (directory-file-name pattern)
-                       (directory-file-name file))
-      (member file (file-expand-wildcards pattern t))))
+                      (directory-file-name file))
+     (member file (file-expand-wildcards pattern t))))
 
 (defun projectile-ignored-rel-p (file directory patterns)
   "Check if FILE should be ignored relative to DIRECTORY
