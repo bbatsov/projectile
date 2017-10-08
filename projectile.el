@@ -2474,7 +2474,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
   "During toggling, if non-nil enables creating test files if not found.
 
 When not-nil, every call to projectile-find-implementation-or-test-*
-creates test files if not found on the file system. Defaults to nil.
+creates test files if not found on the file system.  Defaults to nil.
 It assumes the test/ folder is at the same level as src/."
   :group 'projectile
   :type 'boolean)
