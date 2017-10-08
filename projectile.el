@@ -2458,7 +2458,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
     (cond
      (test-prefix (concat test-prefix impl-file-name "." impl-file-ext))
      (test-suffix (concat impl-file-name test-suffix "." impl-file-ext))
-     (t (error "Project type not supported!")))))
+     (t (error "Project type `%s' not supported!" project-type)))))
 
 (defun projectile-create-test-file-for (impl-file-path)
   "Create a test file for IMPL-FILE-PATH."
@@ -2493,15 +2493,15 @@ test file."
         (if impl-file
             (projectile-expand-root impl-file)
           (error
-           (format "No matching source file found for project type: %s"
-                   (projectile-project-type)))))
+           "No matching source file found for project type `%s'"
+           (projectile-project-type))))
     ;; find the matching test file
     (let ((test-file (projectile-find-matching-test file-name)))
       (if test-file
           (projectile-expand-root test-file)
         (if projectile-create-missing-test-files
             (projectile-create-test-file-for file-name)
-          (error "No matching test file found for project type: %s"
+          (error "No matching test file found for project type `%s'"
                  (projectile-project-type)))))))
 
 ;;;###autoload
