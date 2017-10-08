@@ -2201,17 +2201,20 @@ With a prefix ARG invalidates the cache first."
     (project-type marker-files &key compile test run test-suffix test-prefix)
   "Register a project type with projectile.
 
-A project type is defined by PROJECT-TYPE, a set of MARKER-FILES, and optional keyword arguments
-COMPILE which specifies a command that builds the project,
-TEST which specified a command that tests the project,
-RUN which specifies a command that runs the project,
-TEST-SUFFIX which specifies test file suffix, and
+A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
+and optional keyword arguments COMPILE which specifies a command
+that builds the project, TEST which specified a command that
+tests the project, RUN which specifies a command that runs the
+project, TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix."
   (let ((project-plist (list 'marker-files marker-files
                               'compile-command compile
                               'test-command test
                               'run-command run)))
-    ;; There is no way for the function to distinguish between an explicit argument of nil and an omitted argument. However, the body of the function is free to consider nil an abbreviation for some other meaningful value
+    ;; There is no way for the function to distinguish between an
+    ;; explicit argument of nil and an omitted argument. However, the
+    ;; body of the function is free to consider nil an abbreviation
+    ;; for some other meaningful value
     (when test-suffix
       (plist-put project-plist 'test-suffix test-suffix))
     (when test-prefix
