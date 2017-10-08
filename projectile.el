@@ -2264,22 +2264,24 @@ TEST-PREFIX which specifies test file prefix."
   (interactive)
   (projectile-meson-run-target "test"))
 
-(defun projectile-cabal ()
+(defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
   (and (projectile-verify-file "*.cabal")
        (not (projectile-verify-file "stack.yaml"))))
 
-(defun projectile-go ()
+(defun projectile-go-project-p ()
   "Check if a project contains Go source files."
   (cl-some
    (lambda (file)
      (string= (file-name-extension file) "go"))
    (projectile-current-project-files)))
 
-(defcustom projectile-go-function 'projectile-go
+(defcustom projectile-go-project-test-function 'projectile-go-project-p
   "Function to determine if project's type is go."
   :group 'projectile
   :type 'function)
+
+(define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "0.15")
 
 (projectile-register-project-type 'emacs-cask '("Cask")
                                   :compile "cask install")
@@ -2352,7 +2354,7 @@ TEST-PREFIX which specifies test file prefix."
 (projectile-register-project-type 'haskell-stack '("stack.yaml")
                                   :compile "stack build"
                                   :test "stack build --test")
-(projectile-register-project-type 'haskell-cabal #'projectile-cabal
+(projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
                                   :compile "cabal build"
                                   :test "cabal test")
 (projectile-register-project-type 'rust-cargo '("Cargo.toml")
@@ -2361,7 +2363,7 @@ TEST-PREFIX which specifies test file prefix."
 (projectile-register-project-type 'r '("DESCRIPTION")
                                   :compile "R CMD INSTALL --with-keep.source ."
                                   :test (concat "R CMD check -o " temporary-file-directory " ."))
-(projectile-register-project-type 'go projectile-go-function
+(projectile-register-project-type 'go projectile-go-project-test-function
                                   :compile "go build ./..."
                                   :test "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt")
