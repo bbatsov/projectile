@@ -2276,7 +2276,7 @@ TEST-PREFIX which specifies test file prefix."
      (string= (file-name-extension file) "go"))
    (projectile-current-project-files)))
 
-(defcustom projectile-go-project-test-function 'projectile-go-project-p
+(defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
   :group 'projectile
   :type 'function)
