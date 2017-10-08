@@ -2519,7 +2519,7 @@ It assumes the test/ folder is at the same level as src/."
 
 
 (defun projectile--registration-value-or-default (project-type key &optional default-value)
-  "Returs project registration value for a KEY for a project PROJECT-TYPE or if nothing DEFAULT-VALUE"
+  "Returs project registration value for a KEY for a project PROJECT-TYPE or if nothing DEFAULT-VALUE."
   (let ((project (gethash project-type projectile-project-types)))
     (if (and project (plist-member project key))
         (plist-get project key)
