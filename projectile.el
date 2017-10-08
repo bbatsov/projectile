@@ -2518,8 +2518,9 @@ It assumes the test/ folder is at the same level as src/."
    (projectile-find-implementation-or-test (buffer-file-name))))
 
 
-(defun projectile--registration-value-or-default (project-type key &optional default-value)
-  "Returs project registration value for a KEY for a project PROJECT-TYPE or if nothing DEFAULT-VALUE."
+(defun projectile-project-type-attribute (project-type key &optional default-value)
+  "Return the value of some PROJECT-TYPE attribute identified by KEY.
+Fallback to DEFAULT-VALUE for missing attributes."
   (let ((project (gethash project-type projectile-project-types)))
     (if (and project (plist-member project key))
         (plist-get project key)
@@ -2528,7 +2529,7 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
   (cl-flet ((prefix (&optional pfx)
-                    (projectile--registration-value-or-default project-type 'test-prefix pfx)))
+                    (projectile-project-type-attribute project-type 'test-prefix pfx)))
       (cond
        ((member project-type '(django python-pip python-pkg python-tox))  (prefix "test_"))
        ((member project-type '(emacs-cask)) (prefix "test-"))
@@ -2538,7 +2539,7 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
   (cl-flet ((suffix (&optional sfx)
-                    (projectile--registration-value-or-default project-type 'test-suffix sfx)))
+                    (projectile-project-type-attribute project-type 'test-suffix sfx)))
     (cond
      ((member project-type '(rebar)) (suffix "_SUITE"))
      ((member project-type '(emacs-cask)) (suffix "-test"))
