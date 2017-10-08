@@ -3796,7 +3796,9 @@ is chosen."
 
 ;;;###autoload
 (defcustom projectile-mode-line
-  '(:eval (format " Projectile[%s]" (projectile-project-name)))
+  '(:eval (format " Projectile[%s(%s)]"
+                  (projectile-project-name)
+                  (projectile-project-type)))
   "Mode line lighter for Projectile.
 
 The value of this variable is a mode line template as in
@@ -3805,7 +3807,7 @@ details about mode line templates.
 
 Customize this variable to change how Projectile displays its
 status in the mode line.  The default value displays the project
-name.  Set this variable to nil to disable the mode line
+name and type.  Set this variable to nil to disable the mode line
 entirely."
   :group 'projectile
   :type 'sexp
