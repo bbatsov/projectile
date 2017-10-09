@@ -881,7 +881,11 @@ which triggers a reset of `projectile-cached-project-root' and
 
 (defun projectile-project-root ()
   "Retrieves the root directory of a project if available.
-The current directory is assumed to be the project's root otherwise."
+The current directory is assumed to be the project's root otherwise.
+
+When not in project the behaviour of the function is controlled by
+`projectile-require-project-root'.  If it's set to nil the function
+will return the current directory, otherwise it'd raise an error."
   ;; the cached value will be 'none in the case of no project root (this is to
   ;; ensure it is not reevaluated each time when not inside a project) so use
   ;; cl-subst to replace this 'none value with nil so a nil value is used
@@ -2406,9 +2410,12 @@ Normally you'd set this from .dir-locals.el.")
   "Determine the project's type based on its structure."
   (if projectile-project-type
       projectile-project-type
-    (or (gethash (projectile-project-root) projectile-project-type-cache)
-        (projectile-detect-project-type)
-        'generic)))
+    (let ((project-root (ignore-errors (projectile-project-root))))
+      (if project-root
+          (or (gethash project-root projectile-project-type-cache)
+              (projectile-detect-project-type)
+              'generic)
+        'generic))))
 
 ;;;###autoload
 (defun projectile-project-info ()
