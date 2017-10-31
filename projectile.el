@@ -3808,9 +3808,8 @@ is chosen."
 
 ;;;###autoload
 (defcustom projectile-mode-line
-  '(:eval (format " Projectile[%s(%s)]"
-                  (projectile-project-name)
-                  (projectile-project-type)))
+  '(:eval (format " Projectile[%s]"
+                  (projectile-project-name)))
   "Mode line lighter for Projectile.
 
 The value of this variable is a mode line template as in
