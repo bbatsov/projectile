@@ -2394,28 +2394,31 @@ Normally you'd set this from .dir-locals.el.")
 (put 'projectile-project-type 'safe-local-variable #'symbolp)
 
 (defun projectile-detect-project-type ()
-  "Detect the type of the current project."
-  (let ((project-type (cl-find-if
-                       (lambda (project-type)
-                         (let ((marker (plist-get (gethash project-type projectile-project-types) 'marker-files)))
-                           (if (listp marker)
-                               (and (projectile-verify-files marker) project-type)
-                             (and (funcall marker) project-type))))
-                       (projectile-hash-keys projectile-project-types))))
-    (when project-type
-      (puthash (projectile-project-root) project-type projectile-project-type-cache))
+  "Detect the type of the current project.
+Fallsback to a generic project type when the type can't be determined."
+  (let ((project-type (or (cl-find-if
+                           (lambda (project-type)
+                             (let ((marker (plist-get (gethash project-type projectile-project-types) 'marker-files)))
+                               (if (listp marker)
+                                   (and (projectile-verify-files marker) project-type)
+                                 (and (funcall marker) project-type))))
+                           (projectile-hash-keys projectile-project-types))
+                          'generic)))
+    (puthash (projectile-project-root) project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type ()
-  "Determine the project's type based on its structure."
+  "Determine the project's type based on its structure.
+
+The project type is cached for improved performance."
   (if projectile-project-type
       projectile-project-type
     (let ((project-root (ignore-errors (projectile-project-root))))
       (if project-root
           (or (gethash project-root projectile-project-type-cache)
-              (projectile-detect-project-type)
-              'generic)
-        'generic))))
+              (projectile-detect-project-type))
+        ;; if we're not in a project we just return nil
+        nil))))
 
 ;;;###autoload
 (defun projectile-project-info ()
