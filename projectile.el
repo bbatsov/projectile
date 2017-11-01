@@ -2568,7 +2568,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
      ((member project-type '(scons)) (suffix "test"))
      ((member project-type '(maven symfony)) (suffix "Test"))
      ((member project-type '(gradle gradlew grails)) (suffix "Spec"))
-     ((member project-type '(sbt)) (suffix "Spec"))
+     ((member project-type '(haskell-cabal haskell-stack sbt)) (suffix "Spec"))
      (t (suffix)))))
 
 (defun projectile-dirname-matching-count (a b)
