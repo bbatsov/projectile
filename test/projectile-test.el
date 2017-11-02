@@ -635,6 +635,23 @@
   (should (equal "/root/build/" (helper "/root/" "./build")))
   (should (equal "/root/local/build/" (helper "/root/" "local/build"))))
 
+(ert-deftest projectile-detect-project-type-of-rails-like-npm-test ()
+  (projectile-test-with-sandbox
+   (projectile-test-with-files
+    ("project/"
+     "project/Gemfile"
+     "project/app/"
+     "project/lib/"
+     "project/db/"
+     "project/config/"
+     "project/spec/"
+     "project/package.json")
+    (let ((projectile-indexing-method 'native))
+      (noflet ((projectile-project-root
+                () (file-truename (expand-file-name "project/"))))
+              (should (equal 'rails-rspec
+                             (projectile-detect-project-type))))))))
+
 (ert-deftest projectile-test-dirname-matching-count ()
   (should (equal 2
                  (projectile-dirname-matching-count "src/food/sea.c"

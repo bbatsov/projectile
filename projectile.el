@@ -2402,7 +2402,7 @@ Fallsback to a generic project type when the type can't be determined."
                                (if (listp marker)
                                    (and (projectile-verify-files marker) project-type)
                                  (and (funcall marker) project-type))))
-                           (projectile-hash-keys projectile-project-types))
+                           (reverse (projectile-hash-keys projectile-project-types)))
                           'generic)))
     (puthash (projectile-project-root) project-type projectile-project-type-cache)
     project-type))
