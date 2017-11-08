@@ -11,6 +11,7 @@
 * [#1057](https://github.com/bbatsov/projectile/issues/1057): Make it possible to disable automatic project tracking via `projectile-track-known-projects-automatically`.
 * Added ability to specify test files suffix and prefix at the project registration.
 * [#1154](https://github.com/bbatsov/projectile/pull/1154) Use npm install instead of build.
+* Added the ability to expire old files list caches via `projectile-projectile-files-cache-expire`.
 
 ### Changes
 

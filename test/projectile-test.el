@@ -458,6 +458,7 @@
          "project/file4.el")
       (cd "project")
       (let ((projectile-projects-cache (make-hash-table :test #'equal))
+            (projectile-projects-cache-time (make-hash-table :test #'equal))
             (projectile-enable-caching t))
         (puthash (projectile-project-root)
                  '("file1.el")
@@ -479,6 +480,35 @@
             (dolist (f '("file1.el" "file2.el" "file3.el" "file4.el"))
               (should (member f (gethash (projectile-project-root)
                                          projectile-projects-cache))))))))))
+
+(ert-deftest projectile-test-cache-expiring ()
+  "Ensure that we update the cache if it's expired."
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+     ("project/"
+      "project/.projectile"
+      "project/file1.el"
+      "project/file2.el")
+     (cd "project")
+     (let ((projectile-projects-cache (make-hash-table :test #'equal))
+           (projectile-projects-cache-time (make-hash-table :test #'equal))
+           (projectile-enable-caching t)
+           (projectile-files-cache-expire 10))
+       ;; Create a stale cache with only one file in it.
+       (puthash (projectile-project-root)
+                '("file1.el")
+                projectile-projects-cache)
+       (puthash (projectile-project-root)
+                0 ;; Cached 1st of January 1970.
+                projectile-projects-cache-time)
+
+       (noflet ((projectile-project-root () (file-truename default-directory))
+                (projectile-project-vcs () 'none))
+               ;; After listing all the files, the cache should have been updated.
+               (projectile-current-project-files)
+               (dolist (f '("file1.el" "file2.el"))
+                 (should (member f (gethash (projectile-project-root)
+                                            projectile-projects-cache)))))))))
 
 (ert-deftest projectile-test-old-project-root-gone ()
   "Ensure that we don't cache a project root if the path has changed."
