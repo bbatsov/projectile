@@ -42,6 +42,7 @@
 (require 'ibuf-ext)
 (require 'compile)
 (require 'grep)
+(require 'em-glob)
 
 (eval-when-compile
   (defvar ag-ignore-list)
@@ -1310,7 +1311,8 @@ If ignored directory prefixed with '*', then ignore all
 directories/subdirectories with matching filename,
 otherwise operates relative to project root."
   (let ((ignored-files (projectile-ignored-files-rel))
-        (ignored-dirs (projectile-ignored-directories-rel)))
+        (ignored-dirs (projectile-ignored-directories-rel))
+        (filtering-regexes (mapcar #'eshell-glob-regexp (car (projectile-filtering-patterns)))))
     (cl-remove-if
      (lambda (file)
        (or (cl-some
@@ -1333,7 +1335,11 @@ otherwise operates relative to project root."
            (cl-some
             (lambda (suf)
               (projectile--stringi= suf (file-name-extension file t)))
-            projectile-globally-ignored-file-suffixes)))
+            projectile-globally-ignored-file-suffixes)
+           (cl-some
+            (lambda (regex)
+              (string-match-p regex (file-name-nondirectory file)))
+            filtering-regexes)))
      files)))
 
 (defun projectile-keep-ignored-files (files)
