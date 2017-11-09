@@ -1241,10 +1241,14 @@ If PROJECT-PATH is a project, check this one instead."
       (kill-buffer)
       project-status)))
 
+(defvar projectile-cached-dirty-projects-status nil
+  "Cache of the last dirty projects check.")
+
 (defun projectile-check-vcs-status-of-known-projects ()
   "Return the list of dirty projects.
 The list is composed of sublists~: (project-path, project-status).
 Raise an error if their is no dirty project."
+  (message "Checking for modifications in known projects...")
   (let ((projects projectile-known-projects)
         (status ()))
     (dolist (project projects)
@@ -1254,19 +1258,23 @@ Raise an error if their is no dirty project."
             (setq status (cons (list project tmp-status) status))))))
     (when (= (length status) 0)
       (message "No dirty projects have been found"))
+    (setq projectile-cached-dirty-projects-status status)
     status))
 
-(defun projectile-browse-dirty-projects ()
-  "Browse dirty version controlled projects."
-  (interactive)
-  (let ((status nil)
+(defun projectile-browse-dirty-projects (&optional cached)
+  "Browse dirty version controlled projects.
+
+With a prefix argument, or if CACHED is non-nil, try to use the cached
+dirty project list."
+  (interactive "P")
+  (let ((status (if (and cached projectile-cached-dirty-projects-status)
+                    projectile-cached-dirty-projects-status
+                  (projectile-check-vcs-status-of-known-projects)))
         (mod-proj nil))
-    (message "Checking for modifications in known projects...")
-    (setq status (projectile-check-vcs-status-of-known-projects))
     (while (not (= (length status) 0))
       (setq mod-proj (cons (car (pop status)) mod-proj)))
-    (projectile-vc
-     (projectile-completing-read "Select project: " mod-proj))))
+     (projectile-completing-read "Select project: " mod-proj
+                                 :action 'projectile-vc)))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
