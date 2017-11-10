@@ -645,7 +645,8 @@
      "project/db/"
      "project/config/"
      "project/spec/"
-     "project/package.json")
+     "project/package.json"
+     )
     (let ((projectile-indexing-method 'native))
       (noflet ((projectile-project-root
                 () (file-truename (expand-file-name "project/"))))

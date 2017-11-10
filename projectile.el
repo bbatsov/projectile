@@ -2289,12 +2289,6 @@ TEST-PREFIX which specifies test file prefix."
 
 (projectile-register-project-type 'emacs-cask '("Cask")
                                   :compile "cask install")
-(projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
-                                  :compile "bundle exec rails server"
-                                  :test "bundle exec rspec")
-(projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
-                                  :compile "bundle exec rails server"
-                                  :test "bundle exec rake test")
 (projectile-register-project-type 'symfony '("composer.json" "app" "src" "vendor")
                                   :compile "app/console server:run"
                                   :test "phpunit -c app ")
@@ -2387,6 +2381,12 @@ TEST-PREFIX which specifies test file prefix."
 (projectile-register-project-type 'nix '("default.nix")
                                   :compile "nix-build"
                                   :test "nix-build")
+(projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
+                                  :compile "bundle exec rails server"
+                                  :test "bundle exec rake test")
+(projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
+                                  :compile "bundle exec rails server"
+                                  :test "bundle exec rspec")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
@@ -2402,7 +2402,7 @@ Fallsback to a generic project type when the type can't be determined."
                                (if (listp marker)
                                    (and (projectile-verify-files marker) project-type)
                                  (and (funcall marker) project-type))))
-                           (reverse (projectile-hash-keys projectile-project-types)))
+                           (projectile-hash-keys projectile-project-types))
                           'generic)))
     (puthash (projectile-project-root) project-type projectile-project-type-cache)
     project-type))
