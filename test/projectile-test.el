@@ -569,10 +569,12 @@
     (should-error (projectile-switch-project))))
 
 (ert-deftest projectile-ignored-buffer-p-by-name ()
-  (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
+  (let ((projectile-globally-ignored-buffers '("\\*nrepl messages\\*" "\\*something\\*" "TAGS|.*")))
     (should (projectile-ignored-buffer-p (get-buffer-create "*nrepl messages*")))
     (should (projectile-ignored-buffer-p (get-buffer-create "*something*")))
-    (should-not (projectile-ignored-buffer-p (get-buffer-create "test")))))
+    (should (projectile-ignored-buffer-p (get-buffer-create "TAGS|project-name")))
+    (should-not (projectile-ignored-buffer-p (get-buffer-create "test")))
+    ))
 
 (ert-deftest projectile-test-get-other-files ()
   (let ((projectile-other-file-alist '(;; handle C/C++ extensions
