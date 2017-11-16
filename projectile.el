@@ -909,7 +909,8 @@ will return the current directory, otherwise it'd raise an error."
   ;; cl-subst to replace this 'none value with nil so a nil value is used
   ;; instead
   (or (cl-subst nil 'none
-                (or (and (equal projectile-cached-buffer-file-name buffer-file-name)
+                (or (and projectile-cached-buffer-file-name
+                         (equal projectile-cached-buffer-file-name buffer-file-name)
                          projectile-cached-project-root)
                     (progn
                       (setq projectile-cached-buffer-file-name buffer-file-name)
@@ -988,7 +989,8 @@ function `projectile-project-name' is called."
 (defun projectile-project-name ()
   "Return project name."
   (or projectile-project-name
-      (and (equal projectile-cached-buffer-file-name buffer-file-name)
+      (and projectile-cached-buffer-file-name
+           (equal projectile-cached-buffer-file-name buffer-file-name)
            projectile-cached-project-name)
       (progn
         (setq projectile-cached-buffer-file-name buffer-file-name)
