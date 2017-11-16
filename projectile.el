@@ -2381,6 +2381,10 @@ TEST-PREFIX which specifies test file prefix."
 (projectile-register-project-type 'nix '("default.nix")
                                   :compile "nix-build"
                                   :test "nix-build")
+
+;; Project detection goes in reverse order of registration.
+;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
+;; https://github.com/bbatsov/projectile/pull/1191
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
                                   :compile "bundle exec rails server"
                                   :test "bundle exec rake test")
