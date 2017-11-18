@@ -116,9 +116,9 @@
            (projectile-project-name () "project")
            (projectile-ignored-files-rel () ())
            (projectile-ignored-directories-rel () ()))
-          (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz"))
+          (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
                  (files (mapcar 'projectile-expand-root file-names)))
-            (let ((projectile-globally-ignored-file-suffixes '(".o" ".so")))
+            (let ((projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
               (should (equal (projectile-remove-ignored files)
                              (mapcar 'projectile-expand-root
                                      '("foo.c" "foo.o.gz"))))))))

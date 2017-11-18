@@ -1299,10 +1299,6 @@ function is executing."
   "First remove ignored files from FILES, then add back unignored files."
   (projectile-add-unignored (projectile-remove-ignored files)))
 
-(defun projectile--stringi= (string1 string2)
-  "Match STRING1 and STRING2 case insensitively."
-  (equal (compare-strings string1 nil nil string2 nil nil t) t))
-
 (defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
 
@@ -1332,7 +1328,7 @@ otherwise operates relative to project root."
             ignored-dirs)
            (cl-some
             (lambda (suf)
-              (projectile--stringi= suf (file-name-extension file t)))
+              (string-suffix-p suf file t))
             projectile-globally-ignored-file-suffixes)))
      files)))
 
