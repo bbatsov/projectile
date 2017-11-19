@@ -2320,12 +2320,6 @@ TEST-PREFIX which specifies test file prefix."
 
 (projectile-register-project-type 'emacs-cask '("Cask")
                                   :compile "cask install")
-(projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
-                                  :compile "bundle exec rails server"
-                                  :test "bundle exec rspec")
-(projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
-                                  :compile "bundle exec rails server"
-                                  :test "bundle exec rake test")
 (projectile-register-project-type 'symfony '("composer.json" "app" "src" "vendor")
                                   :compile "app/console server:run"
                                   :test "phpunit -c app ")
@@ -2418,6 +2412,16 @@ TEST-PREFIX which specifies test file prefix."
 (projectile-register-project-type 'nix '("default.nix")
                                   :compile "nix-build"
                                   :test "nix-build")
+
+;; Project detection goes in reverse order of registration.
+;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
+;; https://github.com/bbatsov/projectile/pull/1191
+(projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
+                                  :compile "bundle exec rails server"
+                                  :test "bundle exec rake test")
+(projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
+                                  :compile "bundle exec rails server"
+                                  :test "bundle exec rspec")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
