@@ -1248,18 +1248,19 @@ If PROJECT-PATH is a project, check this one instead."
   "Return the list of dirty projects.
 The list is composed of sublists~: (project-path, project-status).
 Raise an error if their is no dirty project."
-  (message "Checking for modifications in known projects...")
-  (let ((projects projectile-known-projects)
-        (status ()))
-    (dolist (project projects)
-      (when (and (projectile-keep-project-p project) (not (string= 'none (projectile-project-vcs project))))
-        (let ((tmp-status (projectile-check-vcs-status project)))
-          (when tmp-status
-            (setq status (cons (list project tmp-status) status))))))
-    (when (= (length status) 0)
-      (message "No dirty projects have been found"))
-    (setq projectile-cached-dirty-projects-status status)
-    status))
+  (save-window-excursion
+    (message "Checking for modifications in known projects...")
+    (let ((projects projectile-known-projects)
+          (status ()))
+      (dolist (project projects)
+        (when (and (projectile-keep-project-p project) (not (string= 'none (projectile-project-vcs project))))
+          (let ((tmp-status (projectile-check-vcs-status project)))
+            (when tmp-status
+              (setq status (cons (list project tmp-status) status))))))
+      (when (= (length status) 0)
+        (message "No dirty projects have been found"))
+      (setq projectile-cached-dirty-projects-status status)
+      status)))
 
 (defun projectile-browse-dirty-projects (&optional cached)
   "Browse dirty version controlled projects.
