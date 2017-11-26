@@ -1750,7 +1750,8 @@ https://github.com/emacs-helm/helm")))
 https://github.com/d11wtq/grizzl")))
            ((eq projectile-completion-system 'ivy)
             (if (fboundp 'ivy-read)
-                (ivy-read prompt choices
+                (ivy-read (concat "%d " (replace-regexp-in-string "%" "%%" prompt))
+                          choices
                           :initial-input initial-input
                           :action (prog1 action
                                     (setq action nil))
