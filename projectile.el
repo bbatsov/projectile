@@ -414,7 +414,7 @@ it for functions working with buffers."
   :type '(repeat string))
 
 (defcustom projectile-globally-ignored-buffers nil
-  "A list of buffer-names ignored by projectile.
+  "A list of regular expressions for buffer-names ignored by projectile.
 
 If a buffer is in the list projectile will ignore
 it for functions working with buffers."
@@ -1417,7 +1417,11 @@ this case unignored files will be absent from FILES."
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
   (or
-   (member (buffer-name buffer) projectile-globally-ignored-buffers)
+   (cl-some
+    (lambda (ignore-buffer)
+      (string-match-p (concat "^" ignore-buffer "$")
+                      (buffer-name buffer)))
+    projectile-globally-ignored-buffers)
    (with-current-buffer buffer
      (cl-some
       (lambda (mode)
