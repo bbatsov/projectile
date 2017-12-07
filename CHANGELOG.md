@@ -13,6 +13,7 @@
 * Added ability to specify test files suffix and prefix at the project registration.
 * [#1154](https://github.com/bbatsov/projectile/pull/1154) Use npm install instead of build.
 * Added the ability to expire old files list caches via `projectile-projectile-files-cache-expire`.
+* [#?](https://github.com/bbatsov/projectile/pull/?): `projectile-register-project-type` can now be use to customize the source and test directory via `:src-dir` and `:test-dir` for projects with custom needs (eg. maven).
 
 ### Changes
 
