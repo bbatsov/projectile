@@ -2237,7 +2237,7 @@ With a prefix ARG invalidates the cache first."
   "A hash table holding all project types that are known to Projectile.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2250,7 +2250,9 @@ COMPILE which specifies a command that builds the project,
 TEST which specified a command that tests the project,
 RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
-TEST-PREFIX which specifies test file prefix."
+TEST-PREFIX which specifies test file prefix.
+SRC-DIR which specifies the path to the source relative to the project root.
+TEST-DIR which specifies the path to the tests relative to the project root."
   (let ((project-plist (list 'marker-files marker-files
                              'compilation-dir compilation-dir
                              'configure-command configure
@@ -2265,6 +2267,10 @@ TEST-PREFIX which specifies test file prefix."
       (plist-put project-plist 'test-suffix test-suffix))
     (when test-prefix
       (plist-put project-plist 'test-prefix test-prefix))
+    (when src-dir
+      (plist-put project-plist 'src-dir src-dir))
+    (when test-dir
+      (plist-put project-plist 'test-dir test-dir))
     (puthash project-type project-plist
              projectile-project-types)))
 
@@ -2481,7 +2487,9 @@ PROJECT-ROOT is the targeted directory.  If nil, use
   (let* ((test-file (projectile--test-name-for-impl-name impl-file-path))
          (project-root (projectile-project-root))
          (relative-dir (file-name-directory (file-relative-name impl-file-path project-root)))
-         (test-dir (expand-file-name (replace-regexp-in-string "src/" "test/" relative-dir) project-root))
+         (src-dir-name (projectile-src-directory (projectile-project-type)))
+         (test-dir-name (projectile-test-directory (projectile-project-type)))
+         (test-dir (expand-file-name (replace-regexp-in-string src-dir-name test-dir-name relative-dir) project-root))
          (test-path (expand-file-name test-file test-dir)))
     (unless (file-exists-p test-path)
       (progn (unless (file-exists-p test-dir)
@@ -2574,6 +2582,22 @@ Fallback to DEFAULT-VALUE for missing attributes."
      ((member project-type '(gradle gradlew grails)) (suffix "Spec"))
      ((member project-type '(haskell-cabal haskell-stack sbt)) (suffix "Spec"))
      (t (suffix)))))
+
+(defun projectile-src-directory (project-type)
+  "Find default src directory based on PROJECT-TYPE."
+  (cl-flet ((src-dir (&optional sd)
+                     (projectile-project-type-attribute project-type 'src-dir sd)))
+    (cond
+     ((member project-type '(maven)) (src-dir "main/src/"))
+     (t (src-dir "src/")))))
+
+(defun projectile-test-directory (project-type)
+  "Find default test directory based on PROJECT-TYPE."
+  (cl-flet ((test-dir (&optional td)
+                      (projectile-project-type-attribute project-type 'test-dir td)))
+    (cond
+     ((member project-type '(maven)) (test-dir "main/test/"))
+     (t (test-dir "test/")))))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."

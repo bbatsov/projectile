@@ -766,6 +766,29 @@
             (should (equal "test/foo/foo.service.spec.js" test-file))
             (should (equal "src/bar/bar.service.js" impl-file))))))))
 
+(ert-deftest projectile-test-find-matching-test/file-custom-project-with-dirs ()
+  (projectile-test-with-sandbox
+   (projectile-test-with-files
+     ("project/source/foo/"
+      "project/source/bar/"
+      "project/spec/foo/"
+      "project/spec/bar/"
+      "project/source/foo/foo.service.js"
+      "project/source/bar/bar.service.js"
+      "project/spec/foo/foo.service.spec.js"
+      "project/spec/bar/bar.service.spec.js")
+     (let* ((projectile-indexing-method 'native)
+            (reg (projectile-register-project-type 'npm-project '("somefile")
+                                                   :test-suffix ".spec"
+                                                   :test-dir "spec/"
+                                                   :src-dir "source/")))
+        (noflet ((projectile-project-type () 'npm-project)
+                 (projectile-project-root () (file-truename (expand-file-name "project/"))))
+          (let ((test-file (projectile-find-matching-test "source/foo/foo.service.js"))
+                (impl-file (projectile-find-matching-file "spec/bar/bar.service.spec.js")))
+            (should (equal "spec/foo/foo.service.spec.js" test-file))
+            (should (equal "source/bar/bar.service.js" impl-file))))))))
+
 (ert-deftest projectile-test-exclude-out-of-project-submodules ()
   (projectile-test-with-files
    (;; VSC root is here
