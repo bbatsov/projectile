@@ -133,7 +133,7 @@ attention to case differences."
   :group 'tools
   :group 'convenience
   :link '(url-link :tag "Github" "https://github.com/bbatsov/projectile")
-  :link '(url-link :tag "Online Manual" "https://projectile.readthedocs.org")
+  :link '(url-link :tag "Online Manual" "https://projectile.readthedocs.io/")
   :link '(emacs-commentary-link :tag "Commentary" "projectile"))
 
 (defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
