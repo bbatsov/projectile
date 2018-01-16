@@ -56,10 +56,12 @@ If you want to make changes to the manual's page structure you'll have to edit
 ## Donations
 
 You can support the development of Projectile via
-[Salt](https://salt.bountysource.com/teams/projectile),
-[Gratipay](https://www.gratipay.com/projectile).
+ [Salt](https://salt.bountysource.com/teams/projectile),
+ [Patreon](https://www.patreon.com/bbatsov) and
+ [Liberapay](https://liberapay.com/bbatsov/donate).
 
-[![Support via Gratipay](https://cdn.rawgit.com/gratipay/gratipay-badge/2.1.3/dist/gratipay.png)](https://gratipay.com/projectile)
+[![Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bbatsov/donate)
+[![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 
 ## Running the tests in batch mode
 
