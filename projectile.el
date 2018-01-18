@@ -2276,7 +2276,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
-  (and (projectile-verify-file "*.cabal")
+  (and (projectile-verify-file-wildcard "*.cabal")
        (not (projectile-verify-file "stack.yaml"))))
 
 (defun projectile-go-project-p ()
@@ -2441,9 +2441,13 @@ The project type is cached for improved performance."
 
 (defun projectile-verify-files (files)
   "Check whether all FILES exist in the current project."
-  (cl-every 'projectile-verify-file files))
+  (cl-every #'projectile-verify-file files))
 
 (defun projectile-verify-file (file)
+  "Check whether FILE exists in the current project."
+  (file-exists-p (projectile-expand-root file)))
+
+(defun projectile-verify-file-wildcard (file)
   "Check whether FILE exists in the current project.
 Expands wildcards using `file-expand-wildcards' before checking."
   (file-expand-wildcards (projectile-expand-root file)))
