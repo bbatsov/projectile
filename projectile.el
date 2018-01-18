@@ -2293,6 +2293,23 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 
 (define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "0.15")
 
+;;; Project type registration
+;;
+;; Project type detection happens in a reverse order with respect to
+;; project type registration (invocations of `projectile-register-project-type').
+;;
+;; As function-based project type detection is pretty slow, so it
+;; should be tried at the end if everything else failed (meaning here
+;; it should be listed first).
+;;
+;; Ideally common project types should be checked earlier than exotic ones.
+(projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
+                                  :compile "cabal build"
+                                  :test "cabal test")
+(projectile-register-project-type 'go projectile-go-project-test-function
+                                  :compile "go build ./..."
+                                  :test "go test ./...")
+;; File-based project types
 (projectile-register-project-type 'emacs-cask '("Cask")
                                   :compile "cask install")
 (projectile-register-project-type 'symfony '("composer.json" "app" "src" "vendor")
@@ -2358,18 +2375,12 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 (projectile-register-project-type 'haskell-stack '("stack.yaml")
                                   :compile "stack build"
                                   :test "stack build --test")
-(projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
-                                  :compile "cabal build"
-                                  :test "cabal test")
 (projectile-register-project-type 'rust-cargo '("Cargo.toml")
                                   :compile "cargo build"
                                   :test "cargo test")
 (projectile-register-project-type 'r '("DESCRIPTION")
                                   :compile "R CMD INSTALL --with-keep.source ."
                                   :test (concat "R CMD check -o " temporary-file-directory " ."))
-(projectile-register-project-type 'go projectile-go-project-test-function
-                                  :compile "go build ./..."
-                                  :test "go test ./...")
 (projectile-register-project-type 'racket '("info.rkt")
                                   :test "raco test .")
 (projectile-register-project-type 'elixir '("mix.exs")
@@ -2387,8 +2398,6 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :configure "cmake %s"
                                   :compile "cmake --build ."
                                   :test "ctest")
-
-;; Project detection goes in reverse order of registration.
 ;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
 ;; https://github.com/bbatsov/projectile/pull/1191
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
