@@ -905,10 +905,10 @@ will return the current directory, otherwise it'd raise an error."
   ;; instead
   (or (cl-subst nil 'none
                 (or (and projectile-cached-buffer-file-name
-                         (equal projectile-cached-buffer-file-name buffer-file-name)
+                         (equal projectile-cached-buffer-file-name (or buffer-file-name 'none))
                          projectile-cached-project-root)
                     (progn
-                      (setq projectile-cached-buffer-file-name buffer-file-name)
+                      (setq projectile-cached-buffer-file-name (or buffer-file-name 'none))
                       (setq projectile-cached-project-root
                             ;; The `is-local' and `is-connected' variables are
                             ;; used to fix the behavior where Emacs hangs
