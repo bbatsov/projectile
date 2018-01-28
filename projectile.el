@@ -2332,6 +2332,9 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :configure "meson %s"
                                   :compile "ninja"
                                   :test "ninja test")
+(projectile-register-project-type 'nix '("default.nix")
+                                  :compile "nix-build"
+                                  :test "nix-build")
 ;; Make & CMake
 (projectile-register-project-type 'make '("Makefile")
                                   :compile "make"
