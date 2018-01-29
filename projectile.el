@@ -2798,7 +2798,7 @@ regular expression."
                                       (append (projectile-ignored-files-rel)
                                               (projectile-ignored-directories-rel)
                                               grep-find-ignored-files
-                                              grep-find-ignored-directories))))))
+                                              (copy-sequence grep-find-ignored-directories)))))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
