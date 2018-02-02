@@ -2311,7 +2311,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test "go test ./...")
 ;; File-based project types
 (projectile-register-project-type 'emacs-cask '("Cask")
-                                  :compile "cask install")
+                                  :compile "cask install"
+                                  :test-prefix "test-")
 (projectile-register-project-type 'r '("DESCRIPTION")
                                   :compile "R CMD INSTALL --with-keep.source ."
                                   :test (concat "R CMD check -o " temporary-file-directory " ."))
@@ -2367,16 +2368,20 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; Python
 (projectile-register-project-type 'django '("manage.py")
                                   :compile "python manage.py runserver"
-                                  :test "python manage.py test")
+                                  :test "python manage.py test"
+                                  :test-prefix "test_")
 (projectile-register-project-type 'python-pip '("requirements.txt")
                                   :compile "python setup.by build"
-                                  :test "python -m unittest discover")
+                                  :test "python -m unittest discover"
+                                  :test-prefix "test_")
 (projectile-register-project-type 'python-pkg '("setup.py")
                                   :compile "python setup.py build"
-                                  :test "python -m unittest discover")
+                                  :test "python -m unittest discover"
+                                  :test-prefix "test_")
 (projectile-register-project-type 'python-tox '("tox.ini")
                                   :compile "tox -r --notest"
-                                  :test "tox")
+                                  :test "tox"
+                                  :test-prefix "test_")
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
                                   :compile "mvn clean install"
@@ -2398,7 +2403,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test "lein test")
 (projectile-register-project-type 'lein-midje '("project.clj" ".midje.clj")
                                   :compile "lein compile"
-                                  :test "lein midje")
+                                  :test "lein midje"
+                                  :test-prefix "t_")
 (projectile-register-project-type 'boot-clj '("build.boot")
                                   :compile "boot aot"
                                   :test "boot test")
@@ -2584,13 +2590,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
-  (cl-flet ((prefix (&optional pfx)
-                    (projectile-project-type-attribute project-type 'test-prefix pfx)))
-    (cond
-     ((member project-type '(django python-pip python-pkg python-tox))  (prefix "test_"))
-     ((member project-type '(emacs-cask)) (prefix "test-"))
-     ((member project-type '(lein-midje)) (prefix "t_"))
-     (t (prefix)))))
+  (projectile-project-type-attribute project-type 'test-prefix))
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
