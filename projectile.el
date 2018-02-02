@@ -2394,7 +2394,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 (projectile-register-project-type 'maven '("pom.xml")
                                   :compile "mvn clean install"
                                   :test "mvn test"
-                                  :test-suffix "Test")
+                                  :test-suffix "Test"
+                                  :src-dir "main/src/")
 (projectile-register-project-type 'gradle '("build.gradle")
                                   :compile "gradle build"
                                   :test "gradle test"
@@ -2617,11 +2618,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
-  (cl-flet ((src-dir (&optional sd)
-                     (projectile-project-type-attribute project-type 'src-dir sd)))
-    (cond
-     ((member project-type '(maven)) (src-dir "main/src/"))
-     (t (src-dir "src/")))))
+  (projectile-project-type-attribute project-type 'src-dir "src/"))
 
 (defun projectile-test-directory (project-type)
   "Find default test directory based on PROJECT-TYPE."
