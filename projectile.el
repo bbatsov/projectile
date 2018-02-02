@@ -2305,20 +2305,24 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; Ideally common project types should be checked earlier than exotic ones.
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
                                   :compile "cabal build"
-                                  :test "cabal test")
+                                  :test "cabal test"
+                                  :test-suffix "Spec")
 (projectile-register-project-type 'go projectile-go-project-test-function
                                   :compile "go build ./..."
-                                  :test "go test ./...")
+                                  :test "go test ./..."
+                                  :test-suffix "_test")
 ;; File-based project types
 (projectile-register-project-type 'emacs-cask '("Cask")
                                   :compile "cask install"
-                                  :test-prefix "test-")
+                                  :test-prefix "test-"
+                                  :test-suffix "-test")
 (projectile-register-project-type 'r '("DESCRIPTION")
                                   :compile "R CMD INSTALL --with-keep.source ."
                                   :test (concat "R CMD check -o " temporary-file-directory " ."))
 (projectile-register-project-type 'haskell-stack '("stack.yaml")
                                   :compile "stack build"
-                                  :test "stack build --test")
+                                  :test "stack build --test"
+                                  :test-suffix "Spec")
 (projectile-register-project-type 'rust-cargo '("Cargo.toml")
                                   :compile "cargo build"
                                   :test "cargo test")
@@ -2327,7 +2331,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; Universal
 (projectile-register-project-type 'scons '("SConstruct")
                                   :compile "scons"
-                                  :test "scons test")
+                                  :test "scons test"
+                                  :test-suffix "test")
 (projectile-register-project-type 'meson '("meson.build")
                                   :compilation-dir "build"
                                   :configure "meson %s"
@@ -2347,14 +2352,17 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; PHP
 (projectile-register-project-type 'php-symfony '("composer.json" "app" "src" "vendor")
                                   :compile "app/console server:run"
-                                  :test "phpunit -c app ")
+                                  :test "phpunit -c app "
+                                  :test-suffix "Test")
 ;; Erlang & Elixir
 (projectile-register-project-type 'rebar '("rebar.config")
                                   :compile "rebar"
-                                  :test "rebar eunit")
+                                  :test "rebar eunit"
+                                  :test-suffix "_SUITE")
 (projectile-register-project-type 'elixir '("mix.exs")
                                   :compile "mix compile"
-                                  :test "mix test")
+                                  :test "mix test"
+                                  :test-suffix "_test")
 ;; JavaScript
 (projectile-register-project-type 'grunt '("Gruntfile.js")
                                   :compile "grunt"
@@ -2385,44 +2393,55 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
                                   :compile "mvn clean install"
-                                  :test "mvn test")
+                                  :test "mvn test"
+                                  :test-suffix "Test")
 (projectile-register-project-type 'gradle '("build.gradle")
                                   :compile "gradle build"
-                                  :test "gradle test")
+                                  :test "gradle test"
+                                  :test-suffix "Spec")
 (projectile-register-project-type 'gradlew '("gradlew")
                                   :compile "./gradlew build"
-                                  :test "./gradlew test")
+                                  :test "./gradlew test"
+                                  :test-suffix "Spec")
 (projectile-register-project-type 'grails '("application.properties" "grails-app")
                                   :compile "grails package"
-                                  :test "grails test-app")
+                                  :test "grails test-app"
+                                  :test-suffix "Spec")
 (projectile-register-project-type 'sbt '("build.sbt")
                                   :compile "sbt compile"
-                                  :test "sbt test")
+                                  :test "sbt test"
+                                  :test-suffix "Spec")
 (projectile-register-project-type 'lein-test '("project.clj")
                                   :compile "lein compile"
-                                  :test "lein test")
+                                  :test "lein test"
+                                  :test-suffix "_test")
 (projectile-register-project-type 'lein-midje '("project.clj" ".midje.clj")
                                   :compile "lein compile"
                                   :test "lein midje"
                                   :test-prefix "t_")
 (projectile-register-project-type 'boot-clj '("build.boot")
                                   :compile "boot aot"
-                                  :test "boot test")
+                                  :test "boot test"
+                                  :test-suffix "_test")
 ;; Ruby
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
                                   :compile "bundle exec rake"
-                                  :test "bundle exec rspec")
+                                  :test "bundle exec rspec"
+                                  :test-suffix "_spec")
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
                                   :compile"bundle exec rake"
-                                  :test "bundle exec rake test")
+                                  :test "bundle exec rake test"
+                                  :test-suffix "_test")
 ;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
 ;; https://github.com/bbatsov/projectile/pull/1191
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
                                   :compile "bundle exec rails server"
-                                  :test "bundle exec rake test")
+                                  :test "bundle exec rake test"
+                                  :test-suffix "_test")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
                                   :compile "bundle exec rails server"
-                                  :test "bundle exec rspec")
+                                  :test "bundle exec rspec"
+                                  :test-suffix "_spec")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
@@ -2594,18 +2613,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
-  (cl-flet ((suffix (&optional sfx)
-                    (projectile-project-type-attribute project-type 'test-suffix sfx)))
-    (cond
-     ((member project-type '(rebar)) (suffix "_SUITE"))
-     ((member project-type '(emacs-cask)) (suffix "-test"))
-     ((member project-type '(rails-rspec ruby-rspec)) (suffix "_spec"))
-     ((member project-type '(rails-test ruby-test lein-test boot-clj go elixir)) (suffix "_test"))
-     ((member project-type '(scons)) (suffix "test"))
-     ((member project-type '(maven php-symfony)) (suffix "Test"))
-     ((member project-type '(gradle gradlew grails)) (suffix "Spec"))
-     ((member project-type '(haskell-cabal haskell-stack sbt)) (suffix "Spec"))
-     (t (suffix)))))
+  (projectile-project-type-attribute project-type 'test-suffix))
 
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
