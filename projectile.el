@@ -2431,21 +2431,27 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; Ruby
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
                                   :compile "bundle exec rake"
+                                  :src-dir "lib/"
                                   :test "bundle exec rspec"
+                                  :test-dir "spec/"
                                   :test-suffix "_spec")
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
                                   :compile"bundle exec rake"
+                                  :src-dir "lib/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 ;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
 ;; https://github.com/bbatsov/projectile/pull/1191
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
                                   :compile "bundle exec rails server"
+                                  :src-dir "lib/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
                                   :compile "bundle exec rails server"
+                                  :src-dir "lib/"
                                   :test "bundle exec rspec"
+                                  :test-dir "spec/"
                                   :test-suffix "_spec")
 
 (defvar-local projectile-project-type nil
