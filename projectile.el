@@ -2364,6 +2364,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test-suffix "_SUITE")
 (projectile-register-project-type 'elixir '("mix.exs")
                                   :compile "mix compile"
+                                  :src-dir "lib/"
                                   :test "mix test"
                                   :test-suffix "_test")
 ;; JavaScript
