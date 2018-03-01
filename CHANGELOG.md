@@ -4,6 +4,7 @@
 
 ### New Features
 
+* [#1221](https://github.com/bbatsov/projectile/pull/1221): Modify Ruby and Elixir project settings.
 * [#1175](https://github.com/bbatsov/projectile/pull/1175): Add a command `projectile-configure-command` for running a configuration for build systems that need that.
 * [#1168](https://github.com/bbatsov/projectile/pull/1168): Add CMake and Meson project support.
 * [#1159](https://github.com/bbatsov/projectile/pull/1159) Add [nix](http://nixos.org) project support.
