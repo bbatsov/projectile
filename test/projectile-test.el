@@ -684,6 +684,20 @@
   (should (equal "/root/build/"       (helper "/root/")))
   (should (equal "/root/buildings/"   (helper "/root/" "buildings"))))
 
+(ert-deftest projectile-test-compilation-command-at-point ()
+  (defun -compilation-test-function ()
+    (if (= (point) 1)
+        "my-make"
+      "./run-extra"))
+  (projectile-register-project-type 'has-command-at-point '("file.txt")
+                                    :compile '-compilation-test-function)
+
+  (should (equal "my-make" (projectile-default-compilation-command 'has-command-at-point)))
+  (with-temp-buffer
+    (insert "ABCDE")
+    (goto-char 2)
+    (should (equal "./run-extra" (projectile-default-compilation-command 'has-command-at-point)))))
+
 (ert-deftest projectile-detect-project-type-of-rails-like-npm-test ()
   (projectile-test-with-sandbox
    (projectile-test-with-files
