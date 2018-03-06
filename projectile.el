@@ -3233,25 +3233,38 @@ Should be set via .dir-locals.el.")
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
 
+(defun projectile-default-generic-command (project-type command-type)
+  "Generic retrieval of COMMAND-TYPEs default cmd-value for PROJECT-TYPE.
+
+If found, checks if value is symbol or string. In case of symbol resolves
+to function `funcall's. Return value of function MUST be string to be executed as command."
+  (let ((plist-retrieved-generic-command (plist-get (gethash project-type projectile-project-types) command-type)))
+    (cond
+     ((stringp plist-retrieved-generic-command) plist-retrieved-generic-command)
+     ((symbolp 'plist-retrieved-generic-command)
+      (if (fboundp plist-retrieved-generic-command)
+          (funcall (symbol-function plist-retrieved-generic-command))))
+     )))
+
 (defun projectile-default-configure-command (project-type)
   "Retrieve default configure command for PROJECT-TYPE."
-  (plist-get (gethash project-type projectile-project-types) 'configure-command))
+  (projectile-default-generic-command project-type 'configure-command))
 
 (defun projectile-default-compilation-command (project-type)
   "Retrieve default compilation command for PROJECT-TYPE."
-  (plist-get (gethash project-type projectile-project-types) 'compile-command))
+  (projectile-default-generic-command project-type 'compile-command))
 
 (defun projectile-default-compilation-dir (project-type)
   "Retrieve default compilation directory for PROJECT-TYPE."
-  (plist-get (gethash project-type projectile-project-types) 'compilation-dir))
+  (projectile-default-generic-command project-type 'compilation-dir))
 
 (defun projectile-default-test-command (project-type)
   "Retrieve default test command for PROJECT-TYPE."
-  (plist-get (gethash project-type projectile-project-types) 'test-command))
+  (projectile-default-generic-command project-type 'test-command))
 
 (defun projectile-default-run-command (project-type)
   "Retrieve default run command for PROJECT-TYPE."
-  (plist-get (gethash project-type projectile-project-types) 'run-command))
+  (projectile-default-generic-command project-type 'run-command))
 
 (defun projectile-configure-command (compile-dir)
   "Retrieve the configure command for COMPILE-DIR.
