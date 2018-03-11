@@ -3234,8 +3234,9 @@ Should be set via .dir-locals.el.")
   "Retrieve the configure command for COMPILE-DIR."
   (or (gethash compile-dir projectile-configure-cmd-map)
       projectile-project-configure-cmd
-      (format (projectile-default-configure-command (projectile-project-type))
-              (projectile-project-root))))
+      (let ((cmd-format-string (projectile-default-configure-command (projectile-project-type))))
+        (when cmd-format-string
+          (format cmd-format-string (projectile-project-root))))))
 
 (defun projectile-compilation-command (compile-dir)
   "Retrieve the compilation command for COMPILE-DIR."
