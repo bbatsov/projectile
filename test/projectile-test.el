@@ -814,6 +814,12 @@
        (should (equal (list (expand-file-name "vendor/client-submodule/" project))
                       (projectile-get-all-sub-projects project)))))))
 
+(ert-deftest projectile-test-configure-command-for-generic-project-type ()
+  (noflet ((projectile-default-configure-command (x) nil)
+           (projectile-project-type () 'generic))
+    (let ((configure-command (projectile-configure-command "fsdf")))
+      (should (equal nil configure-command)))))
+
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:

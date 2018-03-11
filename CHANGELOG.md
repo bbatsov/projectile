@@ -39,6 +39,7 @@
 
 ### Bugs fixed
 
+* [#1222](https://github.com/bbatsov/projectile/issues/1222): `projectile-configure-project` fails for generic project type
 * [#1162](https://github.com/bbatsov/projectile/issues/1162): `projectile-ag` causes "Attempt to modify read-only object" error.
 * [#1169](https://github.com/bbatsov/projectile/issues/1169): `projectile-compile-project` does not prompt for compilation command.
 * [#1072](https://github.com/bbatsov/projectile/issues/1072): Create test files only within the project.
