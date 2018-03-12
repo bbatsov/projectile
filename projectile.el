@@ -292,6 +292,7 @@ It has precedence over function `projectile-project-name-function'."
 If variable `projectile-project-name' is non-nil, this function will not be used."
   :group 'projectile
   :type 'function
+  :safe (lambda (f) (and (functionp f) (not (unsafep f))))
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-project-root-files
@@ -461,11 +462,13 @@ Any function that does not take arguments will do."
 (defcustom projectile-test-prefix-function 'projectile-test-prefix
   "Function to find test files prefix based on PROJECT-TYPE."
   :group 'projectile
+  :safe (lambda (f) (and (functionp f) (not (unsafep f))))
   :type 'function)
 
 (defcustom projectile-test-suffix-function 'projectile-test-suffix
   "Function to find test files suffix based on PROJECT-TYPE."
   :group 'projectile
+  :safe (lambda (f) (and (functionp f) (not (unsafep f))))
   :type 'function)
 
 
@@ -2292,6 +2295,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
   :group 'projectile
+  :safe (lambda (f) (and (functionp f) (not (unsafep f))))
   :type 'function)
 
 (define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "0.15")
