@@ -248,6 +248,20 @@ What this does is:
 5. add *run-command*, in this case it is `npm start`.
 6. add test files suffix for toggling between implementation/test files, in this case it is `.spec`, so the implementation/test file pair could be `service.js`/`service.spec.js` for example.
 
+The available options are:
+
+Option           | Documentation
+---------------- | -------------------------------------------------------------------------------------------
+:compilation-dir | A path, relative to the project root, from where to run the tests and compilation commands.
+:compile         | A command to compile the project.
+:configure       | A command to configure the project. `%s` will be substituted with the project root.
+:run             | A command to run the project.
+:src-dir         | A path, relative to the project root, where the source code lives.
+:test            | A command to test the project.
+:test-dir        | A path, relative to the project root, where the test code lives.
+:test-prefix     | A prefix to generate test files names.
+:test-suffix     | A suffix to generate test files names.
+
 ### Customizing project root files
 
 You can set the values of `projectile-project-root-files`,

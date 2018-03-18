@@ -58,6 +58,7 @@ Keybinding         | Description
 <kbd>C-c p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
 <kbd>C-c p !</kbd> | Runs `shell-command` in the root directory of the project.
 <kbd>C-c p &</kbd> | Runs `async-shell-command` in the root directory of the project.
+<kbd>C-c p C</kbd> | Runs a standard configure command for your type of project.
 <kbd>C-c p c</kbd> | Runs a standard compilation command for your type of project.
 <kbd>C-c p P</kbd> | Runs a standard test command for your type of project.
 <kbd>C-c p t</kbd> | Toggle between an implementation file and its test file.

@@ -121,9 +121,9 @@
            (projectile-project-name () "project")
            (projectile-ignored-files-rel () ())
            (projectile-ignored-directories-rel () ()))
-          (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz"))
+          (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
                  (files (mapcar 'projectile-expand-root file-names)))
-            (let ((projectile-globally-ignored-file-suffixes '(".o" ".so")))
+            (let ((projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
               (should (equal (projectile-remove-ignored files)
                              (mapcar 'projectile-expand-root
                                      '("foo.c" "foo.o.gz"))))))))
@@ -463,6 +463,7 @@
          "project/file4.el")
       (cd "project")
       (let ((projectile-projects-cache (make-hash-table :test #'equal))
+            (projectile-projects-cache-time (make-hash-table :test #'equal))
             (projectile-enable-caching t))
         (puthash (projectile-project-root)
                  '("file1.el")
@@ -484,6 +485,35 @@
             (dolist (f '("file1.el" "file2.el" "file3.el" "file4.el"))
               (should (member f (gethash (projectile-project-root)
                                          projectile-projects-cache))))))))))
+
+(ert-deftest projectile-test-cache-expiring ()
+  "Ensure that we update the cache if it's expired."
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+     ("project/"
+      "project/.projectile"
+      "project/file1.el"
+      "project/file2.el")
+     (cd "project")
+     (let ((projectile-projects-cache (make-hash-table :test #'equal))
+           (projectile-projects-cache-time (make-hash-table :test #'equal))
+           (projectile-enable-caching t)
+           (projectile-files-cache-expire 10))
+       ;; Create a stale cache with only one file in it.
+       (puthash (projectile-project-root)
+                '("file1.el")
+                projectile-projects-cache)
+       (puthash (projectile-project-root)
+                0 ;; Cached 1st of January 1970.
+                projectile-projects-cache-time)
+
+       (noflet ((projectile-project-root () (file-truename default-directory))
+                (projectile-project-vcs () 'none))
+               ;; After listing all the files, the cache should have been updated.
+               (projectile-current-project-files)
+               (dolist (f '("file1.el" "file2.el"))
+                 (should (member f (gethash (projectile-project-root)
+                                            projectile-projects-cache)))))))))
 
 (ert-deftest projectile-test-old-project-root-gone ()
   "Ensure that we don't cache a project root if the path has changed."
@@ -631,7 +661,8 @@
 
 (ert-deftest projectile-test-compilation-directory ()
   (defun helper (project-root rel-dir)
-    (noflet ((projectile-project-root () project-root))
+    (noflet ((projectile-project-root () project-root)
+             (projectile-project-type () 'generic))
             (let ((projectile-project-compilation-dir rel-dir))
               (projectile-compilation-dir))))
 
@@ -639,6 +670,38 @@
   (should (equal "/root/build/" (helper "/root/" "build/")))
   (should (equal "/root/build/" (helper "/root/" "./build")))
   (should (equal "/root/local/build/" (helper "/root/" "local/build"))))
+
+(ert-deftest projectile-test-compilation-directory-with-default-directory ()
+  (projectile-register-project-type 'default-dir-project '("file.txt")
+                                    :compilation-dir "build")
+  (defun helper (project-root &optional rel-dir)
+    (noflet ((projectile-project-root () project-root)
+             (projectile-project-type () 'default-dir-project))
+            (if (null rel-dir)
+                (projectile-compilation-dir)
+              (let ((projectile-project-compilation-dir rel-dir))
+                (projectile-compilation-dir)))))
+
+  (should (equal "/root/build/"       (helper "/root/")))
+  (should (equal "/root/buildings/"   (helper "/root/" "buildings"))))
+
+(ert-deftest projectile-detect-project-type-of-rails-like-npm-test ()
+  (projectile-test-with-sandbox
+   (projectile-test-with-files
+    ("project/"
+     "project/Gemfile"
+     "project/app/"
+     "project/lib/"
+     "project/db/"
+     "project/config/"
+     "project/spec/"
+     "project/package.json"
+     )
+    (let ((projectile-indexing-method 'native))
+      (noflet ((projectile-project-root
+                () (file-truename (expand-file-name "project/"))))
+              (should (equal 'rails-rspec
+                             (projectile-detect-project-type))))))))
 
 (ert-deftest projectile-test-dirname-matching-count ()
   (should (equal 2
@@ -708,6 +771,29 @@
             (should (equal "test/foo/foo.service.spec.js" test-file))
             (should (equal "src/bar/bar.service.js" impl-file))))))))
 
+(ert-deftest projectile-test-find-matching-test/file-custom-project-with-dirs ()
+  (projectile-test-with-sandbox
+   (projectile-test-with-files
+     ("project/source/foo/"
+      "project/source/bar/"
+      "project/spec/foo/"
+      "project/spec/bar/"
+      "project/source/foo/foo.service.js"
+      "project/source/bar/bar.service.js"
+      "project/spec/foo/foo.service.spec.js"
+      "project/spec/bar/bar.service.spec.js")
+     (let* ((projectile-indexing-method 'native)
+            (reg (projectile-register-project-type 'npm-project '("somefile")
+                                                   :test-suffix ".spec"
+                                                   :test-dir "spec/"
+                                                   :src-dir "source/")))
+        (noflet ((projectile-project-type () 'npm-project)
+                 (projectile-project-root () (file-truename (expand-file-name "project/"))))
+          (let ((test-file (projectile-find-matching-test "source/foo/foo.service.js"))
+                (impl-file (projectile-find-matching-file "spec/bar/bar.service.spec.js")))
+            (should (equal "spec/foo/foo.service.spec.js" test-file))
+            (should (equal "source/bar/bar.service.js" impl-file))))))))
+
 (ert-deftest projectile-test-exclude-out-of-project-submodules ()
   (projectile-test-with-files
    (;; VSC root is here
@@ -732,6 +818,12 @@
        ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
        (should (equal (list (expand-file-name "vendor/client-submodule/" project))
                       (projectile-get-all-sub-projects project)))))))
+
+(ert-deftest projectile-test-configure-command-for-generic-project-type ()
+  (noflet ((projectile-default-configure-command (x) nil)
+           (projectile-project-type () 'generic))
+    (let ((configure-command (projectile-configure-command "fsdf")))
+      (should (equal nil configure-command)))))
 
 ;; Local Variables:
 ;; indent-tabs-mode: nil
