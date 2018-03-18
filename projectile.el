@@ -2307,6 +2307,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; it should be listed first).
 ;;
 ;; Ideally common project types should be checked earlier than exotic ones.
+
+;; Function-based detection project type
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
                                   :compile "cabal build"
                                   :test "cabal test"
@@ -2315,7 +2317,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :compile "go build ./..."
                                   :test "go test ./..."
                                   :test-suffix "_test")
-;; File-based project types
+;; File-based detection project types
 (projectile-register-project-type 'emacs-cask '("Cask")
                                   :compile "cask install"
                                   :test-prefix "test-"
