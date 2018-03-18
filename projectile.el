@@ -2313,7 +2313,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :compile "cabal build"
                                   :test "cabal test"
                                   :test-suffix "Spec")
-(projectile-register-project-type 'go projectile-go-project-test-function
+(projectile-register-project-type 'go #'projectile-go-project-test-function
                                   :compile "go build ./..."
                                   :test "go test ./..."
                                   :test-suffix "_test")
