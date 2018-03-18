@@ -1509,7 +1509,7 @@ projectile project root."
   (cl-some
    (lambda (name)
      (string-match-p name directory))
-   projectile-globally-ignored-directories))
+   (projectile-ignored-directories)))
 
 (defun projectile-ignored-file-p (file)
   "Check if FILE should be ignored."
