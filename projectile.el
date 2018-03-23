@@ -3135,9 +3135,11 @@ If PROJECT-ROOT is given, it is opened instead of the project
 root directory of the current buffer file.  If interactively
 called with a prefix argument, the user is prompted for a project
 directory to open."
-  (interactive (list (projectile-completing-read
+  (interactive (and current-prefix-arg
+                    (list
+                     (projectile-completing-read
                       "Open project VC in: "
-                      projectile-known-projects)))
+                      projectile-known-projects))))
   (or project-root (setq project-root (projectile-project-root)))
   (let ((vcs (projectile-project-vcs project-root)))
     (cl-case vcs
