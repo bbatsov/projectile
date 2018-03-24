@@ -367,7 +367,7 @@ containing a root file."
   :type '(repeat string))
 
 (defcustom projectile-globally-unignored-files nil
-  "A list of files globally unignored by projectile."
+  "A list of files globally unignored by projectile. Regular expressions can be used."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -391,7 +391,7 @@ containing a root file."
     ".tox"
     ".svn"
     ".stack-work")
-  "A list of directories globally ignored by projectile."
+  "A list of directories globally ignored by projectile. Regular expressions can be used."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
@@ -420,7 +420,7 @@ it for functions working with buffers."
   "A list of buffer-names ignored by projectile.
 
 If a buffer is in the list projectile will ignore
-it for functions working with buffers."
+it for functions working with buffers. Regular expressions can be used."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.12.0"))
