@@ -1419,7 +1419,9 @@ this case unignored files will be absent from FILES."
          (string-prefix-p project-root (file-truename default-directory) (eq system-type 'windows-nt)))))
 
 (defun projectile-ignored-buffer-p (buffer)
-  "Check if BUFFER should be ignored."
+  "Check if BUFFER should be ignored.
+
+Regular expressions can be use."
   (or
    (with-current-buffer buffer
      (cl-some
@@ -1550,14 +1552,18 @@ projectile project root."
     (mapcar (lambda (f) (file-relative-name f project-root)) files)))
 
 (defun projectile-ignored-directory-p (directory)
-  "Check if DIRECTORY should be ignored."
+  "Check if DIRECTORY should be ignored.
+
+Regular expressions can be use."
   (cl-some
    (lambda (name)
      (string-match-p name directory))
    (projectile-ignored-directories)))
 
 (defun projectile-ignored-file-p (file)
-  "Check if FILE should be ignored."
+  "Check if FILE should be ignored.
+
+Regular expressions can be use."
   (cl-some
    (lambda (name)
      (string-match-p name file))
