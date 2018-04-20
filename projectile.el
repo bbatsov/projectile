@@ -779,7 +779,7 @@ The cache is created both in memory and on the hard drive."
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
   (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
-                                          projectile-cache-file))
+                    projectile-cache-file))
     (projectile-invalidate-cache nil)))
 
 ;;;###autoload
@@ -788,16 +788,17 @@ The cache is created both in memory and on the hard drive."
 This function is not recursive and only adds projects with roots
 at the top level of DIRECTORY."
   (interactive
-   (list (read-directory-name "Starting directory: ")))
+    (list (read-directory-name "Starting directory: ")))
   (let ((subdirs (directory-files directory t)))
     (mapcar
-     (lambda (dir)
-       (when (and (file-directory-p dir)
-                  (not (member (file-name-nondirectory dir) '(".." "."))))
-         (let ((default-directory dir))
-           (when (projectile-project-p)
-             (projectile-add-known-project (projectile-project-root))))))
-     subdirs)))
+      (lambda (dir)
+        (when (and (file-directory-p dir)
+                (not (member (file-name-nondirectory dir) '(".." "."))))
+          (let ((default-directory dir)
+                 (projectile-cached-project-root dir))
+            (when (projectile-project-p)
+              (projectile-add-known-project (projectile-project-root))))))
+      subdirs)))
 
 
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
