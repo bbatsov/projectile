@@ -298,6 +298,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
   '("rebar.config"       ; Rebar project file
     "project.clj"        ; Leiningen project file
     "build.boot"         ; Boot-clj project file
+    "deps.edn"           ; Clojure CLI project file
     "SConstruct"         ; Scons project file
     "pom.xml"            ; Maven project file
     "build.sbt"          ; SBT project file
@@ -2431,6 +2432,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 (projectile-register-project-type 'boot-clj '("build.boot")
                                   :compile "boot aot"
                                   :test "boot test"
+                                  :test-suffix "_test")
+(projectile-register-project-type 'clojure-cli '("deps.edn")
                                   :test-suffix "_test")
 ;; Ruby
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
