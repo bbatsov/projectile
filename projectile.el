@@ -2098,12 +2098,21 @@ With INVALIDATE-CACHE invalidates the cache first.  With FF-VARIANT set to a
 defun, use that instead of `find-file'.   A typical example of such a defun
 would be `find-file-other-window' or `find-file-other-frame'"
   (interactive "P")
-  (projectile-maybe-invalidate-cache invalidate-cache)
-  (let ((file (projectile-completing-read "Find file: "
-                                          (projectile-current-project-files)))
-        (ff (or ff-variant #'find-file)))
-    (funcall ff (expand-file-name file (projectile-project-root)))
-    (run-hooks 'projectile-find-file-hook)))
+  (let (projectile-cached-project-root-temp)
+    (when (eq projectile-cached-project-root 'none)
+      (setq projectile-cached-project-root
+            (projectile-completing-read "Switch to project: "
+                                        (projectile-relevant-known-projects)
+                                        :action #'identity))
+      (setq projectile-cached-project-root-temp
+            projectile-cached-project-root))
+    (projectile-maybe-invalidate-cache invalidate-cache)
+    (let ((file (projectile-completing-read "Find file: "
+                                            (projectile-current-project-files)))
+          (ff (or ff-variant #'find-file)))
+      (funcall ff (expand-file-name file (or projectile-cached-project-root-temp
+                                             (projectile-project-root))))
+      (run-hooks 'projectile-find-file-hook))))
 
 ;;;###autoload
 (defun projectile-find-file (&optional arg)
