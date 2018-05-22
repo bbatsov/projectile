@@ -2917,7 +2917,8 @@ SEARCH-TERM is a regexp."
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
   (declare (debug t) (indent 1))
-  `(let ((default-directory ,dir))
+  `(let ((default-directory ,dir)
+         (projectile-cached-project-root nil))
      ,@body))
 
 ;;;###autoload
