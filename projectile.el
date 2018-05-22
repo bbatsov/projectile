@@ -2823,6 +2823,24 @@ regular expression."
         (funcall ag-command search-term (projectile-project-root)))
     (error "Package 'ag' is not available")))
 
+;;;###autoload
+(defun projectile-ripgrep (search-term)
+  "Run a Ripgrep search with `SEARCH-TERM' at current project root.
+
+SEARCH-TERM is a regexp."
+  (interactive (list (projectile--read-search-string-with-default
+                      "Ripgrep search for")))
+  (if (require 'ripgrep nil 'noerror)
+      (let ((args (mapcar (lambda (val) (concat "--glob !" val))
+                          (append projectile-globally-ignored-files
+                                  projectile-globally-ignored-directories))))
+        (ripgrep-regexp search-term
+                        (projectile-project-root)
+                        (if current-prefix-arg
+                            args
+                          (cons "--fixed-strings" args))))
+    (error "Package `ripgrep' is not available")))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
@@ -3879,6 +3897,7 @@ is chosen."
     (define-key map (kbd "r") #'projectile-replace)
     (define-key map (kbd "R") #'projectile-regenerate-tags)
     (define-key map (kbd "s g") #'projectile-grep)
+    (define-key map (kbd "s r") #'projectile-ripgrep)
     (define-key map (kbd "s s") #'projectile-ag)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
