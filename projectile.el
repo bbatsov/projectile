@@ -1095,7 +1095,8 @@ Set to nil to disable listing submodules contents."
 (defcustom projectile-vcs-dirty-state '("edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")
   "List of states checked by `projectile-browse-dirty-projects'.
 Possible checked states are:
-\"edited\", \"unregistered\", \"needs-update\", \"needs-merge\", unlocked-changes\" and \"conflict\",
+\"edited\", \"unregistered\", \"needs-update\", \"needs-merge\",
+\"unlocked-changes\" and \"conflict\",
 as defined in `vc.el'."
   :group 'projectile
   :type '(repeat (string))
