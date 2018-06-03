@@ -4,6 +4,7 @@
 
 ### New Features
 
+* [#1243](https://github.com/bbatsov/projectile/pull/1243) Add [angular](https://angular.io) project support.
 * [#1228](https://github.com/bbatsov/projectile/pull/1228): Add support for a prefix argument to `projectile-vc`.
 * [#1221](https://github.com/bbatsov/projectile/pull/1221): Modify Ruby and Elixir project settings.
 * [#1175](https://github.com/bbatsov/projectile/pull/1175): Add a command `projectile-configure-command` for running a configuration for build systems that need that.
