@@ -2382,6 +2382,11 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 (projectile-register-project-type 'npm '("package.json")
                                   :compile "npm install"
                                   :test "npm test")
+;; Angular
+(projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
+                                  :compile "ng build"
+                                  :run "ng serve"
+                                  :test "ng test")
 ;; Python
 (projectile-register-project-type 'django '("manage.py")
                                   :compile "python manage.py runserver"
