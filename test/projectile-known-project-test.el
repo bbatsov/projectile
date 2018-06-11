@@ -5,17 +5,26 @@
 (ert-deftest projectile-test-add-known-project-adds-project-to-known-projects ()
   "An added project should be added to the list of known projects."
   (let (projectile-known-projects)
-    (projectile-add-known-project "~/my/new/project")
+    (projectile-add-known-project "~/my/new/project/")
     (should (string= (car projectile-known-projects)
-                     "~/my/new/project"))))
+                     "~/my/new/project/"))))
 
 (ert-deftest projectile-test-add-known-project-moves-projects-to-front-of-list ()
   "adding a project should move it to the front of the list of known projects, if it already
 existed."
-  (let ((projectile-known-projects (list "~/b" "~/a")))
-    (projectile-add-known-project "~/a")
+  (let ((projectile-known-projects (list "~/b/" "~/a/")))
+    (projectile-add-known-project "~/a/")
     (should (equal projectile-known-projects
-                   (list "~/a" "~/b")))))
+                   (list "~/a/" "~/b/")))))
+
+(ert-deftest projectile-test-add-known-project-no-near-duplicates ()
+  "~/project and ~/project/ should not be added
+  separately to the known projects list."
+  (let ((projectile-known-projects '("~/a/")))
+    (projectile-add-known-project "~/a")
+    (projectile-add-known-project "~/b")
+    (projectile-add-known-project "~/b/")
+    (should (equal projectile-known-projects '("~/b/" "~/a/")))))
 
 (defun projectile-mock-serialization-functions (&rest body)
   (let (projectile-serialization-calls)

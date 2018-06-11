@@ -3635,7 +3635,7 @@ See `projectile-cleanup-known-projects'."
   (unless (projectile-ignored-project-p project-root)
     (setq projectile-known-projects
           (delete-dups
-           (cons (abbreviate-file-name project-root)
+           (cons (file-name-as-directory (abbreviate-file-name project-root))
                  projectile-known-projects)))))
 
 (defun projectile-load-known-projects ()
