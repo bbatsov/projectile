@@ -134,6 +134,12 @@ test temp directory"
       (when (file-exists-p this-test-file)
         (delete-file this-test-file)))))
 
+(ert-deftest projectile-clear-known-projects ()
+  (let ((projectile-known-projects '("one" "two" "three"))
+        (projectile-known-projects-file (projectile-test-tmp-file-path)))
+    (projectile-clear-known-projects)
+    (should (null projectile-known-projects))))
+
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:

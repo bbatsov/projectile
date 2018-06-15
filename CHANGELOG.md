@@ -55,6 +55,7 @@
 * [#1011](https://github.com/bbatsov/projectile/issues/1011): Save project files before running project tests.
 * [#1099](https://github.com/bbatsov/projectile/issues/1099): Fix the behaviour of `projectile-purge-dir-from-cache`.
 * [#1067](https://github.com/bbatsov/projectile/issues/1067): Don't mess up `default-directory` after switching projects.
+* [#1246](https://github.com/bbatsov/projectile/issues/1246): Don't blow away real project file during tests.
 
 ## 0.14.0 (2016-07-08)
 
