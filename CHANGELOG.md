@@ -41,6 +41,7 @@
 * [#1119](https://github.com/bbatsov/projectile/issues/1119): File search ignores non-root dirs if prefixed with "*"
 * Treat members of `projectile-globally-ignored-file-suffixes` as file name suffixes (previous treat as file extensions).
 * Ensure project roots are added as directory names to avoid near-duplicate projects, e.g. "~/project/" and "~/project".
+* Don't autoload defcustoms.
 
 ### Bugs fixed
 

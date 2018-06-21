@@ -3970,7 +3970,6 @@ is chosen."
 
 (easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
 
-;;;###autoload
 (defcustom projectile-mode-line
   '(:eval (format " Projectile[%s]"
                   (projectile-project-name)))
