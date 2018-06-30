@@ -780,7 +780,7 @@ The cache is created both in memory and on the hard drive."
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
   (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
-                    projectile-cache-file))
+                                          projectile-cache-file))
     (projectile-invalidate-cache nil)))
 
 ;;;###autoload
@@ -1281,8 +1281,8 @@ dirty project list."
         (mod-proj nil))
     (while (not (= (length status) 0))
       (setq mod-proj (cons (car (pop status)) mod-proj)))
-     (projectile-completing-read "Select project: " mod-proj
-                                 :action 'projectile-vc)))
+    (projectile-completing-read "Select project: " mod-proj
+                                :action 'projectile-vc)))
 
 (defun projectile-files-via-ext-command (command)
   "Get a list of relative file names in the project root by executing COMMAND."
