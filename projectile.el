@@ -5,7 +5,7 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 0.15.0-cvs
+;; Version: 1.0.0-snapshot
 ;; Package-Requires: ((emacs "24.3") (pkg-info "0.4"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -589,7 +589,7 @@ When set to nil you'll have always add projects explicitly with
 `projectile-add-known-project'."
   :group 'projectile
   :type 'boolean
-  :package-version '(projectile . "0.15.0"))
+  :package-version '(projectile . "1.0.0"))
 
 
 ;;; Version information
@@ -1101,7 +1101,7 @@ Possible checked states are:
 as defined in `vc.el'."
   :group 'projectile
   :type '(repeat (string))
-  :package-version '(projectile . "0.15.0"))
+  :package-version '(projectile . "1.0.0"))
 
 (defun projectile-get-ext-command ()
   "Determine which external command to invoke based on the project's VCS."
