@@ -30,6 +30,7 @@
        ;; Do not load outdated byte code for tests
        (load-prefer-newer t))
   ;; Load the file under test
-  (load (expand-file-name "projectile" source-directory)))
+  (load (expand-file-name "projectile" source-directory))
+  (setq projectile-test-path (expand-file-name "test" source-directory)))
 
 ;;; test-helper.el ends here
