@@ -3970,9 +3970,6 @@ Otherwise behave as if called interactively.
     (ad-deactivate 'compilation-find-file)
     (ad-deactivate 'delete-file))))
 
-;;;###autoload
-(define-obsolete-function-alias 'projectile-global-mode 'projectile-mode)
-
 (provide 'projectile)
 
 ;; Local Variables:
