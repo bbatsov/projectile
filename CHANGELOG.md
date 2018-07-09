@@ -42,6 +42,7 @@
 * Treat members of `projectile-globally-ignored-file-suffixes` as file name suffixes (previous treat as file extensions).
 * Ensure project roots are added as directory names to avoid near-duplicate projects, e.g. "~/project/" and "~/project".
 * Don't autoload defcustoms.
+* Require Emacs 25.1.
 
 ### Bugs fixed
 
