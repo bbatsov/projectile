@@ -52,6 +52,7 @@ Here's a glimpse of Projectile in action:
 ![Projectile Screenshot](doc/screenshots/projectile.png)
 
 You can support my work on Projectile via
+ [PayPal](https://www.paypal.me/bbatsov),
  [Salt](https://salt.bountysource.com/teams/projectile),
  [Patreon](https://www.patreon.com/bbatsov) and [Liberapay](https://liberapay.com/bbatsov/donate).
 
