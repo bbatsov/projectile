@@ -143,7 +143,6 @@ Otherwise consider the current directory the project root."
   :group 'projectile
   :type '(radio
           (const :tag "Ido" ido)
-          (const :tag "Grizzl" grizzl)
           (const :tag "Helm" helm)
           (const :tag "Ivy" ivy)
           (const :tag "Default" default)
@@ -1688,12 +1687,6 @@ project-root for every file."
                       :buffer "*helm-projectile*")
               (user-error "Please install helm from \
 https://github.com/emacs-helm/helm")))
-           ((eq projectile-completion-system 'grizzl)
-            (if (and (fboundp 'grizzl-completing-read)
-                     (fboundp 'grizzl-make-index))
-                (grizzl-completing-read prompt (grizzl-make-index choices))
-              (user-error "Please install grizzl from \
-https://github.com/d11wtq/grizzl")))
            ((eq projectile-completion-system 'ivy)
             (if (fboundp 'ivy-read)
                 (ivy-read prompt choices

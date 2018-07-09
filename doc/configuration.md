@@ -181,22 +181,17 @@ As already noted above if you're going to use the `ido` completion it's
 [flx-ido package](https://github.com/lewang/flx), which provides a much
 more powerful alternative to `ido`'s built-in `flex` matching.
 
-##### Grizzl
+##### Ivy (recommended)
 
-Another completion option is [grizzl](https://github.com/grizzl/grizzl):
+Another completion option is [ivy](https://github.com/abo-abo/swiper):
 
 ```el
-(setq projectile-completion-system 'grizzl)
+(setq projectile-completion-system 'ivy)
 ```
-
-![Projectile Screenshot](screenshots/projectile-grizzl.png)
-
-`grizzl`'s advantage is that it provides good fuzzy completion
-(compared to `ido`'s less than stellar built-in flex matching, but inferior to `ido-flx`).
 
 ##### Basic (Emacs's default)
 
-If you don't like `ido` and `grizzl` you can use regular completion:
+If you don't like `ido` and `ivy` you can use regular completion:
 
 ```el
 (setq projectile-completion-system 'default)

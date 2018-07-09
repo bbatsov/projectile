@@ -43,6 +43,7 @@
 * Ensure project roots are added as directory names to avoid near-duplicate projects, e.g. "~/project/" and "~/project".
 * Don't autoload defcustoms.
 * Require Emacs 25.1.
+* Remove the support for grizzl.
 
 ### Bugs fixed
 
