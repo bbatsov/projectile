@@ -2230,7 +2230,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
   :group 'projectile
   :type 'function)
 
-(define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "0.15")
+(define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "1.0.0")
 
 ;;; Project type registration
 ;;
