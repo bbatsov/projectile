@@ -1762,21 +1762,21 @@ https://github.com/abo-abo/swiper")))
     ("cxx" . ("h" "hxx" "ixx"))
     ("ixx" . ("h" "hxx" "cxx"))
     ("hxx" . ("h" "ixx" "cxx"))
-    ("c" . ("h"))
-    ("m" . ("h"))
-    ("mm" . ("h"))
-    ("h" . ("c" "cc" "cpp" "ipp" "hpp" "cxx" "ixx" "hxx" "m" "mm"))
-    ("cc" . ("h" "hh" "hpp"))
-    ("hh" . ("cc"))
+    ("c"   . ("h"))
+    ("m"   . ("h"))
+    ("mm"  . ("h"))
+    ("h"   . ("c" "cc" "cpp" "ipp" "hpp" "cxx" "ixx" "hxx" "m" "mm"))
+    ("cc"  . ("h" "hh" "hpp"))
+    ("hh"  . ("cc"))
 
     ;; vertex shader and fragment shader extensions in glsl
     ("vert" . ("frag"))
     ("frag" . ("vert"))
 
     ;; handle files with no extension
-    (nil . ("lock" "gpg"))
+    (nil    . ("lock" "gpg"))
     ("lock" . (""))
-    ("gpg" . (""))
+    ("gpg"  . (""))
     )
   "Alist of extensions for switching to file with the same name,
   using other extensions based on the extension of current
