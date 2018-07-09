@@ -1,18 +1,24 @@
-emacs ?= emacs
-bemacs = $(emacs) -batch -l test/elpa.el
+CASK = cask
+export EMACS ?= emacs
+EMACSFLAGS =
+TESTFLAGS =
 
-elpa: update compile test
+PKGDIR := $(shell EMACS=$(EMACS) $(CASK) package-directory)
 
-update:
-	$(emacs) -batch -l test/make-update.el
+SRCS = $(wildcard *.el)
+OBJS = $(SRCS:.el=.elc)
 
-compile:
-	$(bemacs) -l test/make-compile.el
+.PHONY: compile test clean
 
-test:
-	$(bemacs) -l test/run-tests
+elpa:
+	$(CASK) install
+	$(CASK) update
+	touch $@
+
+compile: $(OBJS)
 
 clean:
-	rm -f *.elc
+	rm -f $(OBJS)
 
-.PHONY: all update compile test clean
+test: $(PKGDIR)
+	$(CASK) exec ert-runner $(TESTFLAGS)
