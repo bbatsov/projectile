@@ -267,6 +267,46 @@ Option           | Documentation
 :test-prefix     | A prefix to generate test files names.
 :test-suffix     | A suffix to generate test files names.
 
+#### Returning Projectile Commands from a function
+
+You can also pass a symbolic reference to a function into your project type definition if you wish to define the compile command dynamically:
+
+```el
+(defun my/compile-command ()
+  "Returns a String representing the compile command to run for the given context"
+  (cond
+   ((and (eq major-mode 'java-mode)
+         (not (string-match-p (regexp-quote "\\.*/test/\\.*") (buffer-file-name (current-buffer)))))
+    "./gradlew build")
+   ((eq major-mode 'web-mode)
+    "./gradlew compile-templates")
+   ))
+
+(defun my/test-command ()
+  "Returns a String representing the test command to run for the given context"
+  (cond
+   ((eq major-mode 'js-mode) "grunt test") ;; Test the JS of the project
+   ((eq major-mode 'java-mode) "./gradlew test") ;; Test the Java code of the project
+   ((eq major-mode 'my-mode) "special-command.sh") ;; Even Special conditions/test-sets can be covered
+   ))
+
+(projectile-register-project-type 'has-command-at-point '("file.txt")
+                                  :compile 'my/compile-command
+                                  :test 'my/test-command)
+```
+
+If you would now navigate to a file that has the `*.java` extension under the `./tests/` directory and hit `C-c c p` you
+will see `./gradlew build` as the suggestion. If you were to navigate to a HTML file the compile command will have switched
+to `./gradlew compile-templates`.
+
+This works for:
+- `:configure`
+- `:compile`
+- `:compilation-dir`
+- `:run`
+
+Note that your function has to return a string to work properly.
+
 ## Customizing project root files
 
 You can set the values of `projectile-project-root-files`,
