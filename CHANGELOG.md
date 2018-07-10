@@ -17,7 +17,7 @@
 ## 1.0.0 (2018-07-21)
 
 ### New Features
-
+* [#1255](https://github.com/bbatsov/projectile/pull/1255): Add support for function symbols as project default commands
 * [#1243](https://github.com/bbatsov/projectile/pull/1243) Add [angular](https://angular.io) project support.
 * [#1228](https://github.com/bbatsov/projectile/pull/1228): Add support for a prefix argument to `projectile-vc`.
 * [#1221](https://github.com/bbatsov/projectile/pull/1221): Modify Ruby and Elixir project settings.
