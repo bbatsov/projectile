@@ -82,7 +82,7 @@ releases of Projectile, you'd declare the following:
   :pin melpa-stable
   :config
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-  (projectile-global-mode +1))
+  (projectile-mode +1))
 ```
 
 After placing one of the above s-expressions, evaluate it, for it to take effect
