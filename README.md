@@ -88,15 +88,6 @@ Enable `projectile-mode`, open a file in one of your projects and type a command
 
 See the user manual for more details.
 
-## Extensions
-
-There are a number of packages that built on top of the basic functionality provided by Projectile:
-
-* [counsel-projectile](https://github.com/ericdanan/counsel-projectile) provides Ivy integration
-* [helm-projectile](https://github.com/bbatsov/helm-projectile) provides Helm integration
-* [persp-projectile](https://github.com/bbatsov/persp-projectile) provides perspective.el integration
-* [projectile-rails](https://github.com/asok/projectile-rails) provides extra functionality for Ruby on Rails projects
-
 ## Caveats
 
 * Some operations like search (grep) depend (presently) on external

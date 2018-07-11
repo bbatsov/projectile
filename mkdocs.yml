@@ -8,6 +8,7 @@ pages:
 - Installation: installation.md
 - Usage: usage.md
 - Configuration: configuration.md
+- Extensions: extensions.md
 - Contributing: contributing.md
 - Support: support.md
 extra_css:
