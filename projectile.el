@@ -529,6 +529,14 @@ When set to nil you'll have always add projects explicitly with
   :type 'boolean
   :package-version '(projectile . "1.0.0"))
 
+(defcustom projectile-project-search-path nil
+  "List of folders where projectile is automatically going to look for projects.
+You can think of something like $PATH, but for projects instead of executables.
+Examples of such paths might be ~/projects, ~/work, etc."
+  :group 'projectile
+  :type 'list
+  :package-version '(projectile . "1.0.0"))
+
 
 ;;; Version information
 
@@ -738,6 +746,12 @@ at the top level of DIRECTORY."
            (when (projectile-project-p)
              (projectile-add-known-project (projectile-project-root))))))
      subdirs)))
+
+(defun projectile-discover-projects-in-search-path ()
+  "Discover projects in `projectile-project-search-path'.
+Invoked automatically when `projectile-mode' is enabled."
+  (interactive)
+  (mapcar #'projectile-discover-projects-in-directory projectile-project-search-path))
 
 
 (defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
@@ -3959,6 +3973,9 @@ Otherwise behave as if called interactively.
     (unless projectile-projects-cache-time
       (setq projectile-projects-cache-time
             (make-hash-table :test 'equal)))
+    ;; update the list of known projects
+    (projectile-cleanup-known-projects)
+    (projectile-discover-projects-in-search-path)
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)

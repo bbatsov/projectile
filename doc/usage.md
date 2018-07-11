@@ -2,12 +2,20 @@
 
 ### Basic setup
 
-To add a project to Projectile, open a file in the project and enable `projectile-mode` in that buffer. If you have a projects directory, you can tell Projectile about all of the projects in it with the command `M-x projectile-discover-projects-in-directory`.
+!!! Note
 
-To make Projectile automatically remember projects that you access files in, enable Projectile mode:
+    Everything in this section assumes you've enabled `projectile-mode`.
+
+To add a project to Projectile's list of known projects, open a file
+in the project. If you have a projects directory, you can tell
+Projectile about all of the projects in it with the command `M-x
+projectile-discover-projects-in-directory`.
+
+You can go one step further and set a list of folders which Projectile
+is automatically going to check for projects:
 
 ```el
-(projectile-mode)
+(setq projectile-project-search-path '("~/projects/" "~/work/"))
 ```
 
 If you're going to use the default `ido` completion it's

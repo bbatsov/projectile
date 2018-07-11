@@ -18,6 +18,9 @@
 * Added the ability to expire old files list caches via `projectile-projectile-files-cache-expire`.
 * [#1204](https://github.com/bbatsov/projectile/pull/1204): `projectile-register-project-type` can now be use to customize the source and test directory via `:src-dir` and `:test-dir` for projects with custom needs (eg. maven).
 * [#1240](https://github.com/bbatsov/projectile/pull/1240): Add some integration with riggrep.
+* Add `projectile-project-search-path`, which is auto-searched for projects when `projectile-mode` starts.
+* Add `projectile-discover-projects-in-search-path` command which searches for projects in `projectile-project-search-path`.
+* Auto-cleanup missing known-projects on `projectile-mode` start.
 
 ### Changes
 
