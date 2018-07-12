@@ -196,10 +196,12 @@
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "a/"))))))
 
 (ert-deftest projectile-test-setup-hook-functions-projectile-mode ()
-  (projectile-mode 1)
-  (should (memq 'projectile-find-file-hook-function find-file-hook))
-  (projectile-mode -1)
-  (should (not (memq 'projectile-find-file-hook-function find-file-hook))))
+  (noflet ((projectile-cleanup-known-projects () nil)
+           (projectile-discover-projects-in-search-path () nil))
+    (projectile-mode 1)
+    (should (memq 'projectile-find-file-hook-function find-file-hook))
+    (projectile-mode -1)
+    (should (not (memq 'projectile-find-file-hook-function find-file-hook)))))
 
 (ert-deftest projectile-test-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
