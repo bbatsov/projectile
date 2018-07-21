@@ -1,6 +1,4 @@
-## Usage
-
-### Basic setup
+## Basic setup
 
 !!! Note
 
@@ -23,7 +21,7 @@ If you're going to use the default `ido` completion it's
 [flx-ido package](https://github.com/lewang/flx), which provides a much
 more powerful alternative to `ido`'s built-in `flex` matching.
 
-### Interactive Commands
+## Interactive Commands
 
 Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
@@ -98,8 +96,7 @@ commands. Here's an example that adds `super-p` as the extra prefix:
 ```
 
 You can also bind the `projectile-command-map` to any other map you'd
-like (including the global keymap).  Prelude does this for its
-[prelude-mode-map](https://github.com/bbatsov/prelude/blob/master/core/prelude-mode.el#L71).
+like (including the global keymap).
 
 For some common commands you might want to take a little shortcut and
 leverage the fairly unused `Super` key (by default `Command` on Mac
@@ -116,7 +113,7 @@ add to your Emacs config:
 Note that the `Super` keybindings are not usable in Windows. Emacs
 Prelude already adds those extra keybindings.
 
-### Ignoring files
+## Ignoring files
 
 If you'd like to instruct Projectile to ignore certain files in a
 project, when indexing it you can do so in the `.projectile` file by

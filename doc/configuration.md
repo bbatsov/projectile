@@ -1,7 +1,13 @@
-#### Indexing method
+In the typical style of Emacs, Projectile is **extremely** configurable.
+Pretty much every aspect of its behaviour can be tweaked or extended.
+
+In this section we'll go over some of the most common things you might
+want to fine-tune to make Projectile fit your workflow better.
+
+## Project indexing method
 
 Projectile has two modes of operation - one is portable and is
-implemented in Emacs Lisp(therefore it's native to Emacs and is known
+implemented in Emacs Lisp (therefore it's *native* to Emacs and is known
 as the `native indexing method`) and the other relies on external
 commands like `find`, `git`, etc to obtain the list of files in a
 project.
@@ -20,13 +26,14 @@ To force the use of external indexing in Windows:
 (setq projectile-indexing-method 'alien)
 ```
 
-This can speed up Projectile in Windows significantly. The disadvantage of this
-method is that it's not well supported on Windows systems. If there's problem,
-you can always use native indexing mode.
+This can speed up Projectile in Windows significantly. The
+disadvantage of this method is that it's not well supported on Windows
+systems, as it requires setting up some Unix utilities there. If
+there's problem, you can always use native indexing mode.
 
-#### Caching
+## Caching
 
-##### Project files
+### Project files
 
 Since indexing a big project is not exactly quick (especially in Emacs
 Lisp), Projectile supports caching of the project's files. The caching
@@ -52,7 +59,7 @@ The project cache is persistent and will be preserved during Emacs restarts.
 You can purge an individual file from the cache with `M-x projectile-purge-file-from-cache` or an
 entire directory with `M-x projectile-purge-dir-from-cache`.
 
-##### File exists cache
+### File exists cache
 
 Projectile does many file existence checks since that is how it identifies a
 project root. Normally this is fine, however in some situations the file system
@@ -82,7 +89,7 @@ needed but possible:
 (setq projectile-file-exists-local-cache-expire (* 5 60))
 ```
 
-#### Using Projectile everywhere
+## Using Projectile everywhere
 
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
@@ -92,7 +99,7 @@ If you want Projectile to be usable in every directory (even without the presenc
 
 This might not be a great idea if you start Projectile in your home folder for instance. :-)
 
-#### Switching projects
+## Switching projects
 
 When running `projectile-switch-project` (<kbd>C-c p p</kbd>) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
@@ -101,7 +108,7 @@ the command specified in `projectile-switch-project-action` (by default it is
 Depending on your personal workflow and habits, you
 may prefer to alter the value of `projectile-switch-project-action`:
 
-###### `projectile-find-file`
+### `projectile-find-file`
 
 This is the default.  With this setting, once you have selected your
 project via Projectile's completion system (see below), you will
@@ -110,13 +117,13 @@ is capable of retrieving files in all sub-projects under the project root,
 such as Git submodules. Currently, only Git is supported. Support for other VCS
 will be added in the future.
 
-###### `projectile-find-file-in-known-projects`
+### `projectile-find-file-in-known-projects`
 
 Similar to `projectile-find-file` but lists all files in all known projects. Since
 the total number of files could be huge, it is beneficial to enable caching for subsequent
 usages.
 
-###### `projectile-find-file-dwim`
+### `projectile-find-file-dwim`
 
 If point is on a filepath, Projectile first tries to search for that
 file in project:
@@ -140,7 +147,7 @@ files with character 'a' in that directory is presented.
 - If it finds nothing, display a list of all files in project for
   selecting.
 
-###### `projectile-dired`
+### `projectile-dired`
 
 ```el
 (setq projectile-switch-project-action #'projectile-dired)
@@ -150,7 +157,7 @@ With this setting, once you have selected your project, the top-level
 directory of the project is immediately opened for you in a dired
 buffer.
 
-###### `projectile-find-dir`
+### `projectile-find-dir`
 
 ```el
 (setq projectile-switch-project-action #'projectile-find-dir)
@@ -169,9 +176,9 @@ want to set
 in order to allow for the occasions where you want to select the
 top-level directory.
 
-#### Completion Options
+## Completion Options
 
-##### Ido
+### Ido
 
 By default Projectile uses `ido` as its completion system. `ido` is
 extremely popular and it is built into Emacs.
@@ -181,7 +188,7 @@ As already noted above if you're going to use the `ido` completion it's
 [flx-ido package](https://github.com/lewang/flx), which provides a much
 more powerful alternative to `ido`'s built-in `flex` matching.
 
-##### Ivy (recommended)
+### Ivy (recommended)
 
 Another completion option is [ivy](https://github.com/abo-abo/swiper):
 
@@ -189,7 +196,7 @@ Another completion option is [ivy](https://github.com/abo-abo/swiper):
 (setq projectile-completion-system 'ivy)
 ```
 
-##### Basic (Emacs's default)
+### Basic (Emacs's default)
 
 If you don't like `ido` and `ivy` you can use regular completion:
 
@@ -199,7 +206,7 @@ If you don't like `ido` and `ivy` you can use regular completion:
 
 You might want to combine default completion with `icomplete-mode` for optimum results.
 
-##### Custom Completion Function
+### Custom Completion Function
 
 You can also set `projectile-completion-system` to a function:
 
@@ -217,16 +224,18 @@ the file name (not including path) and if the file selected is not
 unique, another completion with names relative to project root
 appears.
 
-##### Regenerate tags
+## Regenerate tags
 
 To be able to regenerate a project's tags via `projectile-tags-command`, you
 should install and add to the PATH
 [Exuberant Ctags](http://ctags.sourceforge.net/) instead of a plain ctags, which
 ships with Emacs distribution.
 
-### Adding Custom Project Types
+## Adding Custom Project Types
 
-If a project you are working on is recognized incorrectly or you want to add your own type of projects you can add following to your Emacs initialization code
+If a project you are working on is recognized incorrectly or you want
+to add your own type of projects you can add following to your Emacs
+initialization code
 
 ```el
 (projectile-register-project-type 'npm '("package.json")
@@ -235,6 +244,7 @@ If a project you are working on is recognized incorrectly or you want to add you
 				  :run "npm start"
 				  :test-suffix ".spec")
 ```
+
 What this does is:
 1. add your own type of project, in this case `npm` package.
 2. add a file in a root of the project that helps to identify the type, in this case it is `package.json`.
@@ -257,7 +267,7 @@ Option           | Documentation
 :test-prefix     | A prefix to generate test files names.
 :test-suffix     | A suffix to generate test files names.
 
-### Customizing project root files
+## Customizing project root files
 
 You can set the values of `projectile-project-root-files`,
 `projectile-project-root-files-top-down-recurring`,
@@ -271,7 +281,7 @@ To customize project root files settings:
 M-x customize-group RET projectile RET
 ```
 
-#### File-local project root definitions
+### File-local project root definitions
 
 If you want to override the projectile project root for a specific
 file, you can set the file-local variable `projectile-project-root`. This
@@ -279,7 +289,7 @@ can be useful if you have files within one project that are related to
 a different project (for instance, Org files in one git repo that
 correspond to other projects).
 
-### Storing project settings
+## Storing project settings
 
 From project to project, some things may differ even in the same
 language - coding styles, auto-completion sources, etc.  If you need
@@ -311,7 +321,7 @@ You can also quickly visit or create the `dir-locals-file` with
 
 Here are a few examples of how to use this feature with Projectile.
 
-#### Configuring Projectile's Behavior
+## Configuring Projectile's Behavior
 
 Projectile exposes many variables (via `defcustom`) which allow users
 to customize its behavior.  Directory variables can be used to set
@@ -344,7 +354,7 @@ your project, you could customize it with the following:
 ((nil . ((projectile-project-name . "your-project-name-here"))))
 ```
 
-#### Configure a Project's Compilation, Test and Run commands
+## Configure a Project's Compilation, Test and Run commands
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
 
@@ -361,7 +371,7 @@ external command or an Emacs Lisp function:
 (setq projectile-test-cmd #'custom-test-function)
 ```
 
-### Idle Timer
+## Idle Timer
 
 Projectile can be configured to run the hook
 `projectile-idle-timer-hook` every time Emacs is in a project and has
@@ -380,7 +390,7 @@ additional functions to the hook using `add-hook`:
 (add-hook 'projectile-idle-timer-hook #'my-projectile-idle-timer-function)
 ```
 
-### Mode line indicator
+## Mode line indicator
 
 By default the minor mode indicator of Projectile appears in the form
 " Projectile[ProjectName]". This is configurable via the custom variable
@@ -390,3 +400,8 @@ By default the minor mode indicator of Projectile appears in the form
 The project name will not appear by default when editing remote files
 (via TRAMP), as recalculating the project name (this is done on every
 keystroke) is a fairly slow operation there.
+
+!!! Warning
+
+    Be extremely careful about what you put here, as all the code in the lighter
+    gets evaluated on every keystroke!

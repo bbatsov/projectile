@@ -5,17 +5,29 @@ finding project files has a portable implementation written in pure
 Emacs Lisp without the use of GNU `find` (but for performance sake an
 indexing mechanism backed by external commands exists as well).
 
+!!! Tip
+
+    In practical terms the fact that Projectile can index the files in
+    a project without shelling out to `find`, `git` or whatever, means
+    that unlike many similar tools it will work on Windows without any
+    additional setup.
+
 Projectile tries to be practical - portability is great, but if some
 external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
 
-This library provides easy project management and navigation. The
+Here's a glimpse of Projectile in action (find file in project using `ido`):
+
+![Projectile Screenshot](screenshots/projectile.png)
+
+Projectile provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
-special file. Currently `git`, `mercurial`, `darcs` and `bazaar` repos
-are considered projects by default. So are `lein`, `maven`, `sbt`,
-`scons`, `rebar` and `bundler` projects. If you want to mark a folder
-manually as a project just create an empty `.projectile` file in
-it. Some of Projectile's features:
+special file. Currently most VCS repos (e.g. `git`, `mercurial`, etc)
+are considered projects by default, as are directories containing
+build tools (e.g. `maven`, `leiningen`, etc) or framework markers
+(e.g. Ruby on Rails). If you want to mark a folder manually as a
+project just create an empty `.projectile` file in it. Some of
+Projectile's features:
 
 * jump to a file in project
 * jump to files at point in project
@@ -36,9 +48,10 @@ it. Some of Projectile's features:
 * run make in a project with a single key chord
 * browse dirty version controlled projects
 
-Here's a glimpse of Projectile in action:
+!!! Info
 
-![Projectile Screenshot](screenshots/projectile.png)
+    A bit of trivia for you - Projectile was my very first open-source project and
+    it has a very special place in my heart!
 
 You can support my work on Projectile via
  [PayPal](https://www.paypal.me/bbatsov),

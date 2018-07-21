@@ -5,7 +5,9 @@ release). If you're new to Emacs you might want to go through
 [the guided tour of Emacs](https://www.gnu.org/software/emacs/tour/index.html)
 and the built-in tutorial (just press <kbd>C-h t</kbd>).
 
-Projectile officially supports Emacs 25.1+.
+!!! Note
+
+    Projectile officially supports Emacs 25.1+.
 
 ## Installation
 
