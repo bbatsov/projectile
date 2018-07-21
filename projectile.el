@@ -2911,6 +2911,14 @@ SEARCH-TERM is a regexp."
       (eshell))))
 
 ;;;###autoload
+(defun projectile-run-ielm ()
+  "Invoke `ielm' in the project's root."
+  (interactive)
+  (projectile-with-default-dir (projectile-project-root)
+    (ielm))
+  (rename-buffer (format "*ielm %s*" (projectile-project-name))))
+
+;;;###autoload
 (defun projectile-run-term (program)
   "Invoke `term' in the project's root."
   (interactive (list nil))
@@ -3859,6 +3867,7 @@ is chosen."
     (define-key map (kbd "v") #'projectile-vc)
     (define-key map (kbd "V") #'projectile-browse-dirty-projects)
     (define-key map (kbd "x e") #'projectile-run-eshell)
+    (define-key map (kbd "x i") #'projectile-run-ielm)
     (define-key map (kbd "x t") #'projectile-run-term)
     (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "z") #'projectile-cache-current-file)
@@ -3899,6 +3908,7 @@ is chosen."
    "--"
    ["Run shell" projectile-run-shell]
    ["Run eshell" projectile-run-eshell]
+   ["Run ielm" projectile-run-ielm]
    ["Run term" projectile-run-term]
    "--"
    ["Cache current file" projectile-cache-current-file]

@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* New interactive command `projectile-run-ielm`.
+
 ### Changes
 
 * **(Breaking)** Change the prefix for the Projectile mode commands to `C-c C-p`.
