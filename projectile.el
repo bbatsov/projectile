@@ -148,7 +148,7 @@ Otherwise consider the current directory the project root."
           (const :tag "Default" default)
           (function :tag "Custom function")))
 
-(defcustom projectile-keymap-prefix (kbd "C-c p")
+(defcustom projectile-keymap-prefix (kbd "C-c C-p")
   "Projectile keymap prefix."
   :group 'projectile
   :type 'string)

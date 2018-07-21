@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+* **(Breaking)** Change the prefix for the Projectile mode commands to `C-c C-p`.
+
 ## 1.0.0 (2018-07-21)
 
 ### New Features

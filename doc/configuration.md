@@ -45,12 +45,12 @@ To enable caching unconditionally use this snippet of code:
 (setq projectile-enable-caching t)
 ```
 
-At this point you can try out a Projectile command such as <kbd>C-c p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).
+At this point you can try out a Projectile command such as <kbd>C-c C-p f</kbd> (<kbd>M-x projectile-find-file RET</kbd>).
 
-Running <kbd>C-u C-c p f</kbd> will invalidate the cache prior to
+Running <kbd>C-u C-c C-p f</kbd> will invalidate the cache prior to
 prompting you for a file to jump to.
 
-Pressing <kbd>C-c p z</kbd> will add the currently visited file to the
+Pressing <kbd>C-c C-p z</kbd> will add the currently visited file to the
 cache for current project. Generally files created outside Emacs will
 be added to the cache automatically the first time you open them.
 
@@ -101,7 +101,7 @@ This might not be a great idea if you start Projectile in your home folder for i
 
 ## Switching projects
 
-When running `projectile-switch-project` (<kbd>C-c p p</kbd>) Projectile invokes
+When running `projectile-switch-project` (<kbd>C-c C-p p</kbd>) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
 `projectile-find-file`).
 
@@ -317,7 +317,7 @@ function.  It could also be used to e.g. add such a function to a key
 map.
 
 You can also quickly visit or create the `dir-locals-file` with
-<kbd>C-c p E</kbd> (<kbd>M-x projectile-edit-dir-locals RET</kbd>).
+<kbd>C-c C-p E</kbd> (<kbd>M-x projectile-edit-dir-locals RET</kbd>).
 
 Here are a few examples of how to use this feature with Projectile.
 

@@ -84,7 +84,7 @@ simply `apt-get install elpa-projectile`.
 
 ### Basic Usage
 
-Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c p f</kbd>.
+Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c C-p f</kbd>.
 
 See the user manual for more details.
 
