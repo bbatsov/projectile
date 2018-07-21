@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 1.0.0 (2018-07-21)
+
 ### New Features
 
 * [#1243](https://github.com/bbatsov/projectile/pull/1243) Add [angular](https://angular.io) project support.
