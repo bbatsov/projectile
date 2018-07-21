@@ -13,4 +13,6 @@ pages:
 - Support: support.md
 extra_css:
   - css/extra.css
+markdown_extensions:
+  - admonition
 theme: readthedocs
