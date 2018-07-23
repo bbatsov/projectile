@@ -3238,13 +3238,14 @@ Should be set via .dir-locals.el.")
 
 If found, checks if value is symbol or string. In case of symbol resolves
 to function `funcall's. Return value of function MUST be string to be executed as command."
-  (let ((plist-retrieved-generic-command (plist-get (gethash project-type projectile-project-types) command-type)))
+  (let ((command (plist-get (gethash project-type projectile-project-types) command-type)))
     (cond
-     ((stringp plist-retrieved-generic-command) plist-retrieved-generic-command)
-     ((symbolp 'plist-retrieved-generic-command)
-      (if (fboundp plist-retrieved-generic-command)
-          (funcall (symbol-function plist-retrieved-generic-command))))
-     )))
+     ((stringp command) command)
+     ((functionp command)
+      (if (fboundp command)
+        (funcall (symbol-function command))))
+     (t
+      (error (format "The value for: %s in project-type: %s was neither a function nor a string." command-type project-type))))))
 
 (defun projectile-default-configure-command (project-type)
   "Retrieve default configure command for PROJECT-TYPE."
