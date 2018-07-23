@@ -10,11 +10,12 @@ much attention to the TRAMP support. It's mostly community-maintained.
 
 ## Why does Projectile violate the rule not to bind keys in the user keymap?
 
-I opted for the `C-c p` prefix fully aware that this violates a very
-established Emacs convention, mostly because it felt practical and
-because pressing `C-c C-p` is not super convenient for many
-people. I've come to regret this decision, though, and it will likely
-be reverted down the road.
+I opted for the `C-c p` prefix fully aware that this violates [a very
+established Emacs
+convention](https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Conventions.html),
+mostly because it felt practical and because pressing `C-c C-p` is not
+super convenient for many people. I've come to regret this decision,
+though, and it will likely be reverted down the road.
 
 **Update** This was changed in Projectile 1.1.
 
