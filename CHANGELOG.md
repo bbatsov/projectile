@@ -35,6 +35,7 @@
 
 ### Changes
 
+* [#1177](https://github.com/bbatsov/projectile/pull/1177): ignored-*-p: Now they match against regular expressions.
 * [#1213](https://github.com/bbatsov/projectile/pull/1213): Cache project root in non-filed-backed buffers.
 * [#1175](https://github.com/bbatsov/projectile/pull/1175): `projectile-register-project-type` can now set a default compilation directory for build systems that needs to build out-of-tree (eg. meson).
 * [#1175](https://github.com/bbatsov/projectile/pull/1175): `projectile-{test,run}-project` now run inside `(projectile-compilation-dir)`, just like `projectile-compile-project`.
