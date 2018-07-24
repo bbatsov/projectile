@@ -196,7 +196,7 @@
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "a/"))))))
 
 (ert-deftest projectile-test-setup-hook-functions-projectile-mode ()
-  (noflet ((projectile-cleanup-known-projects () nil)
+  (noflet ((projectile--cleanup-known-projects () nil)
            (projectile-discover-projects-in-search-path () nil))
     (projectile-mode 1)
     (should (memq 'projectile-find-file-hook-function find-file-hook))
@@ -214,10 +214,10 @@
          (projectile-known-projects directories))
     (unwind-protect
         (progn
-          (projectile-cleanup-known-projects)
+          (projectile--cleanup-known-projects)
           (should (equal projectile-known-projects directories))
           (delete-directory (car directories))
-          (projectile-cleanup-known-projects)
+          (projectile--cleanup-known-projects)
           (should (equal projectile-known-projects (cdr directories))))
       (--each directories (ignore-errors (delete-directory it)))
       (delete-file projectile-known-projects-file nil))))
