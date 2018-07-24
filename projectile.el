@@ -3237,7 +3237,18 @@ Should be set via .dir-locals.el.")
   (plist-get (gethash project-type projectile-project-types) 'run-command))
 
 (defun projectile-configure-command (compile-dir)
-  "Retrieve the configure command for COMPILE-DIR."
+  "Retrieve the configure command for COMPILE-DIR.
+
+The command is determined like this:
+
+- first we check `projectile-configure-cmd-map' for the last
+configure command that was invoked on the project
+
+- then we check for `projectile-project-configure-cmd' supplied
+via .dir-locals.el
+
+- finally we check for the default configure command for a
+project of that type"
   (or (gethash compile-dir projectile-configure-cmd-map)
       projectile-project-configure-cmd
       (let ((cmd-format-string (projectile-default-configure-command (projectile-project-type))))
@@ -3245,19 +3256,52 @@ Should be set via .dir-locals.el.")
           (format cmd-format-string (projectile-project-root))))))
 
 (defun projectile-compilation-command (compile-dir)
-  "Retrieve the compilation command for COMPILE-DIR."
+  "Retrieve the compilation command for COMPILE-DIR.
+
+The command is determined like this:
+
+- first we check `projectile-compilation-cmd-map' for the last
+compile command that was invoked on the project
+
+- then we check for `projectile-project-compilation-cmd' supplied
+via .dir-locals.el
+
+- finally we check for the default compilation command for a
+project of that type"
   (or (gethash compile-dir projectile-compilation-cmd-map)
       projectile-project-compilation-cmd
       (projectile-default-compilation-command (projectile-project-type))))
 
 (defun projectile-test-command (compile-dir)
-  "Retrieve the test command for COMPILE-DIR."
+  "Retrieve the test command for COMPILE-DIR.
+
+The command is determined like this:
+
+- first we check `projectile-test-cmd-map' for the last
+test command that was invoked on the project
+
+- then we check for `projectile-project-test-cmd' supplied
+via .dir-locals.el
+
+- finally we check for the default test command for a
+project of that type"
   (or (gethash compile-dir projectile-test-cmd-map)
       projectile-project-test-cmd
       (projectile-default-test-command (projectile-project-type))))
 
 (defun projectile-run-command (compile-dir)
-  "Retrieve the run command for COMPILE-DIR."
+  "Retrieve the run command for COMPILE-DIR.
+
+The command is determined like this:
+
+- first we check `projectile-run-cmd-map' for the last
+run command that was invoked on the project
+
+- then we check for `projectile-project-run-cmd' supplied
+via .dir-locals.el
+
+- finally we check for the default run command for a
+project of that type"
   (or (gethash compile-dir projectile-run-cmd-map)
       projectile-project-run-cmd
       (projectile-default-run-command (projectile-project-type))))
