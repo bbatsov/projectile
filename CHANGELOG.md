@@ -9,6 +9,7 @@
 ### Changes
 
 * **(Breaking)** Change the prefix for the Projectile mode commands to `C-c C-p`.
+* Avoid "No projects needed to be removed." messages in global mode
 
 ## 1.0.0 (2018-07-21)
 
