@@ -3499,7 +3499,8 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (let ((projects (projectile-relevant-known-projects)))
+  (let ((projects (projectile-relevant-known-projects))
+        (projectile-require-project-root nil))
     (if projects
         (projectile-completing-read
          "Switch to project: " projects
