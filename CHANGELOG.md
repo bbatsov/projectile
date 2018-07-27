@@ -8,7 +8,7 @@
 
 ### Changes
 
-* ignore-*-p functions match against regular expressions.
+* * [#1177](https://github.com/bbatsov/projectile/pull/1177): ignored-*-p: Now they match against regular expressions.
 * **(Breaking)** Change the prefix for the Projectile mode commands to `C-c C-p`.
 * Avoid "No projects needed to be removed." messages in global mode
 
