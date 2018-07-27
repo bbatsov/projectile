@@ -306,7 +306,9 @@ containing a root file."
   :type '(repeat string))
 
 (defcustom projectile-globally-unignored-files nil
-  "A list of files globally unignored by projectile."
+  "A list of files globally unignored by projectile.
+
+Regular expressions can be used."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -330,7 +332,9 @@ containing a root file."
     ".tox"
     ".svn"
     ".stack-work")
-  "A list of directories globally ignored by projectile."
+  "A list of directories globally ignored by projectile.
+
+Regular expressions can be used."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
@@ -358,8 +362,8 @@ it for functions working with buffers."
 (defcustom projectile-globally-ignored-buffers nil
   "A list of buffer-names ignored by projectile.
 
-If a buffer is in the list projectile will ignore
-it for functions working with buffers."
+If a buffer is in the list projectile will ignore it for
+functions working with buffers. Regular expressions can be used."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.12.0"))
@@ -1374,7 +1378,9 @@ this case unignored files will be absent from FILES."
          (string-prefix-p project-root (file-truename default-directory) (eq system-type 'windows-nt)))))
 
 (defun projectile-ignored-buffer-p (buffer)
-  "Check if BUFFER should be ignored."
+  "Check if BUFFER should be ignored.
+
+Regular expressions can be use."
   (or
    (with-current-buffer buffer
      (cl-some
@@ -1505,14 +1511,18 @@ projectile project root."
     (mapcar (lambda (f) (file-relative-name f project-root)) files)))
 
 (defun projectile-ignored-directory-p (directory)
-  "Check if DIRECTORY should be ignored."
+  "Check if DIRECTORY should be ignored.
+
+Regular expressions can be use."
   (cl-some
    (lambda (name)
      (string-match-p name directory))
    (projectile-ignored-directories)))
 
 (defun projectile-ignored-file-p (file)
-  "Check if FILE should be ignored."
+  "Check if FILE should be ignored.
+
+Regular expressions can be use."
   (cl-some
    (lambda (name)
      (string-match-p name file))
