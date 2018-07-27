@@ -52,9 +52,9 @@
 
 (ert-deftest projectile-test-ignored-directory-p ()
   (noflet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/t\\.*")))
-          (should (projectile-ignored-directory-p "/path/to/project/tmp"))
-          (should (projectile-ignored-directory-p "/path/to/project/t.ignore"))
-          (should-not (projectile-ignored-directory-p "/path/to/project/log"))))
+    (should (projectile-ignored-directory-p "/path/to/project/tmp"))
+    (should (projectile-ignored-directory-p "/path/to/project/t.ignore"))
+    (should-not (projectile-ignored-directory-p "/path/to/project/log"))))
 
 (ert-deftest projectile-test-ignored-file-p ()
   (noflet ((projectile-ignored-files () '("/path/to/project/TAGS" "/path/to/project/T.*")))
