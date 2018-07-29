@@ -604,6 +604,7 @@
                                        ))
         (source-tree '("src/test1.c"
                        "src/test2.c"
+                       "src/test+copying.m"
                        "src/test1.cpp"
                        "src/test2.cpp"
                        "src/Makefile"
@@ -615,6 +616,7 @@
                        "include1/test1.h"
                        "include1/test1.h~"
                        "include1/test2.h"
+                       "include1/test+copying.h"
                        "include1/test1.hpp"
                        "include2/some_module/same_name.h"
                        "include2/test1.h"
@@ -652,6 +654,8 @@
     ;; fallback to outer extensions if no rule for nested extension defined
     (should (equal '("include1/test2.js" "include2/test2.js")
                    (projectile-get-other-files "src/test2.service.spec.js" source-tree)))
+    (should (equal '("include1/test+copying.h")
+                   (projectile-get-other-files "src/test+copying.m" source-tree)))
     ))
 
 (ert-deftest projectile-test-compilation-directory ()

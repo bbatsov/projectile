@@ -1901,7 +1901,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
          (fulldirname (if (file-name-directory current-file)
                           (file-name-directory current-file) "./"))
          (dirname (file-name-nondirectory (directory-file-name fulldirname)))
-         (filename (projectile--file-name-sans-extensions current-file))
+         (filename (regexp-quote (projectile--file-name-sans-extensions current-file)))
          (file-list (mapcar (lambda (ext)
                               (if flex-matching
                                   (concat ".*" filename ".*" "\." ext "\\'")
