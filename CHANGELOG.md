@@ -33,6 +33,7 @@
 * Add `projectile-project-search-path`, which is auto-searched for projects when `projectile-mode` starts.
 * Add `projectile-discover-projects-in-search-path` command which searches for projects in `projectile-project-search-path`.
 * Auto-cleanup missing known-projects on `projectile-mode` start.
+* [#1263](https://github.com/bbatsov/projectile/pull/1263): `projectile-register-project-type` can now be used to customize `:test-extension` and `:src-extension` (eg. for elixir).
 
 ### Changes
 
