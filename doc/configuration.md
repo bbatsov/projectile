@@ -266,6 +266,8 @@ Option           | Documentation
 :test-dir        | A path, relative to the project root, where the test code lives.
 :test-prefix     | A prefix to generate test files names.
 :test-suffix     | A suffix to generate test files names.
+:test-extension  | A file extension to generate test file names.
+:src-extension   | A file extension to generate source file names.
 
 ## Customizing project root files
 

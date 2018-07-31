@@ -789,6 +789,24 @@
             (should (equal "spec/foo/foo.service.spec.js" test-file))
             (should (equal "source/bar/bar.service.js" impl-file))))))))
 
+(ert-deftest projectile-test-find-matching-file/extensions ()
+  (projectile-test-with-sandbox
+    (projectile-test-with-files
+        ("project/app/models/weed/"
+         "project/app/models/food/"
+         "project/test/models/weed/"
+         "project/test/models/food/"
+         "project/app/models/weed/sea.ex"
+         "project/app/models/food/sea.ex"
+         "project/test/models/weed/sea_test.exs"
+         "project/test/models/food/sea_test.exs")
+      (let ((projectile-indexing-method 'native))
+        (noflet ((projectile-project-type () 'elixir)
+                 (projectile-project-root () (file-truename (expand-file-name "project/"))))
+          (should (equal "app/models/food/sea.ex"
+                         (projectile-find-matching-file
+                          "test/models/food/sea_test.exs"))))))))
+
 (ert-deftest projectile-test-exclude-out-of-project-submodules ()
   (projectile-test-with-files
    (;; VSC root is here

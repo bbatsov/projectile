@@ -411,6 +411,16 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-test-extension-function 'projectile-test-extension
+  "Function to find test files extension based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
+(defcustom projectile-src-extension-function 'projectile-src-extension
+  "Function to find source files extension based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
@@ -2210,7 +2220,7 @@ With a prefix ARG invalidates the cache first."
   "A hash table holding all project types that are known to Projectile.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir test-extension src-extension)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2225,7 +2235,9 @@ RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
-TEST-DIR which specifies the path to the tests relative to the project root."
+TEST-DIR which specifies the path to the tests relative to the project root.
+TEST-EXTENSION which specifies the extension for test files.
+SRC-EXTENSION which specifies the extension for source files."
   (let ((project-plist (list 'marker-files marker-files
                              'compilation-dir compilation-dir
                              'configure-command configure
@@ -2244,6 +2256,10 @@ TEST-DIR which specifies the path to the tests relative to the project root."
       (plist-put project-plist 'src-dir src-dir))
     (when test-dir
       (plist-put project-plist 'test-dir test-dir))
+    (when test-extension
+      (plist-put project-plist 'test-extension test-extension))
+    (when src-extension
+      (plist-put project-plist 'src-extension src-extension))
     (puthash project-type project-plist
              projectile-project-types)))
 
@@ -2338,7 +2354,9 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :compile "mix compile"
                                   :src-dir "lib/"
                                   :test "mix test"
-                                  :test-suffix "_test")
+                                  :test-suffix "_test"
+                                  :src-extension "ex"
+                                  :test-extension "exs")
 ;; JavaScript
 (projectile-register-project-type 'grunt '("Gruntfile.js")
                                   :compile "grunt"
@@ -2516,10 +2534,12 @@ PROJECT-ROOT is the targeted directory.  If nil, use
          (impl-file-name (file-name-sans-extension (file-name-nondirectory impl-file-path)))
          (impl-file-ext (file-name-extension impl-file-path))
          (test-prefix (funcall projectile-test-prefix-function project-type))
-         (test-suffix (funcall projectile-test-suffix-function project-type)))
+         (test-suffix (funcall projectile-test-suffix-function project-type))
+         (test-extension (funcall projectile-test-extension-function project-type))
+         (extension (or test-extension impl-file-ext)))
     (cond
-     (test-prefix (concat test-prefix impl-file-name "." impl-file-ext))
-     (test-suffix (concat impl-file-name test-suffix "." impl-file-ext))
+     (test-prefix (concat test-prefix impl-file-name "." extension))
+     (test-suffix (concat impl-file-name test-suffix "." extension))
      (t (error "Project type `%s' not supported!" project-type)))))
 
 (defun projectile-create-test-file-for (impl-file-path)
@@ -2614,6 +2634,14 @@ Fallback to DEFAULT-VALUE for missing attributes."
   "Find default test directory based on PROJECT-TYPE."
   (projectile-project-type-attribute project-type 'test-dir "test/"))
 
+(defun projectile-test-extension (project-type)
+  "Find default test extension based on PROJECT-TYPE."
+  (projectile-project-type-attribute project-type 'test-extension))
+
+(defun projectile-src-extension (project-type)
+  "Find default source extension based on PROJECT-TYPE."
+  (projectile-project-type-attribute project-type 'src-extension))
+
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
   (setq a (reverse (split-string (or (file-name-directory a) "") "/" t))
@@ -2643,15 +2671,19 @@ Fallback to DEFAULT-VALUE for missing attributes."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
+         (test-extension (funcall projectile-test-extension-function (projectile-project-type)))
          (candidates
           (cl-remove-if-not
            (lambda (current-file)
              (let ((name (file-name-nondirectory
-                          (file-name-sans-extension current-file))))
-               (or (when test-prefix
-                     (string-equal name (concat test-prefix basename)))
-                   (when test-suffix
-                     (string-equal name (concat basename test-suffix))))))
+                          (file-name-sans-extension current-file)))
+                   (extension (file-name-extension current-file)))
+               (and (or (when test-prefix
+                          (string-equal name (concat test-prefix basename)))
+                        (when test-suffix
+                          (string-equal name (concat basename test-suffix))))
+                    (or (not test-extension)
+                        (string-equal extension test-extension)))))
            (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
@@ -2668,15 +2700,19 @@ Fallback to DEFAULT-VALUE for missing attributes."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
+         (src-extension (funcall projectile-src-extension-function (projectile-project-type)))
          (candidates
           (cl-remove-if-not
            (lambda (current-file)
              (let ((name (file-name-nondirectory
-                          (file-name-sans-extension current-file))))
-               (or (when test-prefix
-                     (string-equal (concat test-prefix name) basename))
-                   (when test-suffix
-                     (string-equal (concat name test-suffix) basename)))))
+                          (file-name-sans-extension current-file)))
+                   (extension (file-name-extension current-file)))
+               (and (or (when test-prefix
+                          (string-equal (concat test-prefix name) basename))
+                        (when test-suffix
+                          (string-equal (concat name test-suffix) basename)))
+                    (or (not src-extension)
+                        (string-equal extension src-extension)))))
            (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
