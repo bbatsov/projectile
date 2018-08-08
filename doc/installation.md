@@ -58,6 +58,22 @@ Stable by adding this to your Emacs initialization:
 (add-to-list 'package-pinned-packages '(projectile . "melpa-stable") t)
 ```
 
+Finally add this to your Emacs config:
+
+```el
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+```
+
+Those keymap prefixes are just a suggestion. Feel free to put there whatever works best for you.
+
+!!! Note
+
+    `C-c p` used to be the default prefix up to version 1.1, but
+    starting with version 1.1 you have to select prefix key(s)
+    yourself.
+
 ### Installation via use-package
 
 `use-package` can be used to install Projectile via the `package.el`'s repositories
@@ -72,6 +88,7 @@ the `master` branch, declare the following in your Emacs initialization file
   :ensure t
   :config
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
   (projectile-mode +1))
 ```
 
@@ -84,6 +101,7 @@ releases of Projectile, you'd declare the following:
   :pin melpa-stable
   :config
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
   (projectile-mode +1))
 ```
 

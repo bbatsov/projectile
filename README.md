@@ -82,9 +82,19 @@ You can install Projectile with the following command:
 Alternatively, users of Debian 9 or later or Ubuntu 16.04 or later may
 simply `apt-get install elpa-projectile`.
 
+Finally add this to your Emacs config:
+
+```el
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+```
+
+Those keymap prefixes are just a suggestion. Feel free to put there whatever works best for you.
+
 ### Basic Usage
 
-Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c C-p f</kbd>.
+Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c p f</kbd>.
 
 See the user manual for more details.
 

@@ -148,10 +148,12 @@ Otherwise consider the current directory the project root."
           (const :tag "Default" default)
           (function :tag "Custom function")))
 
-(defcustom projectile-keymap-prefix (kbd "C-c C-p")
+(defcustom projectile-keymap-prefix nil
   "Projectile keymap prefix."
   :group 'projectile
   :type 'string)
+
+(make-obsolete-variable 'projectile-keymap-prefix "Use (define-key projectile-mode-map (kbd ...) 'projectile-command-map) instead." "1.1.0")
 
 (defcustom projectile-cache-file
   (expand-file-name "projectile.cache" user-emacs-directory)
@@ -3959,7 +3961,8 @@ is chosen."
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map projectile-keymap-prefix 'projectile-command-map)
+    (when projectile-keymap-prefix
+      (define-key map projectile-keymap-prefix 'projectile-command-map))
     map)
   "Keymap for Projectile mode.")
 
