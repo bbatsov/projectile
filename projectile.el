@@ -722,12 +722,7 @@ The cache is created both in memory and on the hard drive."
 (defun projectile-track-known-projects-find-file-hook ()
   "Function for caching projects with `find-file-hook'."
   (when (and projectile-track-known-projects-automatically (projectile-project-p))
-    (let ((known-projects (and (sequencep projectile-known-projects)
-                               (copy-sequence projectile-known-projects))))
-      (projectile-add-known-project (projectile-project-root))
-      (unless (equal known-projects projectile-known-projects)
-        (projectile-merge-known-projects)))))
-
+    (projectile-add-known-project (projectile-project-root))))
 
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
@@ -3673,7 +3668,8 @@ See `projectile--cleanup-known-projects'."
     (setq projectile-known-projects
           (delete-dups
            (cons (file-name-as-directory (abbreviate-file-name project-root))
-                 projectile-known-projects)))))
+                 projectile-known-projects)))
+    (projectile-merge-known-projects)))
 
 (defun projectile-load-known-projects ()
   "Load saved projects from `projectile-known-projects-file'.
