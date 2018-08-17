@@ -3243,9 +3243,7 @@ to function `funcall's. Return value of function MUST be string to be executed a
      ((stringp command) command)
      ((functionp command)
       (if (fboundp command)
-        (funcall (symbol-function command))))
-     (t
-      (user-error "The value for: %s in project-type: %s was neither a function nor a string." command-type project-type)))))
+        (funcall (symbol-function command)))))))
 
 (defun projectile-default-configure-command (project-type)
   "Retrieve default configure command for PROJECT-TYPE."
