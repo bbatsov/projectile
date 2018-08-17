@@ -698,14 +698,6 @@
     (goto-char 2)
     (should (equal "./run-extra" (projectile-default-compilation-command 'has-command-at-point)))))
 
-(ert-deftest projectile-test-failed-on-bad-project-type-config ()
-  (defun -compilation-test-function ()
-    1)
-  (projectile-register-project-type 'has-command-at-point '("file.txt")
-                                    :compile (-compilation-test-function))
-
-  (should-error (projectile-default-compilation-command 'has-command-at-point)))
-
 (ert-deftest projectile-detect-project-type-of-rails-like-npm-test ()
   (projectile-test-with-sandbox
    (projectile-test-with-files
