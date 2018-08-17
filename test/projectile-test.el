@@ -706,6 +706,16 @@
 
   (should-error (projectile-default-compilation-command 'has-command-at-point)))
 
+(ert-deftest projectile-test-should-not-fail-on-bad-compilation-dir-config ()
+  (defun -compilation-test-function ()
+    1)
+  (projectile-register-project-type 'has-command-at-point '("file.txt")
+                                    :compile (-compilation-test-function))
+
+  (let ((projectile-project-type 'has-command-at-point)
+        (projectile-project-compilation-dir nil))
+    (should (equal (concat (expand-file-name ".") "/") (projectile-compilation-dir)))))
+
 (ert-deftest projectile-detect-project-type-of-rails-like-npm-test ()
   (projectile-test-with-sandbox
    (projectile-test-with-files

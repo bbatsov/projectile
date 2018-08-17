@@ -3243,7 +3243,10 @@ to function `funcall's. Return value of function MUST be string to be executed a
      ((stringp command) command)
      ((functionp command)
       (if (fboundp command)
-        (funcall (symbol-function command))))
+          (funcall (symbol-function command))))
+     ((and (not command) (eq command-type 'compilation-dir))
+      ;; `compilation-dir' is special in that it is used as a fallback for the root
+      nil)
      (t
       (user-error "The value for: %s in project-type: %s was neither a function nor a string." command-type project-type)))))
 
