@@ -134,8 +134,8 @@ Projectile also supports relative pathname ignores:
 
 ```
 -tmp
--*.rb
--*.yml
+-/*.rb
+-/*.yml
 -models
 ```
 
@@ -164,7 +164,7 @@ your project by projectile:
 
 ```
 !/src/foo
-!*.yml
+!/*.yml
 ```
 
 When a path is overridden, its contents are still subject to ignore
