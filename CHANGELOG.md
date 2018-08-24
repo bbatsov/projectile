@@ -5,6 +5,7 @@
 ### New features
 
 * New interactive command `projectile-run-ielm`.
+* Add [crystal](https://crystal-lang.org) project type.
 
 ### Changes
 
