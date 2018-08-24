@@ -2430,6 +2430,12 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test "bundle exec rspec"
                                   :test-dir "spec/"
                                   :test-suffix "_spec")
+;; Crystal
+(projectile-register-project-type 'crystal-spec '("shard.yml")
+                                  :src-dir "src/"
+                                  :test "crystal spec"
+                                  :test-dir "spec/"
+                                  :test-suffix "_spec")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
