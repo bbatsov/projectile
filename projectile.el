@@ -2067,8 +2067,9 @@ would be `find-file-other-window' or `find-file-other-frame'"
   (let ((file (projectile-completing-read "Find file: "
                                           (projectile-current-project-files)))
         (ff (or ff-variant #'find-file)))
-    (funcall ff (expand-file-name file (projectile-project-root)))
-    (run-hooks 'projectile-find-file-hook)))
+    (when file
+      (funcall ff (expand-file-name file (projectile-project-root)))
+      (run-hooks 'projectile-find-file-hook))))
 
 ;;;###autoload
 (defun projectile-find-file (&optional arg)
