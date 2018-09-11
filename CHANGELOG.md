@@ -14,6 +14,7 @@
 * **(Breaking)** Remove the default prefix key (`C-c p`) for Projectile. Users now have to pick one themselves.
 * Deprecate `projectile-keymap-prefix`.
 * Avoid "No projects needed to be removed." messages in global mode
+* [#1278](https://github.com/bbatsov/projectile/issues/1278): Add default `test-suffix` to `npm` project
 
 ## 1.0.0 (2018-07-21)
 

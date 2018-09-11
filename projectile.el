@@ -2345,7 +2345,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test "gulp test")
 (projectile-register-project-type 'npm '("package.json")
                                   :compile "npm install"
-                                  :test "npm test")
+                                  :test "npm test"
+                                  :test-suffix ".test")
 ;; Angular
 (projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
                                   :compile "ng build"
