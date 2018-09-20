@@ -3886,6 +3886,8 @@ is chosen."
 
 (projectile-commander-bindings)
 
+
+;;; Editing a project's .dir-locals
 (defun projectile-read-variable ()
   "Prompt for a variable and return its name."
   (completing-read "Variable: "
