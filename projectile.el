@@ -545,6 +545,115 @@ Examples of such paths might be ~/projects, ~/work, etc."
   :type 'list
   :package-version '(projectile . "1.0.0"))
 
+(defcustom projectile-git-command "git ls-files -zco --exclude-standard"
+  "Command used by projectile to get the files in a git project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $path' | tr '\\n' '\\0'"
+  "Command used by projectile to list submodules of a given git repository.
+Set to nil to disable listing submodules contents."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-git-ignored-command "git ls-files -zcoi --exclude-standard"
+  "Command used by projectile to get the ignored files in a git project."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "0.14.0"))
+
+(defcustom projectile-hg-command "hg locate -f -0 -I ."
+  "Command used by projectile to get the files in a hg project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-fossil-command (concat "fossil ls | "
+                                             (when (string-equal system-type
+                                                                 "windows-nt")
+                                               "dos2unix | ")
+                                             "tr '\\n' '\\0'")
+  "Command used by projectile to get the files in a fossil project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-bzr-command "bzr ls -R --versioned -0"
+  "Command used by projectile to get the files in a bazaar project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-darcs-command "darcs show files -0 . "
+  "Command used by projectile to get the files in a darcs project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
+  "Command used by projectile to get the files in a svn project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-generic-command "find . -type f -print0"
+  "Command used by projectile to get the files in a generic project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-vcs-dirty-state '("edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")
+  "List of states checked by `projectile-browse-dirty-projects'.
+Possible checked states are:
+\"edited\", \"unregistered\", \"needs-update\", \"needs-merge\",
+\"unlocked-changes\" and \"conflict\",
+as defined in `vc.el'."
+  :group 'projectile
+  :type '(repeat (string))
+  :package-version '(projectile . "1.0.0"))
+
+(defcustom projectile-other-file-alist
+  '( ;; handle C/C++ extensions
+    ("cpp" . ("h" "hpp" "ipp"))
+    ("ipp" . ("h" "hpp" "cpp"))
+    ("hpp" . ("h" "ipp" "cpp" "cc"))
+    ("cxx" . ("h" "hxx" "ixx"))
+    ("ixx" . ("h" "hxx" "cxx"))
+    ("hxx" . ("h" "ixx" "cxx"))
+    ("c"   . ("h"))
+    ("m"   . ("h"))
+    ("mm"  . ("h"))
+    ("h"   . ("c" "cc" "cpp" "ipp" "hpp" "cxx" "ixx" "hxx" "m" "mm"))
+    ("cc"  . ("h" "hh" "hpp"))
+    ("hh"  . ("cc"))
+
+    ;; vertex shader and fragment shader extensions in glsl
+    ("vert" . ("frag"))
+    ("frag" . ("vert"))
+
+    ;; handle files with no extension
+    (nil    . ("lock" "gpg"))
+    ("lock" . (""))
+    ("gpg"  . (""))
+    )
+  "Alist of extensions for switching to file with the same name,
+  using other extensions based on the extension of current
+  file."
+  :type 'alist)
+
+(defcustom projectile-create-missing-test-files nil
+  "During toggling, if non-nil enables creating test files if not found.
+
+When not-nil, every call to projectile-find-implementation-or-test-*
+creates test files if not found on the file system.  Defaults to nil.
+It assumes the test/ folder is at the same level as src/."
+  :group 'projectile
+  :type 'boolean)
+
+(defcustom projectile-after-switch-project-hook nil
+  "Hooks run right after project is switched."
+  :group 'projectile
+  :type 'hook)
+
+(defcustom projectile-before-switch-project-hook nil
+  "Hooks run when right before project is switched."
+  :group 'projectile
+  :type 'hook)
+
 
 ;;; Version information
 
@@ -996,67 +1105,6 @@ Files are returned as relative paths to the project root."
     (mapcar (lambda (file)
               (file-relative-name (expand-file-name file directory) root))
             (projectile-get-repo-files))))
-
-(defcustom projectile-git-command "git ls-files -zco --exclude-standard"
-  "Command used by projectile to get the files in a git project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $path' | tr '\\n' '\\0'"
-  "Command used by projectile to list submodules of a given git repository.
-Set to nil to disable listing submodules contents."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-git-ignored-command "git ls-files -zcoi --exclude-standard"
-  "Command used by projectile to get the ignored files in a git project."
-  :group 'projectile
-  :type 'string
-  :package-version '(projectile . "0.14.0"))
-
-(defcustom projectile-hg-command "hg locate -f -0 -I ."
-  "Command used by projectile to get the files in a hg project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-fossil-command (concat "fossil ls | "
-                                             (when (string-equal system-type
-                                                                 "windows-nt")
-                                               "dos2unix | ")
-                                             "tr '\\n' '\\0'")
-  "Command used by projectile to get the files in a fossil project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-bzr-command "bzr ls -R --versioned -0"
-  "Command used by projectile to get the files in a bazaar project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-darcs-command "darcs show files -0 . "
-  "Command used by projectile to get the files in a darcs project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
-  "Command used by projectile to get the files in a svn project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-generic-command "find . -type f -print0"
-  "Command used by projectile to get the files in a generic project."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-vcs-dirty-state '("edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")
-  "List of states checked by `projectile-browse-dirty-projects'.
-Possible checked states are:
-\"edited\", \"unregistered\", \"needs-update\", \"needs-merge\",
-\"unlocked-changes\" and \"conflict\",
-as defined in `vc.el'."
-  :group 'projectile
-  :type '(repeat (string))
-  :package-version '(projectile . "1.0.0"))
 
 (defun projectile-get-ext-command ()
   "Determine which external command to invoke based on the project's VCS."
@@ -1787,34 +1835,6 @@ https://github.com/abo-abo/swiper")))
 
 
 ;;; Interactive commands
-(defcustom projectile-other-file-alist
-  '( ;; handle C/C++ extensions
-    ("cpp" . ("h" "hpp" "ipp"))
-    ("ipp" . ("h" "hpp" "cpp"))
-    ("hpp" . ("h" "ipp" "cpp" "cc"))
-    ("cxx" . ("h" "hxx" "ixx"))
-    ("ixx" . ("h" "hxx" "cxx"))
-    ("hxx" . ("h" "ixx" "cxx"))
-    ("c"   . ("h"))
-    ("m"   . ("h"))
-    ("mm"  . ("h"))
-    ("h"   . ("c" "cc" "cpp" "ipp" "hpp" "cxx" "ixx" "hxx" "m" "mm"))
-    ("cc"  . ("h" "hh" "hpp"))
-    ("hh"  . ("cc"))
-
-    ;; vertex shader and fragment shader extensions in glsl
-    ("vert" . ("frag"))
-    ("frag" . ("vert"))
-
-    ;; handle files with no extension
-    (nil    . ("lock" "gpg"))
-    ("lock" . (""))
-    ("gpg"  . (""))
-    )
-  "Alist of extensions for switching to file with the same name,
-  using other extensions based on the extension of current
-  file."
-  :type 'alist)
 
 (defun projectile--find-other-file (&optional flex-matching ff-variant)
   "Switch between files with the same name but different extensions.
@@ -2542,15 +2562,6 @@ PROJECT-ROOT is the targeted directory.  If nil, use
       (progn (unless (file-exists-p test-dir)
                (make-directory test-dir :create-parents))
              test-path))))
-
-(defcustom projectile-create-missing-test-files nil
-  "During toggling, if non-nil enables creating test files if not found.
-
-When not-nil, every call to projectile-find-implementation-or-test-*
-creates test files if not found on the file system.  Defaults to nil.
-It assumes the test/ folder is at the same level as src/."
-  :group 'projectile
-  :type 'boolean)
 
 (defun projectile-find-implementation-or-test (file-name)
   "Given a FILE-NAME return the matching implementation or test filename.
@@ -3611,16 +3622,6 @@ This command will first prompt for the directory the file is in."
   (let ((projectile-require-project-root nil))
     (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)))))
 
-(defcustom projectile-after-switch-project-hook nil
-  "Hooks run right after project is switched."
-  :group 'projectile
-  :type 'hook)
-
-(defcustom projectile-before-switch-project-hook nil
-  "Hooks run when right before project is switched."
-  :group 'projectile
-  :type 'hook)
-
 (defun projectile-keep-project-p (project)
   "Determine whether we should cleanup (remove) PROJECT or not.
 
@@ -3765,6 +3766,7 @@ Let user choose another project when PREFIX is supplied."
 
     (projectile-ibuffer-by-project project-root)))
 
+
 ;;;; projectile-commander
 
 (defconst projectile-commander-help-buffer "*Commander Help*")
@@ -3920,7 +3922,26 @@ is chosen."
           (projectile-skel-dir-locals)
         (save-buffer)))))
 
-;;; Minor mode
+
+;;; Projectile Minor mode
+(defcustom projectile-mode-line
+  '(:eval (format " Projectile[%s]"
+                  (projectile-project-name)))
+  "Mode line lighter for Projectile.
+
+The value of this variable is a mode line template as in
+`mode-line-format'.  See Info Node `(elisp)Mode Line Format' for
+details about mode line templates.
+
+Customize this variable to change how Projectile displays its
+status in the mode line.  The default value displays the project
+name and type.  Set this variable to nil to disable the mode line
+entirely."
+  :group 'projectile
+  :type 'sexp
+  :risky t
+  :package-version '(projectile . "0.12.0"))
+
 (defvar projectile-command-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "4 a") #'projectile-find-other-file-other-window)
@@ -4032,24 +4053,6 @@ is chosen."
  "Search Files (Grep)...")
 
 (easy-menu-change '("Tools") "--" nil "Search Files (Grep)...")
-
-(defcustom projectile-mode-line
-  '(:eval (format " Projectile[%s]"
-                  (projectile-project-name)))
-  "Mode line lighter for Projectile.
-
-The value of this variable is a mode line template as in
-`mode-line-format'.  See Info Node `(elisp)Mode Line Format' for
-details about mode line templates.
-
-Customize this variable to change how Projectile displays its
-status in the mode line.  The default value displays the project
-name and type.  Set this variable to nil to disable the mode line
-entirely."
-  :group 'projectile
-  :type 'sexp
-  :risky t
-  :package-version '(projectile . "0.12.0"))
 
 (defun projectile-find-file-hook-function ()
   "Called by `find-file-hook' when `projectile-mode' is on.
