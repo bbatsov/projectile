@@ -3769,7 +3769,7 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
 
 ;;;; projectile-commander
 
-(defconst projectile-commander-help-buffer "*Commander Help*")
+(defconst projectile-commander-help-buffer "*Projectile Commander Help*")
 
 (defvar projectile-commander-methods nil
   "List of file-selection methods for the `projectile-commander' command.
@@ -3786,7 +3786,7 @@ available actions.
 See `def-projectile-commander-method' for defining new methods."
   (interactive)
   (let* ((choices (mapcar #'car projectile-commander-methods))
-         (prompt (concat "Commander [" choices "]: "))
+         (prompt (concat "Select Projectile command [" choices "]: "))
          (ch (read-char-choice prompt choices))
          (fn (nth 2 (assq ch projectile-commander-methods))))
     (funcall fn)))
