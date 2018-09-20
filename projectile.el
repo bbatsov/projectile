@@ -2116,6 +2116,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
   (projectile--find-file invalidate-cache #'find-file-other-frame))
 
+
+;;;; Sorting project files
 (defun projectile-sort-files (files)
   "Sort FILES according to `projectile-sort-order'."
   (cl-case projectile-sort-order
@@ -2157,6 +2159,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
              (file2-atime (nth 4 (file-attributes file2))))
          (not (time-less-p file1-atime file2-atime)))))))
 
+
+;;;; Find directory in project functionality
 (defun projectile--find-dir (invalidate-cache &optional dired-variant)
   "Jump to a project's directory using completion.
 
