@@ -429,19 +429,3 @@ additional functions to the hook using `add-hook`:
 ```el
 (add-hook 'projectile-idle-timer-hook #'my-projectile-idle-timer-function)
 ```
-
-## Mode line indicator
-
-By default the minor mode indicator of Projectile appears in the form
-" Projectile[ProjectName]". This is configurable via the custom variable
-`projectile-mode-line`, which expects a sexp like
-`'(:eval (format " Proj[%s]" (projectile-project-name)))`.
-
-The project name will not appear by default when editing remote files
-(via TRAMP), as recalculating the project name (this is done on every
-keystroke) is a fairly slow operation there.
-
-!!! Warning
-
-    Be extremely careful about what you put here, as all the code in the lighter
-    gets evaluated on every keystroke!
