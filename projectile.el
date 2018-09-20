@@ -1013,10 +1013,12 @@ A thin wrapper around `file-truename' that handles nil."
   (when file-name
     (file-truename file-name)))
 
-(defun projectile-project-p ()
-  "Check if we're in a project."
+(defun projectile-project-p (&optional dir)
+  "Check if DIR is a project.
+Defaults to the current direction if not provided
+explicitly."
   (condition-case nil
-      (projectile-project-root)
+      (projectile-project-root (or dir default-directory))
     (error nil)))
 
 (defun projectile-default-project-name (project-root)
