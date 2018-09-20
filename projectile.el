@@ -3736,6 +3736,8 @@ overwriting each other's changes."
     (setq projectile-known-projects result)
     (projectile-save-known-projects)))
 
+
+;;; IBuffer integration
 (define-ibuffer-filter projectile-files
     "Show Ibuffer with all buffers in the current project."
   (:reader (read-directory-name "Project root: " (ignore-errors (projectile-project-root)))
