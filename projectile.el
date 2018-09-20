@@ -1933,11 +1933,11 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                          (equal dirname candidate-dirname)))))))
     candidates))
 
-(defun projectile-select-files (project-files &optional arg)
+(defun projectile-select-files (project-files &optional invalidate-cache)
   "Select a list of files based on filename at point.
 
-With a prefix ARG invalidates the cache first."
-  (projectile-maybe-invalidate-cache arg)
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
+  (projectile-maybe-invalidate-cache invalidate-cache)
   (let* ((file (if (region-active-p)
                    (buffer-substring (region-beginning) (region-end))
                  (or (thing-at-point 'filename) "")))
@@ -1976,10 +1976,10 @@ Subroutine for `projectile-find-file-dwim' and
     (run-hooks 'projectile-find-file-hook)))
 
 ;;;###autoload
-(defun projectile-find-file-dwim (&optional arg)
+(defun projectile-find-file-dwim (&optional invalidate-cache)
   "Jump to a project's files using completion based on context.
 
-With a prefix ARG invalidates the cache first.
+With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 
 If point is on a filename, Projectile first tries to search for that
 file in project:
@@ -2000,13 +2000,13 @@ the content of that directory.  If it is executed on a partial filename like
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
-  (projectile--find-file-dwim arg))
+  (projectile--find-file-dwim invalidate-cache))
 
 ;;;###autoload
-(defun projectile-find-file-dwim-other-window (&optional arg)
+(defun projectile-find-file-dwim-other-window (&optional invalidate-cache)
   "Jump to a project's files using completion based on context in other window.
 
-With a prefix ARG invalidates the cache first.
+With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 
 If point is on a filename, Projectile first tries to search for that
 file in project:
@@ -2028,13 +2028,13 @@ is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
-  (projectile--find-file-dwim arg #'find-file-other-window))
+  (projectile--find-file-dwim invalidate-cache #'find-file-other-window))
 
 ;;;###autoload
-(defun projectile-find-file-dwim-other-frame (&optional arg)
+(defun projectile-find-file-dwim-other-frame (&optional invalidate-cache)
   "Jump to a project's files using completion based on context in other frame.
 
-With a prefix ARG invalidates the cache first.
+With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 
 If point is on a filename, Projectile first tries to search for that
 file in project:
@@ -2056,7 +2056,7 @@ is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
-  (projectile--find-file-dwim arg #'find-file-other-frame))
+  (projectile--find-file-dwim invalidate-cache #'find-file-other-frame))
 
 (defun projectile--find-file (invalidate-cache &optional ff-variant)
   "Jump to a project's file using completion.
@@ -2073,27 +2073,27 @@ would be `find-file-other-window' or `find-file-other-frame'"
       (run-hooks 'projectile-find-file-hook))))
 
 ;;;###autoload
-(defun projectile-find-file (&optional arg)
+(defun projectile-find-file (&optional invalidate-cache)
   "Jump to a project's file using completion.
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile--find-file arg))
+  (projectile--find-file invalidate-cache))
 
 ;;;###autoload
-(defun projectile-find-file-other-window (&optional arg)
+(defun projectile-find-file-other-window (&optional invalidate-cache)
   "Jump to a project's file using completion and show it in another window.
 
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile--find-file arg #'find-file-other-window))
+  (projectile--find-file invalidate-cache #'find-file-other-window))
 
 ;;;###autoload
-(defun projectile-find-file-other-frame (&optional arg)
+(defun projectile-find-file-other-frame (&optional invalidate-cache)
   "Jump to a project's file using completion and show it in another frame.
 
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile--find-file arg #'find-file-other-frame))
+  (projectile--find-file invalidate-cache #'find-file-other-frame))
 
 (defun projectile-sort-files (files)
   "Sort FILES according to `projectile-sort-order'."
@@ -2149,28 +2149,28 @@ defun, use that instead of `dired'.  A typical example of such a defun would be
     (run-hooks 'projectile-find-dir-hook)))
 
 ;;;###autoload
-(defun projectile-find-dir (&optional arg)
+(defun projectile-find-dir (&optional invalidate-cache)
   "Jump to a project's directory using completion.
 
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile--find-dir arg))
+  (projectile--find-dir invalidate-cache))
 
 ;;;###autoload
-(defun projectile-find-dir-other-window (&optional arg)
+(defun projectile-find-dir-other-window (&optional invalidate-cache)
   "Jump to a project's directory in other window using completion.
 
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile--find-dir arg #'dired-other-window))
+  (projectile--find-dir invalidate-cache #'dired-other-window))
 
 ;;;###autoload
-(defun projectile-find-dir-other-frame (&optional arg)
+(defun projectile-find-dir-other-frame (&optional invalidate-cache)
   "Jump to a project's directory in other window using completion.
 
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile--find-dir arg #'dired-other-frame))
+  (projectile--find-dir invalidate-cache #'dired-other-frame))
 
 (defun projectile-complete-dir ()
   (projectile-completing-read
@@ -2180,12 +2180,12 @@ With a prefix ARG invalidates the cache first."
      (projectile-current-project-dirs))))
 
 ;;;###autoload
-(defun projectile-find-test-file (&optional arg)
+(defun projectile-find-test-file (&optional invalidate-cache)
   "Jump to a project's test file using completion.
 
-With a prefix ARG invalidates the cache first."
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
-  (projectile-maybe-invalidate-cache arg)
+  (projectile-maybe-invalidate-cache invalidate-cache)
   (let ((file (projectile-completing-read "Find test file: "
                                           (projectile-current-project-test-files))))
     (find-file (expand-file-name file (projectile-project-root)))))
