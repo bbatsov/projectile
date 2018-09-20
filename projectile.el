@@ -106,28 +106,29 @@ using the native indexing method."
   :type 'boolean)
 
 (defcustom projectile-file-exists-local-cache-expire nil
-  "Number of seconds before file existence cache expires for a
-file on a local file system.
+  "Number of seconds before the local file existence cache expires.
+Local refers to a file on a local file system.
 
- A value of nil disables this cache."
-
+A value of nil disables this cache.
+See `projectile-file-exists-p' for details."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
                  (integer :tag "Seconds")))
 
 (defcustom projectile-file-exists-remote-cache-expire (* 5 60)
-  "Number of seconds before file existence cache expires for a
-file on a remote file system such as tramp.
+  "Number of seconds before the remote file existence cache expires.
+Remote refers to a file on a remote file system such as tramp.
 
- A value of nil disables this cache."
+A value of nil disables this cache.
+See `projectile-file-exists-p' for details."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
                  (integer :tag "Seconds")))
 
 (defcustom projectile-files-cache-expire nil
-  "Number of seconds before files list cache expires.
+  "Number of seconds before project files list cache expires.
 
- A value of nil means the cache never expires."
+A value of nil means the cache never expires."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
                  (integer :tag "Seconds")))
