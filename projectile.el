@@ -3877,22 +3877,18 @@ is chosen."
 
 ;;; Projectile Minor mode
 (defcustom projectile-mode-line
-  '(:eval (format " Projectile[%s]"
-                  (projectile-project-name)))
-  "Mode line lighter for Projectile.
-
-The value of this variable is a mode line template as in
-`mode-line-format'.  See Info Node `(elisp)Mode Line Format' for
-details about mode line templates.
-
-Customize this variable to change how Projectile displays its
-status in the mode line.  The default value displays the project
-name.  Set this variable to nil to disable the mode line
-entirely."
+  "Projectile"
+  "Mode line lighter for Projectile."
   :group 'projectile
-  :type 'sexp
-  :risky t
+  :type 'string
   :package-version '(projectile . "0.12.0"))
+
+(defun projectile-update-mode-line ()
+  "Report project in mode-line."
+  (let* ((project-name (projectile-project-name))
+         (message (format " %s[%s]" projectile-mode-line project-name)))
+    (setq projectile-mode-line message))
+  (force-mode-line-update))
 
 (defvar projectile-command-map
   (let ((map (make-sparse-keymap)))
@@ -4055,11 +4051,13 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
+    (add-hook 'find-file-hook 'projectile-update-mode-line t t)
     (ad-activate 'compilation-find-file)
     (ad-activate 'delete-file))
    (t
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
+    (remove-hook 'find-file-hook #'projectile-update-mode-line)
     (ad-deactivate 'compilation-find-file)
     (ad-deactivate 'delete-file))))
 
