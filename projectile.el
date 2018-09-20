@@ -623,14 +623,14 @@ A wrapper around `file-exists-p' with additional caching support."
         (equal value 'found)))))
 
 ;;;###autoload
-(defun projectile-invalidate-cache (arg)
+(defun projectile-invalidate-cache (prompt)
   "Remove the current project's files from `projectile-projects-cache'.
 
-With a prefix argument ARG prompts for the name of the project whose cache
+With a prefix argument PROMPT prompts for the name of the project whose cache
 to invalidate."
   (interactive "P")
   (let ((project-root
-         (if arg
+         (if prompt
              (completing-read "Remove cache for: "
                               (projectile-hash-keys projectile-projects-cache))
            (projectile-project-root))))
