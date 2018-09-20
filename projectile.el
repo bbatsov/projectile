@@ -3709,9 +3709,6 @@ Also set `projectile-known-projects'."
         (and (sequencep projectile-known-projects)
              (copy-sequence projectile-known-projects))))
 
-;; load the known projects
-(projectile-load-known-projects)
-
 (defun projectile-save-known-projects ()
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
   (projectile-serialize projectile-known-projects
@@ -4096,6 +4093,8 @@ Otherwise behave as if called interactively.
     (unless projectile-projects-cache-time
       (setq projectile-projects-cache-time
             (make-hash-table :test 'equal)))
+    ;; load the known projects
+    (projectile-load-known-projects)
     ;; update the list of known projects
     (projectile--cleanup-known-projects)
     (projectile-discover-projects-in-search-path)
