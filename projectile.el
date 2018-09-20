@@ -364,8 +364,9 @@ it for functions working with buffers."
 (defcustom projectile-globally-ignored-buffers nil
   "A list of buffer-names ignored by projectile.
 
+You can use either exact buffer names or regular expressions.
 If a buffer is in the list projectile will ignore it for
-functions working with buffers. Regular expressions can be used."
+functions working with buffers.."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.12.0"))
