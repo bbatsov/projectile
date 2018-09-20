@@ -3887,7 +3887,7 @@ details about mode line templates.
 
 Customize this variable to change how Projectile displays its
 status in the mode line.  The default value displays the project
-name and type.  Set this variable to nil to disable the mode line
+name.  Set this variable to nil to disable the mode line
 entirely."
   :group 'projectile
   :type 'sexp
