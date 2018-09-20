@@ -28,8 +28,7 @@
           ,@body))
 
 (defun projectile-test-should-root-in (root directory)
-  (let ((projectile-project-root-cache (make-hash-table :test 'equal))
-        (projectile-cached-project-root nil))
+  (let ((projectile-project-root-cache (make-hash-table :test 'equal)))
     (should (equal (file-truename (file-name-as-directory root))
                    (let ((default-directory
                            (expand-file-name

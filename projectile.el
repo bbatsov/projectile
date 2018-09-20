@@ -853,8 +853,7 @@ at the top level of DIRECTORY."
      (lambda (dir)
        (when (and (file-directory-p dir)
                   (not (member (file-name-nondirectory dir) '(".." "."))))
-         (let ((default-directory dir)
-               (projectile-cached-project-root dir))
+         (let ((default-directory dir))
            (when (projectile-project-p)
              (projectile-add-known-project (projectile-project-root))))))
      subdirs)))
@@ -944,23 +943,6 @@ topmost sequence of matched directories.  Nil otherwise."
                  (not (projectile-file-exists-p (expand-file-name f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
 
-(defvar-local projectile-cached-project-root nil
-  "Cached root of the current Projectile project. If non-nil, it
-is used as the return value of `projectile-project-root' for
-performance (unless the variable `projectile-project-root' is
-also set). If nil, it is recalculated the next time
-`projectile-project-root' is called.
-
-This variable is reset automatically when Projectile detects that
-the `buffer-file-name' has changed. It can also be reset manually
-by calling `projectile-reset-cached-project-root'.")
-
-(defvar-local projectile-cached-buffer-file-name nil
-  "The last known value of `buffer-file-name' for the current
-buffer. This is used to detect a change in `buffer-file-name',
-which triggers a reset of `projectile-cached-project-root' and
-`projectile-cached-project-name'.")
-
 (defun projectile-project-root (&optional dir)
   "Retrieves the root directory of a project if available.
 If DIR is not supplied its set to the current directory by default.
@@ -974,35 +956,29 @@ will return DIR or the current directory, otherwise it'd raise an error."
   ;; instead
   (let ((dir (or dir default-directory)))
     (or (cl-subst nil 'none
-                  (or (and projectile-cached-buffer-file-name
-                           (equal projectile-cached-buffer-file-name (or buffer-file-name 'none))
-                           projectile-cached-project-root)
-                      (progn
-                        (setq projectile-cached-buffer-file-name (or buffer-file-name 'none))
-                        (setq projectile-cached-project-root
-                              ;; The `is-local' and `is-connected' variables are
-                              ;; used to fix the behavior where Emacs hangs
-                              ;; because of Projectile when you open a file over
-                              ;; TRAMP. It basically prevents Projectile from
-                              ;; trying to find information about files for which
-                              ;; it's not possible to get that information right
-                              ;; now.
-                              (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
-                                        (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
-                                    (when (or is-local is-connected)
-                                      (cl-some
-                                       (lambda (func)
-                                         (let* ((cache-key (format "%s-%s" func dir))
-                                                (cache-value (gethash cache-key projectile-project-root-cache)))
-                                           (if (and cache-value (file-exists-p cache-value))
-                                               cache-value
-                                             (let ((value (funcall func (file-truename dir))))
-                                               (puthash cache-key value projectile-project-root-cache)
-                                               value))))
-                                       projectile-project-root-files-functions)))
-                                  ;; set cached to none so is non-nil so we don't try
-                                  ;; and look it up again
-                                  'none)))))
+                  ;; The `is-local' and `is-connected' variables are
+                  ;; used to fix the behavior where Emacs hangs
+                  ;; because of Projectile when you open a file over
+                  ;; TRAMP. It basically prevents Projectile from
+                  ;; trying to find information about files for which
+                  ;; it's not possible to get that information right
+                  ;; now.
+                  (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
+                            (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
+                        (when (or is-local is-connected)
+                          (cl-some
+                           (lambda (func)
+                             (let* ((cache-key (format "%s-%s" func dir))
+                                    (cache-value (gethash cache-key projectile-project-root-cache)))
+                               (if (and cache-value (file-exists-p cache-value))
+                                   cache-value
+                                 (let ((value (funcall func (file-truename dir))))
+                                   (puthash cache-key value projectile-project-root-cache)
+                                   value))))
+                           projectile-project-root-files-functions)))
+                      ;; set cached to none so is non-nil so we don't try
+                      ;; and look it up again
+                      'none))
         (if projectile-require-project-root
             (error "You're not in a project")
           dir))))
@@ -1025,49 +1001,16 @@ explicitly."
   "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
   (file-name-nondirectory (directory-file-name project-root)))
 
-(defvar-local projectile-cached-project-name nil
-  "Cached name of the current Projectile project. If non-nil, it
-is used as the return value of `projectile-project-name' for
-performance (unless the variable `projectile-project-name' is
-also set). If nil, it is recalculated the next time
-`projectile-project-name' is called.
-
-This variable is reset automatically when Projectile detects that
-the `buffer-file-name' has changed. It can also be reset manually
-by calling `projectile-reset-cached-project-name'.")
-
-(defun projectile-reset-cached-project-root ()
-  "Reset the value of `projectile-cached-project-root' to nil.
-
-This means that it is automatically recalculated the next time
-function `projectile-project-root' is called."
-  (interactive)
-  (setq projectile-cached-project-root nil))
-
-(defun projectile-reset-cached-project-name ()
-  "Reset the value of `projectile-cached-project-name' to nil.
-
-This means that it is automatically recalculated the next time
-function `projectile-project-name' is called."
-  (interactive)
-  (setq projectile-cached-project-name nil))
-
 (defun projectile-project-name ()
   "Return project name."
   (or projectile-project-name
-      (and projectile-cached-buffer-file-name
-           (equal projectile-cached-buffer-file-name buffer-file-name)
-           projectile-cached-project-name)
-      (progn
-        (setq projectile-cached-buffer-file-name buffer-file-name)
-        (setq projectile-cached-project-name
-              (let ((project-root
-                     (condition-case nil
-                         (projectile-project-root)
-                       (error nil))))
-                (if project-root
-                    (funcall projectile-project-name-function project-root)
-                  "-"))))))
+      (let ((project-root
+             (condition-case nil
+                 (projectile-project-root)
+               (error nil))))
+        (if project-root
+            (funcall projectile-project-name-function project-root)
+          "-"))))
 
 
 ;;; Project indexing
@@ -2923,8 +2866,7 @@ SEARCH-TERM is a regexp."
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
   (declare (debug t) (indent 1))
-  `(let ((default-directory ,dir)
-         (projectile-cached-project-root nil))
+  `(let ((default-directory ,dir))
      ,@body))
 
 ;;;###autoload
@@ -3592,12 +3534,8 @@ With a prefix ARG invokes `projectile-commander' instead of
       ;; the current project, in the minibuffer. This is a simple hack
       ;; to tell the `projectile-project-name' function to ignore the
       ;; current buffer and the caching mechanism, and just return the
-      ;; value of the `projectile-project-name' variable.  We also
-      ;; need to ignore the cached project-root value otherwise we end
-      ;; up still showing files from the current project rather than
-      ;; the new project
-      (let ((projectile-cached-project-root nil)
-            (projectile-project-name (funcall projectile-project-name-function
+      ;; value of the `projectile-project-name' variable.
+      (let ((projectile-project-name (funcall projectile-project-name-function
                                               project-to-switch)))
         (funcall switch-project-action)))
     (run-hooks 'projectile-after-switch-project-hook)))
@@ -3624,8 +3562,7 @@ This command will first prompt for the directory the file is in."
   (cl-mapcan
    (lambda (project)
      (when (file-exists-p project)
-       (let ((default-directory project)
-             (projectile-cached-project-root nil))
+       (let ((default-directory project))
          (mapcar (lambda (file)
                    (expand-file-name file project))
                  (projectile-current-project-files)))))
