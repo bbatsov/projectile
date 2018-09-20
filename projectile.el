@@ -3751,12 +3751,12 @@ overwriting each other's changes."
              (list (cons 'projectile-files project-root)))))
 
 ;;;###autoload
-(defun projectile-ibuffer (prefix)
+(defun projectile-ibuffer (prompt-for-project)
   "Open an IBuffer window showing all buffers in the current project.
 
-Let user choose another project when PREFIX is supplied."
-  (interactive "p")
-  (let ((project-root (if (= prefix 4)
+Let user choose another project when PROMPT-FOR-PROJECT is supplied."
+  (interactive "P")
+  (let ((project-root (if prompt-for-project
                           (projectile-completing-read
                            "Project name: "
                            (projectile-relevant-known-projects))
@@ -3881,8 +3881,6 @@ is chosen."
   (def-projectile-commander-method ?e
     "Find recently visited file in project."
     (projectile-recentf)))
-
-(projectile-commander-bindings)
 
 
 ;;; Editing a project's .dir-locals
@@ -4085,6 +4083,8 @@ Otherwise behave as if called interactively.
   :global t
   (cond
    (projectile-mode
+    ;; setup the commander bindings
+    (projectile-commander-bindings)
     ;; initialize the projects cache if needed
     (unless projectile-projects-cache
       (setq projectile-projects-cache
