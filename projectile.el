@@ -3257,8 +3257,9 @@ Should be set via .dir-locals.el.")
 (defun projectile-default-generic-command (project-type command-type)
   "Generic retrieval of COMMAND-TYPEs default cmd-value for PROJECT-TYPE.
 
-If found, checks if value is symbol or string. In case of symbol resolves
-to function `funcall's. Return value of function MUST be string to be executed as command."
+If found, checks if value is symbol or string.  In case of symbol
+resolves to function `funcall's.  Return value of function MUST
+be string to be executed as command."
   (let ((command (plist-get (gethash project-type projectile-project-types) command-type)))
     (cond
      ((stringp command) command)
