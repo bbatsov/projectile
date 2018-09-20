@@ -537,31 +537,31 @@
   (require 'vc-git)
   (projectile-test-with-sandbox
     (projectile-test-with-files
-	("project/c/src/"
-	 "project/c/include/"
-	 "project/go/src/package1/"
-	 "project/.projectile")
+     ("project/c/src/"
+      "project/c/include/"
+      "project/go/src/package1/"
+      "project/.projectile")
       (cd "project")
       (with-temp-file "go/src/package1/x.go" (insert "foo(bar)"))
       (with-temp-file "c/include/x.h" (insert "typedef struct bar_t" ))
       (with-temp-file "c/src/x.c" (insert "struct bar_t *x"))
       (dolist (test '(("go/src/package1/x.go" "foo" "*.go")
-		      ("c/src/x.c" "bar_t" "*.[ch]")
-		      ("c/include/x.h" "bar_t" "*.[ch]")))
-	(let ((projectile-use-git-grep t)
-	      (current-prefix-arg '-)
-	      (sym (cadr test)))
-	  (noflet ((projectile-project-vcs () 'git)
-               (read-string (prompt initial-input history default-value &rest args)
-                            (if (should (equal sym default-value)) default-value))
-		   (vc-git-grep (regexp files dir)
-				(progn (should (equal sym regexp))
-				       (should (equal (car (last test)) files))
-				       (should (equal (projectile-project-root) dir)))))
+                      ("c/src/x.c" "bar_t" "*.[ch]")
+                      ("c/include/x.h" "bar_t" "*.[ch]")))
+        (let ((projectile-use-git-grep t)
+              (current-prefix-arg '-)
+              (sym (cadr test)))
+          (noflet ((projectile-project-vcs () 'git)
+                   (read-string (prompt initial-input history default-value &rest args)
+                                (if (should (equal sym default-value)) default-value))
+                   (vc-git-grep (regexp files dir)
+                                (progn (should (equal sym regexp))
+                                       (should (equal (car (last test)) files))
+                                       (should (equal (projectile-project-root) dir)))))
             (with-current-buffer (find-file-noselect (car test) t)
-	      (save-excursion
-		(re-search-forward sym)
-		(projectile-grep nil ?-)))))))))
+              (save-excursion
+                (re-search-forward sym)
+                (projectile-grep nil ?-)))))))))
 
 (ert-deftest projectile-switch-project-no-projects ()
   (let ((projectile-known-projects nil))
@@ -661,8 +661,8 @@
   (defun helper (project-root rel-dir)
     (noflet ((projectile-project-root () project-root)
              (projectile-project-type () 'generic))
-            (let ((projectile-project-compilation-dir rel-dir))
-              (projectile-compilation-dir))))
+      (let ((projectile-project-compilation-dir rel-dir))
+        (projectile-compilation-dir))))
 
   (should (equal "/root/build/" (helper "/root/" "build")))
   (should (equal "/root/build/" (helper "/root/" "build/")))
@@ -675,10 +675,10 @@
   (defun helper (project-root &optional rel-dir)
     (noflet ((projectile-project-root () project-root)
              (projectile-project-type () 'default-dir-project))
-            (if (null rel-dir)
-                (projectile-compilation-dir)
-              (let ((projectile-project-compilation-dir rel-dir))
-                (projectile-compilation-dir)))))
+      (if (null rel-dir)
+          (projectile-compilation-dir)
+        (let ((projectile-project-compilation-dir rel-dir))
+          (projectile-compilation-dir)))))
 
   (should (equal "/root/build/"       (helper "/root/")))
   (should (equal "/root/buildings/"   (helper "/root/" "buildings"))))
@@ -730,8 +730,8 @@
     (let ((projectile-indexing-method 'native))
       (noflet ((projectile-project-root
                 () (file-truename (expand-file-name "project/"))))
-              (should (equal 'rails-rspec
-                             (projectile-detect-project-type))))))))
+        (should (equal 'rails-rspec
+                       (projectile-detect-project-type))))))))
 
 (ert-deftest projectile-test-dirname-matching-count ()
   (should (equal 2
@@ -746,83 +746,83 @@
 
 (ert-deftest projectile-test-find-matching-test ()
   (projectile-test-with-sandbox
-    (projectile-test-with-files
-        ("project/app/models/weed/"
-         "project/app/models/food/"
-         "project/spec/models/weed/"
-         "project/spec/models/food/"
-         "project/app/models/weed/sea.rb"
-         "project/app/models/food/sea.rb"
-         "project/spec/models/weed/sea_spec.rb"
-         "project/spec/models/food/sea_spec.rb")
-      (let ((projectile-indexing-method 'native))
-        (noflet ((projectile-project-type () 'rails-rspec)
-                 (projectile-project-root
-                  () (file-truename (expand-file-name "project/"))))
-          (should (equal "spec/models/food/sea_spec.rb"
-                         (projectile-find-matching-test
-                          "app/models/food/sea.rb"))))))))
+   (projectile-test-with-files
+    ("project/app/models/weed/"
+     "project/app/models/food/"
+     "project/spec/models/weed/"
+     "project/spec/models/food/"
+     "project/app/models/weed/sea.rb"
+     "project/app/models/food/sea.rb"
+     "project/spec/models/weed/sea_spec.rb"
+     "project/spec/models/food/sea_spec.rb")
+    (let ((projectile-indexing-method 'native))
+      (noflet ((projectile-project-type () 'rails-rspec)
+               (projectile-project-root
+                () (file-truename (expand-file-name "project/"))))
+        (should (equal "spec/models/food/sea_spec.rb"
+                       (projectile-find-matching-test
+                        "app/models/food/sea.rb"))))))))
 
 (ert-deftest projectile-test-find-matching-file ()
   (projectile-test-with-sandbox
-    (projectile-test-with-files
-        ("project/app/models/weed/"
-         "project/app/models/food/"
-         "project/spec/models/weed/"
-         "project/spec/models/food/"
-         "project/app/models/weed/sea.rb"
-         "project/app/models/food/sea.rb"
-         "project/spec/models/weed/sea_spec.rb"
-         "project/spec/models/food/sea_spec.rb")
-      (let ((projectile-indexing-method 'native))
-        (noflet ((projectile-project-type () 'rails-rspec)
-                 (projectile-project-root () (file-truename (expand-file-name "project/"))))
-          (should (equal "app/models/food/sea.rb"
-                         (projectile-find-matching-file
-                          "spec/models/food/sea_spec.rb"))))))))
+   (projectile-test-with-files
+    ("project/app/models/weed/"
+     "project/app/models/food/"
+     "project/spec/models/weed/"
+     "project/spec/models/food/"
+     "project/app/models/weed/sea.rb"
+     "project/app/models/food/sea.rb"
+     "project/spec/models/weed/sea_spec.rb"
+     "project/spec/models/food/sea_spec.rb")
+    (let ((projectile-indexing-method 'native))
+      (noflet ((projectile-project-type () 'rails-rspec)
+               (projectile-project-root () (file-truename (expand-file-name "project/"))))
+        (should (equal "app/models/food/sea.rb"
+                       (projectile-find-matching-file
+                        "spec/models/food/sea_spec.rb"))))))))
 
 (ert-deftest projectile-test-find-matching-test/file-custom-project ()
   (projectile-test-with-sandbox
    (projectile-test-with-files
-     ("project/src/foo/"
-      "project/src/bar/"
-      "project/test/foo/"
-      "project/test/bar/"
-      "project/src/foo/foo.service.js"
-      "project/src/bar/bar.service.js"
-      "project/test/foo/foo.service.spec.js"
-      "project/test/bar/bar.service.spec.js")
-     (let* ((projectile-indexing-method 'native)
-            (reg (projectile-register-project-type 'npm-project '("somefile") :test-suffix ".spec")))
-        (noflet ((projectile-project-type () 'npm-project)
-                 (projectile-project-root () (file-truename (expand-file-name "project/"))))
-          (let ((test-file (projectile-find-matching-test "src/foo/foo.service.js"))
-                (impl-file (projectile-find-matching-file "test/bar/bar.service.spec.js")))
-            (should (equal "test/foo/foo.service.spec.js" test-file))
-            (should (equal "src/bar/bar.service.js" impl-file))))))))
+    ("project/src/foo/"
+     "project/src/bar/"
+     "project/test/foo/"
+     "project/test/bar/"
+     "project/src/foo/foo.service.js"
+     "project/src/bar/bar.service.js"
+     "project/test/foo/foo.service.spec.js"
+     "project/test/bar/bar.service.spec.js")
+    (let* ((projectile-indexing-method 'native)
+           (reg (projectile-register-project-type 'npm-project '("somefile") :test-suffix ".spec")))
+      (noflet ((projectile-project-type () 'npm-project)
+               (projectile-project-root () (file-truename (expand-file-name "project/"))))
+        (let ((test-file (projectile-find-matching-test "src/foo/foo.service.js"))
+              (impl-file (projectile-find-matching-file "test/bar/bar.service.spec.js")))
+          (should (equal "test/foo/foo.service.spec.js" test-file))
+          (should (equal "src/bar/bar.service.js" impl-file))))))))
 
 (ert-deftest projectile-test-find-matching-test/file-custom-project-with-dirs ()
   (projectile-test-with-sandbox
    (projectile-test-with-files
-     ("project/source/foo/"
-      "project/source/bar/"
-      "project/spec/foo/"
-      "project/spec/bar/"
-      "project/source/foo/foo.service.js"
-      "project/source/bar/bar.service.js"
-      "project/spec/foo/foo.service.spec.js"
-      "project/spec/bar/bar.service.spec.js")
-     (let* ((projectile-indexing-method 'native)
-            (reg (projectile-register-project-type 'npm-project '("somefile")
-                                                   :test-suffix ".spec"
-                                                   :test-dir "spec/"
-                                                   :src-dir "source/")))
-        (noflet ((projectile-project-type () 'npm-project)
-                 (projectile-project-root () (file-truename (expand-file-name "project/"))))
-          (let ((test-file (projectile-find-matching-test "source/foo/foo.service.js"))
-                (impl-file (projectile-find-matching-file "spec/bar/bar.service.spec.js")))
-            (should (equal "spec/foo/foo.service.spec.js" test-file))
-            (should (equal "source/bar/bar.service.js" impl-file))))))))
+    ("project/source/foo/"
+     "project/source/bar/"
+     "project/spec/foo/"
+     "project/spec/bar/"
+     "project/source/foo/foo.service.js"
+     "project/source/bar/bar.service.js"
+     "project/spec/foo/foo.service.spec.js"
+     "project/spec/bar/bar.service.spec.js")
+    (let* ((projectile-indexing-method 'native)
+           (reg (projectile-register-project-type 'npm-project '("somefile")
+                                                  :test-suffix ".spec"
+                                                  :test-dir "spec/"
+                                                  :src-dir "source/")))
+      (noflet ((projectile-project-type () 'npm-project)
+               (projectile-project-root () (file-truename (expand-file-name "project/"))))
+        (let ((test-file (projectile-find-matching-test "source/foo/foo.service.js"))
+              (impl-file (projectile-find-matching-file "spec/bar/bar.service.spec.js")))
+          (should (equal "spec/foo/foo.service.spec.js" test-file))
+          (should (equal "source/bar/bar.service.js" impl-file))))))))
 
 (ert-deftest projectile-test-exclude-out-of-project-submodules ()
   (projectile-test-with-files
