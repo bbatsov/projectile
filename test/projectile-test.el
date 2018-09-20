@@ -57,19 +57,19 @@
 
 (ert-deftest projectile-test-ignored-file-p ()
   (noflet ((projectile-ignored-files () '("/path/to/project/TAGS" "/path/to/project/T.*")))
-          (should (projectile-ignored-file-p "/path/to/project/TAGS"))
-          (should-not (projectile-ignored-file-p "/path/to/project/foo.el"))))
+    (should (projectile-ignored-file-p "/path/to/project/TAGS"))
+    (should-not (projectile-ignored-file-p "/path/to/project/foo.el"))))
 
 (ert-deftest projectile-test-ignored-files ()
   (noflet ((projectile-project-root () "/path/to/project")
            (projectile-project-name () "project")
            (projectile-project-ignored-files () '("foo.js" "bar.rb")))
-          (let ((expected '("/path/to/project/TAGS"
-                            "/path/to/project/foo.js"
-                            "/path/to/project/bar.rb"
-                            "/path/to/project/file1.log"
-                            "/path/to/project/file2.log"))
-                (projectile-ignored-files '("TAGS" "file\d+\\.log")))
+    (let ((expected '("/path/to/project/TAGS"
+                      "/path/to/project/foo.js"
+                      "/path/to/project/bar.rb"
+                      "/path/to/project/file1.log"
+                      "/path/to/project/file2.log"))
+          (projectile-ignored-files '("TAGS" "file\d+\\.log")))
             (should-not (equal (projectile-ignored-files) expected)))))
 
 (ert-deftest projectile-test-ignored-directories ()
