@@ -623,6 +623,10 @@
                        "include2/test2.h"
                        "include2/test2.hpp"
 
+                       "root.h"
+                       "root.c"
+                       "root.cpp"
+
                        "src/test1.service.js"
                        "src/test2.service.spec.js"
                        "include1/test1.service.spec.js"
@@ -630,6 +634,8 @@
                        "include1/test2.js"
                        "include2/test2.js")))
 
+    (should (equal '("root.cpp" "root.c")
+                   (projectile-get-other-files "root.h" source-tree)))
     (should (equal '("include1/test1.h" "include2/test1.h")
                    (projectile-get-other-files "src/test1.c" source-tree)))
     (should (equal '("include1/test1.h" "include2/test1.h" "include1/test1.hpp")
