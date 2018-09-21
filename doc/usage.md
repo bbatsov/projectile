@@ -21,6 +21,23 @@ If you're going to use the default `ido` completion it's
 [flx-ido package](https://github.com/lewang/flx), which provides a much
 more powerful alternative to `ido`'s built-in `flex` matching.
 
+## Basic Usage
+
+Just open some file in a version-controlled (e.g. `git`) or a project
+(e.g. `maven`) directory that's recognized by Projectile and you're
+ready for action. Projectile happens to recognize out of the box every common
+VCS and many popular project types for various programming languages.
+
+You need to know only a handful of Projectile commands to start benefiting from it.
+
+* Find file in current project (<kbd>s-p f</kbd>)
+* Switch project (<kbd>s-p p</kbd>)
+* Grep in project (<kbd>s-p s g</kbd>)
+* Replace in project (<kbd>s-p r</kbd>)
+* Invoke a command via the Projectile Commander (<kbd>s-p m</kbd>)
+
+The next section lists many more commands, but the basics can get you pretty far.
+
 ## Interactive Commands
 
 !!! Note
