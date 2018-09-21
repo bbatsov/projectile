@@ -26,7 +26,7 @@ more powerful alternative to `ido`'s built-in `flex` matching.
 !!! Note
 
     Projectile doesn't have a default key prefix for its commands, but all the examples
-    in the manual assume you've opted for `s-p`.
+    in the manual assume you've opted for `s-p` (`super`-p).
 
 Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
@@ -87,19 +87,23 @@ If you ever forget any of Projectile's keybindings just do a:
 
 It is possible to add additional commands to
 `projectile-command-map` referenced by the prefix key in
-`projectile-mode-map`. You can even add an alternative prefix for all
-commands. Here's an example that adds `super-p` as a command prefix:
+`projectile-mode-map`. You can add multiple keymap prefix for all
+commands. Here's an example that adds `super-,` as a command prefix:
 
 ```el
-(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "s-,") 'projectile-command-map)
 ```
 
 You can also bind the `projectile-command-map` to any other map you'd
 like (including the global keymap).
 
-For some common commands you might want to take a little shortcut and
-leverage the fairly unused `Super` key (by default `Command` on Mac
-keyboards and `Windows` on Win keyboards). Here's something you can
+!!! Tip
+
+    For some common commands you might want to take a little shortcut and
+    leverage the fairly unused `Super` key (by default `Command` on Mac
+    keyboards and `Windows` on Win keyboards).
+
+Here's something you can
 add to your Emacs config:
 
 ```el
@@ -109,8 +113,11 @@ add to your Emacs config:
 (define-key projectile-mode-map [?\s-g] 'projectile-grep)
 ```
 
-Note that the `Super` keybindings are not usable in Windows. Emacs
-Prelude already adds those extra keybindings.
+!!! Note
+
+    Note that the `Super` keybindings are not usable in Windows, as Windows
+    makes heavy use of such keybindings itself. Emacs
+    Prelude already adds those extra keybindings.
 
 ## Ignoring files
 
