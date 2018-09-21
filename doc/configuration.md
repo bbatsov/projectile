@@ -12,15 +12,20 @@ as the `native indexing method`) and the other relies on external
 commands like `find`, `git`, etc to obtain the list of files in a
 project.
 
-Since the native indexing mode is much slower, by default the second
-method is used on all operating systems except Windows. To force the
-use of native indexing in operating systems other than Windows:
+
+!!! Info
+
+    Since the `native` indexing mode is much slower, by default the `alien`
+    method is used on all operating systems except Windows.
+
+To force the
+use of native indexing in all operating systems:
 
 ```el
 (setq projectile-indexing-method 'native)
 ```
 
-To force the use of external indexing in Windows:
+To force the use of alien indexing in all operating system:
 
 ```el
 (setq projectile-indexing-method 'alien)
