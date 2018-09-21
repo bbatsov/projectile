@@ -60,6 +60,9 @@
 (declare-function make-term "term")
 (declare-function term-mode "term")
 (declare-function term-char-mode "term")
+(declare-function eshell-search-path "esh-ext")
+(declare-function vc-dir "vc-dir")
+(declare-function vc-dir-busy "vc-dir")
 
 (defvar grep-files-aliases)
 (defvar grep-find-ignored-directories)
