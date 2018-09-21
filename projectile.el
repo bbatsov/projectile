@@ -3892,7 +3892,11 @@ is chosen."
 (defun projectile-update-mode-line ()
   "Report project in mode-line."
   (let* ((project-name (projectile-project-name))
-         (message (format " %s[%s]" projectile-mode-line project-name)))
+         (project-type (projectile-project-type))
+         (message (format " %s[%s:%s]"
+                          projectile-mode-line
+                          project-name
+                          project-type)))
     (setq projectile-mode-line message))
   (force-mode-line-update))
 
