@@ -3778,10 +3778,7 @@ is chosen."
   (projectile-commander))
 
 (defun projectile-commander-bindings ()
-  (def-projectile-commander-method ?A
-    "Find ag on project."
-    (call-interactively 'projectile-ag))
-
+  "Setup the keybindings for the Projectile Commander."
   (def-projectile-commander-method ?f
     "Find file in project."
     (projectile-find-file))
@@ -3821,6 +3818,10 @@ is chosen."
   (def-projectile-commander-method ?g
     "Run grep on project."
     (projectile-grep))
+
+  (def-projectile-commander-method ?a
+    "Run ag on project."
+    (call-interactively 'projectile-ag))
 
   (def-projectile-commander-method ?s
     "Switch project."
