@@ -130,7 +130,7 @@ Your favourite Linux distrubution might be providing a Projectile package as wel
 
 ### Emacs Prelude
 
-Projectile is naturally part of the
+Projectile is bundled with
 [Emacs Prelude](https://github.com/bbatsov/prelude). If you're a Prelude
-user - Projectile is already properly configured and ready for
+user, Projectile is already properly configured and ready for
 action.
