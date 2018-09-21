@@ -2441,13 +2441,16 @@ Fallsback to a generic project type when the type can't be determined."
     (puthash (projectile-project-root) project-type projectile-project-type-cache)
     project-type))
 
-(defun projectile-project-type ()
-  "Determine the project's type based on its structure.
+(defun projectile-project-type (&optional dir)
+  "Determine a project's type based on its structure.
+When DIR is specified it checks it, otherwise it acts
+on the current project.
 
 The project type is cached for improved performance."
   (if projectile-project-type
       projectile-project-type
-    (let ((project-root (ignore-errors (projectile-project-root))))
+    (let* ((dir (or dir default-directory))
+           (project-root (ignore-errors (projectile-project-root dir))))
       (if project-root
           (or (gethash project-root projectile-project-type-cache)
               (projectile-detect-project-type))
