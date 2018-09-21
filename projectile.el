@@ -4020,6 +4020,7 @@ The function does pretty much nothing when triggered on remote files
 as all the operations it normally performs are extremely slow over
 tramp."
   (unless (file-remote-p default-directory)
+    (projectile-update-mode-line)
     (projectile-cache-files-find-file-hook)
     (projectile-track-known-projects-find-file-hook)
     (projectile-visit-project-tags-table)))
@@ -4062,13 +4063,11 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
-    (add-hook 'find-file-hook 'projectile-update-mode-line t t)
     (ad-activate 'compilation-find-file)
     (ad-activate 'delete-file))
    (t
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
-    (remove-hook 'find-file-hook #'projectile-update-mode-line)
     (ad-deactivate 'compilation-find-file)
     (ad-deactivate 'delete-file))))
 
