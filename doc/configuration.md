@@ -434,3 +434,19 @@ additional functions to the hook using `add-hook`:
 ```el
 (add-hook 'projectile-idle-timer-hook #'my-projectile-idle-timer-function)
 ```
+
+## Mode line indicator
+
+By default the minor mode indicator of Projectile appears in the form
+" Projectile[ProjectName:ProjectType]". This is configurable via several custom variables:
+
+* `projectile-mode-line-lighter` (by default " Projectile") controls the static part of the mode-line
+* `projectile-dynamic-mode-line` (by default `t`) controls whether to display the project name & type part of the mode-line
+* `projectile-mode-line-fn` (by default `projectile-default-mode-line`) controls the actual function to be invoked to generate the mode-line. If you'd like to show different info you should supply a custom function to replace the default.
+
+!!! Note
+
+    The project name & type will not appear when editing remote files
+    (via TRAMP), as recalculating the project name is a fairly slow operation there
+    and would slow down a bit opening the files. They will also not appear for
+    non-file buffers, as they get updated via `find-file-hook`.
