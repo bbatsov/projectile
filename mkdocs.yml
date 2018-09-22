@@ -10,6 +10,7 @@ pages:
 - Configuration: configuration.md
 - Extensions: extensions.md
 - FAQ: faq.md
+- Troubleshooting: troubleshooting.md
 - Contributing: contributing.md
 - Support: support.md
 extra_css:
