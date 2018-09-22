@@ -102,7 +102,9 @@ If you want Projectile to be usable in every directory (even without the presenc
 (setq projectile-require-project-root nil)
 ```
 
-This might not be a great idea if you start Projectile in your home folder for instance. :-)
+!!! Tip
+
+    This might not be a great idea if you start Projectile in your home folder for instance. :-)
 
 ## Switching projects
 
