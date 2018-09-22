@@ -3910,10 +3910,10 @@ is chosen."
   "Report project name and type in the modeline."
   (let ((project-name (projectile-project-name))
         (project-type (projectile-project-type)))
-    (message (format "%s[%s:%s]"
-                     projectile-mode-line-lighter
-                     project-name
-                     project-type))))
+    (format "%s[%s:%s]"
+            projectile-mode-line-lighter
+            project-name
+            project-type)))
 
 (defun projectile-update-mode-line ()
   "Update the Projectile mode-line."
