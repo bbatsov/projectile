@@ -3884,7 +3884,7 @@ is chosen."
 
 ;;; Projectile Minor mode
 (defcustom projectile-mode-line
-  "Projectile"
+  " Projectile"
   "Mode line lighter for Projectile."
   :group 'projectile
   :type 'string
