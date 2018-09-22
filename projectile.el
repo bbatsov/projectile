@@ -3904,7 +3904,7 @@ is chosen."
   :type 'string
   :package-version '(projectile . "0.12.0"))
 
-(defvar-local projectile-mode-line nil)
+(defvar-local projectile-mode-line projectile-mode-line-lighter)
 
 (defun projectile-default-mode-line ()
   "Report project name and type in the modeline."
