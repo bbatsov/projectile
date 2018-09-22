@@ -4040,7 +4040,8 @@ The function does pretty much nothing when triggered on remote files
 as all the operations it normally performs are extremely slow over
 tramp."
   (unless (file-remote-p default-directory)
-    (projectile-update-mode-line)
+    (when projectile-dynamic-mode-line
+      (projectile-update-mode-line))
     (projectile-cache-files-find-file-hook)
     (projectile-track-known-projects-find-file-hook)
     (projectile-visit-project-tags-table)))
