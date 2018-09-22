@@ -177,10 +177,10 @@
 (ert-deftest projectile-test-get-project-directories ()
   (noflet ((projectile-project-root () "/my/root/")
            (projectile-parse-dirconfig-file () '(nil)))
-    (should (equal '("/my/root/") (projectile-get-project-directories)))
+    (should (equal '("/my/root/") (projectile-get-project-directories "/my/root/")))
     (noflet ((projectile-parse-dirconfig-file () '(("foo" "bar/baz"))))
       (should (equal '("/my/root/foo" "/my/root/bar/baz")
-                     (projectile-get-project-directories))))))
+                     (projectile-get-project-directories "/my/root/"))))))
 
 (ert-deftest projectile-test-file-truename ()
   (should (equal nil (projectile-file-truename nil)))
@@ -209,7 +209,7 @@
 
 (ert-deftest projectile-test-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
-    (noflet ((projectile-project-root (dir) "/path/to/project1"))
+    (noflet ((projectile-project-root () "/path/to/project1"))
       (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
 
 (ert-deftest projectile-test-projects-cleaned ()

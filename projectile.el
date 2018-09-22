@@ -140,7 +140,9 @@ A value of nil means the cache never expires."
   "Require the presence of a project root to operate when true.
 Otherwise consider the current directory the project root."
   :group 'projectile
-  :type 'boolean)
+  :type '(choice (const :tag "No" nil)
+                 (const :tag "Yes" t)
+                 (const :tag "Prompt for project" prompt)))
 
 (defcustom projectile-completion-system 'ido
   "The completion system to be used by Projectile."
@@ -972,33 +974,42 @@ will return DIR or the current directory, otherwise it'd raise an error."
   ;; cl-subst to replace this 'none value with nil so a nil value is used
   ;; instead
   (let ((dir (or dir default-directory)))
-    (or (cl-subst nil 'none
-                  ;; The `is-local' and `is-connected' variables are
-                  ;; used to fix the behavior where Emacs hangs
-                  ;; because of Projectile when you open a file over
-                  ;; TRAMP. It basically prevents Projectile from
-                  ;; trying to find information about files for which
-                  ;; it's not possible to get that information right
-                  ;; now.
-                  (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
-                            (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
-                        (when (or is-local is-connected)
-                          (cl-some
-                           (lambda (func)
-                             (let* ((cache-key (format "%s-%s" func dir))
-                                    (cache-value (gethash cache-key projectile-project-root-cache)))
-                               (if (and cache-value (file-exists-p cache-value))
-                                   cache-value
-                                 (let ((value (funcall func (file-truename dir))))
-                                   (puthash cache-key value projectile-project-root-cache)
-                                   value))))
-                           projectile-project-root-files-functions)))
-                      ;; set cached to none so is non-nil so we don't try
-                      ;; and look it up again
-                      'none))
-        (if projectile-require-project-root
-            (error "You're not in a project")
-          dir))))
+    (cl-subst nil 'none
+              ;; The `is-local' and `is-connected' variables are
+              ;; used to fix the behavior where Emacs hangs
+              ;; because of Projectile when you open a file over
+              ;; TRAMP. It basically prevents Projectile from
+              ;; trying to find information about files for which
+              ;; it's not possible to get that information right
+              ;; now.
+              (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
+                        (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
+                    (when (or is-local is-connected)
+                      (cl-some
+                       (lambda (func)
+                         (let* ((cache-key (format "%s-%s" func dir))
+                                (cache-value (gethash cache-key projectile-project-root-cache)))
+                           (if (and cache-value (file-exists-p cache-value))
+                               cache-value
+                             (let ((value (funcall func (file-truename dir))))
+                               (puthash cache-key value projectile-project-root-cache)
+                               value))))
+                       projectile-project-root-files-functions)))
+                  ;; set cached to none so is non-nil so we don't try
+                  ;; and look it up again
+                  'none))))
+
+(defun projectile-ensure-project (dir)
+  "Ensure that DIR is non-nil.
+Useful for commands that expect the presence of a project.
+Controlled by `projectile-require-project-root'."
+  (if dir
+      dir
+    (cond
+     ((eq projectile-require-project-root 'prompt) (projectile-completing-read
+                                                    "Switch to project: " projectile-known-projects))
+     (projectile-require-project-root (error "Projectile can't find a project definition in %s" dir))
+     (t default-directory))))
 
 (defun projectile-file-truename (file-name)
   "Return the truename of FILE-NAME.
@@ -1031,18 +1042,17 @@ explicitly."
 
 
 ;;; Project indexing
-(defun projectile-get-project-directories ()
-  "Get the list of project directories that are of interest to the user."
-  (mapcar (lambda (subdir) (concat (projectile-project-root) subdir))
+(defun projectile-get-project-directories (project-dir)
+  "Get the list of PROJECT-DIR directories that are of interest to the user."
+  (mapcar (lambda (subdir) (concat project-dir subdir))
           (or (nth 0 (projectile-parse-dirconfig-file)) '(""))))
 
-(defun projectile-dir-files (directory)
+(defun projectile-dir-files (root directory)
   "List the files in DIRECTORY and in its sub-directories.
-Files are returned as relative paths to the project root."
+Files are returned as relative paths to the project ROOT."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
-                         (gethash directory projectile-projects-cache)))
-        (root (projectile-project-root)))
+                         (gethash directory projectile-projects-cache))))
     ;; cache disabled or cache miss
     (or files-list
         (if (eq projectile-indexing-method 'native)
@@ -1744,36 +1754,40 @@ https://github.com/abo-abo/swiper")))
         (funcall action res)
       res)))
 
-(defun projectile-current-project-files ()
-  "Return a list of files for the current project."
+(defun projectile-project-files (project-root)
+  "Return a list of files for the PROJECT-ROOT."
   (let (files)
     ;; If the cache is too stale, don't use it.
     (when projectile-files-cache-expire
       (let ((cache-time
-             (gethash (projectile-project-root) projectile-projects-cache-time)))
+             (gethash project-root projectile-projects-cache-time)))
         (when (or (null cache-time)
                   (< (+ cache-time projectile-files-cache-expire)
                      (projectile-time-seconds)))
-          (remhash (projectile-project-root) projectile-projects-cache)
-          (remhash (projectile-project-root) projectile-projects-cache-time))))
+          (remhash project-root projectile-projects-cache)
+          (remhash project-root projectile-projects-cache-time))))
 
     ;; Use the cache, if requested and available.
     (when projectile-enable-caching
-      (setq files (gethash (projectile-project-root) projectile-projects-cache)))
+      (setq files (gethash project-root projectile-projects-cache)))
 
     ;; Calculate the list of files.
     (when (null files)
       (when projectile-enable-caching
         (message "Projectile is initializing cache..."))
       (setq files (cl-mapcan
-                   #'projectile-dir-files
-                   (projectile-get-project-directories)))
+                   (lambda (dir) (projectile-dir-files project-root dir))
+                   (projectile-get-project-directories project-root)))
 
       ;; Save the cached list.
       (when projectile-enable-caching
-        (projectile-cache-project (projectile-project-root) files)))
+        (projectile-cache-project project-root files)))
 
     (projectile-sort-files files)))
+
+(defun projectile-current-project-files ()
+  "Return a list of the files in the current project."
+  (projectile-project-files (projectile-project-root)))
 
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
@@ -2048,11 +2062,12 @@ defun, use that instead of `find-file'.   A typical example of such a defun
 would be `find-file-other-window' or `find-file-other-frame'"
   (interactive "P")
   (projectile-maybe-invalidate-cache invalidate-cache)
-  (let ((file (projectile-completing-read "Find file: "
-                                          (projectile-current-project-files)))
-        (ff (or ff-variant #'find-file)))
+  (let* ((project-root (projectile-ensure-project (projectile-project-root)))
+         (file (projectile-completing-read "Find file: "
+                                          (projectile-project-files project-root)))
+         (ff (or ff-variant #'find-file)))
     (when file
-      (funcall ff (expand-file-name file (projectile-project-root)))
+      (funcall ff (expand-file-name file project-root))
       (run-hooks 'projectile-find-file-hook))))
 
 ;;;###autoload
@@ -2734,7 +2749,7 @@ to `projectile-grep-default-files'.
 With REGEXP given, don't query the user for a regexp."
   (interactive "i\nP")
   (require 'grep) ;; for `rgrep'
-  (let* ((roots (projectile-get-project-directories))
+  (let* ((roots (projectile-get-project-directories (projectile-project-root)))
          (search-regexp (or regexp
                             (projectile--read-search-string-with-default "Grep for")))
          (files (and arg (or (and (equal current-prefix-arg '-)
