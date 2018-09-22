@@ -136,9 +136,12 @@ A value of nil means the cache never expires."
   :type '(choice (const :tag "Disabled" nil)
                  (integer :tag "Seconds")))
 
-(defcustom projectile-require-project-root t
+(defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
-Otherwise consider the current directory the project root."
+When set to 'prompt Projectile will ask you to select a project
+directory if you're not in a project.
+
+When nil Projectile will consider the current directory the project root."
   :group 'projectile
   :type '(choice (const :tag "No" nil)
                  (const :tag "Yes" t)
