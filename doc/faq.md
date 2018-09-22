@@ -21,4 +21,7 @@ though, and it will likely be reverted down the road.
 
 ## Do you need some help cleanup up all those tickets that have piled up?
 
-Certainly!
+Certainly! In our [issue
+tracker](https://github.com/bbatsov/projectile/issues/) we've got
+plenty of tickets marked with `Help Wanted` or `Good First Issue` that
+you can take a stab at, if you'd like to help out!
