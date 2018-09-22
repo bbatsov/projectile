@@ -418,6 +418,20 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-dynamic-mode-line t
+  "If true, update the mode-line dynamically.
+See also `projectile-mode-line-fn'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "1.1.0"))
+
+(defcustom projectile-mode-line-fn 'projectile-default-mode-line
+  "If true, update the mode-line dynamically.
+See also `projectile-mode-line-fn'."
+  :group 'projectile
+  :type 'function
+  :package-version '(projectile . "1.1.0"))
+
 
 ;;; Idle Timer
 (defvar projectile-idle-timer nil
@@ -3883,22 +3897,28 @@ is chosen."
 
 
 ;;; Projectile Minor mode
-(defcustom projectile-mode-line
+(defcustom projectile-mode-line-lighter
   " Projectile"
   "Mode line lighter for Projectile."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.12.0"))
 
+(defvar-local projectile-mode-line nil)
+
+(defun projectile-default-mode-line ()
+  "Report project name and type in the modeline."
+  (let ((project-name (projectile-project-name))
+        (project-type (projectile-project-type)))
+    (message (format "%s[%s:%s]"
+                     projectile-mode-line-lighter
+                     project-name
+                     project-type))))
+
 (defun projectile-update-mode-line ()
-  "Report project in mode-line."
-  (let* ((project-name (projectile-project-name))
-         (project-type (projectile-project-type))
-         (message (format " %s[%s:%s]"
-                          projectile-mode-line
-                          project-name
-                          project-type)))
-    (setq projectile-mode-line message))
+  "Update the Projectile mode-line."
+  (let ((mode-line (funcall projectile-mode-line-fn)))
+    (setq projectile-mode-line mode-line))
   (force-mode-line-update))
 
 (defvar projectile-command-map

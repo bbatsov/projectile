@@ -19,6 +19,7 @@
 * [#1285](https://github.com/bbatsov/projectile/pull/1285): Add default `test-suffix` to Python projects.
 * [#1285](https://github.com/bbatsov/projectile/pull/1285): Add support for Pipenv-managed Python projects.
 * [#1232](https://github.com/bbatsov/projectile/issues/1232): Stop evaluating code dynamically in the mode-line and switch to a simpler scheme where the mode-line is updated just once using `find-file-hook`.
+* Make the mode line configurable via `projectile-dynamic-mode-line` and `projectile-mode-line-fn`.
 
 ## 1.0.0 (2018-07-21)
 
