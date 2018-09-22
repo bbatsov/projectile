@@ -112,6 +112,12 @@ When running `projectile-switch-project` (<kbd>s-p p</kbd>) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
 `projectile-find-file`).
 
+!!! Tip
+
+    Invoking the command with a prefix argument (<kbd>C-u s-p p</kbd>) will trigger
+    the Projectile Commander, which gives you quick access to most common commands
+    you might want to invoke on a project.
+
 Depending on your personal workflow and habits, you
 may prefer to alter the value of `projectile-switch-project-action`:
 
