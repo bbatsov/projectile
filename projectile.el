@@ -3551,7 +3551,7 @@ With a prefix ARG invokes `projectile-commander' instead of
 Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
-  (if (file-directory-p project-to-switch)
+  (if (projectile-project-p project-to-switch)
       (let ((switch-project-action (if arg
                                        'projectile-commander
                                      projectile-switch-project-action)))
@@ -3572,7 +3572,7 @@ With a prefix ARG invokes `projectile-commander' instead of
             (funcall switch-project-action)))
         (run-hooks 'projectile-after-switch-project-hook))
     (progn (projectile-remove-known-project project-to-switch)
-	   (error "Directory %s does not exist" project-to-switch))))
+	   (error "Directory %s is not a project" project-to-switch))))
 
 ;;;###autoload
 (defun projectile-find-file-in-directory (&optional directory)
