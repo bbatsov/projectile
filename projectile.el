@@ -1022,7 +1022,7 @@ A thin wrapper around `file-truename' that handles nil."
 
 (defun projectile-project-p (&optional dir)
   "Check if DIR is a project.
-Defaults to the current direction if not provided
+Defaults to the current directory if not provided
 explicitly."
   (projectile-project-root (or dir default-directory)))
 
