@@ -425,14 +425,18 @@ Any function that does not take arguments will do."
 
 (defcustom projectile-dynamic-mode-line t
   "If true, update the mode-line dynamically.
-See also `projectile-mode-line-fn'."
+Only file buffers are affected by this, as the update happens via
+`find-file-hook'.
+
+See also `projectile-mode-line-fn' and `projectile-update-mode-line'."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "1.1.0"))
 
 (defcustom projectile-mode-line-fn 'projectile-default-mode-line
-  "If true, update the mode-line dynamically.
-See also `projectile-mode-line-fn'."
+  "The function to use to generate project-specific mode-line.
+The default function adds the project name and type to the mode-line.
+See also `projectile-update-mode-line'."
   :group 'projectile
   :type 'function
   :package-version '(projectile . "1.1.0"))
