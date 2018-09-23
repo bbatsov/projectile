@@ -3571,8 +3571,8 @@ With a prefix ARG invokes `projectile-commander' instead of
                                                   project-to-switch)))
             (funcall switch-project-action)))
         (run-hooks 'projectile-after-switch-project-hook))
-    (progn (projectile-remove-known-project project-to-switch)
-	   (error "Directory %s is not a project" project-to-switch))))
+    (projectile-remove-known-project project-to-switch)
+    (error "Directory %s is not a project" project-to-switch)))
 
 ;;;###autoload
 (defun projectile-find-file-in-directory (&optional directory)
