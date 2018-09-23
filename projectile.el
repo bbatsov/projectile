@@ -1024,9 +1024,7 @@ A thin wrapper around `file-truename' that handles nil."
   "Check if DIR is a project.
 Defaults to the current direction if not provided
 explicitly."
-  (condition-case nil
-      (projectile-project-root (or dir default-directory))
-    (error nil)))
+  (projectile-project-root (or dir default-directory)))
 
 (defun projectile-default-project-name (project-root)
   "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
@@ -1035,10 +1033,7 @@ explicitly."
 (defun projectile-project-name ()
   "Return project name."
   (or projectile-project-name
-      (let ((project-root
-             (condition-case nil
-                 (projectile-project-root)
-               (error nil))))
+      (let ((project-root (projectile-project-root)))
         (if project-root
             (funcall projectile-project-name-function project-root)
           "-"))))
@@ -1163,9 +1158,7 @@ they are excluded from the results of this function."
                (mapcar (lambda (f)
                          (concat s f))
                        (projectile-files-via-ext-command projectile-git-command))))
-           (condition-case nil
-               (projectile-get-all-sub-projects (projectile-project-root))
-             (error nil)))))
+           (projectile-get-all-sub-projects (projectile-project-root)))))
 
 (defun projectile-get-repo-files ()
   "Get a list of the files in the project, including sub-projects."
@@ -2482,7 +2475,7 @@ The project type is cached for improved performance."
   (if projectile-project-type
       projectile-project-type
     (let* ((dir (or dir default-directory))
-           (project-root (ignore-errors (projectile-project-root dir))))
+           (project-root (projectile-project-root dir)))
       (if project-root
           (or (gethash project-root projectile-project-type-cache)
               (projectile-detect-project-type))
@@ -3730,11 +3723,11 @@ overwriting each other's changes."
 ;;; IBuffer integration
 (define-ibuffer-filter projectile-files
     "Show Ibuffer with all buffers in the current project."
-  (:reader (read-directory-name "Project root: " (ignore-errors (projectile-project-root)))
+  (:reader (read-directory-name "Project root: " (projectile-project-root))
            :description nil)
   (with-current-buffer buf
     (equal (file-name-as-directory (expand-file-name qualifier))
-           (ignore-errors (projectile-project-root)))))
+           (projectile-project-root))))
 
 (defun projectile-ibuffer-by-project (project-root)
   "Open an IBuffer window showing all buffers in PROJECT-ROOT."
