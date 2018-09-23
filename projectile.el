@@ -3034,7 +3034,7 @@ files in the project."
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
      #'file-directory-p
-     (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
+     (mapcar #'projectile-expand-root (projectile-dir-files directory directory)))))
 
 ;;;###autoload
 (defun projectile-replace (&optional arg)
@@ -3079,10 +3079,11 @@ to run the replacement."
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace regexp %s with: " old-text))))
+         (project-root (projectile-project-root))
          (directory (if arg
                         (file-name-as-directory
                          (read-directory-name "Replace regexp in directory: "))
-                      (projectile-project-root)))
+                      project-root))
          (files
           ;; We have to reject directories as a workaround to work with git submodules.
           ;;
@@ -3091,7 +3092,7 @@ to run the replacement."
           ;; don't support Emacs regular expressions.
           (cl-remove-if
            #'file-directory-p
-           (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
+           (mapcar #'projectile-expand-root (projectile-dir-files project-root directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 
 (defun projectile-symbol-or-selection-at-point ()
@@ -3523,8 +3524,7 @@ Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
   (interactive "P")
-  (let ((projects (projectile-relevant-known-projects))
-        (projectile-require-project-root nil))
+  (let ((projects (projectile-relevant-known-projects)))
     (if projects
         (projectile-completing-read
          "Switch to project: " projects
@@ -3577,12 +3577,11 @@ With a prefix ARG invokes `projectile-commander' instead of
 
 This command will first prompt for the directory the file is in."
   (interactive "DFind file in directory: ")
-  (let ((default-directory directory)
-        (projectile-require-project-root nil))
+  (let ((default-directory directory))
     (if (projectile-project-p)
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
-                                                (projectile-dir-files directory))))
+                                                (projectile-dir-files directory directory))))
           (find-file (expand-file-name file (projectile-project-root)))
           (run-hooks 'projectile-find-file-hook))
       ;; target directory is not in a project
@@ -3603,8 +3602,7 @@ This command will first prompt for the directory the file is in."
 (defun projectile-find-file-in-known-projects ()
   "Jump to a file in any of the known projects."
   (interactive)
-  (let ((projectile-require-project-root nil))
-    (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)))))
+  (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files))))
 
 (defun projectile-keep-project-p (project)
   "Determine whether we should cleanup (remove) PROJECT or not.
