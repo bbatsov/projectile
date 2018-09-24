@@ -208,7 +208,7 @@
 
 (ert-deftest projectile-test-relevant-known-projects ()
   (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
-    (noflet ((projectile-project-root () "/path/to/project1"))
+    (noflet ((projectile-project-root (&optional dir) "/path/to/project1"))
       (should (equal (projectile-relevant-known-projects) '("/path/to/project2"))))))
 
 (ert-deftest projectile-test-projects-cleaned ()
