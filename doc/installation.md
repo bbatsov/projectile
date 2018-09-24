@@ -61,15 +61,15 @@ Stable by adding this to your Emacs initialization:
 Finally add this to your Emacs config:
 
 ```el
-(projectile-mode +1)
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+(projectile-mode +1)
 ```
-
-Those keymap prefixes are just a suggestion. Feel free to put there whatever works best for you.
 
 !!! Note
 
+    Those keymap prefixes are just a suggestion. Feel free to put
+    there whatever works best for you.
     `C-c p` used to be the default prefix up to version 1.1, but
     starting with version 1.1 you have to select prefix key(s)
     yourself.
