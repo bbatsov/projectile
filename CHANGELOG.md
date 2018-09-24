@@ -4,6 +4,7 @@
 
 ### New features
 
+* Add toggle for project read only mode: `projectile-toggle-project-read-only`.
 * New interactive command `projectile-run-ielm`.
 * Add [crystal](https://crystal-lang.org) project type.
 * [#850](https://github.com/bbatsov/projectile/issues/850): Make it possible to prompt for a project, when you're not in a project, instead of raising an error. (see `projectile-require-project-root`).
