@@ -46,6 +46,7 @@ it. Some of Projectile's features:
 * visit project in dired
 * run make in a project with a single key chord
 * check for dirty repositories
+* toggle read-only mode for the entire project
 
 Here's a glimpse of Projectile in action:
 

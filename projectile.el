@@ -2093,6 +2093,20 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
   (projectile--find-file invalidate-cache #'find-file-other-frame))
 
+;;;###autoload
+(defun projectile-toggle-project-read-only ()
+  "Toggle project read only"
+  (interactive)
+  (let ((inhibit-read-only t)
+        (val (not buffer-read-only))
+        (default-directory (projectile-project-root)))
+    (add-dir-local-variable nil 'buffer-read-only val)
+    (save-buffer)
+    (kill-buffer)
+    (when buffer-file-name
+      (read-only-mode (if val +1 -1))
+      (message "Projectile: project read-only-mode is %s" (if val "on" "off")))))
+
 
 ;;;; Sorting project files
 (defun projectile-sort-files (files)
@@ -4025,6 +4039,7 @@ is chosen."
    ["Replace in project" projectile-replace]
    ["Multi-occur in project" projectile-multi-occur]
    ["Browse dirty projects" projectile-browse-dirty-projects]
+   ["Toggle project wide read-only" projectile-toggle-project-read-only]
    "--"
    ["Run shell" projectile-run-shell]
    ["Run eshell" projectile-run-eshell]
