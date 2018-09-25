@@ -61,6 +61,7 @@ Stable by adding this to your Emacs initialization:
 Finally add this to your Emacs config:
 
 ```el
+(require 'projectile)
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 (projectile-mode +1)
