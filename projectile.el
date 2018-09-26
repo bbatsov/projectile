@@ -1204,13 +1204,13 @@ fallback to `shell-command-to-string'."
           (apply 'projectile-call-process-to-string binary-path args)
         (shell-command-to-string command)))))
 
-(defun projectile-check-vcs-status (&optional PROJECT-PATH)
+(defun projectile-check-vcs-status (&optional project-path)
   "Check the status of the current project.
 If PROJECT-PATH is a project, check this one instead."
-  (let* ((PROJECT-PATH (or PROJECT-PATH (projectile-project-root)))
+  (let* ((project-path (or project-path (projectile-project-root)))
          (project-status nil))
     (save-excursion
-      (vc-dir PROJECT-PATH)
+      (vc-dir project-path)
       ;; wait until vc-dir is done
       (while (vc-dir-busy) (sleep-for 0 100))
       ;; check for status
