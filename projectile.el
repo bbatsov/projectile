@@ -1207,8 +1207,8 @@ fallback to `shell-command-to-string'."
 (defun projectile-check-vcs-status (&optional project-path)
   "Check the status of the current project.
 If PROJECT-PATH is a project, check this one instead."
-  (let* ((project-path (or project-path (projectile-project-root)))
-         (project-status nil))
+  (let ((project-path (or project-path (projectile-project-root)))
+        (project-status nil))
     (save-excursion
       (vc-dir project-path)
       ;; wait until vc-dir is done
