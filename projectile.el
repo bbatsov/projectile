@@ -2095,7 +2095,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 
 ;;;###autoload
 (defun projectile-toggle-project-read-only ()
-  "Toggle project read only"
+  "Toggle project read only."
   (interactive)
   (let ((inhibit-read-only t)
         (val (not buffer-read-only))
