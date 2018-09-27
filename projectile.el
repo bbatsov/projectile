@@ -3061,16 +3061,16 @@ files in the project."
 With a prefix argument ARG prompts you for a directory on which
 to run the replacement."
   (interactive "P")
-  (let* ((old-text (read-string
+  (let* ((directory (if arg
+                        (file-name-as-directory
+                         (read-directory-name "Replace in directory: "))
+                      (projectile-ensure-project (projectile-project-root))))
+         (old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
                     (projectile-symbol-or-selection-at-point)))
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
-         (directory (if arg
-                        (file-name-as-directory
-                         (read-directory-name "Replace in directory: "))
-                      (projectile-project-root)))
          (files (projectile-files-with-string old-text directory)))
     ;; Adapted from `tags-query-replace' for literal strings (not regexp)
     (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
@@ -3091,17 +3091,16 @@ to run the replacement."
 With a prefix argument ARG prompts you for a directory on which
 to run the replacement."
   (interactive "P")
-  (let* ((old-text (read-string
+  (let* ((directory (if arg
+                        (file-name-as-directory
+                         (read-directory-name "Replace regexp in directory: "))
+                      (projectile-ensure-project (projectileproject-root))))
+         (old-text (read-string
                     (projectile-prepend-project-name "Replace regexp: ")
                     (projectile-symbol-or-selection-at-point)))
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace regexp %s with: " old-text))))
-         (project-root (projectile-project-root))
-         (directory (if arg
-                        (file-name-as-directory
-                         (read-directory-name "Replace regexp in directory: "))
-                      project-root))
          (files
           ;; We have to reject directories as a workaround to work with git submodules.
           ;;
@@ -3110,7 +3109,7 @@ to run the replacement."
           ;; don't support Emacs regular expressions.
           (cl-remove-if
            #'file-directory-p
-           (mapcar #'projectile-expand-root (projectile-dir-files project-root directory)))))
+           (mapcar #'projectile-expand-root (projectile-dir-files directory directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 
 (defun projectile-symbol-or-selection-at-point ()
