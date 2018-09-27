@@ -2099,13 +2099,13 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive)
   (let ((inhibit-read-only t)
         (val (not buffer-read-only))
-        (default-directory (projectile-project-root)))
+        (default-directory (projectile-ensure-project (projectile-project-root))))
     (add-dir-local-variable nil 'buffer-read-only val)
     (save-buffer)
     (kill-buffer)
     (when buffer-file-name
       (read-only-mode (if val +1 -1))
-      (message "Projectile: project read-only-mode is %s" (if val "on" "off")))))
+      (message "[%s] read-only-mode is %s" (projectile-project-name) (if val "on" "off")))))
 
 
 ;;;; Sorting project files
