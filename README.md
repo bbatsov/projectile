@@ -64,7 +64,7 @@ You can support my work on Projectile via
 
 The instructions that follow are meant to get you from zero to a running Projectile setup
 in a minute.  See the
-[official manual](https://projectile.readthedocs.io/en/latest/) for (way) more
+[official manual](https://docs.projectile.mx) for (way) more
 details.
 
 ### Installation

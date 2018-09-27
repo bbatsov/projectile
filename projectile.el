@@ -75,7 +75,7 @@
   :group 'tools
   :group 'convenience
   :link '(url-link :tag "GitHub" "https://github.com/bbatsov/projectile")
-  :link '(url-link :tag "Online Manual" "https://projectile.readthedocs.io/")
+  :link '(url-link :tag "Online Manual" "https://docs.projectile.mx/")
   :link '(emacs-commentary-link :tag "Commentary" "projectile"))
 
 (defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
