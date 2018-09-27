@@ -152,7 +152,7 @@
     (let ((projectile-globally-unignored-directories '("path")))
       (should (equal (projectile-add-unignored '("file"))
                      '("file" "path/unignored-file")))
-      ;; Ignored files inside unignored paths need to be explicitely
+      ;; Ignored files inside unignored paths need to be explicitly
       ;; unignored
       (let ((projectile-globally-ignored-files '("unignored-file")))
         (should (equal (projectile-add-unignored '("file"))
