@@ -4007,6 +4007,50 @@ is chosen."
     (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "ESC") #'projectile-project-buffers-other-buffer)
+    (easy-menu-define projectile-mode-menu map
+      "Menu for Projectile"
+      '("Projectile"
+        ["Find file" projectile-find-file]
+        ["Find file in known projects" projectile-find-file-in-known-projects]
+        ["Find test file" projectile-find-test-file]
+        ["Find directory" projectile-find-dir]
+        ["Find file in directory" projectile-find-file-in-directory]
+        ["Find other file" projectile-find-other-file]
+        ["Switch to buffer" projectile-switch-to-buffer]
+        ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
+        ["Kill project buffers" projectile-kill-buffers]
+        ["Recent files" projectile-recentf]
+        "--"
+        ["Toggle project wide read-only" projectile-toggle-project-read-only]
+        ["Edit .dir-locals.el" projectile-edit-dir-locals]
+        "--"
+        ["Switch to project" projectile-switch-project]
+        ["Switch to open project" projectile-switch-open-project]
+        ["Discover projects in directory" projectile-discover-projects-in-directory]
+        ["Browse dirty projects" projectile-browse-dirty-projects]
+        ["Open project in dired" projectile-dired]
+        "--"
+        ["Search in project (grep)" projectile-grep]
+        ["Search in project (ag)" projectile-ag]
+        ["Replace in project" projectile-replace]
+        ["Multi-occur in project" projectile-multi-occur]
+        "--"
+        ["Run shell" projectile-run-shell]
+        ["Run eshell" projectile-run-eshell]
+        ["Run ielm" projectile-run-ielm]
+        ["Run term" projectile-run-term]
+        "--"
+        ["Cache current file" projectile-cache-current-file]
+        ["Invalidate cache" projectile-invalidate-cache]
+        ["Regenerate [e|g]tags" projectile-regenerate-tags]
+        "--"
+        ["Configure project" projectile-configure-project]
+        ["Compile project" projectile-compile-project]
+        ["Test project" projectile-test-project]
+        ["Run project" projectile-run-project]
+        "--"
+        ["Project info" projectile-project-info]
+        ["About" projectile-version]))
     map)
   "Keymap for Projectile commands after `projectile-keymap-prefix'.")
 (fset 'projectile-command-map projectile-command-map)
@@ -4015,50 +4059,6 @@ is chosen."
   (let ((map (make-sparse-keymap)))
     (when projectile-keymap-prefix
       (define-key map projectile-keymap-prefix 'projectile-command-map))
-    (easy-menu-define projectile-mode-menu map
-      "Menu for Projectile"
-      '("Projectile"
-        (["Find file" projectile-find-file]
-         ["Find file in known projects" projectile-find-file-in-known-projects]
-         ["Find test file" projectile-find-test-file]
-         ["Find directory" projectile-find-dir]
-         ["Find file in directory" projectile-find-file-in-directory]
-         ["Find other file" projectile-find-other-file]
-         ["Switch to buffer" projectile-switch-to-buffer]
-         ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
-         ["Kill project buffers" projectile-kill-buffers]
-         ["Recent files" projectile-recentf]
-         "--"
-         ["Toggle project wide read-only" projectile-toggle-project-read-only]
-         ["Edit .dir-locals.el" projectile-edit-dir-locals]
-         "--"
-         ["Switch to project" projectile-switch-project]
-         ["Switch to open project" projectile-switch-open-project]
-         ["Discover projects in directory" projectile-discover-projects-in-directory]
-         ["Browse dirty projects" projectile-browse-dirty-projects]
-         ["Open project in dired" projectile-dired]
-         "--"
-         ["Search in project (grep)" projectile-grep]
-         ["Search in project (ag)" projectile-ag]
-         ["Replace in project" projectile-replace]
-         ["Multi-occur in project" projectile-multi-occur]
-         "--"
-         ["Run shell" projectile-run-shell]
-         ["Run eshell" projectile-run-eshell]
-         ["Run ielm" projectile-run-ielm]
-         ["Run term" projectile-run-term]
-         "--"
-         ["Cache current file" projectile-cache-current-file]
-         ["Invalidate cache" projectile-invalidate-cache]
-         ["Regenerate [e|g]tags" projectile-regenerate-tags]
-         "--"
-         ["Configure project" projectile-configure-project]
-         ["Compile project" projectile-compile-project]
-         ["Test project" projectile-test-project]
-         ["Run project" projectile-run-project]
-         "--"
-         ["Project info" projectile-project-info]
-         ["About" projectile-version])))
     map)
   "Keymap for Projectile mode.")
 
