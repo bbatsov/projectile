@@ -3094,7 +3094,7 @@ to run the replacement."
   (let* ((directory (if arg
                         (file-name-as-directory
                          (read-directory-name "Replace regexp in directory: "))
-                      (projectile-ensure-project (projectileproject-root))))
+                      (projectile-ensure-project (projectile-project-root))))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace regexp: ")
                     (projectile-symbol-or-selection-at-point)))
