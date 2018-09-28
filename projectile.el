@@ -3926,21 +3926,26 @@ is chosen."
 
 
 ;;; Projectile Minor mode
-(defcustom projectile-mode-line-lighter
+(defcustom projectile-mode-line-prefix
   " Projectile"
-  "Mode line lighter for Projectile."
+  "Mode line lighter prefix for Projectile.
+It's used by `projectile-default-mode-line'
+when using dynamic mode line lighter and is the only
+thing shown in the mode line otherwise."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.12.0"))
 
-(defvar-local projectile--mode-line projectile-mode-line-lighter)
+(define-obsolete-variable-alias 'projectile-mode-line-lighter 'projectile-mode-line-prefix)
+
+(defvar-local projectile--mode-line projectile-mode-line-prefix)
 
 (defun projectile-default-mode-line ()
   "Report project name and type in the modeline."
   (let ((project-name (projectile-project-name))
         (project-type (projectile-project-type)))
     (format "%s[%s:%s]"
-            projectile-mode-line-lighter
+            projectile-mode-line-prefix
             project-name
             project-type)))
 
