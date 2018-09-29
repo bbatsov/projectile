@@ -2269,10 +2269,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 
 (defun projectile-go-project-p ()
   "Check if a project contains Go source files."
-  (cl-some
-   (lambda (file)
-     (string= (file-name-extension file) "go"))
-   (projectile-current-project-files)))
+  (projectile-verify-file-wildcard "*.go"))
 
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
