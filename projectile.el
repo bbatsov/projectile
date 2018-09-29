@@ -1060,7 +1060,7 @@ Files are returned as relative paths to the project ROOT."
         (if (eq projectile-indexing-method 'native)
             (projectile-dir-files-native root directory)
           ;; use external tools to get the project files
-          (projectile-adjust-files (projectile-dir-files-external root directory))))))
+          (projectile-adjust-files (projectile-dir-files-external directory))))))
 
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
@@ -1073,12 +1073,10 @@ Files are returned as relative paths to the project ROOT."
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
-(defun projectile-dir-files-external (root directory)
-  "Get the files for ROOT under DIRECTORY using external tools."
+(defun projectile-dir-files-external (directory)
+  "Get the files for DIRECTORY using external tools."
   (let ((default-directory directory))
-    (mapcar (lambda (file)
-              (file-relative-name (expand-file-name file directory) root))
-            (projectile-get-repo-files))))
+    (projectile-get-repo-files)))
 
 (defun projectile-get-ext-command ()
   "Determine which external command to invoke based on the project's VCS."
