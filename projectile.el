@@ -78,7 +78,7 @@
   :link '(url-link :tag "Online Manual" "https://docs.projectile.mx/")
   :link '(emacs-commentary-link :tag "Commentary" "projectile"))
 
-(defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
+(defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'turbo-alien)
   "Specifies the indexing method used by Projectile.
 
 There are two indexing methods - native and alien.
@@ -93,12 +93,22 @@ The alien indexing method uses external tools (e.g. git, find,
 etc) to speed up the indexing process.  The disadvantage of this
 method is that it's not well supported on Windows systems.
 
-By default alien indexing is the default on all operating
+The turbo-alien indexing method optimizes to the limit the speed
+of the alien indexing method.  This means that Projectile will
+not do any processing of the files returned by the external
+commands and you're going to get the maximum performance
+possible.  This behaviour makes a lot of sense for most people,
+as they'd typically be putting ignores in their VCS config and
+won't care about any additional ignores/unignores/sorting that
+Projectile might also provide.
+
+By default turbo-alien indexing is the default on all operating
 systems, except Windows."
   :group 'projectile
   :type '(radio
           (const :tag "Native" native)
-          (const :tag "Alien" alien)))
+          (const :tag "Alien" alien)
+          (const :tag "Turbo Alien" turbo-alien)))
 
 (defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
   "When t enables project files caching.
@@ -1057,10 +1067,12 @@ Files are returned as relative paths to the project ROOT."
                          (gethash directory projectile-projects-cache))))
     ;; cache disabled or cache miss
     (or files-list
-        (if (eq projectile-indexing-method 'native)
-            (projectile-dir-files-native root directory)
+        (pcase projectile-indexing-method
+          ('native (projectile-dir-files-native root directory))
           ;; use external tools to get the project files
-          (projectile-adjust-files (projectile-dir-files-external directory))))))
+          ('alien (projectile-adjust-files (projectile-dir-files-external directory)))
+          ('turbo-alien (projectile-dir-files-external directory))
+          (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method))))))
 
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."

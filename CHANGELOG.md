@@ -8,6 +8,7 @@
 * New interactive command `projectile-run-ielm`.
 * Add [crystal](https://crystal-lang.org) project type.
 * [#850](https://github.com/bbatsov/projectile/issues/850): Make it possible to prompt for a project, when you're not in a project, instead of raising an error. (see `projectile-require-project-root`).
+* [#1147](https://github.com/bbatsov/projectile/issues/1147): Introduce a faster indexing method - `turbo-alien`.
 
 ### Changes
 
