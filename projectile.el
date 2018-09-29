@@ -1157,10 +1157,10 @@ they are excluded from the results of this function."
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
   (projectile-flatten
-   (mapcar (lambda (s)
-             (let ((default-directory s))
-               (mapcar (lambda (f)
-                         (concat s f))
+   (mapcar (lambda (sub-project)
+             (let ((default-directory sub-project))
+               (mapcar (lambda (file)
+                         (concat sub-project file))
                        (projectile-files-via-ext-command projectile-git-command))))
            (projectile-get-all-sub-projects (projectile-project-root)))))
 
