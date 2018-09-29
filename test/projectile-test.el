@@ -198,6 +198,10 @@
     (let ((projectile-indexing-method 'alien))
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/" "a/"))))))
 
+(ert-deftest projectile-test-files-via-ext-command ()
+  (should (not (projectile-files-via-ext-command "" "")))
+  (should (not (projectile-files-via-ext-command "" nil))))
+
 (ert-deftest projectile-test-setup-hook-functions-projectile-mode ()
   (noflet ((projectile--cleanup-known-projects () nil)
            (projectile-discover-projects-in-search-path () nil))

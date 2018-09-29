@@ -1274,9 +1274,13 @@ dirty project list."
                                 :action 'projectile-vc)))
 
 (defun projectile-files-via-ext-command (root command)
-  "Get a list of relative file names in the project ROOT by executing COMMAND."
-  (let ((default-directory root))
-   (split-string (shell-command-to-string command) "\0" t)))
+  "Get a list of relative file names in the project ROOT by executing COMMAND.
+
+If `command' is nil or an empty string, return nil.
+This allows commands to be disabled."
+  (when (stringp command)
+    (let ((default-directory root))
+      (split-string (shell-command-to-string command) "\0" t))))
 
 (defun projectile-index-directory (directory patterns progress-reporter)
   "Index DIRECTORY taking into account PATTERNS.
