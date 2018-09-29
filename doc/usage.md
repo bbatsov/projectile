@@ -16,10 +16,15 @@ is automatically going to check for projects:
 (setq projectile-project-search-path '("~/projects/" "~/work/"))
 ```
 
-If you're going to use the default `ido` completion it's
-**extremely highly** recommended that you install the optional
-[flx-ido package](https://github.com/lewang/flx), which provides a much
-more powerful alternative to `ido`'s built-in `flex` matching.
+!!! Tip
+
+    If you're going to use the default `ido` completion it's
+    **extremely highly** recommended that you install the optional
+    [flx-ido package](https://github.com/lewang/flx), which provides a much
+    more powerful alternative to `ido`'s built-in `flex` matching.
+
+Check out the ["Configuration"](configuration.md) section of the manual
+for a lot more information about configuring Projectile.
 
 ## Basic Usage
 
@@ -27,6 +32,13 @@ Just open some file in a version-controlled (e.g. `git`) or a project
 (e.g. `maven`) directory that's recognized by Projectile and you're
 ready for action. Projectile happens to recognize out of the box every common
 VCS and many popular project types for various programming languages.
+You can learn more about Projectile's notion of a project [here](projects.md).
+
+!!! Note
+
+    The extend of the support for every VCS differs and Git is the best supported
+    one. Projectile supports some advanced features like working with Git submodules
+    and using `git-grep` instead GNU grep.
 
 You need to know only a handful of Projectile commands to start benefiting from it.
 
