@@ -211,10 +211,13 @@ top-level directory.
 By default Projectile uses `ido` as its completion system. `ido` is
 extremely popular and it is built into Emacs.
 
-As already noted above if you're going to use the `ido` completion it's
-**extremely highly** recommended that you install the optional
-[flx-ido package](https://github.com/lewang/flx), which provides a much
-more powerful alternative to `ido`'s built-in `flex` matching.
+
+!!! Tip
+
+    As already noted above if you're going to use the `ido` completion it's
+    **extremely highly** recommended that you install the optional
+    [flx-ido package](https://github.com/lewang/flx), which provides a much
+    more powerful alternative to `ido`'s built-in `flex` matching.
 
 ### Ivy (recommended)
 
