@@ -4009,6 +4009,14 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "ESC") #'projectile-project-buffers-other-buffer)
+    map)
+  "Keymap for Projectile commands after `projectile-keymap-prefix'.")
+(fset 'projectile-command-map projectile-command-map)
+
+(defvar projectile-mode-map
+  (let ((map (make-sparse-keymap)))
+    (when projectile-keymap-prefix
+      (define-key map projectile-keymap-prefix 'projectile-command-map))
     (easy-menu-define projectile-mode-menu map
       "Menu for Projectile"
       '("Projectile"
@@ -4053,14 +4061,6 @@ thing shown in the mode line otherwise."
         "--"
         ["Project info" projectile-project-info]
         ["About" projectile-version]))
-    map)
-  "Keymap for Projectile commands after `projectile-keymap-prefix'.")
-(fset 'projectile-command-map projectile-command-map)
-
-(defvar projectile-mode-map
-  (let ((map (make-sparse-keymap)))
-    (when projectile-keymap-prefix
-      (define-key map projectile-keymap-prefix 'projectile-command-map))
     map)
   "Keymap for Projectile mode.")
 
