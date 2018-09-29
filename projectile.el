@@ -81,7 +81,7 @@
 (defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'turbo-alien)
   "Specifies the indexing method used by Projectile.
 
-There are two indexing methods - native and alien.
+There are three indexing methods - native, alien and turbo-alien.
 
 The native method is implemented in Emacs Lisp (therefore it is
 native to Emacs).  Its advantage is that it is portable and will
