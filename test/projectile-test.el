@@ -511,7 +511,8 @@
                 (projectile-project-vcs () 'none))
                ;; After listing all the files, the cache should have been updated.
                (projectile-current-project-files)
-               (dolist (f '("file1.el" "file2.el"))
+               ;; find returns the leading ./ therefore the somewhat odd notation here
+               (dolist (f '("./file1.el" "./file2.el"))
                  (should (member f (gethash (projectile-project-root)
                                             projectile-projects-cache)))))))))
 
