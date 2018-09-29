@@ -51,6 +51,39 @@ supported on Windows systems, as it requires setting up some Unix
 utilities there. If there's problem, you can always use `native`
 indexing mode.
 
+### Alien indexing
+
+The alien indexing works in a pretty simple manner - it simply shells
+out to a command that returns the list of files within a project.
+For version-controlled projects by default Projectile will use the
+VCS itself to obtain the list of files. As an example, here is the
+command that Projectile uses for Git projects:
+
+```
+git ls-files -zco --exclude-standard
+```
+
+For every supported VCS there's a matching Projectile defcustom holding the command
+to invoke for it (e.g. `projectile-git-command`, `projectile-hg-command`, etc).
+
+!!! Warning
+
+    If you ever decide to tweak those keep in mind that the command should always be returning
+    the list of files **relative** to the project root and the resulting file list should be 0-delimited
+    (as opposed to newline delimited).
+
+For non-VCS projects Projectile will invoke whatever is in `projectile-generic-command`. By default that's:
+
+```
+find . -type f -print0
+```
+
+!!! Tip
+
+    It's a great idea to install [fd](https://github.com/sharkdp/fd) and use it as a replacement for both `git ls-files` (`fd` understands `.gitignore`) and `find`.
+    The magic command you'll need with it is something like `fd . -0`.
+
+
 ## Caching
 
 ### Project files
