@@ -779,7 +779,7 @@ to invalidate."
          (if prompt
              (completing-read "Remove cache for: "
                               (projectile-hash-keys projectile-projects-cache))
-           (projectile-project-root))))
+           (projectile-ensure-project (projectile-project-root)))))
     (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-project-type-cache)
     (remhash project-root projectile-projects-cache)
