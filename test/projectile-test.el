@@ -140,13 +140,13 @@
                      '("file" "unignored-file" "path/unignored-file2"))))))
 
 (ert-deftest projectile-add-unignored-files-no-vcs ()
-  (noflet ((projectile-project-vcs () 'none))
+  (noflet ((projectile-project-vcs (project) 'none))
     ;; on an unsupported VCS we simply return the list of globally unignored files
     (let ((projectile-globally-unignored-files '("unignored-file")))
       (should (equal (projectile-add-unignored '("file")) '("file"))))))
 
 (ert-deftest projectile-add-unignored-directories ()
-  (noflet ((projectile-project-vcs () 'git)
+  (noflet ((projectile-project-vcs (project) 'git)
            (projectile-get-repo-ignored-files (project vcs) '("path/unignored-file"))
            (projectile-get-repo-ignored-directory (project dir vcs) (list (concat dir "unignored-file"))))
     (let ((projectile-globally-unignored-directories '("path")))
@@ -469,7 +469,7 @@
                  '("file1.el")
                  projectile-projects-cache)
         (noflet ((projectile-project-root () (file-truename default-directory))
-                 (projectile-project-vcs () 'none))
+                 (projectile-project-vcs (project) 'none))
           (with-current-buffer (find-file-noselect  "file2.el" t)
             (projectile-cache-current-file)
             (dolist (f '("file1.el" "file2.el"))
@@ -508,7 +508,7 @@
                 projectile-projects-cache-time)
 
        (noflet ((projectile-project-root () (file-truename default-directory))
-                (projectile-project-vcs () 'none))
+                (projectile-project-vcs (project) 'none))
                ;; After listing all the files, the cache should have been updated.
                (projectile-current-project-files)
                ;; find returns the leading ./ therefore the somewhat odd notation here
@@ -839,7 +839,7 @@
     "project/server/vendor/server-submodule/")
    (let ((project (file-truename (expand-file-name "project/web-ui"))))
      (noflet ((projectile-files-via-ext-command
-               (arg) (when (string= default-directory project)
+               (dir vcs) (when (string= default-directory project)
                        '("vendor/client-submodule"
                          "../server/vendor/server-submodule")))
               (projectile-project-root
@@ -847,7 +847,7 @@
 
        ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
        (should (equal (list (expand-file-name "vendor/client-submodule/" project))
-                      (projectile-get-all-sub-projects project)))))))
+                      (projectile-get-all-sub-projects project 'git)))))))
 
 (ert-deftest projectile-test-configure-command-for-generic-project-type ()
   (noflet ((projectile-default-configure-command (x) nil)
