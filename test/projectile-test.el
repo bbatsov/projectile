@@ -128,7 +128,7 @@
                                      '("foo.c" "foo.o.gz"))))))))
 
 (ert-deftest projectile-add-unignored-files ()
-  (noflet ((projectile-get-repo-ignored-files () '("unignored-file"
+  (noflet ((projectile-get-repo-ignored-files (project vcs) '("unignored-file"
                                                    "path/unignored-file2")))
     (let ((projectile-globally-unignored-files '("unignored-file")))
       (should (equal (projectile-add-unignored '("file"))
@@ -147,8 +147,8 @@
 
 (ert-deftest projectile-add-unignored-directories ()
   (noflet ((projectile-project-vcs () 'git)
-           (projectile-get-repo-ignored-files () '("path/unignored-file"))
-           (projectile-get-repo-ignored-directory (dir) (list (concat dir "unignored-file"))))
+           (projectile-get-repo-ignored-files (project vcs) '("path/unignored-file"))
+           (projectile-get-repo-ignored-directory (project dir vcs) (list (concat dir "unignored-file"))))
     (let ((projectile-globally-unignored-directories '("path")))
       (should (equal (projectile-add-unignored '("file"))
                      '("file" "path/unignored-file")))
@@ -191,7 +191,7 @@
            (projectile-index-directory (dir patterns progress-reporter)
                                        (should (equal dir "a/"))
                                        '("/my/root/a/b/c" "/my/root/a/d/e"))
-           (projectile-get-repo-files () '("a/b/c" "a/d/e"))
+           (projectile-dir-files-external (dir) '("a/b/c" "a/d/e"))
            (cd (directory) "/my/root/a/" nil))
     (let ((projectile-indexing-method 'native))
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/" "a/"))))

@@ -1087,34 +1087,41 @@ Files are returned as relative paths to the project ROOT."
 
 (defun projectile-dir-files-external (directory)
   "Get the files for DIRECTORY using external tools."
-  (let ((default-directory directory))
-    (projectile-get-repo-files)))
+  (let ((vcs (projectile-project-vcs directory)))
+    (cond
+    ((eq vcs 'git)
+     (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
+            (projectile-get-sub-projects-files directory vcs)))
+    (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
 
-(defun projectile-get-ext-command ()
+(define-obsolete-variable-alias 'projectile-get-repo-files 'projectile-dir-files-external "1.1")
+
+(defun projectile-get-ext-command (vcs)
+  "Determine which external command to invoke based on the project's VCS.
+Fallback to a generic command when not in a VCS-controlled project."
+  (cond
+   ((eq vcs 'git) projectile-git-command)
+   ((eq vcs 'hg) projectile-hg-command)
+   ((eq vcs 'fossil) projectile-fossil-command)
+   ((eq vcs 'bzr) projectile-bzr-command)
+   ((eq vcs 'darcs) projectile-darcs-command)
+   ((eq vcs 'svn) projectile-svn-command)
+   (t projectile-generic-command)))
+
+(defun projectile-get-sub-projects-command (vcs)
+  "Get the sub-projects command for VCS.
+Currently that's supported just for Git (sub-projects being Git
+sub-modules there)."
+  (cond
+   ((eq vcs 'git) projectile-git-submodule-command)
+   (t "")))
+
+(defun projectile-get-ext-ignored-command (vcs)
   "Determine which external command to invoke based on the project's VCS."
-  (let ((vcs (projectile-project-vcs)))
-    (cond
-     ((eq vcs 'git) projectile-git-command)
-     ((eq vcs 'hg) projectile-hg-command)
-     ((eq vcs 'fossil) projectile-fossil-command)
-     ((eq vcs 'bzr) projectile-bzr-command)
-     ((eq vcs 'darcs) projectile-darcs-command)
-     ((eq vcs 'svn) projectile-svn-command)
-     (t projectile-generic-command))))
-
-(defun projectile-get-sub-projects-command ()
-  (let ((vcs (projectile-project-vcs)))
-    (cond
-     ((eq vcs 'git) projectile-git-submodule-command)
-     (t ""))))
-
-(defun projectile-get-ext-ignored-command ()
-  "Determine which external command to invoke based on the project's VCS."
-  (let ((vcs (projectile-project-vcs)))
-    (cond
-     ((eq vcs 'git) projectile-git-ignored-command)
-     ;; TODO: Add support for other VCS
-     (t nil))))
+  (cond
+   ((eq vcs 'git) projectile-git-ignored-command)
+   ;; TODO: Add support for other VCS
+   (t nil)))
 
 (defun projectile-flatten (lst)
   "Take a nested list LST and return its contents as a single, flat list."
@@ -1145,12 +1152,12 @@ searching, and should end with an appropriate path delimiter, such as
 
 If the vcs get-sub-projects query returns results outside of path,
 they are excluded from the results of this function."
-  (let* ((default-directory path)
+  (let* ((vcs (projectile-project-vcs path))
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
                       (lambda (s)
                         (file-name-as-directory (expand-file-name s default-directory)))
-                      (projectile-files-via-ext-command (projectile-get-sub-projects-command))))
+                      (projectile-files-via-ext-command path (projectile-get-sub-projects-command vcs))))
          (project-child-folder-regex
           (concat "\\`"
                   (regexp-quote path))))
@@ -1164,35 +1171,28 @@ they are excluded from the results of this function."
                        submodule))
      submodules)))
 
-(defun projectile-get-sub-projects-files ()
-  "Get files from sub-projects recursively."
+(defun projectile-get-sub-projects-files (project-root vcs)
+  "Get files from sub-projects for PROJECT-ROOT recursively."
   (projectile-flatten
    (mapcar (lambda (sub-project)
-             (let ((default-directory sub-project))
-               (mapcar (lambda (file)
-                         (concat sub-project file))
-                       (projectile-files-via-ext-command projectile-git-command))))
-           (projectile-get-all-sub-projects (projectile-project-root)))))
+             (mapcar (lambda (file)
+                       (concat sub-project file))
+                     ;; TODO: Seems we forgot git hardcoded here
+                     (projectile-files-via-ext-command sub-project projectile-git-command)))
+           (projectile-get-all-sub-projects project-root))))
 
-(defun projectile-get-repo-files ()
-  "Get a list of the files in the project, including sub-projects."
-  (cond
-   ((eq (projectile-project-vcs) 'git)
-    (nconc (projectile-files-via-ext-command (projectile-get-ext-command))
-           (projectile-get-sub-projects-files)))
-   (t (projectile-files-via-ext-command (projectile-get-ext-command)))))
-
-(defun projectile-get-repo-ignored-files ()
-  "Get a list of the files ignored in the project."
-  (let ((cmd (projectile-get-ext-ignored-command)))
+(defun projectile-get-repo-ignored-files (project vcs)
+  "Get a list of the files ignored in the PROJECT using VCS."
+  (let ((cmd (projectile-get-ext-ignored-command vcs)))
     (when cmd
-      (projectile-files-via-ext-command cmd))))
+      (projectile-files-via-ext-command project cmd))))
 
-(defun projectile-get-repo-ignored-directory (dir)
-  "Get a list of the files ignored in the project in the directory DIR."
-  (let ((cmd (projectile-get-ext-ignored-command)))
+(defun projectile-get-repo-ignored-directory (project dir vcs)
+  "Get a list of the files ignored in the PROJECT in the directory DIR.
+VCS is the VCS of the project."
+  (let ((cmd (projectile-get-ext-ignored-command vcs)))
     (when cmd
-      (projectile-files-via-ext-command (concat cmd " " dir)))))
+      (projectile-files-via-ext-command project (concat cmd " " dir)))))
 
 (defun projectile-call-process-to-string (program &rest args)
   "Invoke the executable PROGRAM with ARGS and return the output as a string."
@@ -1269,9 +1269,10 @@ dirty project list."
     (projectile-completing-read "Select project: " mod-proj
                                 :action 'projectile-vc)))
 
-(defun projectile-files-via-ext-command (command)
-  "Get a list of relative file names in the project root by executing COMMAND."
-  (split-string (shell-command-to-string command) "\0" t))
+(defun projectile-files-via-ext-command (root command)
+  "Get a list of relative file names in the project ROOT by executing COMMAND."
+  (let ((default-directory root))
+   (split-string (shell-command-to-string command) "\0" t)))
 
 (defun projectile-index-directory (directory patterns progress-reporter)
   "Index DIRECTORY taking into account PATTERNS.
