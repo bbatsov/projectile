@@ -1198,26 +1198,6 @@ VCS is the VCS of the project."
     (when cmd
       (projectile-files-via-ext-command project (concat cmd " " dir)))))
 
-(defun projectile-call-process-to-string (program &rest args)
-  "Invoke the executable PROGRAM with ARGS and return the output as a string."
-  (with-temp-buffer
-    (apply 'call-process program nil (current-buffer) nil args)
-    (buffer-string)))
-
-(defun projectile-shell-command-to-string (command)
-  "Try to run COMMAND without actually using a shell and return the output.
-
-The function `eshell-search-path' will be used to search the PATH
-environment variable for an appropriate executable using the text
-occuring before the first space.  If no executable is found,
-fallback to `shell-command-to-string'."
-  (cl-destructuring-bind
-      (the-command . args) (split-string command " ")
-    (let ((binary-path (eshell-search-path the-command)))
-      (if binary-path
-          (apply 'projectile-call-process-to-string binary-path args)
-        (shell-command-to-string command)))))
-
 (defun projectile-check-vcs-status (&optional project-path)
   "Check the status of the current project.
 If PROJECT-PATH is a project, check this one instead."
