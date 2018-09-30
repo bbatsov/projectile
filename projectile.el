@@ -778,7 +778,7 @@ to invalidate."
   (let ((project-root
          (if prompt
              (completing-read "Remove cache for: "
-                              (projectile-hash-keys projectile-projects-cache))
+                              (hash-table-keys projectile-projects-cache))
            (projectile-ensure-project (projectile-project-root)))))
     (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-project-type-cache)
@@ -1822,13 +1822,6 @@ https://github.com/abo-abo/swiper")))
          (mapcar #'file-name-directory
                  (projectile-current-project-files)))))
 
-(defun projectile-hash-keys (hash)
-  "Return a list of all HASH keys."
-  (let (allkeys)
-    (maphash (lambda (k _v) (setq allkeys (cons k allkeys))) hash)
-    allkeys))
-
-
 ;;; Interactive commands
 
 (defun projectile--find-other-file (&optional flex-matching ff-variant)
@@ -2495,7 +2488,7 @@ Fallsback to a generic project type when the type can't be determined."
                                (if (listp marker)
                                    (and (projectile-verify-files marker) project-type)
                                  (and (funcall marker) project-type))))
-                           (projectile-hash-keys projectile-project-types))
+                           (hash-table-keys projectile-project-types))
                           'generic)))
     (puthash (projectile-project-root) project-type projectile-project-type-cache)
     project-type))
