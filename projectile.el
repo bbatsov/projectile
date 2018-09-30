@@ -1103,29 +1103,29 @@ Files are returned as relative paths to the project ROOT."
 (defun projectile-get-ext-command (vcs)
   "Determine which external command to invoke based on the project's VCS.
 Fallback to a generic command when not in a VCS-controlled project."
-  (cond
-   ((eq vcs 'git) projectile-git-command)
-   ((eq vcs 'hg) projectile-hg-command)
-   ((eq vcs 'fossil) projectile-fossil-command)
-   ((eq vcs 'bzr) projectile-bzr-command)
-   ((eq vcs 'darcs) projectile-darcs-command)
-   ((eq vcs 'svn) projectile-svn-command)
-   (t projectile-generic-command)))
+  (pcase vcs
+   ('git projectile-git-command)
+   ('hg projectile-hg-command)
+   ('fossil projectile-fossil-command)
+   ('bzr projectile-bzr-command)
+   ('darcs projectile-darcs-command)
+   ('svn projectile-svn-command)
+   (_ projectile-generic-command)))
 
 (defun projectile-get-sub-projects-command (vcs)
   "Get the sub-projects command for VCS.
 Currently that's supported just for Git (sub-projects being Git
 sub-modules there)."
-  (cond
-   ((eq vcs 'git) projectile-git-submodule-command)
-   (t "")))
+  (pcase vcs
+   ('git projectile-git-submodule-command)
+   (_ "")))
 
 (defun projectile-get-ext-ignored-command (vcs)
   "Determine which external command to invoke based on the project's VCS."
-  (cond
-   ((eq vcs 'git) projectile-git-ignored-command)
+  (pcase vcs
+   ('git projectile-git-ignored-command)
    ;; TODO: Add support for other VCS
-   (t nil)))
+   (_ nil)))
 
 (defun projectile-flatten (lst)
   "Take a nested list LST and return its contents as a single, flat list."
