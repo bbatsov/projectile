@@ -129,7 +129,7 @@
 
 (ert-deftest projectile-add-unignored-files ()
   (noflet ((projectile-get-repo-ignored-files (project vcs) '("unignored-file"
-                                                   "path/unignored-file2")))
+                                                              "path/unignored-file2")))
     (let ((projectile-globally-unignored-files '("unignored-file")))
       (should (equal (projectile-add-unignored '("file"))
                      '("file" "unignored-file"))))

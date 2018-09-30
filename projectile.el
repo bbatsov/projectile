@@ -1067,13 +1067,17 @@ Files are returned as relative paths to the project ROOT."
                          (gethash directory projectile-projects-cache))))
     ;; cache disabled or cache miss
     (or files-list
-        (pcase projectile-indexing-method
-          ('native (projectile-dir-files-native root directory))
-          ;; use external tools to get the project files
-          ('alien (projectile-adjust-files (projectile-dir-files-external directory)))
-          ('turbo-alien (projectile-dir-files-external directory))
-          (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method))))))
+        (let ((vcs (projectile-project-vcs directory)))
+          (pcase projectile-indexing-method
+           ('native (projectile-dir-files-native root directory))
+           ;; use external tools to get the project files
+           ('alien (projectile-adjust-files directory vcs (projectile-dir-files-external directory)))
+           ('turbo-alien (projectile-dir-files-external directory))
+           (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method)))))))
 
+;;; Native Project Indexing
+;;
+;; This corresponds to `projectile-indexing-method' being set to native.
 (defun projectile-dir-files-native (root directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
   (let ((progress-reporter
@@ -1294,9 +1298,9 @@ function is executing."
                   (list f)))))
           (directory-files directory t))))
 
-(defun projectile-adjust-files (files)
+(defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
-  (projectile-add-unignored (projectile-remove-ignored files)))
+  (projectile-add-unignored project vcs (projectile-remove-ignored files)))
 
 (defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
@@ -1331,32 +1335,36 @@ otherwise operates relative to project root."
             projectile-globally-ignored-file-suffixes)))
      files)))
 
-(defun projectile-keep-ignored-files (files)
+(defun projectile-keep-ignored-files (project vcs files)
   "Filter FILES to retain only those that are ignored."
   (when files
     (cl-remove-if-not
      (lambda (file)
        (cl-some (lambda (f) (string-prefix-p f file)) files))
-     (projectile-get-repo-ignored-files))))
+     (projectile-get-repo-ignored-files project vcs))))
 
-(defun projectile-keep-ignored-directories (directories)
+(defun projectile-keep-ignored-directories (project vcs directories)
   "Get ignored files within each of DIRECTORIES."
   (when directories
     (let (result)
       (dolist (dir directories result)
         (setq result (append result
-                             (projectile-get-repo-ignored-directory dir))))
+                             (projectile-get-repo-ignored-directory project vcs dir))))
       result)))
 
-(defun projectile-add-unignored (files)
+(defun projectile-add-unignored (project vcs files)
   "This adds unignored files to FILES.
 
 Useful because the VCS may not return ignored files at all.  In
 this case unignored files will be absent from FILES."
   (let ((unignored-files (projectile-keep-ignored-files
+                          project
+                          vcs
                           (projectile-unignored-files-rel)))
         (unignored-paths (projectile-remove-ignored
                           (projectile-keep-ignored-directories
+                           project
+                           vcs
                            (projectile-unignored-directories-rel)))))
     (append files unignored-files unignored-paths)))
 
