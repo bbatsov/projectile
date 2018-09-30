@@ -69,12 +69,13 @@ initialization code
 ```
 
 What this does is:
-1. add your own type of project, in this case `npm` package.
-2. add a file in a root of the project that helps to identify the type, in this case it is `package.json`.
-3. add *compile-command*, in this case it is `npm install`.
-4. add *test-command*, in this case it is `npm test`.
-5. add *run-command*, in this case it is `npm start`.
-6. add test files suffix for toggling between implementation/test files, in this case it is `.spec`, so the implementation/test file pair could be `service.js`/`service.spec.js` for example.
+
+  1. add your own type of project, in this case `npm` package.
+  2. add a file in a root of the project that helps to identify the type, in this case it is `package.json`.
+  3. add *compile-command*, in this case it is `npm install`.
+  4. add *test-command*, in this case it is `npm test`.
+  5. add *run-command*, in this case it is `npm start`.
+  6. add test files suffix for toggling between implementation/test files, in this case it is `.spec`, so the implementation/test file pair could be `service.js`/`service.spec.js` for example.
 
 The available options are:
 
