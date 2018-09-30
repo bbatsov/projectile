@@ -1089,6 +1089,31 @@ Files are returned as relative paths to the project ROOT."
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
+(defun projectile-index-directory (directory patterns progress-reporter)
+  "Index DIRECTORY taking into account PATTERNS.
+The function calls itself recursively until all sub-directories
+have been indexed.  The PROGRESS-REPORTER is updated while the
+function is executing."
+  (apply 'append
+         (mapcar
+          (lambda (f)
+            (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
+                        (member (file-name-nondirectory (directory-file-name f))
+                                '("." ".." ".svn" ".cvs")))
+              (progress-reporter-update progress-reporter)
+              (if (file-directory-p f)
+                  (unless (projectile-ignored-directory-p
+                           (file-name-as-directory f))
+                    (projectile-index-directory f patterns progress-reporter))
+                (unless (projectile-ignored-file-p f)
+                  (list f)))))
+          (directory-files directory t))))
+
+;;; Alien Project Indexing
+;;
+;; This corresponds to `projectile-indexing-method' being set to alien or turbo-alien.
+;; The only difference between the two methods is that turbo-alien doesn't do
+;; any post-processing of the files obtained via the external command.
 (defun projectile-dir-files-external (directory)
   "Get the files for DIRECTORY using external tools."
   (let ((vcs (projectile-project-vcs directory)))
@@ -1261,26 +1286,6 @@ This allows commands to be disabled."
   (when (stringp command)
     (let ((default-directory root))
       (split-string (shell-command-to-string command) "\0" t))))
-
-(defun projectile-index-directory (directory patterns progress-reporter)
-  "Index DIRECTORY taking into account PATTERNS.
-The function calls itself recursively until all sub-directories
-have been indexed.  The PROGRESS-REPORTER is updated while the
-function is executing."
-  (apply 'append
-         (mapcar
-          (lambda (f)
-            (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
-                        (member (file-name-nondirectory (directory-file-name f))
-                                '("." ".." ".svn" ".cvs")))
-              (progress-reporter-update progress-reporter)
-              (if (file-directory-p f)
-                  (unless (projectile-ignored-directory-p
-                           (file-name-as-directory f))
-                    (projectile-index-directory f patterns progress-reporter))
-                (unless (projectile-ignored-file-p f)
-                  (list f)))))
-          (directory-files directory t))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
