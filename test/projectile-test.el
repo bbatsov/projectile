@@ -198,6 +198,10 @@
     (let ((projectile-indexing-method 'alien))
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/" "a/"))))))
 
+(ert-deftest projectile-test-git-submodule-command ()
+  (should (string-prefix-p "git" (projectile-get-sub-projects-command 'git)))
+  (should (string-empty-p (projectile-get-sub-projects-command 'none))))
+
 (ert-deftest projectile-test-files-via-ext-command ()
   (should (not (projectile-files-via-ext-command "" "")))
   (should (not (projectile-files-via-ext-command "" nil))))
