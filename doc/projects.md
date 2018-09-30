@@ -124,10 +124,10 @@ to `./gradlew compile-templates`.
 
 This works for:
 
-    - `:configure`
-    - `:compile`
-    - `:compilation-dir`
-    - `:run`
+  * `:configure`
+  * `:compile`
+  * `:compilation-dir`
+  * `:run`
 
 Note that your function has to return a string to work properly.
 
