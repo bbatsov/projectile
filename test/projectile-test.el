@@ -28,6 +28,33 @@
 (require 'projectile)
 (require 'buttercup)
 
+;;; Test Utilities
+(defmacro projectile-test-with-sandbox (&rest body)
+  "Evaluate BODY in an empty temporary directory."
+  (declare (indent 0) (debug (&rest form)))
+  `(let ((sandbox (expand-file-name
+                   (convert-standard-filename "test/sandbox/")
+                   (file-name-directory (locate-library "projectile.el" t)))))
+     (when (file-directory-p sandbox)
+       (delete-directory sandbox t))
+     (make-directory sandbox t)
+     (let ((default-directory sandbox))
+       ,@body)))
+
+(defmacro projectile-test-with-files (files &rest body)
+  "Evaluate BODY in the presence of FILES.
+
+You'd normally combine this with `projectile-test-with-sandbox'."
+  (declare (indent 1) (debug (sexp &rest form)))
+  `(progn
+     ,@(mapcar (lambda (file)
+                 (if (string-suffix-p "/" file)
+                     `(make-directory ,file t)
+                   `(with-temp-file ,file)))
+               files)
+     ,@body))
+
+;;; Tests
 (describe "projectile-prepend-project-name"
   (it "prepends the project name to its parameter"
     (spy-on 'projectile-project-name :and-return-value "project")
