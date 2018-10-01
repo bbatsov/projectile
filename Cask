@@ -6,4 +6,5 @@
 (development
  (depends-on "ert-runner")
  (depends-on "noflet")
- (depends-on "dash"))
+ (depends-on "dash")
+ (depends-on "buttercup"))

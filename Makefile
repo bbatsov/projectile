@@ -15,10 +15,17 @@ elpa:
 	$(CASK) update
 	touch $@
 
+elpaclean:
+	rm -f elpa*
+	rm -rf .cask # Clean packages installed for development
+
 compile: $(OBJS)
 
 clean:
 	rm -f $(OBJS)
 
-test: $(PKGDIR)
+ert-test: $(PKGDIR)
 	$(CASK) exec ert-runner $(TESTFLAGS)
+
+test: $(PGKDIR)
+	$(CASK) exec buttercup -L .

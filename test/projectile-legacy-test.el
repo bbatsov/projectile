@@ -39,16 +39,6 @@
   (noflet ((projectile-project-name () "project"))
     (should (equal (projectile-project-name) "project"))))
 
-(ert-deftest projectile-test-prepend-project-name ()
-  (noflet ((projectile-project-name () "project"))
-    (should (equal (projectile-prepend-project-name "Test") "[project] Test"))))
-
-(ert-deftest projectile-test-expand-root ()
-  (noflet ((projectile-project-root () "/path/to/project"))
-    (should (equal (projectile-expand-root "foo") "/path/to/project/foo"))
-    (should (equal (projectile-expand-root "foo/bar") "/path/to/project/foo/bar"))
-    (should (equal (projectile-expand-root "./foo/bar") "/path/to/project/foo/bar"))))
-
 (ert-deftest projectile-test-ignored-directory-p ()
   (noflet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/t\\.*")))
     (should (projectile-ignored-directory-p "/path/to/project/tmp"))
