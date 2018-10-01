@@ -385,7 +385,7 @@ it for functions working with buffers."
 
 You can use either exact buffer names or regular expressions.
 If a buffer is in the list projectile will ignore it for
-functions working with buffers.."
+functions working with buffers."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.12.0"))
