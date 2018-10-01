@@ -1005,11 +1005,7 @@ topmost sequence of matched directories.  Nil otherwise."
 
 (defun projectile-project-root (&optional dir)
   "Retrieves the root directory of a project if available.
-If DIR is not supplied its set to the current directory by default.
-
-When not in project the behaviour of the function is controlled by
-`projectile-require-project-root'.  If it's set to nil the function
-will return DIR or the current directory, otherwise it'd raise an error."
+If DIR is not supplied its set to the current directory by default."
   ;; the cached value will be 'none in the case of no project root (this is to
   ;; ensure it is not reevaluated each time when not inside a project) so use
   ;; cl-subst to replace this 'none value with nil so a nil value is used
