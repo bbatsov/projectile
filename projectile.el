@@ -1247,61 +1247,6 @@ VCS is the VCS of the project."
     (when cmd
       (projectile-files-via-ext-command project (concat cmd " " dir)))))
 
-(defun projectile-check-vcs-status (&optional project-path)
-  "Check the status of the current project.
-If PROJECT-PATH is a project, check this one instead."
-  (let ((project-path (or project-path (projectile-project-root)))
-        (project-status nil))
-    (save-excursion
-      (vc-dir project-path)
-      ;; wait until vc-dir is done
-      (while (vc-dir-busy) (sleep-for 0 100))
-      ;; check for status
-      (save-excursion
-        (save-match-data
-          (dolist (check projectile-vcs-dirty-state)
-            (goto-char (point-min))
-            (when (search-forward check nil t)
-              (setq project-status (cons check project-status))))))
-      (kill-buffer)
-      project-status)))
-
-(defvar projectile-cached-dirty-projects-status nil
-  "Cache of the last dirty projects check.")
-
-(defun projectile-check-vcs-status-of-known-projects ()
-  "Return the list of dirty projects.
-The list is composed of sublists~: (project-path, project-status).
-Raise an error if their is no dirty project."
-  (save-window-excursion
-    (message "Checking for modifications in known projects...")
-    (let ((projects projectile-known-projects)
-          (status ()))
-      (dolist (project projects)
-        (when (and (projectile-keep-project-p project) (not (string= 'none (projectile-project-vcs project))))
-          (let ((tmp-status (projectile-check-vcs-status project)))
-            (when tmp-status
-              (setq status (cons (list project tmp-status) status))))))
-      (when (= (length status) 0)
-        (message "No dirty projects have been found"))
-      (setq projectile-cached-dirty-projects-status status)
-      status)))
-
-(defun projectile-browse-dirty-projects (&optional cached)
-  "Browse dirty version controlled projects.
-
-With a prefix argument, or if CACHED is non-nil, try to use the cached
-dirty project list."
-  (interactive "P")
-  (let ((status (if (and cached projectile-cached-dirty-projects-status)
-                    projectile-cached-dirty-projects-status
-                  (projectile-check-vcs-status-of-known-projects)))
-        (mod-proj nil))
-    (while (not (= (length status) 0))
-      (setq mod-proj (cons (car (pop status)) mod-proj)))
-    (projectile-completing-read "Select project: " mod-proj
-                                :action 'projectile-vc)))
-
 (defun projectile-files-via-ext-command (root command)
   "Get a list of relative file names in the project ROOT by executing COMMAND.
 
@@ -3886,6 +3831,65 @@ is chosen."
   (def-projectile-commander-method ?e
     "Find recently visited file in project."
     (projectile-recentf)))
+
+
+;;; Dirty (modified) project check related functionality
+(defun projectile-check-vcs-status (&optional project-path)
+  "Check the status of the current project.
+If PROJECT-PATH is a project, check this one instead."
+  (let ((project-path (or project-path (projectile-project-root)))
+        (project-status nil))
+    (save-excursion
+      (vc-dir project-path)
+      ;; wait until vc-dir is done
+      (while (vc-dir-busy) (sleep-for 0 100))
+      ;; check for status
+      (save-excursion
+        (save-match-data
+          (dolist (check projectile-vcs-dirty-state)
+            (goto-char (point-min))
+            (when (search-forward check nil t)
+              (setq project-status (cons check project-status))))))
+      (kill-buffer)
+      project-status)))
+
+(defvar projectile-cached-dirty-projects-status nil
+  "Cache of the last dirty projects check.")
+
+(defun projectile-check-vcs-status-of-known-projects ()
+  "Return the list of dirty projects.
+The list is composed of sublists~: (project-path, project-status).
+Raise an error if their is no dirty project."
+  (save-window-excursion
+    (message "Checking for modifications in known projects...")
+    (let ((projects projectile-known-projects)
+          (status ()))
+      (dolist (project projects)
+        (when (and (projectile-keep-project-p project) (not (string= 'none (projectile-project-vcs project))))
+          (let ((tmp-status (projectile-check-vcs-status project)))
+            (when tmp-status
+              (setq status (cons (list project tmp-status) status))))))
+      (when (= (length status) 0)
+        (message "No dirty projects have been found"))
+      (setq projectile-cached-dirty-projects-status status)
+      status)))
+
+;;;###autoload
+(defun projectile-browse-dirty-projects (&optional cached)
+  "Browse dirty version controlled projects.
+
+With a prefix argument, or if CACHED is non-nil, try to use the cached
+dirty project list."
+  (interactive "P")
+  (let ((status (if (and cached projectile-cached-dirty-projects-status)
+                    projectile-cached-dirty-projects-status
+                  (projectile-check-vcs-status-of-known-projects)))
+        (mod-proj nil))
+    (while (not (= (length status) 0))
+      (setq mod-proj (cons (car (pop status)) mod-proj)))
+    (projectile-completing-read "Select project: " mod-proj
+                                :action 'projectile-vc)))
+
 
 
 ;;; Editing a project's .dir-locals
