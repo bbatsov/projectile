@@ -1,3 +1,9 @@
+;;;;;;; Warning
+;;
+;; This file contains the project's legacy tests using the ERT framework.
+;; We're in the process of moving those tests to Buttercup.
+;; Don't add anything new here!
+
 (require 'projectile)
 (require 'dash)
 (require 'ert)
