@@ -41,6 +41,18 @@
      (let ((default-directory sandbox))
        ,@body)))
 
+(defun projectile-mock-serialization-functions (&rest body)
+  (let (projectile-serialization-calls)
+    (noflet ((projectile-serialize (&rest args)
+                                   (push (cons 'serialize args)
+                                         projectile-serialization-calls)
+                                   'projectile-serialize-return)
+             (projectile-unserialize (&rest args)
+                                     (push (cons 'unserialize args)
+                                           projectile-serialization-calls)
+                                     'projectile-unserialize-return))
+            (eval (cons 'progn body)))))
+
 (defmacro projectile-test-with-files (files &rest body)
   "Evaluate BODY in the presence of FILES.
 
@@ -54,6 +66,13 @@ You'd normally combine this with `projectile-test-with-sandbox'."
                files)
      ,@body))
 
+(defun projectile-test-tmp-file-path ()
+  "Return a filename suitable to save data to in the
+test temp directory"
+  (concat projectile-test-path
+          "/tmp/temporary-file-" (format "%d" (random))
+          ".eld"))
+
 ;;; Tests
 (describe "projectile-prepend-project-name"
   (it "prepends the project name to its parameter"
@@ -66,3 +85,29 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (expect (projectile-expand-root "foo") :to-equal "/path/to/project/foo")
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
+
+(describe "projectile-save-known-projects"
+  (it "saves known projects through serialization functions"
+    (projectile-mock-serialization-functions
+     '(let ((projectile-known-projects-file (projectile-test-tmp-file-path))
+           (projectile-known-projects '(floop)))
+       (projectile-save-known-projects)
+       (expect (car projectile-serialization-calls) :to-equal
+               `(serialize (floop) ,projectile-known-projects-file))))))
+
+(describe "projectile-serialization-functions"
+  (it "tests that serialization functions can save/restore data to the filesystem"
+    (let ((this-test-file (projectile-test-tmp-file-path)))
+      (unwind-protect
+        (progn
+          (projectile-serialize '(some random data) this-test-file)
+          (expect (projectile-unserialize this-test-file) :to-equal '(some random data))
+          (when (file-exists-p this-test-file)
+            (delete-file this-test-file)))))))
+
+(describe "projectile-clear-known-projects"
+  (it "clears known projects"
+    (let ((projectile-known-projects '("one" "two" "three"))
+          (projectile-known-projects-file (projectile-test-tmp-file-path)))
+      (projectile-clear-known-projects)
+      (expect projectile-known-projects :to-equal nil))))
