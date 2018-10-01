@@ -4038,6 +4038,7 @@ thing shown in the mode line otherwise."
         ["Switch to buffer" projectile-switch-to-buffer]
         ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
         ["Kill project buffers" projectile-kill-buffers]
+        ["Save project buffers" projectile-save-buffers]
         ["Recent files" projectile-recentf]
         "--"
         ["Toggle project wide read-only" projectile-toggle-project-read-only]
