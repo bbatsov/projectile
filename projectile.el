@@ -3089,10 +3089,11 @@ to run the replacement."
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
   (interactive)
-  (dolist (buf (projectile-project-buffers))
-    (with-current-buffer buf
-      (when buffer-file-name
-        (save-buffer)))))
+  (let ((project (projectile-ensure-project (projectile-project-root))))
+   (dolist (buf (projectile-project-buffers project))
+     (with-current-buffer buf
+       (when buffer-file-name
+         (save-buffer))))))
 
 ;;;###autoload
 (defun projectile-dired ()
