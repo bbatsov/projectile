@@ -486,26 +486,6 @@ project."
                                           (when (projectile-project-p)
                                             (run-hooks 'projectile-idle-timer-hook)))))))
   :type 'boolean)
-
-;;; Serialization
-(defun projectile-serialize (data filename)
-  "Serialize DATA to FILENAME.
-
-The saved data can be restored with `projectile-unserialize'."
-  (when (file-writable-p filename)
-    (with-temp-file filename
-      (insert (let (print-length) (prin1-to-string data))))))
-
-(defun projectile-unserialize (filename)
-  "Read data serialized by `projectile-serialize' from FILENAME."
-  (with-demoted-errors
-      "Error during file deserialization: %S"
-    (when (file-exists-p filename)
-      (with-temp-buffer
-        (insert-file-contents filename)
-        ;; this will blow up if the contents of the file aren't
-        ;; lisp data structures
-        (read (buffer-string))))))
 
 (defvar projectile-projects-cache nil
   "A hashmap used to cache project file names to speed up related operations.")
@@ -713,6 +693,50 @@ just return nil."
           (message "Projectile %s" version))
         version)
     (error "Cannot determine version without package pkg-info")))
+
+;;; Misc utility functions
+(defun projectile-difference (list1 list2)
+  (cl-remove-if
+   (lambda (x) (member x list2))
+   list1))
+
+(defun projectile-unixy-system-p ()
+  "Check to see if unixy text utilities are installed."
+  (cl-every
+   (lambda (x) (executable-find x))
+   '("grep" "cut" "uniq")))
+
+(defun projectile-symbol-or-selection-at-point ()
+  "Get the symbol or selected text at point."
+  (if (use-region-p)
+      (buffer-substring-no-properties (region-beginning) (region-end))
+    (projectile-symbol-at-point)))
+
+(defun projectile-symbol-at-point ()
+  "Get the symbol at point and strip its properties."
+  (substring-no-properties (or (thing-at-point 'symbol) "")))
+
+
+
+;;; Serialization
+(defun projectile-serialize (data filename)
+  "Serialize DATA to FILENAME.
+
+The saved data can be restored with `projectile-unserialize'."
+  (when (file-writable-p filename)
+    (with-temp-file filename
+      (insert (let (print-length) (prin1-to-string data))))))
+
+(defun projectile-unserialize (filename)
+  "Read data serialized by `projectile-serialize' from FILENAME."
+  (with-demoted-errors
+      "Error during file deserialization: %S"
+    (when (file-exists-p filename)
+      (with-temp-buffer
+        (insert-file-contents filename)
+        ;; this will blow up if the contents of the file aren't
+        ;; lisp data structures
+        (read (buffer-string))))))
 
 
 ;;; Caching
@@ -1420,11 +1444,6 @@ Regular expressions can be use."
         (string-match-p (concat "^" mode "$")
                         (symbol-name major-mode)))
       projectile-globally-ignored-modes))))
-
-(defun projectile-difference (list1 list2)
-  (cl-remove-if
-   (lambda (x) (member x list2))
-   list1))
 
 (defun projectile-recently-active-files ()
   "Get list of recently active files.
@@ -3000,12 +3019,6 @@ Switch to the project specific term buffer if it already exists."
      (lambda (f) (string-prefix-p dir f))
      (projectile-current-project-files))))
 
-(defun projectile-unixy-system-p ()
-  "Check to see if unixy text utilities are installed."
-  (cl-every
-   (lambda (x) (executable-find x))
-   '("grep" "cut" "uniq")))
-
 (defun projectile-files-from-cmd (cmd directory)
   "Use a grep-like CMD to search for files within DIRECTORY.
 
@@ -3109,16 +3122,6 @@ to run the replacement."
            #'file-directory-p
            (mapcar #'projectile-expand-root (projectile-dir-files directory directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
-
-(defun projectile-symbol-or-selection-at-point ()
-  "Get the symbol or selected text at point."
-  (if (use-region-p)
-      (buffer-substring-no-properties (region-beginning) (region-end))
-    (projectile-symbol-at-point)))
-
-(defun projectile-symbol-at-point ()
-  "Get the symbol at point and strip its properties."
-  (substring-no-properties (or (thing-at-point 'symbol) "")))
 
 ;;;###autoload
 (defun projectile-kill-buffers ()
