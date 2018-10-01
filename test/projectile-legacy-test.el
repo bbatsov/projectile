@@ -41,10 +41,6 @@
                             (file-name-as-directory directory))))
                      (file-truename (projectile-project-root)))))))
 
-(ert-deftest projectile-test-project-get-name ()
-  (noflet ((projectile-project-name () "project"))
-    (should (equal (projectile-project-name) "project"))))
-
 (ert-deftest projectile-test-ignored-directory-p ()
   (noflet ((projectile-ignored-directories () '("/path/to/project/tmp" "/path/to/project/t\\.*")))
     (should (projectile-ignored-directory-p "/path/to/project/tmp"))
