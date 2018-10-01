@@ -1335,9 +1335,10 @@ this case unignored files will be absent from FILES."
   (cl-remove-if-not (lambda (b) (or (buffer-file-name b)
                                     (get-buffer-process b))) buffers))
 
-(defun projectile-project-buffers ()
-  "Get a list of project buffers."
-  (let* ((project-root (projectile-project-root))
+(defun projectile-project-buffers (&optional project)
+  "Get a list of a project's buffers.
+If PROJECT is not specified the command acts on the current project."
+  (let* ((project-root (or project (projectile-project-root)))
          (all-buffers (cl-remove-if-not
                        (lambda (buffer)
                          (projectile-project-buffer-p buffer project-root))
@@ -1352,16 +1353,17 @@ this case unignored files will be absent from FILES."
     (dolist (buffer project-buffers)
       (funcall action buffer))))
 
-(defun projectile-project-buffer-files ()
-  "Get a list of project buffer files."
-  (let ((project-root (projectile-project-root)))
+(defun projectile-project-buffer-files (&optional project)
+  "Get a list of a project's buffer files.
+If PROJECT is not specified the command acts on the current project."
+  (let ((project-root (or project (projectile-project-root))))
     (mapcar
      (lambda (buffer)
        (file-relative-name
         (buffer-file-name buffer)
         project-root))
      (projectile-buffers-with-file
-      (projectile-project-buffers)))))
+      (projectile-project-buffers project)))))
 
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
@@ -3072,8 +3074,9 @@ to run the replacement."
 (defun projectile-kill-buffers ()
   "Kill all project buffers."
   (interactive)
-  (let ((name (projectile-project-name))
-        (buffers (projectile-project-buffers)))
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (name (projectile-project-name))
+         (buffers (projectile-project-buffers project)))
     (if (yes-or-no-p
          (format "Are you sure you want to kill %d buffer(s) for '%s'? "
                  (length buffers) name))
