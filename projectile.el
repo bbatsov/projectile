@@ -1068,10 +1068,11 @@ explicitly."
   "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
   (file-name-nondirectory (directory-file-name project-root)))
 
-(defun projectile-project-name ()
-  "Return project name."
+(defun projectile-project-name (&optional project)
+  "Return project name.
+If PROJECT is not specified acts on the current project."
   (or projectile-project-name
-      (let ((project-root (projectile-project-root)))
+      (let ((project-root (or project (projectile-project-root))))
         (if project-root
             (funcall projectile-project-name-function project-root)
           "-"))))
@@ -3075,11 +3076,11 @@ to run the replacement."
   "Kill all project buffers."
   (interactive)
   (let* ((project (projectile-ensure-project (projectile-project-root)))
-         (name (projectile-project-name))
+         (project-name (projectile-project-name project))
          (buffers (projectile-project-buffers project)))
     (if (yes-or-no-p
          (format "Are you sure you want to kill %d buffer(s) for '%s'? "
-                 (length buffers) name))
+                 (length buffers) project-name))
         ;; we take care not to kill indirect buffers directly
         ;; as we might encounter them after their base buffers are killed
         (mapc #'kill-buffer (cl-remove-if 'buffer-base-buffer buffers)))))
