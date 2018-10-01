@@ -41,18 +41,6 @@
      (let ((default-directory sandbox))
        ,@body)))
 
-(defun projectile-mock-serialization-functions (&rest body)
-  (let (projectile-serialization-calls)
-    (noflet ((projectile-serialize (&rest args)
-                                   (push (cons 'serialize args)
-                                         projectile-serialization-calls)
-                                   'projectile-serialize-return)
-             (projectile-unserialize (&rest args)
-                                     (push (cons 'unserialize args)
-                                           projectile-serialization-calls)
-                                     'projectile-unserialize-return))
-            (eval (cons 'progn body)))))
-
 (defmacro projectile-test-with-files (files &rest body)
   "Evaluate BODY in the presence of FILES.
 
@@ -88,12 +76,11 @@ test temp directory"
 
 (describe "projectile-save-known-projects"
   (it "saves known projects through serialization functions"
-    (projectile-mock-serialization-functions
-     '(let ((projectile-known-projects-file (projectile-test-tmp-file-path))
-           (projectile-known-projects '(floop)))
-       (projectile-save-known-projects)
-       (expect (car projectile-serialization-calls) :to-equal
-               `(serialize (floop) ,projectile-known-projects-file))))))
+    (let ((projectile-known-projects-file (projectile-test-tmp-file-path))
+          (projectile-known-projects '(floop)))
+      (spy-on 'projectile-serialize)
+      (projectile-save-known-projects)
+      (expect 'projectile-serialize :to-have-been-called-with '(floop) projectile-known-projects-file))))
 
 (describe "projectile-serialization-functions"
   (it "tests that serialization functions can save/restore data to the filesystem"
