@@ -62,6 +62,19 @@ test temp directory"
           ".eld"))
 
 ;;; Tests
+(describe "projectile-project-name"
+  (it "return projectile-project-name when present"
+    (let ((projectile-project-name "name"))
+      (expect (projectile-project-name) :to-equal "name")
+      (expect (projectile-project-name "other") :to-equal "name")))
+  (it "uses projectile-project-name-function to get the project name from the project dir"
+    (let ((projectile-project-name-function (lambda (dir) dir)))
+      (expect (projectile-project-name "some/dir") :to-equal "some/dir")))
+  (it "acts on the current project is not passed a project dir explicitly"
+    (spy-on 'projectile-project-root :and-return-value "current/project")
+    (let ((projectile-project-name-function (lambda (dir) dir)))
+      (expect (projectile-project-name) :to-equal "current/project"))))
+
 (describe "projectile-prepend-project-name"
   (it "prepends the project name to its parameter"
     (spy-on 'projectile-project-name :and-return-value "project")
