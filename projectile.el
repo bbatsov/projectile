@@ -1206,7 +1206,7 @@ they are excluded from the results of this function."
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
                       (lambda (s)
-                        (file-name-as-directory (expand-file-name s default-directory)))
+                        (file-name-as-directory (expand-file-name s path)))
                       (projectile-files-via-ext-command path (projectile-get-sub-projects-command vcs))))
          (project-child-folder-regex
           (concat "\\`"
