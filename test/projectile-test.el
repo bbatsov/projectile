@@ -98,3 +98,10 @@ test temp directory"
           (projectile-known-projects-file (projectile-test-tmp-file-path)))
       (projectile-clear-known-projects)
       (expect projectile-known-projects :to-equal nil))))
+
+(describe "projectile-test-ignored-directory-p"
+  (it "ignores specified directories"
+    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp" "/path/to/project/t\\.*"))
+    (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
+    (expect (projectile-ignored-directory-p "/path/to/project/t.ignore") :to-be-truthy)
+    (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
