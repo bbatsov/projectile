@@ -4019,6 +4019,8 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "x t") #'projectile-run-term)
     (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "z") #'projectile-cache-current-file)
+    (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
+    (define-key map (kbd "<right>") #'projectile-next-project-buffer)
     (define-key map (kbd "ESC") #'projectile-project-buffers-other-buffer)
     map)
   "Keymap for Projectile commands after `projectile-keymap-prefix'.")
@@ -4137,6 +4139,29 @@ Otherwise behave as if called interactively.
 
 ;;;###autoload
 (define-obsolete-function-alias 'projectile-global-mode 'projectile-mode "1.0")
+
+(defun projectile--repeat-until-project-buffer (orig-fun &rest args)
+  "Repeat ORIG-FUN with ARGS until the current buffer is a project buffer."
+  (let* ((other-project-buffers
+          (delete (current-buffer) (projectile-project-buffers)))
+         (max-iterations (length (buffer-list)))
+         (counter 0))
+    (when other-project-buffers
+      (while (and (< counter max-iterations)
+                  (not (memq (current-buffer) other-project-buffers)))
+        (apply orig-fun args)
+        (incf counter)))))
+
+(defun projectile-next-project-buffer ()
+  "In selected window switch to the next project buffer."
+  (interactive)
+  (projectile--repeat-until-project-buffer #'next-buffer))
+
+(defun projectile-previous-project-buffer ()
+  "In selected window switch to the previous project buffer."
+  (interactive)
+  (projectile--repeat-until-project-buffer #'previous-buffer))
+
 
 (provide 'projectile)
 
