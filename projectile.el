@@ -1361,6 +1361,7 @@ If PROJECT is not specified the command acts on the current project."
   (with-current-buffer buffer
     (and (not (string-prefix-p " " (buffer-name buffer)))
          (not (projectile-ignored-buffer-p buffer))
+         default-directory
          (string-equal (file-remote-p default-directory)
                        (file-remote-p project-root))
          (not (string-match-p "^http\\(s\\)?://" default-directory))
