@@ -1503,7 +1503,7 @@ projectile project root."
 (defun projectile-ignored-directory-p (directory)
   "Check if DIRECTORY should be ignored.
 
-Regular expressions can be use."
+Regular expressions can be used."
   (cl-some
    (lambda (name)
      (string-match-p name directory))
