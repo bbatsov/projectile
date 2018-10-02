@@ -1931,7 +1931,8 @@ A typical example of such a defun would be `find-file-other-window' or
 
 Subroutine for `projectile-find-file-dwim' and
 `projectile-find-file-dwim-other-window'"
-  (let* ((project-files (projectile-current-project-files))
+  (let* ((project-root (projectile-project-root))
+         (project-files (projectile-project-files project-root))
          (files (projectile-select-files project-files invalidate-cache))
          (file (cond ((= (length files) 1)
                       (car files))
@@ -1940,7 +1941,7 @@ Subroutine for `projectile-find-file-dwim' and
                      (t
                       (projectile-completing-read "Switch to: " project-files))))
          (ff (or ff-variant #'find-file)))
-    (funcall ff (expand-file-name file (projectile-project-root)))
+    (funcall ff (expand-file-name file project-root))
     (run-hooks 'projectile-find-file-hook)))
 
 ;;;###autoload
@@ -3566,10 +3567,9 @@ This command will first prompt for the directory the file is in."
   (cl-mapcan
    (lambda (project)
      (when (file-exists-p project)
-       (let ((default-directory project))
-         (mapcar (lambda (file)
-                   (expand-file-name file project))
-                 (projectile-current-project-files)))))
+       (mapcar (lambda (file)
+                 (expand-file-name file project))
+               (projectile-project-files project))))
    projectile-known-projects))
 
 ;;;###autoload
