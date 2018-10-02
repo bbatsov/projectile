@@ -1754,7 +1754,14 @@ https://github.com/abo-abo/swiper")))
       (when projectile-enable-caching
         (projectile-cache-project project-root files)))
 
-    (projectile-sort-files files)))
+    ;;; Sorting
+    ;;
+    ;; Files can't be cached in sorted order as some sorting schemes
+    ;; require dynamic data.  Sorting is ignored completely when in
+    ;; turbo-alien mode.
+    (if (eq projectile-indexing-method 'turbo-alien)
+        files
+      (projectile-sort-files files))))
 
 (defun projectile-current-project-files ()
   "Return a list of the files in the current project."
