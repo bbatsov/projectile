@@ -100,8 +100,11 @@ test temp directory"
       (expect projectile-known-projects :to-equal nil))))
 
 (describe "projectile-test-ignored-directory-p"
-  (it "ignores specified directories"
-    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp" "/path/to/project/t\\.*"))
+  (it "ignores specified literal directory values"
+    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp"))
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
-    (expect (projectile-ignored-directory-p "/path/to/project/t.ignore") :to-be-truthy)
+    (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy))
+  (it "ignores specified regex directory values"
+    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/t\\.*"))
+    (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
