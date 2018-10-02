@@ -3472,13 +3472,33 @@ An open project is a project with any open buffers."
                              (list (abbreviate-file-name (projectile-project-root))))
     projects))
 
+(defun projectile--move-current-project-to-end (projects)
+  "Move current project (if any) to the end of list in the list of PROJECTS"
+  (if (projectile-project-p)
+      (append
+       (projectile--remove-current-project projects)
+       (list (abbreviate-file-name (projectile-project-root))))
+    projects))
+
 (defun projectile-relevant-known-projects ()
-  "Return a list of known projects except the current one (if present)."
-  (projectile--remove-current-project projectile-known-projects))
+  "Return a list of known projects."
+  (cond
+   ((eq projectile-current-project-on-switch 'remove)
+    (projectile--remove-current-project projectile-known-projects))
+   ((eq projectile-current-project-on-switch 'move-to-end)
+    (projectile--move-current-project-to-end projectile-known-projects))
+   ((eq projectile-current-project-on-switch 'keep)
+    projectile-known-projects)))
 
 (defun projectile-relevant-open-projects ()
-  "Return a list of open projects except the current one (if present)."
-  (projectile--remove-current-project (projectile-open-projects)))
+  "Return a list of open projects."
+  (cond
+   ((eq projectile-current-project-on-switch 'remove)
+    (projectile--remove-current-project projectile-known-projects))
+   ((eq projectile-current-project-on-switch 'move-to-end)
+    (projectile--move-current-project-to-end projectile-known-projects))
+   ((eq projectile-current-project-on-switch 'keep)
+    projectile-known-projects)))
 
 ;;;###autoload
 (defun projectile-switch-project (&optional arg)
@@ -3940,6 +3960,18 @@ thing shown in the mode line otherwise."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.12.0"))
+
+(defcustom projectile-current-project-on-switch 'remove
+  "Determines whether to display current project as an option
+when switching projects.
+When set to 'remove current project is not included,
+'move-to-end will display current project and the end of the list of known projects,
+'keep will leave the current project at the default position."
+  :group 'projectile
+  :type '(radio
+          (const :tag "remove" remove)
+          (const :tag "move-to-end" move-to-end)
+          (const :tag "keep" keep)))
 
 (define-obsolete-variable-alias 'projectile-mode-line-lighter 'projectile-mode-line-prefix)
 
