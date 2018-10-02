@@ -918,6 +918,7 @@ at the top level of DIRECTORY."
              (projectile-add-known-project (projectile-project-root))))))
      subdirs)))
 
+;;;###autoload
 (defun projectile-discover-projects-in-search-path ()
   "Discover projects in `projectile-project-search-path'.
 Invoked automatically when `projectile-mode' is enabled."
