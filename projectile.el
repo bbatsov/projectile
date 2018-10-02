@@ -1048,12 +1048,6 @@ Controlled by `projectile-require-project-root'."
      (projectile-require-project-root (error "Projectile can't find a project definition in %s" dir))
      (t default-directory))))
 
-(defun projectile-file-truename (file-name)
-  "Return the truename of FILE-NAME.
-A thin wrapper around `file-truename' that handles nil."
-  (when file-name
-    (file-truename file-name)))
-
 (defun projectile-project-p (&optional dir)
   "Check if DIR is a project.
 Defaults to the current directory if not provided

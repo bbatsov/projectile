@@ -174,10 +174,6 @@
       (should (equal '("/my/root/foo" "/my/root/bar/baz")
                      (projectile-get-project-directories "/my/root/"))))))
 
-(ert-deftest projectile-test-file-truename ()
-  (should (equal nil (projectile-file-truename nil)))
-  (should (equal (file-truename "test") (projectile-file-truename "test"))))
-
 (ert-deftest projectile-test-dir-files ()
   (noflet ((projectile-patterns-to-ignore () nil)
            (projectile-index-directory (dir patterns progress-reporter)
