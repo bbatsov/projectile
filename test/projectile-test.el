@@ -74,6 +74,68 @@ test temp directory"
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
 
+(describe "projectile-load-known-projects"
+  (it "loads known projects through serialization functions"
+    (let ((projectile-known-projects-file (projectile-test-tmp-file-path)))
+      (spy-on 'projectile-unserialize :and-return-value '("a1" "a2"))
+      (projectile-load-known-projects)
+      (expect 'projectile-unserialize :to-have-been-called-with projectile-known-projects-file)
+      (expect projectile-known-projects :to-equal '("a1" "a2")))))
+
+(describe "projectile-merge-known-projects"
+  (it "merges known projects"
+    (let ((projectile-known-projects nil)
+	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+      ;; initialize saved known projects and load it from disk
+      (projectile-serialize '("a1" "a2" "a3" "a4" "a5")
+			    projectile-known-projects-file)
+      (projectile-load-known-projects)
+      ;; simulate other emacs session changes by: remove a2 a5 and adding b1 b2
+      (projectile-serialize '("a3" "b1" "a1" "a4" "b2")
+			    projectile-known-projects-file)
+      ;; remove a4 and add a6 and merge with disk
+      (setq projectile-known-projects '("a6" "a1" "a2" "a3" "a5"))
+      (projectile-merge-known-projects)
+      (delete-file projectile-known-projects-file nil)
+      (expect projectile-known-projects :to-equal '("a6" "a1" "a3" "b1" "b2"))))
+  (it "merges known projects to an empty file"
+    (let ((projectile-known-projects nil)
+	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+      ;; initialize saved known projects and load it from disk
+      (projectile-serialize '("a1" "a2" "a3" "a4" "a5")
+			    projectile-known-projects-file)
+      (projectile-load-known-projects)
+      ;; empty the on disk known projects list
+      (projectile-serialize '() projectile-known-projects-file)
+      ;; merge
+      (projectile-merge-known-projects)
+      (delete-file projectile-known-projects-file nil)
+      (expect projectile-known-projects :to-equal '())))
+  (it "merges known projects from an empty file"
+    (let ((projectile-known-projects nil)
+	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+      ;; initialize saved known projects and load it from disk
+      (projectile-serialize '() projectile-known-projects-file)
+      (projectile-load-known-projects)
+      ;; empty the on disk known projects list
+      (projectile-serialize '("a" "b" "c" "d") projectile-known-projects-file)
+      ;; merge
+      (projectile-merge-known-projects)
+      (delete-file projectile-known-projects-file nil)
+      (expect projectile-known-projects :to-equal '("a" "b" "c" "d"))))
+  (it "merges known projects while keeping their order"
+    (let ((projectile-known-projects nil)
+	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+      ;; initialize saved known projects and load it from disk
+      (projectile-serialize '("a" "b" "c" "d") projectile-known-projects-file)
+      (projectile-load-known-projects)
+      ;; save the same list in different order
+      (projectile-serialize '("d" "c" "b" "a") projectile-known-projects-file)
+      ;; merge
+      (projectile-merge-known-projects)
+      (delete-file projectile-known-projects-file nil)
+      (expect projectile-known-projects :to-equal '("a" "b" "c" "d")))))
+
 (describe "projectile-save-known-projects"
   (it "saves known projects through serialization functions"
     (let ((projectile-known-projects-file (projectile-test-tmp-file-path))
