@@ -913,9 +913,8 @@ at the top level of DIRECTORY."
      (lambda (dir)
        (when (and (file-directory-p dir)
                   (not (member (file-name-nondirectory dir) '(".." "."))))
-         (let ((default-directory dir))
-           (when (projectile-project-p)
-             (projectile-add-known-project (projectile-project-root))))))
+         (when (projectile-project-p dir)
+           (projectile-add-known-project dir))))
      subdirs)))
 
 ;;;###autoload
