@@ -967,34 +967,6 @@ test temp directory"
     (delete-file projectile-known-projects-file nil)
     (should (equal projectile-known-projects '("a" "b" "c" "d")))))
 
-(ert-deftest
-    projectile-test-saves-known-projects-through-serialization-functions ()
-  (projectile-mock-serialization-functions
-   '(let ((projectile-known-projects-file (projectile-test-tmp-file-path))
-          (projectile-known-projects '(floop)))
-
-      (projectile-save-known-projects)
-
-      (should (equal (car projectile-serialization-calls)
-                     `(serialize (floop) ,projectile-known-projects-file))))))
-
-(ert-deftest projectile-test-serialization-functions ()
-  "Test that serialization funtions can save/restore data to the filesystem."
-  (let ((this-test-file (projectile-test-tmp-file-path)))
-    (unwind-protect
-        (progn
-          (projectile-serialize '(some random data) this-test-file)
-          (should (equal (projectile-unserialize this-test-file)
-                         '(some random data))))
-      (when (file-exists-p this-test-file)
-        (delete-file this-test-file)))))
-
-(ert-deftest projectile-clear-known-projects ()
-  (let ((projectile-known-projects '("one" "two" "three"))
-        (projectile-known-projects-file (projectile-test-tmp-file-path)))
-    (projectile-clear-known-projects)
-    (should (null projectile-known-projects))))
-
 ;; Local Variables:
 ;; indent-tabs-mode: nil
 ;; End:
