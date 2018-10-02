@@ -186,9 +186,9 @@
            (projectile-dir-files-external (dir) '("a/b/c" "a/d/e"))
            (cd (directory) "/my/root/a/" nil))
     (let ((projectile-indexing-method 'native))
-      (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/" "a/"))))
+      (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/"))))
     (let ((projectile-indexing-method 'alien))
-      (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/" "a/"))))))
+      (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/"))))))
 
 (ert-deftest projectile-test-git-submodule-command ()
   (should (string-prefix-p "git" (projectile-get-sub-projects-command 'git)))

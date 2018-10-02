@@ -1080,9 +1080,9 @@ If PROJECT is not specified acts on the current project."
   (mapcar (lambda (subdir) (concat project-dir subdir))
           (or (nth 0 (projectile-parse-dirconfig-file)) '(""))))
 
-(defun projectile-dir-files (root directory)
+(defun projectile-dir-files (directory)
   "List the files in DIRECTORY and in its sub-directories.
-Files are returned as relative paths to the project ROOT."
+Files are returned as relative paths to DIRECTORY."
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
                          (gethash directory projectile-projects-cache))))
@@ -1090,7 +1090,7 @@ Files are returned as relative paths to the project ROOT."
     (or files-list
         (let ((vcs (projectile-project-vcs directory)))
           (pcase projectile-indexing-method
-           ('native (projectile-dir-files-native root directory))
+           ('native (projectile-dir-files-native directory))
            ;; use external tools to get the project files
            ('alien (projectile-adjust-files directory vcs (projectile-dir-files-external directory)))
            ('turbo-alien (projectile-dir-files-external directory))
@@ -1099,14 +1099,14 @@ Files are returned as relative paths to the project ROOT."
 ;;; Native Project Indexing
 ;;
 ;; This corresponds to `projectile-indexing-method' being set to native.
-(defun projectile-dir-files-native (root directory)
+(defun projectile-dir-files-native (directory)
   "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
   (let ((progress-reporter
          (make-progress-reporter
           (format "Projectile is indexing %s"
                   (propertize directory 'face 'font-lock-keyword-face)))))
     ;; we need the files with paths relative to the project root
-    (mapcar (lambda (file) (file-relative-name file root))
+    (mapcar (lambda (file) (file-relative-name file directory))
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
@@ -1747,7 +1747,7 @@ https://github.com/abo-abo/swiper")))
       (when projectile-enable-caching
         (message "Projectile is initializing cache..."))
       (setq files (cl-mapcan
-                   (lambda (dir) (projectile-dir-files project-root dir))
+                   (lambda (dir) (projectile-dir-files dir))
                    (projectile-get-project-directories project-root)))
 
       ;; Save the cached list.
@@ -3014,7 +3014,7 @@ files in the project."
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
      #'file-directory-p
-     (mapcar #'projectile-expand-root (projectile-dir-files directory directory)))))
+     (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
 
 ;;;###autoload
 (defun projectile-replace (&optional arg)
@@ -3071,7 +3071,7 @@ to run the replacement."
           ;; don't support Emacs regular expressions.
           (cl-remove-if
            #'file-directory-p
-           (mapcar #'projectile-expand-root (projectile-dir-files directory directory)))))
+           (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 
 ;;;###autoload
@@ -3555,7 +3555,7 @@ This command will first prompt for the directory the file is in."
     (if (projectile-project-p)
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
-                                                (projectile-dir-files directory directory))))
+                                                (projectile-dir-files directory))))
           (find-file (expand-file-name file (projectile-project-root)))
           (run-hooks 'projectile-find-file-hook))
       ;; target directory is not in a project
