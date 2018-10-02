@@ -4142,13 +4142,16 @@ Otherwise behave as if called interactively.
 
 (defun projectile--repeat-until-project-buffer (orig-fun &rest args)
   "Repeat ORIG-FUN with ARGS until the current buffer is a project buffer."
-  (let* ((other-project-buffers
-          (delete (current-buffer) (projectile-project-buffers)))
+  (let* ((other-project-buffers (make-hash-table :test 'eq))
+         (projectile-project-buffers (projectile-project-buffers))
          (max-iterations (length (buffer-list)))
          (counter 0))
-    (when other-project-buffers
+    (dolist (buffer projectile-project-buffers)
+      (unless (eq buffer (current-buffer))
+        (puthash buffer t other-project-buffers)))
+    (when (cdr-safe projectile-project-buffers)
       (while (and (< counter max-iterations)
-                  (not (memq (current-buffer) other-project-buffers)))
+                  (not (gethash (current-buffer) other-project-buffers)))
         (apply orig-fun args)
         (incf counter)))))
 
