@@ -1506,7 +1506,7 @@ Regular expressions can be used."
 (defun projectile-ignored-file-p (file)
   "Check if FILE should be ignored.
 
-Regular expressions can be use."
+Regular expressions can be used."
   (cl-some
    (lambda (name)
      (string-match-p name file))
