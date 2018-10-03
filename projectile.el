@@ -1361,6 +1361,7 @@ If PROJECT is not specified the command acts on the current project."
   (with-current-buffer buffer
     (and (not (string-prefix-p " " (buffer-name buffer)))
          (not (projectile-ignored-buffer-p buffer))
+         default-directory
          (string-equal (file-remote-p default-directory)
                        (file-remote-p project-root))
          (not (string-match-p "^http\\(s\\)?://" default-directory))
@@ -4025,6 +4026,8 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "x t") #'projectile-run-term)
     (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "z") #'projectile-cache-current-file)
+    (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
+    (define-key map (kbd "<right>") #'projectile-next-project-buffer)
     (define-key map (kbd "ESC") #'projectile-project-buffers-other-buffer)
     map)
   "Keymap for Projectile commands after `projectile-keymap-prefix'.")
@@ -4048,6 +4051,8 @@ thing shown in the mode line otherwise."
         ["Kill project buffers" projectile-kill-buffers]
         ["Save project buffers" projectile-save-buffers]
         ["Recent files" projectile-recentf]
+        ["Previous buffer" projectile-previous-project-buffer]
+        ["Next buffer" projectile-next-project-buffer]
         "--"
         ["Toggle project wide read-only" projectile-toggle-project-read-only]
         ["Edit .dir-locals.el" projectile-edit-dir-locals]
@@ -4143,6 +4148,38 @@ Otherwise behave as if called interactively.
 
 ;;;###autoload
 (define-obsolete-function-alias 'projectile-global-mode 'projectile-mode "1.0")
+
+(defun projectile--repeat-until-project-buffer (orig-fun &rest args)
+  "Repeat ORIG-FUN with ARGS until the current buffer is a project buffer."
+  (if (projectile-project-root)
+      (let* ((other-project-buffers (make-hash-table :test 'eq))
+             (projectile-project-buffers (projectile-project-buffers))
+             (max-iterations (length (buffer-list)))
+             (counter 0))
+        (dolist (buffer projectile-project-buffers)
+          (unless (eq buffer (current-buffer))
+            (puthash buffer t other-project-buffers)))
+        (when (cdr-safe projectile-project-buffers)
+          (while (and (< counter max-iterations)
+                      (not (gethash (current-buffer) other-project-buffers)))
+            (apply orig-fun args)
+            (incf counter))))
+    (apply orig-fun args)))
+
+(defun projectile-next-project-buffer ()
+  "In selected window switch to the next project buffer.
+
+If the current buffer does not belong to a project, call `next-buffer'."
+  (interactive)
+  (projectile--repeat-until-project-buffer #'next-buffer))
+
+(defun projectile-previous-project-buffer ()
+  "In selected window switch to the previous project buffer.
+
+If the current buffer does not belong to a project, call `previous-buffer'."
+  (interactive)
+  (projectile--repeat-until-project-buffer #'previous-buffer))
+
 
 (provide 'projectile)
 

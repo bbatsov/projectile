@@ -94,6 +94,8 @@ Keybinding         | Description
 <kbd>s-p 4 D</kbd> | Opens the root of the project in `dired` in another window.
 <kbd>s-p 5 D</kbd> | Opens the root of the project in `dired` in another frame.
 <kbd>s-p e</kbd> | Shows a list of recently visited project files.
+<kbd>s-p left</kbd> | Switch to the previous project buffer.
+<kbd>s-p right</kbd> | Switch to the next project buffer.
 <kbd>s-p E</kbd> | Opens the root `dir-locals-file` of the project.
 <kbd>s-p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
 <kbd>s-p !</kbd> | Runs `shell-command` in the root directory of the project.
