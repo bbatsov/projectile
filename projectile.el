@@ -438,12 +438,12 @@ Any function that does not take arguments will do."
 Only file buffers are affected by this, as the update happens via
 `find-file-hook'.
 
-See also `projectile-mode-line-fn' and `projectile-update-mode-line'."
+See also `projectile-mode-line-function' and `projectile-update-mode-line'."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "1.1.0"))
 
-(defcustom projectile-mode-line-fn 'projectile-default-mode-line
+(defcustom projectile-mode-line-function 'projectile-default-mode-line
   "The function to use to generate project-specific mode-line.
 The default function adds the project name and type to the mode-line.
 See also `projectile-update-mode-line'."
@@ -3958,7 +3958,7 @@ thing shown in the mode line otherwise."
 
 (defun projectile-update-mode-line ()
   "Update the Projectile mode-line."
-  (let ((mode-line (funcall projectile-mode-line-fn)))
+  (let ((mode-line (funcall projectile-mode-line-function)))
     (setq projectile--mode-line mode-line))
   (force-mode-line-update))
 
