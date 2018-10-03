@@ -3087,11 +3087,18 @@ to run the replacement."
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
   (interactive)
-  (let ((project (projectile-ensure-project (projectile-project-root))))
-   (dolist (buf (projectile-project-buffers project))
-     (with-current-buffer buf
-       (when buffer-file-name
-         (save-buffer))))))
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (project-name (projectile-project-name project))
+         (modified-buffers (cl-remove-if-not (lambda (buf)
+                                               (and (buffer-file-name buf)
+                                                    (buffer-modified-p buf)))
+                                             (projectile-project-buffers project))))
+    (if (null modified-buffers)
+        (message "[%s] No buffers need saving" project-name)
+      (dolist (buf modified-buffers)
+        (with-current-buffer buf
+          (save-buffer)))
+      (message "[%s] Saved %d buffers" project-name (length modified-buffers)))))
 
 ;;;###autoload
 (defun projectile-dired ()
