@@ -4044,6 +4044,8 @@ thing shown in the mode line otherwise."
         ["Kill project buffers" projectile-kill-buffers]
         ["Save project buffers" projectile-save-buffers]
         ["Recent files" projectile-recentf]
+        ["Previous buffer" projectile-previous-project-buffer]
+        ["Next buffer" projectile-next-project-buffer]
         "--"
         ["Toggle project wide read-only" projectile-toggle-project-read-only]
         ["Edit .dir-locals.el" projectile-edit-dir-locals]
