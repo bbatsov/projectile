@@ -98,14 +98,14 @@ test temp directory"
 (describe "projectile-merge-known-projects"
   (it "merges known projects"
     (let ((projectile-known-projects nil)
-	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+          (projectile-known-projects-file (projectile-test-tmp-file-path)))
       ;; initialize saved known projects and load it from disk
       (projectile-serialize '("a1" "a2" "a3" "a4" "a5")
-			    projectile-known-projects-file)
+                            projectile-known-projects-file)
       (projectile-load-known-projects)
       ;; simulate other emacs session changes by: remove a2 a5 and adding b1 b2
       (projectile-serialize '("a3" "b1" "a1" "a4" "b2")
-			    projectile-known-projects-file)
+                            projectile-known-projects-file)
       ;; remove a4 and add a6 and merge with disk
       (setq projectile-known-projects '("a6" "a1" "a2" "a3" "a5"))
       (projectile-merge-known-projects)
@@ -113,10 +113,10 @@ test temp directory"
       (expect projectile-known-projects :to-equal '("a6" "a1" "a3" "b1" "b2"))))
   (it "merges known projects to an empty file"
     (let ((projectile-known-projects nil)
-	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+          (projectile-known-projects-file (projectile-test-tmp-file-path)))
       ;; initialize saved known projects and load it from disk
       (projectile-serialize '("a1" "a2" "a3" "a4" "a5")
-			    projectile-known-projects-file)
+                            projectile-known-projects-file)
       (projectile-load-known-projects)
       ;; empty the on disk known projects list
       (projectile-serialize '() projectile-known-projects-file)
@@ -126,7 +126,7 @@ test temp directory"
       (expect projectile-known-projects :to-equal '())))
   (it "merges known projects from an empty file"
     (let ((projectile-known-projects nil)
-	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+          (projectile-known-projects-file (projectile-test-tmp-file-path)))
       ;; initialize saved known projects and load it from disk
       (projectile-serialize '() projectile-known-projects-file)
       (projectile-load-known-projects)
@@ -138,7 +138,7 @@ test temp directory"
       (expect projectile-known-projects :to-equal '("a" "b" "c" "d"))))
   (it "merges known projects while keeping their order"
     (let ((projectile-known-projects nil)
-	  (projectile-known-projects-file (projectile-test-tmp-file-path)))
+          (projectile-known-projects-file (projectile-test-tmp-file-path)))
       ;; initialize saved known projects and load it from disk
       (projectile-serialize '("a" "b" "c" "d") projectile-known-projects-file)
       (projectile-load-known-projects)
