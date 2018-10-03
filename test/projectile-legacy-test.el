@@ -820,63 +820,6 @@
           (should (equal "spec/foo/foo.service.spec.js" test-file))
           (should (equal "source/bar/bar.service.js" impl-file))))))))
 
-(ert-deftest projectile-test-exclude-out-of-project-submodules ()
-  (projectile-test-with-files
-   (;; VSC root is here
-    "project/"
-    "project/.git/"
-    "project/.gitmodules"
-    ;; Current project root is here:
-    "project/web-ui/"
-    "project/web-ui/.projectile"
-    ;; VCS git submodule will return the following submodules,
-    ;; relative to current project root, 'project/web-ui/':
-    "project/web-ui/vendor/client-submodule/"
-    "project/server/vendor/server-submodule/")
-   (let ((project (file-truename (expand-file-name "project/web-ui"))))
-     (noflet ((projectile-files-via-ext-command
-               (dir vcs) (when (string= default-directory project)
-                       '("vendor/client-submodule"
-                         "../server/vendor/server-submodule")))
-              (projectile-project-root
-               () project))
-
-       ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
-       (should (equal (list (expand-file-name "vendor/client-submodule/" project))
-                      (projectile-get-all-sub-projects project 'git)))))))
-
-(ert-deftest projectile-test-configure-command-for-generic-project-type ()
-  (noflet ((projectile-default-configure-command (x) nil)
-           (projectile-project-type () 'generic))
-    (let ((configure-command (projectile-configure-command "fsdf")))
-      (should (equal nil configure-command)))))
-
-;;; known projects tests
-
-(ert-deftest projectile-test-add-known-project-adds-project-to-known-projects ()
-  "An added project should be added to the list of known projects."
-  (let (projectile-known-projects)
-    (projectile-add-known-project "~/my/new/project/")
-    (should (string= (car projectile-known-projects)
-                     "~/my/new/project/"))))
-
-(ert-deftest projectile-test-add-known-project-moves-projects-to-front-of-list ()
-  "adding a project should move it to the front of the list of known projects, if it already
-existed."
-  (let ((projectile-known-projects (list "~/b/" "~/a/")))
-    (projectile-add-known-project "~/a/")
-    (should (equal projectile-known-projects
-                   (list "~/a/" "~/b/")))))
-
-(ert-deftest projectile-test-add-known-project-no-near-duplicates ()
-  "~/project and ~/project/ should not be added
-  separately to the known projects list."
-  (let ((projectile-known-projects '("~/a/")))
-    (projectile-add-known-project "~/a")
-    (projectile-add-known-project "~/b")
-    (projectile-add-known-project "~/b/")
-    (should (equal projectile-known-projects '("~/b/" "~/a/")))))
-
 (defun projectile-test-tmp-file-path ()
   "Return a filename suitable to save data to in the
 test temp directory"

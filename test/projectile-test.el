@@ -87,6 +87,64 @@ test temp directory"
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
 
+(describe "projectile-get-all-sub-projects"
+  (it "excludes out-of-project submodules"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      (;; VCS root is here
+       "project/"
+       "project/.git/"
+       "project/.gitmodules"
+       ;; Current project root is here:
+       "project/web-ui/"
+       "project/web-ui/.projectile"
+       ;; VCS git submodule will return the following submodules,
+       ;; relative to current project root, 'project/web-ui/':
+       "project/web-ui/vendor/client-submodule/"
+       "project/server/vendor/server-submodule/")
+      (let ((project (file-truename (expand-file-name "project/web-ui"))))
+        (spy-on 'projectile-files-via-ext-command :and-call-fake
+                (lambda (dir vcs)
+                  (when (string= dir project)
+                    '("vendor/client-submodule"
+                      "../server/vendor/server-submodule"))))
+        (spy-on 'projectile-project-root :and-return-value project)
+        ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
+        (expect (projectile-get-all-sub-projects project) :to-equal
+                (list (expand-file-name "vendor/client-submodule/" project))))))))
+
+(describe "projectile-configure-command"
+  (it "configure command for generic project type"
+    (spy-on 'projectile-default-configure-command :and-return-value nil)
+    (spy-on 'projectile-project-type :and-return-value 'generic)
+    (expect (projectile-configure-command "fsdf") :to-equal nil)))
+
+;;; known projects tests
+
+(describe "projectile-add-known-project"
+  :var (projectile-known-projects-file)
+  (before-each
+   (setq projectile-known-projects-file (projectile-test-tmp-file-path)))
+
+  (after-each
+   (delete-file projectile-known-projects-file nil))
+
+  (it "an added project should be added to the list of known projects"
+    (let ((projectile-known-projects nil))
+      (projectile-add-known-project "~/my/new/project/")
+      (expect projectile-known-projects :to-equal '("~/my/new/project/"))))
+  (it "adding a project should move it to the front of the list of known projects, if it already existed."
+    (let ((projectile-known-projects '("~/b/" "~/a/")))
+      (projectile-add-known-project "~/a/")
+      (expect projectile-known-projects :to-equal '("~/a/" "~/b/"))))
+  (it "~/project and ~/project/ should not be added separately to the known projects list"
+    (let ((projectile-known-projects '("~/project/")))
+      (projectile-add-known-project "~/project")
+      (expect projectile-known-projects :to-equal '("~/project/"))
+      (projectile-add-known-project "~/b")
+      (projectile-add-known-project "~/b/")
+      (expect projectile-known-projects :to-equal '("~/b/" "~/project/")))))
+
 (describe "projectile-load-known-projects"
   (it "loads known projects through serialization functions"
     (let ((projectile-known-projects-file (projectile-test-tmp-file-path)))
