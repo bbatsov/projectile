@@ -4139,8 +4139,4 @@ Otherwise behave as if called interactively.
 
 (provide 'projectile)
 
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:
-
 ;;; projectile.el ends here
