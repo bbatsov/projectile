@@ -122,27 +122,28 @@ test temp directory"
 ;;; known projects tests
 
 (describe "projectile-add-known-project"
+  :var (projectile-known-projects-file)
+  (before-each
+   (setq projectile-known-projects-file (projectile-test-tmp-file-path)))
+
+  (after-each
+   (delete-file projectile-known-projects-file nil))
+
   (it "an added project should be added to the list of known projects"
-    (let ((projectile-known-projects-file (projectile-test-tmp-file-path))
-          (projectile-known-projects nil))
+    (let ((projectile-known-projects nil))
       (projectile-add-known-project "~/my/new/project/")
-      (expect projectile-known-projects :to-equal '("~/my/new/project/"))
-      (delete-file projectile-known-projects-file nil)))
+      (expect projectile-known-projects :to-equal '("~/my/new/project/"))))
   (it "adding a project should move it to the front of the list of known projects, if it already existed."
-    (let ((projectile-known-projects-file (projectile-test-tmp-file-path))
-          (projectile-known-projects '("~/b/" "~/a/")))
+    (let ((projectile-known-projects '("~/b/" "~/a/")))
       (projectile-add-known-project "~/a/")
-      (expect projectile-known-projects :to-equal '("~/a/" "~/b/"))
-      (delete-file projectile-known-projects-file nil)))
+      (expect projectile-known-projects :to-equal '("~/a/" "~/b/"))))
   (it "~/project and ~/project/ should not be added separately to the known projects list"
-    (let ((projectile-known-projects-file (projectile-test-tmp-file-path))
-          (projectile-known-projects '("~/project/")))
+    (let ((projectile-known-projects '("~/project/")))
       (projectile-add-known-project "~/project")
       (expect projectile-known-projects :to-equal '("~/project/"))
       (projectile-add-known-project "~/b")
       (projectile-add-known-project "~/b/")
-      (expect projectile-known-projects :to-equal '("~/b/" "~/project/"))
-      (delete-file projectile-known-projects-file nil))))
+      (expect projectile-known-projects :to-equal '("~/b/" "~/project/")))))
 
 (describe "projectile-load-known-projects"
   (it "loads known projects through serialization functions"
