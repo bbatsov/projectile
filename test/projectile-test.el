@@ -241,3 +241,18 @@ test temp directory"
     (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/t\\.*"))
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
+
+(describe "projectile-default-mode-line"
+  (it "includes the project name and type when in a project"
+    (spy-on 'projectile-project-name :and-return-value "foo")
+    (spy-on 'projectile-project-type :and-return-value "bar")
+    (expect (projectile-default-mode-line) :to-equal " Projectile[foo:bar]"))
+  (it "returns also a - if called outside a project"
+    (spy-on 'projectile-project-name :and-return-value nil)
+    (spy-on 'projectile-project-type :and-return-value nil)
+    (expect (projectile-default-mode-line) :to-equal " Projectile[-]"))
+  (it "respects the value of projectile-mode-line-prefix"
+    (spy-on 'projectile-project-name :and-return-value "foo")
+    (spy-on 'projectile-project-type :and-return-value "bar")
+    (let ((projectile-mode-line-prefix " Pro"))
+      (expect (projectile-default-mode-line) :to-equal " Pro[foo:bar]"))))

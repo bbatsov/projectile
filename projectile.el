@@ -3989,7 +3989,7 @@ thing shown in the mode line otherwise."
         (project-type (projectile-project-type)))
     (format "%s[%s%s]"
             projectile-mode-line-prefix
-            project-name
+            (or project-name "-")
             (if project-type
                 (format ":%s" project-type)
               ""))))
