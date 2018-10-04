@@ -670,6 +670,19 @@ It assumes the test/ folder is at the same level as src/."
   :group 'projectile
   :type 'hook)
 
+(defcustom projectile-current-project-on-switch 'remove
+  "Determines whether to display current project when switching projects.
+
+When set to 'remove current project is not included, 'move-to-end
+will display current project and the end of the list of known
+projects, 'keep will leave the current project at the default
+position."
+  :group 'projectile
+  :type '(radio
+          (const :tag "Remove" remove)
+          (const :tag "Move to end" move-to-end)
+          (const :tag "Keep" keep)))
+
 
 ;;; Version information
 
@@ -3484,7 +3497,7 @@ An open project is a project with any open buffers."
     projects))
 
 (defun projectile--move-current-project-to-end (projects)
-  "Move current project (if any) to the end of list in the list of PROJECTS"
+  "Move current project (if any) to the end of list in the list of PROJECTS."
   (if (projectile-project-p)
       (append
        (projectile--remove-current-project projects)
@@ -3493,23 +3506,18 @@ An open project is a project with any open buffers."
 
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects."
-  (cond
-   ((eq projectile-current-project-on-switch 'remove)
-    (projectile--remove-current-project projectile-known-projects))
-   ((eq projectile-current-project-on-switch 'move-to-end)
-    (projectile--move-current-project-to-end projectile-known-projects))
-   ((eq projectile-current-project-on-switch 'keep)
-    projectile-known-projects)))
+  (pcase projectile-current-project-on-switch
+   ('remove (projectile--remove-current-project projectile-known-projects))
+   ('move-to-end (projectile--move-current-project-to-end projectile-known-projects))
+   ('keep projectile-known-projects)))
 
 (defun projectile-relevant-open-projects ()
   "Return a list of open projects."
-  (cond
-   ((eq projectile-current-project-on-switch 'remove)
-    (projectile--remove-current-project projectile-known-projects))
-   ((eq projectile-current-project-on-switch 'move-to-end)
-    (projectile--move-current-project-to-end projectile-known-projects))
-   ((eq projectile-current-project-on-switch 'keep)
-    projectile-known-projects)))
+  (let ((open-projects (projectile-open-projects)))
+    (pcase projectile-current-project-on-switch
+     ('remove (projectile--remove-current-project open-projects))
+     ('move-to-end (projectile--move-current-project-to-end open-projects))
+     ('keep open-projects))))
 
 ;;;###autoload
 (defun projectile-switch-project (&optional arg)
@@ -3970,18 +3978,6 @@ thing shown in the mode line otherwise."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.12.0"))
-
-(defcustom projectile-current-project-on-switch 'remove
-  "Determines whether to display current project as an option
-when switching projects.
-When set to 'remove current project is not included,
-'move-to-end will display current project and the end of the list of known projects,
-'keep will leave the current project at the default position."
-  :group 'projectile
-  :type '(radio
-          (const :tag "remove" remove)
-          (const :tag "move-to-end" move-to-end)
-          (const :tag "keep" keep)))
 
 (define-obsolete-variable-alias 'projectile-mode-line-lighter 'projectile-mode-line-prefix)
 
