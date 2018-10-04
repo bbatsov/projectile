@@ -3491,17 +3491,17 @@ An open project is a project with any open buffers."
 
 (defun projectile--remove-current-project (projects)
   "Remove the current project (if any) from the list of PROJECTS."
-  (if (projectile-project-p)
+  (if-let* ((project (projectile-project-root)))
       (projectile-difference projects
-                             (list (abbreviate-file-name (projectile-project-root))))
+                             (list (abbreviate-file-name project)))
     projects))
 
 (defun projectile--move-current-project-to-end (projects)
   "Move current project (if any) to the end of list in the list of PROJECTS."
-  (if (projectile-project-p)
+  (if-let* ((project (projectile-project-root)))
       (append
        (projectile--remove-current-project projects)
-       (list (abbreviate-file-name (projectile-project-root))))
+       (list (abbreviate-file-name project)))
     projects))
 
 (defun projectile-relevant-known-projects ()

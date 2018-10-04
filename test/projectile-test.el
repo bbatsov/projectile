@@ -242,6 +242,56 @@ test temp directory"
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
 
+(describe "projectile-relevant-known-projects"
+  :var 'known-projects
+  (before-all
+    (setq known-projects '("~/foo/" "~/bar/" "~/baz/")))
+
+  (describe "when projectile-current-project-on-switch is 'remove"
+    (it "removes the current project"
+      (spy-on 'projectile-project-root :and-return-value "~/foo/")
+      (let ((projectile-current-project-on-switch 'remove)
+            (projectile-known-projects known-projects))
+        (expect (projectile-relevant-known-projects) :to-equal '("~/bar/" "~/baz/")))))
+
+  (describe "when projectile-current-project-on-switch is 'move-to-end"
+    (it "moves the current project to the end of projectile-known-projects"
+      (spy-on 'projectile-project-root :and-return-value "~/foo/")
+      (let ((projectile-current-project-on-switch 'move-to-end)
+            (projectile-known-projects known-projects))
+        (expect (projectile-relevant-known-projects) :to-equal '("~/bar/" "~/baz/" "~/foo/")))))
+
+  (describe "when projectile-current-project-on-switch is 'keep"
+    (it "returns projectile-known-projects"
+      (spy-on 'projectile-project-root :and-return-value "~/foo/")
+      (let ((projectile-current-project-on-switch 'keep)
+            (projectile-known-projects known-projects))
+        (expect (projectile-relevant-known-projects) :to-equal '("~/foo/" "~/bar/" "~/baz/"))))))
+
+(describe "projectile-relevant-open-projects"
+  (describe "when projectile-current-project-on-switch is 'remove"
+    (it "removes the current project"
+      (spy-on 'projectile-open-projects :and-return-value '("~/foo/" "~/bar/" "~/baz/"))
+      (spy-on 'projectile-project-root :and-return-value "~/foo/")
+      (let ((projectile-current-project-on-switch 'remove))
+        (expect (projectile-relevant-open-projects) :to-equal '("~/bar/" "~/baz/")))))
+
+  (describe "when projectile-current-project-on-switch is 'move-to-end"
+    (it "moves the current project to the end of projectile-known-projects"
+      (spy-on 'projectile-open-projects :and-return-value '("~/foo/" "~/bar/" "~/baz/"))
+      (spy-on 'projectile-project-root :and-return-value "~/foo/")
+      (let ((projectile-current-project-on-switch 'move-to-end))
+        (expect (projectile-relevant-open-projects) :to-equal '("~/bar/" "~/baz/" "~/foo/")))))
+
+  (describe "when projectile-current-project-on-switch is 'keep"
+    (it "returns projectile-open-projects"
+      (spy-on 'projectile-project-root :and-return-value "~/foo/")
+      (spy-on 'projectile-open-projects :and-return-value '("~/foo/" "~/bar/" "~/baz/"))
+      (let ((projectile-current-project-on-switch 'keep))
+        (expect (projectile-relevant-open-projects) :to-equal '("~/foo/" "~/bar/" "~/baz/"))))))
+
+
+;;; Mode line tests
 (describe "projectile-default-mode-line"
   (it "includes the project name and type when in a project"
     (spy-on 'projectile-project-name :and-return-value "foo")
