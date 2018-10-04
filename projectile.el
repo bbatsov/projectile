@@ -3959,10 +3959,12 @@ thing shown in the mode line otherwise."
   "Report project name and type in the modeline."
   (let ((project-name (projectile-project-name))
         (project-type (projectile-project-type)))
-    (format "%s[%s:%s]"
+    (format "%s[%s%s]"
             projectile-mode-line-prefix
             project-name
-            project-type)))
+            (if project-type
+                (format ":%s" project-type)
+              ""))))
 
 (defun projectile-update-mode-line ()
   "Update the Projectile mode-line."
