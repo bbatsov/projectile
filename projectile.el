@@ -3543,9 +3543,10 @@ With a prefix ARG invokes `projectile-commander' instead of
   (interactive "P")
   (let ((projects (projectile-relevant-open-projects)))
     (if projects
-        (projectile-switch-project-by-name
-         (projectile-completing-read "Switch to open project: " projects)
-         arg)
+        (projectile-completing-read
+         "Switch to open project: " projects
+         :action (lambda (project)
+                   (projectile-switch-project-by-name project arg)))
       (user-error "There are no open projects"))))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
