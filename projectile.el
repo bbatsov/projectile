@@ -2454,8 +2454,9 @@ Normally you'd set this from .dir-locals.el.")
   "Detect the type of the current project.
 Fallsback to a generic project type when the type can't be determined."
   (let ((project-type (or (cl-find-if
-                           (lambda (project-type)
-                             (let ((marker (plist-get (alist-get project-type projectile-project-types) 'marker-files)))
+                           (lambda (project-type-record)
+                             (let ((project-type (car project-type-record))
+                                   (marker (plist-get (cdr project-type-record) 'marker-files)))
                                (if (listp marker)
                                    (and (projectile-verify-files marker) project-type)
                                  (and (funcall marker) project-type))))
