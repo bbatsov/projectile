@@ -29,6 +29,10 @@
 * [#1205](https://github.com/bbatsov/projectile/issues/1205): Check that project directory exists when switching projects.
 * Move Projectile's menu out of the "Tools" menu.
 
+### Bugs fixed
+
+* [#1315](https://github.com/bbatsov/projectile/issues/1315): Give preference to the project types that were registered last.
+
 ## 1.0.0 (2018-07-21)
 
 ### New Features

@@ -87,6 +87,13 @@ test temp directory"
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
 
+(describe "projectile-register-project-type"
+  (it "prepends new projects to projectile-project-types"
+    (projectile-register-project-type 'foo '("Foo"))
+    (expect (caar projectile-project-types) :to-equal 'foo)
+    (projectile-register-project-type 'bar '("Bar"))
+    (expect (caar projectile-project-types) :to-equal 'bar)))
+
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
     (projectile-test-with-sandbox
