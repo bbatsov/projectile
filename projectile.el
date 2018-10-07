@@ -2457,6 +2457,7 @@ Fallsback to a generic project type when the type can't be determined."
                                    (and (projectile-verify-files marker) project-type)
                                  (and (funcall marker) project-type))))
                            (hash-table-keys projectile-project-types))
+                          :from-end t
                           'generic)))
     (puthash (projectile-project-root) project-type projectile-project-type-cache)
     project-type))
