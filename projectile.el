@@ -2282,22 +2282,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test "go test ./..."
                                   :test-suffix "_test")
 ;; File-based detection project types
-(projectile-register-project-type 'emacs-cask '("Cask")
-                                  :compile "cask install"
-                                  :test-prefix "test-"
-                                  :test-suffix "-test")
-(projectile-register-project-type 'r '("DESCRIPTION")
-                                  :compile "R CMD INSTALL --with-keep.source ."
-                                  :test (concat "R CMD check -o " temporary-file-directory " ."))
-(projectile-register-project-type 'haskell-stack '("stack.yaml")
-                                  :compile "stack build"
-                                  :test "stack build --test"
-                                  :test-suffix "Spec")
-(projectile-register-project-type 'rust-cargo '("Cargo.toml")
-                                  :compile "cargo build"
-                                  :test "cargo test")
-(projectile-register-project-type 'racket '("info.rkt")
-                                  :test "raco test .")
+
 ;; Universal
 (projectile-register-project-type 'scons '("SConstruct")
                                   :compile "scons"
@@ -2444,6 +2429,33 @@ TEST-DIR which specifies the path to the tests relative to the project root."
                                   :test "crystal spec"
                                   :test-dir "spec/"
                                   :test-suffix "_spec")
+
+;; Emacs
+(projectile-register-project-type 'emacs-cask '("Cask")
+                                  :compile "cask install"
+                                  :test-prefix "test-"
+                                  :test-suffix "-test")
+
+;; R
+(projectile-register-project-type 'r '("DESCRIPTION")
+                                  :compile "R CMD INSTALL --with-keep.source ."
+                                  :test (concat "R CMD check -o " temporary-file-directory " ."))
+
+;; Haskell
+(projectile-register-project-type 'haskell-stack '("stack.yaml")
+                                  :compile "stack build"
+                                  :test "stack build --test"
+                                  :test-suffix "Spec")
+
+;; Rust
+(projectile-register-project-type 'rust-cargo '("Cargo.toml")
+                                  :compile "cargo build"
+                                  :test "cargo test")
+
+;; Racket
+(projectile-register-project-type 'racket '("info.rkt")
+                                  :test "raco test .")
+
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
