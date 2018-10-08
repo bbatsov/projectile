@@ -94,6 +94,12 @@ test temp directory"
     (projectile-register-project-type 'bar '("Bar"))
     (expect (caar projectile-project-types) :to-equal 'bar)))
 
+(describe "projectile-project-type"
+  (it "detects the type of Projectile's project"
+    (expect (projectile-project-type) :to-equal 'emacs-cask))
+  (it "caches the project type"
+    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
+
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
     (projectile-test-with-sandbox
