@@ -1475,9 +1475,10 @@ Only buffers not visible in windows are returned."
   "Do a `multi-occur' in the project's buffers.
 With a prefix argument, show NLINES of context."
   (interactive "P")
-  (multi-occur (projectile-project-buffers)
-               (car (occur-read-primary-args))
-               nlines))
+  (let ((project (projectile-ensure-project (projectile-project-root))))
+    (multi-occur (projectile-project-buffers project)
+                 (car (occur-read-primary-args))
+                 nlines)))
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
