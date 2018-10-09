@@ -4097,7 +4097,7 @@ thing shown in the mode line otherwise."
         ["Switch to buffer" projectile-switch-to-buffer]
         ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
         ["Kill project buffers" projectile-kill-buffers]
-        ["Save project buffers" projectile-save-buffers]
+        ["Save project buffers" projectile-save-project-buffers]
         ["Recent files" projectile-recentf]
         ["Previous buffer" projectile-previous-project-buffer]
         ["Next buffer" projectile-next-project-buffer]
