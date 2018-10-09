@@ -3135,19 +3135,19 @@ to run the replacement."
 (defun projectile-dired ()
   "Open `dired' at the root of the project."
   (interactive)
-  (dired (projectile-project-root)))
+  (dired (projectile-ensure-project (projectile-project-root))))
 
 ;;;###autoload
 (defun projectile-dired-other-window ()
   "Open `dired'  at the root of the project in another window."
   (interactive)
-  (dired-other-window (projectile-project-root)))
+  (dired-other-window (projectile-ensure-project (projectile-project-root))))
 
 ;;;###autoload
 (defun projectile-dired-other-frame ()
   "Open `dired' at the root of the project in another frame."
   (interactive)
-  (dired-other-frame (projectile-project-root)))
+  (dired-other-frame (projectile-ensure-project (projectile-project-root))))
 
 ;;;###autoload
 (defun projectile-vc (&optional project-root)
