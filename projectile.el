@@ -1783,12 +1783,16 @@ https://github.com/abo-abo/swiper")))
     (dolist (filename project-files)
       (funcall action filename))))
 
-(defun projectile-current-project-dirs ()
-  "Return a list of dirs for the current project."
+(defun projectile-project-dirs (project)
+  "Return a list of dirs for PROJECT."
   (delete-dups
    (delq nil
          (mapcar #'file-name-directory
-                 (projectile-current-project-files)))))
+                 (projectile-project-files project)))))
+
+(defun projectile-current-project-dirs ()
+  "Return a list of dirs for the current project."
+  (projectile-project-dirs (projectile-ensure-project (projectile-project-root))))
 
 ;;; Interactive commands
 
@@ -2169,12 +2173,13 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
   (projectile--find-dir invalidate-cache #'dired-other-frame))
 
-(defun projectile-complete-dir ()
-  (projectile-completing-read
-   "Find dir: "
-   (if projectile-find-dir-includes-top-level
-       (append '("./") (projectile-current-project-dirs))
-     (projectile-current-project-dirs))))
+(defun projectile-complete-dir (project)
+  (let ((project-dirs (projectile-project-dirs project)))
+    (projectile-completing-read
+    "Find dir: "
+    (if projectile-find-dir-includes-top-level
+        (append '("./") project-dirs)
+      project-dirs))))
 
 ;;;###autoload
 (defun projectile-find-test-file (&optional invalidate-cache)
@@ -2917,21 +2922,21 @@ SEARCH-TERM is a regexp."
 (defun projectile-run-command-in-root ()
   "Invoke `execute-extended-command' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-project-root)
+  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
     (call-interactively 'execute-extended-command)))
 
 ;;;###autoload
 (defun projectile-run-shell-command-in-root ()
   "Invoke `shell-command' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-project-root)
+  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
     (call-interactively 'shell-command)))
 
 ;;;###autoload
 (defun projectile-run-async-shell-command-in-root ()
   "Invoke `async-shell-command' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-project-root)
+  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
     (call-interactively 'async-shell-command)))
 
 ;;;###autoload
@@ -2940,7 +2945,7 @@ SEARCH-TERM is a regexp."
 
 Switch to the project specific shell buffer if it already exists."
   (interactive)
-  (projectile-with-default-dir (projectile-project-root)
+  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
     (shell (concat "*shell " (projectile-project-name) "*"))))
 
 ;;;###autoload
@@ -2949,8 +2954,8 @@ Switch to the project specific shell buffer if it already exists."
 
 Switch to the project specific eshell buffer if it already exists."
   (interactive)
-  (let ((eshell-buffer-name (concat "*eshell " (projectile-project-name) "*")))
-    (projectile-with-default-dir (projectile-project-root)
+  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+    (let ((eshell-buffer-name (concat "*eshell " (projectile-project-name) "*")))
       (eshell))))
 
 ;;;###autoload
@@ -2959,10 +2964,11 @@ Switch to the project specific eshell buffer if it already exists."
 
 Switch to the project specific ielm buffer if it already exists."
   (interactive)
-  (let ((ielm-buffer-name (format "*ielm %s*" (projectile-project-name))))
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (ielm-buffer-name (format "*ielm %s*" (projectile-project-name project))))
     (if (get-buffer ielm-buffer-name)
         (switch-to-buffer ielm-buffer-name)
-      (projectile-with-default-dir (projectile-project-root)
+      (projectile-with-default-dir project
         (ielm))
       ;; ielm's buffer name is hardcoded, so we have to rename it after creation
       (rename-buffer ielm-buffer-name))))
@@ -2973,7 +2979,8 @@ Switch to the project specific ielm buffer if it already exists."
 
 Switch to the project specific term buffer if it already exists."
   (interactive (list nil))
-  (let* ((term (concat "term " (projectile-project-name)))
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (term (concat "term " (projectile-project-name project)))
          (buffer (concat "*" term "*")))
     (unless (get-buffer buffer)
       (require 'term)
@@ -2983,7 +2990,7 @@ Switch to the project specific term buffer if it already exists."
                                                    (getenv "ESHELL")
                                                    (getenv "SHELL")
                                                    "/bin/sh")))))
-        (projectile-with-default-dir (projectile-project-root)
+        (projectile-with-default-dir project
           (set-buffer (make-term term program))
           (term-mode)
           (term-char-mode))))
@@ -2991,11 +2998,12 @@ Switch to the project specific term buffer if it already exists."
 
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
-  (let ((dir (file-relative-name (expand-file-name directory)
-                                 (projectile-project-root))))
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (dir (file-relative-name (expand-file-name directory)
+                                  project)))
     (cl-remove-if-not
      (lambda (f) (string-prefix-p dir f))
-     (projectile-current-project-files))))
+     (projectile-project-files project))))
 
 (defun projectile-files-from-cmd (cmd directory)
   "Use a grep-like CMD to search for files within DIRECTORY.
