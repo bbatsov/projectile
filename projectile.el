@@ -2144,9 +2144,10 @@ With INVALIDATE-CACHE invalidates the cache first.  With DIRED-VARIANT set to a
 defun, use that instead of `dired'.  A typical example of such a defun would be
 `dired-other-window' or `dired-other-frame'"
   (projectile-maybe-invalidate-cache invalidate-cache)
-  (let ((dir (projectile-complete-dir))
-        (dired-v (or dired-variant #'dired)))
-    (funcall dired-v (expand-file-name dir (projectile-project-root)))
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (dir (projectile-complete-dir project))
+         (dired-v (or dired-variant #'dired)))
+    (funcall dired-v (expand-file-name dir project))
     (run-hooks 'projectile-find-dir-hook)))
 
 ;;;###autoload
