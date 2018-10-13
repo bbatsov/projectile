@@ -1756,7 +1756,11 @@ https://github.com/abo-abo/swiper")))
       (when projectile-enable-caching
         (message "Projectile is initializing cache..."))
       (setq files (cl-mapcan
-                   (lambda (dir) (projectile-dir-files dir))
+                   (lambda (dir)
+                     (mapcar (lambda (f)
+                               (file-relative-name (concat dir f)
+                                                   project-root))
+                             (projectile-dir-files dir)))
                    (projectile-get-project-directories project-root)))
 
       ;; Save the cached list.
