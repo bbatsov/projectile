@@ -100,6 +100,83 @@ test temp directory"
   (it "caches the project type"
     (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
 
+(describe "projectile-detect-project-type"
+  (it "detects project-type for rails-like npm tests"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/Gemfile"
+       "project/app/"
+       "project/lib/"
+       "project/db/"
+       "project/config/"
+       "project/spec/"
+       "project/package.json")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'rails-rspec))))))
+
+(describe "projectile-dirname-matching-count"
+  (it "counts matching dirnames ascending file paths"
+    (expect (projectile-dirname-matching-count "src/food/sea.c" "src/food/cat.c") :to-equal 2)
+    (expect (projectile-dirname-matching-count "src/weed/sea.c" "src/food/sea.c") :to-equal 0)
+    (expect (projectile-dirname-matching-count "test/demo-test.el" "demo.el") :to-equal 0)))
+
+(describe "projectile-find-matching-test"
+  (it "finds matching test or file"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/app/models/weed/"
+       "project/app/models/food/"
+       "project/spec/models/weed/"
+       "project/spec/models/food/"
+       "project/app/models/weed/sea.rb"
+       "project/app/models/food/sea.rb"
+       "project/spec/models/weed/sea_spec.rb"
+       "project/spec/models/food/sea_spec.rb")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-type :and-return-value 'rails-rspec)
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-find-matching-test "app/models/food/sea.rb") :to-equal "spec/models/food/sea_spec.rb")
+        (expect (projectile-find-matching-file "spec/models/food/sea_spec.rb") :to-equal "app/models/food/sea.rb")))))
+  (it "finds matching test or file in a custom project"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/src/foo/"
+       "project/src/bar/"
+       "project/test/foo/"
+       "project/test/bar/"
+       "project/src/foo/foo.service.js"
+       "project/src/bar/bar.service.js"
+       "project/test/foo/foo.service.spec.js"
+       "project/test/bar/bar.service.spec.js")
+      (let ((projectile-indexing-method 'native))
+        (projectile-register-project-type 'npm-project '("somefile") :test-suffix ".spec")
+        (spy-on 'projectile-project-type :and-return-value 'npm-project)
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-find-matching-test "src/foo/foo.service.js") :to-equal "test/foo/foo.service.spec.js")
+        (expect (projectile-find-matching-file "test/bar/bar.service.spec.js") :to-equal "src/bar/bar.service.js")))))
+  (it "finds matching test or file in a custom project with dirs"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/source/foo/"
+       "project/source/bar/"
+       "project/spec/foo/"
+       "project/spec/bar/"
+       "project/source/foo/foo.service.js"
+       "project/source/bar/bar.service.js"
+       "project/spec/foo/foo.service.spec.js"
+       "project/spec/bar/bar.service.spec.js")
+      (let ((projectile-indexing-method 'native))
+        (projectile-register-project-type 'npm-project '("somefile")
+                                          :test-suffix ".spec"
+                                          :test-dir "spec/"
+                                          :src-dir "source/")
+        (spy-on 'projectile-project-type :and-return-value 'npm-project)
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-find-matching-test "source/foo/foo.service.js") :to-equal "spec/foo/foo.service.spec.js")
+        (expect (projectile-find-matching-file "spec/bar/bar.service.spec.js") :to-equal "source/bar/bar.service.js"))))))
+
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
     (projectile-test-with-sandbox
