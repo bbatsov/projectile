@@ -13,6 +13,7 @@
 `projectile-next-project-buffer ` to switch to other buffer in the project.
 * [#1016](https://github.com/bbatsov/projectile/issues/1016): Add a new defcustom (`projectile-current-project-on-switch`) controlling what to do with the current project on switch.
 * [#1233](https://github.com/bbatsov/projectile/issues/1233): Add a new defcustom (`projectile-kill-buffers-filter`) controlling which buffers are killed by `projectile-kill-buffers`.
+* [#1279](https://github.com/bbatsov/projectile/issues/1279) Add command `projectile-repeat-last-command` to re-execute the last external command in a project.
 
 ### Changes
 

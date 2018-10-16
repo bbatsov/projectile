@@ -3442,6 +3442,17 @@ project of that type"
       (funcall cmd)
     (compile cmd)))
 
+(defvar projectile-project-command-history (make-hash-table :test 'equal)
+  "The history of last executed project commands, per project.
+
+Projects are indexed by their project-root value.")
+
+(defun projectile--get-command-history (project-root)
+  (or (gethash project-root projectile-project-command-history)
+      (puthash project-root
+               (make-ring 16)
+               projectile-project-command-history)))
+
 (cl-defun projectile--run-project-cmd
     (command command-map &key show-prompt prompt-prefix save-buffers)
   "Run a project COMMAND, typically a test- or compile command.
@@ -3453,13 +3464,17 @@ variable `compilation-read-command'.  You can force the prompt
 by setting SHOW-PROMPT.  The prompt will be prefixed with PROMPT-PREFIX.
 
 If SAVE-BUFFERS is non-nil save all projectile buffers before
-running the command."
+running the command.
+
+The command actually run is returned."
   (let* ((project-root (projectile-project-root))
          (default-directory (projectile-compilation-dir))
          (command (projectile-maybe-read-command show-prompt
                                                  command
                                                  prompt-prefix)))
-    (puthash default-directory command command-map)
+    (when command-map
+      (puthash default-directory command command-map)
+      (ring-insert (projectile--get-command-history project-root) command))
     (when save-buffers
       (save-some-buffers (not compilation-ask-about-save)
                          (lambda ()
@@ -3467,7 +3482,8 @@ running the command."
                                                         project-root))))
     (unless (file-directory-p default-directory)
       (mkdir default-directory))
-    (projectile-run-compilation command)))
+    (projectile-run-compilation command)
+    command))
 
 ;;;###autoload
 (defun projectile-configure-project (arg)
@@ -3523,6 +3539,32 @@ with a prefix ARG."
     (projectile--run-project-cmd command projectile-run-cmd-map
                                  :show-prompt arg
                                  :prompt-prefix "Run command: ")))
+
+;;;###autoload
+(defun projectile-repeat-last-command (show-prompt)
+  "Run last projectile external command.
+
+External commands are: `projectile-configure-project',
+`projectile-compile-project', `projectile-test-project' and
+`projectile-run-project'.
+
+If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
+  (interactive "P")
+  (let* ((project-root
+          (projectile-ensure-project (projectile-project-root)))
+         (command-history (projectile--get-command-history project-root))
+         (command (car-safe (ring-elements command-history)))
+         (compilation-read-command show-prompt)
+         executed-command)
+    (unless command
+      (user-error "No command has been run yet for this project"))
+    (setq executed-command
+          (projectile--run-project-cmd command
+                                       nil
+                                       :save-buffers t
+                                       :prompt-prefix "Execute command: "))
+    (unless (string= command executed-command)
+      (ring-insert command-history executed-command))))
 
 (defadvice compilation-find-file (around projectile-compilation-find-file)
   "Try to find a buffer for FILENAME, if we cannot find it,
@@ -4217,6 +4259,7 @@ thing shown in the mode line otherwise."
         ["Compile project" projectile-compile-project]
         ["Test project" projectile-test-project]
         ["Run project" projectile-run-project]
+        ["Repeat last external command" projectile-repeat-last-command]
         "--"
         ["Project info" projectile-project-info]
         ["About" projectile-version]))
