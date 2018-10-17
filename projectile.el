@@ -1763,6 +1763,7 @@ https://github.com/abo-abo/swiper")))
               ;; If a project is defined as a list of subfolders
               ;; then we'll have the files returned for each subfolder,
               ;; so they are relative to the project root.
+              ;;
               ;; TODO: That's pretty slow and we need to improve it.
               ;; One options would be to pass explicitly the subdirs
               ;; to commands like `git ls-files` which would return
