@@ -193,7 +193,15 @@ test temp directory"
         (let ((projectile-project-compilation-dir rel-dir))
           (projectile-compilation-dir))))
     (expect (helper "/root/") :to-equal "/root/build/")
-    (expect (helper "/root/" "buildings") :to-equal "/root/buildings/")))
+    (expect (helper "/root/" "buildings") :to-equal "/root/buildings/"))
+  (it "should not fail on bad compilation dir config"
+    (defun -compilation-test-function ()
+      1)
+    (let ((projectile-project-type 'has-command-at-point)
+          (projectile-project-compilation-dir nil))
+      (projectile-register-project-type 'has-command-at-point '("file.txt")
+                                        :compile (-compilation-test-function))
+      (expect (projectile-compilation-dir) :to-equal (concat (expand-file-name ".") "/")))))
 
 (describe "projectile-default-compilation-command"
   (it "returns the default compilation command for project-type"
@@ -214,16 +222,6 @@ test temp directory"
     (projectile-register-project-type 'has-command-at-point '("file.txt")
                                       :compile (-compilation-test-function))
     (expect (projectile-default-compilation-command 'has-command-at-point) :to-throw)))
-
-(describe "projectile-compilation-dir"
-  (it "should not fail on bad compilation dir config"
-    (defun -compilation-test-function ()
-      1)
-    (let ((projectile-project-type 'has-command-at-point)
-          (projectile-project-compilation-dir nil))
-      (projectile-register-project-type 'has-command-at-point '("file.txt")
-                                        :compile (-compilation-test-function))
-      (expect (projectile-compilation-dir) :to-equal (concat (expand-file-name ".") "/")))))
 
 (describe "projectile-detect-project-type"
   (it "detects project-type for rails-like npm tests"
