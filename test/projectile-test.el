@@ -100,6 +100,129 @@ test temp directory"
   (it "caches the project type"
     (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
 
+(describe "projectile-get-other-files"
+  (it "returns files with same names but different extensions"
+    (let ((projectile-other-file-alist '(;; handle C/C++ extensions
+                                         ("cpp" . ("h" "hpp" "ipp"))
+                                         ("ipp" . ("h" "hpp" "cpp"))
+                                         ("hpp" . ("h" "ipp" "cpp"))
+                                         ("cxx" . ("hxx" "ixx"))
+                                         ("ixx" . ("cxx" "hxx"))
+                                         ("hxx" . ("ixx" "cxx"))
+                                         ("c" . ("h"))
+                                         ("m" . ("h"))
+                                         ("mm" . ("h"))
+                                         ("h" . ("c" "cpp" "ipp" "hpp" "m" "mm"))
+                                         ("cc" . ("hh"))
+                                         ("hh" . ("cc"))
+
+                                         ;; vertex shader and fragment shader extensions in glsl
+                                         ("vert" . ("frag"))
+                                         ("frag" . ("vert"))
+
+                                         ;; handle files with no extension
+                                         (nil . ("lock" "gpg"))
+                                         ("lock" . (""))
+                                         ("gpg" . (""))
+
+                                         ;; handle files with nested extensions
+                                         ("service.js" . ("service.spec.js"))
+                                         ("js" . ("js"))))
+          (source-tree '("src/test1.c"
+                       "src/test2.c"
+                       "src/test+copying.m"
+                       "src/test1.cpp"
+                       "src/test2.cpp"
+                       "src/Makefile"
+                       "src/test.vert"
+                       "src/test.frag"
+                       "src/same_name.c"
+                       "src/some_module/same_name.c"
+                       "include1/same_name.h"
+                       "include1/test1.h"
+                       "include1/test1.h~"
+                       "include1/test2.h"
+                       "include1/test+copying.h"
+                       "include1/test1.hpp"
+                       "include2/some_module/same_name.h"
+                       "include2/test1.h"
+                       "include2/test2.h"
+                       "include2/test2.hpp"
+
+                       "src/test1.service.js"
+                       "src/test2.service.spec.js"
+                       "include1/test1.service.spec.js"
+                       "include2/test1.service.spec.js"
+                       "include1/test2.js"
+                       "include2/test2.js")))
+
+      (expect (projectile-get-other-files "src/test1.c" source-tree) :to-equal '("include1/test1.h" "include2/test1.h"))
+      (expect (projectile-get-other-files "src/test1.cpp" source-tree) :to-equal '("include1/test1.h" "include2/test1.h" "include1/test1.hpp"))
+      (expect (projectile-get-other-files "test2.c" source-tree) :to-equal '("include1/test2.h" "include2/test2.h"))
+      (expect (projectile-get-other-files "test2.cpp" source-tree) :to-equal '("include1/test2.h" "include2/test2.h" "include2/test2.hpp"))
+      (expect (projectile-get-other-files "test1.h" source-tree) :to-equal '("src/test1.c" "src/test1.cpp" "include1/test1.hpp"))
+      (expect (projectile-get-other-files "test2.h" source-tree) :to-equal '("src/test2.c" "src/test2.cpp" "include2/test2.hpp"))
+      (expect (projectile-get-other-files "include1/test1.h" source-tree t) :to-equal '("src/test1.c" "src/test1.cpp" "include1/test1.hpp"))
+      (expect (projectile-get-other-files "Makefile.lock" source-tree) :to-equal '("src/Makefile"))
+      (expect (projectile-get-other-files "include2/some_module/same_name.h" source-tree) :to-equal '("src/some_module/same_name.c" "src/same_name.c"))
+      ;; nested extensions
+      (expect (projectile-get-other-files "src/test1.service.js" source-tree) :to-equal '("include1/test1.service.spec.js" "include2/test1.service.spec.js"))
+      ;; fallback to outer extensions if no rule for nested extension defined
+      (expect (projectile-get-other-files "src/test2.service.spec.js" source-tree) :to-equal '("include1/test2.js" "include2/test2.js"))
+      (expect (projectile-get-other-files "src/test+copying.m" source-tree) :to-equal '("include1/test+copying.h")))))
+
+(describe "projectile-compilation-dir"
+  (it "returns the compilation directory for a project"
+    (defun helper (project-root rel-dir)
+      (spy-on 'projectile-project-root :and-return-value project-root)
+      (spy-on 'projectile-project-type :and-return-value 'generic)
+      (let ((projectile-project-compilation-dir rel-dir))
+        (projectile-compilation-dir)))
+    (expect (helper "/root/" "build") :to-equal "/root/build/")
+    (expect (helper "/root/" "build/") :to-equal "/root/build/")
+    (expect (helper "/root/" "./build") :to-equal "/root/build/")
+    (expect (helper "/root/" "local/build") :to-equal "/root/local/build/"))
+  (it "returns the default compilation dir based on project-type"
+    (projectile-register-project-type 'default-dir-project '("file.txt")
+                                      :compilation-dir "build")
+    (defun helper (project-root &optional rel-dir)
+      (spy-on 'projectile-project-root :and-return-value project-root)
+      (spy-on 'projectile-project-type :and-return-value 'default-dir-project)
+      (if (null rel-dir)
+          (projectile-compilation-dir)
+        (let ((projectile-project-compilation-dir rel-dir))
+          (projectile-compilation-dir))))
+    (expect (helper "/root/") :to-equal "/root/build/")
+    (expect (helper "/root/" "buildings") :to-equal "/root/buildings/"))
+  (it "should not fail on bad compilation dir config"
+    (defun -compilation-test-function ()
+      1)
+    (let ((projectile-project-type 'has-command-at-point)
+          (projectile-project-compilation-dir nil))
+      (projectile-register-project-type 'has-command-at-point '("file.txt")
+                                        :compile (-compilation-test-function))
+      (expect (projectile-compilation-dir) :to-equal (concat (expand-file-name ".") "/")))))
+
+(describe "projectile-default-compilation-command"
+  (it "returns the default compilation command for project-type"
+    (defun -compilation-test-function ()
+      (if (= (point) 1)
+          "my-make"
+        "./run-extra"))
+    (projectile-register-project-type 'has-command-at-point '("file.txt")
+                                      :compile '-compilation-test-function)
+    (expect (projectile-default-compilation-command 'has-command-at-point) :to-equal "my-make")
+    (with-temp-buffer
+      (insert "ABCDE")
+      (goto-char 2)
+      (expect (projectile-default-compilation-command 'has-command-at-point) :to-equal "./run-extra")))
+  (it "fails on bad project-type config"
+    (defun -compilation-test-function ()
+      1)
+    (projectile-register-project-type 'has-command-at-point '("file.txt")
+                                      :compile (-compilation-test-function))
+    (expect (projectile-default-compilation-command 'has-command-at-point) :to-throw)))
+
 (describe "projectile-detect-project-type"
   (it "detects project-type for rails-like npm tests"
     (projectile-test-with-sandbox
