@@ -1099,8 +1099,8 @@ Files are returned as relative paths to DIRECTORY."
           (pcase projectile-indexing-method
            ('native (projectile-dir-files-native directory))
            ;; use external tools to get the project files
-           ('alien (projectile-adjust-files directory vcs (projectile-dir-files-external directory)))
-           ('turbo-alien (projectile-dir-files-external directory))
+           ('alien (projectile-adjust-files directory vcs (projectile-dir-files-alien directory)))
+           ('turbo-alien (projectile-dir-files-alien directory))
            (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method)))))))
 
 ;;; Native Project Indexing
@@ -1142,7 +1142,7 @@ function is executing."
 ;; This corresponds to `projectile-indexing-method' being set to alien or turbo-alien.
 ;; The only difference between the two methods is that turbo-alien doesn't do
 ;; any post-processing of the files obtained via the external command.
-(defun projectile-dir-files-external (directory)
+(defun projectile-dir-files-alien (directory)
   "Get the files for DIRECTORY using external tools."
   (let ((vcs (projectile-project-vcs directory)))
     (cond
@@ -1151,7 +1151,8 @@ function is executing."
             (projectile-get-sub-projects-files directory vcs)))
     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
 
-(define-obsolete-variable-alias 'projectile-get-repo-files 'projectile-dir-files-external "1.1")
+(define-obsolete-function-alias 'projectile-dir-files-external 'projectile-dir-files-alien "1.1")
+(define-obsolete-function-alias 'projectile-get-repo-files 'projectile-dir-files-alien "1.1")
 
 (defun projectile-get-ext-command (vcs)
   "Determine which external command to invoke based on the project's VCS.
@@ -1759,7 +1760,7 @@ https://github.com/abo-abo/swiper")))
             (if (eq projectile-indexing-method 'turbo-alien)
                 ;; In turbo-alien mode we can just skip reading
                 ;; .projectile and find all files in the root dir.
-                (projectile-dir-files-external project-root)
+                (projectile-dir-files-alien project-root)
               ;; If a project is defined as a list of subfolders
               ;; then we'll have the files returned for each subfolder,
               ;; so they are relative to the project root.

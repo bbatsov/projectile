@@ -179,7 +179,7 @@
            (projectile-index-directory (dir patterns progress-reporter)
                                        (should (equal dir "a/"))
                                        '("/my/root/a/b/c" "/my/root/a/d/e"))
-           (projectile-dir-files-external (dir) '("a/b/c" "a/d/e"))
+           (projectile-dir-files-alien (dir) '("a/b/c" "a/d/e"))
            (cd (directory) "/my/root/a/" nil))
     (let ((projectile-indexing-method 'native))
       (should (equal '("a/b/c" "a/d/e") (projectile-dir-files "/my/root/"))))
