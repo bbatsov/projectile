@@ -193,7 +193,7 @@ test temp directory"
        "project/web-ui/vendor/client-submodule/"
        "project/server/vendor/server-submodule/")
       (let ((project (file-truename (expand-file-name "project/web-ui"))))
-        (spy-on 'projectile-files-via-ext-command :and-call-fake
+        (spy-on 'projectile-get-results-from-shell-command :and-call-fake
                 (lambda (dir vcs)
                   (when (string= dir project)
                     '("vendor/client-submodule"
@@ -202,6 +202,23 @@ test temp directory"
         ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
         (expect (projectile-get-all-sub-projects project) :to-equal
                 (list (expand-file-name "vendor/client-submodule/" project))))))))
+
+(describe "projectile-get-results-from-shell-command"
+  (it "returns empty if no command supplied"
+    (expect (projectile-get-results-from-shell-command "project/" nil) :to-be
+            nil))
+  (it "returns empty if no command or project supplied"
+    (expect (projectile-get-results-from-shell-command "" "") :to-be
+            nil))
+  (it "itemizes results based on null terminator"
+    (spy-on 'projectile--shell-command-output-to-string :and-return-value "one\0two")
+    (expect (projectile-get-results-from-shell-command "project/" "cmd") :to-equal
+            '("one" "two")))
+  (it "does not itemize results on other terminators"
+    (let ((shell-output-string "one\ntwo\tthree four. five."))
+      (spy-on 'projectile--shell-command-output-to-string :and-return-value shell-output-string)
+      (expect (projectile-get-results-from-shell-command "project/" "cmd") :to-equal
+              `(,shell-output-string)))))
 
 (describe "projectile-configure-command"
   (it "configure command for generic project type"

@@ -1147,9 +1147,9 @@ function is executing."
   (let ((vcs (projectile-project-vcs directory)))
     (cond
     ((eq vcs 'git)
-     (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
+     (nconc (projectile-get-results-from-shell-command directory (projectile-get-ext-command vcs))
             (projectile-get-sub-projects-files directory vcs)))
-    (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
+    (t (projectile-get-results-from-shell-command directory (projectile-get-ext-command vcs))))))
 
 (define-obsolete-variable-alias 'projectile-get-repo-files 'projectile-dir-files-external "1.1")
 
@@ -1214,7 +1214,7 @@ they are excluded from the results of this function."
          (submodules (mapcar
                       (lambda (s)
                         (file-name-as-directory (expand-file-name s path)))
-                      (projectile-files-via-ext-command path (projectile-get-sub-projects-command vcs))))
+                      (projectile-get-results-from-shell-command path (projectile-get-sub-projects-command vcs))))
          (project-child-folder-regex
           (concat "\\`"
                   (regexp-quote path))))
@@ -1235,30 +1235,41 @@ they are excluded from the results of this function."
              (mapcar (lambda (file)
                        (concat sub-project file))
                      ;; TODO: Seems we forgot git hardcoded here
-                     (projectile-files-via-ext-command sub-project projectile-git-command)))
+                     (projectile-get-results-from-shell-command sub-project projectile-git-command)))
            (projectile-get-all-sub-projects project-root))))
 
 (defun projectile-get-repo-ignored-files (project vcs)
   "Get a list of the files ignored in the PROJECT using VCS."
   (let ((cmd (projectile-get-ext-ignored-command vcs)))
     (when cmd
-      (projectile-files-via-ext-command project cmd))))
+      (projectile-get-results-from-shell-command project cmd))))
 
 (defun projectile-get-repo-ignored-directory (project dir vcs)
   "Get a list of the files ignored in the PROJECT in the directory DIR.
 VCS is the VCS of the project."
   (let ((cmd (projectile-get-ext-ignored-command vcs)))
     (when cmd
-      (projectile-files-via-ext-command project (concat cmd " " dir)))))
+      (projectile-get-results-from-shell-command project (concat cmd " " dir)))))
 
-(defun projectile-files-via-ext-command (root command)
-  "Get a list of relative file names in the project ROOT by executing COMMAND.
+(defun projectile--shell-command-output-to-string (command)
+  "Execute shell command COMMAND and return its output (STDOUT) as a string.
+
+Any error output (i.e. STDERR) is disregarded."
+  (with-output-to-string
+    (with-current-buffer
+        standard-output
+      (process-file shell-file-name nil '(t nil) nil shell-command-switch command))))
+
+(defun projectile-get-results-from-shell-command (root command)
+  "Get a list of results from executing the command COMMAND at the path ROOT.
 
 If `command' is nil or an empty string, return nil.
-This allows commands to be disabled."
+This allows commands to be disabled.  This function may be used, for example,
+to return a list of files in the project (via commands that identify
+such files)."
   (when (stringp command)
     (let ((default-directory root))
-      (split-string (shell-command-to-string command) "\0" t))))
+      (split-string (projectile--shell-command-output-to-string command) "\0" t))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
@@ -3035,7 +3046,7 @@ Returns a list of expanded filenames."
                           (substring str 2)
                         str)))
             (split-string
-             (string-trim (shell-command-to-string cmd))
+             (string-trim (projectile--shell-command-output-to-string cmd))
              "\n+"
              t))))
 

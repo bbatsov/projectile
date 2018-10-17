@@ -28,6 +28,7 @@
 * Make the mode line configurable via `projectile-dynamic-mode-line` and `projectile-mode-line-function`.
 * [#1205](https://github.com/bbatsov/projectile/issues/1205): Check that project directory exists when switching projects.
 * Move Projectile's menu out of the "Tools" menu.
+* Ignore STDERR when running shell commands so it doesn't pollute usable output
 
 ### Bugs fixed
 
