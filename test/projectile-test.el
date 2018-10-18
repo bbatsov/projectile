@@ -100,6 +100,125 @@ test temp directory"
   (it "caches the project type"
     (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
 
+(describe "projectile-project-root"
+  (it "caches the current file"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.projectile"
+       "project/file1.el"
+       "project/file2.el"
+       "project/file3.el"
+       "project/file4.el")
+      (cd "project")
+      (let ((projectile-projects-cache (make-hash-table :test #'equal))
+            (projectile-projects-cache-time (make-hash-table :test #'equal))
+            (projectile-enable-caching t))
+        (puthash (projectile-project-root)
+                 '("file1.el")
+                 projectile-projects-cache)
+        (spy-on 'projectile-project-root :and-call-fake (lambda () (file-truename default-directory)))
+        (spy-on 'projectile-project-vcs :and-return-value 'none)
+        (with-current-buffer (find-file-noselect  "file2.el" t)
+          (projectile-cache-current-file)
+          (dolist (f '("file1.el" "file2.el"))
+            (expect (member f (gethash (projectile-project-root) projectile-projects-cache)) :to-be-truthy)))
+        (with-current-buffer (find-file-noselect "file3.el" t)
+          (projectile-cache-current-file)
+          (dolist (f '("file1.el" "file2.el" "file3.el"))
+            (expect (member f (gethash (projectile-project-root) projectile-projects-cache)) :to-be-truthy)))
+        (with-current-buffer (find-file-noselect "file4.el" t)
+          (projectile-cache-current-file)
+          (dolist (f '("file1.el" "file2.el" "file3.el" "file4.el"))
+            (expect (member f (gethash (projectile-project-root) projectile-projects-cache)) :to-be-truthy)))))))
+  (it "ensures that we update the cache if it's expired"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.projectile"
+       "project/file1.el"
+       "project/file2.el")
+      (cd "project")
+      (let ((projectile-projects-cache (make-hash-table :test #'equal))
+            (projectile-projects-cache-time (make-hash-table :test #'equal))
+            (projectile-enable-caching t)
+            (projectile-files-cache-expire 10))
+        ;; Create a stale cache with only one file in it.
+        (puthash (projectile-project-root)
+                 '("file1.el")
+                 projectile-projects-cache)
+        (puthash (projectile-project-root)
+                 0 ;; Cached 1st of January 1970.
+                 projectile-projects-cache-time)
+
+        (spy-on 'projectile-project-root :and-call-fake (lambda () (file-truename default-directory)))
+        (spy-on 'projectile-project-vcs :and-return-value 'none)
+        ;; After listing all the files, the cache should have been updated.
+        (projectile-current-project-files)
+        ;; find returns the leading ./ therefore the somewhat odd notation here
+        (dolist (f '("./file1.el" "./file2.el"))
+          (expect (member f (gethash (projectile-project-root) projectile-projects-cache)) :to-be-truthy))))))
+  (it "ensures that we don't cache a project root if the path has changed."
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.projectile")
+      (cd "project")
+      (let ((projectile-project-root-cache (make-hash-table :test #'equal))
+            (correct-project-root (projectile-project-root)))
+        ;; If this project has been moved, then we will have stale
+        ;; paths in the cache.
+        (puthash
+         (format "projectile-root-bottom-up-%s" correct-project-root)
+         "/this/path/does/not/exist"
+         projectile-project-root-cache)
+        (expect (projectile-project-root) :to-equal correct-project-root))))))
+
+(describe "projectile-grep"
+  (it "grep a git project using default files"
+    (require 'vc-git)
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/c/src/"
+       "project/c/include/"
+       "project/go/src/package1/"
+       "project/.projectile")
+      (cd "project")
+      (with-temp-file "go/src/package1/x.go" (insert "foo(bar)"))
+      (with-temp-file "c/include/x.h" (insert "typedef struct bar_t"))
+      (with-temp-file "c/src/x.c" (insert "struct bar_t *x"))
+      (dolist (test '(("go/src/package1/x.go" "foo" "*.go")
+                      ("c/src/x.c" "bar_t" "*.[ch]")
+                      ("c/include/x.h" "bar_t" "*.[ch]")))
+        (let ((projectile-use-git-grep t)
+              (current-prefix-arg '-)
+              (sym (cadr test)))
+          (spy-on 'projectile-project-vcs :and-return-value 'git)
+          (spy-on 'read-string :and-call-fake
+                  (lambda (prompt initial-input history default-value &rest args)
+                    (if (should (equal sym default-value)) default-value)))
+          (spy-on 'vc-git-grep :and-call-fake
+                  (lambda (regexp files dir)
+                    (progn (expect regexp :to-equal sym)
+                           (expect files :to-equal (car (last test)))
+                           (expect (projectile-project-root) :to-equal dir))))
+          (with-current-buffer (find-file-noselect (car test) t)
+            (save-excursion
+              (re-search-forward sym)
+              (projectile-grep nil ?-)))))))))
+
+(describe "projectile-switch-project"
+  (it "fails if there are no projects"
+    (let ((projectile-known-projects nil))
+      (expect (projectile-switch-project) :to-throw))))
+
+(describe "projectile-ignored-buffer-p"
+  (it "checks if buffer should be ignored"
+    (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
+      (expect (projectile-ignored-buffer-p (get-buffer-create "*nrepl messages*")) :to-be-truthy)
+      (expect (projectile-ignored-buffer-p (get-buffer-create "*something*")) :to-be-truthy)
+      (expect (projectile-ignored-buffer-p (get-buffer-create "test")) :not :to-be-truthy))))
+
 (describe "projectile-get-other-files"
   (it "returns files with same names but different extensions"
     (let ((projectile-other-file-alist '(;; handle C/C++ extensions
