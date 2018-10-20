@@ -127,12 +127,16 @@ When the keep-processes option is selected, keep buffers associated to a
 process.
 
 When the kill-only-files option is selected, kill only the buffer
-associated to a file."
+associated to a file.
+
+Otherwise, it should be a predicate that takes one argument: the buffer to
+be killed."
   :group 'projectile
   :type '(radio
           (const :tag "All project files" kill-all)
           (const :tag "Preserve process buffer" keep-processes)
-          (const :tag "Project file buffers" kill-only-files)))
+          (const :tag "Project file buffers" kill-only-files)
+          (function :tag "Predicate")))
 
 (defcustom projectile-file-exists-local-cache-expire nil
   "Number of seconds before the local file existence cache expires.
@@ -3162,11 +3166,13 @@ The buffer are killed according to the value of
                ;; we take care not to kill indirect buffers directly
                ;; as we might encounter them after their base buffers are killed
                (not (buffer-base-buffer buffer))
-               (case projectile-kill-buffers-filter
-                 ('kill-all t)
-                 ('keep-processes (not (get-buffer-process buffer)))
-                 ('kill-only-files (buffer-file-name buffer))
-                 (t (error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter))))
+               (if (functionp projectile-kill-buffers-filter)
+                   (funcall projectile-kill-buffers-filter buffer)
+                 (case projectile-kill-buffers-filter
+                   (kill-all t)
+                   (keep-processes (not (get-buffer-process buffer)))
+                   (kill-only-files (buffer-file-name buffer))
+                   (t (error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter)))))
           (kill-buffer buffer))))))
 
 ;;;###autoload
