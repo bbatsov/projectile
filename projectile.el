@@ -123,9 +123,6 @@ using the native indexing method."
 
 When the kill-all option is selected, kills each buffer.
 
-When the keep-processes option is selected, keep buffers associated to a
-process.
-
 When the kill-only-files option is selected, kill only the buffer
 associated to a file.
 
@@ -133,8 +130,7 @@ Otherwise, it should be a predicate that takes one argument: the buffer to
 be killed."
   :group 'projectile
   :type '(radio
-          (const :tag "All project files" kill-all)
-          (const :tag "Preserve process buffer" keep-processes)
+          (const :tag "All project buffers" kill-all)
           (const :tag "Project file buffers" kill-only-files)
           (function :tag "Predicate")))
 
@@ -3170,7 +3166,6 @@ The buffer are killed according to the value of
                    (funcall projectile-kill-buffers-filter buffer)
                  (case projectile-kill-buffers-filter
                    (kill-all t)
-                   (keep-processes (not (get-buffer-process buffer)))
                    (kill-only-files (buffer-file-name buffer))
                    (t (error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter)))))
           (kill-buffer buffer))))))
