@@ -118,6 +118,22 @@ using the native indexing method."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-kill-buffers-filter 'kill-all
+  "Determine which buffers are killed by `projectile-kill-buffers'.
+
+When the kill-all option is selected, kills each buffer.
+
+When the keep-processes option is selected, keep buffers associated to a
+process.
+
+When the kill-only-files option is selected, kill only the buffer
+associated to a file."
+  :group 'projectile
+  :type '(radio
+          (const :tag "All project files" kill-all)
+          (const :tag "Preserve process buffer" keep-processes)
+          (const :tag "Project file buffers" kill-only-files)))
+
 (defcustom projectile-file-exists-local-cache-expire nil
   "Number of seconds before the local file existence cache expires.
 Local refers to a file on a local file system.
@@ -3130,17 +3146,28 @@ to run the replacement."
 
 ;;;###autoload
 (defun projectile-kill-buffers ()
-  "Kill all project buffers."
+  "Kill project buffers.
+
+The buffer are killed according to the value of
+`projectile-kill-buffers-filter'."
   (interactive)
   (let* ((project (projectile-ensure-project (projectile-project-root)))
          (project-name (projectile-project-name project))
          (buffers (projectile-project-buffers project)))
-    (if (yes-or-no-p
-         (format "Are you sure you want to kill %d buffer(s) for '%s'? "
-                 (length buffers) project-name))
-        ;; we take care not to kill indirect buffers directly
-        ;; as we might encounter them after their base buffers are killed
-        (mapc #'kill-buffer (cl-remove-if 'buffer-base-buffer buffers)))))
+    (when (yes-or-no-p
+           (format "Are you sure you want to kill buffers for '%s'? "
+                   project-name))
+      (dolist (buffer buffers)
+        (when (and
+               ;; we take care not to kill indirect buffers directly
+               ;; as we might encounter them after their base buffers are killed
+               (not (buffer-base-buffer buffer))
+               (case projectile-kill-buffers-filter
+                 ('kill-all t)
+                 ('keep-processes (not (get-buffer-process buffer)))
+                 ('kill-only-files (buffer-file-name buffer))
+                 (t (error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter))))
+          (kill-buffer buffer))))))
 
 ;;;###autoload
 (defun projectile-save-project-buffers ()
