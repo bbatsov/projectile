@@ -100,6 +100,229 @@ test temp directory"
   (it "caches the project type"
     (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
 
+(describe "projectile-maybe-invalidate-cache"
+  (it "should not invalidate cache if dirconfig is older than cache"
+    (spy-on 'projectile-invalidate-cache :and-return-value t)
+    (expect (projectile-maybe-invalidate-cache nil) :not :to-be-truthy))
+  (it "should invalidate cache if force is t"
+    (spy-on 'projectile-invalidate-cache :and-return-value t)
+    (expect (projectile-maybe-invalidate-cache t) :to-be-truthy))
+  (it "should invalidate cache if dirconfig is newer than cache"
+    (spy-on 'projectile-invalidate-cache :and-return-value t)
+    (spy-on 'file-newer-than-file-p :and-return-value t)
+    (expect (projectile-maybe-invalidate-cache nil) :to-be-truthy)))
+
+(describe "projectile-root-top-down"
+  (it "identifies the root directory of a project by top-down search"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.svn/"
+       "projectA/src/.svn/"
+       "projectA/src/html/.svn/"
+       "projectA/.git/"
+       "projectA/src/html/"
+       "projectA/src/framework/lib/"
+       "projectA/src/framework.conf"
+       "projectA/src/html/index.html")
+      (expect (projectile-root-top-down "projectA/src/framework/lib" '("framework.conf" ".git"))
+              :to-equal
+              (expand-file-name "projectA/src/"))
+      (expect (projectile-root-top-down "projectA/src/framework/lib" '(".git" "framework.conf"))
+              :to-equal
+              (expand-file-name "projectA/src/"))
+      (expect (projectile-root-top-down "projectA/src/html/" '(".svn"))
+              :to-equal
+              (expand-file-name "projectA/src/html/"))))))
+
+(describe "projectile-root-top-down-recurring"
+  (it "identifies the root directory of a project by recurring top-down search"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.svn/"
+       "projectA/src/.svn/"
+       "projectA/src/html/.svn/"
+       "projectA/.git/"
+       "projectA/src/html/"
+       "projectA/src/framework/lib/"
+       "projectA/src/framework/framework.conf"
+       "projectA/src/html/index.html"
+       ".projectile")
+      (expect (projectile-root-top-down-recurring "projectA/src/html/" '("something" ".svn" ".git"))
+              :to-equal
+              (expand-file-name "projectA/"))
+      (expect (projectile-root-top-down-recurring "projectA/src/html/" '(".git"))
+              :to-equal
+              (expand-file-name "projectA/"))
+      (expect (projectile-root-top-down-recurring "projectA/src/html/" '("elusivefile"))
+              :not :to-be-truthy)))))
+
+(describe "projectile-root-bottom-up"
+  (it "identifies the root directory of a project by bottom-up search"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.svn/"
+       "projectA/src/.svn/"
+       "projectA/src/html/.svn/"
+       "projectA/.git/"
+       "projectA/src/html/"
+       "projectA/src/framework/lib/"
+       "projectA/src/framework/framework.conf"
+       "projectA/src/html/index.html"
+       "projectA/.projectile")
+      (expect (projectile-root-bottom-up "projectA/src/framework/lib" '(".git" ".svn"))
+              :to-equal
+              (expand-file-name "projectA/"))
+      (expect (projectile-root-bottom-up "projectA/src/html" '(".git" ".svn"))
+              :to-equal
+              (expand-file-name "projectA/"))
+      (expect (projectile-root-bottom-up "projectA/src/html" '(".svn" ".git"))
+              :to-equal
+              (expand-file-name "projectA/src/html/"))
+      (expect (projectile-root-bottom-up "projectA/src/html" '(".projectile" "index.html"))
+              :to-equal
+              (expand-file-name "projectA/"))))))
+
+(describe "projectile-project-root"
+  (defun projectile-test-should-root-in (root directory)
+    (let ((projectile-project-root-cache (make-hash-table :test 'equal)))
+      (expect (let ((default-directory
+                             (expand-file-name
+                              (file-name-as-directory directory))))
+                       (file-truename (projectile-project-root)))
+              :to-equal
+              (file-truename (file-name-as-directory root)))))
+
+  (it "returns the root directory of a project"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/src/.svn/"
+       "projectA/src/html/.svn/"
+       "projectA/src/html/"
+       "projectA/src/framework/lib/"
+       "projectA/build/framework/lib/"
+       "projectA/requirements/a/b/c/d/e/f/g/"
+       "projectA/src/framework/framework.conf"
+       "projectA/requirements/a/b/c/requirements.txt"
+       "projectA/src/html/index.html"
+       "projectA/.projectile"
+       "override")
+      (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
+            (projectile-project-root-files '("otherfile" "framework.conf" "requirements.txt"))
+            (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
+            (projectile-project-root-files-functions '(projectile-root-bottom-up
+                                                       projectile-root-top-down
+                                                       projectile-root-top-down-recurring)))
+        (projectile-test-should-root-in "projectA" "projectA/requirements/a/b/c/d/e/f/g")
+        (projectile-test-should-root-in "projectA" "projectA/src/framework/lib")
+        (projectile-test-should-root-in "projectA" "projectA/src/html")
+
+        (setq projectile-project-root-files-functions '(projectile-root-top-down
+                                                        projectile-root-top-down-recurring
+                                                        projectile-root-bottom-up))
+        (projectile-test-should-root-in "projectA/requirements/a/b/c"
+                                        "projectA/requirements/a/b/c/d/e/f/g")
+        (projectile-test-should-root-in "projectA/src/framework"
+                                        "projectA/src/framework/lib")
+        (projectile-test-should-root-in "projectA/src"
+                                        "projectA/src/html"))
+
+      (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
+            (projectile-project-root-files '("otherfile" "noframework.conf"))
+            (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
+            (projectile-project-root-files-functions '(projectile-root-top-down-recurring
+                                                       projectile-root-bottom-up
+                                                       projectile-root-top-down)))
+        (projectile-test-should-root-in "projectA/src" "projectA/src/framework/lib")
+        (projectile-test-should-root-in "projectA/src" "projectA/src/html")
+        (projectile-test-should-root-in "projectA/" "projectA/build/framework/lib"))
+
+      (let ((projectile-project-root-files-bottom-up '("somefile" "override"))
+            (projectile-project-root-files '("otherfile" "anotherfile"))
+            (projectile-project-root-files-top-down-recurring '("someotherfile" "yetanotherfile"))
+            (projectile-project-root-files-functions '(projectile-root-bottom-up
+                                                       projectile-root-top-down
+                                                       projectile-root-top-down-recurring)))
+        (projectile-test-should-root-in default-directory "projectA/src/framework/lib")
+        (projectile-test-should-root-in default-directory "projectA/src/html"))
+
+      (let ((projectile-project-root-files-bottom-up '("somecoolfile"))
+            (projectile-project-root-files nil)
+            (projectile-project-root-files-top-down-recurring '(".svn"))
+            (projectile-project-root-files-functions '(projectile-root-bottom-up
+                                                       projectile-root-top-down
+                                                       projectile-root-top-down-recurring)))
+        (projectile-test-should-root-in "projectA/src/" "projectA/src/")
+        (projectile-test-should-root-in "projectA/src/" "projectA/src/html"))))))
+
+(describe "projectile-file-exists-p"
+  (it "returns t if file exists"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/dirA/dirB/"
+       "project/fileA")
+      (let ((projectile-file-exists-local-cache-expire nil)
+            (projectile-file-exists-remote-cache-expire nil))
+        (expect (projectile-file-exists-p "project/fileA") :to-be-truthy)
+        (expect (projectile-file-exists-p "project/dirA/dirB") :to-be-truthy)
+        (expect (projectile-file-exists-p "project/dirA/fileB") :not :to-be-truthy)
+        (with-temp-file "project/dirA/fileB")
+        (expect (projectile-file-exists-p "project/dirA/fileB") :to-be-truthy)
+        (expect (projectile-file-exists-p "project/nofile") :not :to-be-truthy)
+        (delete-file "project/fileA")
+        (expect (projectile-file-exists-p "project/fileA") :not :to-be-truthy)))))
+  (it "caches the results"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("dirA/dirB/"
+       "fileA")
+      (let ((initial-time (current-time))
+            (projectile-file-exists-local-cache-expire 100)
+            (projectile-file-exists-remote-cache-expire nil))
+
+        (spy-on 'run-with-timer :and-return-value 'nooptimer)
+        (spy-on 'current-time :and-return-value initial-time)
+        (expect (projectile-file-exists-p "fileA") :to-be-truthy)
+        (expect (projectile-file-exists-p "dirA/dirB") :to-be-truthy)
+        (expect (projectile-file-exists-p "dirA/fileB") :not :to-be-truthy)
+        (with-temp-file "dirA/fileB")
+        (expect (projectile-file-exists-p "dirA/fileB") :not :to-be-truthy)
+        (delete-file "fileA")
+        (expect (projectile-file-exists-p "fileA") :to-be-truthy)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+        (projectile-file-exists-cache-cleanup)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+
+        (spy-on 'current-time :and-return-value (time-add initial-time (seconds-to-time 50)))
+        (projectile-file-exists-cache-cleanup)
+        (expect (projectile-file-exists-p "fileA") :to-be-truthy)
+        (expect (projectile-file-exists-p "dirA/fileB") :not :to-be-truthy)
+        (expect (projectile-file-exists-p "fileC") :not :to-be-truthy)
+        (with-temp-file "fileC")
+        (expect (projectile-file-exists-p "fileA") :to-be-truthy)
+        (projectile-file-exists-cache-cleanup)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+
+        (spy-on 'current-time :and-return-value (time-add initial-time (seconds-to-time 120)))
+        (projectile-file-exists-cache-cleanup)
+        (expect (projectile-file-exists-p "dirA/fileB") :to-be-truthy)
+        (expect (projectile-file-exists-p "fileA") :not :to-be-truthy)
+        (expect (projectile-file-exists-p "fileC") :not :to-be-truthy)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+        (projectile-file-exists-cache-cleanup)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+
+        (spy-on 'current-time :and-return-value (time-add initial-time (seconds-to-time 220)))
+        (projectile-file-exists-cache-cleanup)
+        (expect (projectile-file-exists-p "fileC") :to-be-truthy)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+        (projectile-file-exists-cache-cleanup)
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+
+        (spy-on 'current-time :and-return-value (time-add initial-time (seconds-to-time 1000)))
+        (expect projectile-file-exists-cache-timer :to-equal 'nooptimer)
+        (projectile-file-exists-cache-cleanup)
+        (expect projectile-file-exists-cache-timer :not :to-be-truthy))))))
+
 (describe "projectile-project-root"
   (it "caches the current file"
     (projectile-test-with-sandbox
