@@ -3164,10 +3164,10 @@ The buffer are killed according to the value of
                (not (buffer-base-buffer buffer))
                (if (functionp projectile-kill-buffers-filter)
                    (funcall projectile-kill-buffers-filter buffer)
-                 (case projectile-kill-buffers-filter
-                   (kill-all t)
-                   (kill-only-files (buffer-file-name buffer))
-                   (t (error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter)))))
+                 (pcase projectile-kill-buffers-filter
+                   ('kill-all t)
+                   ('kill-only-files (buffer-file-name buffer))
+                   (_ (user-error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter)))))
           (kill-buffer buffer))))))
 
 ;;;###autoload
