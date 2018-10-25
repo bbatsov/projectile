@@ -246,7 +246,13 @@ test temp directory"
     (expect (projectile-get-project-directories "/my/root/") :to-equal '("/my/root/foo" "/my/root/bar/baz"))))
 
 (describe "projectile-dir-files"
+  (it "fails unless directory exists"
+    (spy-on 'file-directory-p :and-call-fake
+            (lambda (filename) (equal filename "/my/root/")))
+    (expect (projectile-dir-files "asdf") :to-throw))
   (it "lists the files in directory and sub-directories"
+    (spy-on 'file-directory-p :and-call-fake
+            (lambda (filename) (equal filename "/my/root/")))
     (spy-on 'projectile-patterns-to-ignore)
     (spy-on 'projectile-index-directory :and-call-fake (lambda (dir patterns progress-reporter)
                                                          (expect dir :to-equal "/my/root/")
@@ -1080,3 +1086,13 @@ test temp directory"
     (spy-on 'projectile-project-type :and-return-value "bar")
     (let ((projectile-mode-line-prefix " Pro"))
       (expect (projectile-default-mode-line) :to-equal " Pro[foo:bar]"))))
+
+(describe "projectile--directory-p"
+  (it "tests which directory exists"
+    (expect (projectile--directory-p nil) :to-be nil)
+    (expect (projectile--directory-p "asdf") :to-be nil)
+    (expect (projectile--directory-p user-emacs-directory) :to-be-truthy)))
+
+(describe "projectile-find-file-in-directory"
+  (it "fails when called in a non-existing directory"
+    (expect (projectile-find-file-in-directory "asdf") :to-throw)))
