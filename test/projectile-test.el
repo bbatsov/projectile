@@ -100,6 +100,101 @@ test temp directory"
   (it "caches the project type"
     (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
 
+(describe "projectile-parse-dirconfig-file"
+  (it "parses dirconfig and returns directories to ignore and keep"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'file-truename :and-call-fake (lambda (filename) filename))
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (filename)
+              (save-excursion (insert "\n-exclude\n+include\nno-prefix\n left-wspace\nright-wspace\t\n"))))
+    (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
+                                                          ("exclude" "no-prefix" "left-wspace" "right-wspace")
+                                                          nil))))
+
+(describe "projectile-get-project-directories"
+  (it "gets the list of project directories"
+    (spy-on 'projectile-project-root :and-return-value "/my/root/")
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value '(nil))
+    (expect (projectile-get-project-directories "/my/root") :to-equal '("/my/root")))
+  (it "gets the list of project directories with dirs to keep"
+    (spy-on 'projectile-project-root :and-return-value "/my/root/")
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value '(("foo" "bar/baz")))
+    (expect (projectile-get-project-directories "/my/root/") :to-equal '("/my/root/foo" "/my/root/bar/baz"))))
+
+(describe "projectile-dir-files"
+  (it "lists the files in directory and sub-directories"
+    (spy-on 'projectile-patterns-to-ignore)
+    (spy-on 'projectile-index-directory :and-call-fake (lambda (dir patterns progress-reporter)
+                                                         (expect dir :to-equal "/my/root/")
+                                                         '("/my/root/a/b/c" "/my/root/a/d/e")))
+    (spy-on 'projectile-dir-files-alien :and-return-value '("a/b/c" "a/d/e"))
+    (spy-on 'cd)
+    (let ((projectile-indexing-method 'native))
+      (expect (projectile-dir-files "/my/root/") :to-equal '("a/b/c" "a/d/e")))
+    (let ((projectile-indexing-method 'alien))
+      (expect (projectile-dir-files "/my/root/") :to-equal '("a/b/c" "a/d/e")))))
+
+(describe "projectile-get-sub-projects-command"
+  (it "gets sub projects command for git"
+    (expect (string-prefix-p "git" (projectile-get-sub-projects-command 'git)) :to-be-truthy))
+  (it "returns empty when vcs is not supported"
+    (expect (string-empty-p (projectile-get-sub-projects-command 'none)) :to-be-truthy)))
+
+(describe "projectile-files-via-ext-command"
+  (it "returns nil when command is nil or empty"
+    (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
+    (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)))
+
+(describe "projectile-mode"
+  (it "sets up hook functions"
+    (spy-on 'projectile--cleanup-known-projects)
+    (spy-on 'projectile-discover-projects-in-search-path)
+    (projectile-mode 1)
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
+    (projectile-mode -1)
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
+
+(describe "projectile-relevant-known-projects"
+  (it "returns a list of known projects"
+    (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
+      (spy-on 'projectile-project-root :and-return-value "/path/to/project1")
+      (expect (projectile-relevant-known-projects) :to-equal '("/path/to/project2")))))
+
+(describe "projectile--cleanup-known-projects"
+  (it "removes known projects that don't exist anymore"
+    (let* ((projectile-known-projects-file (projectile-test-tmp-file-path))
+           (directories (cl-loop repeat 3 collect (make-temp-file "projectile-cleanup" t)))
+           (projectile-known-projects directories))
+      (unwind-protect
+          (progn
+            (projectile--cleanup-known-projects)
+            (expect projectile-known-projects :to-equal directories)
+            (delete-directory (car directories))
+            (projectile--cleanup-known-projects)
+            (expect projectile-known-projects :to-equal (cdr directories)))
+        (--each directories (ignore-errors (delete-directory it)))
+        (delete-file projectile-known-projects-file nil)))))
+
+(describe "projectile-project-root"
+  (it "returns the absolute root directory of a project"
+    (let* ((root-directory (make-temp-file "projectile-absolute" t))
+           (root-file (concat root-directory "/.projectile"))
+           (deep-directory (concat root-directory "/foo/bar/baz"))
+           (project-file (concat deep-directory "/tmp.txt")))
+      (unwind-protect
+          (progn
+            (mkdir deep-directory t)
+            (with-temp-file root-file)
+            (with-temp-file project-file)
+            (with-current-buffer (find-file-noselect project-file t)
+              (expect (file-name-absolute-p (projectile-project-root)) :to-be-truthy)))
+        (ignore-errors (delete-directory root-directory t))))))
+
+(describe "projectile-tags-exclude-patterns"
+  (it "returns a string with exclude patterns for ctags"
+    (spy-on 'projectile-ignored-directories-rel :and-return-value (list ".git/" ".hg/"))
+    (expect (projectile-tags-exclude-patterns) :to-equal "--exclude=\".git\" --exclude=\".hg\"")))
+
 (describe "projectile-maybe-invalidate-cache"
   (it "should not invalidate cache if dirconfig is older than cache"
     (spy-on 'projectile-invalidate-cache :and-return-value t)
