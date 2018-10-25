@@ -321,7 +321,7 @@ By default the minor mode indicator of Projectile appears in the form
 
 * `projectile-mode-line-prefix` (by default " Projectile") controls the static part of the mode-line
 * `projectile-dynamic-mode-line` (by default `t`) controls whether to display the project name & type part of the mode-line
-* `projectile-mode-line-function` (by default `projectile-default-mode-line`) controls the actual function to be invoked to generate the mode-line. If you'd like to show different info you should supply a custom function to replace the default.
+* `projectile-mode-line-function` (by default `projectile-default-mode-line`) controls the actual function to be invoked to generate the mode-line. If you'd like to show different info you should supply a custom function to replace the default, for example `(setq projectile-mode-line-function '(lambda () (format " Proj[%s]" (projectile-project-name))))`
 
 !!! Note
 
