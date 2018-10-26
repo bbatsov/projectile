@@ -24,8 +24,5 @@ compile: $(OBJS)
 clean:
 	rm -f $(OBJS)
 
-ert-test: $(PKGDIR)
-	$(CASK) exec ert-runner $(TESTFLAGS)
-
 test: $(PGKDIR)
 	$(CASK) exec buttercup -L .

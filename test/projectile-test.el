@@ -285,7 +285,7 @@ test temp directory"
             (delete-directory (car directories))
             (projectile--cleanup-known-projects)
             (expect projectile-known-projects :to-equal (cdr directories)))
-        (--each directories (ignore-errors (delete-directory it)))
+        (mapc (lambda (d) (ignore-errors (delete-directory it))) directories)
         (delete-file projectile-known-projects-file nil)))))
 
 (describe "projectile-project-root"
