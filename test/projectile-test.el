@@ -28,6 +28,17 @@
 (require 'projectile)
 (require 'buttercup)
 
+(message "Running tests on Emacs %s" emacs-version)
+
+;; TODO: Revise this init logic
+(let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
+       (source-directory (locate-dominating-file current-file "Cask"))
+       ;; Do not load outdated byte code for tests
+       (load-prefer-newer t))
+  ;; Load the file under test
+  (load (expand-file-name "projectile" source-directory))
+  (setq projectile-test-path (expand-file-name "test" source-directory)))
+
 ;;; Test Utilities
 (defmacro projectile-test-with-sandbox (&rest body)
   "Evaluate BODY in an empty temporary directory."
