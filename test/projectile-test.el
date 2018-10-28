@@ -255,7 +255,7 @@ test temp directory"
     (spy-on 'cd)
     (let ((projectile-indexing-method 'native))
       (expect (projectile-dir-files "/my/root/") :to-equal '("a/b/c" "a/d/e")))
-    (let ((projectile-indexing-method 'alien))
+    (let ((projectile-indexing-method 'hybrid))
       (expect (projectile-dir-files "/my/root/") :to-equal '("a/b/c" "a/d/e")))))
 
 (describe "projectile-get-sub-projects-command"

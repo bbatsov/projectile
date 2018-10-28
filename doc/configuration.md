@@ -8,12 +8,12 @@ want to fine-tune to make Projectile fit your workflow better.
 
 Projectile has three modes of operation - one is portable and is
 implemented in Emacs Lisp (therefore it's *native* to Emacs and is
-known as the `native indexing method`) and the other two (`alien` and
-`turbo-alien`) rely on external commands like `find`, `git`, etc to
+known as the `native indexing method`) and the other two (`hybrid` and
+`alien`) rely on external commands like `find`, `git`, etc to
 obtain the list of files in a project.
 
-The `turbo-alien` indexing method optimizes to the limit the speed of
-the `alien` indexing method.  This means that Projectile will not do
+The `alien` indexing method optimizes to the limit the speed of
+the `hybrid` indexing method.  This means that Projectile will not do
 any processing of the files returned by the external commands and
 you're going to get the maximum performance possible.  This behaviour
 makes a lot of sense for most people, as they'd typically be putting
@@ -23,8 +23,9 @@ provide.
 
 !!! Info
 
-    By default the `turbo-alien` method is used on all operating systems except Windows.
-    Prior to Projectile 1.1 `alien` used to be the default.
+    By default the `alien` method is used on all operating systems except Windows.
+    Prior to Projectile 1.1 `hybrid` used to be the default (but to make things
+    confusing `hybrid` used to be known as `alien` back then).
 
 To force the
 use of native indexing in all operating systems:
@@ -33,16 +34,16 @@ use of native indexing in all operating systems:
 (setq projectile-indexing-method 'native)
 ```
 
+To force the use of hybrid indexing in all operating systems:
+
+```el
+(setq projectile-indexing-method 'hybrid)
+```
+
 To force the use of alien indexing in all operating systems:
 
 ```el
 (setq projectile-indexing-method 'alien)
-```
-
-To force the use of turbo alien indexing in all operating systems:
-
-```el
-(setq projectile-indexing-method 'turbo-alien)
 ```
 
 This can speed up Projectile in Windows significantly (especially on

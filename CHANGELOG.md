@@ -8,7 +8,8 @@
 * New interactive command `projectile-run-ielm`.
 * Add [crystal](https://crystal-lang.org) project type.
 * [#850](https://github.com/bbatsov/projectile/issues/850): Make it possible to prompt for a project, when you're not in a project, instead of raising an error. (see `projectile-require-project-root`).
-* **(Breaking)** [#1147](https://github.com/bbatsov/projectile/issues/1147): Introduce a faster indexing method - `turbo-alien` (it's the default now).
+* **(Breaking)** [#1147](https://github.com/bbatsov/projectile/issues/1147): Remove any post-processing from the `alien` indexing method.
+* **(Breaking)** [#1147](https://github.com/bbatsov/projectile/issues/1147): Introduce a new indexing method called `hybrid` which behaves like the old `alien`.
 * [#896](https://github.com/bbatsov/projectile/issues/896) Add commands `projectile-previous-project-buffer ` and
 `projectile-next-project-buffer ` to switch to other buffer in the project.
 * [#1016](https://github.com/bbatsov/projectile/issues/1016): Add a new defcustom (`projectile-current-project-on-switch`) controlling what to do with the current project on switch.

@@ -78,10 +78,10 @@
   :link '(url-link :tag "Online Manual" "https://docs.projectile.mx/")
   :link '(emacs-commentary-link :tag "Commentary" "projectile"))
 
-(defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'turbo-alien)
+(defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
   "Specifies the indexing method used by Projectile.
 
-There are three indexing methods - native, alien and turbo-alien.
+There are three indexing methods - native, hybrid and alien.
 
 The native method is implemented in Emacs Lisp (therefore it is
 native to Emacs).  Its advantage is that it is portable and will
@@ -89,12 +89,14 @@ work everywhere that Emacs does.  Its disadvantage is that it is a
 bit slow (especially for large projects).  Generally it's a good
 idea to pair the native indexing method with caching.
 
-The alien indexing method uses external tools (e.g. git, find,
-etc) to speed up the indexing process.  The disadvantage of this
-method is that it's not well supported on Windows systems.
+The hybrid indexing method uses external tools (e.g. git, find,
+etc) to speed up the indexing process.  Still, the files will be
+post-processed by Projectile for sorting/filtering purposes.
+In this sense that approach is a hybrid between native and indexing
+and alien indexing.
 
-The turbo-alien indexing method optimizes to the limit the speed
-of the alien indexing method.  This means that Projectile will
+The alien indexing method optimizes to the limit the speed
+of the hybrid indexing method.  This means that Projectile will
 not do any processing of the files returned by the external
 commands and you're going to get the maximum performance
 possible.  This behaviour makes a lot of sense for most people,
@@ -102,13 +104,14 @@ as they'd typically be putting ignores in their VCS config and
 won't care about any additional ignores/unignores/sorting that
 Projectile might also provide.
 
-By default turbo-alien indexing is the default on all operating
-systems, except Windows."
+The disadvantage of the hybrid and alien methods is that they are not well
+supported on Windows systems.  That's why by default alien indexing is the
+default on all operating systems, except Windows."
   :group 'projectile
   :type '(radio
           (const :tag "Native" native)
-          (const :tag "Alien" alien)
-          (const :tag "Turbo Alien" turbo-alien)))
+          (const :tag "Hybrid" hybrid)
+          (const :tag "Alien" alien)))
 
 (defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
   "When t enables project files caching.
@@ -1115,8 +1118,8 @@ Files are returned as relative paths to DIRECTORY."
           (pcase projectile-indexing-method
            ('native (projectile-dir-files-native directory))
            ;; use external tools to get the project files
-           ('alien (projectile-adjust-files directory vcs (projectile-dir-files-alien directory)))
-           ('turbo-alien (projectile-dir-files-alien directory))
+           ('hybrid (projectile-adjust-files directory vcs (projectile-dir-files-alien directory)))
+           ('alien (projectile-dir-files-alien directory))
            (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method)))))))
 
 ;;; Native Project Indexing
@@ -1155,8 +1158,8 @@ function is executing."
 
 ;;; Alien Project Indexing
 ;;
-;; This corresponds to `projectile-indexing-method' being set to alien or turbo-alien.
-;; The only difference between the two methods is that turbo-alien doesn't do
+;; This corresponds to `projectile-indexing-method' being set to hybrid or alien.
+;; The only difference between the two methods is that alien doesn't do
 ;; any post-processing of the files obtained via the external command.
 (defun projectile-dir-files-alien (directory)
   "Get the files for DIRECTORY using external tools."
@@ -1773,8 +1776,8 @@ https://github.com/abo-abo/swiper")))
       (when projectile-enable-caching
         (message "Projectile is initializing cache..."))
       (setq files
-            (if (eq projectile-indexing-method 'turbo-alien)
-                ;; In turbo-alien mode we can just skip reading
+            (if (eq projectile-indexing-method 'alien)
+                ;; In alien mode we can just skip reading
                 ;; .projectile and find all files in the root dir.
                 (projectile-dir-files-alien project-root)
               ;; If a project is defined as a list of subfolders
@@ -1801,8 +1804,8 @@ https://github.com/abo-abo/swiper")))
     ;;
     ;; Files can't be cached in sorted order as some sorting schemes
     ;; require dynamic data.  Sorting is ignored completely when in
-    ;; turbo-alien mode.
-    (if (eq projectile-indexing-method 'turbo-alien)
+    ;; alien mode.
+    (if (eq projectile-indexing-method 'alien)
         files
       (projectile-sort-files files))))
 

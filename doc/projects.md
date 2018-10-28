@@ -151,7 +151,7 @@ M-x customize-group RET projectile RET
 !!! Warning
 
     The contents of `.projectile` are ignored when using the
-    `turbo-alien` project indexing method.
+    `alien` project indexing method.
 
 If you'd like to instruct Projectile to ignore certain files in a
 project, when indexing it you can do so in the `.projectile` file by
