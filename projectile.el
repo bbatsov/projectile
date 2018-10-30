@@ -2298,12 +2298,11 @@ TEST-DIR which specifies the path to the tests relative to the project root."
   "Check if a project contains Go source files."
   (projectile-verify-file-wildcard "*.go"))
 
+(define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "1.0.0")
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
   :group 'projectile
   :type 'function)
-
-(define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "1.0.0")
 
 ;;; Project type registration
 ;;
@@ -4120,6 +4119,7 @@ If the current buffer does not belong to a project, call `previous-buffer'."
 
 
 ;;; Projectile Minor mode
+(define-obsolete-variable-alias 'projectile-mode-line-lighter 'projectile-mode-line-prefix)
 (defcustom projectile-mode-line-prefix
   " Projectile"
   "Mode line lighter prefix for Projectile.
@@ -4129,8 +4129,6 @@ thing shown in the mode line otherwise."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.12.0"))
-
-(define-obsolete-variable-alias 'projectile-mode-line-lighter 'projectile-mode-line-prefix)
 
 (defvar-local projectile--mode-line projectile-mode-line-prefix)
 
