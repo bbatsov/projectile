@@ -64,6 +64,7 @@
 (declare-function eshell-search-path "esh-ext")
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
+(declare-function ripgrep-regexp "ripgrep")
 (declare-function string-trim "subr-x")
 
 (defvar grep-files-aliases)
