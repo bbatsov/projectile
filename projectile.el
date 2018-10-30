@@ -4062,7 +4062,7 @@ dirty project list."
           (while (and (< counter max-iterations)
                       (not (gethash (current-buffer) other-project-buffers)))
             (apply orig-fun args)
-            (incf counter))))
+            (cl-incf counter))))
     (apply orig-fun args)))
 
 (defun projectile-next-project-buffer ()
