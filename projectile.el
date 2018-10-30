@@ -42,7 +42,8 @@
 (require 'ibuf-ext)
 (require 'compile)
 (require 'grep)
-(require 'subr-x)
+(eval-when-compile
+  (require 'subr-x))
 
 (eval-when-compile
   (defvar ag-ignore-list)
@@ -63,6 +64,7 @@
 (declare-function eshell-search-path "esh-ext")
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
+(declare-function string-trim "subr-x")
 
 (defvar grep-files-aliases)
 (defvar grep-find-ignored-directories)
