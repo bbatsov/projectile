@@ -1047,26 +1047,16 @@ If DIR is not supplied its set to the current directory by default."
   ;; instead
   (let ((dir (or dir default-directory)))
     (cl-subst nil 'none
-              ;; The `is-local' and `is-connected' variables are
-              ;; used to fix the behavior where Emacs hangs
-              ;; because of Projectile when you open a file over
-              ;; TRAMP. It basically prevents Projectile from
-              ;; trying to find information about files for which
-              ;; it's not possible to get that information right
-              ;; now.
-              (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
-                        (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
-                    (when (or is-local is-connected)
-                      (cl-some
-                       (lambda (func)
-                         (let* ((cache-key (format "%s-%s" func dir))
-                                (cache-value (gethash cache-key projectile-project-root-cache)))
-                           (if (and cache-value (file-exists-p cache-value))
-                               cache-value
-                             (let ((value (funcall func (file-truename dir))))
-                               (puthash cache-key value projectile-project-root-cache)
-                               value))))
-                       projectile-project-root-files-functions)))
+              (or (cl-some
+                   (lambda (func)
+                     (let* ((cache-key (format "%s-%s" func dir))
+                            (cache-value (gethash cache-key projectile-project-root-cache)))
+                       (if (and cache-value (file-exists-p cache-value))
+                           cache-value
+                         (let ((value (funcall func (file-truename dir))))
+                           (puthash cache-key value projectile-project-root-cache)
+                           value))))
+                   projectile-project-root-files-functions)
                   ;; set cached to none so is non-nil so we don't try
                   ;; and look it up again
                   'none))))
@@ -3727,7 +3717,8 @@ This command will first prompt for the directory the file is in."
 (defun projectile-find-file-in-known-projects ()
   "Jump to a file in any of the known projects."
   (interactive)
-  (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files))))
+  (let ((non-essential t))
+    (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)))))
 
 (defun projectile-keep-project-p (project)
   "Determine whether we should cleanup (remove) PROJECT or not.
