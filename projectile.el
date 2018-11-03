@@ -1109,9 +1109,15 @@ If PROJECT is not specified acts on the current project."
   (mapcar (lambda (subdir) (concat project-dir subdir))
           (or (nth 0 (projectile-parse-dirconfig-file)) '(""))))
 
+(defun projectile--directory-p (directory)
+  "Checks if DIRECTORY is a string designating a valid directory."
+  (and (stringp directory) (file-directory-p directory)))
+
 (defun projectile-dir-files (directory)
   "List the files in DIRECTORY and in its sub-directories.
 Files are returned as relative paths to DIRECTORY."
+  (unless (projectile--directory-p directory)
+    (error "Directory %S does not exist" directory))
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
                          (gethash directory projectile-projects-cache))))
@@ -3703,6 +3709,8 @@ With a prefix ARG invokes `projectile-commander' instead of
 
 This command will first prompt for the directory the file is in."
   (interactive "DFind file in directory: ")
+  (unless (projectile--directory-p directory)
+    (user-error "Directory %S does not exist" directory))
   (let ((default-directory directory))
     (if (projectile-project-p)
         ;; target directory is in a project
