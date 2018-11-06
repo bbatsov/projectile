@@ -3166,8 +3166,8 @@ The buffer are killed according to the value of
          (project-name (projectile-project-name project))
          (buffers (projectile-project-buffers project)))
     (when (yes-or-no-p
-           (format "Are you sure you want to kill buffers for '%s'? "
-                   project-name))
+           (format "Are you sure you want to kill %s buffers for '%s'? "
+                   (length buffers) project-name))
       (dolist (buffer buffers)
         (when (and
                ;; we take care not to kill indirect buffers directly
