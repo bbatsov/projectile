@@ -234,6 +234,11 @@ set to 'ggtags', then ggtags will be used for
           (const :tag "standard" find-tag))
   :package-version '(projectile . "0.14.0"))
 
+(defcustom projectile-tags-exclude-supports-globs nil
+  "If t - treat all non-matched ignores from .projectile as globs"
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files."
   :group 'projectile
@@ -2885,11 +2890,17 @@ SEARCH-TERM is a regexp."
                           (cons "--fixed-strings" args))))
     (error "Package `ripgrep' is not available")))
 
+(defun projectile-tags-exclude-globs ()
+  "Return list with globs for exclide if `projectile-tags-exclude-supports-globs' set to t"
+  (if projectile-tags-exclude-supports-globs
+      (cl-remove-if 'file-directory-p (projectile-paths-to-ignore))
+    nil))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
                                        (directory-file-name pattern)))
-             (projectile-ignored-directories-rel) " "))
+             (append (projectile-ignored-directories-rel) (projectile-tags-exclude-globs)) " "))
 
 ;;;###autoload
 (defun projectile-regenerate-tags ()
