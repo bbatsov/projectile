@@ -1551,10 +1551,14 @@ Regular expressions can be used."
   "Check if FILE should be ignored.
 
 Regular expressions can be used."
-  (cl-some
-   (lambda (name)
-     (string-match-p name file))
-   (projectile-ignored-files)))
+   (or (cl-some
+        (lambda (suf)
+          (string-suffix-p suf file t))
+        projectile-globally-ignored-file-suffixes)
+       (cl-some
+        (lambda (name)
+          (string-match-p name file))
+        (projectile-ignored-files))
 
 (defun projectile-check-pattern-p (file pattern)
   "Check if FILE meets PATTERN."
