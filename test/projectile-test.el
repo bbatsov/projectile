@@ -893,6 +893,13 @@ test temp directory"
         (expect (projectile-get-all-sub-projects project) :to-equal
                 (list (expand-file-name "vendor/client-submodule/" project))))))))
 
+(describe "projectile-get-all-sub-projects-files"
+  (it "returns relative paths to submodule files"
+    (spy-on 'projectile-get-all-sub-projects :and-return-value '("/a/b/x/"))
+    (spy-on 'projectile-files-via-ext-command :and-return-value '("1.txt" "2.txt"))
+    (expect (projectile-get-sub-projects-files "/a/b" 'git) :to-equal
+      (list "x/1.txt" "x/2.txt"))))
+
 (describe "projectile-configure-command"
   (it "configure command for generic project type"
     (spy-on 'projectile-default-configure-command :and-return-value nil)
