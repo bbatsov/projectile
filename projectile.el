@@ -1261,9 +1261,11 @@ they are excluded from the results of this function."
   "Get files from sub-projects for PROJECT-ROOT recursively."
   (projectile-flatten
    (mapcar (lambda (sub-project)
-             (let ((project-relative-path (file-relative-name sub-project project-root)))
+             (let ((project-relative-path
+                    (file-name-as-directory (file-relative-name
+                                             sub-project project-root))))
                (mapcar (lambda (file)
-                       (concat (file-name-as-directory project-relative-path) file))
+                       (concat project-relative-path file))
                      ;; TODO: Seems we forgot git hardcoded here
                      (projectile-files-via-ext-command sub-project projectile-git-command))))
            (projectile-get-all-sub-projects project-root))))
