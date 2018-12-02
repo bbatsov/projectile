@@ -3266,7 +3266,7 @@ directory to open."
          (mapcar
           (lambda (f) (file-relative-name f project-root))
           (cl-remove-if-not
-           (lambda (f) (string-prefix-p project-root f))
+           (lambda (f) (string-prefix-p project-root (expand-file-name f)))
            recentf-list)))))
 
 (defun projectile-serialize-cache ()
