@@ -168,6 +168,11 @@ A value of nil means the cache never expires."
   :type '(choice (const :tag "Disabled" nil)
                  (integer :tag "Seconds")))
 
+(defcustom projectile-auto-update-cache t
+  "Wether the cache should automatically be updated when files are opened or deleted."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
 When set to 'prompt Projectile will ask you to select a project
@@ -961,7 +966,7 @@ Invoked automatically when `projectile-mode' is enabled."
 
 
 (defun delete-file-projectile-remove-from-cache (filename &optional trash)
-  (if (and projectile-enable-caching (projectile-project-p))
+  (if (and projectile-enable-caching projectile-auto-update-cache (projectile-project-p))
       (let* ((project-root (projectile-project-root))
              (true-filename (file-truename filename))
              (relative-filename (file-relative-name true-filename project-root)))
@@ -4283,7 +4288,8 @@ tramp."
   (unless (file-remote-p default-directory)
     (when projectile-dynamic-mode-line
       (projectile-update-mode-line))
-    (projectile-cache-files-find-file-hook)
+    (when projectile-auto-update-cache
+      (projectile-cache-files-find-file-hook))
     (projectile-track-known-projects-find-file-hook)
     (projectile-visit-project-tags-table)))
 
