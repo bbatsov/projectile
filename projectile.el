@@ -3583,28 +3583,22 @@ If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
 (defun compilation-find-file-projectile-find-compilation-buffer (orig-fun marker filename directory &rest formats)
   "Try to find a buffer for FILENAME, if we cannot find it,
 fallback to the original function."
-  (let (full-filename)
-    (setq filename
-                (or
-                 (if (file-exists-p (expand-file-name filename))
-                     filename)
-                 ;; Try to find the filename using projectile
-                 (and (projectile-project-p)
-                      (let ((root (projectile-project-root))
-                            (dirs (cons "" (projectile-current-project-dirs))))
-                        (when (setq full-filename
-                                    (car (cl-remove-if-not
-                                          #'file-exists-p
-                                          (mapcar
-                                           (lambda (f)
-                                             (expand-file-name
-                                              filename
-                                              (expand-file-name f root)))
-                                           dirs))))
-                          full-filename)))
-                 ;; Fall back to the old argument
-                 filename))
-    (funcall #'orig-fun marker filename directory formats))
+  (when (and (not (file-exists-p (expand-file-name filename)))
+             (projectile-project-p))
+    (let* ((root (projectile-project-root))
+           (dirs (cons "" (projectile-current-project-dirs)))
+           (new-filename (car (cl-remove-if-not
+                               #'file-exists-p
+                               (mapcar
+                                (lambda (f)
+                                  (expand-file-name
+                                   filename
+                                   (expand-file-name f root)))
+                                dirs)))))
+      (when new-filename
+        (setq filename new-filename))))
+
+  (funcall #'orig-fun marker filename directory formats))
 
 (defun projectile-open-projects ()
   "Return a list of all open projects.
