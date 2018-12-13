@@ -960,7 +960,7 @@ Invoked automatically when `projectile-mode' is enabled."
   (mapcar #'projectile-discover-projects-in-directory projectile-project-search-path))
 
 
-(defadvice delete-file (before purge-from-projectile-cache (filename &optional trash))
+(defun delete-file-projectile-remove-from-cache (filename &optional trash)
   (if (and projectile-enable-caching (projectile-project-p))
       (let* ((project-root (projectile-project-root))
              (true-filename (file-truename filename))
@@ -3580,12 +3580,11 @@ If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
     (unless (string= command executed-command)
       (ring-insert command-history executed-command))))
 
-(defadvice compilation-find-file (around projectile-compilation-find-file)
+(defun compilation-find-file-projectile-find-compilation-buffer (orig-fun marker filename directory &rest formats)
   "Try to find a buffer for FILENAME, if we cannot find it,
 fallback to the original function."
-  (let ((filename (ad-get-arg 1))
-        full-filename)
-    (ad-set-arg 1
+  (let (full-filename)
+    (setq filename
                 (or
                  (if (file-exists-p (expand-file-name filename))
                      filename)
@@ -3605,7 +3604,7 @@ fallback to the original function."
                           full-filename)))
                  ;; Fall back to the old argument
                  filename))
-    ad-do-it))
+    (funcall #'orig-fun marker filename directory formats))
 
 (defun projectile-open-projects ()
   "Return a list of all open projects.
@@ -4332,13 +4331,13 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
-    (ad-activate 'compilation-find-file)
-    (ad-activate 'delete-file))
+    (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
+    (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
    (t
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
-    (ad-deactivate 'compilation-find-file)
-    (ad-deactivate 'delete-file))))
+    (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
+    (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
 
 ;;;###autoload
 (define-obsolete-function-alias 'projectile-global-mode 'projectile-mode "1.0")
