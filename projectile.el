@@ -3603,7 +3603,7 @@ fallback to the original function."
       (when new-filename
         (setq filename new-filename))))
 
-  (funcall #'orig-fun marker filename directory formats))
+  (apply orig-fun `(,marker ,filename ,directory ,@formats)))
 
 (defun projectile-open-projects ()
   "Return a list of all open projects.
