@@ -1791,7 +1791,7 @@ https://github.com/abo-abo/swiper")))
     ;; Calculate the list of files.
     (when (null files)
       (when projectile-enable-caching
-        (message "Projectile is initializing cache..."))
+        (message "Projectile is initializing cache for %s ..." project-root))
       (setq files
             (if (eq projectile-indexing-method 'alien)
                 ;; In alien mode we can just skip reading
