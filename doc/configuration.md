@@ -24,7 +24,7 @@ provide.
 !!! Info
 
     By default the `alien` method is used on all operating systems except Windows.
-    Prior to Projectile 1.1 `hybrid` used to be the default (but to make things
+    Prior to Projectile 2.0 `hybrid` used to be the default (but to make things
     confusing `hybrid` used to be known as `alien` back then).
 
 To force the

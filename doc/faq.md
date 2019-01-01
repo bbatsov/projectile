@@ -17,7 +17,7 @@ mostly because it felt practical and because pressing `C-c C-p` is not
 super convenient for many people. I've come to regret this decision,
 though, and it will likely be reverted down the road.
 
-**Update** This was changed in Projectile 1.1.
+**Update** This was changed in Projectile 2.0.
 
 ## Do you need some help cleanup up all those tickets that have piled up?
 

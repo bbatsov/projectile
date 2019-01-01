@@ -2,22 +2,24 @@
 
 ## master (unreleased)
 
+## 2.0.0 (2019-01-01)
+
 ### New features
 
 * [#972](https://github.com/bbatsov/projectile/issues/972): Add toggle for project read only mode: `projectile-toggle-project-read-only`.
 * New interactive command `projectile-run-ielm`.
 * Add [crystal](https://crystal-lang.org) project type.
 * [#850](https://github.com/bbatsov/projectile/issues/850): Make it possible to prompt for a project, when you're not in a project, instead of raising an error. (see `projectile-require-project-root`).
-* **(Breaking)** [#1147](https://github.com/bbatsov/projectile/issues/1147): Remove any post-processing from the `alien` indexing method.
-* **(Breaking)** [#1147](https://github.com/bbatsov/projectile/issues/1147): Introduce a new indexing method called `hybrid` which behaves like the old `alien`.
+* [#1147](https://github.com/bbatsov/projectile/issues/1147): Introduce a new indexing method called `hybrid` which behaves like the old `alien`.
 * [#896](https://github.com/bbatsov/projectile/issues/896) Add commands `projectile-previous-project-buffer ` and
-`projectile-next-project-buffer ` to switch to other buffer in the project.
+`projectile-next-project-buffer` to switch to other buffer in the project.
 * [#1016](https://github.com/bbatsov/projectile/issues/1016): Add a new defcustom (`projectile-current-project-on-switch`) controlling what to do with the current project on switch.
 * [#1233](https://github.com/bbatsov/projectile/issues/1233): Add a new defcustom (`projectile-kill-buffers-filter`) controlling which buffers are killed by `projectile-kill-buffers`.
-* [#1279](https://github.com/bbatsov/projectile/issues/1279) Add command `projectile-repeat-last-command` to re-execute the last external command in a project.
+* [#1279](https://github.com/bbatsov/projectile/issues/1279): Add command `projectile-repeat-last-command` to re-execute the last external command in a project.
 
 ### Changes
 
+* **(Breaking)** [#1147](https://github.com/bbatsov/projectile/issues/1147): Remove any post-processing from the `alien` indexing method.
 * Specify project path for `projectile-regenerate-tags`.
 * Handle files with special characters in `projectile-get-other-files`.
 * [#1260](https://github.com/bbatsov/projectile/pull/1260): ignored-*-p: Now they match against regular expressions.
@@ -31,6 +33,7 @@
 * Make the mode line configurable via `projectile-dynamic-mode-line` and `projectile-mode-line-function`.
 * [#1205](https://github.com/bbatsov/projectile/issues/1205): Check that project directory exists when switching projects.
 * Move Projectile's menu out of the "Tools" menu.
+* [API] **(Breaking)** Stop raising errors from `projectile-projectile-root` if not invoked within a project. Now it will simply return nil. Use it together with `projectile-ensure-project` to emulate the old behavior.
 
 ### Bugs fixed
 

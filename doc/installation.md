@@ -71,8 +71,8 @@ Finally add this to your Emacs config:
 
     Those keymap prefixes are just a suggestion. Feel free to put
     there whatever works best for you.
-    `C-c p` used to be the default prefix up to version 1.1, but
-    starting with version 1.1 you have to select prefix key(s)
+    `C-c p` used to be the default prefix up to version 2.0, but
+    starting with version 2.0 you have to select prefix key(s)
     yourself.
 
 ### Installation via use-package
