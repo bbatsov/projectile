@@ -124,7 +124,7 @@ A fairly extensive changelog is available [here](CHANGELOG.md).
 
 ## License
 
-Copyright © 2011-2018 Bozhidar Batsov and
+Copyright © 2011-2019 Bozhidar Batsov and
 [contributors](https://github.com/bbatsov/projectile/contributors).
 
 Distributed under the GNU General Public License, version 3
