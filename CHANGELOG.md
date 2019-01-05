@@ -38,6 +38,7 @@
 ### Bugs fixed
 
 * [#1315](https://github.com/bbatsov/projectile/issues/1315): Give preference to the project types that were registered last.
+* [#1367](https://github.com/bbatsov/projectile/issues/1367): Fix the Makefile so that we can compile projectile - use `make`.
 
 ## 1.0.0 (2018-07-21)
 

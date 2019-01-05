@@ -8,18 +8,23 @@ PKGDIR := $(shell EMACS=$(EMACS) $(CASK) package-directory)
 SRCS = $(wildcard *.el)
 OBJS = $(SRCS:.el=.elc)
 
-.PHONY: compile test clean
+.PHONY: compile test clean elpa
 
-elpa:
+all: compile
+
+elpa-$(EMACS):
 	$(CASK) install
 	$(CASK) update
 	touch $@
+
+elpa: elpa-$(EMACS)
 
 elpaclean:
 	rm -f elpa*
 	rm -rf .cask # Clean packages installed for development
 
-compile: $(OBJS)
+compile: elpa
+	$(CASK) build
 
 clean:
 	rm -f $(OBJS)
