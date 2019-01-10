@@ -33,7 +33,7 @@
 * Make the mode line configurable via `projectile-dynamic-mode-line` and `projectile-mode-line-function`.
 * [#1205](https://github.com/bbatsov/projectile/issues/1205): Check that project directory exists when switching projects.
 * Move Projectile's menu out of the "Tools" menu.
-* [API] **(Breaking)** Stop raising errors from `projectile-projectile-root` if not invoked within a project. Now it will simply return nil. Use it together with `projectile-ensure-project` to emulate the old behavior.
+* [API] **(Breaking)** Stop raising errors from `projectile-project-root` if not invoked within a project. Now it will simply return nil. Use it together with `projectile-ensure-project` to emulate the old behavior.
 
 ### Bugs fixed
 
