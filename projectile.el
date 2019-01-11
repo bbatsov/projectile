@@ -1241,13 +1241,14 @@ PATH is the vcs root or project root from which to start
 searching, and should end with an appropriate path delimiter, such as
 '/' or a '\\'.
 
-If the vcs get-sub-projects query returns results outside of path,
+If the vcs get-sub-projects query returns results outside of PATH,
 they are excluded from the results of this function."
-  (let* ((vcs (projectile-project-vcs path))
+  (let* ((root (projectile-project-root path))
+         (vcs (projectile-project-vcs path))
          ;; search for sub-projects under current project `project'
          (submodules (mapcar
                       (lambda (s)
-                        (file-name-as-directory (expand-file-name s path)))
+                        (file-name-as-directory (expand-file-name s root)))
                       (projectile-files-via-ext-command path (projectile-get-sub-projects-command vcs))))
          (project-child-folder-regex
           (concat "\\`"

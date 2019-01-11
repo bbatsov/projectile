@@ -900,6 +900,30 @@ test temp directory"
     (expect (projectile-get-sub-projects-files "/a/b" 'git) :to-equal
       (list "x/1.txt" "x/2.txt"))))
 
+(describe "projectile-get-immediate-sub-projects"
+  (it "excludes sub-projets not within the passed directory"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      (;; VCS root and project root are here
+       "project/"
+       "project/.git/"
+       "project/.gitmodules"
+       "project/.projectile"
+       "project/web-ui/"
+       ;; VCS git submodule will return the following submodules,
+       ;; relative to current 'project/web-ui/':
+       "project/web-ui/vendor/client-submodule/"
+       "project/server/vendor/server-submodule/")
+      (let ((project (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-files-via-ext-command :and-call-fake
+                (lambda (dir vcs)
+                  '("web-ui/vendor/client-submodule"
+                    "server/vendor/server-submodule")))
+        (spy-on 'projectile-project-root :and-return-value project)
+        ;; assert that it only returns the submodule 'project/web-ui/vendor/client-submodule/'
+        (expect (projectile-get-immediate-sub-projects (expand-file-name "web-ui/" project)) :to-equal
+                (list (expand-file-name "web-ui/vendor/client-submodule/" project))))))))
+
 (describe "projectile-configure-command"
   (it "configure command for generic project type"
     (spy-on 'projectile-default-configure-command :and-return-value nil)

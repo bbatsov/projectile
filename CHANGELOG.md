@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Bugs fixed
+
+* [#1369](https://github.com/bbatsov/projectile/issues/1369): Fix projectile-get-immediate-sub-projects when passed a non-root argument
+
 ## 2.0.0 (2019-01-01)
 
 ### New features
