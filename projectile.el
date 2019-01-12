@@ -2808,6 +2808,7 @@ This is a subset of `grep-read-files', where either a matching entry from
     (read-string (format "%s%s: " prefix-label default-label) nil nil default-value)))
 
 (defvar projectile-grep-find-ignored-paths)
+(defvar projectile-grep-find-unignored-paths)
 (defvar projectile-grep-find-ignored-patterns)
 (defvar projectile-grep-find-unignored-patterns)
 
@@ -2882,7 +2883,8 @@ Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
                  " -prune -o "))
     (and projectile-grep-find-ignored-patterns
          (concat (shell-quote-argument "(")
-                 (and projectile-grep-find-unignored-patterns
+                 (and (or projectile-grep-find-unignored-paths
+                          projectile-grep-find-unignored-patterns)
                       (concat " "
                               (shell-quote-argument "(")))
                  " -path "
@@ -2893,21 +2895,30 @@ Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
                        (concat "*/" ignore))))
                   projectile-grep-find-ignored-patterns
                   " -o -path ")
-                 (and projectile-grep-find-unignored-patterns
+                 (and (or projectile-grep-find-unignored-paths
+                          projectile-grep-find-unignored-patterns)
                       (concat " "
                               (shell-quote-argument ")")
                               " -a "
                               (shell-quote-argument "!")
                               " "
                               (shell-quote-argument "(")
-                              " -path "
-                              (mapconcat
-                               (lambda (ignore)
-                                 (shell-quote-argument
-                                  (if (string-prefix-p "*" ignore) ignore
-                                    (concat "*/" ignore))))
-                               projectile-grep-find-unignored-patterns
-                               " -o -path ")
+                              (and projectile-grep-find-unignored-paths
+                                   (concat " -path "
+                                           (mapconcat
+                                            (lambda (ignore) (shell-quote-argument
+                                                              (concat "./" ignore)))
+                                            projectile-grep-find-unignored-paths
+                                            " -o -path ")))
+                              (and projectile-grep-find-unignored-patterns
+                                   (concat " -path "
+                                           (mapconcat
+                                            (lambda (ignore)
+                                              (shell-quote-argument
+                                               (if (string-prefix-p "*" ignore) ignore
+                                                 (concat "*/" ignore))))
+                                            projectile-grep-find-unignored-patterns
+                                            " -o -path ")))
                               " "
                               (shell-quote-argument ")")))
                  " "
@@ -2949,6 +2960,12 @@ With REGEXP given, don't query the user for a regexp."
                        (mapcar (lambda (file)
                                  (file-relative-name file root-dir))
                                (projectile-ignored-files))))
+              (projectile-grep-find-unignored-paths
+               (append (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
+                               (projectile-unignored-directories))
+                       (mapcar (lambda (file)
+                                 (file-relative-name file root-dir))
+                               (projectile-unignored-files))))
               (projectile-grep-find-ignored-patterns (projectile-patterns-to-ignore))
               (projectile-grep-find-unignored-patterns (projectile-patterns-to-ensure)))
           (grep-compute-defaults)
