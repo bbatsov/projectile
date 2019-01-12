@@ -2807,6 +2807,8 @@ This is a subset of `grep-read-files', where either a matching entry from
                           (format " (default %s)" default-value))))
     (read-string (format "%s%s: " prefix-label default-label) nil nil default-value)))
 
+(defvar projectile-grep-find-ignored-paths)
+
 (defun projectile-rgrep-default-command (regexp files dir)
   "Compute the command for \\[rgrep] to use by default.
 
@@ -2864,6 +2866,17 @@ Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
                   " -o -name ")
                  " "
                  (shell-quote-argument ")")
+                 " -prune -o "))
+    (and projectile-grep-find-ignored-paths
+         (concat (shell-quote-argument "(")
+                 " -path "
+                 (mapconcat
+                  (lambda (ignore) (shell-quote-argument
+                                    (concat "./" ignore)))
+                  projectile-grep-find-ignored-paths
+                  " -o -path ")
+                 " "
+                 (shell-quote-argument ")")
                  " -prune -o ")))))
 
 ;;;###autoload
@@ -2892,16 +2905,15 @@ With REGEXP given, don't query the user for a regexp."
                (fboundp 'vc-git-grep))
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
-        (let ((grep-find-ignored-directories
-               (cl-union (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
-                                 (projectile-ignored-directories))
-                         grep-find-ignored-directories))
-              (grep-find-ignored-files
-               (cl-union (append (mapcar (lambda (file)
-                                           (file-relative-name file root-dir))
-                                         (projectile-ignored-files))
-                                 (projectile--globally-ignored-file-suffixes-glob))
-                         grep-find-ignored-files)))
+        (let ((grep-find-ignored-files
+               (cl-union (projectile--globally-ignored-file-suffixes-glob)
+                         grep-find-ignored-files))
+              (projectile-grep-find-ignored-paths
+               (append (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
+                               (projectile-ignored-directories))
+                       (mapcar (lambda (file)
+                                 (file-relative-name file root-dir))
+                               (projectile-ignored-files)))))
           (grep-compute-defaults)
           (cl-letf (((symbol-function 'rgrep-default-command) #'projectile-rgrep-default-command))
             (rgrep search-regexp (or files "* .*") root-dir)))))
