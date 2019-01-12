@@ -623,6 +623,60 @@ test temp directory"
         (expect (projectile-project-root) :to-equal correct-project-root))))))
 
 (describe "projectile-grep"
+  (describe "rgrep"
+    (before-each
+      (spy-on 'compilation-start))
+    (it "excludes global ignores"
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/"
+         "project/.projectile")
+        (cd "project")
+        (with-current-buffer (find-file-noselect ".projectile" t)
+          (let ((grep-find-template "<X>")
+                (grep-find-ignored-directories '("IG_DIR"))
+                (grep-find-ignored-files '("IG_FILE"))
+                (projectile-globally-ignored-files '("GLOB_IG_FILE"))
+                (projectile-globally-ignored-file-suffixes '("IG_SUF"))
+                (projectile-globally-ignored-directories '("GLOB_IG_DIR")))
+            (projectile-grep "hi")))
+        (expect 'compilation-start :to-have-been-called-with
+                (concat "-type d \\( -path \\*/IG_DIR \\) -prune -o "
+                        "\\! -type d \\( -name IG_FILE -o -name \\*IG_SUF \\) -prune -o "
+                        "\\( -path ./GLOB_IG_DIR -o -path ./GLOB_IG_FILE \\) -prune -o ")
+                'grep-mode))))
+    (it "excludes project ignores"
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/bar/"
+         "project/baz/")
+        (cd "project")
+        (with-temp-file ".projectile" (insert (concat "-/*.txt\n"
+                                                      "-/bar/*.txt\n"
+                                                      "-/baz\n"
+                                                      "-*.txt\n"
+                                                      "-*.text\n"
+                                                      "!/abc.txt\n"
+                                                      "!/bar/abc.txt\n"
+                                                      "!def.txt\n")))
+        (with-temp-file "foo.txt")
+        (with-temp-file "abc.txt")
+        (with-temp-file "bar/foo.txt")
+        (with-temp-file "bar/abc.txt")
+        (with-current-buffer (find-file-noselect ".projectile" t)
+          (let ((grep-find-template "<X>")
+                grep-find-ignored-directories grep-find-ignored-files
+                projectile-globally-ignored-files
+                projectile-globally-ignored-file-suffixes
+                projectile-globally-ignored-directories)
+            (projectile-grep "hi")))
+        (expect 'compilation-start :to-have-been-called-with
+                (concat "\\( -path ./baz -o -path ./foo.txt -o -path ./bar/foo.txt \\) -prune -o "
+                        "\\( "
+                        "\\( -path \\*.txt -o -path \\*.text \\) "
+                        "-a \\! \\( -path ./abc.txt -o -path ./bar/abc.txt -o -path \\*/def.txt \\) "
+                        "\\) -prune -o ")
+                'grep-mode)))))
   (it "grep a git project using default files"
     (require 'vc-git)
     (projectile-test-with-sandbox
