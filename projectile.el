@@ -2808,6 +2808,8 @@ This is a subset of `grep-read-files', where either a matching entry from
     (read-string (format "%s%s: " prefix-label default-label) nil nil default-value)))
 
 (defvar projectile-grep-find-ignored-paths)
+(defvar projectile-grep-find-ignored-patterns)
+(defvar projectile-grep-find-unignored-patterns)
 
 (defun projectile-rgrep-default-command (regexp files dir)
   "Compute the command for \\[rgrep] to use by default.
@@ -2877,6 +2879,39 @@ Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
                   " -o -path ")
                  " "
                  (shell-quote-argument ")")
+                 " -prune -o "))
+    (and projectile-grep-find-ignored-patterns
+         (concat (shell-quote-argument "(")
+                 (and projectile-grep-find-unignored-patterns
+                      (concat " "
+                              (shell-quote-argument "(")))
+                 " -path "
+                 (mapconcat
+                  (lambda (ignore)
+                    (shell-quote-argument
+                     (if (string-prefix-p "*" ignore) ignore
+                       (concat "*/" ignore))))
+                  projectile-grep-find-ignored-patterns
+                  " -o -path ")
+                 (and projectile-grep-find-unignored-patterns
+                      (concat " "
+                              (shell-quote-argument ")")
+                              " -a "
+                              (shell-quote-argument "!")
+                              " "
+                              (shell-quote-argument "(")
+                              " -path "
+                              (mapconcat
+                               (lambda (ignore)
+                                 (shell-quote-argument
+                                  (if (string-prefix-p "*" ignore) ignore
+                                    (concat "*/" ignore))))
+                               projectile-grep-find-unignored-patterns
+                               " -o -path ")
+                              " "
+                              (shell-quote-argument ")")))
+                 " "
+                 (shell-quote-argument ")")
                  " -prune -o ")))))
 
 ;;;###autoload
@@ -2913,7 +2948,9 @@ With REGEXP given, don't query the user for a regexp."
                                (projectile-ignored-directories))
                        (mapcar (lambda (file)
                                  (file-relative-name file root-dir))
-                               (projectile-ignored-files)))))
+                               (projectile-ignored-files))))
+              (projectile-grep-find-ignored-patterns (projectile-patterns-to-ignore))
+              (projectile-grep-find-unignored-patterns (projectile-patterns-to-ensure)))
           (grep-compute-defaults)
           (cl-letf (((symbol-function 'rgrep-default-command) #'projectile-rgrep-default-command))
             (rgrep search-regexp (or files "* .*") root-dir)))))
