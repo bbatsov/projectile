@@ -2,6 +2,11 @@
 
 ## master (unreleased)
 
+### Bugs fixed
+
+* [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile`
+  ignores which are paths to files and patterns when using `projectile-grep`.
+
 ## 2.0.0 (2019-01-01)
 
 ### New features
