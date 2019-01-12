@@ -2910,6 +2910,9 @@ Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
                                                               (concat "./" ignore)))
                                             projectile-grep-find-unignored-paths
                                             " -o -path ")))
+                              (and projectile-grep-find-unignored-paths
+                                   projectile-grep-find-unignored-patterns
+                                   " -o")
                               (and projectile-grep-find-unignored-patterns
                                    (concat " -path "
                                            (mapconcat
