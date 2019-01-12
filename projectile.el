@@ -966,7 +966,7 @@ Invoked automatically when `projectile-mode' is enabled."
   (mapcar #'projectile-discover-projects-in-directory projectile-project-search-path))
 
 
-(defun delete-file-projectile-remove-from-cache (filename &optional trash)
+(defun delete-file-projectile-remove-from-cache (filename &optional _trash)
   (if (and projectile-enable-caching projectile-auto-update-cache (projectile-project-p))
       (let* ((project-root (projectile-project-root))
              (true-filename (file-truename filename))
@@ -1263,7 +1263,7 @@ they are excluded from the results of this function."
                        submodule))
      submodules)))
 
-(defun projectile-get-sub-projects-files (project-root vcs)
+(defun projectile-get-sub-projects-files (project-root _vcs)
   "Get files from sub-projects for PROJECT-ROOT recursively."
   (projectile-flatten
    (mapcar (lambda (sub-project)
