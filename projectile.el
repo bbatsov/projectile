@@ -2806,6 +2806,65 @@ This is a subset of `grep-read-files', where either a matching entry from
                           (format " (default %s)" default-value))))
     (read-string (format "%s%s: " prefix-label default-label) nil nil default-value)))
 
+(defun projectile-rgrep-default-command (regexp files dir)
+  "Compute the command for \\[rgrep] to use by default.
+
+Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
+  (require 'find-dired)      ; for `find-name-arg'
+  (grep-expand-template
+   grep-find-template
+   regexp
+   (concat (shell-quote-argument "(")
+           " " find-name-arg " "
+           (mapconcat
+            #'shell-quote-argument
+            (split-string files)
+            (concat " -o " find-name-arg " "))
+           " "
+           (shell-quote-argument ")"))
+   dir
+   (concat
+    (and grep-find-ignored-directories
+         (concat "-type d "
+                 (shell-quote-argument "(")
+                 ;; we should use shell-quote-argument here
+                 " -path "
+                 (mapconcat
+                  'identity
+                  (delq nil (mapcar
+                             #'(lambda (ignore)
+                                 (cond ((stringp ignore)
+                                        (shell-quote-argument
+                                         (concat "*/" ignore)))
+                                       ((consp ignore)
+                                        (and (funcall (car ignore) dir)
+                                             (shell-quote-argument
+                                              (concat "*/"
+                                                      (cdr ignore)))))))
+                             grep-find-ignored-directories))
+                  " -o -path ")
+                 " "
+                 (shell-quote-argument ")")
+                 " -prune -o "))
+    (and grep-find-ignored-files
+         (concat (shell-quote-argument "!") " -type d "
+                 (shell-quote-argument "(")
+                 ;; we should use shell-quote-argument here
+                 " -name "
+                 (mapconcat
+                  #'(lambda (ignore)
+                      (cond ((stringp ignore)
+                             (shell-quote-argument ignore))
+                            ((consp ignore)
+                             (and (funcall (car ignore) dir)
+                                  (shell-quote-argument
+                                   (cdr ignore))))))
+                  grep-find-ignored-files
+                  " -o -name ")
+                 " "
+                 (shell-quote-argument ")")
+                 " -prune -o ")))))
+
 ;;;###autoload
 (defun projectile-grep (&optional regexp arg)
   "Perform rgrep in the project.
@@ -2843,7 +2902,8 @@ With REGEXP given, don't query the user for a regexp."
                                  (projectile--globally-ignored-file-suffixes-glob))
                          grep-find-ignored-files)))
           (grep-compute-defaults)
-          (rgrep search-regexp (or files "* .*") root-dir))))
+          (cl-letf (((symbol-function 'rgrep-default-command) #'projectile-rgrep-default-command))
+            (rgrep search-regexp (or files "* .*") root-dir)))))
     (run-hooks 'projectile-grep-finished-hook)))
 
 ;;;###autoload
