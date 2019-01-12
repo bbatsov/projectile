@@ -43,6 +43,7 @@
 (require 'compile)
 (require 'grep)
 (eval-when-compile
+  (require 'find-dired)
   (require 'subr-x))
 
 (eval-when-compile
