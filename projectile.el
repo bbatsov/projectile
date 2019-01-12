@@ -2815,7 +2815,8 @@ This is a subset of `grep-read-files', where either a matching entry from
 (defun projectile-rgrep-default-command (regexp files dir)
   "Compute the command for \\[rgrep] to use by default.
 
-Extension of the Emacs 25.1 implementation of `rgrep-default-command'."
+Extension of the Emacs 25.1 implementation of `rgrep-default-command', with
+which it shares its arglist."
   (require 'find-dired)      ; for `find-name-arg'
   (grep-expand-template
    grep-find-template
