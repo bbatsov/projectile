@@ -96,7 +96,7 @@ idea to pair the native indexing method with caching.
 The hybrid indexing method uses external tools (e.g. git, find,
 etc) to speed up the indexing process.  Still, the files will be
 post-processed by Projectile for sorting/filtering purposes.
-In this sense that approach is a hybrid between native and indexing
+In this sense that approach is a hybrid between native indexing
 and alien indexing.
 
 The alien indexing method optimizes to the limit the speed
@@ -241,14 +241,17 @@ set to 'ggtags', then ggtags will be used for
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-sort-order 'default
-  "The sort order used for a project's files."
+  "The sort order used for a project's files.
+
+Note that files aren't sorted if `projectile-indexing-method'
+is set to 'alien'."
   :group 'projectile
   :type '(radio
-          (const :tag "default" default)
-          (const :tag "recentf" recentf)
-          (const :tag "recently active" recently-active)
-          (const :tag "access time" access-time)
-          (const :tag "modification time" modification-time)))
+          (const :tag "Default (no sorting)" default)
+          (const :tag "Recently opened files" recentf)
+          (const :tag "Recently active buffers, then recently opened files" recently-active)
+          (const :tag "Access time (atime)" access-time)
+          (const :tag "Modification time (mtime)" modification-time)))
 
 (defcustom projectile-verbose t
   "Echo messages that are not errors."

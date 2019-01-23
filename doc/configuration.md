@@ -14,8 +14,8 @@ obtain the list of files in a project.
 
 The `alien` indexing method optimizes to the limit the speed of
 the `hybrid` indexing method.  This means that Projectile will not do
-any processing of the files returned by the external commands and
-you're going to get the maximum performance possible.  This behaviour
+any processing or sorting of the files returned by the external commands 
+and you're going to get the maximum performance possible.  This behaviour
 makes a lot of sense for most people, as they'd typically be putting
 ignores in their VCS config (e.g. `.gitignore`) and won't care about
 any additional ignores/unignores/sorting that Projectile might also
@@ -83,6 +83,46 @@ find . -type f -print0
 
     It's a great idea to install [fd](https://github.com/sharkdp/fd) and use it as a replacement for both `git ls-files` (`fd` understands `.gitignore`) and `find`.
     The magic command you'll need with it is something like `fd . -0`.
+
+## Sorting
+
+You can choose how Projectile sorts files by customizing `projectile-sort-order`.
+
+!!! Info
+
+    Note that if Alien indexing is set, files are not sorted by Projectile at all.
+
+The default is to not sort files:
+
+```el
+(setq projectile-sort-order 'default)
+```
+
+To sort files by recently opened:
+
+```el
+(setq projectile-sort-order 'recentf)
+```
+
+To sort files by recently active buffers and then recently opened files:
+
+```el
+(setq projectile-sort-order 'recently-active)
+```
+
+<!-- These URLs below are in HTML so that the parentheses in the URL fragments are properly recognised. -->
+
+To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Modification_time_(mtime)">modification time</a> (mtime):
+
+```el
+(setq projectile-sort-order 'modification-time)
+```
+
+To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Access_time_(atime)">access time<a/> (atime):
+
+```el
+(setq projectile-sort-order 'access-time)
+```
 
 
 ## Caching
