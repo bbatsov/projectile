@@ -2514,7 +2514,8 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 ;; Rust
 (projectile-register-project-type 'rust-cargo '("Cargo.toml")
                                   :compile "cargo build"
-                                  :test "cargo test")
+                                  :test "cargo test"
+                                  :run "cargo run")
 
 ;; Racket
 (projectile-register-project-type 'racket '("info.rkt")
