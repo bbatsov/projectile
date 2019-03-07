@@ -4,7 +4,8 @@
 
 ### New features
 
-* Added support for `yadm` projects.
+* [1384](https://github.com/bbatsov/projectile/pull/1384): Add support for
+  `yadm` projects.
 
 ### Bugs fixed
 
