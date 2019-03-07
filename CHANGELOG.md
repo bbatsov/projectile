@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* Added support for `yadm` projects.
+
 ### Bugs fixed
 
 * [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile`

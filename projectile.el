@@ -319,6 +319,7 @@ The topmost match has precedence."
 (defcustom projectile-project-root-files-bottom-up
   '(".projectile" ; projectile project marker
     ".git"        ; Git VCS root dir
+    ".yadm"       ; YADM root dir
     ".hg"         ; Mercurial VCS root dir
     ".fslckout"   ; Fossil VCS root dir
     "_FOSSIL_"    ; Fossil VCS root DB on Windows
@@ -608,6 +609,23 @@ Set to nil to disable listing submodules contents."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.14.0"))
+
+(defcustom projectile-yadm-command "yadm ls-files -zco --exclude-standard"
+  "Command used by projectile to get the files in a yadm project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-yadm-submodule-command "yadm submodule --quiet foreach 'echo $path' | tr '\\n' '\\0'"
+  "Command used by projectile to list submodules of a given yadm repository.
+Set to nil to disable listing submodules contents."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-yadm-ignored-command "yadm ls-files -zcoi --exclude-standard"
+  "Command used by projectile to get the ignored files in a yadm project."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-hg-command "hg locate -f -0 -I ."
   "Command used by projectile to get the files in a hg project."
@@ -1183,10 +1201,11 @@ function is executing."
   "Get the files for DIRECTORY using external tools."
   (let ((vcs (projectile-project-vcs directory)))
     (cond
-    ((eq vcs 'git)
-     (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
-            (projectile-get-sub-projects-files directory vcs)))
-    (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
+     ((or (eq vcs 'git)
+          (eq vcs 'yadm))
+      (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
+             (projectile-get-sub-projects-files directory vcs)))
+     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
 
 (define-obsolete-function-alias 'projectile-dir-files-external 'projectile-dir-files-alien "2.0.0")
 (define-obsolete-function-alias 'projectile-get-repo-files 'projectile-dir-files-alien "2.0.0")
@@ -1196,6 +1215,7 @@ function is executing."
 Fallback to a generic command when not in a VCS-controlled project."
   (pcase vcs
    ('git projectile-git-command)
+   ('yadm projectile-yadm-command)
    ('hg projectile-hg-command)
    ('fossil projectile-fossil-command)
    ('bzr projectile-bzr-command)
@@ -1209,12 +1229,14 @@ Currently that's supported just for Git (sub-projects being Git
 sub-modules there)."
   (pcase vcs
    ('git projectile-git-submodule-command)
+   ('yadm projectile-yadm-submodule-command)
    (_ "")))
 
 (defun projectile-get-ext-ignored-command (vcs)
   "Determine which external command to invoke based on the project's VCS."
   (pcase vcs
    ('git projectile-git-ignored-command)
+   ('yadm projectile-yadm-ignored-command)
    ;; TODO: Add support for other VCS
    (_ nil)))
 
@@ -2588,6 +2610,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
   (or project-root (setq project-root (projectile-project-root)))
   (cond
    ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
+   ((projectile-file-exists-p (expand-file-name ".yadm" project-root)) 'yadm)
    ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
    ((projectile-file-exists-p (expand-file-name ".fslckout" project-root)) 'fossil)
    ((projectile-file-exists-p (expand-file-name "_FOSSIL_" project-root)) 'fossil)
@@ -2595,6 +2618,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
    ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
    ((projectile-locate-dominating-file project-root ".git") 'git)
+   ((projectile-locate-dominating-file project-root ".yadm") 'yadm)
    ((projectile-locate-dominating-file project-root ".hg") 'hg)
    ((projectile-locate-dominating-file project-root ".fslckout") 'fossil)
    ((projectile-locate-dominating-file project-root "_FOSSIL_") 'fossil)
@@ -2999,7 +3023,8 @@ regular expression."
                                     ag-ignore-list
                                     (projectile--globally-ignored-file-suffixes-glob)
                                     ;; ag supports git ignore files directly
-                                    (unless (eq (projectile-project-vcs) 'git)
+                                    (unless (or (eq (projectile-project-vcs) 'git)
+                                                (eq (projectile-project-vcs) 'yadm))
                                       (append (projectile-ignored-files-rel)
                                               (projectile-ignored-directories-rel)
                                               grep-find-ignored-files
@@ -3228,6 +3253,9 @@ files in the project."
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
                          (concat "git grep -HlI " search-term))
+                        ((and (executable-find "yadm")
+                              (eq (projectile-project-vcs) 'yadm))
+                         (concat "yadm grep -HlI " search-term))
                         (t
                          ;; -r: recursive
                          ;; -H: show filename for each match
