@@ -317,9 +317,9 @@ The topmost match has precedence."
   :type '(repeat string))
 
 (defcustom projectile-project-root-files-bottom-up
-  '(".projectile" ; projectile project marker
+  '(".yadm"       ; YADM root dir
+    ".projectile" ; projectile project marker
     ".git"        ; Git VCS root dir
-    ".yadm"       ; YADM root dir
     ".hg"         ; Mercurial VCS root dir
     ".fslckout"   ; Fossil VCS root dir
     "_FOSSIL_"    ; Fossil VCS root DB on Windows
@@ -1215,12 +1215,12 @@ function is executing."
 Fallback to a generic command when not in a VCS-controlled project."
   (pcase vcs
    ('git projectile-git-command)
-   ('yadm projectile-yadm-command)
    ('hg projectile-hg-command)
    ('fossil projectile-fossil-command)
    ('bzr projectile-bzr-command)
    ('darcs projectile-darcs-command)
    ('svn projectile-svn-command)
+   ('yadm projectile-yadm-command)
    (_ projectile-generic-command)))
 
 (defun projectile-get-sub-projects-command (vcs)
@@ -2610,7 +2610,6 @@ PROJECT-ROOT is the targeted directory.  If nil, use
   (or project-root (setq project-root (projectile-project-root)))
   (cond
    ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
-   ((projectile-file-exists-p (expand-file-name ".yadm" project-root)) 'yadm)
    ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
    ((projectile-file-exists-p (expand-file-name ".fslckout" project-root)) 'fossil)
    ((projectile-file-exists-p (expand-file-name "_FOSSIL_" project-root)) 'fossil)
@@ -2618,13 +2617,14 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
    ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
    ((projectile-locate-dominating-file project-root ".git") 'git)
-   ((projectile-locate-dominating-file project-root ".yadm") 'yadm)
    ((projectile-locate-dominating-file project-root ".hg") 'hg)
    ((projectile-locate-dominating-file project-root ".fslckout") 'fossil)
    ((projectile-locate-dominating-file project-root "_FOSSIL_") 'fossil)
    ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
    ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
    ((projectile-locate-dominating-file project-root ".svn") 'svn)
+   ((projectile-file-exists-p (expand-file-name ".yadm" project-root)) 'yadm)
+   ((projectile-locate-dominating-file project-root ".yadm") 'yadm)
    (t 'none)))
 
 (defun projectile--test-name-for-impl-name (impl-file-path)
