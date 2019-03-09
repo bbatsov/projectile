@@ -3258,17 +3258,22 @@ to run the replacement."
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
          (files (projectile-files-with-string old-text directory)))
-    ;; Adapted from `tags-query-replace' for literal strings (not regexp)
-    (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
-                                  '((case-fold-search nil)))
-                            (if (search-forward ',old-text nil t)
-                                ;; When we find a match, move back to
-                                ;; the beginning of it so
-                                ;; perform-replace will see it.
-                                (goto-char (match-beginning 0))))
-          tags-loop-operate `(perform-replace ',old-text ',new-text t nil nil
-                                              nil multi-query-replace-map))
-    (tags-loop-continue (or (cons 'list files) t))))
+    (if (version< emacs-version "27")
+        ;; Adapted from `tags-query-replace' for literal strings (not regexp)
+        (progn
+          (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
+                                        '((case-fold-search nil)))
+                                  (if (search-forward ',old-text nil t)
+                                      ;; When we find a match, move back to
+                                      ;; the beginning of it so
+                                      ;; perform-replace will see it.
+                                      (goto-char (match-beginning 0))))
+                tags-loop-operate `(perform-replace ',old-text ',new-text t nil nil
+                                                    nil multi-query-replace-map))
+          (tags-loop-continue (or (cons 'list files) t)))
+      (progn
+        (fileloop-initialize-replace old-text new-text files 'default)
+        (fileloop-continue)))))
 
 ;;;###autoload
 (defun projectile-replace-regexp (&optional arg)
