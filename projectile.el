@@ -2312,7 +2312,7 @@ TEST-DIR which specifies the path to the tests relative to the project root."
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
-  (and (projectile-verify-file-wildcard "*.cabal")
+  (and (projectile-verify-file-wildcard "?*.cabal")
        (not (projectile-verify-file "stack.yaml"))))
 
 (defun projectile-go-project-p ()
