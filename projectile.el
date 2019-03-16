@@ -2279,7 +2279,7 @@ The project types are symbols and they are linked to plists holding
 the properties of the various project types.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir related-file-func)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir related-file)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2295,13 +2295,12 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILE-FUNC which finds the related files such as test/impl files.
-          (my-related-file-func FILENAME TYPE)
+RELATED-FILE which specifies function to find the related files such as test/impl files.
+          (my/related-file FILENAME TYPE)
           FILENAME does not include directory component.
           TYPE can be 'test or 'impl.
           Should return a related filename or nil if not found.
-
-          RELATED-FILE-FUNC can be used instead of TEST_SUFFIX/PREFIX for the
+          RELATED-FILE can be used instead of TEST_SUFFIX/PREFIX for the
           more complex projects."
   (let ((project-plist (list 'marker-files marker-files
                              'compilation-dir compilation-dir
@@ -2322,8 +2321,8 @@ RELATED-FILE-FUNC which finds the related files such as test/impl files.
       (plist-put project-plist 'src-dir src-dir))
     (when test-dir
       (plist-put project-plist 'test-dir test-dir))
-    (when related-file-func
-      (plist-put project-plist 'related-file-func related-file-func))
+    (when related-file
+      (plist-put project-plist 'related-file related-file))
 
     (setq projectile-project-types
           (cons `(,project-type . ,project-plist)
@@ -2711,7 +2710,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-related-file (project-type)
   "Find relative file based on PROJECT-TYPE."
-  (projectile-project-type-attribute project-type 'related-file-func))
+  (projectile-project-type-attribute project-type 'related-file))
 
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."

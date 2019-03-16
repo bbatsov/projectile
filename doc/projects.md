@@ -90,6 +90,7 @@ Option           | Documentation
 :test-dir        | A path, relative to the project root, where the test code lives.
 :test-prefix     | A prefix to generate test files names.
 :test-suffix     | A suffix to generate test files names.
+:related-file    | A function to find test/impl file names in more flexible way then test-prefix/suffix.
 
 #### Returning Projectile Commands from a function
 
@@ -131,6 +132,45 @@ This works for:
   * `:run`
 
 Note that your function has to return a string to work properly.
+
+#### Customise test file location
+
+For simple projects, `:test-prefix` and `:test-suffix` option with string will
+be enough. For the projects working with multiple file extension and/or
+different test file name rule, `:related-file` option with function can be used instead.
+
+```el
+(defun my/related-file (filename type)
+  (cond
+   ((eq type 'test)
+    (let ((regexp-cpp (rx (1+ anything) ".cpp"))
+          (regexp-py (rx (1+ anything) ".py")))
+      (cond
+       ((string-match regexp-cpp filename)
+        (concat "Test" filename))
+       ((string-match regexp-py filename)
+        (concat "test_" filename)))))
+   ((eq type 'impl)
+     (let ((regexp-cpp (rx "Test" (group (1+ anything) ".cpp")))
+           (regexp-py (rx "test_" (group (1+ anything) ".py")))
+           (rep "\\1"))
+       (cond
+        ((string-match regexp-cpp filename)
+         (replace-regexp-in-string regexp-cpp rep filename))
+        ((string-match regexp-py filename)
+         (replace-regexp-in-string regexp-py rep filename)))))))
+
+
+(projectile-register-project-type ...
+                                  :related-file 'my/related-file
+                                  ...)
+```
+`filename` contains a file name with extension without directory component.
+`type` is a symbol, either `'test` or `'impl`.
+`related-file` function should return a file name for corresponding to `type` or nil if it is not applicable.
+
+With the above example, .cpp file and .py file can have different test files.
+
 
 ## Customizing project root files
 

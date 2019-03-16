@@ -922,8 +922,8 @@ test temp directory"
         (expect (projectile-find-matching-file "spec/bar/bar.service.spec.js") :to-equal "source/bar/bar.service.js"))))))
 
 
-(describe "related-file-func option"
-  (it "finds matching test or file in a custom project registered with related-file-func"
+(describe "related-file option"
+  (it "finds matching test or file"
     (projectile-test-with-sandbox
       (projectile-test-with-files
        ("project/src/"
@@ -935,15 +935,15 @@ test temp directory"
              (projectile-enable-caching nil))
          (projectile-register-project-type
           'cpp-project '("somefile")
-          :related-file-func (lambda (filename type)
-                               (let ((config
-                                      (cond
-                                       ((eq type 'test) (cons (rx (group (1+ anything )) ".cpp") "Test\\1.cpp"))
-                                       ((eq type 'impl) (cons (rx "Test" (group (1+ anything )) ".cpp") "\\1.cpp")))))
-                                 (when config
-                                   (cl-destructuring-bind (regexp . rep) config
-                                     (if (string-match regexp filename)
-                                         (replace-regexp-in-string regexp rep filename)))))))
+          :related-file (lambda (filename type)
+                          (let ((config
+                                 (cond
+                                  ((eq type 'test) (cons (rx (group (1+ anything )) ".cpp") "Test\\1.cpp"))
+                                  ((eq type 'impl) (cons (rx "Test" (group (1+ anything )) ".cpp") "\\1.cpp")))))
+                            (when config
+                              (cl-destructuring-bind (regexp . rep) config
+                                (if (string-match regexp filename)
+                                    (replace-regexp-in-string regexp rep filename)))))))
          (spy-on 'projectile-project-type :and-return-value 'cpp-project)
          (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
          (expect (projectile-find-matching-test "src/Foo.cpp") :to-equal "test/TestFoo.cpp")
