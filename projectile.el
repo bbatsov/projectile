@@ -464,6 +464,11 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-related-file-function 'projectile-related-file
+  "Function to find related files based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
 (defcustom projectile-dynamic-mode-line t
   "If true, update the mode-line dynamically.
 Only file buffers are affected by this, as the update happens via
@@ -2257,7 +2262,9 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (or (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
+  (or (if-let (related-file-func (funcall projectile-related-file-function (projectile-project-type)))
+          (when (funcall related-file-func file 'impl) t))
+      (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
                (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
       (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
                (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
@@ -2272,7 +2279,7 @@ The project types are symbols and they are linked to plists holding
 the properties of the various project types.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir related-file-func)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2287,13 +2294,22 @@ RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
-TEST-DIR which specifies the path to the tests relative to the project root."
+TEST-DIR which specifies the path to the tests relative to the project root.
+RELATED-FILE-FUNC which finds the related files such as test/impl files.
+          (my-related-file-func FILENAME TYPE)
+          FILENAME does not include directory component.
+          TYPE can be 'test or 'impl.
+          Should return a related filename or nil if not found.
+
+          RELATED-FILE-FUNC can be used instead of TEST_SUFFIX/PREFIX for the
+          more complex projects."
   (let ((project-plist (list 'marker-files marker-files
                              'compilation-dir compilation-dir
                              'configure-command configure
                              'compile-command compile
                              'test-command test
-                             'run-command run)))
+                             'run-command run
+                             )))
     ;; There is no way for the function to distinguish between an
     ;; explicit argument of nil and an omitted argument. However, the
     ;; body of the function is free to consider nil an abbreviation
@@ -2306,6 +2322,9 @@ TEST-DIR which specifies the path to the tests relative to the project root."
       (plist-put project-plist 'src-dir src-dir))
     (when test-dir
       (plist-put project-plist 'test-dir test-dir))
+    (when related-file-func
+      (plist-put project-plist 'related-file-func related-file-func))
+
     (setq projectile-project-types
           (cons `(,project-type . ,project-plist)
                 projectile-project-types))))
@@ -2690,6 +2709,10 @@ Fallback to DEFAULT-VALUE for missing attributes."
   "Find default test files suffix based on PROJECT-TYPE."
   (projectile-project-type-attribute project-type 'test-suffix))
 
+(defun projectile-related-file (project-type)
+  "Find relative file based on PROJECT-TYPE."
+  (projectile-project-type-attribute project-type 'related-file-func))
+
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
   (projectile-project-type-attribute project-type 'src-dir "src/"))
@@ -2724,18 +2747,22 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
-  (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
+  (let* ((filename (file-name-nondirectory file))
+         (basename (file-name-sans-extension filename))
+         (related-file-func (funcall projectile-related-file-function (projectile-project-type)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
           (cl-remove-if-not
            (lambda (current-file)
-             (let ((name (file-name-nondirectory
-                          (file-name-sans-extension current-file))))
-               (or (when test-prefix
-                     (string-equal name (concat test-prefix basename)))
+             (let* ((fname (file-name-nondirectory current-file))
+                    (bname (file-name-sans-extension fname)))
+               (or (when related-file-func
+                     (string-equal fname (funcall related-file-func filename 'test)))
+                   (when test-prefix
+                     (string-equal bname (concat test-prefix basename)))
                    (when test-suffix
-                     (string-equal name (concat basename test-suffix))))))
+                     (string-equal bname (concat basename test-suffix))))))
            (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
@@ -2749,18 +2776,22 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
+  (let* ((filename (file-name-nondirectory test-file))
+         (basename (file-name-sans-extension filename))
+         (related-file-func (funcall projectile-related-file-function (projectile-project-type)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
           (cl-remove-if-not
            (lambda (current-file)
-             (let ((name (file-name-nondirectory
-                          (file-name-sans-extension current-file))))
-               (or (when test-prefix
-                     (string-equal (concat test-prefix name) basename))
+             (let* ((fname (file-name-nondirectory current-file))
+                    (bname (file-name-sans-extension fname)))
+               (or (when related-file-func
+                     (string-equal fname (funcall related-file-func filename 'impl)))
+                   (when test-prefix
+                     (string-equal (concat test-prefix bname) basename))
                    (when test-suffix
-                     (string-equal (concat name test-suffix) basename)))))
+                     (string-equal (concat bname test-suffix) basename)))))
            (projectile-current-project-files))))
     (cond
      ((null candidates) nil)
