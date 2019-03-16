@@ -2,6 +2,9 @@
 
 ## master (unreleased)
 
+### Changes
+* Add `related-file` option to support more flexible way of finding test files
+
 ### Bugs fixed
 
 * [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile`
