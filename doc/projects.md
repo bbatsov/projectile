@@ -90,6 +90,7 @@ Option           | Documentation
 :test-dir        | A path, relative to the project root, where the test code lives.
 :test-prefix     | A prefix to generate test files names.
 :test-suffix     | A suffix to generate test files names.
+:related-file    | A function to specify test/impl/other files in a more flexible way.
 
 #### Returning Projectile Commands from a function
 
@@ -131,6 +132,45 @@ This works for:
   * `:run`
 
 Note that your function has to return a string to work properly.
+
+### Related file location
+
+For simple projects, `:test-prefix` and `:test-suffix` option with string will
+be enough to specify test prefix/suffix applicable regardless of file extensions on any directory path.
+`projectile-other-file-alist` variable can be also set to find other files based on the extension.
+
+For the full control of finding related files, `related-file` option with a custom function can be used.
+The custom function accepts the relative file name from the project root and it should returns the related
+file information as plist with the following optional key/value pairs:
+
+Key              | Value                                                        | Command applicable
+---------------- | -------------------------------------------------------------| -----------------------------
+:impl            | matching implementation file if the given file is a test file| projectile-toggle-between-implementation-and-test
+:test            | matching test file if the given file has test files.         | projectile-toggle-between-implementation-and-test
+:other           | any other files if the given file has them.                  | projectile-find-other-file
+
+nil(same as the absence of the key), a string or a list of strings can be used a value. Each string should be a relative path from the project root.
+The path which actually exists on the file system will be provided to the user.
+
+For example,
+```el
+(defun my/related-file (path)
+  (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) path)
+      (let ((dir (match-string 1 path))
+            (file-name (match-string 2 path)))
+        (if (equal dir "test")
+            (list :impl (concat "src" file-name))
+          (list :test (concat "test" file-name)
+                :other (concat "src" file-name ".def"))))))
+
+(projectile-register-project-type
+   ;; ...
+   :related-file #'my/related-file)
+```
+
+With the above example, src/test directory can contain same name file for test and its implementation file.
+For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and "src/foo/abc.cpp.def" as other file.
+
 
 ## Customizing project root files
 

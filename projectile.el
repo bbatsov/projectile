@@ -464,6 +464,11 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-related-file-function 'projectile-related-file
+  "Function to find related files based on PROJECT-TYPE."
+  :group 'projectile
+  :type 'function)
+
 (defcustom projectile-dynamic-mode-line t
   "If true, update the mode-line dynamically.
 Only file buffers are affected by this, as the update happens via
@@ -1852,7 +1857,12 @@ https://github.com/abo-abo/swiper")))
   "Return a list of dirs for the current project."
   (projectile-project-dirs (projectile-ensure-project (projectile-project-root))))
 
-;;; Interactive commands
+
+(defun projectile-get-other-files (file-name &optional flex-matching)
+  (or (projectile--get-related-file-candidates file-name :other)
+      (projectile--get-other-extension-files file-name
+                                             (projectile-current-project-files)
+                                             flex-matching)))
 
 (defun projectile--find-other-file (&optional flex-matching ff-variant)
   "Switch between files with the same name but different extensions.
@@ -1862,19 +1872,15 @@ Other file extensions can be customized with the variable
 instead of `find-file'.   A typical example of such a defun would be
 `find-file-other-window' or `find-file-other-frame'"
   (let ((ff (or ff-variant #'find-file))
-        (other-files (projectile-get-other-files
-                      (buffer-file-name)
-                      (projectile-current-project-files)
-                      flex-matching)))
+        (other-files (projectile-get-other-files (buffer-file-name) flex-matching)))
     (if other-files
-        (let ((file-name (if (= (length other-files) 1)
-                             (car other-files)
-                           (projectile-completing-read "Switch to: "
-                                                       other-files))))
+        (let ((file-name (projectile--choose-from-candidates other-files)))
           (funcall ff (expand-file-name file-name
                                         (projectile-project-root))))
       (error "No other file found"))))
 
+
+;;; Interactive commands
 ;;;###autoload
 (defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
@@ -1929,7 +1935,7 @@ If no associated other-file-extensions for the complete (nested) extension are f
             (throw 'break associated-extensions))
         (setq current-extensions (projectile--file-name-extensions current-extensions))))))
 
-(defun projectile-get-other-files (current-file project-file-list &optional flex-matching)
+(defun projectile--get-other-extension-files (current-file project-file-list &optional flex-matching)
   "Narrow to files with the same names but different extensions.
 Returns a list of possible files for users to choose.
 
@@ -2255,12 +2261,23 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   "Return only the test FILES."
   (cl-remove-if-not 'projectile-test-file-p files))
 
+(defun projectile--get-related-file-candidates (file kind)
+  (if-let ((custom-function (funcall projectile-related-file-function (projectile-project-type))))
+      (if-let ((related-file (plist-get (funcall custom-function file) kind)))
+          (cl-remove-if-not
+           (lambda (f)
+             (projectile-file-exists-p (expand-file-name f (projectile-project-root))))
+           (if (stringp related-file) (list related-file)
+             related-file)))))
+
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (or (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
-               (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
-      (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
-               (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
+  (if (projectile--get-related-file-candidates file :impl) t
+    (let* ((basename (file-name-sans-extension (file-name-nondirectory file)))
+           (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
+           (test-suffix (funcall projectile-test-suffix-function (projectile-project-type))))
+      (or (when test-prefix (string-prefix-p test-prefix basename))
+          (when test-suffix (string-suffix-p test-suffix basename))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
@@ -2272,7 +2289,7 @@ The project types are symbols and they are linked to plists holding
 the properties of the various project types.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir related-file)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2287,7 +2304,12 @@ RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
-TEST-DIR which specifies the path to the tests relative to the project root."
+TEST-DIR which specifies the path to the tests relative to the project root.
+RELATED-FILE which specifies a custom function to find the related files such as
+test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
+    a plist containing :test, :impl or :other as key and the relative path/paths
+    as value."
   (let ((project-plist (list 'marker-files marker-files
                              'compilation-dir compilation-dir
                              'configure-command configure
@@ -2306,6 +2328,9 @@ TEST-DIR which specifies the path to the tests relative to the project root."
       (plist-put project-plist 'src-dir src-dir))
     (when test-dir
       (plist-put project-plist 'test-dir test-dir))
+    (when related-file
+      (plist-put project-plist 'related-file related-file))
+
     (setq projectile-project-types
           (cons `(,project-type . ,project-plist)
                 projectile-project-types))))
@@ -2690,6 +2715,10 @@ Fallback to DEFAULT-VALUE for missing attributes."
   "Find default test files suffix based on PROJECT-TYPE."
   (projectile-project-type-attribute project-type 'test-suffix))
 
+(defun projectile-related-file (project-type)
+  "Find relative file based on PROJECT-TYPE."
+  (projectile-project-type-attribute project-type 'related-file))
+
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
   (projectile-project-type-attribute project-type 'src-dir "src/"))
@@ -2722,55 +2751,58 @@ Fallback to DEFAULT-VALUE for missing attributes."
                       (nreverse result))))
            (lambda (a b) (> (car a) (car b)))))
 
-(defun projectile-find-matching-test (file)
-  "Compute the name of the test matching FILE."
-  (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
+;; TODO hans
+(defun projectile-group-file-candidates2 (file candidates)
+  (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
+    (if (= (length (car grouped-candidates)) 2)
+        (list (car (last (car grouped-candidates))))
+      (apply 'append (mapcar 'cdr grouped-candidates)))))
+
+(defun projectile--get-impl-to-test-predicate (impl-file)
+  (let* ((basename (file-name-sans-extension (file-name-nondirectory impl-file)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
-         (candidates
-          (cl-remove-if-not
-           (lambda (current-file)
-             (let ((name (file-name-nondirectory
-                          (file-name-sans-extension current-file))))
-               (or (when test-prefix
-                     (string-equal name (concat test-prefix basename)))
-                   (when test-suffix
-                     (string-equal name (concat basename test-suffix))))))
-           (projectile-current-project-files))))
-    (cond
-     ((null candidates) nil)
-     ((= (length candidates) 1) (car candidates))
-     (t (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
-          (if (= (length (car grouped-candidates)) 2)
-              (car (last (car grouped-candidates)))
-            (projectile-completing-read
-             "Switch to: "
-             (apply 'append (mapcar 'cdr grouped-candidates)))))))))
+         (prefix-name (when test-prefix (concat test-prefix basename)))
+         (suffix-name (when test-suffix (concat basename test-suffix))))
+    (lambda (current-file)
+      (let ((name (file-name-sans-extension (file-name-nondirectory current-file))))
+        (or (string-equal prefix-name name)
+            (string-equal suffix-name name))))))
+
+(defun projectile--find-matching-test (impl-file)
+  (or (projectile--get-related-file-candidates impl-file :test)
+      (projectile-group-file-candidates2
+       impl-file (cl-remove-if-not (projectile--get-impl-to-test-predicate impl-file)
+                                   (projectile-current-project-files)))))
+
+(defun projectile--get-test-to-impl-predicate (test-file)
+  (let* ((basename (file-name-sans-extension (file-name-nondirectory test-file)))
+         (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
+         (test-suffix (funcall projectile-test-suffix-function (projectile-project-type))))
+    (lambda (current-file)
+      (let ((name (file-name-nondirectory (file-name-sans-extension current-file))))
+        (or (when test-prefix (string-equal (concat test-prefix name) basename))
+            (when test-suffix (string-equal (concat name test-suffix) basename)))))))
+
+(defun projectile--find-matching-file (test-file)
+  (or (projectile--get-related-file-candidates test-file :impl)
+      (projectile-group-file-candidates2
+       test-file (cl-remove-if-not (projectile--get-test-to-impl-predicate test-file)
+                                   (projectile-current-project-files)))))
+(defun projectile--choose-from-candidates (candidates)
+  (if (= (length candidates) 1)
+      (car candidates)
+    (projectile-completing-read "Switch to: " candidates)))
+
+(defun projectile-find-matching-test (impl-file)
+  "Compute the name of the test matching FILE."
+  (if-let ((candidates (projectile--find-matching-test impl-file)))
+      (projectile--choose-from-candidates candidates)))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-         (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
-         (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
-         (candidates
-          (cl-remove-if-not
-           (lambda (current-file)
-             (let ((name (file-name-nondirectory
-                          (file-name-sans-extension current-file))))
-               (or (when test-prefix
-                     (string-equal (concat test-prefix name) basename))
-                   (when test-suffix
-                     (string-equal (concat name test-suffix) basename)))))
-           (projectile-current-project-files))))
-    (cond
-     ((null candidates) nil)
-     ((= (length candidates) 1) (car candidates))
-     (t (let ((grouped-candidates (projectile-group-file-candidates test-file candidates)))
-          (if (= (length (car grouped-candidates)) 2)
-              (car (last (car grouped-candidates)))
-            (projectile-completing-read
-             "Switch to: "
-             (apply 'append (mapcar 'cdr grouped-candidates)))))))))
+  (if-let ((candidates (projectile--find-matching-file test-file)))
+      (projectile--choose-from-candidates candidates)))
 
 (defun projectile-grep-default-files ()
   "Try to find a default pattern for `projectile-grep'.
