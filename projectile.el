@@ -2262,13 +2262,16 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (cl-remove-if-not 'projectile-test-file-p files))
 
 (defun projectile--get-related-file-candidates (file kind)
+  "Return a list of exiting paths on file system or predicate."
   (if-let ((custom-function (funcall projectile-related-file-function (projectile-project-type))))
       (if-let ((related-file (plist-get (funcall custom-function file) kind)))
-          (cl-remove-if-not
-           (lambda (f)
-             (projectile-file-exists-p (expand-file-name f (projectile-project-root))))
-           (if (stringp related-file) (list related-file)
-             related-file)))))
+          (if (functionp related-file)
+              related-file ;; as predicate
+            (cl-remove-if-not
+             (lambda (f)
+               (projectile-file-exists-p (expand-file-name f (projectile-project-root))))
+             (if (stringp related-file) (list related-file)
+               related-file))))))
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
@@ -2769,11 +2772,15 @@ Fallback to DEFAULT-VALUE for missing attributes."
         (or (string-equal prefix-name name)
             (string-equal suffix-name name))))))
 
-(defun projectile--find-matching-test (impl-file)
-  (or (projectile--get-related-file-candidates impl-file :test)
-      (projectile-group-file-candidates2
-       impl-file (cl-remove-if-not (projectile--get-impl-to-test-predicate impl-file)
-                                   (projectile-current-project-files)))))
+(defun projectile--find-matching-test (test-file)
+  (let ((test-paths-or-predicate (projectile--get-related-file-candidates test-file :test)))
+    (if (or (null test-paths-or-predicate) (functionp test-paths-or-predicate))
+        (if-let ((predicate (if (functionp test-paths-or-predicate)
+                                test-paths-or-predicate
+                              (projectile--get-impl-to-test-predicate test-file))))
+            (projectile-group-file-candidates2
+             test-file (cl-remove-if-not predicate (projectile-current-project-files))))
+      test-paths-or-predicate)))
 
 (defun projectile--get-test-to-impl-predicate (test-file)
   (let* ((basename (file-name-sans-extension (file-name-nondirectory test-file)))
@@ -2785,10 +2792,15 @@ Fallback to DEFAULT-VALUE for missing attributes."
             (when test-suffix (string-equal (concat name test-suffix) basename)))))))
 
 (defun projectile--find-matching-file (test-file)
-  (or (projectile--get-related-file-candidates test-file :impl)
-      (projectile-group-file-candidates2
-       test-file (cl-remove-if-not (projectile--get-test-to-impl-predicate test-file)
-                                   (projectile-current-project-files)))))
+  (let ((impl-paths-or-predicate (projectile--get-related-file-candidates test-file :impl)))
+    (if (or (null impl-paths-or-predicate) (functionp impl-paths-or-predicate))
+        (if-let ((predicate (if (functionp impl-paths-or-predicate)
+                                impl-paths-or-predicate
+                              (projectile--get-test-to-impl-predicate test-file))))
+            (projectile-group-file-candidates2
+             test-file (cl-remove-if-not predicate (projectile-current-project-files))))
+      impl-paths-or-predicate)))
+
 (defun projectile--choose-from-candidates (candidates)
   (if (= (length candidates) 1)
       (car candidates)

@@ -67,7 +67,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (defmacro projectile-test-with-files-using-custom-project (files project-options &rest body)
   "Evaluate BODY with the custom project having PROJECT-OPTIONS with FILES."
-  (declare (indent 2) (debug (sexp &rest form)))
+  (declare (indent 2) (debug (sexp sexp &rest form)))
   `(let ((projectile-indexing-method 'native)
          (projectile-projects-cache (make-hash-table :test 'equal))
          (projectile-projects-cache-time (make-hash-table :test 'equal))
@@ -927,7 +927,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--find-matching-test "source/foo/foo.service.js") :to-equal '("spec/foo/foo.service.spec.js"))
         (expect (projectile--find-matching-file "spec/bar/bar.service.spec.js") :to-equal '("source/bar/bar.service.js")))))
 
-  (it "finds matching test or file based on what the function returns project with :related-file option"
+  (it "finds matching test or file based on the paths returned by :related-file option"
     (defun -my/related-file-function(file)
       (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) file)
           (if (equal (match-string 1 file ) "test")
@@ -940,10 +940,33 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "test/Bar.cpp"
            "test/Foo.cpp")
           (:related-file #'-my/related-file-function)
+        (expect (projectile-test-file-p "test/Foo.cpp") :to-equal t)
+        (expect (projectile-test-file-p "src/Foo.cpp") :to-equal nil)
         (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))
         (expect (projectile--find-matching-test "src/Foo2.cpp") :to-equal nil)
         (expect (projectile--find-matching-file "test/Foo.cpp") :to-equal '("src/Foo.cpp"))
-        (expect (projectile--find-matching-file "test/Foo2.cpp") :to-equal nil)))))
+        (expect (projectile--find-matching-file "test/Foo2.cpp") :to-equal nil))))
+
+  (it "finds matching test or file by the predicate returned by :related-file option"
+    (defun -my/related-file-function(file)
+      (cond ((equal file "src/Foo.cpp")
+             (list :test (lambda (other-file)
+                      (equal other-file "test/Foo.cpp"))))
+            ((equal file "test/Foo.cpp")
+             (list :impl (lambda (other-file)
+                      (equal other-file "src/Foo.cpp"))))))
+    (projectile-test-with-sandbox
+      (projectile-test-with-files-using-custom-project
+          ("src/Foo.cpp"
+           "src/Bar.cpp"
+           "test/Bar.cpp"
+           "test/Foo.cpp")
+          (:related-file #'-my/related-file-function)
+        (expect (projectile-test-file-p "test/Foo.cpp") :to-equal t)
+        (expect (projectile-test-file-p "src/Foo.cpp") :to-equal nil)
+        (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))
+        (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))
+        (expect (projectile--find-matching-file "test/Foo.cpp") :to-equal '("src/Foo.cpp"))))))
 
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
