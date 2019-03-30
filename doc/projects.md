@@ -136,12 +136,14 @@ Note that your function has to return a string to work properly.
 ### Related file location
 
 For simple projects, `:test-prefix` and `:test-suffix` option with string will
-be enough to specify test prefix/suffix applicable regardless of file extensions on any directory path.
-`projectile-other-file-alist` variable can be also set to find other files based on the extension.
+be enough to specify test prefix/suffix applicable regardless of file extensions
+on any directory path. `projectile-other-file-alist` variable can be also set to
+find other files based on the extension.
 
-For the full control of finding related files, `related-file` option with a custom function can be used.
-The custom function accepts the relative file name from the project root and it should returns the related
-file information as plist with the following optional key/value pairs:
+For the full control of finding related files, `:related-file` option with a
+custom function can be used. The custom function accepts the relative file name
+from the project root and it should returns the related file information as
+plist with the following optional key/value pairs:
 
 | Key    | Value                                                         | Command applicable                                |
 |--------|---------------------------------------------------------------|---------------------------------------------------|
@@ -152,11 +154,17 @@ file information as plist with the following optional key/value pairs:
 
 For each value, following type can be used:
 
-| Type                       | Meaning                                                                                                 |
-|----------------------------|---------------------------------------------------------------------------------------------------------|
-| string or a list of string | Relative paths from the project root. The paths which actually exist on the file system will be matched |
-| a function                 | A predicate which accepts a relative path as the input and return t if it matches                       |
-| nil                        | No match found and try other default mechanism if exists (Same as the absence of the key)               |
+| Type                       | Meaning                                                                                                  |
+|----------------------------|----------------------------------------------------------------------------------------------------------|
+| string / a list of strings | Relative paths from the project root. The paths which actually exist on the file system will be matched. |
+| a function                 | A predicate which accepts a relative path as the input and return t if it matches.                       |
+| nil                        | No match exists.                                                                                         |
+
+Note that there is difference in behaviour between no key and `nil` value for
+the key. Only when the key does not exist, other project options such as
+`:test_prefix` or `projectile-other-file-alist` mechanism is tried.
+
+#### Examples
 
 ```el
 (defun my/related-file (path)
