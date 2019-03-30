@@ -2267,7 +2267,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (cl-remove-if-not 'projectile-test-file-p files))
 
 (defun projectile--get-related-file-candidates (file kind)
-  "Return a plist containing :paths or :predicate depending on :related-file project option"
+  "Return a plist containing related information of KIND for FILE."
   (if-let ((custom-function (funcall projectile-related-file-function (projectile-project-type)))
            (retval (funcall custom-function file))
            (has-kind? (plist-member retval kind)))
@@ -2810,7 +2810,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
     (projectile-completing-read "Switch to: " candidates)))
 
 (defun projectile-find-matching-test (impl-file)
-  "Compute the name of the test matching FILE."
+  "Compute the name of the test matching IMPL-FILE."
   (if-let ((candidates (projectile--find-matching-test impl-file)))
       (projectile--choose-from-candidates candidates)))
 
