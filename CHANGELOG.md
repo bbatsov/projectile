@@ -2,6 +2,11 @@
 
 ## master (unreleased)
 
+### New features
+* Add `related-file` option to use custom function to find test/impl/other files
+* [#1019](https://github.com/bbatsov/projectile/issues/1019): Jump to a test named the same way but in a different directory.
+* [#982](https://github.com/bbatsov/projectile/issues/982) Add heuristic for projectile-find-matching-test
+
 ### Bugs fixed
 
 * [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile`
