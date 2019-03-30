@@ -2282,12 +2282,11 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (if (projectile--get-related-file-candidates file :impl) t
-    (let* ((basename (file-name-sans-extension (file-name-nondirectory file)))
-           (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
-           (test-suffix (funcall projectile-test-suffix-function (projectile-project-type))))
-      (or (when test-prefix (string-prefix-p test-prefix basename))
-          (when test-suffix (string-suffix-p test-suffix basename))))))
+  (or (when (projectile--get-related-file-candidates file :impl) t)
+      (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
+               (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
+      (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
+               (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
@@ -2318,8 +2317,8 @@ TEST-DIR which specifies the path to the tests relative to the project root.
 RELATED-FILE which specifies a custom function to find the related files such as
 test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
-    a plist containing :test, :impl or :other as key and the relative path/paths
-    as value."
+    a plist containing :test, :impl or :other as key and the relative path/paths or
+    predicate as value. PREDICATE accepts a relative path as the input."
   (let ((project-plist (list 'marker-files marker-files
                              'compilation-dir compilation-dir
                              'configure-command configure
@@ -2761,8 +2760,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
                       (nreverse result))))
            (lambda (a b) (> (car a) (car b)))))
 
-;; TODO hans
-(defun projectile-group-file-candidates2 (file candidates)
+(defun projectile--get-best-or-all-candidates-based-on-parents-dirs (file candidates)
   (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
     (if (= (length (car grouped-candidates)) 2)
         (list (car (last (car grouped-candidates))))
@@ -2785,7 +2783,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
          (test-predicate (plist-get plist :predicate)))
     (or test-paths
         (if-let ((predicate (or test-predicate (projectile--get-impl-to-test-predicate impl-file))))
-            (projectile-group-file-candidates2
+            (projectile--get-best-or-all-candidates-based-on-parents-dirs
              impl-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
 
 (defun projectile--get-test-to-impl-predicate (test-file)
@@ -2803,7 +2801,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
          (impl-predicate (plist-get plist :predicate)))
     (or impl-paths
         (if-let ((predicate (or impl-predicate (projectile--get-test-to-impl-predicate test-file))))
-            (projectile-group-file-candidates2
+            (projectile--get-best-or-all-candidates-based-on-parents-dirs
              test-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
 
 (defun projectile--choose-from-candidates (candidates)
