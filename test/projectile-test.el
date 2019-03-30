@@ -814,7 +814,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
           (expect (projectile-get-other-files "src/test2.service.spec.js") :to-equal '("include1/test2.js" "include2/test2.js"))
           (expect (projectile-get-other-files "src/test+copying.m") :to-equal '("include1/test+copying.h"))))))
 
-  (it "returns files based on what the function returns in a custom project with :related-file option"
+  (it "returns files based on the paths returned by :related-file option"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
           ("src/test1.cpp"
@@ -823,8 +823,30 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "src/test2.cpp"
            "src/test2.h")
           (:related-file (lambda (file)
-                           (cond ((string-equal file "src/test1.def") '(:other "src/test1.cpp"))
-                                 ((string-equal file "src/test2.def") '(:other ("src/test2.cpp" "src/test2.h" "src/test3.h"))))))
+                           (cond ((equal file "src/test1.def") '(:other "src/test1.cpp"))
+                                 ((equal file "src/test2.def") '(:other ("src/test2.cpp" "src/test2.h" "src/test3.h"))))))
+        (expect (projectile-get-other-files "src/test1.def") :to-equal '("src/test1.cpp"))
+        (expect (projectile-get-other-files "src/test2.def") :to-equal '("src/test2.cpp" "src/test2.h"))
+        ;; Make sure extension based mechanism is still working
+        (expect (projectile-get-other-files "src/test2.cpp") :to-equal '("src/test2.h")))))
+
+  (it "returns files based on the predicate returned by :related-file option"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files-using-custom-project
+          ("src/test1.cpp"
+           "src/test1.def"
+           "src/test2.def"
+           "src/test2.cpp"
+           "src/test2.h")
+          (:related-file
+           (lambda (file)
+             (cond ((equal file "src/test1.def")
+                    (list :other (lambda (other-file)
+                                   (equal other-file "src/test1.cpp"))))
+                   ((equal file "src/test2.def")
+                    (list :other (lambda (other-file)
+                                   (or (equal other-file "src/test2.cpp")
+                                       (equal other-file "src/test2.h"))))))))
         (expect (projectile-get-other-files "src/test1.def") :to-equal '("src/test1.cpp"))
         (expect (projectile-get-other-files "src/test2.def") :to-equal '("src/test2.cpp" "src/test2.h"))
         ;; Make sure extension based mechanism is still working

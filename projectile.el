@@ -1859,10 +1859,15 @@ https://github.com/abo-abo/swiper")))
 
 
 (defun projectile-get-other-files (file-name &optional flex-matching)
-  (or (projectile--get-related-file-candidates file-name :other)
-      (projectile--get-other-extension-files file-name
-                                             (projectile-current-project-files)
-                                             flex-matching)))
+  (let ((other-paths-or-predicate (projectile--get-related-file-candidates file-name :other)))
+    (cond ((functionp other-paths-or-predicate)
+           (cl-remove-if-not other-paths-or-predicate (projectile-current-project-files)))
+          ((consp other-paths-or-predicate)
+           other-paths-or-predicate)
+          (t
+           (projectile--get-other-extension-files file-name
+                                                  (projectile-current-project-files)
+                                                  flex-matching)))))
 
 (defun projectile--find-other-file (&optional flex-matching ff-variant)
   "Switch between files with the same name but different extensions.

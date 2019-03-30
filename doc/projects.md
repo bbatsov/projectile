@@ -143,16 +143,21 @@ For the full control of finding related files, `related-file` option with a cust
 The custom function accepts the relative file name from the project root and it should returns the related
 file information as plist with the following optional key/value pairs:
 
-Key              | Value                                                        | Command applicable
----------------- | -------------------------------------------------------------| -----------------------------
-:impl            | matching implementation file if the given file is a test file| projectile-toggle-between-implementation-and-test
-:test            | matching test file if the given file has test files.         | projectile-toggle-between-implementation-and-test
-:other           | any other files if the given file has them.                  | projectile-find-other-file
+| Key    | Value                                                         | Command applicable                                |
+|--------|---------------------------------------------------------------|---------------------------------------------------|
+| :impl  | matching implementation file if the given file is a test file | projectile-toggle-between-implementation-and-test |
+| :test  | matching test file if the given file has test files.          | projectile-toggle-between-implementation-and-test |
+| :other | any other files if the given file has them.                   | projectile-find-other-file                        |
 
-nil(same as the absence of the key), a string or a list of strings can be used a value. Each string should be a relative path from the project root.
-The path which actually exists on the file system will be provided to the user.
 
-For example,
+For each value, following type can be used:
+
+| Type                       | Meaning                                                                                                 |
+|----------------------------|---------------------------------------------------------------------------------------------------------|
+| string or a list of string | Relative paths from the project root. The paths which actually exist on the file system will be matched |
+| a function                 | A predicate which accepts a relative path as the input and return t if it matches                       |
+| nil                        | No match found and try other default mechanism if exists (Same as the absence of the key)               |
+
 ```el
 (defun my/related-file (path)
   (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) path)
