@@ -142,7 +142,7 @@ find other files based on the extension.
 
 For the full control of finding related files, `:related-file` option with a
 custom function can be used. The custom function accepts the relative file name
-from the project root and it should returns the related file information as
+from the project root and it should return the related file information as
 plist with the following optional key/value pairs:
 
 | Key    | Value                                                         | Command applicable                                |
@@ -160,7 +160,7 @@ For each value, following type can be used:
 | a function                 | A predicate which accepts a relative path as the input and return t if it matches.                       |
 | nil                        | No match exists.                                                                                         |
 
-Note that there is difference in behaviour between no key and `nil` value for
+Note that there is a difference in behaviour between no key and `nil` value for
 the key. Only when the key does not exist, other project options such as
 `:test_prefix` or `projectile-other-file-alist` mechanism is tried.
 
@@ -181,7 +181,7 @@ the key. Only when the key does not exist, other project options such as
    :related-file #'my/related-file)
 ```
 
-With the above example, src/test directory can contain same name file for test and its implementation file.
+With the above example, src/test directory can contain the same name file for test and its implementation file.
 For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and "src/foo/abc.cpp.def" as other file.
 
 
