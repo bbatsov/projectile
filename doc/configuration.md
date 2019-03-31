@@ -14,7 +14,7 @@ obtain the list of files in a project.
 
 The `alien` indexing method optimizes to the limit the speed of
 the `hybrid` indexing method.  This means that Projectile will not do
-any processing or sorting of the files returned by the external commands 
+any processing or sorting of the files returned by the external commands
 and you're going to get the maximum performance possible.  This behaviour
 makes a lot of sense for most people, as they'd typically be putting
 ignores in their VCS config (e.g. `.gitignore`) and won't care about
@@ -118,7 +118,7 @@ To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Modification_t
 (setq projectile-sort-order 'modification-time)
 ```
 
-To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Access_time_(atime)">access time<a/> (atime):
+To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Access_time_(atime)">access time</a> (atime):
 
 ```el
 (setq projectile-sort-order 'access-time)
