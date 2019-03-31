@@ -160,11 +160,15 @@ For each value, following type can be used:
 | a function                 | A predicate which accepts a relative path as the input and return t if it matches.                       |
 | nil                        | No match exists.                                                                                         |
 
-Note that there is a difference in behaviour between no key and `nil` value for
-the key. Only when the key does not exist, other project options such as
-`:test_prefix` or `projectile-other-file-alist` mechanism is tried.
+Notes:
+ 1. For a big project consisting of many source files, returning strings instead
+    of a function can be fast as it does not iterate over each source file.
+ 2. There is a difference in behaviour between no key and `nil` value for the
+    key. Only when the key does not exist, other project options such as
+    `:test_prefix` or `projectile-other-file-alist` mechanism is tried.
 
-#### Examples
+
+#### Example - Same source file name for test and impl
 
 ```el
 (defun my/related-file (path)
@@ -184,6 +188,24 @@ the key. Only when the key does not exist, other project options such as
 With the above example, src/test directory can contain the same name file for test and its implementation file.
 For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and "src/foo/abc.cpp.def" as other file.
 
+
+#### Example - Different test prefix per extension
+A custom function for the project using multiple programming languages with different test prefixes.
+```
+(defun my/related-file(file)
+  (let ((ext-to-test-prefix '(("cpp" . "Test")
+                              ("py" . "test_"))))
+    (if-let ((ext (file-name-extension file))
+             (test-prefix (assoc-default ext ext-to-test-prefix))
+             (file-name (file-name-nondirectory file)))
+        (if (string-prefix-p test-prefix file-name)
+            (let ((suffix (concat "/" (substring file-name (length test-prefix)))))
+              (list :impl (lambda (other-file)
+                            (string-suffix-p suffix other-file))))
+          (let ((suffix (concat "/" test-prefix file-name)))
+            (list :test (lambda (other-file)
+                          (string-suffix-p suffix other-file))))))))
+```
 
 ## Customizing project root files
 
