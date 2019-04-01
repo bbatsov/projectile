@@ -813,7 +813,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
           (expect (projectile-get-other-files "src/test2.service.spec.js") :to-equal '("include1/test2.js" "include2/test2.js"))
           (expect (projectile-get-other-files "src/test+copying.m") :to-equal '("include1/test+copying.h"))))))
 
-  (it "returns files based on the paths returned by :related-file option"
+  (it "returns files based on the paths returned by :related-files-fn option"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
           ("src/test1.cpp"
@@ -823,7 +823,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "src/test2.h"
            "src/test3.cpp"
            "src/test3.h")
-          (:related-file (lambda (file)
+          (:related-files-fn (lambda (file)
                            (cond ((equal file "src/test1.def") '(:other "src/test1.cpp"))
                                  ((equal file "src/test2.def") '(:other ("src/test2.cpp" "src/test2.h" "src/test4.h")))
                                  ((equal file "src/test3.cpp") '(:other nil)))))
@@ -831,10 +831,10 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         ;; (expect (projectile-get-other-files "src/test2.def") :to-equal '("src/test2.cpp" "src/test2.h"))
         ;; ;; Make sure extension based mechanism is still working
         ;; (expect (projectile-get-other-files "src/test2.cpp") :to-equal '("src/test2.h"))
-        ;; ;; Make sure that related-file option has priority over existing mechanism
+        ;; ;; Make sure that related-files-fn option has priority over existing mechanism
         (expect (projectile-get-other-files "src/test3.cpp") :to-equal nil))))
 
-  (it "returns files based on the predicate returned by :related-file option"
+  (it "returns files based on the predicate returned by :related-files-fn option"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
           ("src/test1.cpp"
@@ -844,7 +844,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "src/test2.h"
            "src/test3.cpp"
            "src/test3.h")
-          (:related-file
+          (:related-files-fn
            (lambda (file)
              (cond ((equal file "src/test1.def")
                     (list :other (lambda (other-file)
@@ -860,7 +860,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile-get-other-files "src/test2.def") :to-equal '("src/test2.cpp" "src/test2.h"))
         ;; Make sure extension based mechanism is still working
         (expect (projectile-get-other-files "src/test2.cpp") :to-equal '("src/test2.h"))
-        ;; Make sure that related-file option has priority over existing mechanism
+        ;; Make sure that related-files-fn option has priority over existing mechanism
         (expect (projectile-get-other-files "src/test3.cpp") :to-equal nil)))))
 
 (describe "projectile-compilation-dir"
@@ -960,8 +960,8 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--find-matching-test "source/foo/foo.service.js") :to-equal '("spec/foo/foo.service.spec.js"))
         (expect (projectile--find-matching-file "spec/bar/bar.service.spec.js") :to-equal '("source/bar/bar.service.js")))))
 
-  (it "finds matching test or file based on the paths returned by :related-file option"
-    (defun -my/related-file-function(file)
+  (it "finds matching test or file based on the paths returned by :related-files-fn option"
+    (defun -my/related-files(file)
       (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) file)
           (if (equal (match-string 1 file ) "test")
               (list :impl (concat "src" (match-string 2 file)))
@@ -974,7 +974,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "test/Bar.cpp"
            "test/Foo.cpp"
            "other/Test_Baz.py")
-          (:related-file #'-my/related-file-function :test-prefix "Test_")
+          (:related-files-fn #'-my/related-files :test-prefix "Test_")
         (expect (projectile-test-file-p "test/Foo.cpp") :to-equal t)
         (expect (projectile-test-file-p "src/Foo.cpp") :to-equal nil)
         (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))
@@ -987,8 +987,8 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--find-matching-file "other/Test_Baz.py") :to-equal '("src/Baz.py"))
         (expect (projectile--find-matching-test "src/Baz.py") :to-equal '("other/Test_Baz.py")))))
 
-  (it "finds matching test or file by the predicate returned by :related-file option"
-    (defun -my/related-file-function(file)
+  (it "finds matching test or file by the predicate returned by :related-files-fn option"
+    (defun -my/related-files(file)
       (cond ((equal file "src/Foo.cpp")
              (list :test (lambda (other-file)
                       (equal other-file "test/Foo.cpp"))))
@@ -1001,7 +1001,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "src/Bar.cpp"
            "test/Bar.cpp"
            "test/Foo.cpp")
-          (:related-file #'-my/related-file-function)
+          (:related-files-fn #'-my/related-files)
         (expect (projectile-test-file-p "test/Foo.cpp") :to-equal t)
         (expect (projectile-test-file-p "src/Foo.cpp") :to-equal nil)
         (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))

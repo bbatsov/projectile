@@ -464,7 +464,7 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
-(defcustom projectile-related-file-function 'projectile-related-file
+(defcustom projectile-related-files-fn-function 'projectile-related-files-fn
   "Function to find related files based on PROJECT-TYPE."
   :group 'projectile
   :type 'function)
@@ -1858,6 +1858,10 @@ https://github.com/abo-abo/swiper")))
   (projectile-project-dirs (projectile-ensure-project (projectile-project-root))))
 
 (defun projectile-get-other-files (file-name &optional flex-matching)
+  "Return a list of other files for FILE-NAME.
+The list depends on `:related-files-fn' project option and
+`projectile-other-file-alist'.  For the latter, FLEX-MATCHING can be used
+to match any basename."
   (let* ((candidate-plist (projectile--get-related-file-candidates file-name :other))
          (predicate (plist-get candidate-plist :predicate)))
     (cond ((plist-member candidate-plist :paths)
@@ -2268,7 +2272,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 
 (defun projectile--get-related-file-candidates (file kind)
   "Return a plist containing related information of KIND for FILE."
-  (if-let ((custom-function (funcall projectile-related-file-function (projectile-project-type)))
+  (if-let ((custom-function (funcall projectile-related-files-fn-function (projectile-project-type)))
            (retval (funcall custom-function file))
            (has-kind? (plist-member retval kind)))
       (let ((kind-value (plist-get retval kind)))
@@ -2298,7 +2302,7 @@ The project types are symbols and they are linked to plists holding
 the properties of the various project types.")
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir related-file)
+    (project-type marker-files &key compilation-dir configure compile test run test-suffix test-prefix src-dir test-dir related-files-fn)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2314,7 +2318,7 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILE which specifies a custom function to find the related files such as
+RELATED-FILES-FN which specifies a custom function to find the related files such as
 test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
     a plist containing :test, :impl or :other as key and the relative path/paths or
@@ -2337,8 +2341,8 @@ test/impl/other files as below:
       (plist-put project-plist 'src-dir src-dir))
     (when test-dir
       (plist-put project-plist 'test-dir test-dir))
-    (when related-file
-      (plist-put project-plist 'related-file related-file))
+    (when related-files-fn
+      (plist-put project-plist 'related-files-fn related-files-fn))
 
     (setq projectile-project-types
           (cons `(,project-type . ,project-plist)
@@ -2724,9 +2728,9 @@ Fallback to DEFAULT-VALUE for missing attributes."
   "Find default test files suffix based on PROJECT-TYPE."
   (projectile-project-type-attribute project-type 'test-suffix))
 
-(defun projectile-related-file (project-type)
+(defun projectile-related-files-fn (project-type)
   "Find relative file based on PROJECT-TYPE."
-  (projectile-project-type-attribute project-type 'related-file))
+  (projectile-project-type-attribute project-type 'related-files-fn))
 
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
@@ -2761,12 +2765,14 @@ Fallback to DEFAULT-VALUE for missing attributes."
            (lambda (a b) (> (car a) (car b)))))
 
 (defun projectile--get-best-or-all-candidates-based-on-parents-dirs (file candidates)
+  "Return a list containing the best one one for FILE from CANDIDATES or all CANDIDATES."
   (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
     (if (= (length (car grouped-candidates)) 2)
         (list (car (last (car grouped-candidates))))
       (apply 'append (mapcar 'cdr grouped-candidates)))))
 
 (defun projectile--get-impl-to-test-predicate (impl-file)
+  "Return a predicate, which returns t for any test files for IMPL-FILE."
   (let* ((basename (file-name-sans-extension (file-name-nondirectory impl-file)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
@@ -2778,6 +2784,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
             (string-equal suffix-name name))))))
 
 (defun projectile--find-matching-test (impl-file)
+  "Return a list of test files for IMPL-FILE."
   (let* ((plist (projectile--get-related-file-candidates impl-file :test))
          (test-paths (plist-get plist :paths))
          (test-predicate (plist-get plist :predicate)))
@@ -2787,6 +2794,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
              impl-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
 
 (defun projectile--get-test-to-impl-predicate (test-file)
+  "Return a predicate, which returns t for any impl files for TEST-FILE."
   (let* ((basename (file-name-sans-extension (file-name-nondirectory test-file)))
          (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
          (test-suffix (funcall projectile-test-suffix-function (projectile-project-type))))
@@ -2796,6 +2804,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
             (when test-suffix (string-equal (concat name test-suffix) basename)))))))
 
 (defun projectile--find-matching-file (test-file)
+  "Return a list of impl files tested by TEST-FILE."
   (let* ((plist (projectile--get-related-file-candidates test-file :impl))
          (impl-paths (plist-get plist :paths))
          (impl-predicate (plist-get plist :predicate)))
@@ -2805,6 +2814,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
              test-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
 
 (defun projectile--choose-from-candidates (candidates)
+  "Choose one item from CANDIDATES."
   (if (= (length candidates) 1)
       (car candidates)
     (projectile-completing-read "Switch to: " candidates)))

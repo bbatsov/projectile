@@ -79,18 +79,18 @@ What this does is:
 
 The available options are:
 
-Option           | Documentation
----------------- | -------------------------------------------------------------------------------------------
-:compilation-dir | A path, relative to the project root, from where to run the tests and compilation commands.
-:compile         | A command to compile the project.
-:configure       | A command to configure the project. `%s` will be substituted with the project root.
-:run             | A command to run the project.
-:src-dir         | A path, relative to the project root, where the source code lives.
-:test            | A command to test the project.
-:test-dir        | A path, relative to the project root, where the test code lives.
-:test-prefix     | A prefix to generate test files names.
-:test-suffix     | A suffix to generate test files names.
-:related-file    | A function to specify test/impl/other files in a more flexible way.
+Option            | Documentation
+------------------|--------------------------------------------------------------------------------------------
+:compilation-dir  | A path, relative to the project root, from where to run the tests and compilation commands.
+:compile          | A command to compile the project.
+:configure        | A command to configure the project. `%s` will be substituted with the project root.
+:run              | A command to run the project.
+:src-dir          | A path, relative to the project root, where the source code lives.
+:test             | A command to test the project.
+:test-dir         | A path, relative to the project root, where the test code lives.
+:test-prefix      | A prefix to generate test files names.
+:test-suffix      | A suffix to generate test files names.
+:related-files-fn | A function to specify test/impl/other files in a more flexible way.
 
 #### Returning Projectile Commands from a function
 
@@ -140,10 +140,10 @@ be enough to specify test prefix/suffix applicable regardless of file extensions
 on any directory path. `projectile-other-file-alist` variable can be also set to
 find other files based on the extension.
 
-For the full control of finding related files, `:related-file` option with a
+For the full control of finding related files, `:related-files-fn` option with a
 custom function can be used. The custom function accepts the relative file name
-from the project root and it should return the related file information as
-plist with the following optional key/value pairs:
+from the project root and it should return the related file information as plist
+with the following optional key/value pairs:
 
 | Key    | Value                                                         | Command applicable                                |
 |--------|---------------------------------------------------------------|---------------------------------------------------|
@@ -171,7 +171,7 @@ Notes:
 #### Example - Same source file name for test and impl
 
 ```el
-(defun my/related-file (path)
+(defun my/related-files (path)
   (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) path)
       (let ((dir (match-string 1 path))
             (file-name (match-string 2 path)))
@@ -182,7 +182,7 @@ Notes:
 
 (projectile-register-project-type
    ;; ...
-   :related-file #'my/related-file)
+   :related-files-fn #'my/related-files)
 ```
 
 With the above example, src/test directory can contain the same name file for test and its implementation file.
@@ -192,7 +192,7 @@ For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and
 #### Example - Different test prefix per extension
 A custom function for the project using multiple programming languages with different test prefixes.
 ```
-(defun my/related-file(file)
+(defun my/related-files(file)
   (let ((ext-to-test-prefix '(("cpp" . "Test")
                               ("py" . "test_"))))
     (if-let ((ext (file-name-extension file))
