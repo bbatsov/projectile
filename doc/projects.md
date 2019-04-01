@@ -145,11 +145,12 @@ custom function can be used. The custom function accepts the relative file name
 from the project root and it should return the related file information as plist
 with the following optional key/value pairs:
 
-| Key    | Value                                                         | Command applicable                                |
-|--------|---------------------------------------------------------------|---------------------------------------------------|
-| :impl  | matching implementation file if the given file is a test file | projectile-toggle-between-implementation-and-test |
-| :test  | matching test file if the given file has test files.          | projectile-toggle-between-implementation-and-test |
-| :other | any other files if the given file has them.                   | projectile-find-other-file                        |
+| Key    | Value                                                         | Command applicable                                                              |
+|--------|---------------------------------------------------------------|---------------------------------------------------------------------------------|
+| :impl  | matching implementation file if the given file is a test file | projectile-toggle-between-implementation-and-test, projectile-find-related-file |
+| :test  | matching test file if the given file has test files.          | projectile-toggle-between-implementation-and-test, projectile-find-related-file |
+| :other | any other files if the given file has them.                   | projectile-find-other-file, projectile-find-related-file                        |
+| :foo   | any key other than above                                      | projectile-find-related-file                                                    |
 
 
 For each value, following type can be used:
@@ -206,6 +207,12 @@ A custom function for the project using multiple programming languages with diff
             (list :test (lambda (other-file)
                           (string-suffix-p suffix other-file))))))))
 ```
+
+`projectile-find-related-file` command is also available to find and choose
+related files of any kinds. For example, the custom function can specify the
+related documents with ':doc' key. Note that `projectile-find-related-file` only
+relies on `:related-files-fn` for now.
+
 
 ## Customizing project root files
 

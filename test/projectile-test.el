@@ -1008,6 +1008,25 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))
         (expect (projectile--find-matching-file "test/Foo.cpp") :to-equal '("src/Foo.cpp"))))))
 
+(describe "projectile--get-related-files"
+  (it "returns related files for the given file"
+    (defun -my/related-files(file)
+      (cond ((equal file "src/Foo.c")
+             (list :test "src/TestFoo.c" :doc "doc/Foo.txt"))
+            ((equal file "src/TestFoo.c")
+             (list :impl (lambda (other-file)
+                           (equal other-file "src/Foo.c"))))))
+    (projectile-test-with-sandbox
+      (projectile-test-with-files-using-custom-project
+          ("src/Foo.c"
+           "src/TestFoo.c"
+           "doc/Foo.txt")
+          (:related-files-fn #'-my/related-files)
+        (expect (projectile--get-related-file-kinds "src/Foo.c") :to-equal '(:test :doc))
+        (expect (projectile--get-related-file-kinds "src/TestFoo.c") :to-equal '(:impl))
+        (expect (projectile--get-related-files "src/TestFoo.c" :impl) :to-equal '("src/Foo.c"))
+        (expect (projectile--get-related-files "src/Foo.c" :doc) :to-equal '("doc/Foo.txt"))))))
+
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
     (projectile-test-with-sandbox

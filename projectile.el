@@ -2284,6 +2284,59 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
                             (projectile-file-exists-p (expand-file-name f (projectile-project-root))))
                           paths)))))))
 
+(defun projectile--get-related-file-kinds(file)
+  "Return a list of keywords meaning related kinds for FILE."
+  (if-let ((custom-function (funcall projectile-related-files-fn-function (projectile-project-type)))
+           (plist (funcall custom-function file)))
+      (cl-loop for key in plist by #'cddr
+               collect key)))
+
+(defun projectile--get-related-files (file kind)
+  "Return a list of related files of KIND for FILE."
+  (let* ((candidate-plist (projectile--get-related-file-candidates file kind))
+         (predicate (plist-get candidate-plist :predicate)))
+    (if (plist-member candidate-plist :paths)
+        (plist-get candidate-plist :paths)
+      (cl-remove-if-not predicate (projectile-current-project-files)))))
+
+(defun projectile--find-related-file (file &optional kind)
+  "Choose a file from files related to FILE as KIND.
+If KIND is not provided, a list of possible kinds can be chosen."
+  (unless kind
+    (if-let ((available-kinds (projectile--get-related-file-kinds file)))
+        (setq kind (if (= (length available-kinds) 1)
+                       (car available-kinds)
+                     (intern (projectile-completing-read "Kind :" available-kinds))))
+      (error "No related files found")))
+
+  (if-let ((candidates (projectile--get-related-files file kind)))
+      (projectile-expand-root (projectile--choose-from-candidates candidates))
+    (error
+     "No matching related file as `%s' found for project type `%s'"
+     kind (projectile-project-type))))
+
+;;;###autoload
+(defun projectile-find-related-file-other-window ()
+  "Open related file in other window."
+  (interactive)
+  (find-file-other-window
+   (projectile--find-related-file (buffer-file-name))))
+
+;;;###autoload
+(defun projectile-find-related-file-other-frame ()
+  "Open related file in other frame."
+  (interactive)
+  (find-file-other-frame
+   (projectile--find-related-file (buffer-file-name))))
+
+;;;###autoload
+(defun projectile-find-related-file()
+  "Open related file."
+  (interactive)
+  (find-file
+   (projectile--find-related-file (buffer-file-name))))
+
+
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
   (or (when (projectile--get-related-file-candidates file :impl) t)
