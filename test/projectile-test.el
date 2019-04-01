@@ -827,7 +827,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
                            (cond ((equal file "src/test1.def") '(:other "src/test1.cpp"))
                                  ((equal file "src/test2.def") '(:other ("src/test2.cpp" "src/test2.h" "src/test4.h")))
                                  ((equal file "src/test3.cpp") '(:other nil)))))
-        (expect ((projectile-get-other-files "src/test1.def")) :to-equal '("src/test1.cpp"))
+        (expect (projectile-get-other-files "src/test1.def") :to-equal '("src/test1.cpp"))
         (expect (projectile-get-other-files "src/test2.def") :to-equal '("src/test2.cpp" "src/test2.h"))
         ;; Make sure extension based mechanism is still working
         (expect (projectile-get-other-files "src/test2.cpp") :to-equal '("src/test2.h"))
