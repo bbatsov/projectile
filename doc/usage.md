@@ -36,7 +36,7 @@ You can learn more about Projectile's notion of a project [here](projects.md).
 
 !!! Note
 
-    The extend of the support for every VCS differs and Git is the best supported
+    The extent of the support for every VCS differs and Git is the best supported
     one. Projectile supports some advanced features like working with Git submodules
     and using `git-grep` instead GNU grep.
 
