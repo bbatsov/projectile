@@ -79,17 +79,18 @@ What this does is:
 
 The available options are:
 
-Option           | Documentation
----------------- | -------------------------------------------------------------------------------------------
-:compilation-dir | A path, relative to the project root, from where to run the tests and compilation commands.
-:compile         | A command to compile the project.
-:configure       | A command to configure the project. `%s` will be substituted with the project root.
-:run             | A command to run the project.
-:src-dir         | A path, relative to the project root, where the source code lives.
-:test            | A command to test the project.
-:test-dir        | A path, relative to the project root, where the test code lives.
-:test-prefix     | A prefix to generate test files names.
-:test-suffix     | A suffix to generate test files names.
+Option            | Documentation
+------------------|--------------------------------------------------------------------------------------------
+:compilation-dir  | A path, relative to the project root, from where to run the tests and compilation commands.
+:compile          | A command to compile the project.
+:configure        | A command to configure the project. `%s` will be substituted with the project root.
+:run              | A command to run the project.
+:src-dir          | A path, relative to the project root, where the source code lives.
+:test             | A command to test the project.
+:test-dir         | A path, relative to the project root, where the test code lives.
+:test-prefix      | A prefix to generate test files names.
+:test-suffix      | A suffix to generate test files names.
+:related-files-fn | A function to specify test/impl/other files in a more flexible way.
 
 #### Returning Projectile Commands from a function
 
@@ -131,6 +132,87 @@ This works for:
   * `:run`
 
 Note that your function has to return a string to work properly.
+
+### Related file location
+
+For simple projects, `:test-prefix` and `:test-suffix` option with string will
+be enough to specify test prefix/suffix applicable regardless of file extensions
+on any directory path. `projectile-other-file-alist` variable can be also set to
+find other files based on the extension.
+
+For the full control of finding related files, `:related-files-fn` option with a
+custom function can be used. The custom function accepts the relative file name
+from the project root and it should return the related file information as plist
+with the following optional key/value pairs:
+
+| Key    | Value                                                         | Command applicable                                                              |
+|--------|---------------------------------------------------------------|---------------------------------------------------------------------------------|
+| :impl  | matching implementation file if the given file is a test file | projectile-toggle-between-implementation-and-test, projectile-find-related-file |
+| :test  | matching test file if the given file has test files.          | projectile-toggle-between-implementation-and-test, projectile-find-related-file |
+| :other | any other files if the given file has them.                   | projectile-find-other-file, projectile-find-related-file                        |
+| :foo   | any key other than above                                      | projectile-find-related-file                                                    |
+
+
+For each value, following type can be used:
+
+| Type                       | Meaning                                                                                                  |
+|----------------------------|----------------------------------------------------------------------------------------------------------|
+| string / a list of strings | Relative paths from the project root. The paths which actually exist on the file system will be matched. |
+| a function                 | A predicate which accepts a relative path as the input and return t if it matches.                       |
+| nil                        | No match exists.                                                                                         |
+
+Notes:
+ 1. For a big project consisting of many source files, returning strings instead
+    of a function can be fast as it does not iterate over each source file.
+ 2. There is a difference in behaviour between no key and `nil` value for the
+    key. Only when the key does not exist, other project options such as
+    `:test_prefix` or `projectile-other-file-alist` mechanism is tried.
+
+
+#### Example - Same source file name for test and impl
+
+```el
+(defun my/related-files (path)
+  (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) path)
+      (let ((dir (match-string 1 path))
+            (file-name (match-string 2 path)))
+        (if (equal dir "test")
+            (list :impl (concat "src" file-name))
+          (list :test (concat "test" file-name)
+                :other (concat "src" file-name ".def"))))))
+
+(projectile-register-project-type
+   ;; ...
+   :related-files-fn #'my/related-files)
+```
+
+With the above example, src/test directory can contain the same name file for test and its implementation file.
+For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and "src/foo/abc.cpp.def" as other file.
+
+
+#### Example - Different test prefix per extension
+A custom function for the project using multiple programming languages with different test prefixes.
+```
+(defun my/related-files(file)
+  (let ((ext-to-test-prefix '(("cpp" . "Test")
+                              ("py" . "test_"))))
+    (if-let ((ext (file-name-extension file))
+             (test-prefix (assoc-default ext ext-to-test-prefix))
+             (file-name (file-name-nondirectory file)))
+        (if (string-prefix-p test-prefix file-name)
+            (let ((suffix (concat "/" (substring file-name (length test-prefix)))))
+              (list :impl (lambda (other-file)
+                            (string-suffix-p suffix other-file))))
+          (let ((suffix (concat "/" test-prefix file-name)))
+            (list :test (lambda (other-file)
+                          (string-suffix-p suffix other-file))))))))
+```
+
+`projectile-find-related-file` command is also available to find and choose
+related files of any kinds. For example, the custom function can specify the
+related documents with ':doc' key. Note that `projectile-find-related-file` only
+relies on `:related-files-fn` for now.
+
 
 ## Customizing project root files
 
