@@ -1025,7 +1025,10 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--get-related-file-kinds "src/Foo.c") :to-equal '(:test :doc))
         (expect (projectile--get-related-file-kinds "src/TestFoo.c") :to-equal '(:impl))
         (expect (projectile--get-related-files "src/TestFoo.c" :impl) :to-equal '("src/Foo.c"))
-        (expect (projectile--get-related-files "src/Foo.c" :doc) :to-equal '("doc/Foo.txt"))))))
+        (expect (projectile--get-related-files "src/Foo.c" :doc) :to-equal '("doc/Foo.txt"))
+        ;; Support abspath
+        (expect (projectile--get-related-file-kinds (concat (projectile-project-root) "src/Foo.c")) :to-equal '(:test :doc))
+        (expect (projectile--get-related-files (concat (projectile-project-root) "src/Foo.c") :doc) :to-equal '("doc/Foo.txt"))))))
 
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"

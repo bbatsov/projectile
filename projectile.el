@@ -2270,24 +2270,31 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   "Return only the test FILES."
   (cl-remove-if-not 'projectile-test-file-p files))
 
+(defun projectile--get-related-files-plist (project-root file)
+  (if-let ((rel-path (if (file-name-absolute-p file)
+                         (file-relative-name file project-root)
+                       file))
+           (custom-function (funcall projectile-related-files-fn-function (projectile-project-type))))
+      (funcall custom-function rel-path)))
+
 (defun projectile--get-related-file-candidates (file kind)
   "Return a plist containing related information of KIND for FILE."
-  (if-let ((custom-function (funcall projectile-related-files-fn-function (projectile-project-type)))
-           (retval (funcall custom-function file))
-           (has-kind? (plist-member retval kind)))
-      (let ((kind-value (plist-get retval kind)))
+  (if-let ((project-root (projectile-project-root))
+           (plist (projectile--get-related-files-plist project-root file))
+           (has-kind? (plist-member plist kind)))
+      (let ((kind-value (plist-get plist kind)))
         (if (functionp kind-value)
             (list :predicate kind-value)
           (let ((paths (if (stringp kind-value) (list kind-value) kind-value)))
             (list :paths (cl-remove-if-not
                           (lambda (f)
-                            (projectile-file-exists-p (expand-file-name f (projectile-project-root))))
+                            (projectile-file-exists-p (expand-file-name f project-root)))
                           paths)))))))
 
 (defun projectile--get-related-file-kinds(file)
   "Return a list of keywords meaning related kinds for FILE."
-  (if-let ((custom-function (funcall projectile-related-files-fn-function (projectile-project-type)))
-           (plist (funcall custom-function file)))
+  (if-let ((project-root (projectile-project-root))
+           (plist (projectile--get-related-files-plist project-root file)))
       (cl-loop for key in plist by #'cddr
                collect key)))
 
