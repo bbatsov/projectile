@@ -1030,6 +1030,77 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--get-related-file-kinds (concat (projectile-project-root) "src/Foo.c")) :to-equal '(:test :doc))
         (expect (projectile--get-related-files (concat (projectile-project-root) "src/Foo.c") :doc) :to-equal '("doc/Foo.txt"))))))
 
+(describe "projectile--merge-related-files-fns"
+  (it "returns a new function which returns the merged plist from each fn"
+    (defun -first-fn(file)
+      (list :foo "file1"))
+    (defun -second-fn(file)
+      (list :foo (list "file2" "file3")))
+    (defun -third-fn(file)
+      (list :bar "file4"))
+    (let ((fn (projectile--merge-related-files-fns '(-first-fn -second-fn))))
+      (expect (funcall fn "something") :to-equal '(:foo ("file1" "file2" "file3"))))
+    (let ((fn (projectile--merge-related-files-fns '(-first-fn -third-fn))))
+      (expect (funcall fn "something") :to-equal '(:foo ("file1") :bar ("file4"))))))
+
+(describe "projectile--get-related-file-candidates"
+  (defun -sample-predicate (other-file)
+    (equal other-file "src/foo.c"))
+  (defun -sample-predicate2 (other-file)
+    (equal other-file "src/bar.c"))
+  (describe "when :related-files-fn returns paths"
+    (it "returns a plist containing :paths only with the existing files on file system without duplication"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")
+            (:related-files-fn (lambda (_)
+                                 (list :foo '("src/foo.c" "src/bar.c" "src/foo.c"))))
+          (expect (projectile--get-related-file-candidates "something" :foo)
+                  :to-equal '(:valid t :paths ("src/foo.c")))))))
+  (describe "when :related-files-fn returns one predicate"
+    (it "returns a plist containing :predicate with the same predicate"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")  ; Contents does not matter
+            (:related-files-fn (lambda (_)
+                                 (list :foo '-sample-predicate)))
+          (expect (projectile--get-related-file-candidates "something" :foo)
+                  :to-equal '(:valid t :predicate -sample-predicate))))))
+  (describe "when :related-files-fn returns multiple predicates"
+    (it "returns a plist containing :predicate with a merging predicate"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")  ; Contents does not matter
+            (:related-files-fn (lambda (_)
+                                 (list :foo (list '-sample-predicate '-sample-predicate2))))
+          (let* ((plist (projectile--get-related-file-candidates "something" :foo))
+                 (predicate (plist-get plist :predicate)))
+            (expect plist :to-contain :predicate)
+            (expect (funcall predicate "src/foo.c") :to-equal t)
+            (expect (funcall predicate "src/bar.c") :to-equal t))))))
+  (describe "when :related-files-fn returns both paths and predicates"
+    (it "returns a plist containing both :paths and :predicates"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")
+            (:related-files-fn (lambda (_)
+                                 (list :foo '("src/foo.c" -sample-predicate))))
+          (expect (projectile--get-related-file-candidates "something" :foo)
+                  :to-equal '(:valid t :paths ("src/foo.c") :predicate -sample-predicate))))))
+  (describe "when :related-files-fn is a list of functions"
+    (it "returns a plist containing the merged results"
+      (defun -sample-fn(file)
+        (list :foo "src/foo.c"))
+      (defun -sample-fn2(file)
+        (list :foo '-sample-predicate))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c"
+             "src/bar.c")
+            (:related-files-fn (list '-sample-fn '-sample-fn2))
+          (expect (projectile--get-related-file-candidates "something" :foo)
+                  :to-equal '(:valid t :paths ("src/foo.c") :predicate -sample-predicate)))))))
+
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
     (projectile-test-with-sandbox
