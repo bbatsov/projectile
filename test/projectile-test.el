@@ -1054,12 +1054,29 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-related-files-fn-extensions"
   (it "generate related files fn which relates files with the given extnsions"
-    (let* ((fn (projectile-related-files-fn-extensions :other '("cpp" "h" "hpp")))
-           (predicate (funcall fn "a.cpp")))
+    (let* ((fn (projectile-related-files-fn-extensions :foo '("cpp" "h" "hpp")))
+           (plist (funcall fn "a.cpp"))
+           (predicate (plist-get plist :foo)))
+      (expect plist :to-contain :foo)
       (expect (funcall predicate "a.h") :to-equal t)
       (expect (funcall predicate "a.hpp") :to-equal t)
       (expect (funcall predicate "b.cpp") :to-equal nil)
       (expect (funcall predicate "a.cpp") :to-equal nil))))
+
+(describe "projectile-related-files-fn-tests-with-prefix"
+  (it "generate related files fn which relates tests and impl based on extension and prefix"
+    (let ((fn (projectile-related-files-fn-tests-with-prefix "py" "test_")))
+      (let* ((plist (funcall fn "foo/a.py"))
+            (predicate (plist-get plist :test)))
+        (expect plist :to-contain :test)
+        (expect (funcall predicate "bar/test_a.py") :to-equal t)
+        (expect (funcall predicate "bar/test_a.cpp") :to-equal nil))
+      (let* ((plist (funcall fn "foo/test_a.py"))
+             (predicate (plist-get plist :impl)))
+        (expect plist :to-contain :impl)
+        (expect (funcall predicate "bar/a.py") :to-equal t)
+        (expect (funcall predicate "bar/a.cpp") :to-equal nil)
+        (expect (funcall predicate "bar/test_a.cpp") :to-equal nil)))))
 
 (describe "projectile--related-files-plist-by-kind"
   (defun -sample-predicate (other-file)

@@ -2871,18 +2871,33 @@ Fallback to DEFAULT-VALUE for missing attributes."
         (list kind (cl-remove path group-found :test 'equal)))))
 
 (defun projectile-related-files-fn-extensions(kind extensions)
-  "Generate a related-files-fn which relates as KIND for files having extensions"
+  "Generate a related-files-fn which relates as KIND for files having EXTENSIONS"
   (lambda (path)
     (let* ((ext (file-name-extension path))
            (basename (projectile--file-name-sans-extensions path))
            (basename-regexp (regexp-quote basename)))
       (when (member ext extensions)
-        (lambda (other-path)
-          (and (string-match-p basename-regexp other-path)
-               (equal basename (projectile--file-name-sans-extensions other-path))
-               (let ((other-ext (file-name-extension other-path)))
-                 (and (member other-ext extensions)
-                      (not (equal other-ext ext))))))))))
+        (list kind (lambda (other-path)
+                     (and (string-match-p basename-regexp other-path)
+                          (equal basename (projectile--file-name-sans-extensions other-path))
+                          (let ((other-ext (file-name-extension other-path)))
+                            (and (member other-ext extensions)
+                                 (not (equal other-ext ext)))))))))))
+
+(defun projectile-related-files-fn-tests-with-prefix(extension test-prefix)
+  "Generate a related-files-fn which relates tests and impl for files with EXTENSION on TEST-PREFIX"
+  (lambda (path)
+    (let* ((ext (file-name-extension path))
+           (file-name (file-name-nondirectory path)))
+      (when (equal ext extension)
+        (let* ((find-impl? (string-prefix-p test-prefix file-name))
+               (file-name-to-find (if find-impl?
+                                      (substring file-name (length test-prefix))
+                                    (concat test-prefix file-name))))
+          (list (if find-impl? :impl :test)
+                (lambda (other-path)
+                  (and (string-suffix-p file-name-to-find other-path)
+                       (equal (file-name-nondirectory other-path) file-name-to-find)))))))))
 
 (defun projectile--impl-to-test-predicate (impl-file)
   "Return a predicate, which returns t for any test files for IMPL-FILE."
