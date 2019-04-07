@@ -2303,8 +2303,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
              (paths (delete-dups (cl-remove-if-not 'stringp values)))
              (predicates (delete-dups (cl-remove-if-not 'functionp values))))
         (append
-         (list :valid t) ; Mark that :related-files-fn is used
-         (when paths
+         ;; Make sure that :paths exists even with nil if there is no predicates
+         (when (or paths (null predicates))
            (list :paths (cl-remove-if-not
                          (lambda (f)
                            (projectile-file-exists-p (expand-file-name f project-root)))

@@ -1074,7 +1074,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
             (:related-files-fn (lambda (_)
                                  (list :foo '("src/foo.c" "src/bar.c" "src/foo.c"))))
           (expect (projectile--related-files-plist-by-kind "something" :foo)
-                  :to-equal '(:valid t :paths ("src/foo.c")))))))
+                  :to-equal '(:paths ("src/foo.c")))))))
   (describe "when :related-files-fn returns one predicate"
     (it "returns a plist containing :predicate with the same predicate"
       (projectile-test-with-sandbox
@@ -1083,7 +1083,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
             (:related-files-fn (lambda (_)
                                  (list :foo '-sample-predicate)))
           (expect (projectile--related-files-plist-by-kind "something" :foo)
-                  :to-equal '(:valid t :predicate -sample-predicate))))))
+                  :to-equal '(:predicate -sample-predicate))))))
   (describe "when :related-files-fn returns multiple predicates"
     (it "returns a plist containing :predicate with a merging predicate"
       (projectile-test-with-sandbox
@@ -1104,7 +1104,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
             (:related-files-fn (lambda (_)
                                  (list :foo '("src/foo.c" -sample-predicate))))
           (expect (projectile--related-files-plist-by-kind "something" :foo)
-                  :to-equal '(:valid t :paths ("src/foo.c") :predicate -sample-predicate))))))
+                  :to-equal '(:paths ("src/foo.c") :predicate -sample-predicate))))))
   (describe "when :related-files-fn is a list of functions"
     (it "returns a plist containing the merged results"
       (defun -sample-fn(file)
@@ -1117,7 +1117,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
              "src/bar.c")
             (:related-files-fn (list '-sample-fn '-sample-fn2))
           (expect (projectile--related-files-plist-by-kind "something" :foo)
-                  :to-equal '(:valid t :paths ("src/foo.c") :predicate -sample-predicate)))))))
+                  :to-equal '(:paths ("src/foo.c") :predicate -sample-predicate)))))))
 
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
