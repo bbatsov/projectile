@@ -1043,6 +1043,24 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (let ((fn (projectile--merge-related-files-fns '(-first-fn -third-fn))))
       (expect (funcall fn "something") :to-equal '(:foo ("file1") :bar ("file4"))))))
 
+(describe "projectile-related-files-fn-groups"
+  (it "generate related files fn which relates members of each group as a specified kind"
+    (let ((fn (projectile-related-files-fn-groups :foo '(("a.cpp" "req/a.txt" "doc/a.uml")
+                                                         ("b.cpp" "req/b.txt")))))
+      (expect (funcall fn "a.cpp") :to-equal '(:foo ("req/a.txt" "doc/a.uml")))
+      (expect (funcall fn "req/a.txt") :to-equal '(:foo ("a.cpp" "doc/a.uml")))
+      (expect (funcall fn "b.cpp") :to-equal '(:foo ("req/b.txt")))
+      (expect (funcall fn "c.cpp") :to-equal nil))))
+
+(describe "projectile-related-files-fn-extensions"
+  (it "generate related files fn which relates files with the given extnsions"
+    (let* ((fn (projectile-related-files-fn-extensions :other '("cpp" "h" "hpp")))
+           (predicate (funcall fn "a.cpp")))
+      (expect (funcall predicate "a.h") :to-equal t)
+      (expect (funcall predicate "a.hpp") :to-equal t)
+      (expect (funcall predicate "b.cpp") :to-equal nil)
+      (expect (funcall predicate "a.cpp") :to-equal nil))))
+
 (describe "projectile--related-files-plist-by-kind"
   (defun -sample-predicate (other-file)
     (equal other-file "src/foo.c"))

@@ -2862,6 +2862,28 @@ Fallback to DEFAULT-VALUE for missing attributes."
         (list (car (last (car grouped-candidates))))
       (apply 'append (mapcar 'cdr grouped-candidates)))))
 
+(defun projectile-related-files-fn-groups(kind groups)
+  "Generate a related-files-fn which relates as KIND for each file of the group in GROUPS."
+  (lambda (path)
+    (if-let ((group-found (cl-find-if (lambda (group)
+                                        (member path group))
+                                      groups)))
+        (list kind (cl-remove path group-found :test 'equal)))))
+
+(defun projectile-related-files-fn-extensions(kind extensions)
+  "Generate a related-files-fn which relates as KIND for files having extensions"
+  (lambda (path)
+    (let* ((ext (file-name-extension path))
+           (basename (projectile--file-name-sans-extensions path))
+           (basename-regexp (regexp-quote basename)))
+      (when (member ext extensions)
+        (lambda (other-path)
+          (and (string-match-p basename-regexp other-path)
+               (equal basename (projectile--file-name-sans-extensions other-path))
+               (let ((other-ext (file-name-extension other-path)))
+                 (and (member other-ext extensions)
+                      (not (equal other-ext ext))))))))))
+
 (defun projectile--impl-to-test-predicate (impl-file)
   "Return a predicate, which returns t for any test files for IMPL-FILE."
   (let* ((basename (file-name-sans-extension (file-name-nondirectory impl-file)))
