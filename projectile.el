@@ -2434,11 +2434,13 @@ If KIND is not provided, a list of possible kinds can be chosen."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (or (when (projectile--related-files-plist-by-kind file :impl) t)
-      (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
-               (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
-      (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
-               (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type)))))))
+  (let ((kinds (projectile--related-files-kinds file)))
+    (cond ((member :impl kinds) t)
+          ((member :test kinds) nil)
+          (t (or (cl-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
+                          (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
+                 (cl-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
+                          (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type))))))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
