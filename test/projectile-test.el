@@ -1065,7 +1065,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-related-files-fn-tests-with-prefix"
   (it "generate related files fn which relates tests and impl based on extension and prefix"
-    (let ((fn (projectile-related-files-fn-tests-with-prefix "py" "test_")))
+    (let ((fn (projectile-related-files-fn-test-with-prefix "py" "test_")))
       (let* ((plist (funcall fn "foo/a.py"))
             (predicate (plist-get plist :test)))
         (expect plist :to-contain :test)
@@ -1080,7 +1080,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-related-files-fn-tests-with-suffix"
   (it "generate related files fn which relates tests and impl based on extension and suffix"
-    (let ((fn (projectile-related-files-fn-tests-with-suffix "py" "-test")))
+    (let ((fn (projectile-related-files-fn-test-with-suffix "py" "-test")))
       (let* ((plist (funcall fn "foo/a.py"))
             (predicate (plist-get plist :test)))
         (expect plist :to-contain :test)

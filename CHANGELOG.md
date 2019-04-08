@@ -6,6 +6,7 @@
 * Add `related-files-fn` option to use custom function to find test/impl/other files
 * [#1019](https://github.com/bbatsov/projectile/issues/1019): Jump to a test named the same way but in a different directory.
 * [#982](https://github.com/bbatsov/projectile/issues/982) Add heuristic for projectile-find-matching-test
+* Support a list of functions for `related-files-fn` options and helper functions
 
 ### Bugs fixed
 

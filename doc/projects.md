@@ -141,9 +141,9 @@ on any directory path. `projectile-other-file-alist` variable can be also set to
 find other files based on the extension.
 
 For the full control of finding related files, `:related-files-fn` option with a
-custom function can be used. The custom function accepts the relative file name
-from the project root and it should return the related file information as plist
-with the following optional key/value pairs:
+custom function or a list of custom functions can be used. The custom function
+accepts the relative file name from the project root and it should return the
+related file information as plist with the following optional key/value pairs:
 
 | Key    | Value                                                         | Command applicable                                                              |
 |--------|---------------------------------------------------------------|---------------------------------------------------------------------------------|
@@ -192,7 +192,7 @@ For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and
 
 #### Example - Different test prefix per extension
 A custom function for the project using multiple programming languages with different test prefixes.
-```
+```el
 (defun my/related-files(file)
   (let ((ext-to-test-prefix '(("cpp" . "Test")
                               ("py" . "test_"))))
@@ -213,6 +213,40 @@ related files of any kinds. For example, the custom function can specify the
 related documents with ':doc' key. Note that `projectile-find-related-file` only
 relies on `:related-files-fn` for now.
 
+### Related file custom function helper 
+
+`:related-files-fn` can accept a list of custom functions to combine the result
+of each custom function. This allows users to write several custom functions
+and apply them differently to projects.
+
+Projectile includes a couple of helpers to generate commonly used custom functions.
+
+| Helper name and params             | Purpose                                                     |
+|------------------------------------|-------------------------------------------------------------|
+| groups KIND GROUPS                 | Relates files in each group as the specified kind.          |
+| extensions KIND EXTENSIONS         | Relates files with extensions as the specified kind.        |
+| tests-with-prefix EXTENSION PREFIX | Relates files with prefix and extension as :test and :impl. |
+| tests-with-suffix EXTENSION SUFFIX | Relates files with suffix and extension as :test and :impl. |
+
+Each helper means `projectile-related-files-fn-helper-name` function.
+
+#### Example usage of projectile-related-files-fn-helpers
+```el
+(setq my/related-files
+      (list
+       (projectile-related-files-fn-extensions :other '("cpp" "h" "hpp"))
+       (projectile-related-files-fn-test-with-prefix "cpp" "Test")
+       (projectile-related-files-fn-test-with-suffix "el" "_test")
+       (projectile-related-files-fn-groups
+        :doc
+        '(("doc/common.txt"
+           "src/foo.h"
+           "src/bar.h")))))
+
+(projectile-register-project-type
+   ;; ...
+   :related-files-fn #'my/related-files)
+```
 
 ## Customizing project root files
 
