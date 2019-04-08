@@ -1078,6 +1078,21 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (funcall predicate "bar/a.cpp") :to-equal nil)
         (expect (funcall predicate "bar/test_a.cpp") :to-equal nil)))))
 
+(describe "projectile-related-files-fn-tests-with-suffix"
+  (it "generate related files fn which relates tests and impl based on extension and suffix"
+    (let ((fn (projectile-related-files-fn-tests-with-suffix "py" "-test")))
+      (let* ((plist (funcall fn "foo/a.py"))
+            (predicate (plist-get plist :test)))
+        (expect plist :to-contain :test)
+        (expect (funcall predicate "bar/a-test.py") :to-equal t)
+        (expect (funcall predicate "bar/a-test.cpp") :to-equal nil))
+      (let* ((plist (funcall fn "foo/a-test.py"))
+             (predicate (plist-get plist :impl)))
+        (expect plist :to-contain :impl)
+        (expect (funcall predicate "bar/a.py") :to-equal t)
+        (expect (funcall predicate "bar/a.cpp") :to-equal nil)
+        (expect (funcall predicate "bar/a-test.cpp") :to-equal nil)))))
+
 (describe "projectile--related-files-plist-by-kind"
   (defun -sample-predicate (other-file)
     (equal other-file "src/foo.c"))

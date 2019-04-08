@@ -2374,6 +2374,81 @@ If KIND is not provided, a list of possible kinds can be chosen."
   (find-file
    (projectile--find-related-file (buffer-file-name))))
 
+;;;###autoload
+(defun projectile-related-files-fn-groups(kind groups)
+  "Generate a related-files-fn which relates as KIND for files in each of GROUPS"
+  (lambda (path)
+    (if-let ((group-found (cl-find-if (lambda (group)
+                                        (member path group))
+                                      groups)))
+        (list kind (cl-remove path group-found :test 'equal)))))
+
+;;;###autoload
+(defun projectile-related-files-fn-extensions(kind extensions)
+  "Generate a related-files-fn which relates as KIND for files having EXTENSIONS"
+  (lambda (path)
+    (let* ((ext (file-name-extension path))
+           (basename (file-name-base path))
+           (basename-regexp (regexp-quote basename)))
+      (when (member ext extensions)
+        (list kind (lambda (other-path)
+                     (and (string-match-p basename-regexp other-path)
+                          (equal basename (file-name-base other-path))
+                          (let ((other-ext (file-name-extension other-path)))
+                            (and (member other-ext extensions)
+                                 (not (equal other-ext ext)))))))))))
+
+;;;###autoload
+(defun projectile-related-files-fn-tests-with-prefix(extension test-prefix)
+  "Generate a related-files-fn which relates tests and impl for files with EXTENSION based on TEST-PREFIX"
+  (lambda (path)
+    (when (equal (file-name-extension path) extension)
+      (let* ((file-name (file-name-nondirectory path))
+             (find-impl? (string-prefix-p test-prefix file-name))
+             (file-name-to-find (if find-impl?
+                                    (substring file-name (length test-prefix))
+                                  (concat test-prefix file-name))))
+        (list (if find-impl? :impl :test)
+              (lambda (other-path)
+                (and (string-suffix-p file-name-to-find other-path)
+                     (equal (file-name-nondirectory other-path) file-name-to-find))))))))
+
+;;;###autoload
+(defun projectile-related-files-fn-tests-with-suffix(extension test-suffix)
+  "Generate a related-files-fn which relates tests and impl for files with EXTENSION based on TEST-SUFFIX"
+  (lambda (path)
+    (when (equal (file-name-extension path) extension)
+      (let* ((file-name (file-name-nondirectory path))
+             (dot-ext (concat "." extension))
+             (suffix-ext (concat test-suffix dot-ext))
+             (find-impl? (string-suffix-p suffix-ext file-name))
+             (file-name-to-find (if find-impl?
+                                    (concat (substring file-name 0 (- (length suffix-ext)))
+                                            dot-ext)
+                                  (concat (substring file-name 0 (- (length dot-ext)))
+                                          suffix-ext))))
+        (list (if find-impl? :impl :test)
+              (lambda (other-path)
+                (and (string-suffix-p file-name-to-find other-path)
+                     (equal (file-name-nondirectory other-path) file-name-to-find))))))))
+
+(defun projectile-related-files-fn-regexp(kind from-regexp to-regexp)
+  "Generate a related-files-fn which relates tests and impl for files with EXTENSION based on TEST-SUFFIX"
+  (lambda (path)
+    (when (equal (file-name-extension path) extension)
+      (let* ((file-name (file-name-nondirectory path))
+             (dot-ext (concat "." extension))
+             (suffix-ext (concat test-suffix dot-ext))
+             (find-impl? (string-suffix-p suffix-ext file-name))
+             (file-name-to-find (if find-impl?
+                                    (concat (substring file-name 0 (- (length suffix-ext)))
+                                            dot-ext)
+                                  (concat (substring file-name 0 (- (length dot-ext)))
+                                          suffix-ext))))
+        (list (if find-impl? :impl :test)
+              (lambda (other-path)
+                (and (string-suffix-p file-name-to-find other-path)
+                     (equal (file-name-nondirectory other-path) file-name-to-find))))))))
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
@@ -2861,43 +2936,6 @@ Fallback to DEFAULT-VALUE for missing attributes."
     (if (= (length (car grouped-candidates)) 2)
         (list (car (last (car grouped-candidates))))
       (apply 'append (mapcar 'cdr grouped-candidates)))))
-
-(defun projectile-related-files-fn-groups(kind groups)
-  "Generate a related-files-fn which relates as KIND for each file of the group in GROUPS."
-  (lambda (path)
-    (if-let ((group-found (cl-find-if (lambda (group)
-                                        (member path group))
-                                      groups)))
-        (list kind (cl-remove path group-found :test 'equal)))))
-
-(defun projectile-related-files-fn-extensions(kind extensions)
-  "Generate a related-files-fn which relates as KIND for files having EXTENSIONS"
-  (lambda (path)
-    (let* ((ext (file-name-extension path))
-           (basename (projectile--file-name-sans-extensions path))
-           (basename-regexp (regexp-quote basename)))
-      (when (member ext extensions)
-        (list kind (lambda (other-path)
-                     (and (string-match-p basename-regexp other-path)
-                          (equal basename (projectile--file-name-sans-extensions other-path))
-                          (let ((other-ext (file-name-extension other-path)))
-                            (and (member other-ext extensions)
-                                 (not (equal other-ext ext)))))))))))
-
-(defun projectile-related-files-fn-tests-with-prefix(extension test-prefix)
-  "Generate a related-files-fn which relates tests and impl for files with EXTENSION on TEST-PREFIX"
-  (lambda (path)
-    (let* ((ext (file-name-extension path))
-           (file-name (file-name-nondirectory path)))
-      (when (equal ext extension)
-        (let* ((find-impl? (string-prefix-p test-prefix file-name))
-               (file-name-to-find (if find-impl?
-                                      (substring file-name (length test-prefix))
-                                    (concat test-prefix file-name))))
-          (list (if find-impl? :impl :test)
-                (lambda (other-path)
-                  (and (string-suffix-p file-name-to-find other-path)
-                       (equal (file-name-nondirectory other-path) file-name-to-find)))))))))
 
 (defun projectile--impl-to-test-predicate (impl-file)
   "Return a predicate, which returns t for any test files for IMPL-FILE."
