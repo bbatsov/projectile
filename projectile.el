@@ -3124,7 +3124,8 @@ regular expression."
 (defun projectile-ripgrep (search-term)
   "Run a Ripgrep search with `SEARCH-TERM' at current project root.
 
-SEARCH-TERM is a regexp."
+With an optional prefix argument ARG SEARCH-TERM is interpreted as a
+regular expression."
   (interactive (list (projectile--read-search-string-with-default
                       "Ripgrep search for")))
   (if (require 'ripgrep nil 'noerror)
