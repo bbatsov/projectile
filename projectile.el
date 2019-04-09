@@ -3214,20 +3214,22 @@ regular expression."
     (error "Package 'ag' is not available")))
 
 ;;;###autoload
-(defun projectile-ripgrep (search-term)
+(defun projectile-ripgrep (search-term &optional arg)
   "Run a Ripgrep search with `SEARCH-TERM' at current project root.
 
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression."
-  (interactive (list (projectile--read-search-string-with-default
-                      "Ripgrep search for")))
+  (interactive
+   (list (projectile--read-search-string-with-default
+          (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
+         current-prefix-arg))
   (if (require 'ripgrep nil 'noerror)
       (let ((args (mapcar (lambda (val) (concat "--glob !" val))
                           (append projectile-globally-ignored-files
                                   projectile-globally-ignored-directories))))
         (ripgrep-regexp search-term
                         (projectile-project-root)
-                        (if current-prefix-arg
+                        (if arg
                             args
                           (cons "--fixed-strings" args))))
     (error "Package `ripgrep' is not available")))
