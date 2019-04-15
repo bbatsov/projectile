@@ -1008,7 +1008,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile--find-matching-test "src/Foo.cpp") :to-equal '("test/Foo.cpp"))
         (expect (projectile--find-matching-file "test/Foo.cpp") :to-equal '("src/Foo.cpp"))))))
 
-(describe "projectile--get-related-files"
+(describe "projectile--related-files"
   (it "returns related files for the given file"
     (defun -my/related-files(file)
       (cond ((equal file "src/Foo.c")
@@ -1022,10 +1022,134 @@ You'd normally combine this with `projectile-test-with-sandbox'."
            "src/TestFoo.c"
            "doc/Foo.txt")
           (:related-files-fn #'-my/related-files)
-        (expect (projectile--get-related-file-kinds "src/Foo.c") :to-equal '(:test :doc))
-        (expect (projectile--get-related-file-kinds "src/TestFoo.c") :to-equal '(:impl))
-        (expect (projectile--get-related-files "src/TestFoo.c" :impl) :to-equal '("src/Foo.c"))
-        (expect (projectile--get-related-files "src/Foo.c" :doc) :to-equal '("doc/Foo.txt"))))))
+        (expect (projectile--related-files-kinds "src/Foo.c") :to-equal '(:test :doc))
+        (expect (projectile--related-files-kinds "src/TestFoo.c") :to-equal '(:impl))
+        (expect (projectile--related-files "src/TestFoo.c" :impl) :to-equal '("src/Foo.c"))
+        (expect (projectile--related-files "src/Foo.c" :doc) :to-equal '("doc/Foo.txt"))
+        ;; Support abspath
+        (expect (projectile--related-files-kinds (concat (projectile-project-root) "src/Foo.c")) :to-equal '(:test :doc))
+        (expect (projectile--related-files (concat (projectile-project-root) "src/Foo.c") :doc) :to-equal '("doc/Foo.txt"))))))
+
+(describe "projectile--merge-related-files-fns"
+  (it "returns a new function which returns the merged plist from each fn"
+    (defun -first-fn(file)
+      (list :foo "file1"))
+    (defun -second-fn(file)
+      (list :foo (list "file2" "file3")))
+    (defun -third-fn(file)
+      (list :bar "file4"))
+    (let ((fn (projectile--merge-related-files-fns '(-first-fn -second-fn))))
+      (expect (funcall fn "something") :to-equal '(:foo ("file1" "file2" "file3"))))
+    (let ((fn (projectile--merge-related-files-fns '(-first-fn -third-fn))))
+      (expect (funcall fn "something") :to-equal '(:foo ("file1") :bar ("file4"))))))
+
+(describe "projectile-related-files-fn-groups"
+  (it "generate related files fn which relates members of each group as a specified kind"
+    (let ((fn (projectile-related-files-fn-groups :foo '(("a.cpp" "req/a.txt" "doc/a.uml")
+                                                         ("b.cpp" "req/b.txt")))))
+      (expect (funcall fn "a.cpp") :to-equal '(:foo ("req/a.txt" "doc/a.uml")))
+      (expect (funcall fn "req/a.txt") :to-equal '(:foo ("a.cpp" "doc/a.uml")))
+      (expect (funcall fn "b.cpp") :to-equal '(:foo ("req/b.txt")))
+      (expect (funcall fn "c.cpp") :to-equal nil))))
+
+(describe "projectile-related-files-fn-extensions"
+  (it "generate related files fn which relates files with the given extnsions"
+    (let* ((fn (projectile-related-files-fn-extensions :foo '("cpp" "h" "hpp")))
+           (plist (funcall fn "a.cpp"))
+           (predicate (plist-get plist :foo)))
+      (expect plist :to-contain :foo)
+      (expect (funcall predicate "a.h") :to-equal t)
+      (expect (funcall predicate "a.hpp") :to-equal t)
+      (expect (funcall predicate "b.cpp") :to-equal nil)
+      (expect (funcall predicate "a.cpp") :to-equal nil))))
+
+(describe "projectile-related-files-fn-tests-with-prefix"
+  (it "generate related files fn which relates tests and impl based on extension and prefix"
+    (let ((fn (projectile-related-files-fn-test-with-prefix "py" "test_")))
+      (let* ((plist (funcall fn "foo/a.py"))
+            (predicate (plist-get plist :test)))
+        (expect plist :to-contain :test)
+        (expect (funcall predicate "bar/test_a.py") :to-equal t)
+        (expect (funcall predicate "bar/test_a.cpp") :to-equal nil))
+      (let* ((plist (funcall fn "foo/test_a.py"))
+             (predicate (plist-get plist :impl)))
+        (expect plist :to-contain :impl)
+        (expect (funcall predicate "bar/a.py") :to-equal t)
+        (expect (funcall predicate "bar/a.cpp") :to-equal nil)
+        (expect (funcall predicate "bar/test_a.cpp") :to-equal nil)))))
+
+(describe "projectile-related-files-fn-tests-with-suffix"
+  (it "generate related files fn which relates tests and impl based on extension and suffix"
+    (let ((fn (projectile-related-files-fn-test-with-suffix "py" "-test")))
+      (let* ((plist (funcall fn "foo/a.py"))
+            (predicate (plist-get plist :test)))
+        (expect plist :to-contain :test)
+        (expect (funcall predicate "bar/a-test.py") :to-equal t)
+        (expect (funcall predicate "bar/a-test.cpp") :to-equal nil))
+      (let* ((plist (funcall fn "foo/a-test.py"))
+             (predicate (plist-get plist :impl)))
+        (expect plist :to-contain :impl)
+        (expect (funcall predicate "bar/a.py") :to-equal t)
+        (expect (funcall predicate "bar/a.cpp") :to-equal nil)
+        (expect (funcall predicate "bar/a-test.cpp") :to-equal nil)))))
+
+(describe "projectile--related-files-plist-by-kind"
+  (defun -sample-predicate (other-file)
+    (equal other-file "src/foo.c"))
+  (defun -sample-predicate2 (other-file)
+    (equal other-file "src/bar.c"))
+  (describe "when :related-files-fn returns paths"
+    (it "returns a plist containing :paths only with the existing files on file system without duplication"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")
+            (:related-files-fn (lambda (_)
+                                 (list :foo '("src/foo.c" "src/bar.c" "src/foo.c"))))
+          (expect (projectile--related-files-plist-by-kind "something" :foo)
+                  :to-equal '(:paths ("src/foo.c")))))))
+  (describe "when :related-files-fn returns one predicate"
+    (it "returns a plist containing :predicate with the same predicate"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")  ; Contents does not matter
+            (:related-files-fn (lambda (_)
+                                 (list :foo '-sample-predicate)))
+          (expect (projectile--related-files-plist-by-kind "something" :foo)
+                  :to-equal '(:predicate -sample-predicate))))))
+  (describe "when :related-files-fn returns multiple predicates"
+    (it "returns a plist containing :predicate with a merging predicate"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")  ; Contents does not matter
+            (:related-files-fn (lambda (_)
+                                 (list :foo (list '-sample-predicate '-sample-predicate2))))
+          (let* ((plist (projectile--related-files-plist-by-kind "something" :foo))
+                 (predicate (plist-get plist :predicate)))
+            (expect plist :to-contain :predicate)
+            (expect (funcall predicate "src/foo.c") :to-equal t)
+            (expect (funcall predicate "src/bar.c") :to-equal t))))))
+  (describe "when :related-files-fn returns both paths and predicates"
+    (it "returns a plist containing both :paths and :predicates"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c")
+            (:related-files-fn (lambda (_)
+                                 (list :foo '("src/foo.c" -sample-predicate))))
+          (expect (projectile--related-files-plist-by-kind "something" :foo)
+                  :to-equal '(:paths ("src/foo.c") :predicate -sample-predicate))))))
+  (describe "when :related-files-fn is a list of functions"
+    (it "returns a plist containing the merged results"
+      (defun -sample-fn(file)
+        (list :foo "src/foo.c"))
+      (defun -sample-fn2(file)
+        (list :foo '-sample-predicate))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files-using-custom-project
+            ("src/foo.c"
+             "src/bar.c")
+            (:related-files-fn (list '-sample-fn '-sample-fn2))
+          (expect (projectile--related-files-plist-by-kind "something" :foo)
+                  :to-equal '(:paths ("src/foo.c") :predicate -sample-predicate)))))))
 
 (describe "projectile-get-all-sub-projects"
   (it "excludes out-of-project submodules"
