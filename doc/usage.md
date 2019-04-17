@@ -97,7 +97,7 @@ Keybinding         | Description
 <kbd>s-p left</kbd> | Switch to the previous project buffer.
 <kbd>s-p right</kbd> | Switch to the next project buffer.
 <kbd>s-p E</kbd> | Opens the root `dir-locals-file` of the project.
-<kbd>s-p s s</kbd> | Runs `ag` on the project. Requires the presence of `ag.el`.
+<kbd>s-p s s</kbd> | Runs `ag` on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
 <kbd>s-p !</kbd> | Runs `shell-command` in the root directory of the project.
 <kbd>s-p &</kbd> | Runs `async-shell-command` in the root directory of the project.
 <kbd>s-p C</kbd> | Runs a standard configure command for your type of project.
