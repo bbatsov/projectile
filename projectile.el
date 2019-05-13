@@ -1075,7 +1075,7 @@ If DIR is not supplied its set to the current directory by default."
                        (lambda (func)
                          (let* ((cache-key (format "%s-%s" func dir))
                                 (cache-value (gethash cache-key projectile-project-root-cache)))
-                           (if (and cache-value (file-exists-p cache-value))
+                           (if (or (not cache-value) (file-exists-p cache-value))
                                cache-value
                              (let ((value (funcall func (file-truename dir))))
                                (puthash cache-key value projectile-project-root-cache)
