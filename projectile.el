@@ -643,7 +643,10 @@ Set to nil to disable listing submodules contents."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-generic-command "find . -type f -print0"
+(defcustom projectile-generic-command
+  (if (executable-find "fd")
+      "fd . -0"
+    "find . -type f -print0")
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
