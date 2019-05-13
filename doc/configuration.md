@@ -81,8 +81,8 @@ find . -type f -print0
 
 !!! Tip
 
-    It's a great idea to install [fd](https://github.com/sharkdp/fd) and use it as a replacement for both `git ls-files` (`fd` understands `.gitignore`) and `find`.
-    The magic command you'll need with it is something like `fd . -0`.
+    It's a great idea to install [fd](https://github.com/sharkdp/fd) which is much faster thant `find`.
+    If `fd` is found, projectile will use as a replacement for `find`.
 
 ## Sorting
 
