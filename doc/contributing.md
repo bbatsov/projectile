@@ -26,8 +26,7 @@ guidelines](https://github.com/bbatsov/projectile/blob/master/CONTRIBUTING.md).
 
 Good documentation is just as important as good code.
 
-Consider improving and extending the
-this manual and the
+Consider improving and extending this manual and the
 [community wiki](https://github.com/bbatsov/projectile/wiki).
 
 ### Working on the Manual
