@@ -2,12 +2,9 @@
 [![MELPA](http://melpa.org/packages/projectile-badge.svg)](http://melpa.org/#/projectile)
 [![MELPA Stable](http://stable.melpa.org/packages/projectile-badge.svg)](http://stable.melpa.org/#/projectile)
 [![Build Status](https://travis-ci.org/bbatsov/projectile.png?branch=master)](https://travis-ci.org/bbatsov/projectile)
-[![Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bbatsov/donate)
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 
 ## Synopsis
-
-[![Join the chat at https://gitter.im/bbatsov/projectile](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bbatsov/projectile?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 **Projectile** is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
@@ -54,11 +51,8 @@ Here's a glimpse of Projectile in action:
 
 You can support my work on Projectile via
  [PayPal](https://www.paypal.me/bbatsov),
- [Salt](https://salt.bountysource.com/teams/projectile),
- [Patreon](https://www.patreon.com/bbatsov) and [Liberapay](https://liberapay.com/bbatsov/donate).
-
-[![Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bbatsov/donate)
-[![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
+ [Patreon](https://www.patreon.com/bbatsov) and
+ [Salt](https://salt.bountysource.com/teams/projectile).
 
 ## Quickstart
 
