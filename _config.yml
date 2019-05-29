@@ -1,0 +1,8 @@
+title: Projectile
+description: Project navigation and management library for Emacs
+google_analytics: UA-22917580-1
+show_downloads: true
+theme: jekyll-theme-cayman
+
+gems:
+  - jekyll-mentions
