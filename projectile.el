@@ -645,7 +645,7 @@ Set to nil to disable listing submodules contents."
 
 (defcustom projectile-generic-command
   (if (executable-find "fd")
-      "fd . -0 --color=never"
+      "fd . -0 --type f --color=never"
     "find . -type f -print0")
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
