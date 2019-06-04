@@ -2508,8 +2508,8 @@ test/impl/other files as below:
 
 (defun projectile-go-project-p ()
   "Check if a project contains Go source files."
-  (or (projectile-verify-file-wildcard "*.go")
-      (projectile-verify-file "go.mod")))
+  (or (projectile-verify-file "go.mod")
+      (projectile-verify-file-wildcard "*.go")))
 
 (define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "1.0.0")
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
