@@ -2598,7 +2598,7 @@ test/impl/other files as below:
                                   :test-prefix "test_"
                                   :test-suffix"_test")
 (projectile-register-project-type 'python-pip '("requirements.txt")
-                                  :compile "python setup.by build"
+                                  :compile "python setup.py build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix"_test")
