@@ -2534,7 +2534,7 @@ test/impl/other files as below:
                                   :test "cabal test"
                                   :test-suffix "Spec")
 (projectile-register-project-type 'go projectile-go-project-test-function
-                                  :compile "go build ./..."
+                                  :compile "go build"
                                   :test "go test ./..."
                                   :test-suffix "_test")
 ;; File-based detection project types
