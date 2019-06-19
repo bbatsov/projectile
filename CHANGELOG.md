@@ -262,7 +262,7 @@ buffers.
 * Added new command `projectile-cleanup-known-projects`.
 * Added new commands `projectile-display-buffer`
   and`projectile-find-dir-other-window`.
-* Added new interacive function `projectile-project-buffers-other-buffer`
+* Added new interactive function `projectile-project-buffers-other-buffer`
   which runs new `projectile-project-buffers-non-visible` function, the former
   is bound to `C-c p ESC`.
 * New variable `projectile-enable-idle-timer` turns on an idle timer

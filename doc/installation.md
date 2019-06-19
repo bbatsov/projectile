@@ -127,7 +127,7 @@ following command:
 Users of Debian 9 or later or Ubuntu 16.10 or later may simply
 `apt-get install elpa-projectile`.
 
-Your favourite Linux distrubution might be providing a Projectile package as well.
+Your favourite Linux distribution might be providing a Projectile package as well.
 
 ### Emacs Prelude
 
