@@ -19,6 +19,7 @@
 * [#1391](https://github.com/bbatsov/projectile/issues/1391): A
   `.cabal` sub-directory is no longer considered project indicator.
 * [#1385](https://github.com/bbatsov/projectile/issues/1385): Update `projectile-replace` for Emacs 27.
+* [#1432](https://github.com/bbatsov/projectile/issues/1432): Support .NET project.
 
 ## 2.0.0 (2019-01-01)
 
