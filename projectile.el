@@ -2506,6 +2506,10 @@ test/impl/other files as below:
   (and (projectile-verify-file-wildcard "?*.cabal")
        (not (projectile-verify-file "stack.yaml"))))
 
+(defun projectile-dotnet-project-p ()
+  (or (projectile-verify-file-wildcard "?*.csproj")
+      (projectile-verify-file-wildcard "?*.fsproj")))
+
 (defun projectile-go-project-p ()
   "Check if a project contains Go source files."
   (or (projectile-verify-file "go.mod")
@@ -2533,6 +2537,10 @@ test/impl/other files as below:
                                   :compile "cabal build"
                                   :test "cabal test"
                                   :test-suffix "Spec")
+(projectile-register-project-type 'dotnet #'projectile-dotnet-project-p
+                                  :compile "dotnet build"
+                                  :run "dotnet run"
+                                  :test "dotnet test")
 (projectile-register-project-type 'go projectile-go-project-test-function
                                   :compile "go build"
                                   :test "go test ./..."
