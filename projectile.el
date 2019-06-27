@@ -298,6 +298,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "Gemfile"            ; Bundler file
     "requirements.txt"   ; Pip file
     "setup.py"           ; Setuptools file
+    "pyproject.toml"     ; Python project file
     "tox.ini"            ; Tox file
     "composer.json"      ; Composer project file
     "Cargo.toml"         ; Cargo project file
