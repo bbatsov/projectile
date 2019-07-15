@@ -197,6 +197,10 @@ If you want Projectile to be usable in every directory (even without the presenc
 
 ## Switching projects
 
+By default, projectile does not include the current project in the list when
+switching projects. If you want to include the current project, customize
+variable `projectile-current-project-on-switch`.
+
 When running `projectile-switch-project` (<kbd>s-p p</kbd>) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
 `projectile-find-file`).
