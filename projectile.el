@@ -1323,27 +1323,28 @@ otherwise operates relative to project root."
         (ignored-dirs (projectile-ignored-directories-rel)))
     (cl-remove-if
      (lambda (file)
-       (or (cl-some
-            (lambda (f)
-              (string= f (file-name-nondirectory file)))
-            ignored-files)
-           (cl-some
-            (lambda (dir)
-              ;; if the directory is prefixed with '*' then ignore all directories matching that name
-              (if (string-prefix-p "*" dir)
-                  ;; remove '*' and trailing slash from ignored directory name
-                  (let ((d (substring dir 1 (if (equal (substring dir -1) "/") -1 nil))))
-                    (cl-some
-                     (lambda (p)
-                       (string= d p))
-                     ;; split path by '/', remove empty strings, and check if any subdirs match name 'd'
-                     (delete "" (split-string (or (file-name-directory file) "") "/"))))
-                (string-prefix-p dir file)))
-            ignored-dirs)
-           (cl-some
-            (lambda (suf)
-              (string-suffix-p suf file t))
-            projectile-globally-ignored-file-suffixes)))
+       (let ((file (string-remove-prefix "./" file)))
+        (or (cl-some
+              (lambda (f)
+                (string= f (file-name-nondirectory file)))
+              ignored-files)
+            (cl-some
+              (lambda (dir)
+                ;; if the directory is prefixed with '*' then ignore all directories matching that name
+                (if (string-prefix-p "*" dir)
+                    ;; remove '*' and trailing slash from ignored directory name
+                    (let ((d (substring dir 1 (if (equal (substring dir -1) "/") -1 nil))))
+                      (cl-some
+                      (lambda (p)
+                        (string= d p))
+                      ;; split path by '/', remove empty strings, and check if any subdirs match name 'd'
+                      (delete "" (split-string (or (file-name-directory file) "") "/"))))
+                  (string-prefix-p dir file)))
+              ignored-dirs)
+            (cl-some
+              (lambda (suf)
+                (string-suffix-p suf file t))
+              projectile-globally-ignored-file-suffixes))))
      files)))
 
 (defun projectile-keep-ignored-files (project vcs files)
