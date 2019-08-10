@@ -1356,10 +1356,15 @@ VCS is the VCS of the project."
   "Get a list of relative file names in the project ROOT by executing COMMAND.
 
 If `command' is nil or an empty string, return nil.
-This allows commands to be disabled."
+This allows commands to be disabled.
+
+Only text sent to standard output is taken into account."
   (when (stringp command)
     (let ((default-directory root))
-      (split-string (shell-command-to-string command) "\0" t))))
+      (with-temp-buffer
+        (call-process-shell-command command nil '(t nil))
+        (let ((shell-output (buffer-substring (point-min) (point-max))))
+          (split-string (string-trim shell-output) "\0" t))))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
