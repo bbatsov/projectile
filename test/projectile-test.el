@@ -305,9 +305,11 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (expect (string-empty-p (projectile-get-sub-projects-command 'none)) :to-be-truthy)))
 
 (describe "projectile-files-via-ext-command"
-  (it "returns nil when command is nil or empty"
-    (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
-    (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)))
+   (it "returns nil when command is nil or empty or fails"
+     (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
+     (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)
+     (expect (projectile-files-via-ext-command "" "echo Not a file name! > &2") :not :to-be-truthy)
+     (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename"))))
 
 (describe "projectile-mode"
   (before-each
