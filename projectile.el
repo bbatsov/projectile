@@ -251,7 +251,16 @@ is set to 'alien'."
           (const :tag "Recently opened files" recentf)
           (const :tag "Recently active buffers, then recently opened files" recently-active)
           (const :tag "Access time (atime)" access-time)
-          (const :tag "Modification time (mtime)" modification-time)))
+          (const :tag "Modification time (mtime)" modification-time)
+          (const :tag "Path length" path-length)
+          (const :tag "Custom method" custom-method)))
+
+(defcustom projectile-sort-custom-method nil
+  "The sort method to use for custom sorting
+
+This should be the name of a predicate method usable by `cl-sort'"
+  :group 'projectile
+  :type 'symbol)
 
 (defcustom projectile-verbose t
   "Echo messages that are not errors."
@@ -2173,7 +2182,9 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
     (recentf (projectile-sort-by-recentf-first files))
     (recently-active (projectile-sort-by-recently-active-first files))
     (modification-time (projectile-sort-by-modification-time files))
-    (access-time (projectile-sort-by-access-time files))))
+    (access-time (projectile-sort-by-access-time files))
+    (path-length (projectile-sort-by-path-length files))
+    (custom-method (projectile-sort-by-custom-method files))))
 
 (defun projectile-sort-by-recentf-first (files)
   "Sort FILES by a recent first scheme."
@@ -2206,6 +2217,23 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
        (let ((file1-atime (nth 4 (file-attributes file1)))
              (file2-atime (nth 4 (file-attributes file2))))
          (not (time-less-p file1-atime file2-atime)))))))
+
+(defun projectile-sort-by-path-length (files)
+  "Sort FILES by path length."
+  (let ((default-directory (projectile-project-root)))
+    (cl-sort
+     (copy-sequence files)
+     (lambda (file1 file2)
+       (let ((path-len1 (length file1))
+             (path-len2 (length file2)))
+         (< path-len1 path-len2))))))
+
+(defun projectile-sort-by-custom-method (files)
+  "Sort FILES by custom method."
+  (let ((default-directory (projectile-project-root)))
+    (cl-sort
+     (copy-sequence files)
+     projectile-sort-custom-method)))
 
 
 ;;;; Find directory in project functionality
