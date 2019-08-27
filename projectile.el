@@ -256,7 +256,7 @@ is set to 'alien'."
           (const :tag "Custom method" custom-method)))
 
 (defcustom projectile-sort-custom-method nil
-  "The sort method to use for custom sorting
+  "The sort method to use for custom sorting.
 
 This should be the name of a predicate method usable by `cl-sort'"
   :group 'projectile
