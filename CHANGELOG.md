@@ -3,21 +3,20 @@
 ## master (unreleased)
 
 ### New features
-* Add `related-files-fn` option to use custom function to find test/impl/other files
+
+* Add `related-files-fn` option to use custom function to find test/impl/other files.
 * [#1019](https://github.com/bbatsov/projectile/issues/1019): Jump to a test named the same way but in a different directory.
-* [#982](https://github.com/bbatsov/projectile/issues/982) Add heuristic for projectile-find-matching-test
-* Support a list of functions for `related-files-fn` options and helper functions
-* [#1405](https://github.com/bbatsov/projectile/pull/1405) Add Bloop Scala build server project detection
-* [#1418](https://github.com/bbatsov/projectile/pull/1418) The presence of a go.mod file implies a go project
-* [#1419](https://github.com/bbatsov/projectile/pull/1419) When possible, use [fd](https://github.com/sharkdp/fd) instead
+* [#982](https://github.com/bbatsov/projectile/issues/982): Add heuristic for projectile-find-matching-test.
+* Support a list of functions for `related-files-fn` options and helper functions.
+* [#1405](https://github.com/bbatsov/projectile/pull/1405): Add Bloop Scala build server project detection.
+* [#1418](https://github.com/bbatsov/projectile/pull/1418): The presence of a `go.mod` file implies a go project.
+* [#1419](https://github.com/bbatsov/projectile/pull/1419): When possible, use [fd](https://github.com/sharkdp/fd) instead
   of `find` to list the files of a non-VCS project. This should be much faster.
 
 ### Bugs fixed
 
-* [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile`
-  ignores which are paths to files and patterns when using `projectile-grep`.
-* [#1391](https://github.com/bbatsov/projectile/issues/1391): A
-  `.cabal` sub-directory is no longer considered project indicator.
+* [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile` ignores which are paths to files and patterns when using `projectile-grep`.
+* [#1391](https://github.com/bbatsov/projectile/issues/1391): A `.cabal` sub-directory is no longer considered project indicator.
 * [#1385](https://github.com/bbatsov/projectile/issues/1385): Update `projectile-replace` for Emacs 27.
 * [#1432](https://github.com/bbatsov/projectile/issues/1432): Support .NET project.
 
