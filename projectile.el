@@ -3480,7 +3480,7 @@ to run the replacement."
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
          (files (projectile-files-with-string old-text directory)))
-    (if (version< emacs-version "27")
+    (if (version< emacs-version "27.1")
         ;; Adapted from `tags-query-replace' for literal strings (not regexp)
         (progn
           (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
