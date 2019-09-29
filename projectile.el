@@ -2508,8 +2508,11 @@ test/impl/other files as below:
        (not (projectile-verify-file "stack.yaml"))))
 
 (defun projectile-dotnet-project-p ()
-  (or (projectile-verify-file-wildcard "?*.csproj")
-      (projectile-verify-file-wildcard "?*.fsproj")))
+  (or (projectile-verify-file-wildcard "?*.sln")
+      (projectile-verify-file-wildcard "?*.csproj")
+      (projectile-verify-file-wildcard "src/*/?*.csproj")
+      (projectile-verify-file-wildcard "?*.fsproj")
+      (projectile-verify-file-wildcard "src/*/?*.fsproj")))
 
 (defun projectile-go-project-p ()
   "Check if a project contains Go source files."
