@@ -13,6 +13,10 @@
 * [#1419](https://github.com/bbatsov/projectile/pull/1419): When possible, use [fd](https://github.com/sharkdp/fd) instead
   of `find` to list the files of a non-VCS project. This should be much faster.
 
+### Changes
+
+* A project now registers as `dotnet` if it has a solution (`*.sln*`) file at the project root or project files (`*.[fc]sproj`) in `src/*/`, as well as the old "project files in project root" heuristic.
+
 ### Bugs fixed
 
 * [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile` ignores which are paths to files and patterns when using `projectile-grep`.

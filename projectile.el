@@ -2508,6 +2508,8 @@ test/impl/other files as below:
        (not (projectile-verify-file "stack.yaml"))))
 
 (defun projectile-dotnet-project-p ()
+  "Check if a project contains a *.sln file at the project root, or either
+a .csproj or .fsproj file at either the project root or within src/*/."
   (or (projectile-verify-file-wildcard "?*.sln")
       (projectile-verify-file-wildcard "?*.csproj")
       (projectile-verify-file-wildcard "src/*/?*.csproj")
