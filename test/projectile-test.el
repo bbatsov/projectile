@@ -787,6 +787,24 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (let ((projectile-known-projects nil))
       (expect (projectile-switch-project) :to-throw))))
 
+(describe "projectile-switch-project-by-name"
+  (it "calls the switch project action with project-to-swtich's dir-locals loaded"
+    (let ((foo 'bar)
+          (switch-project-foo)
+          (safe-local-variable-values '((foo . baz)))
+          (projectile-switch-project-action (lambda () (setq switch-project-foo foo))))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("project/"
+             "project/.dir-locals.el"
+             "project/.projectile")
+          (append-to-file
+           "((nil . ((foo . baz))))" nil "project/.dir-locals.el")
+          (projectile-add-known-project (file-name-as-directory (expand-file-name "project")))
+          (projectile-switch-project-by-name (file-name-as-directory (expand-file-name "project")))
+
+          (expect switch-project-foo :to-be 'baz))))))
+
 (describe "projectile-ignored-buffer-p"
   (it "checks if buffer should be ignored"
     (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
