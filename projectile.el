@@ -3698,7 +3698,7 @@ be string to be executed as command."
       (if (fboundp command)
           (funcall (symbol-function command))))
      (t
-      (error "The value for: %s in project-type: %s was neither a function nor a string." command-type project-type)))))
+      (error "The value for: %s in project-type: %s was neither a function nor a string" command-type project-type)))))
 
 (defun projectile-default-configure-command (project-type)
   "Retrieve default configure command for PROJECT-TYPE."
