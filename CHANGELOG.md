@@ -19,6 +19,7 @@
 * [#1391](https://github.com/bbatsov/projectile/issues/1391): A `.cabal` sub-directory is no longer considered project indicator.
 * [#1385](https://github.com/bbatsov/projectile/issues/1385): Update `projectile-replace` for Emacs 27.
 * [#1432](https://github.com/bbatsov/projectile/issues/1432): Support .NET project.
+* [#1270](https://github.com/bbatsov/projectile/issues/1270): Fix running commands that don't have a default value.
 
 ## 2.0.0 (2019-01-01)
 
