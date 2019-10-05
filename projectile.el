@@ -3692,15 +3692,13 @@ resolves to function `funcall's.  Return value of function MUST
 be string to be executed as command."
   (let ((command (plist-get (alist-get project-type projectile-project-types) command-type)))
     (cond
+     ((not command) nil)
      ((stringp command) command)
      ((functionp command)
       (if (fboundp command)
           (funcall (symbol-function command))))
-     ((and (not command) (eq command-type 'compilation-dir))
-      ;; `compilation-dir' is special in that it is used as a fallback for the root
-      nil)
      (t
-      (user-error "The value for: %s in project-type: %s was neither a function nor a string." command-type project-type)))))
+      (error "The value for: %s in project-type: %s was neither a function nor a string." command-type project-type)))))
 
 (defun projectile-default-configure-command (project-type)
   "Retrieve default configure command for PROJECT-TYPE."
