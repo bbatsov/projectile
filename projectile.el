@@ -253,7 +253,8 @@ is set to 'alien'."
           (const :tag "Access time (atime)" access-time)
           (const :tag "Modification time (mtime)" modification-time)
           (const :tag "Path length" path-length)
-          (const :tag "Custom method" custom-method)))
+          (const :tag "Custom method" custom-method))
+  :package-version '(projectile . "2.1.0")))
 
 (defcustom projectile-sort-custom-method nil
   "The sort method to use for custom sorting.

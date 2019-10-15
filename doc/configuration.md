@@ -127,7 +127,7 @@ To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Access_time_(a
 To sort files by the length of the file path:
 
 ```el
-(setq projectile-sort-order path-length)
+(setq projectile-sort-order 'path-length)
 ```
 
 To sort files by a user-defined method:
@@ -138,7 +138,7 @@ To sort files by a user-defined method:
   (< (length file1) (length file2)))
 
 (setq projectile-sort-custom-method 'my-custom-sort-method)
-(setq projectile-sort-order custom-method)
+(setq projectile-sort-order 'custom-method)
 ```
 
 ## Caching
