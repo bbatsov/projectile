@@ -4462,7 +4462,7 @@ If the current buffer does not belong to a project, call `previous-buffer'."
   "Prompt for a variable and return its name."
   (completing-read "Variable: "
                    obarray
-                   '(lambda (v)
+                   (lambda (v)
                       (and (boundp v) (not (keywordp v))))
                    t))
 
