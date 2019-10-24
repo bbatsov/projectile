@@ -1171,16 +1171,16 @@ function is executing."
   (apply 'append
          (mapcar
           (lambda (f)
-            (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
-                        (member (file-name-nondirectory (directory-file-name f))
-                                '("." ".." ".svn" ".cvs")))
-              (progress-reporter-update progress-reporter)
-              (if (file-directory-p f)
-                  (unless (projectile-ignored-directory-p
-                           (file-name-as-directory f))
-                    (projectile-index-directory f patterns progress-reporter))
-                (unless (projectile-ignored-file-p f)
-                  (list f)))))
+            (let ((local-f (file-name-nondirectory (directory-file-name f))))
+              (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
+                          (member local-f '("." "..")))
+                (progress-reporter-update progress-reporter)
+                (if (file-directory-p f)
+                    (unless (projectile-ignored-directory-name-p
+                             local-f)
+                      (projectile-index-directory f patterns progress-reporter))
+                  (unless (projectile-ignored-file-p f)
+                    (list f))))))
           (directory-files directory t))))
 
 ;;; Alien Project Indexing
@@ -1603,6 +1603,21 @@ according to PATTERNS: (ignored . unignored)"
      projectile-globally-ignored-files
      (projectile-project-ignored-files)))
    (projectile-unignored-files)))
+
+(defun projectile-ignored-directory-names ()
+  "Return list of ignored directory names."
+  (projectile-difference
+   projectile-globally-ignored-directories
+   projectile-globally-unignored-directories))
+
+(defun projectile-ignored-directory-name-p (directory-name)
+  "Check if DIRECTORY should be ignored.
+
+Regular expressions can be used."
+  (cl-some
+   (lambda (name)
+     (string-match-p name directory-name))
+   (projectile-ignored-directory-names)))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
