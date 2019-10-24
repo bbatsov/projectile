@@ -3481,23 +3481,22 @@ to run the replacement."
                      (format "Replace %s with: " old-text))))
          (files (projectile-files-with-string old-text directory)))
     (if (fboundp #'fileloop-continue)
-        ;; Emacs 25 and 26
-        ;;
-        ;; Adapted from `tags-query-replace' for literal strings (not regexp)
-        (progn
-          (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
-                                        '((case-fold-search nil)))
-                                  (if (search-forward ',old-text nil t)
-                                      ;; When we find a match, move back to
-                                      ;; the beginning of it so
-                                      ;; perform-replace will see it.
-                                      (goto-char (match-beginning 0))))
-                tags-loop-operate `(perform-replace ',old-text ',new-text t nil nil
-                                                    nil multi-query-replace-map))
-          (tags-loop-continue (or (cons 'list files) t)))
-      ;; Emacs 27+
-      (fileloop-initialize-replace old-text new-text files 'default)
-      (fileloop-continue))))
+        ;; Emacs 27+
+        (progn (fileloop-initialize-replace old-text new-text files 'default)
+               (fileloop-continue))
+      ;; Emacs 25 and 26
+      ;;
+      ;; Adapted from `tags-query-replace' for literal strings (not regexp)
+      (setq tags-loop-scan `(let ,(unless (equal old-text (downcase old-text))
+                                    '((case-fold-search nil)))
+                              (if (search-forward ',old-text nil t)
+                                  ;; When we find a match, move back to
+                                  ;; the beginning of it so
+                                  ;; perform-replace will see it.
+                                  (goto-char (match-beginning 0))))
+            tags-loop-operate `(perform-replace ',old-text ',new-text t nil nil
+                                                nil multi-query-replace-map))
+      (tags-loop-continue (or (cons 'list files) t)))))
 
 ;;;###autoload
 (defun projectile-replace-regexp (&optional arg)
