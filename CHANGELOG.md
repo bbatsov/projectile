@@ -12,6 +12,7 @@
 * [#1418](https://github.com/bbatsov/projectile/pull/1418): The presence of a `go.mod` file implies a go project.
 * [#1419](https://github.com/bbatsov/projectile/pull/1419): When possible, use [fd](https://github.com/sharkdp/fd) instead
   of `find` to list the files of a non-VCS project. This should be much faster.
+* Add minimal support for [http://shadow-cljs.org/](shadow-cljs) projects.
 
 ### Bugs fixed
 

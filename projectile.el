@@ -289,6 +289,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "project.clj"        ; Leiningen project file
     "build.boot"         ; Boot-clj project file
     "deps.edn"           ; Clojure CLI project file
+    "shadow-cljs.edn"    ; shadow-cljs project file
     "SConstruct"         ; Scons project file
     "pom.xml"            ; Maven project file
     "build.sbt"          ; SBT project file
@@ -384,7 +385,8 @@ Regular expressions can be used."
     "_darcs"
     ".tox"
     ".svn"
-    ".stack-work")
+    ".stack-work"
+    ".shadow-cljs")
   "A list of directories globally ignored by projectile.
 
 Regular expressions can be used."
@@ -2662,6 +2664,8 @@ test/impl/other files as below:
                                   :test "boot test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'clojure-cli '("deps.edn")
+                                  :test-suffix "_test")
+(projectile-register-project-type 'shadow-cljs '("shadow-cljs.edn")
                                   :test-suffix "_test")
 (projectile-register-project-type 'bloop '(".bloop")
                                   :compile "bloop compile root"
