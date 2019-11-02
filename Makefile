@@ -3,8 +3,6 @@ export EMACS ?= emacs
 EMACSFLAGS =
 TESTFLAGS =
 
-PKGDIR := $(shell EMACS=$(EMACS) $(CASK) package-directory)
-
 SRCS = $(wildcard *.el)
 OBJS = $(SRCS:.el=.elc)
 
@@ -29,5 +27,5 @@ compile: elpa
 clean:
 	rm -f $(OBJS)
 
-test: $(PGKDIR)
+test: elpa
 	$(CASK) exec buttercup -L .
