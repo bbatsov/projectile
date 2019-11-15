@@ -2665,7 +2665,10 @@ test/impl/other files as below:
                                   :test-suffix "_test")
 (projectile-register-project-type 'bloop '(".bloop")
                                   :compile "bloop compile root"
-                                  :test "bloop test --propagate --reporter scalac root")
+                                  :test "bloop test --propagate --reporter scalac root"
+                                  :src-dir "src/main/"
+                                  :test-dir "src/test/"
+                                  :test-suffix "Spec")
 ;; Ruby
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
                                   :compile "bundle exec rake"
