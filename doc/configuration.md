@@ -81,7 +81,7 @@ find . -type f -print0
 
 !!! Tip
 
-    It's a great idea to install [fd](https://github.com/sharkdp/fd) which is much faster thant `find`.
+    It's a great idea to install [fd](https://github.com/sharkdp/fd) which is much faster than `find`.
     If `fd` is found, projectile will use as a replacement for `find`.
 
 ## Sorting
