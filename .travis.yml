@@ -1,10 +1,11 @@
 sudo: false
 language: emacs-lisp
+dist: xenial
 env:
   - EMACS_BINARY=emacs-25.1-travis MAKE_TEST=test
   - EMACS_BINARY=emacs-25.2-travis MAKE_TEST=test
-  - EMACS_BINARY=emacs-26.1-travis MAKE_TEST=test
-  - EMACS_BINARY=emacs-git-snapshot-travis MAKE_TEST=test
+  - EMACS_BINARY=emacs-26.3-travis-linux-xenial MAKE_TEST=test
+  - EMACS_BINARY=emacs-git-snapshot-travis-linux-xenial MAKE_TEST=test
 matrix:
   allow_failures:
     - env: EMACS_BINARY=emacs-git-snapshot-travis
