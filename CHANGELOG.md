@@ -4,6 +4,7 @@
 
 ### New features
 
+* New command `projectile-run-vterm` (<kbd>x v</kbd> in `projectile-command-map`).
 * Add `related-files-fn` option to use custom function to find test/impl/other files.
 * [#1019](https://github.com/bbatsov/projectile/issues/1019): Jump to a test named the same way but in a different directory.
 * [#982](https://github.com/bbatsov/projectile/issues/982): Add heuristic for projectile-find-matching-test.
