@@ -3410,6 +3410,22 @@ Switch to the project specific term buffer if it already exists."
           (term-char-mode))))
     (switch-to-buffer buffer)))
 
+;;;###autoload
+(defun projectile-run-vterm ()
+  "Invoke `vterm' in the project's root.
+
+Switch to the project specific term buffer if it already exists."
+  (interactive)
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (buffer (format "*vterm %s*" (projectile-project-name project))))
+    (unless (buffer-live-p (get-buffer buffer))
+      (unless (require 'vterm nil 'noerror)
+        (error "Package 'vterm' is not available"))
+      (vterm buffer)
+      (vterm-send-string (concat "cd " project))
+      (vterm-send-return))
+    (switch-to-buffer buffer)))
+
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
   (let* ((project (projectile-ensure-project (projectile-project-root)))
@@ -4581,6 +4597,7 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "x i") #'projectile-run-ielm)
     (define-key map (kbd "x t") #'projectile-run-term)
     (define-key map (kbd "x s") #'projectile-run-shell)
+    (define-key map (kbd "x v") #'projectile-run-vterm)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
     (define-key map (kbd "<right>") #'projectile-next-project-buffer)
