@@ -55,9 +55,6 @@
   (defvar eshell-buffer-name)
   (defvar explicit-shell-file-name))
 
-(declare-function ggtags-ensure-project "ggtags")
-(declare-function ggtags-update-tags "ggtags")
-(declare-function pkg-info-version-info "pkg-info")
 (declare-function tags-completion-table "etags")
 (declare-function make-term "term")
 (declare-function term-mode "term")
@@ -65,8 +62,15 @@
 (declare-function eshell-search-path "esh-ext")
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
-(declare-function ripgrep-regexp "ripgrep")
 (declare-function string-trim "subr-x")
+
+(declare-function ggtags-ensure-project "ext:ggtags")
+(declare-function ggtags-update-tags "ext:ggtags")
+(declare-function pkg-info-version-info "ext:pkg-info")
+(declare-function ripgrep-regexp "ext:ripgrep")
+(declare-function vterm "ext:vterm")
+(declare-function vterm-send-return "ext:vterm")
+(declare-function vterm-send-string "ext:vterm")
 
 (defvar grep-files-aliases)
 (defvar grep-find-ignored-directories)
