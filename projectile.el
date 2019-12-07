@@ -1194,12 +1194,18 @@ function is executing."
 ;; any post-processing of the files obtained via the external command.
 (defun projectile-dir-files-alien (directory)
   "Get the files for DIRECTORY using external tools."
-  (let ((vcs (projectile-project-vcs directory)))
-    (cond
-    ((eq vcs 'git)
-     (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
-            (projectile-get-sub-projects-files directory vcs)))
-    (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
+  (let ((vcs (projectile-project-vcs directory))
+        ;; getting directory name without ":" for tramp connections
+        (c_directory (car (last (split-string directory ":")))))
+
+    (mapcar (lambda (f)
+              (file-relative-name f c_directory))
+            (cond
+             ((eq vcs 'git)
+              (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
+                     (projectile-get-sub-projects-files directory vcs)))
+             (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs)))))
+    ))
 
 (define-obsolete-function-alias 'projectile-dir-files-external 'projectile-dir-files-alien "2.0.0")
 (define-obsolete-function-alias 'projectile-get-repo-files 'projectile-dir-files-alien "2.0.0")
