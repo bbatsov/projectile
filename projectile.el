@@ -63,6 +63,8 @@
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
 (declare-function string-trim "subr-x")
+(declare-function fileloop-continue "fileloop")
+(declare-function fileloop-initialize-replace "fileloop")
 
 (declare-function ggtags-ensure-project "ext:ggtags")
 (declare-function ggtags-update-tags "ext:ggtags")
