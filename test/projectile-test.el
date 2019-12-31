@@ -235,7 +235,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (spy-on 'projectile-project-vcs :and-return-value 'git)
     (spy-on 'projectile-get-repo-ignored-files :and-return-value '("path/unignored-file"))
     (spy-on 'projectile-get-repo-ignored-directory :and-call-fake
-            (lambda (project vcs dir)
+            (lambda (project dir vcs)
               (list (concat dir "unignored-file"))))
     (let ((projectile-globally-unignored-directories '("path")))
       (expect (projectile-add-unignored nil nil '("file")) :to-equal '("file" "path/unignored-file"))

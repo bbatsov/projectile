@@ -21,6 +21,7 @@
 * [#1385](https://github.com/bbatsov/projectile/issues/1385): Update `projectile-replace` for Emacs 27.
 * [#1432](https://github.com/bbatsov/projectile/issues/1432): Support .NET project.
 * [#1270](https://github.com/bbatsov/projectile/issues/1270): Fix running commands that don't have a default value.
+* [#1475](https://github.com/bbatsov/projectile/issues/1475): Fix directories being ignored with hybrid mode despite being explicitly unignored
 
 ## 2.0.0 (2019-01-01)
 
