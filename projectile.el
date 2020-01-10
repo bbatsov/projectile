@@ -3423,13 +3423,18 @@ Switch to the project specific term buffer if it already exists."
     (switch-to-buffer buffer)))
 
 ;;;###autoload
-(defun projectile-run-vterm ()
+(defun projectile-run-vterm (&optional arg)
   "Invoke `vterm' in the project's root.
 
-Switch to the project specific term buffer if it already exists."
-  (interactive)
+Switch to the project specific term buffer if it already exists.
+
+With a prefix argument ARG creates and switch to a new project specific
+vterm buffer."
+  (interactive "P")
   (let* ((project (projectile-ensure-project (projectile-project-root)))
-         (buffer (format "*vterm %s*" (projectile-project-name project))))
+         (base-name (format "*vterm %s*" (projectile-project-name project)))
+         (buffer (if arg (generate-new-buffer-name base-name)
+                   base-name)))
     (unless (buffer-live-p (get-buffer buffer))
       (unless (require 'vterm nil 'noerror)
         (error "Package 'vterm' is not available"))
