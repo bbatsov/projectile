@@ -4109,7 +4109,7 @@ This command will first prompt for the directory the file is in."
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
                                                 (projectile-dir-files directory))))
-          (find-file (expand-file-name file (projectile-project-root)))
+          (find-file (expand-file-name file directory))
           (run-hooks 'projectile-find-file-hook))
       ;; target directory is not in a project
       (projectile-find-file))))
