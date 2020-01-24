@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1486](https://github.com/bbatsov/projectile/pull/1486) Allow `projectile-run-shell/eshell/term/vterm/ielm` to start extra processes if invoked with the prefix argument.
 * New command `projectile-run-vterm` (<kbd>x v</kbd> in `projectile-command-map`).
 * Add `related-files-fn` option to use custom function to find test/impl/other files.
 * [#1019](https://github.com/bbatsov/projectile/issues/1019): Jump to a test named the same way but in a different directory.
