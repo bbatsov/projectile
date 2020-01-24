@@ -775,6 +775,13 @@ just return nil."
   "Get the symbol at point and strip its properties."
   (substring-no-properties (or (thing-at-point 'symbol) "")))
 
+(defun projectile-generate-process-name (process make-new)
+  "Infer the buffer name for PROCESS or generate a new one if MAKE-NEW is true."
+  (let* ((project (projectile-ensure-project (projectile-project-root)))
+         (base-name (format "*%s %s*" process (projectile-project-name project))))
+    (if make-new
+        (generate-new-buffer-name base-name)
+      base-name)))
 
 
 ;;; Serialization
@@ -3366,32 +3373,38 @@ regular expression."
     (call-interactively #'async-shell-command)))
 
 ;;;###autoload
-(defun projectile-run-shell ()
+(defun projectile-run-shell (arg)
   "Invoke `shell' in the project's root.
 
-Switch to the project specific shell buffer if it already exists."
-  (interactive)
+Switch to the project specific shell buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
   (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
-    (shell (concat "*shell " (projectile-project-name) "*"))))
+    (shell (projectile-generate-process-name "shell" arg))))
 
 ;;;###autoload
-(defun projectile-run-eshell ()
+(defun projectile-run-eshell (arg)
   "Invoke `eshell' in the project's root.
 
-Switch to the project specific eshell buffer if it already exists."
-  (interactive)
+Switch to the project specific eshell buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
   (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
-    (let ((eshell-buffer-name (concat "*eshell " (projectile-project-name) "*")))
+    (let ((eshell-buffer-name (projectile-generate-process-name "eshell" arg)))
       (eshell))))
 
 ;;;###autoload
-(defun projectile-run-ielm ()
+(defun projectile-run-ielm (arg)
   "Invoke `ielm' in the project's root.
 
-Switch to the project specific ielm buffer if it already exists."
-  (interactive)
+Switch to the project specific ielm buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
   (let* ((project (projectile-ensure-project (projectile-project-root)))
-         (ielm-buffer-name (format "*ielm %s*" (projectile-project-name project))))
+         (ielm-buffer-name (projectile-generate-process-name "ielm" arg)))
     (if (get-buffer ielm-buffer-name)
         (switch-to-buffer ielm-buffer-name)
       (projectile-with-default-dir project
@@ -3400,27 +3413,27 @@ Switch to the project specific ielm buffer if it already exists."
       (rename-buffer ielm-buffer-name))))
 
 ;;;###autoload
-(defun projectile-run-term (program)
+(defun projectile-run-term (arg)
   "Invoke `term' in the project's root.
 
-Switch to the project specific term buffer if it already exists."
-  (interactive (list nil))
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
-         (term (concat "term " (projectile-project-name project)))
-         (buffer (concat "*" term "*")))
-    (unless (get-buffer buffer)
+Switch to the project specific term buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (let ((project (projectile-ensure-project (projectile-project-root)))
+        (buffer-name (projectile-generate-process-name "term" arg))
+        (default-program (or explicit-shell-file-name
+                             (getenv "ESHELL")
+                             (getenv "SHELL")
+                             "/bin/sh")))
+    (unless (get-buffer buffer-name)
       (require 'term)
-      (let ((program (or program
-                         (read-from-minibuffer "Run program: "
-                                               (or explicit-shell-file-name
-                                                   (getenv "ESHELL")
-                                                   (getenv "SHELL")
-                                                   "/bin/sh")))))
+      (let ((program (read-from-minibuffer "Run program: " default-program)))
         (projectile-with-default-dir project
-          (set-buffer (make-term term program))
+          (set-buffer (term-ansi-make-term buffer-name program))
           (term-mode)
           (term-char-mode))))
-    (switch-to-buffer buffer)))
+    (switch-to-buffer buffer-name)))
 
 ;;;###autoload
 (defun projectile-run-vterm (&optional arg)
@@ -3428,13 +3441,10 @@ Switch to the project specific term buffer if it already exists."
 
 Switch to the project specific term buffer if it already exists.
 
-With a prefix argument ARG creates and switch to a new project specific
-vterm buffer."
+Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (let* ((project (projectile-ensure-project (projectile-project-root)))
-         (base-name (format "*vterm %s*" (projectile-project-name project)))
-         (buffer (if arg (generate-new-buffer-name base-name)
-                   base-name)))
+         (buffer (projectile-generate-process-name "vterm" arg)))
     (unless (buffer-live-p (get-buffer buffer))
       (unless (require 'vterm nil 'noerror)
         (error "Package 'vterm' is not available"))
