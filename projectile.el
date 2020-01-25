@@ -1367,7 +1367,7 @@ otherwise operates relative to project root."
     (let (result)
       (dolist (dir directories result)
         (setq result (append result
-                             (projectile-get-repo-ignored-directory project vcs dir))))
+                             (projectile-get-repo-ignored-directory project dir vcs))))
       result)))
 
 (defun projectile-add-unignored (project vcs files)
