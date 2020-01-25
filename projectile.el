@@ -1,6 +1,6 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2019 Bozhidar Batsov <bozhidar@batsov.com>
+;; Copyright © 2011-2020 Bozhidar Batsov <bozhidar@batsov.com>
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
@@ -3206,7 +3206,13 @@ With REGEXP given, don't query the user for a regexp."
               (projectile-grep-find-unignored-patterns (projectile-patterns-to-ensure)))
           (grep-compute-defaults)
           (cl-letf (((symbol-function 'rgrep-default-command) #'projectile-rgrep-default-command))
-            (rgrep search-regexp (or files "* .*") root-dir)))))
+            (rgrep search-regexp (or files "* .*") root-dir)
+            (when (get-buffer "*grep*")
+              ;; When grep is using a global *grep* buffer rename it to be
+              ;; scoped to the current root to allow multiple concurrent grep
+              ;; operations, one per root
+              (with-current-buffer "*grep*"
+                (rename-buffer (concat "*grep <" root-dir ">*"))))))))
     (run-hooks 'projectile-grep-finished-hook)))
 
 ;;;###autoload
@@ -4103,7 +4109,7 @@ This command will first prompt for the directory the file is in."
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
                                                 (projectile-dir-files directory))))
-          (find-file (expand-file-name file (projectile-project-root)))
+          (find-file (expand-file-name file directory))
           (run-hooks 'projectile-find-file-hook))
       ;; target directory is not in a project
       (projectile-find-file))))

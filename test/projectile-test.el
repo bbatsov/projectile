@@ -1,6 +1,6 @@
 ;;; projectile-test.el
 
-;; Copyright © 2019 Bozhidar Batsov
+;; Copyright © 2011-2020 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 
@@ -27,6 +27,7 @@
 
 (require 'projectile)
 (require 'buttercup)
+
 
 (message "Running tests on Emacs %s" emacs-version)
 
@@ -643,6 +644,32 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile-project-root) :to-equal correct-project-root))))))
 
 (describe "projectile-grep"
+  (describe "multi-root grep"
+    (after-each
+      (cl-flet ((grep-buffer-p (b) (string-prefix-p "*grep" (buffer-name b))))
+        (let ((grep-buffers (cl-remove-if-not #'grep-buffer-p (buffer-list))))
+          (dolist (grep-buffer grep-buffers)
+            (let ((kill-buffer-query-functions nil))
+              (kill-buffer grep-buffer))))))
+    (it "grep multi-root projects"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("project/bar/"
+             "project/baz/")
+          (cd "project")
+          (with-temp-file ".projectile" (insert (concat "+/baz\n"
+                                                        "+/bar\n")))
+          (with-temp-file "foo.txt" (insert "hi"))
+          (with-temp-file "bar/bar.txt" (insert "hi"))
+          (with-temp-file "baz/baz.txt" (insert "hi"))
+          (with-current-buffer (find-file-noselect ".projectile" t)
+            (let ((grep-find-template "<X>")
+                  grep-find-ignored-directories grep-find-ignored-files
+                  projectile-globally-ignored-files
+                  projectile-globally-ignored-file-suffixes
+                  projectile-globally-ignored-directories)
+              (projectile-grep "hi")))))))
+
   (describe "rgrep"
     (before-each
       (spy-on 'compilation-start))
