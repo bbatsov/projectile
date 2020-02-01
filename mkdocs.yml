@@ -1,5 +1,6 @@
 site_name: "Projectile: The Project Interaction Library for Emacs"
-repo_url: https://github.com/bbatsov/projectile
+repo_url: https://github.com/bbatsov/projectile/
+edit_uri: edit/master/doc/
 site_favicon: favicon.ico
 copyright: "Copyright (C) 2011-2020 Bozhidar Batsov and Projectile contributors"
 docs_dir: doc
