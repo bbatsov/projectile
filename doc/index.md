@@ -56,4 +56,4 @@ Projectile's features:
 You can support my work on Projectile via
  [PayPal](https://www.paypal.me/bbatsov),
  [Patreon](https://www.patreon.com/bbatsov) and
- [Salt](https://salt.bountysource.com/teams/projectile).
+ [GitHub Sponsors](https://github.com/sponsors/bbatsov).

@@ -57,7 +57,7 @@ If you want to make changes to the manual's page structure you'll have to edit
 You can support the development of Projectile via
 [PayPal](https://www.paypal.me/bbatsov),
 [Patreon](https://www.patreon.com/bbatsov) and
-[Salt](https://salt.bountysource.com/teams/projectile).
+[GitHub Sponsors](https://github.com/sponsors/bbatsov).
 
 ## Running the tests in batch mode
 
