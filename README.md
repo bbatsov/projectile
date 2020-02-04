@@ -57,8 +57,8 @@ You can support my work on Projectile via
 ## Quickstart
 
 The instructions that follow are meant to get you from zero to a running Projectile setup
-in a minute.  See the
-[official manual](https://docs.projectile.mx) for (way) more
+in a minute.  Visit the
+[user manual](https://docs.projectile.mx) for (way) more
 details.
 
 ### Installation
