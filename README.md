@@ -97,6 +97,9 @@ See the user manual for more details.
 
 * Some operations like search (grep) depend (presently) on external
   utilities such as `find`.
+* Using Projectile over TRAMP might be slow in certain cases.
+* Some commands might misbehave on complex project setups (e.g. a git project with submodules)
+* Projectile was mostly tested on Unix OS-es (e.g. GNU/Linux and macOS), so some functionality might not work well on Windows
 
 ## Known issues
 
