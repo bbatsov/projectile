@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.1.0 (2020-02-04)
+
 ### New features
 
 * [#1486](https://github.com/bbatsov/projectile/pull/1486) Allow `projectile-run-shell/eshell/term/vterm/ielm` to start extra processes if invoked with the prefix argument.
