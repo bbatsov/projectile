@@ -1181,6 +1181,9 @@ Files are returned as relative paths to DIRECTORY."
 The function calls itself recursively until all sub-directories
 have been indexed.  The PROGRESS-REPORTER is updated while the
 function is executing."
+  (projectile-index-directory--internal directory patterns progress-reporter (projectile-ignored-files) (projectile-ignored-directories)))
+
+(defun projectile-index-directory--internal (directory patterns progress-reporter ignored-files ignored-directories)
   (apply #'append
          (mapcar
           (lambda (f)
@@ -1189,12 +1192,24 @@ function is executing."
                                 '("." ".." ".svn" ".cvs")))
               (progress-reporter-update progress-reporter)
               (if (file-directory-p f)
-                  (unless (projectile-ignored-directory-p
-                           (file-name-as-directory f))
-                    (projectile-index-directory f patterns progress-reporter))
-                (unless (projectile-ignored-file-p f)
+                  (unless (projectile-ignored-directory-p--internal
+                           (file-name-as-directory f) ignored-files)
+                    (projectile-index-directory--internal f patterns progress-reporter ignored-files ignored-directories))
+                (unless (projectile-ignored-file-p--internal f ignored-files)
                   (list f)))))
           (directory-files directory t))))
+
+(defun projectile-ignored-directory-p--internal (directory ignored-directories)
+  (cl-some
+   (lambda (name)
+     (string-match-p name directory))
+   ignored-directories))
+
+(defun projectile-ignored-file-p--internal (file ignored-files)
+  (cl-some
+   (lambda (name)
+     (string-match-p name file))
+   ignored-files))
 
 ;;; Alien Project Indexing
 ;;
