@@ -1,9 +1,8 @@
 # Contributing
 
-If you discover issues, have ideas for improvements or new features, or
-want to contribute a new module, please report them to the
-[issue tracker][1] of the repository or submit a pull request. Please,
-try to follow these guidelines when you do so.
+If you discover issues, have ideas for improvements or new features, please
+report them to the [issue tracker][1] of the repository or submit a pull
+request. Please, try to follow these guidelines when you do so.
 
 ## Issue reporting
 
@@ -14,6 +13,7 @@ try to follow these guidelines when you do so.
 * Open an issue with a descriptive title and a summary in grammatically correct,
   complete sentences.
 * Include any relevant code to the issue summary.
+* If you're reporting performance issues it'd be nice if you added some profiling data (Emacs has a built-in profiler).
 
 ## Pull requests
 
