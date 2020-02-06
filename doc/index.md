@@ -18,7 +18,7 @@ are available, Projectile will leverage them.
 
 Here's a glimpse of Projectile in action (find file in project using `ido`):
 
-![Projectile Screenshot](screenshots/projectile.png)
+![Projectile Screenshot](screenshots/projectile-demo.gif)
 
 Projectile provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
