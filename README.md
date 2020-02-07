@@ -44,10 +44,17 @@ it. Some of Projectile's features:
 * run make in a project with a single key chord
 * check for dirty repositories
 * toggle read-only mode for the entire project
+* support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
 
-Here's a glimpse of Projectile in action:
+Here's a glimpse of Projectile in action (using `ivy`):
 
 ![Projectile Screenshot](doc/screenshots/projectile-demo.gif)
+
+In this short demo you can see:
+
+* finding files in a project
+* switching between implementation and test
+* switching between projects
 
 You can support my work on Projectile via
  [PayPal](https://www.paypal.me/bbatsov),

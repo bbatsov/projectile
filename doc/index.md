@@ -16,9 +16,15 @@ Projectile tries to be practical - portability is great, but if some
 external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
 
-Here's a glimpse of Projectile in action (find file in project using `ido`):
+Here's a glimpse of Projectile in action (find file in project using `ivy`):
 
 ![Projectile Screenshot](screenshots/projectile-demo.gif)
+
+In this short demo you can see:
+
+* finding files in a project
+* switching between implementation and test
+* switching between projects
 
 Projectile provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
@@ -47,6 +53,7 @@ Projectile's features:
 * visit project in dired
 * run make in a project with a single key chord
 * browse dirty version controlled projects
+* support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
 
 !!! Info
 
