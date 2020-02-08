@@ -619,7 +619,7 @@ Set to nil to disable listing submodules contents."
   :type 'string
   :package-version '(projectile . "0.14.0"))
 
-(defcustom projectile-hg-command "hg locate -f -0 -I ."
+(defcustom projectile-hg-command "hg files -0 ."
   "Command used by projectile to get the files in a hg project."
   :group 'projectile
   :type 'string)
@@ -1196,16 +1196,15 @@ function is executing."
   "Get the files for DIRECTORY using external tools."
   (let ((vcs (projectile-project-vcs directory))
         ;; getting directory name without ":" for tramp connections
-        (c_directory (car (last (split-string directory ":")))))
+        (local_dir (file-local-name directory)))
 
-    (mapcar (lambda (f)
-              (file-relative-name f c_directory))
-            (cond
-             ((eq vcs 'git)
-              (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
-                     (projectile-get-sub-projects-files directory vcs)))
-             (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs)))))
-    ))
+    (cond
+     ((eq vcs 'git)
+      (nconc (projectile-files-via-ext-command local_dir (projectile-get-ext-command vcs))
+             (projectile-get-sub-projects-files local_dir vcs)))
+     (t (projectile-files-via-ext-command local_dir (projectile-get-ext-command vcs)))))
+    )
+
 
 (define-obsolete-function-alias 'projectile-dir-files-external 'projectile-dir-files-alien "2.0.0")
 (define-obsolete-function-alias 'projectile-get-repo-files 'projectile-dir-files-alien "2.0.0")
