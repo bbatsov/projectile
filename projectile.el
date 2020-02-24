@@ -1077,6 +1077,11 @@ If DIR is not supplied its set to the current directory by default."
   ;; cl-subst to replace this 'none value with nil so a nil value is used
   ;; instead
   (let ((dir (or dir default-directory)))
+    ;; Back out of any archives, the project will live on the outside and
+    ;; searching them is slow.
+    (when (and (fboundp 'tramp-archive-file-name-archive)
+               (tramp-archive-file-name-p dir))
+      (setq dir (file-name-directory (tramp-archive-file-name-archive dir))))
     (cl-subst nil 'none
               ;; The `is-local' and `is-connected' variables are
               ;; used to fix the behavior where Emacs hangs
