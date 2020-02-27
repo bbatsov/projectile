@@ -3455,9 +3455,8 @@ Use a prefix argument ARG to indicate creation of a new process instead."
     (unless (buffer-live-p (get-buffer buffer))
       (unless (require 'vterm nil 'noerror)
         (error "Package 'vterm' is not available"))
-      (vterm buffer)
-      (vterm-send-string (concat "cd " project))
-      (vterm-send-return))
+      (projectile-with-default-dir project
+        (vterm buffer)))
     (switch-to-buffer buffer)))
 
 (defun projectile-files-in-project-directory (directory)
