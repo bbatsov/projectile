@@ -3609,7 +3609,9 @@ regular expression."
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
                                        (directory-file-name pattern)))
-             (projectile-ignored-directories-rel) " "))
+             (append
+              (projectile-ignored-directories-rel)
+              (projectile-patterns-to-ignore)) " "))
 
 ;;;###autoload
 (defun projectile-regenerate-tags ()
