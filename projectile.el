@@ -3575,7 +3575,7 @@ to run the replacement."
           ;; `projectile-files-with-string' because those regexp tools
           ;; don't support Emacs regular expressions.
           (cl-remove-if
-           #'file-directory-p
+           (lambda (file) (or (file-directory-p file) (not (file-exists-p file))))
            (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
     (tags-query-replace old-text new-text nil (cons 'list files))))
 

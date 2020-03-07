@@ -2,6 +2,7 @@
 
 ## master (unreleased)
 
+* [#1456](https://github.com/bbatsov/projectile/issues/1456) Fix `projectile-replace-regexp` immediate stop after encountering a missing file.
 * [#1497](https://github.com/bbatsov/projectile/pull/1497)] New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
 
 ## 2.1.0 (2020-02-04)
