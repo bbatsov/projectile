@@ -2584,7 +2584,8 @@ test/impl/other files as below:
                                   :compile "make"
                                   :test "make test")
 (projectile-register-project-type 'cmake '("CMakeLists.txt")
-                                  :configure "cmake %s"
+                                  :compilation-dir "build"
+                                  :configure "cmake %s -B %s"
                                   :compile "cmake --build ."
                                   :test "ctest")
 ;; PHP
@@ -3795,7 +3796,7 @@ project of that type"
       projectile-project-configure-cmd
       (let ((cmd-format-string (projectile-default-configure-command (projectile-project-type))))
         (when cmd-format-string
-          (format cmd-format-string (projectile-project-root))))))
+          (format cmd-format-string (projectile-project-root) compile-dir)))))
 
 (defun projectile-compilation-command (compile-dir)
   "Retrieve the compilation command for COMPILE-DIR.
