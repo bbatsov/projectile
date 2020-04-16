@@ -30,19 +30,19 @@ provide.
 To force the
 use of native indexing in all operating systems:
 
-```el
+```elisp
 (setq projectile-indexing-method 'native)
 ```
 
 To force the use of hybrid indexing in all operating systems:
 
-```el
+```elisp
 (setq projectile-indexing-method 'hybrid)
 ```
 
 To force the use of alien indexing in all operating systems:
 
-```el
+```elisp
 (setq projectile-indexing-method 'alien)
 ```
 
@@ -94,19 +94,19 @@ You can choose how Projectile sorts files by customizing `projectile-sort-order`
 
 The default is to not sort files:
 
-```el
+```elisp
 (setq projectile-sort-order 'default)
 ```
 
 To sort files by recently opened:
 
-```el
+```elisp
 (setq projectile-sort-order 'recentf)
 ```
 
 To sort files by recently active buffers and then recently opened files:
 
-```el
+```elisp
 (setq projectile-sort-order 'recently-active)
 ```
 
@@ -114,13 +114,13 @@ To sort files by recently active buffers and then recently opened files:
 
 To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Modification_time_(mtime)">modification time</a> (mtime):
 
-```el
+```elisp
 (setq projectile-sort-order 'modification-time)
 ```
 
 To sort files by <a href="https://en.wikipedia.org/wiki/MAC_times#Access_time_(atime)">access time</a> (atime):
 
-```el
+```elisp
 (setq projectile-sort-order 'access-time)
 ```
 
@@ -135,7 +135,7 @@ is enabled by default whenever native indexing is enabled.
 
 To enable caching unconditionally use this snippet of code:
 
-```el
+```elisp
 (setq projectile-enable-caching t)
 ```
 
@@ -165,21 +165,21 @@ TRAMP/ssh. By default all remote file existence checks are cached
 
 To disable remote file exists cache that use this snippet of code:
 
-```el
+```elisp
 (setq projectile-file-exists-remote-cache-expire nil)
 ```
 
 To change the remote file exists cache expire to 10 minutes use this snippet
 of code:
 
-```el
+```elisp
 (setq projectile-file-exists-remote-cache-expire (* 10 60))
 ```
 
 You can also enable the cache for local file systems, that is normally not
 needed but possible:
 
-```el
+```elisp
 (setq projectile-file-exists-local-cache-expire (* 5 60))
 ```
 
@@ -187,7 +187,7 @@ needed but possible:
 
 If you want Projectile to be usable in every directory (even without the presence of project file):
 
-```el
+```elisp
 (setq projectile-require-project-root nil)
 ```
 
@@ -255,7 +255,7 @@ files with character 'a' in that directory is presented.
 
 ### `projectile-dired`
 
-```el
+```elisp
 (setq projectile-switch-project-action #'projectile-dired)
 ```
 
@@ -265,7 +265,7 @@ buffer.
 
 ### `projectile-find-dir`
 
-```el
+```elisp
 (setq projectile-switch-project-action #'projectile-find-dir)
 ```
 
@@ -275,7 +275,7 @@ your project, and then *that* sub-directory is opened for you in a
 dired buffer.  If you use this setting, then you will probably also
 want to set
 
-```el
+```elisp
 (setq projectile-find-dir-includes-top-level t)
 ```
 
@@ -301,7 +301,7 @@ extremely popular and it is built into Emacs.
 
 Another completion option is [ivy](https://github.com/abo-abo/swiper):
 
-```el
+```elisp
 (setq projectile-completion-system 'ivy)
 ```
 
@@ -309,7 +309,7 @@ Another completion option is [ivy](https://github.com/abo-abo/swiper):
 
 If you don't like `ido` and `ivy` you can use regular completion:
 
-```el
+```elisp
 (setq projectile-completion-system 'default)
 ```
 
@@ -319,7 +319,7 @@ You might want to combine default completion with `icomplete-mode` for optimum r
 
 You can also set `projectile-completion-system` to a function:
 
-```el
+```elisp
 (setq projectile-completion-system #'my-custom-completion-fn)
 (setq projectile-completion-system
       (lambda (prompt choices)
@@ -355,7 +355,7 @@ and set `projectile-enable-idle-timer` to non-nil.  By default,
 `projectile-idle-timer-hook` runs `projectile-regenerate-tags`.  Add
 additional functions to the hook using `add-hook`:
 
-```el
+```elisp
 (add-hook 'projectile-idle-timer-hook #'my-projectile-idle-timer-function)
 ```
 

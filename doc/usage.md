@@ -12,7 +12,7 @@ projectile-discover-projects-in-directory`.
 You can go one step further and set a list of folders which Projectile
 is automatically going to check for projects:
 
-```el
+```elisp
 (setq projectile-project-search-path '("~/projects/" "~/work/"))
 ```
 
@@ -121,7 +121,7 @@ It is possible to add additional commands to
 `projectile-mode-map`. You can add multiple keymap prefix for all
 commands. Here's an example that adds `super-,` as a command prefix:
 
-```el
+```elisp
 (define-key projectile-mode-map (kbd "s-,") 'projectile-command-map)
 ```
 
@@ -137,7 +137,7 @@ like (including the global keymap).
 Here's something you can
 add to your Emacs config:
 
-```el
+```elisp
 (define-key projectile-mode-map [?\s-d] 'projectile-find-dir)
 (define-key projectile-mode-map [?\s-p] 'projectile-switch-project)
 (define-key projectile-mode-map [?\s-f] 'projectile-find-file)

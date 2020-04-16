@@ -27,7 +27,7 @@ You can install Projectile with the following command:
 or by adding this bit of Emacs Lisp code to your Emacs initialization file
 (`.emacs` or `init.el`):
 
-```el
+```elisp
 (unless (package-installed-p 'projectile)
   (package-install 'projectile))
 ```
@@ -54,13 +54,13 @@ with the stable releases, available from MELPA Stable.
 You can pin Projectile to always use MELPA
 Stable by adding this to your Emacs initialization:
 
-```el
+```elisp
 (add-to-list 'package-pinned-packages '(projectile . "melpa-stable") t)
 ```
 
 Finally add this to your Emacs config:
 
-```el
+```elisp
 (require 'projectile)
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
@@ -84,7 +84,7 @@ If you wanted to install the version of Projectile which is what is to be found 
 the `master` branch, declare the following in your Emacs initialization file
 (`.emacs` or `init.el`):
 
-```el
+```elisp
 (use-package projectile
   :ensure t
   :config
@@ -96,7 +96,7 @@ the `master` branch, declare the following in your Emacs initialization file
 However, if you wanted to be a bit more conservative and only use the stable
 releases of Projectile, you'd declare the following:
 
-```el
+```elisp
 (use-package projectile
   :ensure t
   :pin melpa-stable

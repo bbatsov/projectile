@@ -60,7 +60,7 @@ If a project you are working on is recognized incorrectly or you want
 to add your own type of projects you can add following to your Emacs
 initialization code
 
-```el
+```elisp
 (projectile-register-project-type 'npm '("package.json")
 				  :compile "npm install"
 				  :test "npm test"
@@ -96,7 +96,7 @@ Option            | Documentation
 
 You can also pass a symbolic reference to a function into your project type definition if you wish to define the compile command dynamically:
 
-```el
+```elisp
 (defun my/compile-command ()
   "Returns a String representing the compile command to run for the given context"
   (cond
@@ -171,7 +171,7 @@ Notes:
 
 #### Example - Same source file name for test and impl
 
-```el
+```elisp
 (defun my/related-files (path)
   (if (string-match (rx (group (or "src" "test")) (group "/" (1+ anything) ".cpp")) path)
       (let ((dir (match-string 1 path))
@@ -192,7 +192,7 @@ For example, "src/foo/abc.cpp" will match to "test/foo/abc.cpp" as test file and
 
 #### Example - Different test prefix per extension
 A custom function for the project using multiple programming languages with different test prefixes.
-```el
+```elisp
 (defun my/related-files(file)
   (let ((ext-to-test-prefix '(("cpp" . "Test")
                               ("py" . "test_"))))
@@ -213,7 +213,7 @@ related files of any kinds. For example, the custom function can specify the
 related documents with ':doc' key. Note that `projectile-find-related-file` only
 relies on `:related-files-fn` for now.
 
-### Related file custom function helper 
+### Related file custom function helper
 
 `:related-files-fn` can accept a list of custom functions to combine the result
 of each custom function. This allows users to write several custom functions
@@ -231,7 +231,7 @@ Projectile includes a couple of helpers to generate commonly used custom functio
 Each helper means `projectile-related-files-fn-helper-name` function.
 
 #### Example usage of projectile-related-files-fn-helpers
-```el
+```elisp
 (setq my/related-files
       (list
        (projectile-related-files-fn-extensions :other '("cpp" "h" "hpp"))
@@ -345,7 +345,7 @@ To use it you must create a file named `.dir-locals.el` (as specified
 by the constant `dir-locals-file`) inside the project directory.  This
 file should contain something like this:
 
-```el
+```elisp
 ((nil . ((secret-ftp-password . "secret")
          (compile-command . "make target-x")
          (eval . (progn
@@ -374,28 +374,28 @@ these customizations on a per-project basis.
 
 You could enable caching for a project in this way:
 
-```el
+```elisp
 ((nil . ((projectile-enable-caching . t))))
 ```
 
 If one of your projects had a file that you wanted Projectile to
 ignore, you would customize Projectile by:
 
-```el
+```elisp
 ((nil . ((projectile-globally-ignored-files . ("MyBinaryFile")))))
 ```
 
 If you wanted to wrap the git command that Projectile uses to list
 the files in you repository, you could do:
 
-```el
+```elisp
 ((nil . ((projectile-git-command . "/path/to/other/git ls-files -zco --exclude-standard"))))
 ```
 
 If you want to use a different project name than how Projectile named
 your project, you could customize it with the following:
 
-```el
+```elisp
 ((nil . ((projectile-project-name . "your-project-name-here"))))
 ```
 
@@ -412,6 +412,6 @@ runs the default command for the current project type.  You can
 override this behavior by setting them to either a string to run an
 external command or an Emacs Lisp function:
 
-```el
+```elisp
 (setq projectile-test-cmd #'custom-test-function)
 ```
