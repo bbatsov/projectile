@@ -2,8 +2,13 @@
 
 ## master (unreleased)
 
-* [#1497](https://github.com/bbatsov/projectile/pull/1497)] New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
-* [#1503](https://github.com/bbatsov/projectile/pull/1503)] Leave archive before searching for the project root.
+### New features
+
+* [#1497](https://github.com/bbatsov/projectile/pull/1497): New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
+
+### Bugs fixed
+
+* [#1503](https://github.com/bbatsov/projectile/pull/1503): Leave archive before searching for the project root.
 
 ## 2.1.0 (2020-02-04)
 
