@@ -176,7 +176,7 @@ A value of nil means the cache never expires."
                  (integer :tag "Seconds")))
 
 (defcustom projectile-auto-update-cache t
-  "Wether the cache should automatically be updated when files are opened or deleted."
+  "Whether the cache should automatically be updated when files are opened or deleted."
   :group 'projectile
   :type 'boolean)
 
