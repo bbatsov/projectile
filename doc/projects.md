@@ -326,6 +326,12 @@ When a path is overridden, its contents are still subject to ignore
 patterns. To override those files as well, specify their full path
 with a bang prefix.
 
+If you would like to include comment lines in your .projectile file,
+you can customize the variable `projectile-dirconfig-comment-prefix`.
+Assigning it a non-nil character value, e.g. `#`, will cause lines in
+the .projectile file starting with that character to be treated as
+comments instead of patterns.
+
 ### File-local project root definitions
 
 If you want to override the projectile project root for a specific

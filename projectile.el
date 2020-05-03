@@ -358,6 +358,13 @@ containing a root file."
   :group 'projectile
   :type '(repeat function))
 
+(defcustom projectile-dirconfig-comment-prefix
+  nil
+  "If specified, starting a line in a project's .projectile file with this character marks that line as a comment instead of a pattern. Similar to '#' in .gitignore files."
+  :group 'projectile
+  :type 'character
+  :package-version '(projectile . "2.2.0"))
+
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name)
   "A list of files globally ignored by projectile."
@@ -1755,7 +1762,13 @@ prefix the string will be assumed to be an ignore string."
         (insert-file-contents dirconfig)
         (while (not (eobp))
           (pcase (char-after)
-            (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
+	    ;; ignore comment lines if prefix char has been set
+	    ((pred (lambda (leading-char)
+		     (and projectile-dirconfig-comment-prefix
+			  (eql leading-char
+			       projectile-dirconfig-comment-prefix))))
+	     nil)
+	    (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
             (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
             (_ (push (buffer-substring (point) (line-end-position)) ignore)))
