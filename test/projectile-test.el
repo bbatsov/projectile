@@ -251,10 +251,23 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (spy-on 'file-truename :and-call-fake (lambda (filename) filename))
     (spy-on 'insert-file-contents :and-call-fake
             (lambda (filename)
-              (save-excursion (insert "\n-exclude\n+include\nno-prefix\n left-wspace\nright-wspace\t\n"))))
+              (save-excursion (insert "\n-exclude\n+include\n#may-be-a-comment\nno-prefix\n left-wspace\nright-wspace\t\n"))))
     (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
-                                                          ("exclude" "no-prefix" "left-wspace" "right-wspace")
-                                                          nil))))
+                                                          ("exclude"
+							   "#may-be-a-comment"
+							   "no-prefix"
+							   "left-wspace"
+							   "right-wspace")
+                                                          nil))
+    ;; same test - but with comment lines enabled using prefix '#'
+    (let ((projectile-dirconfig-comment-prefix ?#))
+      (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
+							    ("exclude"
+							     "no-prefix"
+							     "left-wspace"
+							     "right-wspace")
+							    nil)))
+    ))
 
 (describe "projectile-get-project-directories"
   (it "gets the list of project directories"
