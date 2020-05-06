@@ -27,6 +27,7 @@
 
 ### Bugs fixed
 
+* [#675](https://github.com/bbatsov/projectile/issues/675): Performance improvement for native project indexing strategy.
 * [#97](https://github.com/bbatsov/projectile/issues/97): Respect `.projectile` ignores which are paths to files and patterns when using `projectile-grep`.
 * [#1391](https://github.com/bbatsov/projectile/issues/1391): A `.cabal` sub-directory is no longer considered project indicator.
 * [#1385](https://github.com/bbatsov/projectile/issues/1385): Update `projectile-replace` for Emacs 27.
