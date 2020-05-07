@@ -1414,3 +1414,26 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 (describe "projectile-find-file-in-directory"
   (it "fails when called in a non-existing directory"
     (expect (projectile-find-file-in-directory "asdf") :to-throw)))
+
+(describe "projectile-dir-files-native"
+  (it "calculates ignored files and directories only once during recursion"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/"
+       "projectA/.svn/"
+       "projectA/src/.svn/"
+       "projectA/src/html/.svn/"
+       "projectA/.git/"
+       "projectA/src/html/"
+       "projectA/src/framework/lib/"
+       "projectA/src/framework.conf"
+       "projectA/src/html/index.html"
+       "projectA/.projectile")
+
+      ;; verify that indexing only invokes these funcs once during recursion
+      (spy-on 'projectile-ignored-files :and-call-through)
+      (spy-on 'projectile-ignored-directories :and-call-through)
+      
+      (projectile-dir-files-native "projectA/")
+      (expect 'projectile-ignored-files :to-have-been-called-times 1)
+      (expect 'projectile-ignored-directories :to-have-been-called-times 1)))))

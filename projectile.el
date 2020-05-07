@@ -1181,25 +1181,33 @@ Files are returned as relative paths to DIRECTORY."
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
-(defun projectile-index-directory (directory patterns progress-reporter)
+(defun projectile-index-directory
+    (directory patterns progress-reporter
+     &optional ignored-files ignored-directories)
   "Index DIRECTORY taking into account PATTERNS.
+
 The function calls itself recursively until all sub-directories
 have been indexed.  The PROGRESS-REPORTER is updated while the
-function is executing."
-  (apply #'append
-         (mapcar
-          (lambda (f)
-            (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
-                        (member (file-name-nondirectory (directory-file-name f))
-                                '("." ".." ".svn" ".cvs")))
-              (progress-reporter-update progress-reporter)
-              (if (file-directory-p f)
-                  (unless (projectile-ignored-directory-p
-                           (file-name-as-directory f))
-                    (projectile-index-directory f patterns progress-reporter))
-                (unless (projectile-ignored-file-p f)
-                  (list f)))))
-          (directory-files directory t))))
+function is executing.  The list of IGNORED-FILES and
+IGNORED-DIRECTORIES may optionally be provided."
+  (let ((ignored-files (or ignored-files (projectile-ignored-files)))
+	(ignored-directories (or ignored-directories (projectile-ignored-directories))))
+    (apply #'append
+	   (mapcar
+	    (lambda (f)
+	      (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
+			  (member (file-name-nondirectory (directory-file-name f))
+				  '("." ".." ".svn" ".cvs")))
+		(progress-reporter-update progress-reporter)
+		(if (file-directory-p f)
+		    (unless (projectile-ignored-directory-p
+			     (file-name-as-directory f)
+			     ignored-directories)
+		      (projectile-index-directory
+		       f patterns progress-reporter ignored-files ignored-directories))
+		  (unless (projectile-ignored-file-p f ignored-files)
+		    (list f)))))
+	    (directory-files directory t)))))
 
 ;;; Alien Project Indexing
 ;;
@@ -1577,23 +1585,26 @@ projectile project root."
   (let ((project-root (projectile-project-root)))
     (mapcar (lambda (f) (file-relative-name f project-root)) files)))
 
-(defun projectile-ignored-directory-p (directory)
+(defun projectile-ignored-directory-p
+    (directory &optional ignored-directories)
   "Check if DIRECTORY should be ignored.
 
-Regular expressions can be used."
+Regular expressions can be used.  A pre-computed list of
+IGNORED-DIRECTORIES may optionally be provided."
   (cl-some
    (lambda (name)
      (string-match-p name directory))
-   (projectile-ignored-directories)))
+   (or ignored-directories (projectile-ignored-directories))))
 
-(defun projectile-ignored-file-p (file)
+(defun projectile-ignored-file-p (file &optional ignored-files)
   "Check if FILE should be ignored.
 
-Regular expressions can be used."
+Regular expressions can be used.  A pre-computed list of
+IGNORED-FILES may optionally be provided."
   (cl-some
    (lambda (name)
      (string-match-p name file))
-   (projectile-ignored-files)))
+   (or ignored-files (projectile-ignored-files))))
 
 (defun projectile-check-pattern-p (file pattern)
   "Check if FILE meets PATTERN."
