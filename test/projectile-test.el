@@ -150,11 +150,11 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (spy-on 'projectile-project-root :and-return-value "/path/to/project")
     (spy-on 'projectile-project-name :and-return-value "project")
     (spy-on 'projectile-project-ignored-files :and-return-value '("foo.js" "bar.rb"))
-    (let ((files'("/path/to/project/TAGS"
-                  "/path/to/project/foo.js"
-                  "/path/to/project/bar.rb"
-                  "/path/to/project/file1.log"
-                  "/path/to/project/file2.log"))
+    (let ((files '("/path/to/project/TAGS"
+                   "/path/to/project/foo.js"
+                   "/path/to/project/bar.rb"
+                   "/path/to/project/file1.log"
+                   "/path/to/project/file2.log"))
           (projectile-ignored-files '("TAGS" "file\d+\\.log")))
       (expect (projectile-ignored-files) :not :to-equal files)
       (expect (projectile-ignored-files) :to-equal '("/path/to/project/TAGS"
