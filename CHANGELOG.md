@@ -4,12 +4,14 @@
 
 ### New features
 
+* [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-limit-project-buffer-count`) controllng whether or not projectile should limit the number of opened buffers per project. Add a new defcustom (`projectile-max-buffer-count`) controlling how many opened buffers projectile should maintain.
 * Optional support for comments in .projectile dirconfig files using `projectile-dirconfig-comment-prefix`.
 * [#1497](https://github.com/bbatsov/projectile/pull/1497): New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
 
 ### Bugs fixed
 
 * [#1503](https://github.com/bbatsov/projectile/pull/1503): Leave archive before searching for the project root.
+
 
 ## 2.1.0 (2020-02-04)
 
