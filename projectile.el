@@ -737,13 +737,10 @@ position."
           (const :tag "Move to end" move-to-end)
           (const :tag "Keep" keep)))
 
-(defcustom projectile-limit-project-buffer-count nil
-  "If non-nil, the buffer count for a particular project will be capped."
-  :group 'projectile
-  :type 'boolean)
+(defcustom projectile-max-buffer-count nil
+  "Maximum number of buffers per project that are kept open.
 
-(defcustom projectile-max-buffer-count 10
-  "Maximum number of buffers per project that are kept open."
+If the value is nil, there is no limit to the opend buffers count."
   :group 'projectile
   :type 'integer)
 
@@ -4756,7 +4753,7 @@ tramp."
 
 (defun projectile-maybe-limit-buffers ()
   "Limit the opened buffers for a project."
-  (when projectile-limit-project-buffer-count
+  (when projectile-max-buffer-count
     (let ((buffers (projectile-project-buffer-files)))
       (when (> (length buffers) projectile-max-buffer-count)
         (kill-buffer (get-file-buffer (car (last buffers))))))))
