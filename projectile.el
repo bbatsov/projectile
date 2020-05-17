@@ -737,6 +737,13 @@ position."
           (const :tag "Move to end" move-to-end)
           (const :tag "Keep" keep)))
 
+(defcustom projectile-max-buffer-count nil
+  "Maximum number of buffers per project that are kept open.
+
+If the value is nil, there is no limit to the opend buffers count."
+  :group 'projectile
+  :type 'integer)
+
 
 ;;; Version information
 
@@ -4735,6 +4742,7 @@ thing shown in the mode line otherwise."
 The function does pretty much nothing when triggered on remote files
 as all the operations it normally performs are extremely slow over
 tramp."
+  (projectile-maybe-limit-buffers)
   (unless (file-remote-p default-directory)
     (when projectile-dynamic-mode-line
       (projectile-update-mode-line))
@@ -4742,6 +4750,13 @@ tramp."
       (projectile-cache-files-find-file-hook))
     (projectile-track-known-projects-find-file-hook)
     (projectile-visit-project-tags-table)))
+
+(defun projectile-maybe-limit-buffers ()
+  "Limit the opened buffers for a project."
+  (when projectile-max-buffer-count
+    (let ((buffers (projectile-project-buffer-files)))
+      (when (> (length buffers) projectile-max-buffer-count)
+        (kill-buffer (get-file-buffer (car (last buffers))))))))
 
 ;;;###autoload
 (define-minor-mode projectile-mode

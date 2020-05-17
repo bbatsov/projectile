@@ -1,9 +1,10 @@
 # Changelog
 
 ## master (unreleased)
-
+    
 ### New features
 
+* [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-limit-project-buffer-count`) controllng whether or not projectile should limit the number of opened buffers per project. Add a new defcustom (`projectile-max-buffer-count`) controlling how many opened buffers projectile should maintain.
 * Optional support for comments in .projectile dirconfig files using `projectile-dirconfig-comment-prefix`.
 * [#1497](https://github.com/bbatsov/projectile/pull/1497): New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
 
@@ -343,7 +344,7 @@ understandable error if current buffer is not visiting a file.
 * [#182] Invalidate project cache if .projectile is modified.
 
 ## 0.10.0 (2013-12-09)
-
+    
 ### New features
 
 * Added new command `projectile-find-file-other-window`.
@@ -405,7 +406,7 @@ the switch action is `projectile-commander`.
 * `projectile-switch-project` (<kbd>C-c p s</kbd>) now runs `projectile-find-file` instead of `dired`.
 
 ## 0.9.1 (2013-04-26)
-
+    
 ### New features
 
 * Display recentf files in helm-projectile.
