@@ -2563,6 +2563,7 @@ test/impl/other files as below:
        (not (projectile-verify-file "stack.yaml"))))
 
 (defun projectile-dotnet-project-p ()
+  "Check if a project contains a .NET project marker."
   (or (projectile-verify-file-wildcard "?*.csproj")
       (projectile-verify-file-wildcard "?*.fsproj")))
 
