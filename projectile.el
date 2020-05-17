@@ -291,34 +291,39 @@ If variable `projectile-project-name' is non-nil, this function will not be used
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-project-root-files
-  '("rebar.config"       ; Rebar project file
-    "project.clj"        ; Leiningen project file
-    "build.boot"         ; Boot-clj project file
-    "deps.edn"           ; Clojure CLI project file
-    "SConstruct"         ; Scons project file
-    "pom.xml"            ; Maven project file
-    "build.sbt"          ; SBT project file
-    "gradlew"            ; Gradle wrapper script
-    "build.gradle"       ; Gradle project file
+  '(
     ".ensime"            ; Ensime configuration file
+    "Cargo.toml"         ; Cargo project file
+    "DESCRIPTION"        ; R package description file
     "Gemfile"            ; Bundler file
+    "SConstruct"         ; Scons project file
+    "WORKSPACE"          ; Bazel project file
+    "build.boot"         ; Boot-clj project file
+    "build.gradle"       ; Gradle project file
+    "build.sbt"          ; SBT project file
+    "composer.json"      ; Composer project file
+    "default.nix"        ; Nix
+    "deps.edn"           ; Clojure CLI project file
+    "go.mod"             ; golang default package root as of 1.13
+    "gradlew"            ; Gradle wrapper script
+    "info.rkt"           ; Racket package description file
+    "meson.build"        ; Meson
+    "mix.exs"            ; Elixir mix project file
+    "pom.xml"            ; Maven project file
+    "project.clj"        ; Leiningen project file
+    "pyproject.toml"     ; Python project file
+    "rebar.config"       ; Rebar project file
     "requirements.txt"   ; Pip file
     "setup.py"           ; Setuptools file
-    "pyproject.toml"     ; Python project file
-    "tox.ini"            ; Tox file
-    "composer.json"      ; Composer project file
-    "Cargo.toml"         ; Cargo project file
-    "mix.exs"            ; Elixir mix project file
     "stack.yaml"         ; Haskell's stack tool based project
-    "info.rkt"           ; Racket package description file
-    "DESCRIPTION"        ; R package description file
-    "TAGS"               ; etags/ctags are usually in the root of project
+    "tox.ini"            ; Tox file
+    ;; More generic markers are at the end of the list as
+    ;; they might exist alongside other project markers
     "GTAGS"              ; GNU Global tags
-    "configure.in"       ; autoconf old style
+    "TAGS"               ; etags/ctags are usually in the root of project
     "configure.ac"       ; autoconf new style
+    "configure.in"       ; autoconf old style
     "cscope.out"         ; cscope
-    "go.mod"             ; golang default package root as of 1.13
-    "WORKSPACE"          ; Bazel project file
     )
   "A list of files considered to mark the root of a project.
 The topmost match has precedence."
