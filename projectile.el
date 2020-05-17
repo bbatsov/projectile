@@ -362,7 +362,10 @@ containing a root file."
 
 (defcustom projectile-dirconfig-comment-prefix
   nil
-  "If specified, starting a line in a project's .projectile file with this character marks that line as a comment instead of a pattern. Similar to '#' in .gitignore files."
+  "Projectile config file (.projectile) comment start marker.
+If specified, starting a line in a project's .projectile file with this
+character marks that line as a comment instead of a pattern.
+Similar to '#' in .gitignore files."
   :group 'projectile
   :type 'character
   :package-version '(projectile . "2.2.0"))
@@ -2584,6 +2587,9 @@ test/impl/other files as below:
 ;; it should be listed first).
 ;;
 ;; Ideally common project types should be checked earlier than exotic ones.
+;;
+;; NOTE: If a project type has some project root file marker (e.g. pom.xml) it
+;; should be added to `projectile-project-root-files' as well.
 
 ;; Function-based detection project type
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
@@ -2704,10 +2710,12 @@ test/impl/other files as below:
                                   :compile "grails package"
                                   :test "grails test-app"
                                   :test-suffix "Spec")
+;; Scala
 (projectile-register-project-type 'sbt '("build.sbt")
                                   :compile "sbt compile"
                                   :test "sbt test"
                                   :test-suffix "Spec")
+;; Clojure
 (projectile-register-project-type 'lein-test '("project.clj")
                                   :compile "lein compile"
                                   :test "lein test"
