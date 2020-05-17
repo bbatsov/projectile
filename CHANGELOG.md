@@ -1,7 +1,7 @@
 # Changelog
 
 ## master (unreleased)
-    
+
 ### New features
 
 * [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-limit-project-buffer-count`) controllng whether or not projectile should limit the number of opened buffers per project. Add a new defcustom (`projectile-max-buffer-count`) controlling how many opened buffers projectile should maintain.
@@ -25,7 +25,7 @@
 * [#1405](https://github.com/bbatsov/projectile/pull/1405): Add Bloop Scala build server project detection.
 * [#1418](https://github.com/bbatsov/projectile/pull/1418): The presence of a `go.mod` file implies a go project.
 * [#1419](https://github.com/bbatsov/projectile/pull/1419): When possible, use [fd](https://github.com/sharkdp/fd) instead
-  of `find` to list the files of a non-VCS project. This should be much faster.
+of `find` to list the files of a non-VCS project. This should be much faster.
 
 ### Bugs fixed
 
@@ -207,7 +207,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
 
 * Rename `projectile-switch-project-hook` to `projectile-after-switch-project-hook`.
 * `projectile-compile-project` now offers appropriate completion
-  targets even when called from a subdirectory.
+targets even when called from a subdirectory.
 * Add an argument specifying the regexp to search to `projectile-grep`.
 * Use `help-projectile-grep` instead of `helm-find-file` when selecting a project.
 * Omit current buffer from `projectile-switch-to-buffer` and `projectile-switch-to-buffer-other-window` choices.
@@ -238,25 +238,25 @@ to behave like `helm-find-files`, such as multifile selection and opening or del
 * Allows using Eshell and Magit outside of a project in `helm-projectile`.
 * Add Helm action for incremental grep in the selected projects.
 * Add command projectile-find-other-file  Switch between files with
-  the same  name but different extensions.
+the same  name but different extensions.
 * Add Helm interface to switch project. For more details checkout the file
-  README.md.
+README.md.
 * Make the mode line format customizable with `projectile-mode-line`
 * Add support for `cargo.toml` projects
 * Try to use projectile to find files in compilation buffers
 * Support `helm` as a completion system
 * New command `projectile-project-info` displays basic info about the current project.
 * New `defcustom` `projectile-globally-ignored-buffers` allows you to ignore
-  buffers by name
+buffers by name
 * New `defcustom` `projectile-globally-ignored-file-suffixes` allows
-  you to globally ignore files with particular extensions
+you to globally ignore files with particular extensions
 
 ### Changes
 
 * get-other-files returns more accurate results for files with the same name placed under different directories
 * Collect search tool (`grep`, `ag`, `ack`) keybindings under a common keymap prefix (`C-c p s`)
 * Remove `defcustom` `projectile-remember-window-configs` in favor of
-  `persp-projectile.el`.
+`persp-projectile.el`.
 * Progress reporter for the native indexing method.
 
 ### Bugs fixed
@@ -272,43 +272,43 @@ buffers.
 
 * Added support for default file glob pattern to `projectile-grep`
 * added file existence cache with defcustoms
-  `projectile-file-exists-remote-cache-expire` and
-  `projectile-file-exists-local-cache-expire`.
+`projectile-file-exists-remote-cache-expire` and
+`projectile-file-exists-local-cache-expire`.
 * added new defcustoms `projectile-project-root-files-top-down-recurring`,
-  `projectile-project-root-files-bottom-up` and
-  `projectile-project-root-files-functions`.
+`projectile-project-root-files-bottom-up` and
+`projectile-project-root-files-functions`.
 * Added new command `projectile-save-project-buffers`.
 * Added new command `projectile-cleanup-known-projects`.
 * Added new commands `projectile-display-buffer`
-  and`projectile-find-dir-other-window`.
+and`projectile-find-dir-other-window`.
 * Added new interactive function `projectile-project-buffers-other-buffer`
-  which runs new `projectile-project-buffers-non-visible` function, the former
-  is bound to `C-c p ESC`.
+which runs new `projectile-project-buffers-non-visible` function, the former
+is bound to `C-c p ESC`.
 * New variable `projectile-enable-idle-timer` turns on an idle timer
-  which runs the hook `projectile-idle-timer-hook` every
-  `projectile-idle-timer-seconds` seconds when non-nil.
+which runs the hook `projectile-idle-timer-hook` every
+`projectile-idle-timer-seconds` seconds when non-nil.
 * New defcustom `projectile-remember-window-configs` will make
-  `projectile-switch-project` restore the most recent window configuration (if
-  any) of the target project.
+`projectile-switch-project` restore the most recent window configuration (if
+any) of the target project.
 * New command `projectile-run-command-in-root`.
 * New command `projectile-run-shell-command-in-root`.
 * New command `projectile-run-async-shell-command-in-root`.
 * New defcustom `projectile-use-git-grep` will make `projectile-grep` use `git grep`
 for git projects.
 * Added new `projectile-commander` methods ?v and ?R which run
-  `projectile-vc` and `projectile-regenerate-tags`, respectively.
+`projectile-vc` and `projectile-regenerate-tags`, respectively.
 * `projectile-vc` will use `magit-status` if available.
 * New functions `projectile-find-implementation-or-test` and
-  `projectile-find-implementation-or-test-other-window`, the later is
-  bound to `C-c p 4 t`.
+`projectile-find-implementation-or-test-other-window`, the later is
+bound to `C-c p 4 t`.
 * New defcustoms `projectile-test-prefix-function` and `projectile-test-suffix-function`
 allow users to customize how projectile identifies test files by project type.
 * `projectile-grep` will ask for a file pattern if invoked with a
-  prefix argument.
+prefix argument.
 * Subversion checkouts are now automatically detected.
 * CVS checkouts are now automatically detected.
 * added `projectile-persp-switch-project` command to make perspective
-  mode work along with projectile.
+mode work along with projectile.
 * Changed `projectile-mode-line-lighter` to a defcustom variable to make
 mode line indicator prefix customizable.
 * New command `projectile-find-file-in-known-projects`.
@@ -323,20 +323,20 @@ that shouldn't be added to the known projects list.
 ### Changes
 
 * The presence of a `Makefile` is no longer taken as an indicator
-  of the project root by default, since recursive make is unfortunately
-  a common occurrence (affects `projectile-project-root-files`).
+of the project root by default, since recursive make is unfortunately
+a common occurrence (affects `projectile-project-root-files`).
 * Projectile is now able to find the project pertaining to a symlink
 pointing to a version-controlled file.
 * Drop `projectile-ack-function` defcustom.
 * `projectile-command-map` is now the keymap referenced by the
-  `projectile-keymap-prefix` in `projectile-mode-map`. This allows
-  modification of the inner map, and allows additional prefix keys to
-  reference it.
+`projectile-keymap-prefix` in `projectile-mode-map`. This allows
+modification of the inner map, and allows additional prefix keys to
+reference it.
 
 ### Bugs fixed
 
 * Modified `projectile-ack` to append to `ack-and-a-half-arguments`
-  instead of overriding them.
+instead of overriding them.
 * [#229] Fix `projectile-find-file-in-directory`'s behavior for project directories
 * `projectile-toggle-between-implementation-or-test` shows
 understandable error if current buffer is not visiting a file.
@@ -344,24 +344,24 @@ understandable error if current buffer is not visiting a file.
 * [#182] Invalidate project cache if .projectile is modified.
 
 ## 0.10.0 (2013-12-09)
-    
+
 ### New features
 
 * Added new command `projectile-find-file-other-window`.
 * Added new command `projectile-switch-to-buffer-other-window`.
 * Added new command `projectile-find-file-in-directory` that allows
-  you to jump to files in any directory.
+you to jump to files in any directory.
 * `.projectile` is now always taken into account.
 * `projectile-switch-project`'s behavior is now customizable via
-  `projectile-switch-project-action`.
+`projectile-switch-project-action`.
 * Added support for Gradle projects.
 * Added support for `Ag`.
 * Added new command `projectile-purge-file-from-cache`.
 * Added new command `projectile-purge-dir-from-cache`.
 * Added new command `projectile-find-tag`.
 * Added new command `projectile-commander`. It allows you to quickly
-  run many Projectile commands with a single key. Very useful as a
-  project-switching action.
+run many Projectile commands with a single key. Very useful as a
+project-switching action.
 * `projectile-switch-project` now supports a prefix argument. When it's present
 the switch action is `projectile-commander`.
 
@@ -379,11 +379,11 @@ the switch action is `projectile-commander`.
 ### New features
 
 * `projectile-invalidate-cache` now accepts a prefix argument. When
-  present you'll be prompted for the project whose cache to
-  invalidate.
+present you'll be prompted for the project whose cache to
+invalidate.
 * New command `projectile-find-dir` works similar to
-  `projectile-find-file` - displays the project's dirs and opens them
-  with `dired`. It's bound to `C-c p d`.
+`projectile-find-file` - displays the project's dirs and opens them
+with `dired`. It's bound to `C-c p d`.
 * Added support for `grizzl` as a completion system.
 * Added support for `fossil` projects.
 * Added support for `Symfony 2` project.
@@ -401,12 +401,12 @@ the switch action is `projectile-commander`.
 * Rebound `projectile-compile-project` to <kbd>C-c p c</kbd>
 * Rebound `projectile-dired` to <kbd>C-c p D</kbd>
 * Reworked `projectile-compile-project` and `projectile-test-project`
-  to be smarter, more configurable and closer in behavior to the stock
-  `compile` command
+to be smarter, more configurable and closer in behavior to the stock
+`compile` command
 * `projectile-switch-project` (<kbd>C-c p s</kbd>) now runs `projectile-find-file` instead of `dired`.
 
 ## 0.9.1 (2013-04-26)
-    
+
 ### New features
 
 * Display recentf files in helm-projectile.
