@@ -317,6 +317,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "configure.in"       ; autoconf old style
     "configure.ac"       ; autoconf new style
     "cscope.out"         ; cscope
+    "go.mod"             ; golang default package root as of 1.13
     )
   "A list of files considered to mark the root of a project.
 The topmost match has precedence."
