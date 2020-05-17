@@ -318,6 +318,7 @@ If variable `projectile-project-name' is non-nil, this function will not be used
     "configure.ac"       ; autoconf new style
     "cscope.out"         ; cscope
     "go.mod"             ; golang default package root as of 1.13
+    "WORKSPACE"          ; Bazel project file
     )
   "A list of files considered to mark the root of a project.
 The topmost match has precedence."
@@ -2613,6 +2614,11 @@ test/impl/other files as below:
 (projectile-register-project-type 'nix '("default.nix")
                                   :compile "nix-build"
                                   :test "nix-build")
+(projectile-register-project-type 'bazel '("WORKSPACE")
+                                  :compile "bazel build"
+                                  :test "bazel test"
+                                  :run "bazel run")
+
 ;; Make & CMake
 (projectile-register-project-type 'make '("Makefile")
                                   :compile "make"

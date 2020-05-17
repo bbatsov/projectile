@@ -50,6 +50,7 @@ configure.in      | autoconf old style
 configure.ac      | autoconf new style
 cscope.out        | cscope
 Makefile          | Make
+WORKSPACE         | Bazel workspace file
 
 There's also Projectile's own `.projectile` which serves both as a project marker
 and a configuration file. We'll talk more about later in this section.
