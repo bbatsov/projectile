@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1517](https://github.com/bbatsov/projectile/issues/1517): Add project-specific compilation buffers and only ask to save files in the project when compiling.
 * [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-max-file-buffer-count`) controlling how many opened file buffers should Projectile maintain per project.
 * Optional support for comments in .projectile dirconfig files using `projectile-dirconfig-comment-prefix`.
 * [#1497](https://github.com/bbatsov/projectile/pull/1497): New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
