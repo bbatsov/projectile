@@ -13,6 +13,10 @@
 
 * [#1503](https://github.com/bbatsov/projectile/pull/1503): Leave archive before searching for the project root.
 
+### Changes
+
+* [#1528](https://github.com/bbatsov/projectile/pull/1528): Improve massively the performance of native indexing (it's around 10x faster now).
+
 ## 2.1.0 (2020-02-04)
 
 ### New features
