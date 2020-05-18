@@ -4,7 +4,7 @@
 
 ### New features
 
-* [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-limit-project-buffer-count`) controllng whether or not projectile should limit the number of opened buffers per project. Add a new defcustom (`projectile-max-buffer-count`) controlling how many opened buffers projectile should maintain.
+* [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-max-file-buffer-count`) controlling how many opened file buffers should Projectile maintain per project.
 * Optional support for comments in .projectile dirconfig files using `projectile-dirconfig-comment-prefix`.
 * [#1497](https://github.com/bbatsov/projectile/pull/1497): New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
 * Add [Bazel](https://bazel.build) project type.
