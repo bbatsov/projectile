@@ -351,6 +351,7 @@ containing a root file."
 
 (defcustom projectile-project-root-files-functions
   '(projectile-root-local
+    projectile-root-vc-root
     projectile-root-bottom-up
     projectile-root-top-down
     projectile-root-top-down-recurring)
@@ -1068,6 +1069,11 @@ topmost sequence of matched directories.  Nil otherwise."
              (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
                  (not (projectile-file-exists-p (expand-file-name f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
+
+(defun projectile-root-vc-root (dir)
+  "DIR is a directory."
+  (when (file-equal-p dir default-directory)
+    (vc-root-dir)))
 
 (defun projectile-project-root (&optional dir)
   "Retrieves the root directory of a project if available.
