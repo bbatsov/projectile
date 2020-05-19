@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+* [#1227](https://github.com/bbatsov/projectile/issues/1227) projectile-replace respects the `.projectile` file now.
+
 ## 2.1.0 (2020-02-04)
 
 ### New features

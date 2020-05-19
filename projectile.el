@@ -3487,21 +3487,23 @@ are impossible (for instance on Windows), returns a list of all
 files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
+             (files (projectile-project-files directory))
+             (files-string (mapconcat 'identity files " "))
              (cmd (cond ((executable-find "ag")
-                         (concat "ag --literal --nocolor --noheading -l -- "
-                                 search-term))
+                         (format "ag --literal --nocolor --noheading -l -- %s %s"
+                                 search-term files-string))
                         ((executable-find "ack")
-                         (concat "ack --literal --noheading --nocolor -l -- "
-                                 search-term))
+                         (format "ack --literal --noheading --nocolor -l -- %s %s"
+                                 search-term files-string))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat "git grep -HlI " search-term))
+                         (format "git grep -HlI %s %s" search-term files-string))
                         (t
                          ;; -r: recursive
                          ;; -H: show filename for each match
                          ;; -l: show only file names with matches
                          ;; -I: no binary files
-                         (format "grep -rHlI %s ." search-term)))))
+                         (format "grep -rHlI %s %s" search-term files-string)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
