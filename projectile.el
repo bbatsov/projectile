@@ -1071,7 +1071,8 @@ topmost sequence of matched directories.  Nil otherwise."
    (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-root-vc-root (dir)
-  "DIR is a directory."
+  "Retrieve the root directory of the project at DIR using 'vc-root-dir'.
+Works only if DIR is the current default directory"
   (when (file-equal-p dir default-directory)
     (vc-root-dir)))
 

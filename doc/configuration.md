@@ -374,3 +374,7 @@ By default the minor mode indicator of Projectile appears in the form
     (via TRAMP), as recalculating the project name is a fairly slow operation there
     and would slow down a bit opening the files. They will also not appear for
     non-file buffers, as they get updated via `find-file-hook`.
+
+## Buffer count limiting
+
+Projectile can be configured to keep a maximum number of buffers of a project that are opened at one point. The custom variable `projectile-max-buffer-count` can be set to an integer that will be the buffer count cap. If this limit is reached, by opening a new file, projectile will close the least recent buffer of the current project. If the variable is nil, the will be no cap on the buffer count.

@@ -4,6 +4,8 @@
 
 ## 2.1.0 (2020-02-04)
 
++ [#323](https://github.com/bbatsov/projectile/issues/323) Adding support fot the usage of the new `vc-root-dir`.
+
 ### New features
 
 * [#1486](https://github.com/bbatsov/projectile/pull/1486) Allow `projectile-run-shell/eshell/term/vterm/ielm` to start extra processes if invoked with the prefix argument.
