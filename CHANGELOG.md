@@ -8,6 +8,7 @@
 * Optional support for comments in .projectile dirconfig files using `projectile-dirconfig-comment-prefix`.
 * [#1497](https://github.com/bbatsov/projectile/pull/1497): New command `projectile-run-gdb` (<kbd>x g</kbd> in `projectile-command-map`).
 * Add [Bazel](https://bazel.build) project type.
+* [#1539](https://github.com/bbatsov/projectile/pull/1539): New defcustom `projectile-auto-discover` controlling whether to automatically discover projects in the search path when `projectile-mode` activates.
 
 ### Bugs fixed
 

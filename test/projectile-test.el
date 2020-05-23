@@ -310,13 +310,24 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)))
 
 (describe "projectile-mode"
-  (it "sets up hook functions"
+  (before-each
     (spy-on 'projectile--cleanup-known-projects)
-    (spy-on 'projectile-discover-projects-in-search-path)
+    (spy-on 'projectile-discover-projects-in-search-path))
+  (it "sets up hook functions"
     (projectile-mode 1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
     (projectile-mode -1)
-    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy))
+  (it "respects projectile-auto-discover setting"
+    (unwind-protect
+        (progn
+          (let ((projectile-auto-discover nil))
+            (projectile-mode 1)
+            (expect 'projectile-discover-projects-in-search-path :not :to-have-been-called))
+          (let ((projectile-auto-discover t))
+            (projectile-mode 1)
+            (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
+      (projectile-mode -1))))
 
 (describe "projectile-relevant-known-projects"
   (it "returns a list of known projects"
