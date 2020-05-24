@@ -17,6 +17,7 @@
 
 ### Changes
 
+* [#1540](https://github.com/bbatsov/projectile/pull/1540): Add default `test-suffix` to Angular projects.
 * [#1528](https://github.com/bbatsov/projectile/pull/1528): Improve massively the performance of native indexing (it's around 10x faster now).
 
 ## 2.1.0 (2020-02-04)

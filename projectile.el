@@ -2670,7 +2670,8 @@ test/impl/other files as below:
 (projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
                                   :compile "ng build"
                                   :run "ng serve"
-                                  :test "ng test")
+                                  :test "ng test"
+                                  :test-suffix ".spec")
 ;; Python
 (projectile-register-project-type 'django '("manage.py")
                                   :compile "python manage.py runserver"
