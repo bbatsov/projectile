@@ -9,7 +9,7 @@ The recommended way to install Projectile is via `package.el`.
 You'll need to have Emacs installed (preferably the latest stable
 release). If you're new to Emacs you might want to go through
 https://www.gnu.org/software/emacs/tour/index.html[the guided tour of Emacs]
-and the built-in tutorial (just press +++<kbd>+++C-h t+++</kbd>+++).
+and the built-in tutorial (just press kbd:[C-h t]).
 
 == Installation via package.el
 
@@ -20,7 +20,7 @@ and http://melpa.org[MELPA].
 
 You can install Projectile with the following command:
 
-+++<kbd>+++M-x package-install [RET] projectile [RET]+++</kbd>+++
+kbd:[M-x package-install [RET] projectile [RET]]
 
 or by adding this bit of Emacs Lisp code to your Emacs initialization file
 (`.emacs` or `init.el`):
@@ -33,7 +33,7 @@ or by adding this bit of Emacs Lisp code to your Emacs initialization file
 
 If the installation doesn't work try refreshing the package list:
 
-+++<kbd>+++M-x package-refresh-contents [RET]+++</kbd>+++
+kbd:[M-x package-refresh-contents [RET]]
 
 Keep in mind that MELPA packages are built automatically from
 the `master` branch, meaning bugs might creep in there from time to
@@ -106,7 +106,7 @@ releases of Projectile, you'd declare the following:
 ----
 
 After placing one of the above s-expressions, evaluate it, for it to take effect
-by entering: +++<kbd>+++C-x C-e+++</kbd>+++.
+by entering: kbd:[C-x C-e].
 
 For further configuration options with `use-package`, consult the
 official https://github.com/jwiegley/use-package[use-package repository].
@@ -119,7 +119,7 @@ the https://github.com/dimitri/el-get[el-get] package manager.
 Provided you've already installed `el-get` you can install Projectile with the
 following command:
 
-+++<kbd>+++M-x el-get-install [RET] projectile [RET]+++</kbd>+++
+kbd:[M-x el-get-install [RET] projectile [RET]]
 
 == Installation on Debian and Ubuntu
 

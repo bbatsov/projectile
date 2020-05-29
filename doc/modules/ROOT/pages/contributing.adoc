@@ -79,4 +79,4 @@ Run all tests with:
 $ make test
 ----
 
-Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use +++<kbd>+++M-x+++</kbd>+++ `compile` (or `helm-make`).
+Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use kbd:[M-x] `compile` (or `helm-make`).

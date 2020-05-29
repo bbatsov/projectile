@@ -41,11 +41,11 @@ You can learn more about Projectile's notion of a project xref:projects.adoc[her
 
 You need to know only a handful of Projectile commands to start benefiting from it.
 
-* Find file in current project (+++<kbd>+++s-p f+++</kbd>+++)
-* Switch project (+++<kbd>+++s-p p+++</kbd>+++)
-* Grep in project (+++<kbd>+++s-p s g+++</kbd>+++)
-* Replace in project (+++<kbd>+++s-p r+++</kbd>+++)
-* Invoke a command via the Projectile Commander (+++<kbd>+++s-p m+++</kbd>+++)
+* Find file in current project (kbd:[s-p f])
+* Switch project (kbd:[s-p p])
+* Grep in project (kbd:[s-p s g])
+* Replace in project (kbd:[s-p r])
+* Invoke a command via the Projectile Commander (kbd:[s-p m])
 
 The next section lists many more commands, but the basics can get you pretty far.
 
@@ -61,160 +61,160 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 |===
 | Keybinding | Description
 
-| +++<kbd>+++s-p f+++</kbd>+++
+| kbd:[s-p f]
 | Display a list of all files in the project. With a prefix argument it will clear the cache first.
 
-| +++<kbd>+++s-p F+++</kbd>+++
+| kbd:[s-p F]
 | Display a list of all files in all known projects.
 
-| +++<kbd>+++s-p g+++</kbd>+++
+| kbd:[s-p g]
 | Display a list of all files at point in the project. With a prefix argument it will clear the cache first.
 
-| +++<kbd>+++s-p 4 f+++</kbd>+++
+| kbd:[s-p 4 f]
 | Jump to a project's file using completion and show it in another window.
 
-| +++<kbd>+++s-p 4 g+++</kbd>+++
+| kbd:[s-p 4 g]
 | Jump to a project's file based on context at point and show it in another window.
 
-| +++<kbd>+++s-p 5 f+++</kbd>+++
+| kbd:[s-p 5 f]
 | Jump to a project's file using completion and show it in another frame.
 
-| +++<kbd>+++s-p 5 g+++</kbd>+++
+| kbd:[s-p 5 g]
 | Jump to a project's file based on context at point and show it in another frame.
 
-| +++<kbd>+++s-p d+++</kbd>+++
+| kbd:[s-p d]
 | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 
-| +++<kbd>+++s-p 4 d+++</kbd>+++
+| kbd:[s-p 4 d]
 | Switch to a project directory and show it in another window.
 
-| +++<kbd>+++s-p 5 d+++</kbd>+++
+| kbd:[s-p 5 d]
 | Switch to a project directory and show it in another frame.
 
-| +++<kbd>+++s-p T+++</kbd>+++
+| kbd:[s-p T]
 | Display a list of all test files(specs, features, etc) in the project.
 
-| +++<kbd>+++s-p l+++</kbd>+++
+| kbd:[s-p l]
 | Display a list of all files in a directory (that's not necessarily a project)
 
-| +++<kbd>+++s-p s g+++</kbd>+++
+| kbd:[s-p s g]
 | Run grep on the files in the project.
 
-| +++<kbd>+++M-- s-p s g+++</kbd>+++
+| kbd:[M-- s-p s g]
 | Run grep on `projectile-grep-default-files` in the project.
 
-| +++<kbd>+++s-p v+++</kbd>+++
+| kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
 
-| +++<kbd>+++s-p V+++</kbd>+++
+| kbd:[s-p V]
 | Browse dirty version controlled projects.
 
-| +++<kbd>+++s-p b+++</kbd>+++
+| kbd:[s-p b]
 | Display a list of all project buffers currently open.
 
-| +++<kbd>+++s-p 4 b+++</kbd>+++
+| kbd:[s-p 4 b]
 | Switch to a project buffer and show it in another window.
 
-| +++<kbd>+++s-p 5 b+++</kbd>+++
+| kbd:[s-p 5 b]
 | Switch to a project buffer and show it in another frame.
 
-| +++<kbd>+++s-p 4 C-o+++</kbd>+++
+| kbd:[s-p 4 C-o]
 | Display a project buffer in another window without selecting it.
 
-| +++<kbd>+++s-p a+++</kbd>+++
+| kbd:[s-p a]
 | Switch between files with the same name but different extensions.
 
-| +++<kbd>+++s-p 4 a+++</kbd>+++
+| kbd:[s-p 4 a]
 | Switch between files with the same name but different extensions in other window.
 
-| +++<kbd>+++s-p 5 a+++</kbd>+++
+| kbd:[s-p 5 a]
 | Switch between files with the same name but different extensions in other frame.
 
-| +++<kbd>+++s-p o+++</kbd>+++
+| kbd:[s-p o]
 | Runs `multi-occur` on all project buffers currently open.
 
-| +++<kbd>+++s-p r+++</kbd>+++
+| kbd:[s-p r]
 | Runs interactive query-replace on all files in the projects.
 
-| +++<kbd>+++s-p i+++</kbd>+++
+| kbd:[s-p i]
 | Invalidates the project cache (if existing).
 
-| +++<kbd>+++s-p R+++</kbd>+++
+| kbd:[s-p R]
 | Regenerates the projects `TAGS` file.
 
-| +++<kbd>+++s-p j+++</kbd>+++
+| kbd:[s-p j]
 | Find tag in project's `TAGS` file.
 
-| +++<kbd>+++s-p k+++</kbd>+++
+| kbd:[s-p k]
 | Kills all project buffers.
 
-| +++<kbd>+++s-p D+++</kbd>+++
+| kbd:[s-p D]
 | Opens the root of the project in `dired`.
 
-| +++<kbd>+++s-p 4 D+++</kbd>+++
+| kbd:[s-p 4 D]
 | Opens the root of the project in `dired` in another window.
 
-| +++<kbd>+++s-p 5 D+++</kbd>+++
+| kbd:[s-p 5 D]
 | Opens the root of the project in `dired` in another frame.
 
-| +++<kbd>+++s-p e+++</kbd>+++
+| kbd:[s-p e]
 | Shows a list of recently visited project files.
 
-| +++<kbd>+++s-p left+++</kbd>+++
+| kbd:[s-p left]
 | Switch to the previous project buffer.
 
-| +++<kbd>+++s-p right+++</kbd>+++
+| kbd:[s-p right]
 | Switch to the next project buffer.
 
-| +++<kbd>+++s-p E+++</kbd>+++
+| kbd:[s-p E]
 | Opens the root `dir-locals-file` of the project.
 
-| +++<kbd>+++s-p s s+++</kbd>+++
+| kbd:[s-p s s]
 | Runs `ag` on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
 
-| +++<kbd>+++s-p !+++</kbd>+++
+| kbd:[s-p !]
 | Runs `shell-command` in the root directory of the project.
 
-| +++<kbd>+++s-p &+++</kbd>+++
+| kbd:[s-p &]
 | Runs `async-shell-command` in the root directory of the project.
 
-| +++<kbd>+++s-p C+++</kbd>+++
+| kbd:[s-p C]
 | Runs a standard configure command for your type of project.
 
-| +++<kbd>+++s-p c+++</kbd>+++
+| kbd:[s-p c]
 | Runs a standard compilation command for your type of project.
 
-| +++<kbd>+++s-p P+++</kbd>+++
+| kbd:[s-p P]
 | Runs a standard test command for your type of project.
 
-| +++<kbd>+++s-p t+++</kbd>+++
+| kbd:[s-p t]
 | Toggle between an implementation file and its test file.
 
-| +++<kbd>+++s-p 4 t+++</kbd>+++
+| kbd:[s-p 4 t]
 | Jump to implementation or test file in other window.
 
-| +++<kbd>+++s-p 5 t+++</kbd>+++
+| kbd:[s-p 5 t]
 | Jump to implementation or test file in other frame.
 
-| +++<kbd>+++s-p z+++</kbd>+++
+| kbd:[s-p z]
 | Adds the currently visited file to the cache.
 
-| +++<kbd>+++s-p p+++</kbd>+++
+| kbd:[s-p p]
 | Display a list of known projects you can switch to.
 
-| +++<kbd>+++s-p S+++</kbd>+++
+| kbd:[s-p S]
 | Save all project buffers.
 
-| +++<kbd>+++s-p m+++</kbd>+++
+| kbd:[s-p m]
 | Run the commander (an interface to run commands with a single key).
 
-| +++<kbd>+++s-p ESC+++</kbd>+++
+| kbd:[s-p ESC]
 | Switch to the most recently selected Projectile buffer.
 |===
 
 If you ever forget any of Projectile's keybindings just do a:
 
-+++<kbd>+++s-p C-h+++</kbd>+++
+kbd:[s-p C-h]
 
 It is possible to add additional commands to
 `projectile-command-map` referenced by the prefix key in

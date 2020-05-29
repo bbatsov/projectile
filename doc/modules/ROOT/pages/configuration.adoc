@@ -141,12 +141,12 @@ To enable caching unconditionally use this snippet of code:
 (setq projectile-enable-caching t)
 ----
 
-At this point you can try out a Projectile command such as +++<kbd>+++s-p f+++</kbd>+++ (+++<kbd>+++M-x projectile-find-file RET+++</kbd>+++).
+At this point you can try out a Projectile command such as kbd:[s-p f] (kbd:[M-x projectile-find-file RET]).
 
-Running +++<kbd>+++C-u s-p f+++</kbd>+++ will invalidate the cache prior to
+Running kbd:[C-u s-p f] will invalidate the cache prior to
 prompting you for a file to jump to.
 
-Pressing +++<kbd>+++s-p z+++</kbd>+++ will add the currently visited file to the
+Pressing kbd:[s-p z] will add the currently visited file to the
 cache for current project. Generally files created outside Emacs will
 be added to the cache automatically the first time you open them.
 
@@ -205,7 +205,7 @@ By default, projectile does not include the current project in the list when
 switching projects. If you want to include the current project, customize
 variable `projectile-current-project-on-switch`.
 
-When running `projectile-switch-project` (+++<kbd>+++s-p p+++</kbd>+++) Projectile invokes
+When running `projectile-switch-project` (kbd:[s-p p]) Projectile invokes
 the command specified in `projectile-switch-project-action` (by default it is
 `projectile-find-file`).
 
