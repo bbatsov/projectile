@@ -1,3 +1,5 @@
+= Frequently Asked Questions
+
 == Why did you name it Projectile?
 
 I wanted a name that's not as boring as `project.el` and implies that your

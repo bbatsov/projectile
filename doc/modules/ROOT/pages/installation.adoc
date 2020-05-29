@@ -43,7 +43,7 @@ and serious regressions there are usually fixed pretty quickly.
 
 TIP: If you don't want to (or can't) wait for MELPA to rebuild Projectile,
  you can easily build and install an up-to-date MELPA package locally yourself. Check out
- [this article](http://emacsredux.com/blog/2015/05/10/building-melpa-packages-locally/)
+ http://emacsredux.com/blog/2015/05/10/building-melpa-packages-locally/[this article]
  for details on the subject.
 
 Generally, users of the non-adventurous kind are advised to stick

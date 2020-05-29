@@ -13,7 +13,7 @@ Emacs features a super powerful built-in
 http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html[Emacs Lisp debugger]
 and using it is the best way to diagnose problems of any kind.
 
-TIP: Here's a [great crash course](https://www.youtube.com/watch?v=odkYXXYOxpo) on
+TIP: Here's a https://www.youtube.com/watch?v=odkYXXYOxpo[great crash course] on
  using the debugger.
 
 To debug some command you need to do the following:
@@ -42,6 +42,8 @@ TIP: If you intend to share the profiling results with someone it's a good idea 
  save the report buffer to a file with <kbd>C-x C-w</kbd>.
 
 == Commonly encountered problems (and how to solve them)
+
+=== Using some command causes Emacs to freeze for a while
 
 Sometimes a Projectile command might hang for a while (e.g. due to a bug or a
 configuration issue). Such problems are super annoying, but are relatively easy

@@ -80,7 +80,7 @@ For non-VCS projects Projectile will invoke whatever is in `projectile-generic-c
 find . -type f -print0
 ----
 
-TIP: It's a great idea to install [fd](https://github.com/sharkdp/fd) which is much faster than `find`.
+TIP: It's a great idea to install https://github.com/sharkdp/fd[fd] which is much faster than `find`.
  If `fd` is found, projectile will use as a replacement for `find`.
 
 == Sorting
@@ -294,7 +294,7 @@ extremely popular and it is built into Emacs.
 
 TIP: As already noted above if you're going to use the `ido` completion it's
  **extremely highly** recommended that you install the optional
- [flx-ido package](https://github.com/lewang/flx), which provides a much
+ https://github.com/lewang/flx[flx-ido package], which provides a much
  more powerful alternative to `ido`'s built-in `flex` matching.
 
 === Ivy (recommended)

@@ -18,8 +18,8 @@ is automatically going to check for projects:
 ----
 
 TIP: If you're going to use the default `ido` completion it's **extremely
-highly** recommended that you install the optional [flx-ido
-package](https://github.com/lewang/flx), which provides a much more powerful
+highly** recommended that you install the optional
+https://github.com/lewang/flx[flx-ido package], which provides a much more powerful
 alternative to `ido`'s built-in `flex` matching.
 
 Check out the xref:configuration.adoc["Configuration"] section of the manual
