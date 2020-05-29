@@ -1,0 +1,5 @@
+name: projectile
+title: Projectile
+version: master
+nav:
+- modules/ROOT/nav.adoc

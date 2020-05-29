@@ -1,0 +1,8 @@
+== Extensions
+
+There are a number of packages that built on top of the basic functionality provided by Projectile:
+
+* https://github.com/ericdanan/counsel-projectile[counsel-projectile] provides Ivy integration
+* https://github.com/bbatsov/helm-projectile[helm-projectile] provides Helm integration
+* https://github.com/bbatsov/persp-projectile[persp-projectile] provides perspective.el integration
+* https://github.com/asok/projectile-rails[projectile-rails] provides extra functionality for Ruby on Rails projects
