@@ -20,16 +20,6 @@ are available, Projectile will leverage them.
 
 == Features
 
-Here's a glimpse of Projectile in action (find file in project using `ivy`):
-
-image::projectile-demo.gif[Projectile Screenshot]
-
-In this short demo you can see:
-
-* finding files in a project
-* switching between implementation and test
-* switching between projects
-
 Projectile provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
 special file. Currently most VCS repos (e.g. `git`, `mercurial`, etc)
@@ -59,12 +49,31 @@ Projectile's features:
 * browse dirty version controlled projects
 * support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
 
+== Projectile in Action
+
+Here's a glimpse of Projectile in action (using `ivy` for minibuffer completion):
+
+image::projectile-demo.gif[Projectile Screenshot]
+
+In this short demo you can see:
+
+* finding files in a project
+* switching between implementation and test
+* switching between projects
+
 == Supporting Projectile
 
-NOTE: A bit of trivia for you - Projectile was my very first open-source project and
- it has a very special place in my heart!
+I've started working on Projectile in 2011 and I've supporting it ever since. It slowly grew from an obscure
+project with a single user to one of the most popular packages in the realm of Emacs. It's a fun project,
+but it also requires a lot of work.
 
 You can support my work on Projectile via
  https://www.paypal.me/bbatsov[PayPal],
  https://www.patreon.com/bbatsov[Patreon] and
  https://github.com/sponsors/bbatsov[GitHub Sponsors].
+
+Check out the xref:contributing.adoc["Contributing"] section of the docs for all the way in which you can help
+Projectile.
+
+NOTE: A bit of trivia for you - Projectile was my very first open-source project and
+ it has a very special place in my heart!
