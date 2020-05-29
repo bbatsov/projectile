@@ -1,3 +1,9 @@
+= Installation
+
+NOTE: Projectile officially supports Emacs 25.1+.
+
+The recommended way to install Projectile is via `package.el`.
+
 == Prerequisites
 
 You'll need to have Emacs installed (preferably the latest stable
@@ -5,15 +11,7 @@ release). If you're new to Emacs you might want to go through
 https://www.gnu.org/software/emacs/tour/index.html[the guided tour of Emacs]
 and the built-in tutorial (just press +++<kbd>+++C-h t+++</kbd>+++).
 
-!!! Note
-
- Projectile officially supports Emacs 25.1+.
-
-== Installation
-
-The recommended way to install Projectile is via `package.el`.
-
-=== Installation via package.el
+== Installation via package.el
 
 Projectile is available on the two major `package.el` community
 maintained repos -
@@ -43,9 +41,7 @@ time. Never-the-less, installing from MELPA is a reasonable way of
 obtaining Projectile, as the `master` branch is normally quite stable
 and serious regressions there are usually fixed pretty quickly.
 
-!!! Tip
-
- If you don't want to (or can't) wait for MELPA to rebuild Projectile,
+TIP: If you don't want to (or can't) wait for MELPA to rebuild Projectile,
  you can easily build and install an up-to-date MELPA package locally yourself. Check out
  [this article](http://emacsredux.com/blog/2015/05/10/building-melpa-packages-locally/)
  for details on the subject.
@@ -70,15 +66,13 @@ Finally add this to your Emacs config:
 (projectile-mode +1)
 ----
 
-!!! Note
-
- Those keymap prefixes are just a suggestion. Feel free to put
+NOTE: Those keymap prefixes are just a suggestion. Feel free to put
  there whatever works best for you.
  `C-c p` used to be the default prefix up to version 2.0, but
  starting with version 2.0 you have to select prefix key(s)
  yourself.
 
-=== Installation via use-package
+== Installation via use-package
 
 `use-package` can be used to install Projectile via the ``package.el``'s repositories
 http://stable.melpa.org[MELPA Stable] and http://melpa.org[MELPA].
@@ -117,7 +111,7 @@ by entering: +++<kbd>+++C-x C-e+++</kbd>+++.
 For further configuration options with `use-package`, consult the
 official https://github.com/jwiegley/use-package[use-package repository].
 
-=== Installation via el-get
+== Installation via el-get
 
 Projectile is also available for installation from
 the https://github.com/dimitri/el-get[el-get] package manager.
@@ -127,14 +121,14 @@ following command:
 
 +++<kbd>+++M-x el-get-install [RET] projectile [RET]+++</kbd>+++
 
-=== Installation on Debian and Ubuntu
+== Installation on Debian and Ubuntu
 
 Users of Debian 9 or later or Ubuntu 16.10 or later may simply
 `apt-get install elpa-projectile`.
 
 Your favourite Linux distribution might be providing a Projectile package as well.
 
-=== Emacs Prelude
+== Emacs Prelude
 
 Projectile is bundled with
 https://github.com/bbatsov/prelude[Emacs Prelude]. If you're a Prelude

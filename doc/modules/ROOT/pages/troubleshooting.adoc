@@ -1,3 +1,5 @@
+= Troubleshooting
+
 In case you run into issues here are a few tips that can help you diagnose the
 problem.
 
@@ -11,9 +13,7 @@ Emacs features a super powerful built-in
 http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html[Emacs Lisp debugger]
 and using it is the best way to diagnose problems of any kind.
 
-!!! Tip
-
- Here's a [great crash course](https://www.youtube.com/watch?v=odkYXXYOxpo) on
+TIP: Here's a [great crash course](https://www.youtube.com/watch?v=odkYXXYOxpo) on
  using the debugger.
 
 To debug some command you need to do the following:
@@ -38,9 +38,7 @@ it is pretty simple:
 . Invoke some commands.
 . Get the report with +++<kbd>+++M-x+++</kbd>+++ `profiler-report`.
 
-!!! Tip
-
- If you intend to share the profiling results with someone it's a good idea to
+TIP: If you intend to share the profiling results with someone it's a good idea to
  save the report buffer to a file with <kbd>C-x C-w</kbd>.
 
 == Commonly encountered problems (and how to solve them)

@@ -1,8 +1,8 @@
+= Usage
+
 == Basic setup
 
-!!! Note
-
- Everything in this section assumes you've enabled `projectile-mode`.
+NOTE: Everything in this section assumes you've enabled `projectile-mode`.
 
 To add a project to Projectile's list of known projects, open a file
 in the project. If you have a projects directory, you can tell
@@ -17,12 +17,10 @@ is automatically going to check for projects:
 (setq projectile-project-search-path '("~/projects/" "~/work/"))
 ----
 
-!!! Tip
-
- If you're going to use the default `ido` completion it's
- **extremely highly** recommended that you install the optional
- [flx-ido package](https://github.com/lewang/flx), which provides a much
- more powerful alternative to `ido`'s built-in `flex` matching.
+TIP: If you're going to use the default `ido` completion it's **extremely
+highly** recommended that you install the optional [flx-ido
+package](https://github.com/lewang/flx), which provides a much more powerful
+alternative to `ido`'s built-in `flex` matching.
 
 Check out the xref:configuration.adoc["Configuration"] section of the manual
 for a lot more information about configuring Projectile.
@@ -231,11 +229,9 @@ commands. Here's an example that adds `super-,` as a command prefix:
 You can also bind the `projectile-command-map` to any other map you'd
 like (including the global keymap).
 
-!!! Tip
-
- For some common commands you might want to take a little shortcut and
- leverage the fairly unused `Super` key (by default `Command` on Mac
- keyboards and `Windows` on Win keyboards).
+TIP: For some common commands you might want to take a little shortcut and
+leverage the fairly unused `Super` key (by default `Command` on Mac
+keyboards and `Windows` on Win keyboards).
 
 Here's something you can
 add to your Emacs config:
@@ -248,8 +244,6 @@ add to your Emacs config:
 (define-key projectile-mode-map [?\s-g] 'projectile-grep)
 ----
 
-!!! Note
-
- Note that the `Super` keybindings are not usable in Windows, as Windows
- makes heavy use of such keybindings itself. Emacs
- Prelude already adds those extra keybindings.
+NOTE: Note that the `Super` keybindings are not usable in Windows, as Windows
+ makes heavy use of such keybindings itself. Emacs Prelude already adds those
+ extra keybindings.

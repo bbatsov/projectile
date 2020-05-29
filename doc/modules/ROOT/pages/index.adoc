@@ -1,3 +1,7 @@
+= Projectile
+
+== Overview
+
 *Projectile* is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
 introducing external dependencies (when feasible). For instance -
@@ -5,9 +9,7 @@ finding project files has a portable implementation written in pure
 Emacs Lisp without the use of GNU `find` (but for performance sake an
 indexing mechanism backed by external commands exists as well).
 
-!!! Tip
-
- In practical terms the fact that Projectile can index the files in
+TIP: In practical terms the fact that Projectile can index the files in
  a project without shelling out to `find`, `git` or whatever, means
  that unlike many similar tools it will work on Windows without any
  additional setup.
@@ -15,6 +17,8 @@ indexing mechanism backed by external commands exists as well).
 Projectile tries to be practical - portability is great, but if some
 external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
+
+== Features
 
 Here's a glimpse of Projectile in action (find file in project using `ivy`):
 
@@ -55,9 +59,9 @@ Projectile's features:
 * browse dirty version controlled projects
 * support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
 
-!!! Info
+== Supporting Projectile
 
- A bit of trivia for you - Projectile was my very first open-source project and
+NOTE: A bit of trivia for you - Projectile was my very first open-source project and
  it has a very special place in my heart!
 
 You can support my work on Projectile via

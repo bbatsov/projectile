@@ -1,3 +1,5 @@
+= Projects
+
 == Supported Project Types
 
 One of the main goals of Projectile is to operate on a wide range of project types
@@ -377,9 +379,7 @@ M-x customize-group RET projectile RET
 
 == Ignoring files
 
-!!! Warning
-
- The contents of `.projectile` are ignored when using the
+WARNING: The contents of `.projectile` are ignored when using the
  `alien` project indexing method.
 
 If you'd like to instruct Projectile to ignore certain files in a
