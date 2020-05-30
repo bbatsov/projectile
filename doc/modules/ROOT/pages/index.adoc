@@ -61,6 +61,10 @@ In this short demo you can see:
 * switching between implementation and test
 * switching between projects
 
+TIP: You can see in the minibuffer the keybindings that are used in the demo and
+the commands that they invoked.footnote:[Courtesy of
+https://metaredux.com/posts/2019/12/07/dead-simple-emacs-screencasts.html[keycast-mode].]
+
 == Supporting Projectile
 
 I've started working on Projectile in 2011 and I've supporting it ever since. It slowly grew from an obscure
