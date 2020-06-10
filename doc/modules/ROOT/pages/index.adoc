@@ -61,7 +61,7 @@ In this short demo you can see:
 * switching between implementation and test
 * switching between projects
 
-TIP: You can see in the minibuffer the keybindings that are used in the demo and
+TIP: You can see in the modeline the keybindings that are used in the demo and
 the commands that they invoked.footnote:[Courtesy of
 https://metaredux.com/posts/2019/12/07/dead-simple-emacs-screencasts.html[keycast-mode].]
 
