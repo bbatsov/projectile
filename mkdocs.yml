@@ -5,18 +5,5 @@ site_favicon: favicon.ico
 copyright: "Copyright (C) 2011-2020 Bozhidar Batsov and Projectile contributors"
 docs_dir: legacy-docs
 pages:
-- Home: index.md
-- Installation: installation.md
-- Usage: usage.md
-- Projects: projects.md
-- Configuration: configuration.md
-- Extensions: extensions.md
-- FAQ: faq.md
-- Troubleshooting: troubleshooting.md
-- Contributing: contributing.md
-- Support: support.md
-extra_css:
-  - css/extra.css
-markdown_extensions:
-  - admonition
+- Blank: blank.md
 theme: readthedocs
