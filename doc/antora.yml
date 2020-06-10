@@ -1,5 +1,5 @@
 name: projectile
 title: Projectile
-version: master
+version: 2.2
 nav:
 - modules/ROOT/nav.adoc

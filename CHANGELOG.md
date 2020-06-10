@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.2.0 (2020-06-10)
+
 ### New features
 
 * [#1523](https://github.com/bbatsov/projectile/issues/1523): Add a new defcustom (`projectile-max-file-buffer-count`) controlling how many opened file buffers should Projectile maintain per project.
