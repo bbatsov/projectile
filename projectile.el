@@ -2786,6 +2786,11 @@ test/impl/other files as below:
                                   :compile "cask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
+(projectile-register-project-type 'emacs-eldev (lambda () (or (projectile-verify-file "Eldev")
+                                                              (projectile-verify-file "Eldev-local")))
+                                  :compile "eldev package"
+                                  :test "eldev test"
+                                  :run "eldev emacs")
 
 ;; R
 (projectile-register-project-type 'r '("DESCRIPTION")

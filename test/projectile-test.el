@@ -980,7 +980,16 @@ You'd normally combine this with `projectile-test-with-sandbox'."
        "project/package.json")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'rails-rspec))))))
+        (expect (projectile-detect-project-type) :to-equal 'rails-rspec)))))
+  (it "detects project-type for elisp eldev projects"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/Eldev"
+       "project/project.el")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'emacs-eldev))))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
