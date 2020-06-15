@@ -178,7 +178,8 @@ A value of nil means the cache never expires."
 (defcustom projectile-auto-discover t
   "Whether to discover projects when `projectile-mode' is activated."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "2.3.0"))
 
 (defcustom projectile-auto-update-cache t
   "Whether the cache should automatically be updated when files are opened or deleted."
