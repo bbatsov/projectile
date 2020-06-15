@@ -10,12 +10,16 @@ Projectile about all of the projects in it with the command `M-x
 projectile-discover-projects-in-directory`.
 
 You can go one step further and set a list of folders which Projectile
-is automatically going to check for projects:
+is automatically going to check for projects on startup:
 
 [source,elisp]
 ----
 (setq projectile-project-search-path '("~/projects/" "~/work/"))
 ----
+
+You can suppress the auto-discovery of projects on startup by setting
+`projectile-auto-discover` to `nil`. You can manually trigger the project
+discovery using `M-x projectile-discover-projects-in-search-path`.
 
 TIP: If you're going to use the default `ido` completion it's **extremely
 highly** recommended that you install the optional
@@ -33,9 +37,7 @@ ready for action. Projectile happens to recognize out of the box every common
 VCS and many popular project types for various programming languages.
 You can learn more about Projectile's notion of a project xref:projects.adoc[here].
 
-!!! Note
-
- The extent of the support for every VCS differs and Git is the best supported
+NOTE: The extent of the support for every VCS differs and Git is the best supported
  one. Projectile supports some advanced features like working with Git submodules
  and using `git-grep` instead GNU grep.
 
@@ -51,10 +53,8 @@ The next section lists many more commands, but the basics can get you pretty far
 
 == Interactive Commands
 
-!!! Note
-
- Projectile doesn't have a default key prefix for its commands, but all the examples
- in the manual assume you've opted for `s-p` (`super`-p).
+NOTE: Projectile doesn't have a default key prefix for its commands, but all the examples
+ in the manual assume you've opted for kbd:[s-p] (`super`-p).
 
 Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
