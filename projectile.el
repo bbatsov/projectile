@@ -2813,6 +2813,13 @@ test/impl/other files as below:
 (projectile-register-project-type 'racket '("info.rkt")
                                   :test "raco test .")
 
+;; Dart
+(projectile-register-project-type 'dart '("pubspec.yaml")
+                                  :compile "pub get"
+                                  :test "pub run test"
+                                  :run "dart"
+                                  :test-suffix "_test.dart")
+
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
