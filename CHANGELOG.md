@@ -11,6 +11,7 @@
 ### Changes
 
 * [#1540](https://github.com/bbatsov/projectile/pull/1540): Add default `test-suffix` to Angular projects.
+* Add a `:project-file` param to `projectile-register-project-type`.
 
 ## 2.2.0 (2020-06-10)
 
