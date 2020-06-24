@@ -132,7 +132,7 @@ What this does is:
 
 . add your own type of project, in this case `npm` package.
 . add a list of files and/or folders in a root of the project that helps to identify the type, in this case it is only `package.json`.
-* add _root-marker_, which is typically the primary project configuration file. In this case that's `package.json`.
+. add _project-file_, which is typically the primary project configuration file. In this case that's `package.json`.
 . add _compile-command_, in this case it is `npm install`.
 . add _test-command_, in this case it is `npm test`.
 . add _run-command_, in this case it is `npm start`.
@@ -142,7 +142,7 @@ Let's see a couple of more complex examples.
 
 [source,elisp]
 ----
-;; Ruby
+;; Ruby + RSpec
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rake"
@@ -151,6 +151,7 @@ Let's see a couple of more complex examples.
                                   :test-dir "spec/"
                                   :test-suffix "_spec")
 
+;; Ruby + Minitest
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
                                   :project-file "Gemfile"
                                   :compile"bundle exec rake"
@@ -158,6 +159,7 @@ Let's see a couple of more complex examples.
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 
+;; Rails + Minitest
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rails server"
@@ -165,6 +167,7 @@ Let's see a couple of more complex examples.
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 
+;; Rails + RSpec
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rails server"
@@ -176,7 +179,7 @@ Let's see a couple of more complex examples.
 
 All those projects are using `Gemfile` (`bundler`'s project file), but they have different directory structures.
 
-The available options are:
+Bellow is a listing of all the available options for `projectile-register-project-type`:
 
 |===
 | Option | Documentation
