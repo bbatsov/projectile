@@ -50,7 +50,7 @@ it. Some of Projectile's features:
 
 Here's a glimpse of Projectile in action (using `ivy`):
 
-![Projectile Screenshot](doc/screenshots/projectile-demo.gif)
+![Projectile Demo](doc/modules/ROOT/assets/images/projectile-demo.gif)
 
 In this short demo you can see:
 
