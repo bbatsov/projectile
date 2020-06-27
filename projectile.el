@@ -3586,8 +3586,11 @@ are impossible (for instance on Windows), returns a list of all
 files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
-             (cmd (cond ((executable-find "ag")
-                         (concat "ag --literal --nocolor --noheading -l -- "
+             (cmd (cond ((executable-find "rg")
+			   (concat "rg -lF --no-heading --color never -- "
+				    search-term))
+			  ((executable-find "ag")
+			   (concat "ag --literal --nocolor --noheading -l -- "
                                  search-term))
                         ((executable-find "ack")
                          (concat "ack --literal --noheading --nocolor -l -- "
