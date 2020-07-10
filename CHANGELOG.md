@@ -7,6 +7,7 @@
 * [#1539](https://github.com/bbatsov/projectile/pull/1539): New defcustom `projectile-auto-discover` controlling whether to automatically discover projects in the search path when `projectile-mode` activates.
 * Add [emacs-eldev](https://github.com/doublep/eldev) project type.
 * Add Dart project type.
+* [#1555](https://github.com/bbatsov/projectile/pull/1555) Add search with ripgrep. 
 
 ### Changes
 
