@@ -196,6 +196,12 @@ Bellow is a listing of all the available options for `projectile-register-projec
 | :configure
 | A command to configure the project. `%s` will be substituted with the project root.
 
+| :install
+| A function to install the project.
+
+| :package
+| A function to package the project.
+
 | :run
 | A command to run the project.
 
