@@ -141,7 +141,7 @@ To enable caching unconditionally use this snippet of code:
 (setq projectile-enable-caching t)
 ----
 
-At this point you can try out a Projectile command such as kbd:[s-p f] (kbd:[M-x projectile-find-file RET]).
+At this point you can try out a Projectile command such as kbd:[s-p f] (kbd:[M-x] `projectile-find-file` kbd:[RET]).
 
 Running kbd:[C-u s-p f] will invalidate the cache prior to
 prompting you for a file to jump to.
