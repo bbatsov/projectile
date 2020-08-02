@@ -3593,7 +3593,7 @@ files in the project."
                          (concat "ag --literal --nocolor --noheading -l -- "
                                  search-term))
                         ((executable-find "ack")
-                         (concat "ack --literal --noheading --nocolor -l -- "
+                         (concat "ack --literal --nocolor -l -- "
                                  search-term))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
