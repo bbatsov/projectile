@@ -1760,13 +1760,13 @@ prefix the string will be assumed to be an ignore string."
         (insert-file-contents dirconfig)
         (while (not (eobp))
           (pcase (char-after)
-	    ;; ignore comment lines if prefix char has been set
-	    ((pred (lambda (leading-char)
-		     (and projectile-dirconfig-comment-prefix
-			  (eql leading-char
-			       projectile-dirconfig-comment-prefix))))
-	     nil)
-	    (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
+            ;; ignore comment lines if prefix char has been set
+            ((pred (lambda (leading-char)
+                     (and projectile-dirconfig-comment-prefix
+                          (eql leading-char
+                               projectile-dirconfig-comment-prefix))))
+             nil)
+            (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
             (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
             (_ (push (buffer-substring (point) (line-end-position)) ignore)))
@@ -1800,11 +1800,11 @@ project-root for every file."
                      (fboundp 'helm-make-source))
                 (helm :sources
                       (helm-make-source "Projectile" 'helm-source-sync
-                        :candidates choices
-                        :action (if action
-                                    (prog1 action
-                                      (setq action nil))
-                                  #'identity))
+                                        :candidates choices
+                                        :action (if action
+                                                    (prog1 action
+                                                      (setq action nil))
+                                                  #'identity))
                       :prompt prompt
                       :input initial-input
                       :buffer "*helm-projectile*")
@@ -3587,10 +3587,10 @@ files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
              (cmd (cond ((executable-find "rg")
-			   (concat "rg -lF --no-heading --color never -- "
-				    search-term))
-			  ((executable-find "ag")
-			   (concat "ag --literal --nocolor --noheading -l -- "
+                         (concat "rg -lF --no-heading --color never -- "
+                                 search-term))
+                        ((executable-find "ag")
+                         (concat "ag --literal --nocolor --noheading -l -- "
                                  search-term))
                         ((executable-find "ack")
                          (concat "ack --literal --noheading --nocolor -l -- "
