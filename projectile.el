@@ -3578,6 +3578,17 @@ Returns a list of expanded filenames."
              "\n+"
              t))))
 
+(defvar projectile-files-with-string-commands
+  '((rg . "rg -lF --no-heading --color never -- ")
+    (ag . "ag --literal --nocolor --noheading -l -- ")
+    (ack . "ack --literal --nocolor -l -- ")
+    (git . "git grep -HlI ")
+    ;; -r: recursive
+    ;; -H: show filename for each match
+    ;; -l: show only file names with matches
+    ;; -I: no binary files
+    (grep . "grep -rHlI %s .")))
+
 (defun projectile-files-with-string (string directory)
   "Return a list of all files containing STRING in DIRECTORY.
 
@@ -3587,23 +3598,19 @@ files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
              (cmd (cond ((executable-find "rg")
-                         (concat "rg -lF --no-heading --color never -- "
+                         (concat (cdr (assoc 'rg projectile-files-with-string-commands))
                                  search-term))
                         ((executable-find "ag")
-                         (concat "ag --literal --nocolor --noheading -l -- "
+                         (concat (cdr (assoc 'ag projectile-files-with-string-commands))
                                  search-term))
                         ((executable-find "ack")
-                         (concat "ack --literal --nocolor -l -- "
+                         (concat (cdr (assoc 'ack projectile-files-with-string-commands))
                                  search-term))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat "git grep -HlI " search-term))
+                         (concat (cdr (assoc 'git projectile-files-with-string-commands)) search-term))
                         (t
-                         ;; -r: recursive
-                         ;; -H: show filename for each match
-                         ;; -l: show only file names with matches
-                         ;; -I: no binary files
-                         (format "grep -rHlI %s ." search-term)))))
+                         (format (cdr (assoc 'grep projectile-files-with-string-commands)) search-term)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
