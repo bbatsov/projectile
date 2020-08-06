@@ -4,7 +4,8 @@
 
 ### New features
 
-* New project commands `projectile-package-project` and `projectile-install-project`. 
+* New functions `projectile-acquire-root` and `projectile-process-current-project-buffers-current`
+* New project commands `projectile-package-project`, `projectile-install-project`. 
 * [#1539](https://github.com/bbatsov/projectile/pull/1539): New defcustom `projectile-auto-discover` controlling whether to automatically discover projects in the search path when `projectile-mode` activates.
 * Add [emacs-eldev](https://github.com/doublep/eldev) project type.
 * Add Dart project type.

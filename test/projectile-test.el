@@ -1470,3 +1470,18 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       (projectile-dir-files-native "projectA/")
       (expect 'projectile-ignored-files :to-have-been-called-times 1)
       (expect 'projectile-ignored-directories :to-have-been-called-times 1)))))
+
+(describe "projectile-process-current-project-buffers-current"
+  (it "expects projectile-process-current-project-buffers and
+projectile-process-current-project-buffers-current to have similar behaviour"
+    (projectile-test-with-sandox
+     (projectile-test-with-files
+      ("project/.projectile"
+       "project/bufferA"
+       "project/fileA"
+       "project/dirA/fileC")
+      (let ((list-a '())
+            (list-b '()))
+        (projectile-process-current-project-buffers (lambda (b) (push b list-a)))
+        (projectile-process-current-project-buffers-current (lamdba () (push (current-buffer) list-b)))
+        (expect list-a :to-equal list-b))))))
