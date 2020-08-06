@@ -1474,14 +1474,16 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 (describe "projectile-process-current-project-buffers-current"
   (it "expects projectile-process-current-project-buffers and
 projectile-process-current-project-buffers-current to have similar behaviour"
-    (projectile-test-with-sandox
+    (projectile-test-with-sandbox
      (projectile-test-with-files
-      ("project/.projectile"
-       "project/bufferA"
-       "project/fileA"
-       "project/dirA/fileC")
+      ("projectA/"
+       "projectA/.projectile"
+       "projectA/bufferA"
+       "projectA/fileA"
+       "projectA/dirA/"
+       "projectA/dirA/fileC")
       (let ((list-a '())
             (list-b '()))
         (projectile-process-current-project-buffers (lambda (b) (push b list-a)))
-        (projectile-process-current-project-buffers-current (lamdba () (push (current-buffer) list-b)))
+        (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
         (expect list-a :to-equal list-b))))))

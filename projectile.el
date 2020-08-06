@@ -1125,9 +1125,9 @@ Controlled by `projectile-require-project-root'."
      (t default-directory))))
 
 (defun projectile-acquire-root (&optional dir)
-  "Finds the current project's root, and if that fails, prompts
-the user to supply it. Provides the common
-idiom (projectile-ensure-root (projectile-project-root))"
+  "Find the current project root, and prompts the user for it if that fails.
+Provides the common idiom (projectile-ensure-root (projectile-project-root)).
+Starts the search for the project with DIR."
   (projectile-ensure-project (projectile-project-root dir)))
 
 (defun projectile-project-p (&optional dir)
@@ -1445,8 +1445,8 @@ If PROJECT is not specified the command acts on the current project."
       (funcall action buffer))))
 
 (defun projectile-process-current-project-buffers-current (action)
-  "Invoke ACTION without arguments on every project buffer with
-that buffer current."
+  "Invoke ACTION on every project buffer with that buffer current.
+ACTION is called without arguments."
   (let ((project-buffers (projectile-project-buffers)))
     (dolist (buffer project-buffers)
       (with-current-buffer buffer
