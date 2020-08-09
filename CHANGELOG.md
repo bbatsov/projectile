@@ -9,6 +9,7 @@
 * Add [emacs-eldev](https://github.com/doublep/eldev) project type.
 * Add Dart project type.
 * [#1555](https://github.com/bbatsov/projectile/pull/1555) Add search with ripgrep. 
+* Add Python-poetry project type.
 
 ### Changes
 

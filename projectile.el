@@ -2702,6 +2702,12 @@ test/impl/other files as below:
                                   :test "pipenv run test"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
+(projectile-register-project-type 'python-poetry '("poetry.lock")
+                                  :project-file "poetry.lock"
+                                  :compile "poetry build"
+                                  :test "poetry run python -m unittest discover"
+                                  :test-prefix "test_"
+                                  :test-suffix"_test")
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
                                   :project-file "pom.xml"
