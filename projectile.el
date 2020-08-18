@@ -2808,9 +2808,11 @@ test/impl/other files as below:
                                   :test-suffix "-test")
 (projectile-register-project-type 'emacs-eldev (lambda () (or (projectile-verify-file "Eldev")
                                                               (projectile-verify-file "Eldev-local")))
+                                  :project-file "Eldev"
                                   :compile "eldev package"
                                   :test "eldev test"
-                                  :run "eldev emacs")
+                                  :run "eldev emacs"
+                                  :package "eldev package")
 
 ;; R
 (projectile-register-project-type 'r '("DESCRIPTION")
