@@ -11,8 +11,9 @@ our issue reporting template (it's loaded automatically when you create a
 new GitHub issue).
 
 It's usually a good idea to try to reproduce (obscure) bugs in isolation. You
-can do this by cloning Projectile's GitHub repo and running `make run-projectile` inside
-it.  This will bring up Emacs with only the latest version of Projectile loaded. By
+can do this by cloning Projectile's GitHub repo and running `eldev emacs` inside
+it (you need to install [Eldev](https://github.com/doublep/eldev) tool first).
+This will bring up Emacs with only the latest version of Projectile loaded. By
 starting fresh, with the latest code, we can ensure that the problem at hand
 isn't already fixed or caused by interactions with other packages.
 
@@ -90,16 +91,23 @@ https://github.com/sponsors/bbatsov[GitHub Sponsors].
 [source,sh]
 ----
 $ cd /path/to/projectile
-$ make update
-$ make compile
-$ make test
+$ eldev test
 ----
 
-Run all tests with:
+If you need to make sure dependencies are at the latest version:
 
 [source,sh]
 ----
-$ make test
+$ eldev update
+----
+
+Run all tests with Projectile installed as an Emacs package
+(i.e. byte-compiled and all that; this won't affect your normal Emacs
+though):
+
+[source,sh]
+----
+$ eldev -p test
 ----
 
 Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use kbd:[M-x] `compile` (or `helm-make`).
