@@ -2,18 +2,18 @@ sudo: false
 language: emacs-lisp
 dist: xenial
 env:
-  - EMACS_BINARY=emacs-25.1-travis MAKE_TEST=test
-  - EMACS_BINARY=emacs-25.2-travis MAKE_TEST=test
-  - EMACS_BINARY=emacs-26.3-travis-linux-xenial MAKE_TEST=test
-  - EMACS_BINARY=emacs-git-snapshot-travis-linux-xenial MAKE_TEST=test
+  - EMACS_BINARY=emacs-25.1-travis
+  - EMACS_BINARY=emacs-25.2-travis
+  - EMACS_BINARY=emacs-26.3-travis-linux-xenial
+  - EMACS_BINARY=emacs-git-snapshot-travis-linux-xenial
 matrix:
   allow_failures:
     - env: EMACS_BINARY=emacs-git-snapshot-travis
   fast_finish: true
 before_script:
-  - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
-  - evm install $EMACS_BINARY --use --skip
-  - make elpa
+  - curl -fsSL https://raw.github.com/doublep/eldev/master/webinstall/travis-eldev-and-evm > x.sh && source ./x.sh
+  - evm install $EMACS_BINARY --use
 script:
-  - emacs --version
-  - make $MAKE_TEST
+  - eldev -p -dtT test --expect 100
+  # Also require that byte-compilation produces no warnings.
+  - eldev -dtT compile --warnings-as-errors

@@ -2,7 +2,8 @@
 *\#*\#
 *.\#*
 *.elc
-.cask
-elpa*
+/Eldev-local
+/.eldev
+/dist
 /TAGS
 /project

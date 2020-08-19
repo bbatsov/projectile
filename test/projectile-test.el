@@ -32,13 +32,13 @@
 (message "Running tests on Emacs %s" emacs-version)
 
 ;; TODO: Revise this init logic
-(let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
-       (source-directory (locate-dominating-file current-file "Cask"))
-       ;; Do not load outdated byte code for tests
-       (load-prefer-newer t))
-  ;; Load the file under test
-  (load (expand-file-name "projectile" source-directory))
-  (setq projectile-test-path (expand-file-name "test" source-directory)))
+(defvar projectile-test-path (let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
+                                    (source-directory (locate-dominating-file current-file "Eldev"))
+                                    ;; Do not load outdated byte code for tests
+                                    (load-prefer-newer t))
+                               ;; Load the file under test
+                               (load (expand-file-name "projectile" source-directory))
+                               (expand-file-name "test" source-directory)))
 
 ;;; Test Utilities
 (defmacro projectile-test-with-sandbox (&rest body)
@@ -128,9 +128,9 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-project-type"
   (it "detects the type of Projectile's project"
-    (expect (projectile-project-type) :to-equal 'emacs-cask))
+    (expect (projectile-project-type) :to-equal 'emacs-eldev))
   (it "caches the project type"
-    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
+    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-eldev)))
 
 (describe "projectile-ignored-directory-p"
   (it "checks if directory should be ignored"
