@@ -3667,7 +3667,7 @@ to run the replacement."
                                   (goto-char (match-beginning 0))))
             tags-loop-operate `(perform-replace ',old-text ',new-text t nil nil
                                                 nil multi-query-replace-map))
-      (tags-loop-continue (or (cons 'list files) t)))))
+      (with-no-warnings (tags-loop-continue (or (cons 'list files) t))))))
 
 ;;;###autoload
 (defun projectile-replace-regexp (&optional arg)
@@ -3695,7 +3695,8 @@ to run the replacement."
           (cl-remove-if
            #'file-directory-p
            (mapcar #'projectile-expand-root (projectile-dir-files directory)))))
-    (tags-query-replace old-text new-text nil (cons 'list files))))
+    ;; FIXME: Probably would fail on Emacs 27+, fourth argument is gone.
+    (with-no-warnings (tags-query-replace old-text new-text nil (cons 'list files)))))
 
 ;;;###autoload
 (defun projectile-kill-buffers ()
