@@ -390,7 +390,7 @@ Regular expressions can be used."
     ".tox"
     ".svn"
     ".stack-work"
-    ".ccls-cache)
+    ".ccls-cache")
   "A list of directories globally ignored by projectile.
 
 Regular expressions can be used."
