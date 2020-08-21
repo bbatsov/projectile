@@ -379,6 +379,7 @@ Regular expressions can be used."
 
 (defcustom projectile-globally-ignored-directories
   '(".idea"
+    ".vscode"
     ".ensime_cache"
     ".eunit"
     ".git"
@@ -390,7 +391,8 @@ Regular expressions can be used."
     ".tox"
     ".svn"
     ".stack-work"
-    ".ccls-cache")
+    ".ccls-cache"
+    ".clangd")
   "A list of directories globally ignored by projectile.
 
 Regular expressions can be used."
