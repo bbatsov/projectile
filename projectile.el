@@ -2866,6 +2866,11 @@ test/impl/other files as below:
                                   :run "dart"
                                   :test-suffix "_test.dart")
 
+;; OCaml
+(projectile-register-project-type 'ocaml-dune '("dune-project")
+                                  :project-file "dune-project"
+                                  :compile "dune build"
+                                  :test "dune runtest")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.

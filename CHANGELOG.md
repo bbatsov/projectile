@@ -11,6 +11,7 @@
 * Add Dart project type.
 * [#1555](https://github.com/bbatsov/projectile/pull/1555) Add search with ripgrep. 
 * Add Python-poetry project type.
+* [#1576](https://github.com/bbatsov/projectile/pull/1576) Add OCaml [Dune](https://github.com/ocaml/dune) project type.
 
 ### Changes
 
