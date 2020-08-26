@@ -81,6 +81,9 @@ are the configuration files of various build tools. Out of the box the following
 | stack.yaml
 | Haskell's stack tool based project
 
+| dune-project
+| OCaml Dune project file
+
 | info.rkt
 | Racket package description file
 
