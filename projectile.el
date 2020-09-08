@@ -685,6 +685,10 @@ as defined in `vc.el'."
     ("cc"  . ("h" "hh" "hpp"))
     ("hh"  . ("cc"))
 
+    ;; OCaml extensions
+    ("ml" . ("mli"))
+    ("mli" . ("ml"))
+
     ;; vertex shader and fragment shader extensions in glsl
     ("vert" . ("frag"))
     ("frag" . ("vert"))
