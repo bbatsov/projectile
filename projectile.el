@@ -2550,8 +2550,6 @@ test/impl/other files as below:
     ;; explicit argument of nil and an omitted argument. However, the
     ;; body of the function is free to consider nil an abbreviation
     ;; for some other meaningful value
-    (when (and project-file (not (member project-file projectile-project-root-files)))
-      (add-to-list 'projectile-project-root-files project-file))
     (when test-suffix
       (plist-put project-plist 'test-suffix test-suffix))
     (when test-prefix
