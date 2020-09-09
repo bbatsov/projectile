@@ -48,6 +48,8 @@ it. Some of Projectile's features:
 * toggle read-only mode for the entire project
 * support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
 
+## Projectile in Action
+
 Here's a glimpse of Projectile in action (using `ivy`):
 
 ![Projectile Demo](doc/modules/ROOT/assets/images/projectile-demo.gif)
