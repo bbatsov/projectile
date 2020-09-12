@@ -18,6 +18,10 @@
 * [#1540](https://github.com/bbatsov/projectile/pull/1540): Add default `test-suffix` to Angular projects.
 * Add a `:project-file` param to `projectile-register-project-type`.
 
+### Bugs fixed
+
+* [#1377](https://github.com/bbatsov/projectile/issues/1377): Fix `projectile-regenerate-tags` directory.
+
 ## 2.2.0 (2020-06-10)
 
 ### New features
