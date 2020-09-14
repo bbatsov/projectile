@@ -687,7 +687,11 @@ as defined in `vc.el'."
 
     ;; OCaml extensions
     ("ml" . ("mli"))
-    ("mli" . ("ml"))
+    ("mli" . ("ml" "mll" "mly"))
+    ("mll" . ("mli"))
+    ("mly" . ("mli"))
+    ("eliomi" . ("eliom"))
+    ("eliom" . ("eliomi"))
 
     ;; vertex shader and fragment shader extensions in glsl
     ("vert" . ("frag"))
