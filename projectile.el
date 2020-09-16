@@ -3435,6 +3435,7 @@ regular expression."
                             tags-file
                             tags-exclude
                             ;; Use directory file name for MSYS2 compatibility.
+                            ;; See https://github.com/bbatsov/projectile/issues/1377 for more details
                             (directory-file-name default-directory)))
            shell-output exit-code)
       (with-temp-buffer
