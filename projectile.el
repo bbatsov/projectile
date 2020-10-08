@@ -2764,6 +2764,13 @@ test/impl/other files as below:
                                   :compile "sbt compile"
                                   :test "sbt test"
                                   :test-suffix "Spec")
+
+(projectile-register-project-type 'mill '("build.sc")
+                                  :project-file "build.sc"
+                                  :compile "mill all __.compile"
+                                  :test "mill all __.test"
+                                  :test-suffix "Test")
+
 ;; Clojure
 (projectile-register-project-type 'lein-test '("project.clj")
                                   :project-file "project.clj"
