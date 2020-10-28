@@ -85,10 +85,11 @@ the `master` branch, declare the following in your Emacs initialization file
 ----
 (use-package projectile
   :ensure t
-  :config
-  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  (projectile-mode +1))
+  :init
+  (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p" . projectile-command-map)
+              ("C-c p" . projectile-command-map)))
 ----
 
 However, if you wanted to be a bit more conservative and only use the stable
@@ -99,10 +100,11 @@ releases of Projectile, you'd declare the following:
 (use-package projectile
   :ensure t
   :pin melpa-stable
-  :config
-  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  (projectile-mode +1))
+  :init
+  (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p" . projectile-command-map)
+              ("C-c p" . projectile-command-map)))
 ----
 
 After placing one of the above s-expressions, evaluate it, for it to take effect
