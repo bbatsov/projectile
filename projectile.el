@@ -392,6 +392,7 @@ Regular expressions can be used."
     ".svn"
     ".stack-work"
     ".ccls-cache"
+    ".cache"
     ".clangd")
   "A list of directories globally ignored by projectile.
 
