@@ -102,7 +102,7 @@ Those keymap prefixes are just a suggestion. Feel free to put there whatever wor
 
 Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c p f</kbd>.
 
-See the user manual for more details.
+See the [user manual](https://docs.projectile.mx) for more details.
 
 ## Caveats
 
