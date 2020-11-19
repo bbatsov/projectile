@@ -4069,10 +4069,12 @@ project of that type"
 
 (defun projectile-read-command (prompt command)
   "Adapted from `compilation-read-command'."
-  (read-shell-command prompt command
-                      (if (equal (car compile-history) command)
-                          '(compile-history . 1)
-                        'compile-history)))
+  (let ((compile-history
+         (ring-elements (projectile--get-command-history (projectile-ensure-project (projectile-project-root))))))
+    (read-shell-command prompt command
+                        (if (equal (car compile-history) command)
+                            '(compile-history . 1)
+                          'compile-history))))
 
 (defun projectile-compilation-dir ()
   "Retrieve the compilation directory for this project."
