@@ -1823,9 +1823,9 @@ project-root for every file."
     (setq res
           (pcase (if (eq projectile-completion-system 'auto)
                      (cond
-                      ((and (fboundp 'ido-mode) ido-mode) 'ido)
-                      ((and (fboundp 'helm-mode) helm-mode) 'helm)
-                      ((and (fboundp 'ivy-mode) ivy-mode) 'ivy)
+                      ((and (boundp 'ido-mode)  ido-mode)  'ido)
+                      ((and (boundp 'helm-mode) helm-mode) 'helm)
+                      ((and (boundp 'ivy-mode)  ivy-mode)  'ivy)
                       (t 'default))
                    projectile-completion-system)
             ('default (completing-read prompt choices nil nil initial-input))
