@@ -5,14 +5,15 @@
 ### New features
 
 * New functions `projectile-acquire-root` and `projectile-process-current-project-buffers-current`
-* New project commands `projectile-package-project`, `projectile-install-project`. 
+* New project commands `projectile-package-project`, `projectile-install-project`.
 * [#1539](https://github.com/bbatsov/projectile/pull/1539): New defcustom `projectile-auto-discover` controlling whether to automatically discover projects in the search path when `projectile-mode` activates.
 * Add [emacs-eldev](https://github.com/doublep/eldev) project type.
 * Add Dart project type.
-* [#1555](https://github.com/bbatsov/projectile/pull/1555) Add search with ripgrep. 
+* [#1555](https://github.com/bbatsov/projectile/pull/1555) Add search with ripgrep.
 * Add Python-poetry project type.
 * [#1576](https://github.com/bbatsov/projectile/pull/1576) Add OCaml [Dune](https://github.com/ocaml/dune) project type.
 * Add [Mill](http://www.lihaoyi.com/mill/) project type.
+* Auto-detect completion system, supporting `ido`, `ivy`, `helm` and the default completion system.
 
 ### Changes
 

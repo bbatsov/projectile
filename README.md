@@ -46,7 +46,7 @@ it. Some of Projectile's features:
 * run make in a project with a single key chord
 * check for dirty repositories
 * toggle read-only mode for the entire project
-* support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
+* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
 
 ## Projectile in Action
 
