@@ -47,7 +47,7 @@ Projectile's features:
 * visit project in dired
 * run make in a project with a single key chord
 * browse dirty version controlled projects
-* support for multiple minibuffer completion/selection libraries (e.g. `ido`, `ivy` and `helm`)
+* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
 
 == Projectile in Action
 

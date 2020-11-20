@@ -287,10 +287,20 @@ top-level directory.
 
 == Completion Options
 
+=== Auto (default)
+
+By default Projectile detects the completion system in use, based
+on the mode variables `ido-mode`, `ivy-mode` and `helm-mode`.
+If none of those is activated, the `default` completion system is used.
+
 === Ido
 
-By default Projectile uses `ido` as its completion system. `ido` is
-extremely popular and it is built into Emacs.
+The `ido` completion system is extremely popular and it is built into Emacs.
+
+[source,elisp]
+----
+(setq projectile-completion-system 'ido)
+----
 
 TIP: As already noted above if you're going to use the `ido` completion it's
  **extremely highly** recommended that you install the optional
@@ -316,6 +326,9 @@ If you don't like `ido` and `ivy` you can use regular completion:
 ----
 
 You might want to combine default completion with `icomplete-mode` for optimum results.
+Emacs 27 added `fido-mode` to `icomplete`. If you are using `fido-mode`, projectile will
+use the `default` completion system. The same holds for `selectrum` which also relies
+on the `default` completion system.
 
 === Custom Completion Function
 
