@@ -47,6 +47,9 @@
   (require 'subr-x))
 
 (eval-when-compile
+  (defvar ido-mode)
+  (defvar ivy-mode)
+  (defvar helm-mode)
   (defvar ag-ignore-list)
   (defvar ggtags-completion-table)
   (defvar tags-completion-table)
@@ -199,10 +202,11 @@ When nil Projectile will consider the current directory the project root."
                  (const :tag "Yes" t)
                  (const :tag "Prompt for project" prompt)))
 
-(defcustom projectile-completion-system 'ido
+(defcustom projectile-completion-system 'auto
   "The completion system to be used by Projectile."
   :group 'projectile
   :type '(radio
+          (const :tag "Auto-detect" auto)
           (const :tag "Ido" ido)
           (const :tag "Helm" helm)
           (const :tag "Ivy" ivy)
@@ -1817,36 +1821,38 @@ project-root for every file."
   (let ((prompt (projectile-prepend-project-name prompt))
         res)
     (setq res
-          (cond
-           ((eq projectile-completion-system 'ido)
-            (ido-completing-read prompt choices nil nil initial-input))
-           ((eq projectile-completion-system 'default)
-            (completing-read prompt choices nil nil initial-input))
-           ((eq projectile-completion-system 'helm)
-            (if (and (fboundp 'helm)
-                     (fboundp 'helm-make-source))
-                (helm :sources
-                      (helm-make-source "Projectile" 'helm-source-sync
-                                        :candidates choices
-                                        :action (if action
-                                                    (prog1 action
-                                                      (setq action nil))
-                                                  #'identity))
-                      :prompt prompt
-                      :input initial-input
-                      :buffer "*helm-projectile*")
-              (user-error "Please install helm from \
-https://github.com/emacs-helm/helm")))
-           ((eq projectile-completion-system 'ivy)
-            (if (fboundp 'ivy-read)
-                (ivy-read prompt choices
-                          :initial-input initial-input
-                          :action (prog1 action
-                                    (setq action nil))
-                          :caller 'projectile-completing-read)
-              (user-error "Please install ivy from \
-https://github.com/abo-abo/swiper")))
-           (t (funcall projectile-completion-system prompt choices))))
+          (pcase (if (eq projectile-completion-system 'auto)
+                     (cond
+                      ((and (fboundp 'ido-mode) ido-mode) 'ido)
+                      ((and (fboundp 'helm-mode) helm-mode) 'helm)
+                      ((and (fboundp 'ivy-mode) ivy-mode) 'ivy)
+                      (t 'default))
+                   projectile-completion-system)
+            ('default (completing-read prompt choices nil nil initial-input))
+            ('ido (ido-completing-read prompt choices nil nil initial-input))
+            ('helm
+             (if (and (fboundp 'helm)
+                      (fboundp 'helm-make-source))
+                 (helm :sources
+                       (helm-make-source "Projectile" 'helm-source-sync
+                                         :candidates choices
+                                         :action (if action
+                                                     (prog1 action
+                                                       (setq action nil))
+                                                   #'identity))
+                       :prompt prompt
+                       :input initial-input
+                       :buffer "*helm-projectile*")
+               (user-error "Please install helm from melpa")))
+            ('ivy
+             (if (fboundp 'ivy-read)
+                 (ivy-read prompt choices
+                           :initial-input initial-input
+                           :action (prog1 action
+                                     (setq action nil))
+                           :caller 'projectile-completing-read)
+               (user-error "Please install ivy from elpa")))
+            (_ (funcall projectile-completion-system prompt choices))))
     (if action
         (funcall action res)
       res)))
