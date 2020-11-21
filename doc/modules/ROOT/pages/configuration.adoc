@@ -293,6 +293,23 @@ By default Projectile detects the completion system in use, based
 on the mode variables `ido-mode`, `ivy-mode` and `helm-mode`.
 If none of those is activated, the `default` completion system is used.
 
+Unless for some reason you want to use a different completion system for Projetile than for the
+rest of Emacs, you'll probably don't want to select a particular completion system manually.
+
+=== Basic (Emacs's default)
+
+If you don't like `ido` and `ivy` you can use regular completion (based on `completing-read`):
+
+[source,elisp]
+----
+(setq projectile-completion-system 'default)
+----
+
+You might want to combine default completion with `icomplete-mode` for optimum results.
+Emacs 27 added `fido-mode` to `icomplete`. If you are using `fido-mode`, Projectile will
+use the `default` completion system. The same holds for `selectrum` which also relies
+on the `default` completion system.
+
 === Ido
 
 The `ido` completion system is extremely popular and it is built into Emacs.
@@ -315,20 +332,6 @@ Another completion option is https://github.com/abo-abo/swiper[ivy]:
 ----
 (setq projectile-completion-system 'ivy)
 ----
-
-=== Basic (Emacs's default)
-
-If you don't like `ido` and `ivy` you can use regular completion:
-
-[source,elisp]
-----
-(setq projectile-completion-system 'default)
-----
-
-You might want to combine default completion with `icomplete-mode` for optimum results.
-Emacs 27 added `fido-mode` to `icomplete`. If you are using `fido-mode`, projectile will
-use the `default` completion system. The same holds for `selectrum` which also relies
-on the `default` completion system.
 
 === Custom Completion Function
 
