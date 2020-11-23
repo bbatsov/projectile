@@ -800,7 +800,7 @@ just return nil."
 
 (defun projectile-generate-process-name (process make-new)
   "Infer the buffer name for PROCESS or generate a new one if MAKE-NEW is true."
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (base-name (format "*%s %s*" process (projectile-project-name project))))
     (if make-new
         (generate-new-buffer-name base-name)
@@ -892,7 +892,7 @@ to invalidate."
          (if prompt
              (completing-read "Remove cache for: "
                               (hash-table-keys projectile-projects-cache))
-           (projectile-ensure-project (projectile-project-root)))))
+           (projectile-acquire-root))))
     (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-project-type-cache)
     (remhash project-root projectile-projects-cache)
@@ -1588,7 +1588,7 @@ Only buffers not visible in windows are returned."
   "Do a `multi-occur' in the project's buffers.
 With a prefix argument, show NLINES of context."
   (interactive "P")
-  (let ((project (projectile-ensure-project (projectile-project-root))))
+  (let ((project (projectile-acquire-root)))
     (multi-occur (projectile-project-buffers project)
                  (car (occur-read-primary-args))
                  nlines)))
@@ -1933,7 +1933,7 @@ project-root for every file."
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
-  (projectile-project-dirs (projectile-ensure-project (projectile-project-root))))
+  (projectile-project-dirs (projectile-acquire-root)))
 
 (defun projectile-get-other-files (file-name &optional flex-matching)
   "Return a list of other files for FILE-NAME.
@@ -2193,7 +2193,7 @@ defun, use that instead of `find-file'.   A typical example of such a defun
 would be `find-file-other-window' or `find-file-other-frame'"
   (interactive "P")
   (projectile-maybe-invalidate-cache invalidate-cache)
-  (let* ((project-root (projectile-ensure-project (projectile-project-root)))
+  (let* ((project-root (projectile-acquire-root))
          (file (projectile-completing-read "Find file: "
                                            (projectile-project-files project-root)))
          (ff (or ff-variant #'find-file)))
@@ -2230,7 +2230,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive)
   (let ((inhibit-read-only t)
         (val (not buffer-read-only))
-        (default-directory (projectile-ensure-project (projectile-project-root))))
+        (default-directory (projectile-acquire-root)))
     (add-dir-local-variable nil 'buffer-read-only val)
     (save-buffer)
     (kill-buffer)
@@ -2290,7 +2290,7 @@ With INVALIDATE-CACHE invalidates the cache first.  With DIRED-VARIANT set to a
 defun, use that instead of `dired'.  A typical example of such a defun would be
 `dired-other-window' or `dired-other-frame'"
   (projectile-maybe-invalidate-cache invalidate-cache)
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (dir (projectile-complete-dir project))
          (dired-v (or dired-variant #'dired)))
     (funcall dired-v (expand-file-name dir project))
@@ -3512,28 +3512,28 @@ regular expression."
 (defun projectile-run-command-in-root ()
   "Invoke `execute-extended-command' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+  (projectile-with-default-dir (projectile-acquire-root)
     (call-interactively #'execute-extended-command)))
 
 ;;;###autoload
 (defun projectile-run-shell-command-in-root ()
   "Invoke `shell-command' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+  (projectile-with-default-dir (projectile-acquire-root)
     (call-interactively #'shell-command)))
 
 ;;;###autoload
 (defun projectile-run-async-shell-command-in-root ()
   "Invoke `async-shell-command' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+  (projectile-with-default-dir (projectile-acquire-root)
     (call-interactively #'async-shell-command)))
 
 ;;;###autoload
 (defun projectile-run-gdb ()
   "Invoke `gdb' in the project's root."
   (interactive)
-  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+  (projectile-with-default-dir (projectile-acquire-root)
     (call-interactively 'gdb)))
 
 ;;;###autoload
@@ -3544,7 +3544,7 @@ Switch to the project specific shell buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+  (projectile-with-default-dir (projectile-acquire-root)
     (shell (projectile-generate-process-name "shell" arg))))
 
 ;;;###autoload
@@ -3555,7 +3555,7 @@ Switch to the project specific eshell buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile-with-default-dir (projectile-ensure-project (projectile-project-root))
+  (projectile-with-default-dir (projectile-acquire-root)
     (let ((eshell-buffer-name (projectile-generate-process-name "eshell" arg)))
       (eshell))))
 
@@ -3567,7 +3567,7 @@ Switch to the project specific ielm buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (ielm-buffer-name (projectile-generate-process-name "ielm" arg)))
     (if (get-buffer ielm-buffer-name)
         (switch-to-buffer ielm-buffer-name)
@@ -3584,7 +3584,7 @@ Switch to the project specific term buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (let ((project (projectile-ensure-project (projectile-project-root)))
+  (let ((project (projectile-acquire-root))
         (buffer-name (projectile-generate-process-name "term" arg))
         (default-program (or explicit-shell-file-name
                              (getenv "ESHELL")
@@ -3607,7 +3607,7 @@ Switch to the project specific term buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (buffer (projectile-generate-process-name "vterm" arg)))
     (unless (buffer-live-p (get-buffer buffer))
       (unless (require 'vterm nil 'noerror)
@@ -3618,7 +3618,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
 
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (dir (file-relative-name (expand-file-name directory)
                                   project)))
     (cl-remove-if-not
@@ -3691,7 +3691,7 @@ to run the replacement."
   (let* ((directory (if arg
                         (file-name-as-directory
                          (read-directory-name "Replace in directory: "))
-                      (projectile-ensure-project (projectile-project-root))))
+                      (projectile-acquire-root)))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
                     (projectile-symbol-or-selection-at-point)))
@@ -3730,7 +3730,7 @@ to run the replacement."
   (let* ((directory (if arg
                         (file-name-as-directory
                          (read-directory-name "Replace regexp in directory: "))
-                      (projectile-ensure-project (projectile-project-root))))
+                      (projectile-acquire-root)))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace regexp: ")
                     (projectile-symbol-or-selection-at-point)))
@@ -3756,7 +3756,7 @@ to run the replacement."
 The buffer are killed according to the value of
 `projectile-kill-buffers-filter'."
   (interactive)
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (project-name (projectile-project-name project))
          (buffers (projectile-project-buffers project)))
     (when (yes-or-no-p
@@ -3779,7 +3779,7 @@ The buffer are killed according to the value of
 (defun projectile-save-project-buffers ()
   "Save all project buffers."
   (interactive)
-  (let* ((project (projectile-ensure-project (projectile-project-root)))
+  (let* ((project (projectile-acquire-root))
          (project-name (projectile-project-name project))
          (modified-buffers (cl-remove-if-not (lambda (buf)
                                                (and (buffer-file-name buf)
@@ -3796,19 +3796,19 @@ The buffer are killed according to the value of
 (defun projectile-dired ()
   "Open `dired' at the root of the project."
   (interactive)
-  (dired (projectile-ensure-project (projectile-project-root))))
+  (dired (projectile-acquire-root)))
 
 ;;;###autoload
 (defun projectile-dired-other-window ()
   "Open `dired'  at the root of the project in another window."
   (interactive)
-  (dired-other-window (projectile-ensure-project (projectile-project-root))))
+  (dired-other-window (projectile-acquire-root)))
 
 ;;;###autoload
 (defun projectile-dired-other-frame ()
   "Open `dired' at the root of the project in another frame."
   (interactive)
-  (dired-other-frame (projectile-ensure-project (projectile-project-root))))
+  (dired-other-frame (projectile-acquire-root)))
 
 ;;;###autoload
 (defun projectile-vc (&optional project-root)
@@ -3856,7 +3856,7 @@ directory to open."
 (defun projectile-recentf-files ()
   "Return a list of recently visited files in a project."
   (and (boundp 'recentf-list)
-       (let ((project-root (projectile-ensure-project (projectile-project-root))))
+       (let ((project-root (projectile-acquire-root)))
          (mapcar
           (lambda (f) (file-relative-name f project-root))
           (cl-remove-if-not
@@ -4242,8 +4242,7 @@ and `projectile-run-project'.
 
 If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
   (interactive "P")
-  (let* ((project-root
-          (projectile-ensure-project (projectile-project-root)))
+  (let* ((project-root (projectile-acquire-root))
          (command-history (projectile--get-command-history project-root))
          (command (car-safe (ring-elements command-history)))
          (compilation-read-command show-prompt)
