@@ -4552,8 +4552,7 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
                           (projectile-completing-read
                            "Project name: "
                            (projectile-relevant-known-projects))
-                        (projectile-project-root))))
-
+                        (projectile-acquire-root))))
     (projectile-ibuffer-by-project project-root)))
 
 
