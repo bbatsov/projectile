@@ -1844,7 +1844,7 @@ project-root for every file."
                        :prompt prompt
                        :input initial-input
                        :buffer "*helm-projectile*")
-               (user-error "Please install helm from melpa")))
+               (user-error "Please install helm")))
             ('ivy
              (if (fboundp 'ivy-read)
                  (ivy-read prompt choices
@@ -1852,7 +1852,7 @@ project-root for every file."
                            :action (prog1 action
                                      (setq action nil))
                            :caller 'projectile-completing-read)
-               (user-error "Please install ivy from elpa")))
+               (user-error "Please install ivy")))
             (_ (funcall projectile-completion-system prompt choices))))
     (if action
         (funcall action res)
