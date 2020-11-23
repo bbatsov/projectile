@@ -4796,7 +4796,7 @@ If the current buffer does not belong to a project, call `previous-buffer'."
 (defun projectile-edit-dir-locals ()
   "Edit or create a .dir-locals.el file of the project."
   (interactive)
-  (let ((file (expand-file-name ".dir-locals.el" (projectile-project-root))))
+  (let ((file (expand-file-name ".dir-locals.el" (projectile-acquire-root))))
     (find-file file)
     (when (not (file-exists-p file))
       (unwind-protect
