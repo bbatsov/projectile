@@ -3437,11 +3437,11 @@ regular expression."
   (if (and (boundp 'ggtags-mode)
            (memq projectile-tags-backend '(auto ggtags)))
       (progn
-        (let* ((ggtags-project-root (projectile-project-root))
+        (let* ((ggtags-project-root (projectile-acquire-root))
                (default-directory ggtags-project-root))
           (ggtags-ensure-project)
           (ggtags-update-tags t)))
-    (let* ((project-root (projectile-project-root))
+    (let* ((project-root (projectile-acquire-root))
            (tags-exclude (projectile-tags-exclude-patterns))
            (default-directory project-root)
            (tags-file (expand-file-name projectile-tags-file-name))
