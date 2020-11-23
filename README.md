@@ -20,12 +20,14 @@ external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
 
 This library provides easy project management and navigation. The
-concept of a project is pretty basic - just a folder containing
-special file. Currently `git`, `mercurial`, `darcs` and `bazaar` repos
-are considered projects by default. So are `lein`, `maven`, `sbt`,
+concept of a project is pretty basic - just a folder containing some
+special file (e.g. a VCS marker or a project descriptor
+file). Currently `git`, `mercurial`, `darcs` and `bazaar` repos are
+considered projects by default. So are `lein`, `maven`, `sbt`,
 `scons`, `rebar` and `bundler` projects. If you want to mark a folder
-manually as a project just create an empty `.projectile` file in
-it. Some of Projectile's features:
+manually as a project just create an empty `.projectile` file in it.
+
+Here are some of Projectile's features:
 
 * jump to a file in project
 * jump to files at point in project
@@ -37,12 +39,12 @@ it. Some of Projectile's features:
 * toggle between code and its test (e.g. `main.service.js` <-> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
-* kill all project buffers
+* kill (close) all project buffers
 * replace in project
 * multi-occur in project buffers
 * grep in project
 * regenerate project etags or gtags (requires [ggtags](https://github.com/leoliu/ggtags)).
-* visit project in dired
+* visit project in `dired`
 * run make in a project with a single key chord
 * check for dirty repositories
 * toggle read-only mode for the entire project
