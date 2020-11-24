@@ -20,6 +20,7 @@
 * [#1540](https://github.com/bbatsov/projectile/pull/1540): Add default `test-suffix` to Angular projects.
 * Add a `:project-file` param to `projectile-register-project-type`.
 * [#1588](https://github.com/bbatsov/projectile/pull/1588) Improve performance of `projectile-ibuffer` with many buffers not in project.
+* [#1601](https://github.com/bbatsov/projectile/pull/1601): Implement separate history for each compilation command.
 
 ### Bugs fixed
 
