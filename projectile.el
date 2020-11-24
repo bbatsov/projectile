@@ -4077,7 +4077,8 @@ project of that type"
 (defun projectile-read-command (prompt command)
   "Adapted from `compilation-read-command'."
   (let ((compile-history
-         (ring-elements (projectile--get-command-history (projectile-ensure-project (projectile-project-root))))))
+         ;; fetch the command history for the current project
+         (ring-elements (projectile--get-command-history (projectile-acquire-root)))))
     (read-shell-command prompt command
                         (if (equal (car compile-history) command)
                             '(compile-history . 1)
