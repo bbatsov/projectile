@@ -9,9 +9,9 @@
 * [#1539](https://github.com/bbatsov/projectile/pull/1539): New defcustom `projectile-auto-discover` controlling whether to automatically discover projects in the search path when `projectile-mode` activates.
 * Add [emacs-eldev](https://github.com/doublep/eldev) project type.
 * Add Dart project type.
-* [#1555](https://github.com/bbatsov/projectile/pull/1555) Add search with ripgrep.
+* [#1555](https://github.com/bbatsov/projectile/pull/1555): Add search with ripgrep.
 * Add Python-poetry project type.
-* [#1576](https://github.com/bbatsov/projectile/pull/1576) Add OCaml [Dune](https://github.com/ocaml/dune) project type.
+* [#1576](https://github.com/bbatsov/projectile/pull/1576): Add OCaml [Dune](https://github.com/ocaml/dune) project type.
 * Add [Mill](http://www.lihaoyi.com/mill/) project type.
 * Auto-detect completion system, supporting `ido`, `ivy`, `helm` and the default completion system.
 
@@ -19,7 +19,7 @@
 
 * [#1540](https://github.com/bbatsov/projectile/pull/1540): Add default `test-suffix` to Angular projects.
 * Add a `:project-file` param to `projectile-register-project-type`.
-* [#1588](https://github.com/bbatsov/projectile/pull/1588) Improve performance of `projectile-ibuffer` with many buffers not in project.
+* [#1588](https://github.com/bbatsov/projectile/pull/1588): Improve performance of `projectile-ibuffer` with many buffers not in project.
 * [#1601](https://github.com/bbatsov/projectile/pull/1601): Implement separate history for each compilation command.
 
 ### Bugs fixed
