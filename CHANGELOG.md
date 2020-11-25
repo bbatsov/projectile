@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1517](https://github.com/bbatsov/projectile/issues/1517): Add project-specific compilation buffers and only ask to save files in the project when compiling.
 * New functions `projectile-acquire-root` and `projectile-process-current-project-buffers-current`
 * New project commands `projectile-package-project`, `projectile-install-project`.
 * [#1539](https://github.com/bbatsov/projectile/pull/1539): New defcustom `projectile-auto-discover` controlling whether to automatically discover projects in the search path when `projectile-mode` activates.
