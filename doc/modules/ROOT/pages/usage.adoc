@@ -1,0 +1,249 @@
+= Usage
+
+== Basic setup
+
+NOTE: Everything in this section assumes you've enabled `projectile-mode`.
+
+To add a project to Projectile's list of known projects, open a file
+in the project. If you have a projects directory, you can tell
+Projectile about all of the projects in it with the command `M-x
+projectile-discover-projects-in-directory`.
+
+You can go one step further and set a list of folders which Projectile
+is automatically going to check for projects on startup:
+
+[source,elisp]
+----
+(setq projectile-project-search-path '("~/projects/" "~/work/"))
+----
+
+You can suppress the auto-discovery of projects on startup by setting
+`projectile-auto-discover` to `nil`. You can manually trigger the project
+discovery using `M-x projectile-discover-projects-in-search-path`.
+
+TIP: If you're going to use the default `ido` completion it's **extremely
+highly** recommended that you install the optional
+https://github.com/lewang/flx[flx-ido package], which provides a much more powerful
+alternative to `ido`'s built-in `flex` matching.
+
+Check out the xref:configuration.adoc["Configuration"] section of the manual
+for a lot more information about configuring Projectile.
+
+== Basic Usage
+
+Just open some file in a version-controlled (e.g. `git`) or a project
+(e.g. `maven`) directory that's recognized by Projectile and you're
+ready for action. Projectile happens to recognize out of the box every common
+VCS and many popular project types for various programming languages.
+You can learn more about Projectile's notion of a project xref:projects.adoc[here].
+
+NOTE: The extent of the support for every VCS differs and Git is the best supported
+ one. Projectile supports some advanced features like working with Git submodules
+ and using `git-grep` instead GNU grep.
+
+You need to know only a handful of Projectile commands to start benefiting from it.
+
+* Find file in current project (kbd:[s-p f])
+* Switch project (kbd:[s-p p])
+* Grep in project (kbd:[s-p s g])
+* Replace in project (kbd:[s-p r])
+* Invoke a command via the Projectile Commander (kbd:[s-p m])
+
+The next section lists many more commands, but the basics can get you pretty far.
+
+== Interactive Commands
+
+NOTE: Projectile doesn't have a default key prefix for its commands, but all the examples
+ in the manual assume you've opted for kbd:[s-p] (`super`-p).
+
+Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
+
+|===
+| Keybinding | Description
+
+| kbd:[s-p f]
+| Display a list of all files in the project. With a prefix argument it will clear the cache first.
+
+| kbd:[s-p F]
+| Display a list of all files in all known projects.
+
+| kbd:[s-p g]
+| Display a list of all files at point in the project. With a prefix argument it will clear the cache first.
+
+| kbd:[s-p 4 f]
+| Jump to a project's file using completion and show it in another window.
+
+| kbd:[s-p 4 g]
+| Jump to a project's file based on context at point and show it in another window.
+
+| kbd:[s-p 5 f]
+| Jump to a project's file using completion and show it in another frame.
+
+| kbd:[s-p 5 g]
+| Jump to a project's file based on context at point and show it in another frame.
+
+| kbd:[s-p d]
+| Display a list of all directories in the project. With a prefix argument it will clear the cache first.
+
+| kbd:[s-p 4 d]
+| Switch to a project directory and show it in another window.
+
+| kbd:[s-p 5 d]
+| Switch to a project directory and show it in another frame.
+
+| kbd:[s-p T]
+| Display a list of all test files(specs, features, etc) in the project.
+
+| kbd:[s-p l]
+| Display a list of all files in a directory (that's not necessarily a project)
+
+| kbd:[s-p s g]
+| Run grep on the files in the project.
+
+| kbd:[M-- s-p s g]
+| Run grep on `projectile-grep-default-files` in the project.
+
+| kbd:[s-p v]
+| Run `vc-dir` on the root directory of the project.
+
+| kbd:[s-p V]
+| Browse dirty version controlled projects.
+
+| kbd:[s-p b]
+| Display a list of all project buffers currently open.
+
+| kbd:[s-p 4 b]
+| Switch to a project buffer and show it in another window.
+
+| kbd:[s-p 5 b]
+| Switch to a project buffer and show it in another frame.
+
+| kbd:[s-p 4 C-o]
+| Display a project buffer in another window without selecting it.
+
+| kbd:[s-p a]
+| Switch between files with the same name but different extensions.
+
+| kbd:[s-p 4 a]
+| Switch between files with the same name but different extensions in other window.
+
+| kbd:[s-p 5 a]
+| Switch between files with the same name but different extensions in other frame.
+
+| kbd:[s-p o]
+| Runs `multi-occur` on all project buffers currently open.
+
+| kbd:[s-p r]
+| Runs interactive query-replace on all files in the projects.
+
+| kbd:[s-p i]
+| Invalidates the project cache (if existing).
+
+| kbd:[s-p R]
+| Regenerates the projects `TAGS` file.
+
+| kbd:[s-p j]
+| Find tag in project's `TAGS` file.
+
+| kbd:[s-p k]
+| Kills all project buffers.
+
+| kbd:[s-p D]
+| Opens the root of the project in `dired`.
+
+| kbd:[s-p 4 D]
+| Opens the root of the project in `dired` in another window.
+
+| kbd:[s-p 5 D]
+| Opens the root of the project in `dired` in another frame.
+
+| kbd:[s-p e]
+| Shows a list of recently visited project files.
+
+| kbd:[s-p left]
+| Switch to the previous project buffer.
+
+| kbd:[s-p right]
+| Switch to the next project buffer.
+
+| kbd:[s-p E]
+| Opens the root `dir-locals-file` of the project.
+
+| kbd:[s-p s s]
+| Runs `ag` on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
+
+| kbd:[s-p !]
+| Runs `shell-command` in the root directory of the project.
+
+| kbd:[s-p &]
+| Runs `async-shell-command` in the root directory of the project.
+
+| kbd:[s-p C]
+| Runs a standard configure command for your type of project.
+
+| kbd:[s-p c]
+| Runs a standard compilation command for your type of project.
+
+| kbd:[s-p P]
+| Runs a standard test command for your type of project.
+
+| kbd:[s-p t]
+| Toggle between an implementation file and its test file.
+
+| kbd:[s-p 4 t]
+| Jump to implementation or test file in other window.
+
+| kbd:[s-p 5 t]
+| Jump to implementation or test file in other frame.
+
+| kbd:[s-p z]
+| Adds the currently visited file to the cache.
+
+| kbd:[s-p p]
+| Display a list of known projects you can switch to.
+
+| kbd:[s-p S]
+| Save all project buffers.
+
+| kbd:[s-p m]
+| Run the commander (an interface to run commands with a single key).
+
+| kbd:[s-p ESC]
+| Switch to the most recently selected Projectile buffer.
+|===
+
+If you ever forget any of Projectile's keybindings just do a:
+
+kbd:[s-p C-h]
+
+It is possible to add additional commands to
+`projectile-command-map` referenced by the prefix key in
+`projectile-mode-map`. You can add multiple keymap prefix for all
+commands. Here's an example that adds `super-,` as a command prefix:
+
+[source,elisp]
+----
+(define-key projectile-mode-map (kbd "s-,") 'projectile-command-map)
+----
+
+You can also bind the `projectile-command-map` to any other map you'd
+like (including the global keymap).
+
+TIP: For some common commands you might want to take a little shortcut and
+leverage the fairly unused `Super` key (by default `Command` on Mac
+keyboards and `Windows` on Win keyboards).
+
+Here's something you can
+add to your Emacs config:
+
+[source,elisp]
+----
+(define-key projectile-mode-map [?\s-d] 'projectile-find-dir)
+(define-key projectile-mode-map [?\s-p] 'projectile-switch-project)
+(define-key projectile-mode-map [?\s-f] 'projectile-find-file)
+(define-key projectile-mode-map [?\s-g] 'projectile-grep)
+----
+
+NOTE: Note that the `Super` keybindings are not usable in Windows, as Windows
+ makes heavy use of such keybindings itself. Emacs Prelude already adds those
+ extra keybindings.

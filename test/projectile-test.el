@@ -32,13 +32,13 @@
 (message "Running tests on Emacs %s" emacs-version)
 
 ;; TODO: Revise this init logic
-(let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
-       (source-directory (locate-dominating-file current-file "Cask"))
-       ;; Do not load outdated byte code for tests
-       (load-prefer-newer t))
-  ;; Load the file under test
-  (load (expand-file-name "projectile" source-directory))
-  (setq projectile-test-path (expand-file-name "test" source-directory)))
+(defvar projectile-test-path (let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
+                                    (source-directory (locate-dominating-file current-file "Eldev"))
+                                    ;; Do not load outdated byte code for tests
+                                    (load-prefer-newer t))
+                               ;; Load the file under test
+                               (load (expand-file-name "projectile" source-directory))
+                               (expand-file-name "test" source-directory)))
 
 ;;; Test Utilities
 (defmacro projectile-test-with-sandbox (&rest body)
@@ -128,9 +128,9 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-project-type"
   (it "detects the type of Projectile's project"
-    (expect (projectile-project-type) :to-equal 'emacs-cask))
+    (expect (projectile-project-type) :to-equal 'emacs-eldev))
   (it "caches the project type"
-    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
+    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-eldev)))
 
 (describe "projectile-ignored-directory-p"
   (it "checks if directory should be ignored"
@@ -310,13 +310,24 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)))
 
 (describe "projectile-mode"
-  (it "sets up hook functions"
+  (before-each
     (spy-on 'projectile--cleanup-known-projects)
-    (spy-on 'projectile-discover-projects-in-search-path)
+    (spy-on 'projectile-discover-projects-in-search-path))
+  (it "sets up hook functions"
     (projectile-mode 1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
     (projectile-mode -1)
-    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy))
+  (it "respects projectile-auto-discover setting"
+    (unwind-protect
+        (progn
+          (let ((projectile-auto-discover nil))
+            (projectile-mode 1)
+            (expect 'projectile-discover-projects-in-search-path :not :to-have-been-called))
+          (let ((projectile-auto-discover t))
+            (projectile-mode 1)
+            (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
+      (projectile-mode -1))))
 
 (describe "projectile-relevant-known-projects"
   (it "returns a list of known projects"
@@ -969,7 +980,16 @@ You'd normally combine this with `projectile-test-with-sandbox'."
        "project/package.json")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'rails-rspec))))))
+        (expect (projectile-detect-project-type) :to-equal 'rails-rspec)))))
+  (it "detects project-type for elisp eldev projects"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/Eldev"
+       "project/project.el")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'emacs-eldev))))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
@@ -1450,3 +1470,20 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       (projectile-dir-files-native "projectA/")
       (expect 'projectile-ignored-files :to-have-been-called-times 1)
       (expect 'projectile-ignored-directories :to-have-been-called-times 1)))))
+
+(describe "projectile-process-current-project-buffers-current"
+  (it "expects projectile-process-current-project-buffers and
+projectile-process-current-project-buffers-current to have similar behaviour"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/"
+       "projectA/.projectile"
+       "projectA/bufferA"
+       "projectA/fileA"
+       "projectA/dirA/"
+       "projectA/dirA/fileC")
+      (let ((list-a '())
+            (list-b '()))
+        (projectile-process-current-project-buffers (lambda (b) (push b list-a)))
+        (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
+        (expect list-a :to-equal list-b))))))
