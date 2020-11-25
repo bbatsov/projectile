@@ -3075,7 +3075,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
   (projectile-project-type-attribute project-type 'test-dir "test/"))
 
 (defun projectile-dirname-matching-count (a b)
-  "Count matching dirnames ascending file paths."
+  "Count matching dirnames ascending file paths in A and B."
   (setq a (reverse (split-string (or (file-name-directory a) "") "/" t))
         b (reverse (split-string (or (file-name-directory b) "") "/" t)))
   (let ((common 0))
