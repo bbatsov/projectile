@@ -3537,7 +3537,7 @@ regular expression."
     (call-interactively 'gdb)))
 
 ;;;###autoload
-(defun projectile-run-shell (arg)
+(defun projectile-run-shell (&optional arg)
   "Invoke `shell' in the project's root.
 
 Switch to the project specific shell buffer if it already exists.
@@ -3548,7 +3548,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
     (shell (projectile-generate-process-name "shell" arg))))
 
 ;;;###autoload
-(defun projectile-run-eshell (arg)
+(defun projectile-run-eshell (&optional arg)
   "Invoke `eshell' in the project's root.
 
 Switch to the project specific eshell buffer if it already exists.
@@ -3560,7 +3560,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
       (eshell))))
 
 ;;;###autoload
-(defun projectile-run-ielm (arg)
+(defun projectile-run-ielm (&optional arg)
   "Invoke `ielm' in the project's root.
 
 Switch to the project specific ielm buffer if it already exists.
@@ -3577,7 +3577,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
       (rename-buffer ielm-buffer-name))))
 
 ;;;###autoload
-(defun projectile-run-term (arg)
+(defun projectile-run-term (&optional arg)
   "Invoke `term' in the project's root.
 
 Switch to the project specific term buffer if it already exists.
