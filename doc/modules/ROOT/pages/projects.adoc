@@ -183,7 +183,7 @@ Let's see a couple of more complex examples.
                                   :test-suffix "_spec")
 ----
 
-All those projects are using `Gemfile` (`bundler`'s project file), but they have different directory structures.
+All those projects are using `Gemfile` (``bundler``'s project file), but they have different directory structures.
 
 Bellow is a listing of all the available options for `projectile-register-project-type`:
 

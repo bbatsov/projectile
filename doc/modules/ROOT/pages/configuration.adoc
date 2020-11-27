@@ -359,7 +359,7 @@ The `ido` completion system is extremely popular and it is built into Emacs.
 TIP: As already noted above if you're going to use the `ido` completion it's
  **extremely highly** recommended that you install the optional
  https://github.com/lewang/flx[flx-ido package], which provides a much
- more powerful alternative to `ido`'s built-in `flex` matching.
+ more powerful alternative to ``ido``'s built-in `flex` matching.
 
 === Ivy (recommended)
 

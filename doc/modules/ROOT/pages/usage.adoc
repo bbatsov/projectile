@@ -24,7 +24,7 @@ discovery using `M-x projectile-discover-projects-in-search-path`.
 TIP: If you're going to use the default `ido` completion it's **extremely
 highly** recommended that you install the optional
 https://github.com/lewang/flx[flx-ido package], which provides a much more powerful
-alternative to `ido`'s built-in `flex` matching.
+alternative to ``ido``'s built-in `flex` matching.
 
 Check out the xref:configuration.adoc["Configuration"] section of the manual
 for a lot more information about configuring Projectile.
