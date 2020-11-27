@@ -332,6 +332,9 @@ The `ido` completion system is extremely popular and it is built into Emacs.
 (setq projectile-completion-system 'ido)
 ----
 
+As noted above, Projectile will auto-detect `ido-mode` if enabled, so the
+above configuration is not needed most of the time.
+
 TIP: As already noted above if you're going to use the `ido` completion it's
  **extremely highly** recommended that you install the optional
  https://github.com/lewang/flx[flx-ido package], which provides a much
@@ -345,6 +348,13 @@ Another completion option is https://github.com/abo-abo/swiper[ivy]:
 ----
 (setq projectile-completion-system 'ivy)
 ----
+
+As noted above, Projectile will auto-detect `ivy-mode` if enabled, so the
+above configuration is not needed most of the time.
+
+TIP: It's recommended to also install the
+ https://github.com/raxod502/prescient.el[ivy-prescient package], which provides a much
+ more powerful alternative to ``ivy``'s built-in matching/sorting.
 
 === Custom Completion Function
 
