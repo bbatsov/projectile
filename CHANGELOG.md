@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.3.0 (2020-11-27)
+
 ### New features
 
 * [#1517](https://github.com/bbatsov/projectile/issues/1517): Add project-specific compilation buffers and only ask to save files in the project when compiling.
