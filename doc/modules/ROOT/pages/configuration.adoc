@@ -318,8 +318,10 @@ If you don't like `ido` and `ivy` you can use regular completion (based on `comp
 (setq projectile-completion-system 'default)
 ----
 
-You might want to combine default completion with `icomplete-mode` for optimum results.
-Emacs 27 added `fido-mode` to `icomplete`. If you are using `fido-mode`, Projectile will
+TIP: You might want to combine default completion with `icomplete-mode` for optimum results.
+Emacs 27 added `fido-mode` to `icomplete`.
+
+If you are using `fido-mode`, Projectile will
 use the `default` completion system. The same holds for `selectrum` which also relies
 on the `default` completion system.
 
