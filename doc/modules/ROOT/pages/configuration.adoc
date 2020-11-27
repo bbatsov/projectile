@@ -298,30 +298,6 @@ want to set
 in order to allow for the occasions where you want to select the
 top-level directory.
 
-=== Project-specific Compilation Buffers
-
-This affects all commands built on top of `projectile--run-project-cmd` like:
-
-- `projectile-configure-project`
-- `projectile-run-project`
-- `projectile-test-project`
-- `projectile-install-project`
-- `projectile-package-project`
-
-Normally, the buffers created by those commands would be shared (overwritten)
-between projects, but it's also possible to make the compilation buffer names
-project-specific. Currently, this requires that the user explicitly set:
-
-[source,elisp]
-----
-(setq compilation-buffer-name-function
-      #'projectile-compilation-buffer-name)
-(setq compilation-save-buffers-predicate
-      #'projectile-current-project-buffer-p)
-----
-
-Both of these degrade properly when not inside a project.
-
 == Completion Options
 
 === Auto (default)
@@ -388,6 +364,30 @@ https://gist.github.com/rejeep/5933343[this one], which only show
 the file name (not including path) and if the file selected is not
 unique, another completion with names relative to project root
 appears.
+
+== Project-specific Compilation Buffers
+
+This affects all commands built on top of `projectile--run-project-cmd` like:
+
+- `projectile-configure-project`
+- `projectile-run-project`
+- `projectile-test-project`
+- `projectile-install-project`
+- `projectile-package-project`
+
+Normally, the buffers created by those commands would be shared (overwritten)
+between projects, but it's also possible to make the compilation buffer names
+project-specific. Currently, this requires that the user explicitly set:
+
+[source,elisp]
+----
+(setq compilation-buffer-name-function
+      #'projectile-compilation-buffer-name)
+(setq compilation-save-buffers-predicate
+      #'projectile-current-project-buffer-p)
+----
+
+Both of these degrade properly when not inside a project.
 
 == Regenerate tags
 
