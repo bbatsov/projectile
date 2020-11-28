@@ -24,7 +24,7 @@ concept of a project is pretty basic - just a folder containing some
 special file (e.g. a VCS marker or a project descriptor
 file). Currently `git`, `mercurial`, `darcs` and `bazaar` repos are
 considered projects by default. So are `lein`, `maven`, `sbt`,
-`scons`, `rebar` and `bundler` projects. If you want to mark a folder
+`scons`, `rebar3` and `bundler` projects. If you want to mark a folder
 manually as a project just create an empty `.projectile` file in it.
 
 Here are some of Projectile's features:

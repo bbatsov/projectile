@@ -2675,8 +2675,8 @@ test/impl/other files as below:
 ;; Erlang & Elixir
 (projectile-register-project-type 'rebar '("rebar.config")
                                   :project-file "rebar.config"
-                                  :compile "rebar"
-                                  :test "rebar eunit"
+                                  :compile "rebar3 compile"
+                                  :test "rebar3 do eunit,ct"
                                   :test-suffix "_SUITE")
 (projectile-register-project-type 'elixir '("mix.exs")
                                   :project-file "mix.exs"
