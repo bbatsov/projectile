@@ -1,7 +1,10 @@
 # Changelog
 
 ## master (unreleased)
-* [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects
+
+### Changes
+
+* [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects.
 
 ## 2.3.0 (2020-11-27)
 
