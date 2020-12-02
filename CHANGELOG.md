@@ -9,6 +9,7 @@
 ### Bugs fixed
 
 * [#1438](https://github.com/bbatsov/projectile/pull/1438): Make sure `projectile-files-via-ext-command` returns files not errors.
+* [#1450](https://github.com/bbatsov/projectile/pull/1450): Call `switch-project-action` within project's temp buffer.
 
 ## 2.3.0 (2020-11-27)
 
