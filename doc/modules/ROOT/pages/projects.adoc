@@ -8,9 +8,9 @@ project detection logic and project type specific logic.
 
 Broadly speaking, Projectile identifies projects like this:
 
-* Directories under version control (e.g. a Git repo)
-* Directories that contain some project description file (e.g. a `Gemfile` for Ruby projects)
 * Directories that contain the special `.projectile` file
+* Directories under version control (e.g. a Git repo)
+* Directories that contain some project description file (e.g. a `Gemfile` for Ruby projects or `pom.xml` for Java maven-based projects)
 
 While Projectile aims to recognize most project types out-of-the-box, it's also extremely
 flexible configuration-wise, and you can easily alter the project detection logic.
@@ -434,18 +434,49 @@ Each helper means `projectile-related-files-fn-helper-name` function.
    :related-files-fn #'my/related-files)
 ----
 
-== Customizing project root files
+== Customizing Project Detection
 
-You can set the values of `projectile-project-root-files`,
-`projectile-project-root-files-top-down-recurring`,
-`projectile-project-root-files-bottom-up` and
-`projectile-project-root-files-functions` to customize how project roots are
-identified.
+Project detection is pretty simple - Projectile just runs a list of
+project detection functions
+(`projectile-project-root-files-functions`) until one of them returns
+a project directory.
 
-To customize project root files settings:
+This list of functions is customizable, and while Projectile has some
+defaults for it, you can tweak it however you see fit.
 
+Let's take a closer look at `projectile-project-root-files-functions`:
+
+[source,elisp]
 ----
-M-x customize-group RET projectile RET
+(defcustom projectile-project-root-files-functions
+  '(projectile-root-local
+    projectile-root-bottom-up
+    projectile-root-top-down
+    projectile-root-top-down-recurring)
+  "A list of functions for finding project roots."
+  :group 'projectile
+  :type '(repeat function))
+----
+
+The important thing to note here is that the functions get invoked in their
+order on the list, so the functions earlier in the list will have a higher
+precedence with respect to project detection. Let's examine the defaults:
+
+* `projectile-root-local` looks for project path set via the buffer-local variable `projectile-project-root`. Typically you'd set this variable via `.dir-locals.el` and it will take precedence over everything else.
+
+* `projectile-root-bottom-up` will start looking for a project marker file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will return the first match it discovers. The assumption is pretty simple - the root marker appear only once, at the root folder of a project. If a root marker appear in several nested folders (e.g. you've got nested git projects), the bottom-most (closest to the current dir) match has precedence. You can customize the root markers recognized by this function via `projectile-project-root-files-functions`
+
+* `projectile-root-top-down` is similar, but it will return the top-most (farthest from the current directory) match. It's configurable via `projectile-project-root-files` and all project manifest markers like `pom.xml`, `Gemfile`, `project.clj`, etc go there.
+
+* `projectile-root-top-down-recurring` will look for project markers that can appear at every level of a project (e.g. `Makefile` or `.svn`) and will return the top-most match for those.
+
+The default ordering should work well for most people, but depending on the structure of your project you might want to tweak it.
+
+Re-ordering those functions will alter the project detection, but you can also replace the list. Here's how you can delegate the project detection to Emacs's built-in function `vc-root-dir`:
+
+[source,elisp]
+----
+(setq projectile-project-root-files-functions '(vc-root-dir))
 ----
 
 == Ignoring files
