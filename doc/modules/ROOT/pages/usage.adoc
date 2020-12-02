@@ -67,7 +67,7 @@ NOTE: The extent of the support for every VCS differs and Git is the best suppor
 You need to know only a handful of Projectile commands to start benefiting from it.
 
 * Find file in current project (kbd:[s-p f])
-* Switch project (kbd:[s-p p])
+* Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q])
 * Grep in project (kbd:[s-p s g])
 * Replace in project (kbd:[s-p r])
 * Invoke a command via the Projectile Commander (kbd:[s-p m])
@@ -224,6 +224,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p p]
 | Display a list of known projects you can switch to.
+
+| kbd:[s-p q]
+| Display a list of open projects you can switch to.
 
 | kbd:[s-p S]
 | Save all project buffers.

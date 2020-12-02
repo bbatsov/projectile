@@ -218,11 +218,12 @@ By default, projectile does not include the current project in the list when
 switching projects. If you want to include the current project, customize
 variable `projectile-current-project-on-switch`.
 
-When running `projectile-switch-project` (kbd:[s-p p]) Projectile invokes
-the command specified in `projectile-switch-project-action` (by default it is
-`projectile-find-file`).
+When running `projectile-switch-project` (kbd:[s-p p]) and
+`projectile-switch-open-project` (kbd:[s-p q]) Projectile invokes the
+command specified in `projectile-switch-project-action` (by default it
+is `projectile-find-file`).
 
-TIP: Invoking the command with a prefix argument (<kbd>C-u s-p p</kbd>) will trigger
+TIP: Invoking the command with a prefix argument (kbd:[C-u s-p p] or kbd:[C-u s-p q]) will trigger
  the Projectile Commander, which gives you quick access to most common commands
  you might want to invoke on a project.
 
