@@ -290,7 +290,7 @@ The commander was created with the idea to provide a powerful project switching 
 | Open project root in dired.
 
 | kbd:[R]
-| Regenerate the project's [e|g]tags.
+| Regenerate the project's etags/gtags.
 
 | kbd:[T]
 | Find test file in project.

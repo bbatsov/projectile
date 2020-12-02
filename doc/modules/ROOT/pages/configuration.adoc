@@ -256,7 +256,7 @@ With this setting, after selecting a project to switch to, you'll be prompted to
 | Open project root in dired.
 
 | kbd:[R]
-| Regenerate the project's [e|g]tags.
+| Regenerate the project's etags/gtags.
 
 | kbd:[T]
 | Find test file in project.
