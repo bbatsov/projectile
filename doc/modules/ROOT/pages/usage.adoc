@@ -2,7 +2,14 @@
 
 == Basic setup
 
-NOTE: Everything in this section assumes you've enabled `projectile-mode`.
+In this section we'll cover the bare minimum of setup you might want to
+do. Projectile works fine with no setup, but if you tweak the configuration a
+bit you'll get more out of it.
+
+Check out the xref:configuration.adoc["Configuration"] section of the manual
+for a lot more information about configuring Projectile.
+
+=== Automated Project Discovery
 
 To add a project to Projectile's list of known projects, open a file
 in the project. If you have a projects directory, you can tell
@@ -21,15 +28,31 @@ You can suppress the auto-discovery of projects on startup by setting
 `projectile-auto-discover` to `nil`. You can manually trigger the project
 discovery using `M-x projectile-discover-projects-in-search-path`.
 
+=== Minibuffer Completion
+
+While Projectile works fine with Emacs's default minibuffer completion system you're highly encouraged to use some
+powerful alternative like `ido`, `ivy` or `selectrum`.
+
 TIP: If you're going to use the default `ido` completion it's **extremely
 highly** recommended that you install the optional
 https://github.com/lewang/flx[flx-ido package], which provides a much more powerful
-alternative to ``ido``'s built-in `flex` matching.
+alternative to ``ido``'s built-in `flex` matching. For `ivy` and `selectrum` it's
+a good idea to enable `prescient` (a package similar to `flx`).
 
-Check out the xref:configuration.adoc["Configuration"] section of the manual
-for a lot more information about configuring Projectile.
+=== Installing External Tools
+
+NOTE: Windows users can ignore this section unless they are using Emacs via WSL or `cygwin`.
+
+It's recommended to install the following command-line tools:
+
+* `fd` (a super-fast alternative to `find`)
+* `ag` (a.k.a. `the_silver_searcher`, a powerful alternative to `grep`) or `rg` (a.k.a. `ripgrep`)
+
+Projectile will make use of them automatically when available, and fallback to the standard Unix tools otherwise.
 
 == Basic Usage
+
+NOTE: Everything in this section assumes you've enabled `projectile-mode`.
 
 Just open some file in a version-controlled (e.g. `git`) or a project
 (e.g. `maven`) directory that's recognized by Projectile and you're
