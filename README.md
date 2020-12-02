@@ -1,13 +1,12 @@
+# Projectile
+
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 [![MELPA](http://melpa.org/packages/projectile-badge.svg)](http://melpa.org/#/projectile)
 [![MELPA Stable](http://stable.melpa.org/packages/projectile-badge.svg)](http://stable.melpa.org/#/projectile)
-[![Build Status](https://travis-ci.org/bbatsov/projectile.png?branch=master)](https://travis-ci.org/bbatsov/projectile)
-[![Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bbatsov/donate)
+[![Build Status](https://github.com/bbatsov/projectile/workflows/CI/badge.svg)](https://github.com/bbatsov/projectile/actions?query=workflow%3ACI)
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 
 ## Synopsis
-
-[![Join the chat at https://gitter.im/bbatsov/projectile](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/bbatsov/projectile?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 **Projectile** is a project interaction library for Emacs. Its goal is to
 provide a nice set of features operating on a project level without
@@ -21,12 +20,14 @@ external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
 
 This library provides easy project management and navigation. The
-concept of a project is pretty basic - just a folder containing
-special file. Currently `git`, `mercurial`, `darcs` and `bazaar` repos
-are considered projects by default. So are `lein`, `maven`, `sbt`,
-`scons`, `rebar` and `bundler` projects. If you want to mark a folder
-manually as a project just create an empty `.projectile` file in
-it. Some of Projectile's features:
+concept of a project is pretty basic - just a folder containing some
+special file (e.g. a VCS marker or a project descriptor
+file). Currently `git`, `mercurial`, `darcs` and `bazaar` repos are
+considered projects by default. So are `lein`, `maven`, `sbt`,
+`scons`, `rebar3` and `bundler` projects. If you want to mark a folder
+manually as a project just create an empty `.projectile` file in it.
+
+Here are some of Projectile's features:
 
 * jump to a file in project
 * jump to files at point in project
@@ -38,33 +39,39 @@ it. Some of Projectile's features:
 * toggle between code and its test (e.g. `main.service.js` <-> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
-* kill all project buffers
+* kill (close) all project buffers
 * replace in project
 * multi-occur in project buffers
 * grep in project
 * regenerate project etags or gtags (requires [ggtags](https://github.com/leoliu/ggtags)).
-* visit project in dired
+* visit project in `dired`
 * run make in a project with a single key chord
 * check for dirty repositories
 * toggle read-only mode for the entire project
+* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
 
-Here's a glimpse of Projectile in action:
+## Projectile in Action
 
-![Projectile Screenshot](doc/screenshots/projectile.png)
+Here's a glimpse of Projectile in action (using `ivy`):
+
+![Projectile Demo](doc/modules/ROOT/assets/images/projectile-demo.gif)
+
+In this short demo you can see:
+
+* finding files in a project
+* switching between implementation and test
+* switching between projects
 
 You can support my work on Projectile via
  [PayPal](https://www.paypal.me/bbatsov),
- [Salt](https://salt.bountysource.com/teams/projectile),
- [Patreon](https://www.patreon.com/bbatsov) and [Liberapay](https://liberapay.com/bbatsov/donate).
-
-[![Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bbatsov/donate)
-[![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
+ [Patreon](https://www.patreon.com/bbatsov) and
+ [GitHub Sponsors](https://github.com/sponsors/bbatsov).
 
 ## Quickstart
 
 The instructions that follow are meant to get you from zero to a running Projectile setup
-in a minute.  See the
-[official manual](https://docs.projectile.mx) for (way) more
+in a minute.  Visit the
+[user manual](https://docs.projectile.mx) for (way) more
 details.
 
 ### Installation
@@ -85,7 +92,7 @@ simply `apt-get install elpa-projectile`.
 
 Finally add this to your Emacs config:
 
-```el
+```elisp
 (projectile-mode +1)
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
@@ -97,12 +104,15 @@ Those keymap prefixes are just a suggestion. Feel free to put there whatever wor
 
 Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c p f</kbd>.
 
-See the user manual for more details.
+See the [user manual](https://docs.projectile.mx) for more details.
 
 ## Caveats
 
 * Some operations like search (grep) depend (presently) on external
   utilities such as `find`.
+* Using Projectile over TRAMP might be slow in certain cases.
+* Some commands might misbehave on complex project setups (e.g. a git project with submodules)
+* Projectile was mostly tested on Unix OS-es (e.g. GNU/Linux and macOS), so some functionality might not work well on Windows
 
 ## Known issues
 
@@ -124,7 +134,7 @@ A fairly extensive changelog is available [here](CHANGELOG.md).
 
 ## License
 
-Copyright © 2011-2019 Bozhidar Batsov and
+Copyright © 2011-2020 Bozhidar Batsov and
 [contributors](https://github.com/bbatsov/projectile/contributors).
 
 Distributed under the GNU General Public License, version 3

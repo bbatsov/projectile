@@ -1,0 +1,63 @@
+= Troubleshooting
+
+In case you run into issues here are a few tips that can help you diagnose the
+problem.
+
+Generally, it's not a bad idea to configure Emacs to spit the backtrace on error
+(instead of just logging the error in the `*Messages*` buffer). You can toggle
+this behavior by using kbd:[M-x] `toggle-debug-on-error`.
+
+== Debugging Projectile commands
+
+Emacs features a super powerful built-in
+http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html[Emacs Lisp debugger]
+and using it is the best way to diagnose problems of any kind.
+
+TIP: Here's a https://www.youtube.com/watch?v=odkYXXYOxpo[great crash course] on
+ using the debugger.
+
+To debug some command you need to do the following:
+
+* Figure out the name of the command you want to debug (e.g. by using kbd:[C-h k]
+to see which command is associated with some keybinding)
+* Find the source of the command (e.g. by using kbd:[M-x] `find-function`
+kbd:[RET] `function-name`)
+* Press kbd:[C-u C-M-x] while in the body of the function
+* Run the command again
+
+At this point you'll be dropped in the debugger and you can step forward until
+you find the problem.
+
+== Profiling Projectile commands
+
+Emacs comes with a https://www.gnu.org/software/emacs/manual/html_node/elisp/Profiling.html[built-in
+profiler]. Using
+it is pretty simple:
+
+. Start it with kbd:[M-x] `profiler-start`.
+. Invoke some commands.
+. Get the report with kbd:[M-x] `profiler-report`.
+
+TIP: If you intend to share the profiling results with someone it's a good idea to
+ save the report buffer to a file with <kbd>C-x C-w</kbd>.
+
+== Commonly encountered problems (and how to solve them)
+
+=== Using some command causes Emacs to freeze for a while
+
+Sometimes a Projectile command might hang for a while (e.g. due to a bug or a
+configuration issue). Such problems are super annoying, but are relatively easy
+to debug. Here are a few steps you can take in such situations:
+
+* Do kbd:[M-x] `toggle-debug-on-quit`
+* Reproduce the problem
+* Hit kbd:[C-g] around 10 seconds into the hang
+
+This will bring up a backtrace with the entire function stack, including
+function arguments. So you should be able to figure out what's going on (or at
+least what's being required).
+
+=== I upgraded Projectile using `package.el` and nothing changed
+
+Emacs doesn't load the new files, it only installs them on disk.  To see the
+effect of changes you have to restart Emacs.

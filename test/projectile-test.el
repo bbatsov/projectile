@@ -1,6 +1,6 @@
 ;;; projectile-test.el
 
-;; Copyright © 2019 Bozhidar Batsov
+;; Copyright © 2011-2020 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 
@@ -28,16 +28,17 @@
 (require 'projectile)
 (require 'buttercup)
 
+
 (message "Running tests on Emacs %s" emacs-version)
 
 ;; TODO: Revise this init logic
-(let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
-       (source-directory (locate-dominating-file current-file "Cask"))
-       ;; Do not load outdated byte code for tests
-       (load-prefer-newer t))
-  ;; Load the file under test
-  (load (expand-file-name "projectile" source-directory))
-  (setq projectile-test-path (expand-file-name "test" source-directory)))
+(defvar projectile-test-path (let* ((current-file (if load-in-progress load-file-name (buffer-file-name)))
+                                    (source-directory (locate-dominating-file current-file "Eldev"))
+                                    ;; Do not load outdated byte code for tests
+                                    (load-prefer-newer t))
+                               ;; Load the file under test
+                               (load (expand-file-name "projectile" source-directory))
+                               (expand-file-name "test" source-directory)))
 
 ;;; Test Utilities
 (defmacro projectile-test-with-sandbox (&rest body)
@@ -127,9 +128,9 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-project-type"
   (it "detects the type of Projectile's project"
-    (expect (projectile-project-type) :to-equal 'emacs-cask))
+    (expect (projectile-project-type) :to-equal 'emacs-eldev))
   (it "caches the project type"
-    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-cask)))
+    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-eldev)))
 
 (describe "projectile-ignored-directory-p"
   (it "checks if directory should be ignored"
@@ -149,11 +150,11 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (spy-on 'projectile-project-root :and-return-value "/path/to/project")
     (spy-on 'projectile-project-name :and-return-value "project")
     (spy-on 'projectile-project-ignored-files :and-return-value '("foo.js" "bar.rb"))
-    (let ((files'("/path/to/project/TAGS"
-                  "/path/to/project/foo.js"
-                  "/path/to/project/bar.rb"
-                  "/path/to/project/file1.log"
-                  "/path/to/project/file2.log"))
+    (let ((files '("/path/to/project/TAGS"
+                   "/path/to/project/foo.js"
+                   "/path/to/project/bar.rb"
+                   "/path/to/project/file1.log"
+                   "/path/to/project/file2.log"))
           (projectile-ignored-files '("TAGS" "file\d+\\.log")))
       (expect (projectile-ignored-files) :not :to-equal files)
       (expect (projectile-ignored-files) :to-equal '("/path/to/project/TAGS"
@@ -235,7 +236,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (spy-on 'projectile-project-vcs :and-return-value 'git)
     (spy-on 'projectile-get-repo-ignored-files :and-return-value '("path/unignored-file"))
     (spy-on 'projectile-get-repo-ignored-directory :and-call-fake
-            (lambda (project vcs dir)
+            (lambda (project dir vcs)
               (list (concat dir "unignored-file"))))
     (let ((projectile-globally-unignored-directories '("path")))
       (expect (projectile-add-unignored nil nil '("file")) :to-equal '("file" "path/unignored-file"))
@@ -250,10 +251,23 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (spy-on 'file-truename :and-call-fake (lambda (filename) filename))
     (spy-on 'insert-file-contents :and-call-fake
             (lambda (filename)
-              (save-excursion (insert "\n-exclude\n+include\nno-prefix\n left-wspace\nright-wspace\t\n"))))
+              (save-excursion (insert "\n-exclude\n+include\n#may-be-a-comment\nno-prefix\n left-wspace\nright-wspace\t\n"))))
     (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
-                                                          ("exclude" "no-prefix" "left-wspace" "right-wspace")
-                                                          nil))))
+                                                          ("exclude"
+							   "#may-be-a-comment"
+							   "no-prefix"
+							   "left-wspace"
+							   "right-wspace")
+                                                          nil))
+    ;; same test - but with comment lines enabled using prefix '#'
+    (let ((projectile-dirconfig-comment-prefix ?#))
+      (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
+							    ("exclude"
+							     "no-prefix"
+							     "left-wspace"
+							     "right-wspace")
+							    nil)))
+    ))
 
 (describe "projectile-get-project-directories"
   (it "gets the list of project directories"
@@ -291,18 +305,31 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (expect (string-empty-p (projectile-get-sub-projects-command 'none)) :to-be-truthy)))
 
 (describe "projectile-files-via-ext-command"
-  (it "returns nil when command is nil or empty"
-    (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
-    (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)))
+   (it "returns nil when command is nil or empty or fails"
+     (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
+     (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)
+     (expect (projectile-files-via-ext-command "" "echo Not a file name! > &2") :not :to-be-truthy)
+     (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename"))))
 
 (describe "projectile-mode"
-  (it "sets up hook functions"
+  (before-each
     (spy-on 'projectile--cleanup-known-projects)
-    (spy-on 'projectile-discover-projects-in-search-path)
+    (spy-on 'projectile-discover-projects-in-search-path))
+  (it "sets up hook functions"
     (projectile-mode 1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
     (projectile-mode -1)
-    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy))
+  (it "respects projectile-auto-discover setting"
+    (unwind-protect
+        (progn
+          (let ((projectile-auto-discover nil))
+            (projectile-mode 1)
+            (expect 'projectile-discover-projects-in-search-path :not :to-have-been-called))
+          (let ((projectile-auto-discover t))
+            (projectile-mode 1)
+            (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
+      (projectile-mode -1))))
 
 (describe "projectile-relevant-known-projects"
   (it "returns a list of known projects"
@@ -643,6 +670,32 @@ You'd normally combine this with `projectile-test-with-sandbox'."
         (expect (projectile-project-root) :to-equal correct-project-root))))))
 
 (describe "projectile-grep"
+  (describe "multi-root grep"
+    (after-each
+      (cl-flet ((grep-buffer-p (b) (string-prefix-p "*grep" (buffer-name b))))
+        (let ((grep-buffers (cl-remove-if-not #'grep-buffer-p (buffer-list))))
+          (dolist (grep-buffer grep-buffers)
+            (let ((kill-buffer-query-functions nil))
+              (kill-buffer grep-buffer))))))
+    (it "grep multi-root projects"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("project/bar/"
+             "project/baz/")
+          (cd "project")
+          (with-temp-file ".projectile" (insert (concat "+/baz\n"
+                                                        "+/bar\n")))
+          (with-temp-file "foo.txt" (insert "hi"))
+          (with-temp-file "bar/bar.txt" (insert "hi"))
+          (with-temp-file "baz/baz.txt" (insert "hi"))
+          (with-current-buffer (find-file-noselect ".projectile" t)
+            (let ((grep-find-template "<X>")
+                  grep-find-ignored-directories grep-find-ignored-files
+                  projectile-globally-ignored-files
+                  projectile-globally-ignored-file-suffixes
+                  projectile-globally-ignored-directories)
+              (projectile-grep "hi")))))))
+
   (describe "rgrep"
     (before-each
       (spy-on 'compilation-start))
@@ -733,6 +786,24 @@ You'd normally combine this with `projectile-test-with-sandbox'."
   (it "fails if there are no projects"
     (let ((projectile-known-projects nil))
       (expect (projectile-switch-project) :to-throw))))
+
+(describe "projectile-switch-project-by-name"
+  (it "calls the switch project action with project-to-swtich's dir-locals loaded"
+    (let ((foo 'bar)
+          (switch-project-foo)
+          (safe-local-variable-values '((foo . baz)))
+          (projectile-switch-project-action (lambda () (setq switch-project-foo foo))))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("project/"
+             "project/.dir-locals.el"
+             "project/.projectile")
+          (append-to-file
+           "((nil . ((foo . baz))))" nil "project/.dir-locals.el")
+          (projectile-add-known-project (file-name-as-directory (expand-file-name "project")))
+          (projectile-switch-project-by-name (file-name-as-directory (expand-file-name "project")))
+
+          (expect switch-project-foo :to-be 'baz))))))
 
 (describe "projectile-ignored-buffer-p"
   (it "checks if buffer should be ignored"
@@ -929,7 +1000,16 @@ You'd normally combine this with `projectile-test-with-sandbox'."
        "project/package.json")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'rails-rspec))))))
+        (expect (projectile-detect-project-type) :to-equal 'rails-rspec)))))
+  (it "detects project-type for elisp eldev projects"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/Eldev"
+       "project/project.el")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'emacs-eldev))))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
@@ -1387,3 +1467,43 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 (describe "projectile-find-file-in-directory"
   (it "fails when called in a non-existing directory"
     (expect (projectile-find-file-in-directory "asdf") :to-throw)))
+
+(describe "projectile-dir-files-native"
+  (it "calculates ignored files and directories only once during recursion"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/"
+       "projectA/.svn/"
+       "projectA/src/.svn/"
+       "projectA/src/html/.svn/"
+       "projectA/.git/"
+       "projectA/src/html/"
+       "projectA/src/framework/lib/"
+       "projectA/src/framework.conf"
+       "projectA/src/html/index.html"
+       "projectA/.projectile")
+
+      ;; verify that indexing only invokes these funcs once during recursion
+      (spy-on 'projectile-ignored-files :and-call-through)
+      (spy-on 'projectile-ignored-directories :and-call-through)
+      
+      (projectile-dir-files-native "projectA/")
+      (expect 'projectile-ignored-files :to-have-been-called-times 1)
+      (expect 'projectile-ignored-directories :to-have-been-called-times 1)))))
+
+(describe "projectile-process-current-project-buffers-current"
+  (it "expects projectile-process-current-project-buffers and
+projectile-process-current-project-buffers-current to have similar behaviour"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/"
+       "projectA/.projectile"
+       "projectA/bufferA"
+       "projectA/fileA"
+       "projectA/dirA/"
+       "projectA/dirA/fileC")
+      (let ((list-a '())
+            (list-b '()))
+        (projectile-process-current-project-buffers (lambda (b) (push b list-a)))
+        (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
+        (expect list-a :to-equal list-b))))))
