@@ -231,12 +231,75 @@ may prefer to alter the value of `projectile-switch-project-action`:
 
 === `projectile-find-file`
 
-This is the default.  With this setting, once you have selected your
+NOTE: This is the default.
+
+With this setting, once you have selected your
 project via Projectile's completion system (see below), you will
 remain in the completion system to select a file to visit. `projectile-find-file`
 is capable of retrieving files in all sub-projects under the project root,
 such as Git submodules. Currently, only Git is supported. Support for other VCS
 will be added in the future.
+
+=== `projectile-commander`
+
+NOTE: This is the recommended option for people who find themselves often needing
+to invoke a different action on project switch.
+
+With this setting, after selecting a project to switch to, you'll be prompted to specify the action to take with a 1-character mnemonic.
+
+|===
+| Keybinding | Description
+| kbd:[?]
+| Commander help buffer.
+
+| kbd:[D]
+| Open project root in dired.
+
+| kbd:[R]
+| Regenerate the project's [e|g]tags.
+
+| kbd:[T]
+| Find test file in project.
+
+| kbd:[V]
+| Browse dirty projects
+
+| kbd:[a]
+| Run ag on project.
+
+| kbd:[b]
+| Switch to project buffer.
+
+| kbd:[d]
+| Find directory in project.
+
+| kbd:[e]
+| Find recently visited file in project.
+
+| kbd:[f]
+| Find file in project.
+
+| kbd:[g]
+| Run grep on project.
+
+| kbd:[j]
+| Find tag in project.
+
+| kbd:[k]
+| Kill all project buffers.
+
+| kbd:[o]
+| Run multi-occur on project buffers.
+
+| kbd:[r]
+| Replace a string in the project.
+
+| kbd:[s]
+| Switch project.
+
+| kbd:[v]
+| Open project root in vc-dir or magit.
+|===
 
 === `projectile-find-file-in-known-projects`
 
