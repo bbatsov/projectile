@@ -4375,7 +4375,9 @@ With a prefix ARG invokes `projectile-commander' instead of
 Invokes the command referenced by `projectile-switch-project-action' on switch.
 With a prefix ARG invokes `projectile-commander' instead of
 `projectile-switch-project-action.'"
-  (unless (or (projectile-project-p project-to-switch) (file-remote-p project-to-switch))
+  ;; let's make sure that the target directory exists and is actually a project
+  ;; we ignore remote folders, as the check breaks for TRAMP unless already connected
+  (unless (or (file-remote-p project-to-switch) (projectile-project-p project-to-switch))
     (projectile-remove-known-project project-to-switch)
     (error "Directory %s is not a project" project-to-switch))
   (let ((switch-project-action (if arg
