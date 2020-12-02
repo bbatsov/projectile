@@ -6,6 +6,10 @@
 
 * [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects.
 
+### Bugs fixed
+
+* [#1438](https://github.com/bbatsov/projectile/pull/1438): Make sure `projectile-files-via-ext-command` returns files not errors.
+
 ## 2.3.0 (2020-11-27)
 
 ### New features
