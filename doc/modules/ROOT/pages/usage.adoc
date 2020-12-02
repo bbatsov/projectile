@@ -279,7 +279,7 @@ Projectile's Commander (`projectile-commander`) is a nifty utility for those of 
 interface to most of Projectile's commands via 1-character shortcuts that you
 need to press after invoking the commander (e.g. via kbd:[s-p m]).
 
-The commander was created with the idea to provide a powerful project switching command (it will be triggered if you press `C-u s-p p`), but it's very useful on its own as well.
+The commander was created with the idea to provide a powerful project switching command (it will be triggered if you press kbd:[C-u s-p p]), but it's very useful on its own as well.
 
 |===
 | Keybinding | Description
