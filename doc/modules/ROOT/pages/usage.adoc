@@ -239,6 +239,8 @@ If you ever forget any of Projectile's keybindings just do a:
 
 kbd:[s-p C-h]
 
+== Customizing Projectile's Keybindings
+
 It is possible to add additional commands to
 `projectile-command-map` referenced by the prefix key in
 `projectile-mode-map`. You can add multiple keymap prefix for all
@@ -270,3 +272,65 @@ add to your Emacs config:
 NOTE: Note that the `Super` keybindings are not usable in Windows, as Windows
  makes heavy use of such keybindings itself. Emacs Prelude already adds those
  extra keybindings.
+
+== Projectile Commander
+
+Projectile's Commander (`projectile-commander`) is a nifty utility for those of you who are struggling to remember a lot of keybindings. It provides a simple
+interface to most of Projectile's commands via 1-character shortcuts that you
+need to press after invoking the commander (e.g. via kbd:[s-p m]).
+
+The commander was created with the idea to provide a powerful project switching command (it will be triggered if you press `C-u s-p p`), but it's very useful on its own as well.
+
+|===
+| Keybinding | Description
+| kbd:[?]
+| Commander help buffer.
+
+| kbd:[D]
+| Open project root in dired.
+
+| kbd:[R]
+| Regenerate the project's [e|g]tags.
+
+| kbd:[T]
+| Find test file in project.
+
+| kbd:[V]
+| Browse dirty projects
+
+| kbd:[a]
+| Run ag on project.
+
+| kbd:[b]
+| Switch to project buffer.
+
+| kbd:[d]
+| Find directory in project.
+
+| kbd:[e]
+| Find recently visited file in project.
+
+| kbd:[f]
+| Find file in project.
+
+| kbd:[g]
+| Run grep on project.
+
+| kbd:[j]
+| Find tag in project.
+
+| kbd:[k]
+| Kill all project buffers.
+
+| kbd:[o]
+| Run multi-occur on project buffers.
+
+| kbd:[r]
+| Replace a string in the project.
+
+| kbd:[s]
+| Switch project.
+
+| kbd:[v]
+| Open project root in vc-dir or magit.
+|===
