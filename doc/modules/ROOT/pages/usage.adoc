@@ -1,5 +1,7 @@
 = Usage
 
+NOTE: Everything in this section assumes you've enabled `projectile-mode`.
+
 == Basic setup
 
 In this section we'll cover the bare minimum of setup you might want to
@@ -51,8 +53,6 @@ It's recommended to install the following command-line tools:
 Projectile will make use of them automatically when available, and fallback to the standard Unix tools otherwise.
 
 == Basic Usage
-
-NOTE: Everything in this section assumes you've enabled `projectile-mode`.
 
 Just open some file in a version-controlled (e.g. `git`) or a project
 (e.g. `maven`) directory that's recognized by Projectile and you're
