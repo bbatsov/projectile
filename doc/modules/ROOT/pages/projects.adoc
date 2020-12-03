@@ -643,12 +643,15 @@ your project, you could customize it with the following:
 ((nil . ((projectile-project-name . "your-project-name-here"))))
 ----
 
-== Configure a Project's Compilation, Test and Run commands
+== Configure a Project's Lifecycle Commands
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
 
+* for configuration - `projectile-project-configure-cmd`
 * for compilation - `projectile-project-compilation-cmd`
 * for testing - `projectile-project-test-cmd`
+* for installation - `projectile-project-install-cmd`
+* for packaging - `projectile-project-package-cmd`
 * for running - `projectile-project-run-cmd`
 
 When these variables have their default value of `nil`, Projectile
