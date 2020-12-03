@@ -5,6 +5,7 @@
 ### Changes
 
 * [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects.
+* Rename `projectile-project-root-files-functions` to `projectile-project-root-functions`.
 
 ### Bugs fixed
 
