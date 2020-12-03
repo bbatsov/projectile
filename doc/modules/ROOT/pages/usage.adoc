@@ -68,9 +68,15 @@ You need to know only a handful of Projectile commands to start benefiting from 
 
 * Find file in current project (kbd:[s-p f])
 * Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q])
-* Grep in project (kbd:[s-p s g])
+* Grep (search for text/regexp) in project (kbd:[s-p s g]) (`grep` alternatives like `ag`, `pt` and `rg` are also supported)
 * Replace in project (kbd:[s-p r])
-* Invoke a command via the Projectile Commander (kbd:[s-p m])
+* Invoke any Projectile command via the Projectile Commander (kbd:[s-p m])
+* Toggle between implementation and test (kbd:[s-p t])
+* Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`)
+* Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
+* Run various pre-defined project commands like:
+  * build/compile project (kbd:[s-p c])
+  * test project (kbd:[s-p T])
 
 The next section lists many more commands, but the basics can get you pretty far.
 
