@@ -476,7 +476,13 @@ Re-ordering those functions will alter the project detection, but you can also r
 
 [source,elisp]
 ----
-(setq projectile-project-root-files-functions '(vc-root-dir))
+;; we need this wrapper to match Projectile's API
+(defun projectile-vc-root-dir (dir)
+  "Retrieve the root directory of the project at DIR using `vc-root-dir'."
+  (let ((default-directory dir))
+    (vc-root-dir)))
+
+(setq projectile-project-root-files-functions '(projectile-vc-root-dir))
 ----
 
 == Ignoring files
