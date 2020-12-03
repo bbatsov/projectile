@@ -342,12 +342,17 @@ containing a root file."
   :group 'projectile
   :type '(repeat string))
 
-(defcustom projectile-project-root-files-functions
+(define-obsolete-variable-alias 'projectile-project-root-files-functions 'projectile-project-root-functions "2.4")
+
+(defcustom projectile-project-root-functions
   '(projectile-root-local
     projectile-root-bottom-up
     projectile-root-top-down
     projectile-root-top-down-recurring)
-  "A list of functions for finding project roots."
+  "A list of functions for finding project root folders.
+The functions will be ran until one of them returns a project folder.
+Reordering the default functions will alter the project discovery
+algorithm."
   :group 'projectile
   :type '(repeat function))
 
@@ -1125,7 +1130,7 @@ If DIR is not supplied its set to the current directory by default."
                              (let ((value (funcall func (file-truename dir))))
                                (puthash cache-key value projectile-project-root-cache)
                                value))))
-                       projectile-project-root-files-functions)))
+                       projectile-project-root-functions)))
                   ;; set cached to none so is non-nil so we don't try
                   ;; and look it up again
                   'none))))

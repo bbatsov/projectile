@@ -16,7 +16,7 @@ While Projectile aims to recognize most project types out-of-the-box, it's also 
 flexible configuration-wise, and you can easily alter the project detection logic.
 
 TIP: If you'd like to override the default project detection functions you should
-check out `projectile-project-root-files-functions`. We'll discuss how to tweak in more
+check out `projectile-project-root-functions`. We'll discuss how to tweak in more
 details later in the documentation.
 
 === Version Control Systems
@@ -438,17 +438,17 @@ Each helper means `projectile-related-files-fn-helper-name` function.
 
 Project detection is pretty simple - Projectile just runs a list of
 project detection functions
-(`projectile-project-root-files-functions`) until one of them returns
+(`projectile-project-root-functions`) until one of them returns
 a project directory.
 
 This list of functions is customizable, and while Projectile has some
 defaults for it, you can tweak it however you see fit.
 
-Let's take a closer look at `projectile-project-root-files-functions`:
+Let's take a closer look at `projectile-project-root-functions`:
 
 [source,elisp]
 ----
-(defcustom projectile-project-root-files-functions
+(defcustom projectile-project-root-functions
   '(projectile-root-local
     projectile-root-bottom-up
     projectile-root-top-down
@@ -464,7 +464,7 @@ precedence with respect to project detection. Let's examine the defaults:
 
 * `projectile-root-local` looks for project path set via the buffer-local variable `projectile-project-root`. Typically you'd set this variable via `.dir-locals.el` and it will take precedence over everything else.
 
-* `projectile-root-bottom-up` will start looking for a project marker file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will return the first match it discovers. The assumption is pretty simple - the root marker appear only once, at the root folder of a project. If a root marker appear in several nested folders (e.g. you've got nested git projects), the bottom-most (closest to the current dir) match has precedence. You can customize the root markers recognized by this function via `projectile-project-root-files-functions`
+* `projectile-root-bottom-up` will start looking for a project marker file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will return the first match it discovers. The assumption is pretty simple - the root marker appear only once, at the root folder of a project. If a root marker appear in several nested folders (e.g. you've got nested git projects), the bottom-most (closest to the current dir) match has precedence. You can customize the root markers recognized by this function via `projectile-project-root-functions`
 
 * `projectile-root-top-down` is similar, but it will return the top-most (farthest from the current directory) match. It's configurable via `projectile-project-root-files` and all project manifest markers like `pom.xml`, `Gemfile`, `project.clj`, etc go there.
 
@@ -482,7 +482,7 @@ Re-ordering those functions will alter the project detection, but you can also r
   (let ((default-directory dir))
     (vc-root-dir)))
 
-(setq projectile-project-root-files-functions '(projectile-vc-root-dir))
+(setq projectile-project-root-functions '(projectile-vc-root-dir))
 ----
 
 == Ignoring files

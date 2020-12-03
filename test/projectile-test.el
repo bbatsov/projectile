@@ -481,16 +481,16 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
             (projectile-project-root-files '("otherfile" "framework.conf" "requirements.txt"))
             (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
-            (projectile-project-root-files-functions '(projectile-root-bottom-up
-                                                       projectile-root-top-down
-                                                       projectile-root-top-down-recurring)))
+            (projectile-project-root-functions '(projectile-root-bottom-up
+                                                 projectile-root-top-down
+                                                 projectile-root-top-down-recurring)))
         (projectile-test-should-root-in "projectA" "projectA/requirements/a/b/c/d/e/f/g")
         (projectile-test-should-root-in "projectA" "projectA/src/framework/lib")
         (projectile-test-should-root-in "projectA" "projectA/src/html")
 
-        (setq projectile-project-root-files-functions '(projectile-root-top-down
-                                                        projectile-root-top-down-recurring
-                                                        projectile-root-bottom-up))
+        (setq projectile-project-root-functions '(projectile-root-top-down
+                                                  projectile-root-top-down-recurring
+                                                  projectile-root-bottom-up))
         (projectile-test-should-root-in "projectA/requirements/a/b/c"
                                         "projectA/requirements/a/b/c/d/e/f/g")
         (projectile-test-should-root-in "projectA/src/framework"
@@ -501,9 +501,9 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       (let ((projectile-project-root-files-bottom-up '("somefile" ".projectile"))
             (projectile-project-root-files '("otherfile" "noframework.conf"))
             (projectile-project-root-files-top-down-recurring '(".svn" ".foo"))
-            (projectile-project-root-files-functions '(projectile-root-top-down-recurring
-                                                       projectile-root-bottom-up
-                                                       projectile-root-top-down)))
+            (projectile-project-root-functions '(projectile-root-top-down-recurring
+                                                 projectile-root-bottom-up
+                                                 projectile-root-top-down)))
         (projectile-test-should-root-in "projectA/src" "projectA/src/framework/lib")
         (projectile-test-should-root-in "projectA/src" "projectA/src/html")
         (projectile-test-should-root-in "projectA/" "projectA/build/framework/lib"))
@@ -511,18 +511,18 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       (let ((projectile-project-root-files-bottom-up '("somefile" "override"))
             (projectile-project-root-files '("otherfile" "anotherfile"))
             (projectile-project-root-files-top-down-recurring '("someotherfile" "yetanotherfile"))
-            (projectile-project-root-files-functions '(projectile-root-bottom-up
-                                                       projectile-root-top-down
-                                                       projectile-root-top-down-recurring)))
+            (projectile-project-root-functions '(projectile-root-bottom-up
+                                                 projectile-root-top-down
+                                                 projectile-root-top-down-recurring)))
         (projectile-test-should-root-in default-directory "projectA/src/framework/lib")
         (projectile-test-should-root-in default-directory "projectA/src/html"))
 
       (let ((projectile-project-root-files-bottom-up '("somecoolfile"))
             (projectile-project-root-files nil)
             (projectile-project-root-files-top-down-recurring '(".svn"))
-            (projectile-project-root-files-functions '(projectile-root-bottom-up
-                                                       projectile-root-top-down
-                                                       projectile-root-top-down-recurring)))
+            (projectile-project-root-functions '(projectile-root-bottom-up
+                                                 projectile-root-top-down
+                                                 projectile-root-top-down-recurring)))
         (projectile-test-should-root-in "projectA/src/" "projectA/src/")
         (projectile-test-should-root-in "projectA/src/" "projectA/src/html"))))))
 
@@ -1486,7 +1486,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       ;; verify that indexing only invokes these funcs once during recursion
       (spy-on 'projectile-ignored-files :and-call-through)
       (spy-on 'projectile-ignored-directories :and-call-through)
-      
+
       (projectile-dir-files-native "projectA/")
       (expect 'projectile-ignored-files :to-have-been-called-times 1)
       (expect 'projectile-ignored-directories :to-have-been-called-times 1)))))
