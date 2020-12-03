@@ -485,6 +485,18 @@ Re-ordering those functions will alter the project detection, but you can also r
 (setq projectile-project-root-functions '(projectile-vc-root-dir))
 ----
 
+Similarly, you can leverage the built-in `project.el` like this:
+
+[source,elisp]
+----
+;; we need this wrapper to match Projectile's API
+(defun projectile-project-current (dir)
+  "Retrieve the root directory of the project at DIR using `project-current'."
+  (cdr (project-current nil dir)))
+
+(setq projectile-project-root-functions '(projectile-project-current))
+----
+
 == Ignoring files
 
 WARNING: The contents of `.projectile` are ignored when using the
