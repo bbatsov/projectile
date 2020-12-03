@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t -*-
 ;;; projectile-test.el
 
 ;; Copyright © 2011-2020 Bozhidar Batsov
@@ -86,6 +87,34 @@ You'd normally combine this with `projectile-test-with-sandbox'."
      (spy-on 'projectile-project-type :and-return-value 'sample-project)
      (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
      ,@body))
+
+;;; To avoid a macro, we could write a single "it" and iterate over a list of
+;;; functions. However, it would require manually rescuing the error and manually
+;;; re-throwing the error to include the function name in the error string, to
+;;; make it clear which function we're dealing with.  That could be avoided if
+;;; buttercup allowed us to specify a custom error message like this:
+;;;
+;;; (expect (funcall 'foo) :to-throw 'error nil "Custom error message here")
+(defmacro assert-friendly-error-when-no-project (fn)
+  "Write a test that ensures FN throws a friendly error when called without a project."
+  (let ((description (concat "when calling " (symbol-name fn) " without a project")))
+    `(describe
+      ,description
+      :var ((fn ',fn))
+      (it "throws a friendly error"
+          (projectile-test-with-sandbox
+           (projectile-test-with-files
+            ("index.html")
+            (find-file-noselect "index.html" t)
+            ;; Avoid "the current buffer is not visiting a file" error
+            (write-file "index.html")
+            (spy-on 'projectile-project-root :and-return-value nil)
+            (let ((projectile-require-project-root t))
+              (expect (call-interactively fn)
+                      :to-throw
+                      'error
+                      (list (concat "Projectile can’t find a project definition in "
+                                    default-directory))))))))))
 
 (defun projectile-test-tmp-file-path ()
   "Return a filename suitable to save data to in the test temp directory."
@@ -646,7 +675,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
                  0 ;; Cached 1st of January 1970.
                  projectile-projects-cache-time)
 
-        (spy-on 'projectile-project-root :and-call-fake (lambda () (file-truename default-directory)))
+        (spy-on 'projectile-acquire-root :and-call-fake (lambda () (file-truename default-directory)))
         (spy-on 'projectile-project-vcs :and-return-value 'none)
         ;; After listing all the files, the cache should have been updated.
         (projectile-current-project-files)
@@ -789,6 +818,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (describe "projectile-switch-project-by-name"
   (it "calls the switch project action with project-to-swtich's dir-locals loaded"
+    (defvar switch-project-foo)
     (let ((foo 'bar)
           (switch-project-foo)
           (safe-local-variable-values '((foo . baz)))
@@ -1507,3 +1537,21 @@ projectile-process-current-project-buffers-current to have similar behaviour"
         (projectile-process-current-project-buffers (lambda (b) (push b list-a)))
         (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
         (expect list-a :to-equal list-b))))))
+
+(assert-friendly-error-when-no-project projectile-project-info)
+(assert-friendly-error-when-no-project projectile-display-buffer)
+(assert-friendly-error-when-no-project projectile-find-implementation-or-test-other-frame)
+(assert-friendly-error-when-no-project projectile-find-implementation-or-test-other-window)
+(assert-friendly-error-when-no-project projectile-find-other-file)
+(assert-friendly-error-when-no-project projectile-find-other-file-other-frame)
+(assert-friendly-error-when-no-project projectile-find-other-file-other-window)
+(assert-friendly-error-when-no-project projectile-find-test-file)
+(assert-friendly-error-when-no-project projectile-grep)
+(assert-friendly-error-when-no-project projectile-ibuffer)
+(assert-friendly-error-when-no-project projectile-project-buffers-other-buffer)
+(assert-friendly-error-when-no-project projectile-project-info)
+(assert-friendly-error-when-no-project projectile-regenerate-tags)
+(assert-friendly-error-when-no-project projectile-remove-current-project-from-known-projects)
+(assert-friendly-error-when-no-project projectile-switch-to-buffer)
+(assert-friendly-error-when-no-project projectile-switch-to-buffer-other-frame)
+(assert-friendly-error-when-no-project projectile-switch-to-buffer-other-window)

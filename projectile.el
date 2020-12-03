@@ -1146,7 +1146,7 @@ Controlled by `projectile-require-project-root'."
     (cond
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
                                                     "Switch to project: " projectile-known-projects))
-     (projectile-require-project-root (error "Projectile can't find a project definition in %s" dir))
+     (projectile-require-project-root (error "Projectile can’t find a project definition in %s" default-directory))
      (t default-directory))))
 
 (defun projectile-acquire-root (&optional dir)
@@ -1459,7 +1459,7 @@ this case unignored files will be absent from FILES."
 (defun projectile-project-buffers (&optional project)
   "Get a list of a project's buffers.
 If PROJECT is not specified the command acts on the current project."
-  (let* ((project-root (or project (projectile-project-root)))
+  (let* ((project-root (or project (projectile-acquire-root)))
          (all-buffers (cl-remove-if-not
                        (lambda (buffer)
                          (projectile-project-buffer-p buffer project-root))
@@ -1927,7 +1927,7 @@ project-root for every file."
 
 (defun projectile-current-project-files ()
   "Return a list of the files in the current project."
-  (projectile-project-files (projectile-project-root)))
+  (projectile-project-files (projectile-acquire-root)))
 
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
@@ -2948,7 +2948,7 @@ The project type is cached for improved performance."
   "Display info for current project."
   (interactive)
   (message "Project dir: %s ## Project VCS: %s ## Project type: %s"
-           (projectile-project-root)
+           (projectile-acquire-root)
            (projectile-project-vcs)
            (projectile-project-type)))
 
@@ -4496,7 +4496,7 @@ See `projectile--cleanup-known-projects'."
 (defun projectile-remove-current-project-from-known-projects ()
   "Remove the current project from the list of known projects."
   (interactive)
-  (projectile-remove-known-project (abbreviate-file-name (projectile-project-root))))
+  (projectile-remove-known-project (abbreviate-file-name (projectile-acquire-root))))
 
 (defun projectile-ignored-projects ()
   "A list of projects that should not be save in `projectile-known-projects'."
