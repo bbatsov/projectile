@@ -601,7 +601,7 @@ corresponding value.  In the example above, this is used to create a
 function.  It could also be used to e.g. add such a function to a key
 map.
 
-You can also quickly visit or create the `dir-locals-file` with
+TIP: You can also quickly visit or create the `dir-locals-file` with
 kbd:[s-p E] (kbd:[M-x] `projectile-edit-dir-locals` kbd:[RET]).
 
 Here are a few examples of how to use this feature with Projectile.
