@@ -75,8 +75,8 @@ You need to know only a handful of Projectile commands to start benefiting from 
 * Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`)
 * Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
 * Run various pre-defined project commands like:
-  * build/compile project (kbd:[s-p c])
-  * test project (kbd:[s-p T])
+** build/compile project (kbd:[s-p c])
+** test project (kbd:[s-p T])
 
 The next section lists many more commands, but the basics can get you pretty far.
 
