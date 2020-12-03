@@ -1121,6 +1121,8 @@ If DIR is not supplied its set to the current directory by default."
               (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
                         (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
                     (when (or is-local is-connected)
+                      ;; Here is where all the magic happens.
+                      ;; We run the functions in `projectile-project-root-functions' until we find a project dir.
                       (cl-some
                        (lambda (func)
                          (let* ((cache-key (format "%s-%s" func dir))
