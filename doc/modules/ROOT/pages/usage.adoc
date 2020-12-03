@@ -240,6 +240,24 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p m]
 | Run the commander (an interface to run commands with a single key).
 
+| kbd:[s-p x e]
+| Start or visit an `eshell` for the project.
+
+| kbd:[s-p x i]
+| Start or visit an `ielm` (Elisp REPL) for the project.
+
+| kbd:[s-p x t]
+| Start or visit an `ansi-term` for the project.
+
+| kbd:[s-p x s]
+| Start or visit a `shell` for the project.
+
+| kbd:[s-p x g]
+| Start or visit a `gdb` for the project.
+
+| kbd:[s-p x v]
+| Start or visit a `vterm` for the project.
+
 | kbd:[s-p ESC]
 | Switch to the most recently selected Projectile buffer.
 |===
