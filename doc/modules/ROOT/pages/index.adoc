@@ -83,3 +83,12 @@ Projectile.
 
 NOTE: A bit of trivia for you - Projectile was my very first open-source project and
  it has a very special place in my heart!
+
+== What's Next?
+
+So, what to do next? While you can peruse the documentation in whatever way you’d like, here are a few recommendations:
+
+* xref:installation.adoc[Install] Projectile and get it xref:usage.adoc[up and running]
+* Get familiar with xref:projects.adoc[Projectile's notion of projects]
+* xref:configuration.adoc[Configure] Projectile to your liking
+* Explore the xref:extensions.adoc[Projectile extensions] that can make you more productive
