@@ -71,12 +71,14 @@ I've started working on Projectile in 2011 and I've supporting it ever since. It
 project with a single user to one of the most popular packages in the realm of Emacs. It's a fun project,
 but it also requires a lot of work.
 
-You can support my work on Projectile via
- https://www.paypal.me/bbatsov[PayPal],
- https://www.patreon.com/bbatsov[Patreon] and
- https://github.com/sponsors/bbatsov[GitHub Sponsors].
+You can support my work on Projectile (and all my other Emacs package) via one of the following platforms:
 
-Check out the xref:contributing.adoc["Contributing"] section of the docs for all the way in which you can help
+* https://github.com/sponsors/bbatsov[GitHub Sponsors]
+* https://ko-fi.com/bbatsov[ko-fi]
+* https://www.paypal.me/bbatsov[PayPal]
+* https://www.patreon.com/bbatsov[Patreon]
+
+Check out the xref:contributing.adoc["Contributing"] section of the docs for all the ways in which you can help
 Projectile.
 
 NOTE: A bit of trivia for you - Projectile was my very first open-source project and
