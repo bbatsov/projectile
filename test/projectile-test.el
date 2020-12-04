@@ -113,7 +113,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
               (expect (call-interactively fn)
                       :to-throw
                       'error
-                      (list (concat "Projectile can’t find a project definition in "
+                      (list (concat "Projectile cannot find a project definition in "
                                     default-directory))))))))))
 
 (defun projectile-test-tmp-file-path ()

@@ -1146,7 +1146,7 @@ Controlled by `projectile-require-project-root'."
     (cond
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
                                                     "Switch to project: " projectile-known-projects))
-     (projectile-require-project-root (error "Projectile can’t find a project definition in %s" default-directory))
+     (projectile-require-project-root (error "Projectile cannot find a project definition in %s" default-directory))
      (t default-directory))))
 
 (defun projectile-acquire-root (&optional dir)
