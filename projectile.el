@@ -1222,7 +1222,8 @@ Files are returned as relative paths to DIRECTORY."
 
 The function calls itself recursively until all sub-directories
 have been indexed.  The PROGRESS-REPORTER is updated while the
-function is executing."
+function is executing.  The list of IGNORED-FILES and
+IGNORED-DIRECTORIES may optionally be provided."
   (let ((ignored-files (or ignored-files (projectile-ignored-files)))
 	      (ignored-directories (or ignored-directories (projectile-ignored-directories))))
     (apply 'append
