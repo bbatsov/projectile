@@ -1228,7 +1228,7 @@ IGNORED-DIRECTORIES may optionally be provided."
   ;; pre-computed values in the subsequent recursive invocations of the function
   (let ((ignored-files (or ignored-files (projectile-ignored-files)))
 	      (ignored-directories (or ignored-directories (projectile-ignored-directories))))
-    (apply 'append
+    (apply #'append
            (mapcar
             (lambda (f)
               (let ((local-f (file-name-nondirectory (directory-file-name f))))
