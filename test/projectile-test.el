@@ -1532,7 +1532,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
          "project/config.conf")
 
         (setq projectile-globally-ignored-directories '(".ignoreme"))
-        (expect (projectile-dir-files-native "project") :to-be '("config.conf"))))))
+        (expect (projectile-dir-files-native "project") :to-equal '("config.conf"))))))
 
 (describe "projectile-process-current-project-buffers-current"
   (it "expects projectile-process-current-project-buffers and
