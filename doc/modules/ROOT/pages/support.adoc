@@ -1,37 +1,39 @@
+= Support
+
 Projectile currently has several official & unofficial support channels.
 
 For questions, suggestions and support refer to one of them.  Please, don't
 use the support channels to report issues, as this makes them harder to track.
 
-## Gitter
+== Gitter
 
 Most internal discussions about the development of Projectile happen on its
-[gitter channel](https://gitter.im/bbatsov/projectile).  You can often find
+https://gitter.im/bbatsov/projectile[gitter channel].  You can often find
 Projectile's maintainers there and get some interesting news from the project's
 kitchen.
 
-## Mailing List
+== Mailing List
 
-The [official mailing list](https://groups.google.com/forum/#!forum/projectile) is
+The https://groups.google.com/forum/#!forum/projectile[official mailing list] is
 hosted at Google Groups. It's a low-traffic list, so don't be too hesitant to subscribe.
 
-## Freenode
+== Freenode
 
 If you're into IRC you can visit the `#projectile` channel on Freenode.
 It's not actively
 monitored by the Projectile maintainers themselves, but still you can get support
 from other Projectile users there.
 
-## Stackoverflow
+== Stackoverflow
 
 We're also encouraging users to ask Projectile-related questions on StackOverflow.
 
 When doing so you should use the
-[Projectile](http://stackoverflow.com/questions/tagged/projectile) tag (ideally combined
+http://stackoverflow.com/questions/tagged/projectile[Projectile] tag (ideally combined
 with the tag `emacs`).
 
-## Bountysource
+== Bountysource
 
 If you're willing to pay for some feature to be implemented you can use
-[Bountysource](https://www.bountysource.com/teams/projectile/issues) to place a
+https://www.bountysource.com/teams/projectile/issues[Bountysource] to place a
 bounty for the work you want to be done.

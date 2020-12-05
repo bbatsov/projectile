@@ -1,0 +1,18 @@
+== Extensions
+
+There are a number of packages that built on top of the basic functionality provided by Projectile:
+
+* https://github.com/ericdanan/counsel-projectile[counsel-projectile] provides Ivy integration
+* https://github.com/bbatsov/helm-projectile[helm-projectile] provides Helm integration
+* https://github.com/bbatsov/persp-projectile[persp-projectile] provides perspective.el integration
+* https://github.com/asok/projectile-rails[projectile-rails] provides extra functionality for Ruby on Rails projects
+* https://github.com/IvanMalison/org-projectile[org-projectile] provides functions for the creation of org-mode TODOs that are associated with Projectile projects.
+* https://github.com/Alexander-Miller/treemacs/blob/master/src/extra/treemacs-projectile.el[treemacs-projectile] provides integration between treemacs and Projectile.
+* https://github.com/anshulverma/projectile-speedbar[projectile-speedbar] provides integration between speedbar and Projectile.
+
+NOTE: MELPA lists https://melpa.org/#/?q=projectile[20 more Projectile extensions], but I'm too lazy to list them all here.
+
+There are also some packages that will use Projectile if present. Here are a few examples:
+
+* https://github.com/jaypei/emacs-neotree[neotree]
+* https://https://github.com/emacs-lsp/lsp-mode[lsp-mode]

@@ -1,0 +1,113 @@
+= Contributing
+
+== Issues
+
+Report issues and suggest features and improvements on the
+https://github.com/bbatsov/projectile/issues[GitHub issue tracker]. Don't ask
+questions on the issue tracker - use the xref:support.adoc[support channels] instead.
+
+If you want to file a bug, please provide all the necessary info listed in
+our issue reporting template (it's loaded automatically when you create a
+new GitHub issue).
+
+It's usually a good idea to try to reproduce (obscure) bugs in isolation. You
+can do this by cloning Projectile's GitHub repo and running `eldev emacs` inside
+it (you need to install [Eldev](https://github.com/doublep/eldev) tool first).
+This will bring up Emacs with only the latest version of Projectile loaded. By
+starting fresh, with the latest code, we can ensure that the problem at hand
+isn't already fixed or caused by interactions with other packages.
+
+== Patches
+
+Patches in any form are always welcome! GitHub pull requests are even better! :-)
+
+Before submitting a patch or a pull request make sure all tests are
+passing and that your patch is in line with the https://github.com/bbatsov/projectile/blob/master/CONTRIBUTING.md[contribution
+guidelines].
+
+== Documentation
+
+Good documentation is just as important as good code.
+
+Consider improving and extending this manual and the
+https://github.com/bbatsov/projectile/wiki[community wiki].
+
+=== Working on the Docs
+
+The manual is generated from the AsciiDoc files in the https://github.com/bbatsov/projectile/tree/master/doc[doc] folder of Projectile's GitHub repo and is published to https://docs.projectile.mx.
+https://antora.org[Antora] is used to convert the manual into HTML.
+The filesystem layout is described at https://docs.antora.org/antora/2.0/component-structure/.
+
+To make changes to the manual you simply have to change the files under `doc`.
+The manual will be regenerated manually periodically.
+
+==== Installing Antora
+
+NOTE: The instructions here assume you already have (the right version of) node.js installed.
+
+Installing the Antora is super simple:
+
+[source]
+----
+$ npm i -g @antora/cli@2.0 @antora/site-generator-default@2.0
+----
+
+Check out https://docs.antora.org/antora/2.0/install/install-antora/[the detailed installation instructions]
+if you run into any problems.
+
+==== Building the Site
+
+You can build the documentation locally from the https://github.com/bbatsov/docs.projectile.mx[docs.projectile.mx] repo.
+
+[source]
+----
+$ cd docs.projectile.mx
+$ antora --pull antora-playbook.yml
+----
+
+After you're done with the initial setup you can use the `deploy` script to push changes to the site:
+
+[source]
+----
+./deploy
+----
+
+NOTE: You'll need commit access to the repository for this to work.
+
+To check the generated site you can simply open `docs/index.html` in your favourite browser.
+
+If you want to make changes to the manual's page structure you'll have to edit
+https://github.com/bbatsov/projectile/blob/master/doc/modules/ROOT/nav.adoc[nav.adoc].
+
+== Donations
+
+You can support the development of Projectile via
+https://www.paypal.me/bbatsov[PayPal],
+https://www.patreon.com/bbatsov[Patreon] and
+https://github.com/sponsors/bbatsov[GitHub Sponsors].
+
+== Running the tests in batch mode
+
+[source,sh]
+----
+$ cd /path/to/projectile
+$ eldev test
+----
+
+If you need to make sure dependencies are at the latest version:
+
+[source,sh]
+----
+$ eldev update
+----
+
+Run all tests with Projectile installed as an Emacs package
+(i.e. byte-compiled and all that; this won't affect your normal Emacs
+though):
+
+[source,sh]
+----
+$ eldev -p test
+----
+
+Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use kbd:[M-x] `compile` (or `helm-make`).
