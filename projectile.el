@@ -1236,7 +1236,7 @@ IGNORED-DIRECTORIES may optionally be provided."
                             (member local-f '("." "..")))
                   (progress-reporter-update progress-reporter)
                   (if (file-directory-p f)
-                      (unless (projectile-ignored-directory-name-p
+                      (unless (projectile-globally-ignored-directory-name-p
                                local-f)
                         (projectile-index-directory f patterns progress-reporter ignored-files ignored-directories))
                     (unless (projectile-ignored-file-p f ignored-files)
@@ -1680,20 +1680,20 @@ according to PATTERNS: (ignored . unignored)"
      (projectile-project-ignored-files)))
    (projectile-unignored-files)))
 
-(defun projectile-ignored-directory-names ()
+(defun projectile-globally-ignored-directory-names ()
   "Return list of ignored directory names."
   (projectile-difference
    projectile-globally-ignored-directories
    projectile-globally-unignored-directories))
 
-(defun projectile-ignored-directory-name-p (directory-name)
+(defun projectile-globally-ignored-directory-name-p (directory-name)
   "Check if DIRECTORY should be ignored.
 
 Regular expressions can be used."
   (cl-some
    (lambda (name)
      (string-match-p name directory-name))
-   (projectile-ignored-directory-names)))
+   (projectile-globally-ignored-directory-names)))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
