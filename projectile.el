@@ -4845,21 +4845,52 @@ It's used by `projectile-default-mode-line'
 when using dynamic mode line lighter and is the only
 thing shown in the mode line otherwise."
   :group 'projectile
-  :type 'string
+  :type '(choice (string)
+                 (sexp :tag "custom mode-line format"))
+  ;; risky, because it can contain arbitrary mode-line constructs which means
+  ;; it can evaluate arbitrary elisp.
+  :risky t
+  :link '(variable-link mode-line-format)
+  :link '(info-link "(elisp)Mode Line Format")
   :package-version '(projectile . "0.12.0"))
 
-(defvar-local projectile--mode-line projectile-mode-line-prefix)
+(defvar-local projectile--mode-line projectile-mode-line-prefix
+  "Mode line lighter including dynamic content, cached for performance.
+Text properties on `projectile-mode-line-prefix' will be used.
+
+This is marked as a risky local variable so that text properties on strings
+are used, not ignored; there is no good reason to set it as a file- or
+directory-local variable, so it is also flagged as an ignored
+local variable.
+
+See Info node `(elisp)File Local Variables' for details on risky locals
+variables, and Info node `(elisp)Properties in Mode' for how the
+mode-line treats them.")
+
+;; This allows text properties on strings in `projectile-mode-line-prefix' and
+;; friends to be show in the mode-line.  It has no effect on elisp code.
+;;
+;; This is done even though `projectile--mode-line' is ignored as a file- or
+;; directory-local variable, because the Fformat_mode_line doesn't pay any
+;; attention to that, only this symbol.
+(put 'projectile--mode-line 'risky-local-variable t)
+
+;; This silently ignores any attempt to set `projectile--mode-line' as a file or
+;; directory local variable, since there is no reasonable use to that.  No other
+;; externally visible effect.
+(push 'projectile--mode-line ignored-local-variables)
+
 
 (defun projectile-default-mode-line ()
   "Report project name and type in the modeline."
   (let ((project-name (projectile-project-name))
         (project-type (projectile-project-type)))
-    (format "%s[%s%s]"
-            projectile-mode-line-prefix
-            (or project-name "-")
-            (if project-type
-                (format ":%s" project-type)
-              ""))))
+    ;; using a list allows `projectile-mode-line-prefix' to contain arbitrary
+    ;; mode-line constructs, not just strings.
+    (list projectile-mode-line-prefix
+          (format "[%s%s]"
+                  (or project-name "-")
+                  (if project-type (format ":%s" project-type) "")))))
 
 (defun projectile-update-mode-line ()
   "Update the Projectile mode-line."
