@@ -1223,20 +1223,22 @@ Files are returned as relative paths to DIRECTORY."
 The function calls itself recursively until all sub-directories
 have been indexed.  The PROGRESS-REPORTER is updated while the
 function is executing."
-  (apply 'append
-         (mapcar
-          (lambda (f)
-            (let ((local-f (file-name-nondirectory (directory-file-name f))))
-              (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
-                          (member local-f '("." "..")))
-                (progress-reporter-update progress-reporter)
-                (if (file-directory-p f)
-                    (unless (projectile-ignored-directory-name-p
-                             local-f)
-                      (projectile-index-directory f patterns progress-reporter))
-                  (unless (projectile-ignored-file-p f)
-                    (list f))))))
-          (directory-files directory t))))
+  (let ((ignored-files (or ignored-files (projectile-ignored-files)))
+	      (ignored-directories (or ignored-directories (projectile-ignored-directories))))
+    (apply 'append
+           (mapcar
+            (lambda (f)
+              (let ((local-f (file-name-nondirectory (directory-file-name f))))
+                (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
+                            (member local-f '("." "..")))
+                  (progress-reporter-update progress-reporter)
+                  (if (file-directory-p f)
+                      (unless (projectile-ignored-directory-name-p
+                               local-f)
+                        (projectile-index-directory f patterns progress-reporter ignored-files ignored-directories))
+                    (unless (projectile-ignored-file-p f ignored-files)
+                      (list f))))))
+            (directory-files directory t)))))
 
 ;;; Alien Project Indexing
 ;;
