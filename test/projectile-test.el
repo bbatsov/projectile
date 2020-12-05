@@ -1519,7 +1519,20 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
       (projectile-dir-files-native "projectA/")
       (expect 'projectile-ignored-files :to-have-been-called-times 1)
-      (expect 'projectile-ignored-directories :to-have-been-called-times 1)))))
+      (expect 'projectile-ignored-directories :to-have-been-called-times 1))))
+  (it "ignores globally ignored directories when using native indexing"
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/"
+         "project/.ignoreme/"
+         "project/.ignoreme/should_ignore"
+         "project/src/"
+         "project/src/.ignoreme/"
+         "project/src/.ignoreme/should_ignore"
+         "project/config.conf")
+
+        (setq projectile-globally-ignored-directories '(".ignoreme"))
+        (expect (projectile-dir-files-native "project") :to-be '("config.conf"))))))
 
 (describe "projectile-process-current-project-buffers-current"
   (it "expects projectile-process-current-project-buffers and
