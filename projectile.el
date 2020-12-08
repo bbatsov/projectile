@@ -1375,10 +1375,9 @@ Only text sent to standard output is taken into account."
       (with-temp-buffer
         (let ((stderr-buffer (current-buffer)))
           (with-temp-buffer
-            (let ((stdout-buffer (current-buffer)))
-              (shell-command command stdout-buffer stderr-buffer)
-              (let ((shell-output (buffer-substring (point-min) (point-max))))
-                (split-string (string-trim shell-output) "\0" t)))))))))
+            (shell-command command t stderr-buffer)
+            (let ((shell-output (buffer-substring (point-min) (point-max))))
+              (split-string (string-trim shell-output) "\0" t))))))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
