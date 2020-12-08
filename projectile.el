@@ -3838,7 +3838,8 @@ directory to open."
                      (projectile-completing-read
                       "Open project VC in: "
                       projectile-known-projects))))
-  (or project-root (setq project-root (projectile-project-root)))
+  (unless project-root
+    (setq project-root (projectile-acquire-root)))
   (let ((vcs (projectile-project-vcs project-root)))
     (cl-case vcs
       (git
