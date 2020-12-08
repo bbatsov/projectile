@@ -361,3 +361,14 @@ The commander was created with the idea to provide a powerful project switching 
 | kbd:[v]
 | Open project root in vc-dir or magit.
 |===
+
+You can add additional commands to the commander like this:
+
+[source,elisp]
+----
+(def-projectile-commander-method ?f
+  "Find file in project."
+  (projectile-find-file))
+----
+
+Place such snippets after ``projectile-mode``'s init code.
