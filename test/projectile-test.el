@@ -817,7 +817,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
       (expect (projectile-switch-project) :to-throw))))
 
 (describe "projectile-switch-project-by-name"
-  (it "calls the switch project action with project-to-swtich's dir-locals loaded"
+  (it "calls the switch project action with project-to-switch's dir-locals loaded"
     (defvar switch-project-foo)
     (let ((foo 'bar)
           (switch-project-foo)
@@ -833,7 +833,36 @@ You'd normally combine this with `projectile-test-with-sandbox'."
           (projectile-add-known-project (file-name-as-directory (expand-file-name "project")))
           (projectile-switch-project-by-name (file-name-as-directory (expand-file-name "project")))
 
-          (expect switch-project-foo :to-be 'baz))))))
+          (expect switch-project-foo :to-be 'baz)))))
+
+  (it "runs hooks from the project root directory"
+      (defvar hook-dir)
+      (let ((projectile-switch-project-action
+             (lambda () (switch-to-buffer (find-file-noselect "file" t))))
+            (hook (lambda () (setq hook-dir default-directory))))
+        (add-hook 'projectile-after-switch-project-hook hook)
+        (projectile-test-with-sandbox
+         (projectile-test-with-files
+          ("project/"
+           "project/file")
+          (let ((project-dir (file-name-as-directory (expand-file-name "project"))))
+            (projectile-add-known-project project-dir)
+            (projectile-switch-project-by-name project-dir)
+            (remove-hook 'projectile-after-switch-project-hook hook)
+
+            (expect hook-dir :to-equal project-dir))))))
+
+  (it "ensures the buffer is switched immediately"
+      (let ((projectile-switch-project-action
+             (lambda () (switch-to-buffer (find-file-noselect "file" t)))))
+        (projectile-test-with-sandbox
+         (projectile-test-with-files
+          ("project/"
+           "project/file")
+          (projectile-add-known-project (file-name-as-directory (expand-file-name "project")))
+          (projectile-switch-project-by-name (file-name-as-directory (expand-file-name "project")))
+
+          (expect (current-buffer) :to-be (get-file-buffer "project/file")))))))
 
 (describe "projectile-ignored-buffer-p"
   (it "checks if buffer should be ignored"
