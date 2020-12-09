@@ -1217,7 +1217,7 @@ Files are returned as relative paths to DIRECTORY."
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
-(defun projectile-index-directory (directory patterns progress-reporter &optional ignored-files ignored-directories)
+(defun projectile-index-directory (directory patterns progress-reporter &optional ignored-files ignored-directories globally-ignored-directories)
   "Index DIRECTORY taking into account PATTERNS.
 
 The function calls itself recursively until all sub-directories
@@ -1227,7 +1227,8 @@ IGNORED-DIRECTORIES may optionally be provided."
   ;; we compute the ignored files and directories only once and then we reuse the
   ;; pre-computed values in the subsequent recursive invocations of the function
   (let ((ignored-files (or ignored-files (projectile-ignored-files)))
-        (ignored-directories (or ignored-directories (projectile-ignored-directories))))
+        (ignored-directories (or ignored-directories (projectile-ignored-directories)))
+        (globally-ignored-directories (or globally-ignored-directories (projectile-globally-ignored-directory-names))))
     (apply #'append
            (mapcar
             (lambda (f)
@@ -1236,9 +1237,12 @@ IGNORED-DIRECTORIES may optionally be provided."
                             (member local-f '("." "..")))
                   (progress-reporter-update progress-reporter)
                   (if (file-directory-p f)
-                      (unless (projectile-globally-ignored-directory-name-p
-                               local-f)
-                        (projectile-index-directory f patterns progress-reporter ignored-files ignored-directories))
+                      (unless (projectile-ignored-directory-p
+                               (file-name-as-directory f)
+                               ignored-directories
+                               local-f
+                               globally-ignored-directories)
+                        (projectile-index-directory f patterns progress-reporter ignored-files ignored-directories globally-ignored-directories))
                     (unless (projectile-ignored-file-p f ignored-files)
                       (list f))))))
             (directory-files directory t)))))
@@ -1633,15 +1637,23 @@ projectile project root."
     (mapcar (lambda (f) (file-relative-name f project-root)) files)))
 
 (defun projectile-ignored-directory-p
-    (directory &optional ignored-directories)
+    (directory &optional ignored-directories local-directory globally-ignored-directories)
   "Check if DIRECTORY should be ignored.
 
-Regular expressions can be used.  A pre-computed list of
-IGNORED-DIRECTORIES may optionally be provided."
-  (cl-some
-   (lambda (name)
-     (string-match-p name directory))
-   (or ignored-directories (projectile-ignored-directories))))
+Regular expressions can be used. Pre-computed lists of
+IGNORED-DIRECTORIES and GLOBALLY-IGNORED-DIRECTORIES
+and the LOCAL-DIRECTORY name may optionally be provided."
+  (let ((ignored-directories (or ignored-directories (projectile-ignored-directories)))
+        (globally-ignored-directories (or globally-ignored-directories (projectile-globally-ignored-directory-names)))
+        (local-directory (or local-directory (file-name-nondirectory (directory-file-name directory)))))
+    (or (cl-some
+         (lambda (name)
+           (string-match-p name directory))
+         ignored-directories)
+        (cl-some
+         (lambda (name)
+           (string-match-p name local-directory))
+         globally-ignored-directories))))
 
 (defun projectile-ignored-file-p (file &optional ignored-files)
   "Check if FILE should be ignored.
@@ -1685,15 +1697,6 @@ according to PATTERNS: (ignored . unignored)"
   (projectile-difference
    projectile-globally-ignored-directories
    projectile-globally-unignored-directories))
-
-(defun projectile-globally-ignored-directory-name-p (directory-name)
-  "Check if DIRECTORY should be ignored.
-
-Regular expressions can be used."
-  (cl-some
-   (lambda (name)
-     (string-match-p name directory-name))
-   (projectile-globally-ignored-directory-names)))
 
 (defun projectile-ignored-directories ()
   "Return list of ignored directories."
