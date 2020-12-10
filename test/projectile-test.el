@@ -122,6 +122,20 @@ You'd normally combine this with `projectile-test-with-sandbox'."
           "/tmp/temporary-file-" (format "%d" (random))
           ".eld"))
 
+(defun file-handler-for-tests (operation &rest args)
+  "Handler for # files.
+Just delegates OPERATION and ARGS for all operations except for`shell-command`'."
+  (let ((inhibit-file-name-handlers
+         (cons 'file-handler-for-tests
+               (and (eq inhibit-file-name-operation operation)
+                  inhibit-file-name-handlers)))
+        (inhibit-file-name-operation operation))
+    (cond ((eq operation 'shell-command) (let ((default-directory ""))
+                                           (shell-command "echo magic" t)))
+          (t (apply operation args)))))
+
+(add-to-list 'file-name-handler-alist (cons "^#" 'file-handler-for-tests))
+
 ;;; Tests
 (describe "projectile-project-name"
   (it "return projectile-project-name when present"
@@ -334,11 +348,14 @@ You'd normally combine this with `projectile-test-with-sandbox'."
     (expect (string-empty-p (projectile-get-sub-projects-command 'none)) :to-be-truthy)))
 
 (describe "projectile-files-via-ext-command"
-   (it "returns nil when command is nil or empty or fails"
-     (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
-     (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)
-     (expect (projectile-files-via-ext-command "" "echo Not a file name! > &2") :not :to-be-truthy)
-     (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename"))))
+          (it "returns nil when command is nil or empty or fails"
+              (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
+              (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)
+              (expect (projectile-files-via-ext-command "" "echo Not a file name! > &2") :not :to-be-truthy)
+              (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename")))
+
+          (it "supports magic file handlers"
+              (expect (projectile-files-via-ext-command "#magic#" "echo filename") :to-equal '("magic"))))
 
 (describe "projectile-mode"
   (before-each
