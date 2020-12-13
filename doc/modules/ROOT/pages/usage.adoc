@@ -72,7 +72,7 @@ You need to know only a handful of Projectile commands to start benefiting from 
 * Replace in project (kbd:[s-p r])
 * Invoke any Projectile command via the Projectile Commander (kbd:[s-p m])
 * Toggle between implementation and test (kbd:[s-p t])
-* Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`)
+* Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`) (kbd:[s-p a])
 * Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
 * Run various pre-defined project commands like:
 ** build/compile project (kbd:[s-p c])
