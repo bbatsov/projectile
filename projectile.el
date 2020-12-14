@@ -2989,6 +2989,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
 `projectile-project-root'."
   (or project-root (setq project-root (projectile-project-root)))
   (cond
+   ;; first we check for a VCS marker in the project root itself
    ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
    ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
    ((projectile-file-exists-p (expand-file-name ".fslckout" project-root)) 'fossil)
@@ -2996,6 +2997,10 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
    ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
    ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
+   ;; then we check if there's a VCS marker up the directory tree
+   ;; that covers the case when a project is part of a multi-project repository
+   ;; in those cases you can still the VCS to get a list of files for
+   ;; the project in question
    ((projectile-locate-dominating-file project-root ".git") 'git)
    ((projectile-locate-dominating-file project-root ".hg") 'hg)
    ((projectile-locate-dominating-file project-root ".fslckout") 'fossil)
