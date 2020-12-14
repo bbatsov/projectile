@@ -4029,7 +4029,7 @@ project of that type"
   "Meant to be used for `compilation-buffer-name-function`.
 Argument COMPILATION-MODE is the name of the major mode used for the compilation buffer."
   (concat "*" (downcase compilation-mode) "*"
-	  (if (projectile-project-p) (concat "<" (projectile-project-name) ">") "")))
+          (if (projectile-project-p) (concat "<" (projectile-project-name) ">") "")))
 
 (defun projectile-current-project-buffer-p ()
   "Meant to be used for `compilation-save-buffers-predicate`.
@@ -4037,7 +4037,7 @@ This indicates whether the current buffer is in the same project as the current
 window (including returning true if neither is in a project)."
   (let ((root (with-current-buffer (window-buffer) (projectile-project-root))))
     (or (not root)
-	(projectile-project-buffer-p (current-buffer) root))))
+        (projectile-project-buffer-p (current-buffer) root))))
 
 (defun projectile-compilation-command (compile-dir)
   "Retrieve the compilation command for COMPILE-DIR.
@@ -4435,7 +4435,7 @@ With a prefix ARG invokes `projectile-commander' instead of
       ;; If switch-project-action switched buffers then with-temp-buffer will
       ;; have lost that change, so switch back to the correct buffer.
       (when (buffer-live-p switched-buffer)
-          (switch-to-buffer switched-buffer)))
+        (switch-to-buffer switched-buffer)))
     (run-hooks 'projectile-after-switch-project-hook)))
 
 ;;;###autoload
