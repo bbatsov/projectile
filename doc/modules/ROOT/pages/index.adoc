@@ -22,12 +22,15 @@ are available, Projectile will leverage them.
 
 Projectile provides easy project management and navigation. The
 concept of a project is pretty basic - just a folder containing
-special file. Currently most VCS repos (e.g. `git`, `mercurial`, etc)
+special file.footnote:[That file is called a "project marker" in Projectile's lingo.] Currently most VCS repos (e.g. `git`, `mercurial`, etc)
 are considered projects by default, as are directories containing
 build tools (e.g. `maven`, `leiningen`, etc) or framework markers
 (e.g. Ruby on Rails). If you want to mark a folder manually as a
-project just create an empty `.projectile` file in it. Some of
-Projectile's features:
+project just create an empty `.projectile` file in it.
+
+TIP: You can learn more about Projectile's notion of a project xref:projects.adoc[here].
+
+Here are some of Projectile's features in no particular order:
 
 * jump to a file in project
 * jump to files at point in project
