@@ -368,21 +368,26 @@ Similar to '#' in .gitignore files."
 
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name)
-  "A list of files globally ignored by projectile."
+  "A list of files globally ignored by projectile.
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
   :group 'projectile
   :type '(repeat string))
 
 (defcustom projectile-globally-unignored-files nil
   "A list of files globally unignored by projectile.
-
-Regular expressions can be used."
+Regular expressions can be used.
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-globally-ignored-file-suffixes
   nil
-  "A list of file suffixes globally ignored by projectile."
+  "A list of file suffixes globally ignored by projectile.
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
   :group 'projectile
   :type '(repeat string))
 
@@ -404,14 +409,17 @@ Regular expressions can be used."
     ".cache"
     ".clangd")
   "A list of directories globally ignored by projectile.
-
-Regular expressions can be used."
+Regular expressions can be used.
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
 
 (defcustom projectile-globally-unignored-directories nil
-  "A list of directories globally unignored by projectile."
+  "A list of directories globally unignored by projectile.
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
