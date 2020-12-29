@@ -629,7 +629,7 @@ Examples of such paths might be ~/projects, ~/work, etc."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $path' | tr '\\n' '\\0'"
+(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $displaypath' | tr '\\n' '\\0'"
   "Command used by projectile to list submodules of a given git repository.
 Set to nil to disable listing submodules contents."
   :group 'projectile
