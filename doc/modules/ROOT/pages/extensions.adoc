@@ -15,4 +15,4 @@ NOTE: MELPA lists https://melpa.org/#/?q=projectile[20 more Projectile extension
 There are also some packages that will use Projectile if present. Here are a few examples:
 
 * https://github.com/jaypei/emacs-neotree[neotree]
-* https://https://github.com/emacs-lsp/lsp-mode[lsp-mode]
+* https://github.com/emacs-lsp/lsp-mode[lsp-mode]
