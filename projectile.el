@@ -410,6 +410,17 @@ is set to 'alien'."
     ".clangd")
   "A list of directories globally ignored by projectile.
 Regular expressions can be used.
+
+Strings that don't start with * are only ignored at the top level
+of the project. Strings that start with * are ignored everywhere
+in the project, as if there was no *. So note that * when used as
+a prefix is not a wildcard; it is an indicator that the directory
+should be ignored at all levels, not just root.
+
+Examples: \"tmp\" ignores only ./tmp at the top level of the
+project, but not ./src/tmp. \"*tmp\" will ignore both ./tmp and
+./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
+
 Note that files aren't filtered if `projectile-indexing-method'
 is set to 'alien'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
