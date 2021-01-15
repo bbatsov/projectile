@@ -70,7 +70,7 @@ https://metaredux.com/posts/2019/12/07/dead-simple-emacs-screencasts.html[keycas
 
 == Supporting Projectile
 
-I've started working on Projectile in 2011 and I've supporting it ever since. It slowly grew from an obscure
+I've started working on Projectile in 2011 and I've been maintaining it ever since. It slowly grew from an obscure
 project with a single user to one of the most popular packages in the realm of Emacs. It's a fun project,
 but it also requires a lot of work.
 
