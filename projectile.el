@@ -822,9 +822,9 @@ just return nil."
   "Get the symbol at point and strip its properties."
   (substring-no-properties (or (thing-at-point 'symbol) "")))
 
-(defun projectile-generate-process-name (process make-new)
-  "Infer the buffer name for PROCESS or generate a new one if MAKE-NEW is true."
-  (let* ((project (projectile-acquire-root))
+(defun projectile-generate-process-name (process make-new project)
+  "Infer the buffer name for PROJECT PROCESS or generate a new one if MAKE-NEW is true."
+  (let* ((project (or project (projectile-acquire-root)))
          (base-name (format "*%s %s*" process (projectile-project-name project))))
     (if make-new
         (generate-new-buffer-name base-name)
@@ -3596,8 +3596,9 @@ Switch to the project specific shell buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile-with-default-dir (projectile-acquire-root)
-    (shell (projectile-generate-process-name "shell" arg))))
+  (let ((project (projectile-acquire-root)))
+    (projectile-with-default-dir project
+      (shell (projectile-generate-process-name "shell" arg project)))))
 
 ;;;###autoload
 (defun projectile-run-eshell (&optional arg)
@@ -3607,9 +3608,10 @@ Switch to the project specific eshell buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile-with-default-dir (projectile-acquire-root)
-    (let ((eshell-buffer-name (projectile-generate-process-name "eshell" arg)))
-      (eshell))))
+  (let ((project (projectile-acquire-root)))
+    (projectile-with-default-dir project
+      (let ((eshell-buffer-name (projectile-generate-process-name "eshell" arg project)))
+        (eshell)))))
 
 ;;;###autoload
 (defun projectile-run-ielm (&optional arg)
@@ -3620,7 +3622,7 @@ Switch to the project specific ielm buffer if it already exists.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (let* ((project (projectile-acquire-root))
-         (ielm-buffer-name (projectile-generate-process-name "ielm" arg)))
+         (ielm-buffer-name (projectile-generate-process-name "ielm" arg project)))
     (if (get-buffer ielm-buffer-name)
         (switch-to-buffer ielm-buffer-name)
       (projectile-with-default-dir project
@@ -3636,12 +3638,12 @@ Switch to the project specific term buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (let ((project (projectile-acquire-root))
-        (buffer-name (projectile-generate-process-name "term" arg))
-        (default-program (or explicit-shell-file-name
-                             (getenv "ESHELL")
-                             (getenv "SHELL")
-                             "/bin/sh")))
+  (let* ((project (projectile-acquire-root))
+         (buffer-name (projectile-generate-process-name "term" arg project))
+         (default-program (or explicit-shell-file-name
+                              (getenv "ESHELL")
+                              (getenv "SHELL")
+                              "/bin/sh")))
     (unless (get-buffer buffer-name)
       (require 'term)
       (let ((program (read-from-minibuffer "Run program: " default-program)))
@@ -3660,7 +3662,7 @@ Switch to the project specific term buffer if it already exists.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (let* ((project (projectile-acquire-root))
-         (buffer (projectile-generate-process-name "vterm" arg)))
+         (buffer (projectile-generate-process-name "vterm" arg project)))
     (unless (buffer-live-p (get-buffer buffer))
       (unless (require 'vterm nil 'noerror)
         (error "Package 'vterm' is not available"))
