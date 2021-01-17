@@ -824,8 +824,8 @@ just return nil."
 
 (defun projectile-generate-process-name (process make-new &optional project)
   "Infer the buffer name for PROCESS or generate a new one if MAKE-NEW is true.
-The command operates on the current project by default, but you can also specify
-a project explicitly via the optional PROJECT param."
+The function operates on the current project by default, but you can also
+specify a project explicitly via the optional PROJECT param."
   (let* ((project (or project (projectile-acquire-root)))
          (base-name (format "*%s %s*" process (projectile-project-name project))))
     (if make-new
