@@ -4,11 +4,13 @@
 
 ### Changes
 
+* Add `project` param to `projectile-generate-process-name`.
 * [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects.
 * Rename `projectile-project-root-files-functions` to `projectile-project-root-functions`.
 
 ### Bugs fixed
 
+* [#1639](https://github.com/bbatsov/projectile/pull/1639): Do not ask twice for project running ielm, term and vterm.
 * [#1250](https://github.com/bbatsov/projectile/issues/1250): Fix `projectile-globally-ignored-directories` not working with native indexing.
 * [#1438](https://github.com/bbatsov/projectile/pull/1438): Make sure `projectile-files-via-ext-command` returns files, not errors.
 * [#1450](https://github.com/bbatsov/projectile/pull/1450): Call `switch-project-action` within project's temp buffer.
