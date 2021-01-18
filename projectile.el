@@ -2726,7 +2726,8 @@ test/impl/other files as below:
                                   :project-file "rebar.config"
                                   :compile "rebar3 compile"
                                   :test "rebar3 do eunit,ct"
-                                  :test-suffix "_SUITE")
+                                  :test-suffix "_SUITE"
+                                  :run "rebar3 shell")
 (projectile-register-project-type 'elixir '("mix.exs")
                                   :project-file "mix.exs"
                                   :compile "mix compile"
