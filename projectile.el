@@ -1023,14 +1023,16 @@ This function is not recursive and only adds projects with roots
 at the top level of DIRECTORY."
   (interactive
    (list (read-directory-name "Starting directory: ")))
-  (let ((subdirs (directory-files directory t)))
-    (mapcar
-     (lambda (dir)
-       (when (and (file-directory-p dir)
-                  (not (member (file-name-nondirectory dir) '(".." "."))))
-         (when (projectile-project-p dir)
-           (projectile-add-known-project dir))))
-     subdirs)))
+  (if (file-exists-p directory)
+      (let ((subdirs (directory-files directory t)))
+        (mapcar
+         (lambda (dir)
+           (when (and (file-directory-p dir)
+                      (not (member (file-name-nondirectory dir) '(".." "."))))
+             (when (projectile-project-p dir)
+               (projectile-add-known-project dir))))
+         subdirs))
+    (message "Project search path directory %s doesn't exist" directory)))
 
 ;;;###autoload
 (defun projectile-discover-projects-in-search-path ()
