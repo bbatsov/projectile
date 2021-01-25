@@ -405,10 +405,10 @@ Projectile includes a couple of helpers to generate commonly used custom functio
 | extensions KIND EXTENSIONS
 | Relates files with extensions as the specified kind.
 
-| tests-with-prefix EXTENSION PREFIX
+| test-with-prefix EXTENSION PREFIX
 | Relates files with prefix and extension as :test and :impl.
 
-| tests-with-suffix EXTENSION SUFFIX
+| test-with-suffix EXTENSION SUFFIX
 | Relates files with suffix and extension as :test and :impl.
 |===
 
@@ -431,7 +431,7 @@ Each helper means `projectile-related-files-fn-helper-name` function.
 
 (projectile-register-project-type
    ;; ...
-   :related-files-fn #'my/related-files)
+   :related-files-fn my/related-files)
 ----
 
 == Customizing Project Detection
