@@ -1,5 +1,4 @@
-;; -*- lexical-binding: t -*-
-;;; projectile-test.el
+;;; projectile-test.el --- Projectile's test suite -*- lexical-binding: t -*-
 
 ;; Copyright © 2011-2021 Bozhidar Batsov
 
@@ -22,14 +21,15 @@
 
 ;;; Commentary:
 
-;; This file is part of Projectile.
+;; Projectile's Buttercup-powered test suite.  You can run it either
+;; interactively or via the command-line (e.g. via eldev test).
 
 ;;; Code:
 
 (require 'projectile)
 (require 'buttercup)
 
-
+;; Useful debug information
 (message "Running tests on Emacs %s" emacs-version)
 
 ;; TODO: Revise this init logic
@@ -1599,6 +1599,8 @@ projectile-process-current-project-buffers-current to have similar behaviour"
         (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
         (expect list-a :to-equal list-b))))))
 
+;; A bunch of tests that make sure Projectile commands handle
+;; gracefully the case of being run outside of a project.
 (assert-friendly-error-when-no-project projectile-project-info)
 (assert-friendly-error-when-no-project projectile-display-buffer)
 (assert-friendly-error-when-no-project projectile-find-implementation-or-test-other-frame)
