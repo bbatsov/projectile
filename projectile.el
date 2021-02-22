@@ -632,7 +632,7 @@ When set to nil you'll have always add projects explicitly with
 You can think of something like $PATH, but for projects instead of executables.
 Examples of such paths might be ~/projects, ~/work, etc."
   :group 'projectile
-  :type 'list
+  :type '(repeat directory)
   :package-version '(projectile . "1.0.0"))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
