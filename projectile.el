@@ -2796,8 +2796,8 @@ test/impl/other files as below:
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
                                   :project-file "pom.xml"
-                                  :compile "mvn clean install"
-                                  :test "mvn test"
+                                  :compile "mvn -B clean install"
+                                  :test "mvn -B test"
                                   :test-suffix "Test"
                                   :src-dir "main/src/"
                                   :test-dir "main/test/")
