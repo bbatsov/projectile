@@ -7,6 +7,7 @@
 * Add `project` param to `projectile-generate-process-name`.
 * [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects.
 * Rename `projectile-project-root-files-functions` to `projectile-project-root-functions`.
+* [#1647](https://github.com/bbatsov/projectile/issues/1647): Use "-B" in the mvn commands to avoid ANSI coloring clutter in the compile buffer
 
 ### Bugs fixed
 
