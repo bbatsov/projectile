@@ -16,6 +16,7 @@
 * [#1438](https://github.com/bbatsov/projectile/pull/1438): Make sure `projectile-files-via-ext-command` returns files, not errors.
 * [#1450](https://github.com/bbatsov/projectile/pull/1450): Call `switch-project-action` within project's temp buffer.
 * [#1340](https://github.com/bbatsov/projectile/pull/1340): Fix remote projects being removed if TRAMP can't connect.
+* [#1655](https://github.com/bbatsov/projectile/pull/1655): Fix `projectile-replace-regexp` searching the wrong files when called with prefix arg.
 
 ## 2.3.0 (2020-11-27)
 
