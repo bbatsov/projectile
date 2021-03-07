@@ -2776,6 +2776,150 @@ test/impl/other files as below:
   :type 'function
   :package-version '(projectile . "1.0.0"))
 
+;;;; Constant signifying opting out of CMake preset commands.
+(defconst projectile--cmake-no-preset "*no preset*")
+
+(defun projectile--cmake-version ()
+  "Compute CMake version."
+  (let* ((string (shell-command-to-string "cmake --version"))
+         (match (string-match "^cmake version \\(.*\\)$" string)))
+    (when match
+      (version-to-list (match-string 1 string)))))
+
+(defun projectile--cmake-check-version (version)
+  "Check if CMake version is at least VERSION."
+  (and
+   (version-list-<= version (projectile--cmake-version))))
+
+(defconst projectile--cmake-command-presets-minimum-version-alist
+    '((:configure-command . (3 19))
+      (:compile-command . (3 20))
+      (:test-command . (3 20))))
+
+(defun projectile--cmake-command-presets-supported (command-type)
+  "Check if CMake supports presets for COMMAND-TYPE."
+  (let ((minimum-version
+         (cdr (assoc command-type projectile--cmake-command-presets-minimum-version-alist))))
+    (projectile--cmake-check-version minimum-version)))
+
+(defun projectile--cmake-read-preset (filename)
+  "Read CMake preset from FILENAME."
+  (when (file-exists-p filename)
+        (with-temp-buffer
+          (insert-file-contents filename)
+          (when (functionp 'json-parse-buffer)
+            (json-parse-buffer :array-type 'list)))))
+
+(defconst projectile--cmake-command-preset-array-id-alist
+  '((:configure-command . "configurePresets")
+    (:compile-command . "buildPresets")
+    (:test-command . "testPresets")))
+
+(defun projectile--cmake-command-preset-array-id (command-type)
+  "Map from COMMAND-TYPE to id of command preset array in CMake preset."
+  (cdr (assoc command-type projectile--cmake-command-preset-array-id-alist)))
+
+(defun projectile--cmake-command-presets (filename command-type)
+  "Get CMake COMMAND-TYPE presets from FILENAME."
+  (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
+    (cl-remove-if
+     (lambda (preset) (equal (gethash "hidden" preset) t))
+     (gethash (projectile--cmake-command-preset-array-id command-type) preset))))
+
+(defun projectile--cmake-all-command-presets (command-type)
+  "Get CMake user and system COMMAND-TYPE presets."
+  (projectile-flatten
+   (mapcar (lambda (filename) (projectile--cmake-command-presets filename command-type))
+           '("CMakeUserPresets.json" "CMakeSystemPresets.json"))))
+
+(defun projectile--cmake-command-preset-names (command-type)
+  "Get names of CMake user and system COMMAND-TYPE presets."
+  (mapcar (lambda (preset)
+            (gethash "name" preset))
+          (projectile--cmake-all-command-presets command-type)))
+
+(defcustom projectile-enable-cmake-presets nil
+  "Enables configuration with CMake presets.
+
+When `projectile-enable-cmake-presets' is non-nil, CMake projects can
+be configured, built and tested using presets."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.4.0"))
+
+(defun projectile--cmake-use-command-presets (command-type)
+  "Test whether or not to use command presets for COMMAND-TYPE.
+
+Presets are used if `projectile-enable-cmake-presets' is non-nil, and CMake
+supports presets for COMMAND-TYPE, and `json-parse-buffer' is available."
+  (and projectile-enable-cmake-presets
+       (projectile--cmake-command-presets-supported command-type)
+       (functionp 'json-parse-buffer)))
+
+(defun projectile--cmake-select-command (command-type)
+  "Select a CMake command preset or a manual CMake command.
+
+The selection is done like this:
+
+- If `projectile--cmake-use-commands-presets' for COMMAND-TYPE returns true, and
+there is at least one preset available for COMMAND-TYPE, the user is prompted to
+select a name of a command preset, or opt a manual command by selecting
+`projectile--cmake-no-preset'.
+
+- Else `projectile--cmake-no-preset' is used."
+  (if-let ((use-presets (projectile--cmake-use-command-presets command-type))
+           (preset-names (projectile--cmake-command-preset-names command-type)))
+      (projectile-completing-read
+       "Use preset: "
+       (append preset-names `(,projectile--cmake-no-preset)))
+    projectile--cmake-no-preset))
+
+(defconst projectile--cmake-manual-command-alist
+  '((:configure-command . "cmake -S . -B build")
+    (:compile-command . "cmake --build build")
+    (:test-command . "cmake --build build --target test")))
+
+(defun projectile--cmake-manual-command (command-type)
+  "Create maunual CMake COMMAND-TYPE command."
+  (cdr (assoc command-type projectile--cmake-manual-command-alist)))
+
+(defconst projectile--cmake-preset-command-alist
+  '((:configure-command . "cmake . --preset %s")
+    (:compile-command . "cmake --build --preset %s")
+    (:test-command . "ctest --preset %s")))
+
+(defun projectile--cmake-preset-command (command-type preset)
+  "Create CMake COMMAND-TYPE command using PRESET."
+  (format (cdr (assoc command-type projectile--cmake-preset-command-alist)) preset))
+
+(defun projectile--cmake-command (command-type)
+  "Create a CMake COMMAND-TYPE command.
+
+The command is created like this:
+
+- If `projectile--cmake-select-command' returns `projectile--cmake-no-preset'
+a manual COMMAND-TYPE command is created with
+`projectile--cmake-manual-command'.
+
+- Else a preset COMMAND-TYPE command using the selected preset is created with
+`projectile--cmake-preset-command'."
+  (let ((maybe-preset (projectile--cmake-select-command command-type)))
+    (if (equal maybe-preset projectile--cmake-no-preset)
+        (projectile--cmake-manual-command command-type)
+      (projectile--cmake-preset-command command-type maybe-preset))))
+
+(defun projectile--cmake-configure-command ()
+  "CMake configure command."
+  (projectile--cmake-command :configure-command))
+
+(defun projectile--cmake-compile-command ()
+  "CMake compile command."
+  (projectile--cmake-command :compile-command))
+
+(defun projectile--cmake-test-command ()
+  "CMake test command."
+  (projectile--cmake-command :test-command))
+
 ;;; Project type registration
 ;;
 ;; Project type detection happens in a reverse order with respect to
@@ -2836,12 +2980,11 @@ test/impl/other files as below:
                                   :install "make install")
 (projectile-register-project-type 'cmake '("CMakeLists.txt")
                                   :project-file "CMakeLists.txt"
-                                  :compilation-dir "build"
-                                  :configure "cmake %s -B %s"
-                                  :compile "cmake --build ."
-                                  :test "ctest"
-                                  :install "cmake --build . --target install"
-                                  :package "cmake --build . --target package")
+                                  :configure #'projectile--cmake-configure-command
+                                  :compile #'projectile--cmake-compile-command
+                                  :test #'projectile--cmake-test-command
+                                  :install "cmake --build build --target install"
+                                  :package "cmake --build build --target package")
 ;; PHP
 (projectile-register-project-type 'php-symfony '("composer.json" "app" "src" "vendor")
                                   :project-file "composer.json"
