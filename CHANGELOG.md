@@ -13,6 +13,7 @@
 * [#1608](https://github.com/bbatsov/projectile/pull/1608): Use rebar3 build system by default for Erlang projects.
 * Rename `projectile-project-root-files-functions` to `projectile-project-root-functions`.
 * [#1647](https://github.com/bbatsov/projectile/issues/1647): Use "-B" in the mvn commands to avoid ANSI coloring clutter in the compile buffer
+* [#1657](https://github.com/bbatsov/projectile/pull/1657): Add project detection for Debian packaging directories.
 
 ### Bugs fixed
 
