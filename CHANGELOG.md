@@ -17,6 +17,7 @@
 * [#1450](https://github.com/bbatsov/projectile/pull/1450): Call `switch-project-action` within project's temp buffer.
 * [#1340](https://github.com/bbatsov/projectile/pull/1340): Fix remote projects being removed if TRAMP can't connect.
 * [#1655](https://github.com/bbatsov/projectile/pull/1655): Fix `projectile-replace-regexp` searching the wrong files when called with prefix arg.
+* [#1659](https://github.com/bbatsov/projectile/issues/1659): Fix `projectile-project-vcs` to work outside a project.
 
 ## 2.3.0 (2020-11-27)
 

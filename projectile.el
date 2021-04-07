@@ -3008,7 +3008,7 @@ Expands wildcards using `file-expand-wildcards' before checking."
   "Determine the VCS used by the project if any.
 PROJECT-ROOT is the targeted directory.  If nil, use
 `projectile-project-root'."
-  (or project-root (setq project-root (projectile-project-root)))
+  (or project-root (setq project-root (projectile-acquire-root)))
   (cond
    ;; first we check for a VCS marker in the project root itself
    ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
