@@ -2141,7 +2141,7 @@ A typical example of such a defun would be `find-file-other-window' or
 
 Subroutine for `projectile-find-file-dwim' and
 `projectile-find-file-dwim-other-window'"
-  (let* ((project-root (projectile-project-root))
+  (let* ((project-root (projectile-acquire-root))
          (project-files (projectile-project-files project-root))
          (files (projectile-select-files project-files invalidate-cache))
          (file (cond ((= (length files) 1)
@@ -3456,7 +3456,7 @@ regular expression."
                                               '()))))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
-        (funcall ag-command search-term (projectile-project-root)))
+        (funcall ag-command search-term (projectile-acquire-root)))
     (error "Package 'ag' is not available")))
 
 ;;;###autoload
@@ -3474,7 +3474,7 @@ regular expression."
                           (append projectile-globally-ignored-files
                                   projectile-globally-ignored-directories))))
         (ripgrep-regexp search-term
-                        (projectile-project-root)
+                        (projectile-acquire-root)
                         (if arg
                             args
                           (cons "--fixed-strings" args))))
@@ -4766,7 +4766,7 @@ is chosen."
 (defun projectile-check-vcs-status (&optional project-path)
   "Check the status of the current project.
 If PROJECT-PATH is a project, check this one instead."
-  (let ((project-path (or project-path (projectile-project-root)))
+  (let ((project-path (or project-path (projectile-acquire-root)))
         (project-status nil))
     (save-excursion
       (vc-dir project-path)
