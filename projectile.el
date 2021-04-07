@@ -1163,7 +1163,9 @@ If DIR is not supplied its set to the current directory by default."
 (defun projectile-ensure-project (dir)
   "Ensure that DIR is non-nil.
 Useful for commands that expect the presence of a project.
-Controlled by `projectile-require-project-root'."
+Controlled by `projectile-require-project-root'.
+
+See also `projectile-acquire-root'."
   (if dir
       dir
     (cond
@@ -1174,7 +1176,7 @@ Controlled by `projectile-require-project-root'."
 
 (defun projectile-acquire-root (&optional dir)
   "Find the current project root, and prompts the user for it if that fails.
-Provides the common idiom (projectile-ensure-root (projectile-project-root)).
+Provides the common idiom (projectile-ensure-project (projectile-project-root)).
 Starts the search for the project with DIR."
   (projectile-ensure-project (projectile-project-root dir)))
 
