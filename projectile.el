@@ -5118,19 +5118,18 @@ Otherwise behave as if called interactively.
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
-    (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
+    (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache)
+    (if (bound-and-true-p savehist-loaded)
+        (add-to-list 'savehist-additional-variables 'projectile-project-command-history)
+      (defvar savehist-additional-variables nil)
+      (add-hook 'savehist-mode-hook
+                (lambda()
+                  (add-to-list 'savehist-additional-variables 'projectile-project-command-history)))))
    (t
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
-
-(if (bound-and-true-p savehist-loaded)
-    (add-to-list 'savehist-additional-variables 'projectile-project-command-history)
-  (defvar savehist-additional-variables nil)
-  (add-hook 'savehist-mode-hook
-            (lambda()
-              (add-to-list 'savehist-additional-variables 'projectile-project-command-history))))
 
 ;;;###autoload
 (define-obsolete-function-alias 'projectile-global-mode 'projectile-mode "1.0")
