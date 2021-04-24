@@ -162,12 +162,62 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
 
+(describe "projectile--combine-plists"
+ (it "Items in second plist override elements in first"
+   (expect (projectile--combine-plists
+            '(:foo "foo" :bar "bar")
+            '(:foo "foo" :bar "foo" :foobar "foobar"))
+           :to-equal
+           '(:foo "foo" :bar "foo" :foobar "foobar")))
+ (it "Nil elements in second plist do not override elements in first"
+   (expect (projectile--combine-plists
+            '(:foo "foo" :bar "bar")
+            '(:foo "foo" :bar nil :foobar "foobar"))
+           :to-equal
+           '(:foo "foo" :bar "bar" :foobar "foobar"))))
+
 (describe "projectile-register-project-type"
   (it "prepends new projects to projectile-project-types"
     (projectile-register-project-type 'foo '("Foo"))
     (expect (caar projectile-project-types) :to-equal 'foo)
     (projectile-register-project-type 'bar '("Bar"))
     (expect (caar projectile-project-types) :to-equal 'bar)))
+
+(describe "projectile-update-project-type"
+  :var ((mock-projectile-project-types
+           '((foo marker-files "marker-file"
+                  project-file "project-file"
+                  compilation-dir "compilation-dir"
+                  configure-command "configure"
+                  compile-command "compile"
+                  test-command "test"
+                  install-command "install"
+                  package-command "package"
+                  run-command "run"))))
+  (it "Updates existing project in projectile-project-types"
+    (let ((projectile-project-types mock-projectile-project-types))
+      (projectile-update-project-type
+       'foo
+       :marker-files "marker-file2"
+       :test-suffix "suffix")
+      (expect projectile-project-types :to-equal
+              '((foo marker-files "marker-file2"
+                     project-file "project-file"
+                     compilation-dir "compilation-dir"
+                     configure-command "configure"
+                     compile-command "compile"
+                     test-command "test"
+                     install-command "install"
+                     package-command "package"
+                     run-command "run"
+                     test-suffix "suffix")))))
+  (it "Error when attempt to update nonexistant project type"
+    (let ((projectile-project-types mock-projectile-project-types))
+      (expect (projectile-update-project-type
+               'bar
+               :marker-files "marker-file"
+               :test-suffix "suffix")
+              :to-throw))))
 
 (describe "projectile-project-type"
   (it "detects the type of Projectile's project"
