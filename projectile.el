@@ -2582,29 +2582,25 @@ If KIND is not provided, a list of possible kinds can be chosen."
 The project types are symbols and they are linked to plists holding
 the properties of the various project types.")
 
-(cl-defun projectile-register-project-type
-    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
-  "Register a project type with projectile.
+(defun projectile--combine-plists (&rest plists)
+  "Create a single property list from all plists in PLISTS.
+The process starts by copying the first list, and then setting properties
+from the other lists.  Settings in the last list are the most significant
+ones and overrule settings in the other lists.  nil values are ignored in
+all but the first plist."
+  (let ((rtn (copy-sequence (pop plists)))
+	p v ls)
+    (while plists
+      (setq ls (pop plists))
+      (while ls
+	(setq p (pop ls) v (pop ls))
+        (when v
+	  (setq rtn (plist-put rtn p v)))))
+    rtn))
 
-A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-and optional keyword arguments:
-PROJECT-FILE the main project file in the root project directory.
-COMPILATION-DIR the directory to run the tests- and compilations in,
-CONFIGURE which specifies a command that configures the project
-          `%s' in the command will be substituted with (projectile-project-root)
-          before the command is run,
-COMPILE which specifies a command that builds the project,
-TEST which specified a command that tests the project,
-RUN which specifies a command that runs the project,
-TEST-SUFFIX which specifies test file suffix, and
-TEST-PREFIX which specifies test file prefix.
-SRC-DIR which specifies the path to the source relative to the project root.
-TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILES-FN which specifies a custom function to find the related files such as
-test/impl/other files as below:
-    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
-    a plist containing :test, :impl or :other as key and the relative path/paths or
-    predicate as value. PREDICATE accepts a relative path as the input."
+(cl-defun projectile--build-project-plist
+    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+  "Build a project type plist with the provided arguments."
   (let ((project-plist (list 'marker-files marker-files
                              'project-file project-file
                              'compilation-dir compilation-dir
@@ -2630,10 +2626,108 @@ test/impl/other files as below:
       (plist-put project-plist 'test-dir test-dir))
     (when related-files-fn
       (plist-put project-plist 'related-files-fn related-files-fn))
+    project-plist))
 
-    (setq projectile-project-types
-          (cons `(,project-type . ,project-plist)
-                projectile-project-types))))
+(cl-defun projectile-register-project-type
+    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+  "Register a project type with projectile.
+
+A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
+and optional keyword arguments:
+PROJECT-FILE the main project file in the root project directory.
+COMPILATION-DIR the directory to run the tests- and compilations in,
+CONFIGURE which specifies a command that configures the project
+          `%s' in the command will be substituted with (projectile-project-root)
+          before the command is run,
+COMPILE which specifies a command that builds the project,
+TEST which specified a command that tests the project,
+RUN which specifies a command that runs the project,
+TEST-SUFFIX which specifies test file suffix, and
+TEST-PREFIX which specifies test file prefix.
+SRC-DIR which specifies the path to the source relative to the project root.
+TEST-DIR which specifies the path to the tests relative to the project root.
+RELATED-FILES-FN which specifies a custom function to find the related files such as
+test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
+    a plist containing :test, :impl or :other as key and the relative path/paths or
+    predicate as value.  PREDICATE accepts a relative path as the input."
+  (setq projectile-project-types
+        (cons `(,project-type .
+                              ,(projectile--build-project-plist
+                                 marker-files
+                                 :project-file project-file
+                                 :compilation-dir compilation-dir
+                                 :configure configure
+                                 :compile compile
+                                 :install install
+                                 :package package
+                                 :test test
+                                 :run run
+                                 :test-suffix test-suffix
+                                 :test-prefix test-prefix
+                                 :src-dir src-dir
+                                 :test-dir test-dir
+                                 :related-files-fn related-files-fn))
+                projectile-project-types)))
+
+(cl-defun projectile-update-project-type
+    (project-type &key marker-files project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+    "Update an existing projectile project type.
+
+Non-nil passed items will override existing values for the project type given
+by PROJECT-TYPE.  Nothing will happen if PROJECT-TYPE is not already registered
+with projectile.  The arguments to this function are as for
+projectile-register-project-type:
+
+A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
+and optional keyword arguments:
+MARKER-FILES a set of indicator files for PROJECT-TYPE.
+PROJECT-FILE the main project file in the root project directory.
+COMPILATION-DIR the directory to run the tests- and compilations in,
+CONFIGURE which specifies a command that configures the project
+          `%s' in the command will be substituted with (projectile-project-root)
+          before the command is run,
+COMPILE which specifies a command that builds the project,
+TEST which specified a command that tests the project,
+RUN which specifies a command that runs the project,
+TEST-SUFFIX which specifies test file suffix, and
+TEST-PREFIX which specifies test file prefix.
+SRC-DIR which specifies the path to the source relative to the project root.
+TEST-DIR which specifies the path to the tests relative to the project root.
+RELATED-FILES-FN which specifies a custom function to find the related files such as
+test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
+    a plist containing :test, :impl or :other as key and the relative path/paths or
+    predicate as value.  PREDICATE accepts a relative path as the input."
+    (if-let ((existing-project-plist
+              (cl-find-if
+               (lambda (p) (eq project-type (car p))) projectile-project-types))
+             (new-plist
+              (projectile--build-project-plist
+               marker-files
+               :project-file project-file
+               :compilation-dir compilation-dir
+               :configure configure
+               :compile compile
+               :install install
+               :package package
+               :test test
+               :run run
+               :test-suffix test-suffix
+               :test-prefix test-prefix
+               :src-dir src-dir
+               :test-dir test-dir
+               :related-files-fn related-files-fn))
+             (merged-plist
+              (projectile--combine-plists
+               (cdr existing-project-plist) new-plist))
+             (project-type-elt (cons project-type merged-plist)))
+        (setq projectile-project-types
+              (mapcar (lambda (p) (if (eq project-type (car p))
+                                      project-type-elt
+                                    p))
+                      projectile-project-types))
+      (message (format "No existing project found for: %s" project-type))))
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
