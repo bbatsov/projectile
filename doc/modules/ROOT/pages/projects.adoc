@@ -434,6 +434,22 @@ Each helper means `projectile-related-files-fn-helper-name` function.
    :related-files-fn my/related-files)
 ----
 
+=== Editing Existing Project Types
+
+You can also edit specific options of already existing project types:
+
+[source,elisp]
+----
+(projectile-update-project-type
+   'sbt
+   :related-files-fn
+   (list
+    (projectile-related-files-fn-test-with-suffix "scala" "Spec")
+    (projectile-related-files-fn-test-with-suffix "scala" "Test")))
+----
+
+This will keep all existing options for the `sbt` project type, but change the value of the `related-files-fn` option.
+
 == Customizing Project Detection
 
 Project detection is pretty simple - Projectile just runs a list of
