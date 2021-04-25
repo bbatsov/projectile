@@ -2600,7 +2600,29 @@ all but the first plist."
 
 (cl-defun projectile--build-project-plist
     (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
-  "Build a project type plist with the provided arguments."
+  "Return a project type plist with the provided arguments.
+
+A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
+and optional keyword arguments:
+PROJECT-FILE the main project file in the root project directory.
+COMPILATION-DIR the directory to run the tests- and compilations in,
+CONFIGURE which specifies a command that configures the project
+          `%s' in the command will be substituted with (projectile-project-root)
+          before the command is run,
+COMPILE which specifies a command that builds the project,
+INSTALL which specifies a command to install the project.
+PACKAGE which specifies a command to package the project.
+TEST which specified a command that tests the project,
+RUN which specifies a command that runs the project,
+TEST-SUFFIX which specifies test file suffix, and
+TEST-PREFIX which specifies test file prefix.
+SRC-DIR which specifies the path to the source relative to the project root.
+TEST-DIR which specifies the path to the tests relative to the project root.
+RELATED-FILES-FN which specifies a custom function to find the related files such as
+test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
+    a plist containing :test, :impl or :other as key and the relative path/paths or
+    predicate as value.  PREDICATE accepts a relative path as the input."
   (let ((project-plist (list 'marker-files marker-files
                              'project-file project-file
                              'compilation-dir compilation-dir
@@ -2640,6 +2662,8 @@ CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
           before the command is run,
 COMPILE which specifies a command that builds the project,
+INSTALL which specifies a command to install the project.
+PACKAGE which specifies a command to package the project.
 TEST which specified a command that tests the project,
 RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
@@ -2675,7 +2699,7 @@ test/impl/other files as below:
     "Update an existing projectile project type.
 
 Non-nil passed items will override existing values for the project type given
-by PROJECT-TYPE.  Nothing will happen if PROJECT-TYPE is not already registered
+by PROJECT-TYPE.  Raise an error if PROJECT-TYPE is not already registered
 with projectile.  The arguments to this function are as for
 projectile-register-project-type:
 
@@ -2688,6 +2712,8 @@ CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
           before the command is run,
 COMPILE which specifies a command that builds the project,
+INSTALL which specifies a command to install the project.
+PACKAGE which specifies a command to package the project.
 TEST which specified a command that tests the project,
 RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
@@ -2727,7 +2753,7 @@ test/impl/other files as below:
                                       project-type-elt
                                     p))
                       projectile-project-types))
-      (message (format "No existing project found for: %s" project-type))))
+      (error "No existing project found for: %s" project-type)))
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
