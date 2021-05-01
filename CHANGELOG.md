@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+* Add `projectile-update-project-type-function` for updating the properties of existing project types
+
 ### Changes
 
 * Add `project` param to `projectile-generate-process-name`.
