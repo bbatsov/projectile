@@ -1509,6 +1509,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (projectile-clear-known-projects)
       (expect projectile-known-projects :to-equal nil))))
 
+(describe "projectile-reset-known-projects"
+  (it "resets known projects"
+    (spy-on 'projectile-clear-known-projects)
+    (spy-on 'projectile-discover-projects-in-search-path)
+    (projectile-reset-known-projects)
+    (expect 'projectile-clear-known-projects :to-have-been-called)
+    (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
+
 (describe "projectile-test-ignored-directory-p"
   (it "ignores specified literal directory values"
     (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp"))

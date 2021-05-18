@@ -2,7 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
 * Add `projectile-update-project-type-function` for updating the properties of existing project types
+* [#1658](https://github.com/bbatsov/projectile/pull/1658): New command `projectile-reset-known-projects`.
 
 ### Changes
 
