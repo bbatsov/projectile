@@ -4656,6 +4656,13 @@ See `projectile--cleanup-known-projects'."
   (projectile-save-known-projects))
 
 ;;;###autoload
+(defun projectile-reset-known-projects ()
+  "Clear known projects and rediscover."
+  (interactive)
+  (projectile-clear-known-projects)
+  (projectile-discover-projects-in-search-path))
+
+;;;###autoload
 (defun projectile-remove-known-project (&optional project)
   "Remove PROJECT from the list of known projects."
   (interactive (list (projectile-completing-read
