@@ -39,7 +39,7 @@ it is pretty simple:
 . Get the report with kbd:[M-x] `profiler-report`.
 
 TIP: If you intend to share the profiling results with someone it's a good idea to
- save the report buffer to a file with <kbd>C-x C-w</kbd>.
+ save the report buffer to a file with kbd:[C-x C-w].
 
 == Commonly encountered problems (and how to solve them)
 
