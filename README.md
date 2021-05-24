@@ -4,7 +4,6 @@
 [![MELPA](http://melpa.org/packages/projectile-badge.svg)](http://melpa.org/#/projectile)
 [![MELPA Stable](http://stable.melpa.org/packages/projectile-badge.svg)](http://stable.melpa.org/#/projectile)
 [![Build Status](https://github.com/bbatsov/projectile/workflows/CI/badge.svg)](https://github.com/bbatsov/projectile/actions?query=workflow%3ACI)
-[![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 
 ## Synopsis
 
@@ -19,13 +18,11 @@ Projectile tries to be practical - portability is great, but if some
 external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
 
-This library provides easy project management and navigation. The
-concept of a project is pretty basic - just a folder containing some
-special file (e.g. a VCS marker or a project descriptor
-file). Currently `git`, `mercurial`, `darcs` and `bazaar` repos are
-considered projects by default. So are `lein`, `maven`, `sbt`,
-`scons`, `rebar3` and `bundler` projects. If you want to mark a folder
-manually as a project just create an empty `.projectile` file in it.
+This library provides easy project management and navigation. The concept of a
+project is pretty basic - just a folder containing some special file (e.g. a VCS
+marker or a project descriptor file like `pom.xml` or `Gemfile`). Projectile
+will auto-detect pretty much every popular project type out of the box
+and you can easily extend it with additional project types.
 
 Here are some of Projectile's features:
 
@@ -50,6 +47,19 @@ Here are some of Projectile's features:
 * toggle read-only mode for the entire project
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
 
+---------------
+[![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
+[![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=GRQKNBM6P8VRQ)
+
+I've been developing Projectile for a decade now. While it's a fun
+project to work on, it still requires a lot of time and energy to
+maintain.
+
+You can support my work on Projectile via
+ [PayPal](https://www.paypal.me/bbatsov),
+ [Patreon](https://www.patreon.com/bbatsov) and
+ [GitHub Sponsors](https://github.com/sponsors/bbatsov).
+
 ## Projectile in Action
 
 Here's a glimpse of Projectile in action (using `ivy`):
@@ -62,16 +72,11 @@ In this short demo you can see:
 * switching between implementation and test
 * switching between projects
 
-You can support my work on Projectile via
- [PayPal](https://www.paypal.me/bbatsov),
- [Patreon](https://www.patreon.com/bbatsov) and
- [GitHub Sponsors](https://github.com/sponsors/bbatsov).
-
 ## Quickstart
 
 The instructions that follow are meant to get you from zero to a running Projectile setup
 in a minute.  Visit the
-[user manual](https://docs.projectile.mx) for (way) more
+[online documentation](https://docs.projectile.mx) for (way) more
 details.
 
 ### Installation
@@ -94,7 +99,9 @@ Finally add this to your Emacs config:
 
 ```elisp
 (projectile-mode +1)
+;; Recommended keymap prefix on macOS
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+;; Recommended keymap prefix on Windows/Linux
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 ```
 
@@ -104,7 +111,7 @@ Those keymap prefixes are just a suggestion. Feel free to put there whatever wor
 
 Enable `projectile-mode`, open a file in one of your projects and type a command such as <kbd>C-c p f</kbd>.
 
-See the [user manual](https://docs.projectile.mx) for more details.
+See the [online documentation](https://docs.projectile.mx) for more details.
 
 ## Caveats
 
