@@ -2824,7 +2824,7 @@ test/impl/other files as below:
                                   :compile "bazel build"
                                   :test "bazel test"
                                   :run "bazel run")
-(projectile-register-project-type 'debian "debian/control"
+(projectile-register-project-type 'debian '("debian/control")
                                   :project-file "debian/control"
                                   :compile "debuild -uc -us")
 
