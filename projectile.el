@@ -5148,6 +5148,8 @@ thing shown in the mode line otherwise."
         ["Switch to project" projectile-switch-project]
         ["Switch to open project" projectile-switch-open-project]
         ["Discover projects in directory" projectile-discover-projects-in-directory]
+        ["Clear known projects" projectile-clear-known-projects]
+        ["Reset known projects" projectile-reset-known-projects]
         ["Browse dirty projects" projectile-browse-dirty-projects]
         ["Open project in dired" projectile-dired]
         "--"
