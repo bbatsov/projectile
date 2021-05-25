@@ -27,9 +27,6 @@ and you can easily extend it with additional project types.
 Here are some of Projectile's features:
 
 * jump to a file in project
-* jump to files at point in project
-* jump to a directory in project
-* jump to a file in a directory
 * jump to a project buffer
 * jump to a test in project
 * toggle between files with same names but different extensions (e.g. `.h` <-> `.c/.cpp`, `Gemfile` <-> `Gemfile.lock`)
@@ -38,13 +35,8 @@ Here are some of Projectile's features:
 * switch between projects you have worked on
 * kill (close) all project buffers
 * replace in project
-* multi-occur in project buffers
-* grep in project
-* regenerate project etags or gtags (requires [ggtags](https://github.com/leoliu/ggtags)).
-* visit project in `dired`
-* run make in a project with a single key chord
-* check for dirty repositories
-* toggle read-only mode for the entire project
+* grep (search) in project
+* run shell commands in a project (e.g. `make`, `lein`)
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
 
 ---------------
