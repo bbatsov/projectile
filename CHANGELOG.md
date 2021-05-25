@@ -4,7 +4,7 @@
 
 ### New features
 
-* Add `projectile-update-project-type-function` for updating the properties of existing project types
+* Add `projectile-update-project-type-function` for updating the properties of existing project types.
 * [#1658](https://github.com/bbatsov/projectile/pull/1658): New command `projectile-reset-known-projects`.
 * [#1656](https://github.com/bbatsov/projectile/pull/1656): Add support for CMake configure, build and test presets. Enabled by setting `projectile-cmake-presets` to non-nil, disabled by default.
 
@@ -26,7 +26,7 @@
 * [#1340](https://github.com/bbatsov/projectile/pull/1340): Fix remote projects being removed if TRAMP can't connect.
 * [#1655](https://github.com/bbatsov/projectile/pull/1655): Fix `projectile-replace-regexp` searching the wrong files when called with prefix arg.
 * [#1659](https://github.com/bbatsov/projectile/issues/1659): Fix `projectile-project-vcs` to work outside a project.
-* [#1637](https://github.com/bbatsov/projectile/pull/1661): Integrate with savehist-mode
+* [#1637](https://github.com/bbatsov/projectile/pull/1661): Integrate with savehist-mode.
 
 ## 2.3.0 (2020-11-27)
 
