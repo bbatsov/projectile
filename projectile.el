@@ -3197,7 +3197,9 @@ a manual COMMAND-TYPE command is created with
 ;; Racket
 (projectile-register-project-type 'racket '("info.rkt")
                                   :project-file "info.rkt"
-                                  :test "raco test .")
+                                  :test "raco test ."
+                                  :install "raco pkg install"
+                                  :package "raco pkg create --source $(pwd)")
 
 ;; Dart
 (projectile-register-project-type 'dart '("pubspec.yaml")
