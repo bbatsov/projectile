@@ -109,6 +109,7 @@ See the [online documentation](https://docs.projectile.mx) for more details.
 
 * Some operations like search (grep) depend (presently) on external
   utilities such as `find`.
+* Commands depending on external utilities might misbehave on the `fish` shell.
 * Using Projectile over TRAMP might be slow in certain cases.
 * Some commands might misbehave on complex project setups (e.g. a git project with submodules)
 * Projectile was mostly tested on Unix OS-es (e.g. GNU/Linux and macOS), so some functionality might not work well on Windows

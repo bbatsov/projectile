@@ -61,3 +61,14 @@ least what's being required).
 
 Emacs doesn't load the new files, it only installs them on disk.  To see the
 effect of changes you have to restart Emacs.
+
+=== Some commands not working properly with the fish shell
+
+I'm not sure what's causing this (likely different quoting rules), but it's easy to fix it:
+
+[source,elisp]
+----
+(setq shell-file-name "/bin/bash")
+----
+
+In general, I've noticed that Emacs doesn't play very well with fish.
