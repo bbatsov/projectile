@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.4.0 (2021-05-27)
+
 ### New features
 
 * Add `projectile-update-project-type-function` for updating the properties of existing project types.
