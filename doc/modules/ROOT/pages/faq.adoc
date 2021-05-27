@@ -32,18 +32,17 @@ Okay, that's only an advantage if you're one of those rare people who enjoy read
 Yeah, it does. I don't use TRAMP myself, however, so I never paid that
 much attention to the TRAMP support. It's mostly community-maintained.
 
-== Why does Projectile violate the rule not to bind keys in the user keymap?
+== Why doesn't Projectile have a default prefix for its keybinding?
 
 Historically Projectile used to use `C-c p` as the prefix for all of its commands.
 I opted for the `C-c p` prefix fully aware that this violates https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Conventions.html[a very
 established Emacs
 convention],
 mostly because it felt practical and because pressing `C-c C-p` is not
-super convenient for many people. I've come to regret this decision,
-though, and it will likely be reverted down the road.
+super convenient for many people.
 
-NOTE: This was changed in Projectile 2.0. Currently Projectile requires
-users to select a prefix key for its commands explicitly.
+Eventually this was changed in Projectile 2.0. That's why currently Projectile
+requires users to select a prefix key for its commands explicitly.
 
 == Do you need some help cleanup up all those tickets that have piled up?
 
