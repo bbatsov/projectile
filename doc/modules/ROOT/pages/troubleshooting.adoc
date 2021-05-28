@@ -4,7 +4,7 @@ In case you run into issues here are a few tips that can help you diagnose the
 problem.
 
 Generally, it's not a bad idea to configure Emacs to spit the backtrace on error
-(instead of just logging the error in the `*Messages*` buffer). You can toggle
+(instead of just logging the error in the `+*Messages*+` buffer). You can toggle
 this behavior by using kbd:[M-x] `toggle-debug-on-error`.
 
 == Debugging Projectile commands
