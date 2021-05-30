@@ -237,7 +237,7 @@ Bellow is a listing of all the available options for `projectile-register-projec
 | A command to test the project.
 
 | :test-dir
-| A path, relative to the project root, where the test code lives.
+| A path, relative to the project root, where the test code lives.  A function may also be specified which takes one parameter - the directory of a file, and it should return the directory in which the test file should reside.
 
 | :test-prefix
 | A prefix to generate test files names.
@@ -294,15 +294,23 @@ Note that your function has to return a string to work properly.
 
 === Related file location
 
-For simple projects, `:test-prefix` and `:test-suffix` option with string will
-be enough to specify test prefix/suffix applicable regardless of file extensions
-on any directory path. `projectile-other-file-alist` variable can be also set to
-find other files based on the extension.
+The `:test-prefix` and `:test-suffix` will work regardless of file extension
+or directory path should and be enough for simple projects.  The
+`projectile-other-file-alist` variable can also be set to find other files
+based on the extension.
 
-For the full control of finding related files, `:related-files-fn` option with a
-custom function or a list of custom functions can be used. The custom function
-accepts the relative file name from the project root and it should return the
-related file information as plist with the following optional key/value pairs:
+For fine-grained control of implementation/test toggling, the `:test-dir` option
+of a project may take a function of one parameter (the implementation
+directory absolute path) and return the directory of the test file. This in
+conjunction with the options `:test-prefix` and `:test-suffix` will then be
+used to determine the full path of the test file. This option will always be
+respected if it is set.
+
+Alternatively, for flexible file switching accross a range of projects,
+the `:related-files-fn` option set to a custom function or a
+list of custom functions can be used. The custom function accepts the relative
+file name from the project root and it should return related file information
+as a plist with the following optional key/value pairs:
 
 |===
 | Key | Value | Command applicable
@@ -346,6 +354,8 @@ of a function can be fast as it does not iterate over each source file.
 . There is a difference in behaviour between no key and `nil` value for the
 key. Only when the key does not exist, other project options such as
 `:test_prefix` or `projectile-other-file-alist` mechanism is tried.
+. If the `:test-dir` option is set to a function, this will take precedence over
+any value for `:related-files-fn` set when `projectile-toggle-between-implementation-and-test` is called.
 
 ==== Example - Same source file name for test and impl
 
@@ -447,14 +457,43 @@ You can also edit specific options of already existing project types:
 [source,elisp]
 ----
 (projectile-update-project-type
-   'sbt
-   :related-files-fn
-   (list
-    (projectile-related-files-fn-test-with-suffix "scala" "Spec")
-    (projectile-related-files-fn-test-with-suffix "scala" "Test")))
+ 'sbt
+ :related-files-fn
+ (list
+  (projectile-related-files-fn-test-with-suffix "scala" "Spec")
+  (projectile-related-files-fn-test-with-suffix "scala" "Test")))
 ----
 
 This will keep all existing options for the `sbt` project type, but change the value of the `related-files-fn` option.
+
+
+=== `:test-dir` vs `:related-files-fn`
+
+The `:test-dir` option is useful if the test location for a given implementation
+file is almost always going to be in the same place accross all projects
+belonging to a given project type, `maven` projects are an example of this:
+
+[source,elisp]
+----
+(projectile-update-project-type
+ 'maven
+ :test-dir
+ (lambda (file-path) (projectile-complementary-dir file-path "main" "test")))
+----
+
+If instead you work on a lot of elisp projects using `eldev`, the
+`:related-files-fn` option may be more appropriate since the test locations tend
+to vary accross projects:
+
+[source,elisp]
+----
+(projectile-update-project-type
+ 'emacs-eldev
+ :related-files-fn
+ (list
+  (projectile-related-files-fn-test-with-suffix "el" "-test")
+  (projectile-related-files-fn-test-with-prefix "el" "test-")))
+----
 
 == Customizing Project Detection
 
