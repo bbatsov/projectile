@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* [#1671](https://github.com/bbatsov/projectile/pull/1671) Allow the `:test-dir` option of a project to be set to a function for more flexible test switching.
+
 ### Bugs fixed
 
 * [#1673](https://github.com/bbatsov/projectile/issues/1673): Fix CMake system-preset filename.
@@ -10,7 +14,7 @@
 
 ### New features
 
-* Add `projectile-update-project-type-function` for updating the properties of existing project types.
+* Add `projectile-update-project-type` function for updating the properties of existing project types.
 * [#1658](https://github.com/bbatsov/projectile/pull/1658): New command `projectile-reset-known-projects`.
 * [#1656](https://github.com/bbatsov/projectile/pull/1656): Add support for CMake configure, build and test presets. Enabled by setting `projectile-cmake-presets` to non-nil, disabled by default.
 
