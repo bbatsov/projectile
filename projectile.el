@@ -4536,11 +4536,14 @@ project of that type"
       (projectile-read-command prompt default-cmd)
     default-cmd))
 
+(defvar projectile-comint-mode nil
+  "If non-nil, launch projectile compilation buffers in interactive mode.")
+
 (defun projectile-run-compilation (cmd)
   "Run external or Elisp compilation command CMD."
   (if (functionp cmd)
       (funcall cmd)
-    (compile cmd)))
+    (compile cmd projectile-comint-mode)))
 
 (defvar projectile-project-command-history (make-hash-table :test 'equal)
   "The history of last executed project commands, per project.
