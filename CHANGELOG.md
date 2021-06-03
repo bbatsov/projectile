@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Bugs fixed
+
+* [#1673](https://github.com/bbatsov/projectile/issues/1673): Fix CMake system-preset filename.
+
 ## 2.4.0 (2021-05-27)
 
 ### New features
