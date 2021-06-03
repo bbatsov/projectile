@@ -2830,7 +2830,7 @@ test/impl/other files as below:
   "Get CMake user and system COMMAND-TYPE presets."
   (projectile-flatten
    (mapcar (lambda (filename) (projectile--cmake-command-presets filename command-type))
-           '("CMakeUserPresets.json" "CMakeSystemPresets.json"))))
+           '("CMakeUserPresets.json" "CMakePresets.json"))))
 
 (defun projectile--cmake-command-preset-names (command-type)
   "Get names of CMake user and system COMMAND-TYPE presets."
