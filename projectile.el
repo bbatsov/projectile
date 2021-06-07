@@ -4536,8 +4536,9 @@ project of that type"
       (projectile-read-command prompt default-cmd)
     default-cmd))
 
-(defvar projectile-comint-mode nil
-  "If non-nil, launch projectile compilation buffers in interactive mode.")
+(defcustom projectile-comint-mode nil
+  "If non-nil, launch projectile compilation buffers in interactive mode."
+  :type 'bool)
 
 (defun projectile-run-compilation (cmd)
   "Run external or Elisp compilation command CMD."
