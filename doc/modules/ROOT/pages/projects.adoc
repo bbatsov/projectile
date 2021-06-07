@@ -735,3 +735,16 @@ external command or an Emacs Lisp function:
 ----
 (setq projectile-test-cmd #'custom-test-function)
 ----
+
+== Interact with a project's compilation buffer
+
+By default, compilation buffers are not writable, which allows you to e.g.
+press `g` to restart the last command. Setting `projectile-comint-mode` to a
+non-nil value allows you to make projectile compilation buffers interactive.
+This is especially useful for testing a program with `projectile-run-project`.
+
+[source,elisp]
+----
+(setq projectile-comint-mode t)
+----
+
