@@ -17,6 +17,7 @@
 * Add `projectile-update-project-type` function for updating the properties of existing project types.
 * [#1658](https://github.com/bbatsov/projectile/pull/1658): New command `projectile-reset-known-projects`.
 * [#1656](https://github.com/bbatsov/projectile/pull/1656): Add support for CMake configure, build and test presets. Enabled by setting `projectile-cmake-presets` to non-nil, disabled by default.
+* Add optional parameters to `projectile-run-shell-command-in-root` and `projectile-run-async-shell-command-in-root`
 
 ### Changes
 
