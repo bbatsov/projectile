@@ -119,7 +119,7 @@ See the [online documentation](https://docs.projectile.mx) for more details.
 Check out the project's
 [issue list](https://github.com/bbatsov/projectile/issues?sort=created&direction=desc&state=open)
 a list of unresolved issues. By the way - feel free to fix any of them
-and sent me a pull request. :-)
+and send me a pull request. :-)
 
 ## Contributors
 
