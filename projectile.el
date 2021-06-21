@@ -3311,6 +3311,22 @@ PROJECT-ROOT is the targeted directory.  If nil, use
      (test-suffix (concat impl-file-name test-suffix "." impl-file-ext))
      (t (error "Project type `%s' not supported!" project-type)))))
 
+(defun projectile--impl-name-for-test-name (test-file-path)
+  "Determine the name of the implementation file for TEST-FILE-PATH.
+
+TEST-FILE-PATH may be a absolute path, relative path or a file name."
+  (let* ((project-type (projectile-project-type))
+         (test-file-name (file-name-sans-extension (file-name-nondirectory test-file-path)))
+         (test-file-ext (file-name-extension test-file-path))
+         (test-prefix (funcall projectile-test-prefix-function project-type))
+         (test-suffix (funcall projectile-test-suffix-function project-type)))
+    (cond
+     (test-prefix
+      (concat (string-remove-prefix test-prefix test-file-name) "." test-file-ext))
+     (test-suffix
+      (concat (string-remove-suffix test-suffix test-file-name) "." test-file-ext))
+     (t (error "Project type `%s' not supported!" project-type)))))
+
 (defun projectile--impl-to-test-dir (impl-dir-path)
   "Return the directory path of a test whose impl file resides in IMPL-DIR-PATH.
 
@@ -3476,6 +3492,17 @@ concatenated with FILENAME-FN applied to the file name of FILE-PATH."
          (dir (funcall dir-fn (file-name-directory file-path))))
     (concat (file-name-as-directory dir) complementary-filename)))
 
+(defun projectile--impl-file-from-src-dir-fn (test-file)
+  "Return the implementation file path for the absolute path TEST-FILE relative to the project root in the case the current project type's src-dir has been set to a custom function, return nil if this is not the case or the path points to a file that does not exist."
+  (when-let ((src-dir (projectile-src-directory (projectile-project-type))))
+    (when (functionp src-dir)
+      (let ((impl-file (projectile--complementary-file
+                        test-file
+                        src-dir
+                        #'projectile--impl-name-for-test-name)))
+        (when (file-exists-p impl-file)
+          (file-relative-name impl-file (projectile-project-root)))))))
+
 (defun projectile--test-file-from-test-dir-fn (impl-file)
   "Return the test file path for the absolute path IMPL-FILE relative to the project root, in the case the current project type's test-dir has been set to a custom function, else return nil."
   (when-let ((test-dir (projectile-test-directory (projectile-project-type))))
@@ -3510,11 +3537,14 @@ concatenated with FILENAME-FN applied to the file name of FILE-PATH."
 
 (defun projectile--find-matching-file (test-file)
   "Return a list of impl files tested by TEST-FILE."
-  (if-let ((plist (projectile--related-files-plist-by-kind test-file :impl)))
-      (projectile--related-files-from-plist plist)
-    (if-let ((predicate (projectile--test-to-impl-predicate test-file)))
-        (projectile--best-or-all-candidates-based-on-parents-dirs
-         test-file (cl-remove-if-not predicate (projectile-current-project-files))))))
+  (if-let ((impl-file-from-src-dir-fn
+            (projectile--impl-file-from-src-dir-fn test-file)))
+      (list impl-file-from-src-dir-fn)
+    (if-let ((plist (projectile--related-files-plist-by-kind test-file :impl)))
+        (projectile--related-files-from-plist plist)
+      (if-let ((predicate (projectile--test-to-impl-predicate test-file)))
+          (projectile--best-or-all-candidates-based-on-parents-dirs
+           test-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
 
 (defun projectile--choose-from-candidates (candidates)
   "Choose one item from CANDIDATES."
