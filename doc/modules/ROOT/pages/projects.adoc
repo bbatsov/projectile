@@ -231,13 +231,13 @@ Bellow is a listing of all the available options for `projectile-register-projec
 | A command to run the project.
 
 | :src-dir
-| A path, relative to the project root, where the source code lives.
+| A path, relative to the project root, where the source code lives.  A function may also be specified which takes one parameter - the directory of a test file, and it should return the directory in which the implementation file should reside.  This option is only used for implementation/test toggling.
 
 | :test
 | A command to test the project.
 
 | :test-dir
-| A path, relative to the project root, where the test code lives.  A function may also be specified which takes one parameter - the directory of a file, and it should return the directory in which the test file should reside.
+| A path, relative to the project root, where the test code lives.  A function may also be specified which takes one parameter - the directory of a file, and it should return the directory in which the test file should reside.  This option is only used for implementation/test toggling.
 
 | :test-prefix
 | A prefix to generate test files names.
@@ -305,6 +305,14 @@ directory absolute path) and return the directory of the test file. This in
 conjunction with the options `:test-prefix` and `:test-suffix` will then be
 used to determine the full path of the test file. This option will always be
 respected if it is set.
+
+Similarly, the `:src-dir` option, the analogue of `:test-dir`, may also take a
+function and exhibits exactly the same behaviour as above except that its
+parameter corresponds to the directory of a test file and it should return the
+directory of the corresponding implementation file.
+
+It's recommended that either both or neither of these options are set to
+functions for consistent behaviour.
 
 Alternatively, for flexible file switching accross a range of projects,
 the `:related-files-fn` option set to a custom function or a
@@ -467,16 +475,19 @@ You can also edit specific options of already existing project types:
 This will keep all existing options for the `sbt` project type, but change the value of the `related-files-fn` option.
 
 
-=== `:test-dir` vs `:related-files-fn`
+=== `:test-dir`/`:src-dir` vs `:related-files-fn`
 
-The `:test-dir` option is useful if the test location for a given implementation
-file is almost always going to be in the same place accross all projects
-belonging to a given project type, `maven` projects are an example of this:
+Setting the `:test-dir` and `:src-dir` options to functions is useful if the
+test location for a given implementation file is almost always going to be in
+the same place accross all projects belonging to a given project type, `maven`
+projects are an example of this:
 
 [source,elisp]
 ----
 (projectile-update-project-type
  'maven
+ :src-dir
+ (lambda (file-path) (projectile-complementary-dir file-path "test" "main"))
  :test-dir
  (lambda (file-path) (projectile-complementary-dir file-path "main" "test")))
 ----
