@@ -1219,7 +1219,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
      (projectile-test-with-files-using-custom-project
           ("src/foo/Foo.cpp"
            "src/bar/Foo.cpp"
-           "src/foo/FooTest.cpp")
+           "test/foo/FooTest.cpp")
           (:test-dir
            (lambda (file-path)
              (projectile-complementary-dir file-path "src" "test"))
@@ -1227,7 +1227,22 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (expect (projectile--find-matching-test
                    (projectile-expand-root "src/bar/Foo.cpp"))
                   :to-equal
-                  (list "test/bar/FooTest.cpp"))))))
+                  (list "test/bar/FooTest.cpp")))))
+
+  (it "defers to src-dir property when it's set to a function"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files-using-custom-project
+          ("src/foo/Foo.cpp"
+           "src/bar/Foo.cpp"
+           "test/foo/FooTest.cpp")
+          (:src-dir
+           (lambda (file-path)
+             (projectile-complementary-dir file-path "test" "src"))
+           :test-suffix "Test")
+          (expect (projectile--find-matching-file
+                   (projectile-expand-root "test/foo/FooTest.cpp"))
+                  :to-equal
+                  (list "src/foo/Foo.cpp"))))))
 
 (describe "projectile--related-files"
   (it "returns related files for the given file"
@@ -1672,6 +1687,23 @@ projectile-process-current-project-buffers-current to have similar behaviour"
         (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
         (expect list-a :to-equal list-b))))))
 
+(describe "projectile--impl-name-for-test-name"
+  :var ((mock-projectile-project-types
+         '((foo test-suffix "Test")
+           (bar test-prefix "Test"))))
+  (it "removes suffix from test file"
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda () 'foo))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-name-for-test-name "FooTest.cpp")
+              :to-equal
+              "Foo.cpp")))
+  (it "removes prefix from test file"
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda () 'bar))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-name-for-test-name "TestFoo.cpp")
+              :to-equal
+              "Foo.cpp"))))
+
 (describe "projectile-find-implementation-or-test"
   (it "error when test file does not exist and projectile-create-missing-test-files is nil"
     (cl-letf (((symbol-function 'projectile-test-file-p) #'ignore)
@@ -1680,6 +1712,43 @@ projectile-process-current-project-buffers-current to have similar behaviour"
               ((symbol-function 'projectile-find-matching-test) (lambda (file) "dir/foo"))
               (projectile-create-missing-test-files nil))
       (expect (projectile-find-implementation-or-test "foo") :to-throw))))
+
+(describe "projectile--impl-file-from-src-dir-fn"
+  :var ((mock-projectile-project-types
+         '((foo src-dir (lambda (impl-file) "/outer/foo/test/dir"))
+           (bar src-dir "not a function"))))
+  (it "returns result of projectile--complementary-file when src-dir property is a function"
+    (cl-letf (((symbol-function 'projectile--complementary-file)
+               (lambda (impl-file dir-fn file-fn) (funcall dir-fn impl-file)))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              ((symbol-function 'projectile-project-root) (lambda () "foo"))
+              ((symbol-function 'file-relative-name) (lambda (f rel) f))
+              ((symbol-function 'file-exists-p) (lambda (file) t))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-file-from-src-dir-fn "foo") :to-equal "/outer/foo/test/dir")))
+  (it "returns file relative to project root"
+    (cl-letf (((symbol-function 'projectile--complementary-file)
+               (lambda (impl-file dir-fn file-fn) (funcall dir-fn impl-file)))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              ((symbol-function 'projectile-project-root) (lambda () "/outer/foo"))
+              ((symbol-function 'file-exists-p) (lambda (file) t))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-file-from-src-dir-fn "/outer/foo/bar")
+              :to-equal
+              "test/dir")))
+  (it "returns nil when src-dir property is a not function"
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda () 'bar))
+              ((symbol-function 'projectile-project-root) (lambda () "foo"))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-file-from-src-dir-fn "bar") :to-equal nil)))
+  (it "returns nil when src-dir function result is not an existing file"
+    (cl-letf (((symbol-function 'projectile--complementary-file)
+               (lambda (impl-file dir-fn file-fn) (funcall dir-fn impl-file)))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              ((symbol-function 'projectile-project-root) (lambda () "/outer/foo"))
+              ((symbol-function 'file-exists-p) #'ignore)
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-file-from-src-dir-fn "bar") :to-equal nil))))
 
 (describe "projectile--test-file-from-test-dir-fn"
   :var ((mock-projectile-project-types
