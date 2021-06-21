@@ -4,7 +4,7 @@
 
 ### New features
 
-* [#1671](https://github.com/bbatsov/projectile/pull/1671) Allow the `:test-dir` option of a project to be set to a function for more flexible test switching.
+* [#1671](https://github.com/bbatsov/projectile/pull/1671)/[#1679](https://github.com/bbatsov/projectile/pull/1679) Allow the `:test-dir` and `:src-dir` options of a project to be set to functions for more flexible test switching.
 
 ### Bugs fixed
 
