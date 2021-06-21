@@ -3300,7 +3300,9 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    (t 'none)))
 
 (defun projectile--test-name-for-impl-name (impl-file-path)
-  "Determine the name of the test file for IMPL-FILE-PATH."
+  "Determine the name of the test file for IMPL-FILE-PATH.
+
+IMPL-FILE-PATH may be a absolute path, relative path or a file name."
   (let* ((project-type (projectile-project-type))
          (impl-file-name (file-name-sans-extension (file-name-nondirectory impl-file-path)))
          (impl-file-ext (file-name-extension impl-file-path))
