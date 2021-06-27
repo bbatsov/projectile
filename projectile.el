@@ -630,9 +630,13 @@ When set to nil you'll have always add projects explicitly with
 (defcustom projectile-project-search-path nil
   "List of folders where projectile is automatically going to look for projects.
 You can think of something like $PATH, but for projects instead of executables.
-Examples of such paths might be ~/projects, ~/work, etc."
+Examples of such paths might be ~/projects, ~/work, (~/github . 1) etc.
+
+For elements of form (DIRECTORY . DEPTH), DIRECTORY has to be a
+directory and DEPTH an integer that specifies the depth at which to
+look for projects."
   :group 'projectile
-  :type '(repeat directory)
+  :type '(repeat (choice directory (cons directory (integer :tag "Depth"))))
   :package-version '(projectile . "1.0.0"))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
@@ -1017,19 +1021,20 @@ The cache is created both in memory and on the hard drive."
     (projectile-invalidate-cache nil)))
 
 ;;;###autoload
-(defun projectile-discover-projects-in-directory (directory)
+(defun projectile-discover-projects-in-directory (directory &optional depth)
   "Discover any projects in DIRECTORY and add them to the projectile cache.
-This function is not recursive and only adds projects with roots
-at the top level of DIRECTORY."
-  (interactive
-   (list (read-directory-name "Starting directory: ")))
+
+If DEPTH is non-nil recursively descend exactly DEPTH levels below DIRECTORY and
+discover projects there."
   (if (file-exists-p directory)
-      (let ((subdirs (directory-files directory t directory-files-no-dot-files-regexp t)))
-        (mapc
-         (lambda (dir)
-           (when (and (file-directory-p dir) (projectile-project-p dir))
-             (projectile-add-known-project dir)))
-         subdirs))
+      (let ((subdirs (directory-files directory t)))
+        (dolist (dir subdirs)
+          (when (and (file-directory-p dir)
+                     (not (member (file-name-nondirectory dir) '(".." "."))))
+            (if (and (numberp depth) (> depth 0))
+	        (projectile-discover-projects-in-directory dir (1- depth))
+              (when (projectile-project-p dir)
+	        (projectile-add-known-project dir))))))
     (message "Project search path directory %s doesn't exist" directory)))
 
 ;;;###autoload
@@ -1037,7 +1042,10 @@ at the top level of DIRECTORY."
   "Discover projects in `projectile-project-search-path'.
 Invoked automatically when `projectile-mode' is enabled."
   (interactive)
-  (mapcar #'projectile-discover-projects-in-directory projectile-project-search-path))
+  (dolist (path projectile-project-search-path)
+    (if (consp path)
+	(projectile-discover-projects-in-directory (car path) (cdr path))
+      (projectile-discover-projects-in-directory path 0))))
 
 
 (defun delete-file-projectile-remove-from-cache (filename &optional _trash)

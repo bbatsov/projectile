@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1680](https://github.com/bbatsov/projectile/pull/1680): Add support for recursive project discovery
 * [#1671](https://github.com/bbatsov/projectile/pull/1671)/[#1679](https://github.com/bbatsov/projectile/pull/1679) Allow the `:test-dir` and `:src-dir` options of a project to be set to functions for more flexible test switching.
 
 ### Bugs fixed
