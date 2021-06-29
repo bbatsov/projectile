@@ -3861,15 +3861,13 @@ regular expression."
            (default-directory project-root)
            (tags-file (expand-file-name projectile-tags-file-name))
            (command (format projectile-tags-command
-                            tags-file
+                            (or (file-remote-p tags-file 'localname) tags-file)
                             tags-exclude
-                            ;; Use directory file name for MSYS2 compatibility.
-                            ;; See https://github.com/bbatsov/projectile/issues/1377 for more details
-                            (directory-file-name default-directory)))
+                            "."))
            shell-output exit-code)
       (with-temp-buffer
         (setq exit-code
-              (call-process-shell-command command nil (current-buffer))
+              (process-file-shell-command command nil (current-buffer))
               shell-output (string-trim
                             (buffer-substring (point-min) (point-max)))))
       (unless (zerop exit-code)
