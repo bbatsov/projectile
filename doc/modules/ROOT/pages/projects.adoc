@@ -717,9 +717,10 @@ your project, you could customize it with the following:
 
 By default, compilation buffers are not writable, which allows you to
 e.g.  press `g` to restart the last command. Setting
-`projectile-comint-mode` to a non-nil value allows you to make
-projectile compilation buffers interactive, letting you e.g. test a
-command-line program with `projectile-run-project`.
+`projectile-<cmd>-use-comint-mode` (where `<cmd>` is `configure`,
+`compile`, `test`, `install`, `package`, or `run`) to a non-nil value
+allows you to make projectile compilation buffers interactive, letting
+you e.g. test a command-line program with `projectile-run-project`.
 
 [source,elisp]
 ----
