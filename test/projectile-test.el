@@ -1803,6 +1803,52 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                 (projectile-project-types mock-projectile-project-types))
         (expect (projectile--impl-to-test-dir "/bar/src/bar") :to-throw))))
 
+(describe "projectile-run-shell-command-in-root"
+  (describe "when called directly in elisp"
+    (before-each (spy-on 'shell-command))
+    (describe "when called with all three paramters"
+      (it "expects to call shell-command with the same parameters"
+        (projectile-run-shell-command-in-root "cmd" "output-buffer" "error-buffer")
+        (expect 'shell-command :to-have-been-called-with "cmd" "output-buffer" "error-buffer")))
+    (describe "when called with only one optional paramter"
+      (it "expects to call shell-command with the same parameters"
+        (projectile-run-shell-command-in-root "cmd" "output-buffer")
+        (expect 'shell-command :to-have-been-called-with "cmd" "output-buffer" nil)))
+    (describe "when called with no optional paramters"
+      (it "expects to call shell-command with the same parameters"
+        (projectile-run-shell-command-in-root "cmd")
+        (expect 'shell-command :to-have-been-called-with "cmd" nil nil))))
+  (describe "when called interactively"
+    (before-each (spy-on 'shell-command))
+    (it "expects to be interactive"
+      (expect (interactive-form 'projectile-run-shell-command-in-root) :not :to-be nil))
+    (it "expects to call shell-command with the given command"
+      (funcall-interactively 'projectile-run-shell-command-in-root "cmd")
+      (expect 'shell-command :to-have-been-called-with "cmd" nil nil))))
+
+(describe "projectile-run-async-shell-command-in-root"
+  (describe "when called directly in elisp"
+    (before-each (spy-on 'async-shell-command))
+    (describe "when called with all three paramters"
+      (it "expects to call async-shell-command with the same parameters"
+        (projectile-run-async-shell-command-in-root "cmd" "output-buffer" "error-buffer")
+        (expect 'async-shell-command :to-have-been-called-with "cmd" "output-buffer" "error-buffer")))
+    (describe "when called with only one optional paramter"
+      (it "expects to call async-shell-command with the same parameters"
+        (projectile-run-async-shell-command-in-root "cmd" "output-buffer")
+        (expect 'async-shell-command :to-have-been-called-with "cmd" "output-buffer" nil)))
+    (describe "when called with no optional paramters"
+      (it "expects to call async-shell-command with the same parameters"
+        (projectile-run-async-shell-command-in-root "cmd")
+        (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))
+  (describe "when called interactively"
+    (before-each (spy-on 'async-shell-command))
+    (it "expects to be interactive"
+      (expect (interactive-form 'projectile-run-async-shell-command-in-root) :not :to-be nil))
+    (it "expects to call async-shell-command with the given command"
+      (funcall-interactively 'projectile-run-async-shell-command-in-root "cmd")
+      (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))
+
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
 (assert-friendly-error-when-no-project projectile-project-info)
