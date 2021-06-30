@@ -187,7 +187,8 @@ A value of nil means the cache never expires."
   :package-version '(projectile . "2.3.0"))
 
 (defcustom projectile-auto-update-cache t
-  "Whether the cache should automatically be updated when files are opened or deleted."
+  "Whether the cache should automatically be updated when files are opened or
+deleted."
   :group 'projectile
   :type 'boolean)
 
@@ -297,7 +298,8 @@ It has precedence over function `projectile-project-name-function'."
 (defcustom projectile-project-name-function 'projectile-default-project-name
   "A function that receives the project-root and returns the project name.
 
-If variable `projectile-project-name' is non-nil, this function will not be used."
+If variable `projectile-project-name' is non-nil, this function will not be
+used."
   :group 'projectile
   :type 'function
   :package-version '(projectile . "0.14.0"))
