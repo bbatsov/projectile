@@ -4536,7 +4536,7 @@ project of that type"
       (projectile-read-command prompt default-cmd)
     default-cmd))
 
-(defun projectile-run-compilation (cmd use-comint-mode)
+(defun projectile-run-compilation (cmd &optional use-comint-mode)
   "Run external or Elisp compilation command CMD."
   (if (functionp cmd)
       (funcall cmd)
@@ -4586,34 +4586,40 @@ The command actually run is returned."
     command))
 
 (defcustom projectile-configure-use-comint-mode nil
-  "If non-nil, make the output buffer of projectile-configure-project
-interactive."
-  :type 'bool)
+  "Make the output buffer of projectile-configure-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-compile-use-comint-mode nil
-  "If non-nil, make the output buffer of projectile-compile-project
-interactive."
-  :type 'bool)
+  "Make the output buffer of projectile-compile-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-test-use-comint-mode nil
-  "If non-nil, make the output buffer of projectile-test-project
-interactive."
-  :type 'bool)
+  "Make the output buffer of projectile-test-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-install-use-comint-mode nil
-  "If non-nil, make the output buffer of projectile-install-project
-interactive."
-  :type 'bool)
+  "Make the output buffer of projectile-install-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-package-use-comint-mode nil
-  "If non-nil, make the output buffer of projectile-package-project
-interactive."
-  :type 'bool)
+  "Make the output buffer of projectile-package-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-run-use-comint-mode nil
-  "If non-nil, make the output buffer of projectile-run-project
-interactive."
-  :type 'bool)
+  "Make the output buffer of projectile-run-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 ;;;###autoload
 (defun projectile-configure-project (arg)
