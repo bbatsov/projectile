@@ -4536,11 +4536,11 @@ project of that type"
       (projectile-read-command prompt default-cmd)
     default-cmd))
 
-(defun projectile-run-compilation (cmd)
+(defun projectile-run-compilation (cmd &optional use-comint-mode)
   "Run external or Elisp compilation command CMD."
   (if (functionp cmd)
       (funcall cmd)
-    (compile cmd)))
+    (compile cmd use-comint-mode)))
 
 (defvar projectile-project-command-history (make-hash-table :test 'equal)
   "The history of last executed project commands, per project.
@@ -4554,7 +4554,7 @@ Projects are indexed by their project-root value.")
                projectile-project-command-history)))
 
 (cl-defun projectile--run-project-cmd
-    (command command-map &key show-prompt prompt-prefix save-buffers)
+    (command command-map &key show-prompt prompt-prefix save-buffers use-comint-mode)
   "Run a project COMMAND, typically a test- or compile command.
 
 Cache the COMMAND for later use inside the hash-table COMMAND-MAP.
@@ -4582,8 +4582,44 @@ The command actually run is returned."
                                                         project-root))))
     (unless (file-directory-p default-directory)
       (mkdir default-directory))
-    (projectile-run-compilation command)
+    (projectile-run-compilation command use-comint-mode)
     command))
+
+(defcustom projectile-configure-use-comint-mode nil
+  "Make the output buffer of projectile-configure-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
+
+(defcustom projectile-compile-use-comint-mode nil
+  "Make the output buffer of projectile-compile-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
+
+(defcustom projectile-test-use-comint-mode nil
+  "Make the output buffer of projectile-test-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
+
+(defcustom projectile-install-use-comint-mode nil
+  "Make the output buffer of projectile-install-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
+
+(defcustom projectile-package-use-comint-mode nil
+  "Make the output buffer of projectile-package-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
+
+(defcustom projectile-run-use-comint-mode nil
+  "Make the output buffer of projectile-run-project interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
 
 ;;;###autoload
 (defun projectile-configure-project (arg)
@@ -4597,7 +4633,8 @@ with a prefix ARG."
     (projectile--run-project-cmd command projectile-configure-cmd-map
                                  :show-prompt arg
                                  :prompt-prefix "Configure command: "
-                                 :save-buffers t)))
+                                 :save-buffers t
+                                 :use-comint-mode projectile-configure-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-compile-project (arg)
@@ -4611,7 +4648,8 @@ with a prefix ARG."
     (projectile--run-project-cmd command projectile-compilation-cmd-map
                                  :show-prompt arg
                                  :prompt-prefix "Compile command: "
-                                 :save-buffers t)))
+                                 :save-buffers t
+                                 :use-comint-mode projectile-compile-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-test-project (arg)
@@ -4625,7 +4663,8 @@ with a prefix ARG."
     (projectile--run-project-cmd command projectile-test-cmd-map
                                  :show-prompt arg
                                  :prompt-prefix "Test command: "
-                                 :save-buffers t)))
+                                 :save-buffers t
+                                 :use-comint-mode projectile-test-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-install-project (arg)
@@ -4639,7 +4678,8 @@ with a prefix ARG."
     (projectile--run-project-cmd command projectile-install-cmd-map
                                  :show-prompt arg
                                  :prompt-prefix "Install command: "
-                                 :save-buffers t)))
+                                 :save-buffers t
+                                 :use-comint-mode projectile-install-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-package-project (arg)
@@ -4653,7 +4693,8 @@ with a prefix ARG."
     (projectile--run-project-cmd command projectile-package-cmd-map
                                  :show-prompt arg
                                  :prompt-prefix "Package command: "
-                                 :save-buffers t)))
+                                 :save-buffers t
+                                 :use-comint-mode projectile-package-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-run-project (arg)
@@ -4666,7 +4707,8 @@ with a prefix ARG."
   (let ((command (projectile-run-command (projectile-compilation-dir))))
     (projectile--run-project-cmd command projectile-run-cmd-map
                                  :show-prompt arg
-                                 :prompt-prefix "Run command: ")))
+                                 :prompt-prefix "Run command: "
+                                 :use-comint-mode projectile-run-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-repeat-last-command (show-prompt)
