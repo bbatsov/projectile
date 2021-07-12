@@ -636,7 +636,8 @@ Examples of such paths might be ~/projects, ~/work, (~/github . 1) etc.
 
 For elements of form (DIRECTORY . DEPTH), DIRECTORY has to be a
 directory and DEPTH an integer that specifies the depth at which to
-look for projects."
+look for projects. A DEPTH of 0 means check DIRECTORY. A depth of 1
+means check all the subdirectories of DIRECTORY. Etc."
   :group 'projectile
   :type '(repeat (choice directory (cons directory (integer :tag "Depth"))))
   :package-version '(projectile . "1.0.0"))
@@ -1028,15 +1029,14 @@ The cache is created both in memory and on the hard drive."
 
 If DEPTH is non-nil recursively descend exactly DEPTH levels below DIRECTORY and
 discover projects there."
-  (if (file-exists-p directory)
-      (let ((subdirs (directory-files directory t)))
-        (dolist (dir subdirs)
-          (when (and (file-directory-p dir)
-                     (not (member (file-name-nondirectory dir) '(".." "."))))
-            (if (and (numberp depth) (> depth 0))
-	        (projectile-discover-projects-in-directory dir (1- depth))
-              (when (projectile-project-p dir)
-	        (projectile-add-known-project dir))))))
+  (if (file-directory-p directory)
+      (if (and (numberp depth) (> depth 0))
+          (dolist (dir (directory-files directory t))
+            (when (and (file-directory-p dir)
+                       (not (member (file-name-nondirectory dir) '(".." "."))))
+	            (projectile-discover-projects-in-directory dir (1- depth))))
+        (when (projectile-project-p directory)
+          (projectile-add-known-project directory)))
     (message "Project search path directory %s doesn't exist" directory)))
 
 ;;;###autoload
@@ -1047,7 +1047,7 @@ Invoked automatically when `projectile-mode' is enabled."
   (dolist (path projectile-project-search-path)
     (if (consp path)
 	(projectile-discover-projects-in-directory (car path) (cdr path))
-      (projectile-discover-projects-in-directory path 0))))
+      (projectile-discover-projects-in-directory path 1))))
 
 
 (defun delete-file-projectile-remove-from-cache (filename &optional _trash)
