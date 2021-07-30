@@ -4739,7 +4739,10 @@ If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
 (defun compilation-find-file-projectile-find-compilation-buffer (orig-fun marker filename directory &rest formats)
   "Try to find a buffer for FILENAME, if we cannot find it,
 fallback to the original function."
-  (when (and (not (file-exists-p (expand-file-name filename)))
+  (when (and (not (file-exists-p (expand-file-name filename
+                                                   (if directory
+                                                       (expand-file-name directory)
+                                                     default-directory))))
              (projectile-project-p))
     (let* ((root (projectile-project-root))
            (dirs (cons "" (projectile-current-project-dirs)))
