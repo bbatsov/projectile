@@ -42,6 +42,7 @@
 (require 'ibuf-ext)
 (require 'compile)
 (require 'grep)
+(require 'lisp-mnt)
 (eval-when-compile
   (require 'find-dired)
   (require 'subr-x))
