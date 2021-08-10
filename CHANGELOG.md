@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.5.0 (2021-08-10)
+
 ### New features
 
 * [#1680](https://github.com/bbatsov/projectile/pull/1680): Add support for recursive project discovery.

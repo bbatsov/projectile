@@ -5,7 +5,7 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 2.5.0-snapshot
+;; Version: 2.5.0
 ;; Package-Requires: ((emacs "25.1"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -74,7 +74,6 @@
 
 (declare-function ggtags-ensure-project "ext:ggtags")
 (declare-function ggtags-update-tags "ext:ggtags")
-(declare-function pkg-info-version-info "ext:pkg-info")
 (declare-function ripgrep-regexp "ext:ripgrep")
 (declare-function vterm "ext:vterm")
 (declare-function vterm-send-return "ext:vterm")
