@@ -8,7 +8,7 @@
 
 * [#1680](https://github.com/bbatsov/projectile/pull/1680): Add support for recursive project discovery.
 * [#1671](https://github.com/bbatsov/projectile/pull/1671)/[#1679](https://github.com/bbatsov/projectile/pull/1679) Allow the `:test-dir` and `:src-dir` options of a project to be set to functions for more flexible test switching.
-* [#1672](https://github.com/bbatsov/projectile/pull/1672)Add projectile-*-use-comint-mode variables for each compilation command.
+* [#1672](https://github.com/bbatsov/projectile/pull/1672): Add `projectile-<cmd>-use-comint-mode` variables (where `<cmd>` is `configure`, `compile`, `test`, `install`, `package`, or `run`). These enable interactive compilation buffers.
 
 ### Bugs fixed
 
@@ -24,7 +24,6 @@
 
 ### New features
 
-* Add `projectile-<cmd>-use-comint-mode` variables (where `<cmd>` is `configure`, `compile`, `test`, `install`, `package`, or `run`). These enable interactive compilation buffers.
 * Add `projectile-update-project-type` function for updating the properties of existing project types.
 * [#1658](https://github.com/bbatsov/projectile/pull/1658): New command `projectile-reset-known-projects`.
 * [#1656](https://github.com/bbatsov/projectile/pull/1656): Add support for CMake configure, build and test presets. Enabled by setting `projectile-cmake-presets` to non-nil, disabled by default.
