@@ -4,13 +4,19 @@
 
 ### New features
 
-* [#1680](https://github.com/bbatsov/projectile/pull/1680): Add support for recursive project discovery
+* [#1680](https://github.com/bbatsov/projectile/pull/1680): Add support for recursive project discovery.
 * [#1671](https://github.com/bbatsov/projectile/pull/1671)/[#1679](https://github.com/bbatsov/projectile/pull/1679) Allow the `:test-dir` and `:src-dir` options of a project to be set to functions for more flexible test switching.
+* [#1672](https://github.com/bbatsov/projectile/pull/1672)Add projectile-*-use-comint-mode variables for each compilation command.
 
 ### Bugs fixed
 
 * [#1550](https://github.com/bbatsov/projectile/issues/1550): Make `projectile-regenerate-tags` tramp-aware.
 * [#1673](https://github.com/bbatsov/projectile/issues/1673): Fix CMake system-preset filename.
+* [#1691](https://github.com/bbatsov/projectile/pull/1691): Fix `compilation-find-file` advice handling of directory.
+
+### Changes
+
+* Remove `pkg-info` dependency.
 
 ## 2.4.0 (2021-05-27)
 
