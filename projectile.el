@@ -1,8 +1,8 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2021 Bozhidar Batsov <bozhidar@batsov.com>
+;; Copyright © 2011-2021 Bozhidar Batsov <bozhidar@batsov.dev>
 
-;; Author: Bozhidar Batsov <bozhidar@batsov.com>
+;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 2.5.0
