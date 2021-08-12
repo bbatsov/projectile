@@ -13,8 +13,9 @@ and the built-in tutorial (just press kbd:[C-h t]).
 
 == Installation via package.el
 
-Projectile is available on the two major `package.el` community
+Projectile is available on all major `package.el` community
 maintained repos -
+https://elpa.nongnu.org[NonGNU ELPA],
 http://stable.melpa.org[MELPA Stable]
 and http://melpa.org[MELPA].
 
@@ -47,7 +48,7 @@ TIP: If you don't want to (or can't) wait for MELPA to rebuild Projectile,
  for details on the subject.
 
 Generally, users of the non-adventurous kind are advised to stick
-with the stable releases, available from MELPA Stable.
+with the stable releases, available from NonGNU ELPA and MELPA Stable.
 You can pin Projectile to always use MELPA
 Stable by adding this to your Emacs initialization:
 
