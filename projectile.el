@@ -75,6 +75,7 @@
 (declare-function ggtags-ensure-project "ext:ggtags")
 (declare-function ggtags-update-tags "ext:ggtags")
 (declare-function ripgrep-regexp "ext:ripgrep")
+(declare-function rg-run "ext:rg")
 (declare-function vterm "ext:vterm")
 (declare-function vterm-send-return "ext:vterm")
 (declare-function vterm-send-string "ext:vterm")
@@ -3830,16 +3831,23 @@ regular expression."
    (list (projectile--read-search-string-with-default
           (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
          current-prefix-arg))
-  (if (require 'ripgrep nil 'noerror)
-      (let ((args (mapcar (lambda (val) (concat "--glob !" val))
-                          (append projectile-globally-ignored-files
-                                  projectile-globally-ignored-directories))))
-        (ripgrep-regexp search-term
-                        (projectile-acquire-root)
-                        (if arg
-                            args
-                          (cons "--fixed-strings" args))))
-    (error "Package `ripgrep' is not available")))
+  (let ((args (mapcar (lambda (val) (concat "--glob !" val))
+                      (append projectile-globally-ignored-files
+                              projectile-globally-ignored-directories))))
+    (cond ((require 'ripgrep nil 'noerror)
+           (ripgrep-regexp search-term
+                           (projectile-acquire-root)
+                           (if arg
+                               args
+                             (cons "--fixed-strings" args))))
+          ((require 'rg nil 'noerror)
+           (rg-run search-term
+                   "*"                       ;; all files
+                   (projectile-acquire-root)
+                   (not arg)                 ;; literal search?
+                   nil                       ;; no need to confirm
+                   args))
+          (t (error "Package `ripgrep' and `rg' are not available")))))
 
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
