@@ -4,7 +4,7 @@
 
 ### New features
 
-* [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` supports [`rg.el`](https://github.com/dajva/rg.el)
+* [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [`rg.el`](https://github.com/dajva/rg.el).
 
 ## 2.5.0 (2021-08-10)
 
