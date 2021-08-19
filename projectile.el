@@ -3823,10 +3823,13 @@ regular expression."
 
 ;;;###autoload
 (defun projectile-ripgrep (search-term &optional arg)
-  "Run a Ripgrep search with `SEARCH-TERM' at current project root.
+  "Run a ripgrep (rg) search with `SEARCH-TERM' at current project root.
 
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
-regular expression."
+regular expression.
+
+This command depends on of the Emacs packages ripgrep or rg being
+installed to work."
   (interactive
    (list (projectile--read-search-string-with-default
           (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
@@ -3834,12 +3837,16 @@ regular expression."
   (let ((args (mapcar (lambda (val) (concat "--glob !" val))
                       (append projectile-globally-ignored-files
                               projectile-globally-ignored-directories))))
+    ;; we rely on the external packages ripgrep and rg for the actual search
+    ;;
+    ;; first we check if we can load ripgrep
     (cond ((require 'ripgrep nil 'noerror)
            (ripgrep-regexp search-term
                            (projectile-acquire-root)
                            (if arg
                                args
                              (cons "--fixed-strings" args))))
+          ;; and then we try rg
           ((require 'rg nil 'noerror)
            (rg-run search-term
                    "*"                       ;; all files
@@ -3847,7 +3854,7 @@ regular expression."
                    (not arg)                 ;; literal search?
                    nil                       ;; no need to confirm
                    args))
-          (t (error "Package `ripgrep' and `rg' are not available")))))
+          (t (error "Packages `ripgrep' and `rg' are not available")))))
 
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."

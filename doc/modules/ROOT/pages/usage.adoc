@@ -54,6 +54,8 @@ It's recommended to install the following command-line tools:
 
 Projectile will make use of them automatically when available, and fallback to the standard Unix tools otherwise.
 
+TIP: You should also install the Emacs packages `ag`, `ripgrep` or `rg` if you want to make sure of Projectile's commands `projectile-ag` and `projectile-ripgrep`.
+
 == Basic Usage
 
 Just open some file in a version-controlled (e.g. `git`) or a project
