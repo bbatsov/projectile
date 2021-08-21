@@ -3808,12 +3808,12 @@ regular expression."
                                   (delete-dups
                                    (append
                                     ag-ignore-list
+                                    (projectile-ignored-files-rel)
+                                    (projectile-ignored-directories-rel)
                                     (projectile--globally-ignored-file-suffixes-glob)
                                     ;; ag supports git ignore files directly
                                     (unless (eq (projectile-project-vcs) 'git)
-                                      (append (projectile-ignored-files-rel)
-                                              (projectile-ignored-directories-rel)
-                                              grep-find-ignored-files
+                                      (append grep-find-ignored-files
                                               grep-find-ignored-directories
                                               '()))))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
