@@ -6,6 +6,10 @@
 
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [`rg.el`](https://github.com/dajva/rg.el).
 
+### Bugs fixed
+
+* [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
+
 ## 2.5.0 (2021-08-10)
 
 ### New features
