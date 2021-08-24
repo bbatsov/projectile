@@ -753,6 +753,11 @@ It assumes the test/ folder is at the same level as src/."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-per-project-compilation-buffer nil
+  "When non-nil, the compilation command makes the per-project compilation buffer."
+  :group 'projectile
+  :type 'boolean)
+
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
   :group 'projectile
@@ -4588,7 +4593,8 @@ The command actually run is returned."
          (default-directory (projectile-compilation-dir))
          (command (projectile-maybe-read-command show-prompt
                                                  command
-                                                 prompt-prefix)))
+                                                 prompt-prefix))
+         compilation-buffer-name-function)
     (when command-map
       (puthash default-directory command command-map)
       (ring-insert (projectile--get-command-history project-root) command))
@@ -4597,6 +4603,8 @@ The command actually run is returned."
                          (lambda ()
                            (projectile-project-buffer-p (current-buffer)
                                                         project-root))))
+    (when projectile-per-project-compilation-buffer
+      (setq compilation-buffer-name-function #'projectile-compilation-buffer-name))
     (unless (file-directory-p default-directory)
       (mkdir default-directory))
     (projectile-run-compilation command use-comint-mode)
