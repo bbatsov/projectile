@@ -756,7 +756,8 @@ It assumes the test/ folder is at the same level as src/."
 (defcustom projectile-per-project-compilation-buffer nil
   "When non-nil, the compilation command makes the per-project compilation buffer."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "2.6.0"))
 
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
