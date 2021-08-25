@@ -449,14 +449,11 @@ This affects all commands built on top of `projectile--run-project-cmd` like:
 
 Normally, the buffers created by those commands would be shared (overwritten)
 between projects, but it's also possible to make the compilation buffer names
-project-specific. Currently, this requires that the user explicitly set:
+project-specific. This requires that the user set:
 
 [source,elisp]
 ----
-(setq compilation-buffer-name-function
-      #'projectile-compilation-buffer-name)
-(setq compilation-save-buffers-predicate
-      #'projectile-current-project-buffer-p)
+(setq projectile-per-project-compilation-buffer t)
 ----
 
 Both of these degrade properly when not inside a project.
