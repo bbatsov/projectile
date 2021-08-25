@@ -4594,7 +4594,8 @@ The command actually run is returned."
          (command (projectile-maybe-read-command show-prompt
                                                  command
                                                  prompt-prefix))
-         compilation-buffer-name-function)
+         compilation-buffer-name-function
+         compilation-save-buffers-predicate)
     (when command-map
       (puthash default-directory command command-map)
       (ring-insert (projectile--get-command-history project-root) command))
@@ -4604,7 +4605,8 @@ The command actually run is returned."
                            (projectile-project-buffer-p (current-buffer)
                                                         project-root))))
     (when projectile-per-project-compilation-buffer
-      (setq compilation-buffer-name-function #'projectile-compilation-buffer-name))
+      (setq compilation-buffer-name-function #'projectile-compilation-buffer-name)
+      (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
     (unless (file-directory-p default-directory)
       (mkdir default-directory))
     (projectile-run-compilation command use-comint-mode)
