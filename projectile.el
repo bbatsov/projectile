@@ -2980,6 +2980,11 @@ a manual COMMAND-TYPE command is created with
                                   :project-file "default.nix"
                                   :compile "nix-build"
                                   :test "nix-build")
+(projectile-register-project-type 'nix-flake '("flake.nix")
+                                  :project-file "flake.nix"
+                                  :compile "nix build"
+                                  :test "nix flake check"
+                                  :run "nix run")
 (projectile-register-project-type 'bazel '("WORKSPACE")
                                   :project-file "WORKSPACE"
                                   :compile "bazel build"
