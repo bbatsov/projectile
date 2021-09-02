@@ -55,6 +55,12 @@ are the configuration files of various build tools. Out of the box the following
 | SConstruct
 | Scons project file
 
+| default.nix
+| Nix project file
+
+| flake.nix
+| Nix flake project file
+
 | pom.xml
 | Maven project file
 

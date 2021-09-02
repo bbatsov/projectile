@@ -17,6 +17,7 @@
 * [#1680](https://github.com/bbatsov/projectile/pull/1680): Add support for recursive project discovery.
 * [#1671](https://github.com/bbatsov/projectile/pull/1671)/[#1679](https://github.com/bbatsov/projectile/pull/1679) Allow the `:test-dir` and `:src-dir` options of a project to be set to functions for more flexible test switching.
 * [#1672](https://github.com/bbatsov/projectile/pull/1672): Add `projectile-<cmd>-use-comint-mode` variables (where `<cmd>` is `configure`, `compile`, `test`, `install`, `package`, or `run`). These enable interactive compilation buffers.
+* [#1705](https://github.com/bbatsov/projectile/pull/1705): Add project detection for Nix flakes
 
 ### Bugs fixed
 
