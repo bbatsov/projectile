@@ -690,9 +690,11 @@ Set to nil to disable listing submodules contents."
   :type 'string)
 
 (defcustom projectile-generic-command
-  (if (executable-find "fd")
-      "fd . -0 --type f --color=never"
-    "find . -type f -print0")
+  (cond ((executable-find "fd")
+         "fd . -0 --type f --color=never")
+        ((executable-find "fdfind")
+         "fdfind . -0 --type f --color=never")
+        (t "find . -type f | cut -c3- | tr '\\n' '\\0'"))
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
   :type 'string)
