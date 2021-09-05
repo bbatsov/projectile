@@ -1050,7 +1050,7 @@ discover projects there."
           (dolist (dir (directory-files directory t))
             (when (and (file-directory-p dir)
                        (not (member (file-name-nondirectory dir) '(".." "."))))
-	            (projectile-discover-projects-in-directory dir (1- depth))))
+              (projectile-discover-projects-in-directory dir (1- depth))))
         (when (projectile-project-p directory)
           (projectile-add-known-project (projectile-project-root directory))))
     (message "Project search path directory %s doesn't exist" directory)))
@@ -1062,7 +1062,7 @@ Invoked automatically when `projectile-mode' is enabled."
   (interactive)
   (dolist (path projectile-project-search-path)
     (if (consp path)
-	(projectile-discover-projects-in-directory (car path) (cdr path))
+        (projectile-discover-projects-in-directory (car path) (cdr path))
       (projectile-discover-projects-in-directory path 1))))
 
 
@@ -2613,13 +2613,13 @@ from the other lists.  Settings in the last list are the most significant
 ones and overrule settings in the other lists.  nil values are ignored in
 all but the first plist."
   (let ((rtn (copy-sequence (pop plists)))
-	p v ls)
+        p v ls)
     (while plists
       (setq ls (pop plists))
       (while ls
-	(setq p (pop ls) v (pop ls))
+        (setq p (pop ls) v (pop ls))
         (when v
-	  (setq rtn (plist-put rtn p v)))))
+          (setq rtn (plist-put rtn p v)))))
     rtn))
 
 (cl-defun projectile--build-project-plist
@@ -2702,25 +2702,25 @@ test/impl/other files as below:
   (setq projectile-project-types
         (cons `(,project-type .
                               ,(projectile--build-project-plist
-                                 marker-files
-                                 :project-file project-file
-                                 :compilation-dir compilation-dir
-                                 :configure configure
-                                 :compile compile
-                                 :install install
-                                 :package package
-                                 :test test
-                                 :run run
-                                 :test-suffix test-suffix
-                                 :test-prefix test-prefix
-                                 :src-dir src-dir
-                                 :test-dir test-dir
-                                 :related-files-fn related-files-fn))
-                projectile-project-types)))
+                                marker-files
+                                :project-file project-file
+                                :compilation-dir compilation-dir
+                                :configure configure
+                                :compile compile
+                                :install install
+                                :package package
+                                :test test
+                                :run run
+                                :test-suffix test-suffix
+                                :test-prefix test-prefix
+                                :src-dir src-dir
+                                :test-dir test-dir
+                                :related-files-fn related-files-fn))
+              projectile-project-types)))
 
 (cl-defun projectile-update-project-type
     (project-type &key marker-files project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
-    "Update an existing projectile project type.
+  "Update an existing projectile project type.
 
 Non-nil passed items will override existing values for the project type given
 by PROJECT-TYPE.  Raise an error if PROJECT-TYPE is not already registered
@@ -2749,35 +2749,35 @@ test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
     a plist containing :test, :impl or :other as key and the relative path/paths or
     predicate as value.  PREDICATE accepts a relative path as the input."
-    (if-let ((existing-project-plist
-              (cl-find-if
-               (lambda (p) (eq project-type (car p))) projectile-project-types))
-             (new-plist
-              (projectile--build-project-plist
-               marker-files
-               :project-file project-file
-               :compilation-dir compilation-dir
-               :configure configure
-               :compile compile
-               :install install
-               :package package
-               :test test
-               :run run
-               :test-suffix test-suffix
-               :test-prefix test-prefix
-               :src-dir src-dir
-               :test-dir test-dir
-               :related-files-fn related-files-fn))
-             (merged-plist
-              (projectile--combine-plists
-               (cdr existing-project-plist) new-plist))
-             (project-type-elt (cons project-type merged-plist)))
-        (setq projectile-project-types
-              (mapcar (lambda (p) (if (eq project-type (car p))
-                                      project-type-elt
-                                    p))
-                      projectile-project-types))
-      (error "No existing project found for: %s" project-type)))
+  (if-let ((existing-project-plist
+            (cl-find-if
+             (lambda (p) (eq project-type (car p))) projectile-project-types))
+           (new-plist
+            (projectile--build-project-plist
+             marker-files
+             :project-file project-file
+             :compilation-dir compilation-dir
+             :configure configure
+             :compile compile
+             :install install
+             :package package
+             :test test
+             :run run
+             :test-suffix test-suffix
+             :test-prefix test-prefix
+             :src-dir src-dir
+             :test-dir test-dir
+             :related-files-fn related-files-fn))
+           (merged-plist
+            (projectile--combine-plists
+             (cdr existing-project-plist) new-plist))
+           (project-type-elt (cons project-type merged-plist)))
+      (setq projectile-project-types
+            (mapcar (lambda (p) (if (eq project-type (car p))
+                                    project-type-elt
+                                  p))
+                    projectile-project-types))
+    (error "No existing project found for: %s" project-type)))
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
@@ -2816,9 +2816,9 @@ test/impl/other files as below:
    (version-list-<= version (projectile--cmake-version))))
 
 (defconst projectile--cmake-command-presets-minimum-version-alist
-    '((:configure-command . (3 19))
-      (:compile-command . (3 20))
-      (:test-command . (3 20))))
+  '((:configure-command . (3 19))
+    (:compile-command . (3 20))
+    (:test-command . (3 20))))
 
 (defun projectile--cmake-command-presets-supported (command-type)
   "Check if CMake supports presets for COMMAND-TYPE."
@@ -2829,10 +2829,10 @@ test/impl/other files as below:
 (defun projectile--cmake-read-preset (filename)
   "Read CMake preset from FILENAME."
   (when (file-exists-p filename)
-        (with-temp-buffer
-          (insert-file-contents filename)
-          (when (functionp 'json-parse-buffer)
-            (json-parse-buffer :array-type 'list)))))
+    (with-temp-buffer
+      (insert-file-contents filename)
+      (when (functionp 'json-parse-buffer)
+        (json-parse-buffer :array-type 'list)))))
 
 (defconst projectile--cmake-command-preset-array-id-alist
   '((:configure-command . "configurePresets")
