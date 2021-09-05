@@ -415,8 +415,8 @@ is set to 'alien'."
 Regular expressions can be used.
 
 Strings that don't start with * are only ignored at the top level
-of the project. Strings that start with * are ignored everywhere
-in the project, as if there was no *. So note that * when used as
+of the project.  Strings that start with * are ignored everywhere
+in the project, as if there was no *.  So note that * when used as
 a prefix is not a wildcard; it is an indicator that the directory
 should be ignored at all levels, not just root.
 
@@ -637,8 +637,8 @@ Examples of such paths might be ~/projects, ~/work, (~/github . 1) etc.
 
 For elements of form (DIRECTORY . DEPTH), DIRECTORY has to be a
 directory and DEPTH an integer that specifies the depth at which to
-look for projects. A DEPTH of 0 means check DIRECTORY. A depth of 1
-means check all the subdirectories of DIRECTORY. Etc."
+look for projects.  A DEPTH of 0 means check DIRECTORY.  A depth of 1
+means check all the subdirectories of DIRECTORY.  Etc."
   :group 'projectile
   :type '(repeat (choice directory (cons directory (integer :tag "Depth"))))
   :package-version '(projectile . "1.0.0"))
