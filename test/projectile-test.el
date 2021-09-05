@@ -747,7 +747,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         ;; After listing all the files, the cache should have been updated.
         (projectile-current-project-files)
         ;; find returns the leading ./ therefore the somewhat odd notation here
-        (dolist (f '("./file1.el" "./file2.el"))
+        (dolist (f '("file1.el" "file2.el"))
           (expect (member f (gethash (projectile-project-root) projectile-projects-cache)) :to-be-truthy))))))
   (it "ensures that we don't cache a project root if the path has changed."
     (projectile-test-with-sandbox
