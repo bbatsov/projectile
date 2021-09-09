@@ -188,8 +188,7 @@ A value of nil means the cache never expires."
   :package-version '(projectile . "2.3.0"))
 
 (defcustom projectile-auto-update-cache t
-  "Whether the cache should automatically be updated when files are opened or
-deleted."
+  "Whether cache is automatically updated when files are opened or deleted."
   :group 'projectile
   :type 'boolean)
 
@@ -1050,7 +1049,7 @@ discover projects there."
           (dolist (dir (directory-files directory t))
             (when (and (file-directory-p dir)
                        (not (member (file-name-nondirectory dir) '(".." "."))))
-              (projectile-discover-projects-in-directory dir (1- depth))))
+              (projectile-discover-projects-in-directory dir)))
         (when (projectile-project-p directory)
           (projectile-add-known-project (projectile-project-root directory))))
     (message "Project search path directory %s doesn't exist" directory)))
