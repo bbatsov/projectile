@@ -1049,7 +1049,7 @@ discover projects there."
           (dolist (dir (directory-files directory t))
             (when (and (file-directory-p dir)
                        (not (member (file-name-nondirectory dir) '(".." "."))))
-              (projectile-discover-projects-in-directory dir)))
+              (projectile-discover-projects-in-directory dir (1- depth))))
         (when (projectile-project-p directory)
           (projectile-add-known-project (projectile-project-root directory))))
     (message "Project search path directory %s doesn't exist" directory)))
