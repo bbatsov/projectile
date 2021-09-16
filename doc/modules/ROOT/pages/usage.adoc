@@ -72,7 +72,7 @@ You need to know only a handful of Projectile commands to start benefiting from 
 
 * Find file in current project (kbd:[s-p f])
 * Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q])
-* Grep (search for text/regexp) in project (kbd:[s-p s g]) (`grep` alternatives like `ag`, `pt` and `rg` are also supported)
+* Grep (search for text/regexp) in project (kbd:[s-p s g])
 * Replace in project (kbd:[s-p r])
 * Invoke any Projectile command via the Projectile Commander (kbd:[s-p m])
 * Toggle between implementation and test (kbd:[s-p t])
@@ -135,6 +135,12 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[M-- s-p s g]
 | Run grep on `projectile-grep-default-files` in the project.
+
+| kbd:[s-p s s]
+| Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
+
+| kbd:[s-p s r]
+| Runs `rg` (`ripgrep`) on the project, performing a literal search. Requires the presence of `rg.el` or `ripgrep.el`. With a prefix argument it will perform a regex search.
 
 | kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
@@ -201,9 +207,6 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p E]
 | Opens the root `dir-locals-file` of the project.
-
-| kbd:[s-p s s]
-| Runs `ag` on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
 
 | kbd:[s-p !]
 | Runs `shell-command` in the root directory of the project.
