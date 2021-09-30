@@ -1547,13 +1547,16 @@ If PROJECT is not specified the command acts on the current project."
 (defun projectile-project-buffer-p (buffer project-root)
   "Check if BUFFER is under PROJECT-ROOT."
   (with-current-buffer buffer
-    (and (not (string-prefix-p " " (buffer-name buffer)))
-         (not (projectile-ignored-buffer-p buffer))
-         default-directory
-         (string-equal (file-remote-p default-directory)
-                       (file-remote-p project-root))
-         (not (string-match-p "^http\\(s\\)?://" default-directory))
-         (string-prefix-p project-root (file-truename default-directory) (eq system-type 'windows-nt)))))
+    (let ((directory (if buffer-file-name
+                         (file-name-directory buffer-file-name)
+                       default-directory)))
+      (and (not (string-prefix-p " " (buffer-name buffer)))
+           (not (projectile-ignored-buffer-p buffer))
+           directory
+           (string-equal (file-remote-p directory)
+                         (file-remote-p project-root))
+           (not (string-match-p "^http\\(s\\)?://" directory))
+           (string-prefix-p project-root (file-truename directory) (eq system-type 'windows-nt))))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored.

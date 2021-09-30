@@ -1687,6 +1687,17 @@ projectile-process-current-project-buffers-current to have similar behaviour"
         (projectile-process-current-project-buffers-current (lambda () (push (current-buffer) list-b)))
         (expect list-a :to-equal list-b))))))
 
+(describe "projectile-project-buffers"
+          (it "return project buffers"
+              (projectile-test-with-sandbox
+               (projectile-test-with-files
+                ("project1/"
+                 "project1/.projectile"
+                 "project1/foo")
+                (cd "project1")
+                (with-current-buffer (find-file-noselect "foo" t))
+                (expect (length (projectile-project-buffers)) :to-equal 1)))))
+
 (describe "projectile--impl-name-for-test-name"
   :var ((mock-projectile-project-types
          '((foo test-suffix "Test")
