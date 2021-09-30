@@ -1549,11 +1549,11 @@ If PROJECT is not specified the command acts on the current project."
   (with-current-buffer buffer
     (and (not (string-prefix-p " " (buffer-name buffer)))
          (not (projectile-ignored-buffer-p buffer))
-         default-directory
-         (string-equal (file-remote-p default-directory)
+         buffer-file-name
+         (string-equal (file-remote-p (file-name-directory buffer-file-name))
                        (file-remote-p project-root))
-         (not (string-match-p "^http\\(s\\)?://" default-directory))
-         (string-prefix-p project-root (file-truename default-directory) (eq system-type 'windows-nt)))))
+         (not (string-match-p "^http\\(s\\)?://" (file-name-directory buffer-file-name)))
+         (string-prefix-p project-root (file-truename (file-name-directory buffer-file-name)) (eq system-type 'windows-nt)))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored.
