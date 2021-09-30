@@ -5467,18 +5467,22 @@ thing shown in the mode line otherwise."
         ("Projects"
          ["Switch to project" projectile-switch-project]
          ["Switch to open project" projectile-switch-open-project]
+         "--"
          ["Discover projects in directory" projectile-discover-projects-in-directory]
          ["Clear known projects" projectile-clear-known-projects]
          ["Reset known projects" projectile-reset-known-projects]
-         ["Browse dirty projects" projectile-browse-dirty-projects]
+         "--"
          ["Open project in dired" projectile-dired]
          "--"
-         ["Toggle project wide read-only" projectile-toggle-project-read-only]
-         ["Edit .dir-locals.el" projectile-edit-dir-locals]
+         ["Browse dirty projects" projectile-browse-dirty-projects]
          "--"
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
-         ["Regenerate [e|g]tags" projectile-regenerate-tags])
+         ["Regenerate [e|g]tags" projectile-regenerate-tags]
+         "--"
+         ["Toggle project wide read-only" projectile-toggle-project-read-only]
+         ["Edit .dir-locals.el" projectile-edit-dir-locals]
+         ["Project info" projectile-project-info])
         ("Search"
          ["Search with grep" projectile-grep]
          ["Search with ag" projectile-ag]
@@ -5486,12 +5490,12 @@ thing shown in the mode line otherwise."
          ["Replace in project" projectile-replace]
          ["Multi-occur in project" projectile-multi-occur])
         ("Run..."
-         ["Run GDB" projectile-run-gdb]
-         "--"
          ["Run shell" projectile-run-shell]
          ["Run eshell" projectile-run-eshell]
          ["Run ielm" projectile-run-ielm]
-         ["Run term" projectile-run-term])
+         ["Run term" projectile-run-term]
+         "--"
+         ["Run GDB" projectile-run-gdb])
         ("Build"
          ["Configure project" projectile-configure-project]
          ["Compile project" projectile-compile-project]
@@ -5499,9 +5503,9 @@ thing shown in the mode line otherwise."
          ["Install project" projectile-install-project]
          ["Package project" projectile-package-project]
          ["Run project" projectile-run-project]
-         ["Repeat last external command" projectile-repeat-last-command])
+         "--"
+         ["Repeat last build command" projectile-repeat-last-command])
         "--"
-        ["Project info" projectile-project-info]
         ["About" projectile-version]))
     map)
   "Keymap for Projectile mode.")
