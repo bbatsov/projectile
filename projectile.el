@@ -5449,54 +5449,56 @@ thing shown in the mode line otherwise."
     (easy-menu-define projectile-mode-menu map
       "Menu for Projectile"
       '("Projectile" :visible projectile-show-menu
-        ["Find file" projectile-find-file]
-        ["Find file in known projects" projectile-find-file-in-known-projects]
-        ["Find test file" projectile-find-test-file]
-        ["Find directory" projectile-find-dir]
-        ["Find file in directory" projectile-find-file-in-directory]
-        ["Find other file" projectile-find-other-file]
-        ["Switch to buffer" projectile-switch-to-buffer]
-        ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
-        ["Kill project buffers" projectile-kill-buffers]
-        ["Save project buffers" projectile-save-project-buffers]
-        ["Recent files" projectile-recentf]
-        ["Previous buffer" projectile-previous-project-buffer]
-        ["Next buffer" projectile-next-project-buffer]
-        "--"
-        ["Toggle project wide read-only" projectile-toggle-project-read-only]
-        ["Edit .dir-locals.el" projectile-edit-dir-locals]
-        "--"
-        ["Switch to project" projectile-switch-project]
-        ["Switch to open project" projectile-switch-open-project]
-        ["Discover projects in directory" projectile-discover-projects-in-directory]
-        ["Clear known projects" projectile-clear-known-projects]
-        ["Reset known projects" projectile-reset-known-projects]
-        ["Browse dirty projects" projectile-browse-dirty-projects]
-        ["Open project in dired" projectile-dired]
-        "--"
-        ["Search in project (grep)" projectile-grep]
-        ["Search in project (ag)" projectile-ag]
-        ["Replace in project" projectile-replace]
-        ["Multi-occur in project" projectile-multi-occur]
-        "--"
-        ["Run GDB" projectile-run-gdb]
-        "--"
-        ["Run shell" projectile-run-shell]
-        ["Run eshell" projectile-run-eshell]
-        ["Run ielm" projectile-run-ielm]
-        ["Run term" projectile-run-term]
-        "--"
-        ["Cache current file" projectile-cache-current-file]
-        ["Invalidate cache" projectile-invalidate-cache]
-        ["Regenerate [e|g]tags" projectile-regenerate-tags]
-        "--"
-        ["Configure project" projectile-configure-project]
-        ["Compile project" projectile-compile-project]
-        ["Test project" projectile-test-project]
-        ["Install project" projectile-install-project]
-        ["Package project" projectile-package-project]
-        ["Run project" projectile-run-project]
-        ["Repeat last external command" projectile-repeat-last-command]
+        ("Find..."
+         ["Find file" projectile-find-file]
+         ["Find file in known projects" projectile-find-file-in-known-projects]
+         ["Find test file" projectile-find-test-file]
+         ["Find directory" projectile-find-dir]
+         ["Find file in directory" projectile-find-file-in-directory]
+         ["Find other file" projectile-find-other-file]
+         ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test])
+        ("Buffers"
+         ["Switch to buffer" projectile-switch-to-buffer]
+         ["Kill project buffers" projectile-kill-buffers]
+         ["Save project buffers" projectile-save-project-buffers]
+         ["Recent files" projectile-recentf]
+         ["Previous buffer" projectile-previous-project-buffer]
+         ["Next buffer" projectile-next-project-buffer])
+        ("Projects"
+         ["Switch to project" projectile-switch-project]
+         ["Switch to open project" projectile-switch-open-project]
+         ["Discover projects in directory" projectile-discover-projects-in-directory]
+         ["Clear known projects" projectile-clear-known-projects]
+         ["Reset known projects" projectile-reset-known-projects]
+         ["Browse dirty projects" projectile-browse-dirty-projects]
+         ["Open project in dired" projectile-dired]
+         "--"
+         ["Toggle project wide read-only" projectile-toggle-project-read-only]
+         ["Edit .dir-locals.el" projectile-edit-dir-locals]
+         "--"
+         ["Cache current file" projectile-cache-current-file]
+         ["Invalidate cache" projectile-invalidate-cache]
+         ["Regenerate [e|g]tags" projectile-regenerate-tags])
+        ("Search"
+         ["Search in project (grep)" projectile-grep]
+         ["Search in project (ag)" projectile-ag]
+         ["Replace in project" projectile-replace]
+         ["Multi-occur in project" projectile-multi-occur])
+        ("Run..."
+         ["Run GDB" projectile-run-gdb]
+         "--"
+         ["Run shell" projectile-run-shell]
+         ["Run eshell" projectile-run-eshell]
+         ["Run ielm" projectile-run-ielm]
+         ["Run term" projectile-run-term])
+        ("Build"
+         ["Configure project" projectile-configure-project]
+         ["Compile project" projectile-compile-project]
+         ["Test project" projectile-test-project]
+         ["Install project" projectile-install-project]
+         ["Package project" projectile-package-project]
+         ["Run project" projectile-run-project]
+         ["Repeat last external command" projectile-repeat-last-command])
         "--"
         ["Project info" projectile-project-info]
         ["About" projectile-version]))

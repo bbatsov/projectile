@@ -11,6 +11,10 @@
 
 * [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
 
+### Changes
+
+* [#1447](https://github.com/bbatsov/projectile/issues/1447): Restructure the menu.
+
 ## 2.5.0 (2021-08-10)
 
 ### New features
