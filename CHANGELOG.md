@@ -5,7 +5,7 @@
 ### New features
 
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [`rg.el`](https://github.com/dajva/rg.el).
-* [#1710](https://github.com/bbatsov/projectile/issues/1710): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
+* [#1712](https://github.com/bbatsov/projectile/issues/1712): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
 
 ### Bugs fixed
 
