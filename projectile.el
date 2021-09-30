@@ -5480,8 +5480,9 @@ thing shown in the mode line otherwise."
          ["Invalidate cache" projectile-invalidate-cache]
          ["Regenerate [e|g]tags" projectile-regenerate-tags])
         ("Search"
-         ["Search in project (grep)" projectile-grep]
-         ["Search in project (ag)" projectile-ag]
+         ["Search with grep" projectile-grep]
+         ["Search with ag" projectile-ag]
+         ["Search with ripgrep" projectile-ripgrep]
          ["Replace in project" projectile-replace]
          ["Multi-occur in project" projectile-multi-occur])
         ("Run..."
