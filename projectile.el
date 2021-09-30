@@ -5347,6 +5347,12 @@ thing shown in the mode line otherwise."
   :type 'string
   :package-version '(projectile . "0.12.0"))
 
+(defcustom projectile-show-menu t
+  "Controls whether to display Projectile's menu."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.6.0"))
+
 (defvar-local projectile--mode-line projectile-mode-line-prefix)
 
 (defun projectile-default-mode-line ()
@@ -5442,7 +5448,7 @@ thing shown in the mode line otherwise."
       (define-key map projectile-keymap-prefix 'projectile-command-map))
     (easy-menu-define projectile-mode-menu map
       "Menu for Projectile"
-      '("Projectile"
+      '("Projectile" :visible projectile-show-menu
         ["Find file" projectile-find-file]
         ["Find file in known projects" projectile-find-file-in-known-projects]
         ["Find test file" projectile-find-test-file]
