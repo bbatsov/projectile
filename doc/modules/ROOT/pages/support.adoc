@@ -5,12 +5,10 @@ Projectile currently has several official & unofficial support channels.
 For questions, suggestions and support refer to one of them.  Please, don't
 use the support channels to report issues, as this makes them harder to track.
 
-== Gitter
+== Discord
 
-Most internal discussions about the development of Projectile happen on its
-https://gitter.im/bbatsov/projectile[gitter channel].  You can often find
-Projectile's maintainers there and get some interesting news from the project's
-kitchen.
+Projectile has a dedicated channel on Emacs Redux's https://discord.gg/3Cf2Qpyry5[Discord server]. That's the primary chat support channel for Projectile and the only
+one that Bozhidar currently (as of 2021) uses.
 
 == Mailing List
 
