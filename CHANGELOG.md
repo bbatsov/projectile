@@ -14,7 +14,8 @@
 ### Changes
 
 * [#1447](https://github.com/bbatsov/projectile/issues/1447): Restructure the menu.
-* [#1716](https://github.com/bbatsov/projectile/pull/1716): Allow completions when reading shell-commands.
+* [#1692](https://github.com/bbatsov/projectile/issues/1692): Enable minibuffer completions when reading shell-commands.
+
 ## 2.5.0 (2021-08-10)
 
 ### New features
