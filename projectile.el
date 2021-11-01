@@ -3970,14 +3970,14 @@ installed to work."
 ;;;###autoload
 (defun projectile-run-shell-command-in-root (command &optional output-buffer error-buffer)
   "Invoke `shell-command' in the project's root."
-  (interactive "sShell command: ")
+  (interactive (list (read-shell-command "Shell command: ")))
   (projectile-with-default-dir (projectile-acquire-root)
     (shell-command command output-buffer error-buffer)))
 
 ;;;###autoload
 (defun projectile-run-async-shell-command-in-root (command &optional output-buffer error-buffer)
   "Invoke `async-shell-command' in the project's root."
-  (interactive "sAsync shell command: ")
+  (interactive (list (read-shell-command "Async shell command: ")))
   (projectile-with-default-dir (projectile-acquire-root)
     (async-shell-command command output-buffer error-buffer)))
 
