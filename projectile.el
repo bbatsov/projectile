@@ -860,9 +860,10 @@ specify a project explicitly via the optional PROJECT param."
   "Serialize DATA to FILENAME.
 
 The saved data can be restored with `projectile-unserialize'."
-  (when (file-writable-p filename)
+  (if (file-writable-p filename)
     (with-temp-file filename
-      (insert (let (print-length) (prin1-to-string data))))))
+      (insert (let (print-length) (prin1-to-string data))))
+    (message "Projectile cache '%s' not writeable" filename)))
 
 (defun projectile-unserialize (filename)
   "Read data serialized by `projectile-serialize' from FILENAME."
