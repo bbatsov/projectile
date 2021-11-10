@@ -1046,7 +1046,11 @@ If DEPTH is non-nil recursively descend exactly DEPTH levels below DIRECTORY and
 discover projects there."
   (if (file-directory-p directory)
       (if (and (numberp depth) (> depth 0))
-          (dolist (dir (directory-files directory t))
+          ;; Ignore errors when listing files in the directory, because
+          ;; sometimes that directory is an unreadable one at the root of a
+          ;; volume. This is the case, for example, on macOS with the
+          ;; .Spotlight-V100 directory.
+          (dolist (dir (ignore-errors (directory-files directory t)))
             (when (and (file-directory-p dir)
                        (not (member (file-name-nondirectory dir) '(".." "."))))
               (projectile-discover-projects-in-directory dir (1- depth))))
