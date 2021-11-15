@@ -3014,6 +3014,11 @@ a manual COMMAND-TYPE command is created with
                                   :compile "make"
                                   :test "make test"
                                   :install "make install")
+(projectile-register-project-type 'gnumake '("GNUMakefile")
+                                  :project-file "GNUMakefile"
+                                  :compile "make"
+                                  :test "make test"
+                                  :install "make install")
 (projectile-register-project-type 'cmake '("CMakeLists.txt")
                                   :project-file "CMakeLists.txt"
                                   :configure #'projectile--cmake-configure-command
