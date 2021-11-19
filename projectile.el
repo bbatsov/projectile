@@ -1045,6 +1045,9 @@ The cache is created both in memory and on the hard drive."
 
 If DEPTH is non-nil recursively descend exactly DEPTH levels below DIRECTORY and
 discover projects there."
+  (interactive
+   (list (read-directory-name "Starting directory: ")))
+
   (if (file-directory-p directory)
       (if (and (numberp depth) (> depth 0))
           ;; Ignore errors when listing files in the directory, because
