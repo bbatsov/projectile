@@ -370,7 +370,7 @@ By default Projectile detects the completion system in use, based
 on the mode variables `ido-mode`, `ivy-mode` and `helm-mode`.
 If none of those is activated, the `default` completion system is used.
 
-Unless for some reason you want to use a different completion system for Projetile than for the
+Unless for some reason you want to use a different completion system for Projectile than for the
 rest of Emacs, you'll probably don't want to select a particular completion system manually.
 
 === Basic (Emacs's default)
