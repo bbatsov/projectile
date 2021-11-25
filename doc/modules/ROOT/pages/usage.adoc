@@ -36,7 +36,7 @@ discovery using `M-x projectile-discover-projects-in-search-path`.
 === Minibuffer Completion
 
 While Projectile works fine with Emacs's default minibuffer completion system you're highly encouraged to use some
-powerful alternative like `ido`, `ivy` or `selectrum`.
+powerful alternative like `ido`, `ivy`, `selectrum` or `vertico`.
 
 TIP: If you're going to use the `ido` completion it's **highly** recommended that you install the optional
 https://github.com/lewang/flx[flx-ido package], which provides a much more powerful

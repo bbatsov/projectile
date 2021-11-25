@@ -364,18 +364,29 @@ top-level directory.
 
 == Completion Options
 
+Projectile supports all major minibuffer completion packages that
+exist today. Normally it will just detect what you're using (e.g. `ivy`),
+but you can force a particular completion system via the variable
+`projectile-completion-system`.
+
+NOTE: Historically `projectile-completion-system` defaulted to `ido`,
+but this was changed in version 2.3. You may need to enable `ido-mode`
+in your Emacs configuration if updating from an older version of Projectile.
+
 === Auto (default)
 
 By default Projectile detects the completion system in use, based
 on the mode variables `ido-mode`, `ivy-mode` and `helm-mode`.
 If none of those is activated, the `default` completion system is used.
 
-Unless for some reason you want to use a different completion system for Projectile than for the
-rest of Emacs, you'll probably don't want to select a particular completion system manually.
+Unless for some reason you want to use a different completion system for
+Projectile than for the rest of Emacs (e.g. you normally use `icomplete-mode`,
+but want to use `ido-mode` with Projectile), you'll probably don't want to
+select a particular completion system manually.
 
 === Basic (Emacs's default)
 
-If you don't like `ido` and `ivy` you can use regular completion (based on `completing-read`):
+Select this option if you want to use Emacs's standard completion (based on `completing-read`):
 
 [source,elisp]
 ----
@@ -386,7 +397,7 @@ TIP: You might want to combine default completion with `icomplete-mode` for opti
 Emacs 27 added `fido-mode` to `icomplete`.
 
 If you are using `fido-mode`, Projectile will
-use the `default` completion system. The same holds for `selectrum` which also relies
+use the `default` completion system. The same holds for `selectrum` and `vertico` which also rely
 on the `default` completion system.
 
 === Ido
