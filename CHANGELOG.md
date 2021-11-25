@@ -11,6 +11,7 @@
 ### Bugs fixed
 
 * [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
+* [#1714](https://github.com/bbatsov/projectile/issues/1714): Fix `projectile-discover-projects-in-directory` not interactive.
 
 ### Changes
 
