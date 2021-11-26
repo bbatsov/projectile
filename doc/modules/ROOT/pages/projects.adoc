@@ -320,7 +320,7 @@ directory of the corresponding implementation file.
 It's recommended that either both or neither of these options are set to
 functions for consistent behaviour.
 
-Alternatively, for flexible file switching accross a range of projects,
+Alternatively, for flexible file switching across a range of projects,
 the `:related-files-fn` option set to a custom function or a
 list of custom functions can be used. The custom function accepts the relative
 file name from the project root and it should return related file information
@@ -485,7 +485,7 @@ This will keep all existing options for the `sbt` project type, but change the v
 
 Setting the `:test-dir` and `:src-dir` options to functions is useful if the
 test location for a given implementation file is almost always going to be in
-the same place accross all projects belonging to a given project type, `maven`
+the same place across all projects belonging to a given project type, `maven`
 projects are an example of this:
 
 [source,elisp]
@@ -500,7 +500,7 @@ projects are an example of this:
 
 If instead you work on a lot of elisp projects using `eldev`, the
 `:related-files-fn` option may be more appropriate since the test locations tend
-to vary accross projects:
+to vary across projects:
 
 [source,elisp]
 ----
@@ -753,4 +753,3 @@ external command or an Emacs Lisp function:
 ----
 (setq projectile-test-cmd #'custom-test-function)
 ----
-

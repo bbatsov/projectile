@@ -4525,7 +4525,7 @@ project of that type"
       (projectile-default-install-command (projectile-project-type))))
 
 (defun projectile-package-command (compile-dir)
-  "Retrieve the pacakge command for COMPILE-DIR.
+  "Retrieve the package command for COMPILE-DIR.
 
 The command is determined like this:
 
