@@ -1059,7 +1059,9 @@ discover projects there."
                        (not (member (file-name-nondirectory dir) '(".." "."))))
               (projectile-discover-projects-in-directory dir (1- depth))))
         (when (projectile-project-p directory)
-          (projectile-add-known-project (projectile-project-root directory))))
+          (let ((dir (abbreviate-file-name (projectile-project-root directory))))
+            (unless (member dir projectile-known-projects)
+              (projectile-add-known-project dir)))))
     (message "Project search path directory %s doesn't exist" directory)))
 
 ;;;###autoload
