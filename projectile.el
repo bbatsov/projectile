@@ -5028,10 +5028,8 @@ See `projectile--cleanup-known-projects'."
   "Add PROJECT-ROOT to the list of known projects."
   (interactive (list (read-directory-name "Add to known projects: ")))
   (unless (projectile-ignored-project-p project-root)
-    (setq projectile-known-projects
-          (delete-dups
-           (cons (file-name-as-directory (abbreviate-file-name project-root))
-                 projectile-known-projects)))
+    (push (file-name-as-directory (abbreviate-file-name project-root)) projectile-known-projects)
+    (delete-dups projectile-known-projects)
     (projectile-merge-known-projects)))
 
 (defun projectile-load-known-projects ()
