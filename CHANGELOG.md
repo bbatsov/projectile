@@ -54,7 +54,7 @@
 * Rename `projectile-project-root-files-functions` to `projectile-project-root-functions`.
 * [#1647](https://github.com/bbatsov/projectile/issues/1647): Use "-B" in the mvn commands to avoid ANSI coloring clutter in the compile buffer
 * [#1657](https://github.com/bbatsov/projectile/pull/1657): Add project detection for Debian packaging directories.
-* [#1656](https://github.com/bbatsov/projectile/pull/1656): CMake compilation-dir removed to accomodate preset support, commands adjusted to run from project-root, with "build" still being the default build-directory. The non-preset test-command now uses "cmake" with "--target test" instead of "ctest".
+* [#1656](https://github.com/bbatsov/projectile/pull/1656): CMake compilation-dir removed to accommodate preset support, commands adjusted to run from project-root, with "build" still being the default build-directory. The non-preset test-command now uses "cmake" with "--target test" instead of "ctest".
 
 ### Bugs fixed
 
