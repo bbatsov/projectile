@@ -3377,6 +3377,19 @@ TEST-FILE-PATH may be a absolute path, relative path or a file name."
       (concat (string-remove-suffix test-suffix test-file-name) "." test-file-ext))
      (t (error "Project type `%s' not supported!" project-type)))))
 
+(defun projectile--test-to-impl-dir (test-dir-path)
+  "Return the directory path of an impl file with test file in TEST-DIR-PATH.
+
+Occurrences of the current project type's test-dir property (which should be a
+string) are replaced with the current project type's src-dir property
+ (which should be a string) to obtain the new directory.
+
+Nil is returned if either the src-dir or test-dir properties are not strings."
+  (let ((test-dir (projectile-test-directory (projectile-project-type)))
+        (impl-dir (projectile-src-directory (projectile-project-type))))
+    (when (and (stringp test-dir) (stringp impl-dir))
+      (projectile-complementary-dir test-dir-path test-dir impl-dir))))
+
 (defun projectile--impl-to-test-dir (impl-dir-path)
   "Return the directory path of a test whose impl file resides in IMPL-DIR-PATH.
 
@@ -3384,13 +3397,11 @@ Occurrences of the current project type's src-dir property (which should be a
 string) are replaced with the current project type's test-dir property
  (which should be a string) to obtain the new directory.
 
-An error is signalled if either the src-dir or test-dir properties are not
-strings."
+Nil is returned if either the src-dir or test-dir properties are not strings."
   (let ((test-dir (projectile-test-directory (projectile-project-type)))
         (impl-dir (projectile-src-directory (projectile-project-type))))
-    (if (and (stringp test-dir) (stringp impl-dir))
-        (projectile-complementary-dir impl-dir-path impl-dir test-dir)
-      (error "Expected the current project's :test-dir and :impl-dir properties to be strings but found %s and %s" test-dir impl-dir))))
+    (when (and (stringp test-dir) (stringp impl-dir))
+      (projectile-complementary-dir impl-dir-path impl-dir test-dir))))
 
 (defun projectile-complementary-dir (dir-path string replacement)
   "Return the \"complementary\" directory of DIR-PATH by replacing STRING in DIR-PATH with REPLACEMENT."
@@ -3407,13 +3418,6 @@ strings."
                       (file-name-directory path))
                     :create-parents)))
 
-(defun projectile--test-file-fallback (file-name)
-  "Attempt to build a path for the test file of FILE-NAME using the src-dir and test-dir properties of the current project type which should be strings, an error is signalled if this is not the case."
-  (projectile--complementary-file
-   file-name
-   #'projectile--impl-to-test-dir
-   #'projectile--test-name-for-impl-name))
-
 (defun projectile-find-implementation-or-test (file-name)
   "Given a FILE-NAME return the matching implementation or test filename.
 
@@ -3429,15 +3433,17 @@ test file."
            "No matching source file found for project type `%s'"
            (projectile-project-type))))
     ;; find the matching test file
-    (let* ((test-file (projectile-find-matching-test file-name))
-           (test-file-or-fallback (or test-file (projectile--test-file-fallback file-name)))
-           (expanded-test-file (projectile-expand-root test-file-or-fallback)))
+    (if-let* ((error-msg (format
+                          "No matching test file found for project type `%s'"
+                          (projectile-project-type)))
+              (test-file (projectile-find-matching-test file-name))
+              (expanded-test-file (projectile-expand-root test-file)))
       (cond ((file-exists-p expanded-test-file) expanded-test-file)
             (projectile-create-missing-test-files
              (projectile--create-directories-for expanded-test-file)
              expanded-test-file)
-            (t (error "No matching test file found for project type `%s'"
-                      (projectile-project-type)))))))
+            (t (error error-msg)))
+      (error error-msg))))
 
 ;;;###autoload
 (defun projectile-find-implementation-or-test-other-window ()
@@ -3542,6 +3548,20 @@ concatenated with FILENAME-FN applied to the file name of FILE-PATH."
          (dir (funcall dir-fn (file-name-directory file-path))))
     (concat (file-name-as-directory dir) complementary-filename)))
 
+(defun projectile--impl-file-from-src-dir-str (file-name)
+  "Attempt to build a path for the impl file of FILE-NAME using the src-dir and test-dir properties of the current project type which should be strings, nil returned if this is not the case."
+  (projectile--complementary-file
+   file-name
+   #'projectile--test-to-impl-dir
+   #'projectile--impl-name-for-test-name))
+
+(defun projectile--test-file-from-test-dir-str (file-name)
+  "Attempt to build a path for the test file of FILE-NAME using the src-dir and test-dir properties of the current project type which should be strings, nil returned if this is not the case."
+  (projectile--complementary-file
+   file-name
+   #'projectile--impl-to-test-dir
+   #'projectile--test-name-for-impl-name))
+
 (defun projectile--impl-file-from-src-dir-fn (test-file)
   "Return the implementation file path for the absolute path TEST-FILE relative to the project root in the case the current project type's src-dir has been set to a custom function, return nil if this is not the case or the path points to a file that does not exist."
   (when-let ((src-dir (projectile-src-directory (projectile-project-type))))
@@ -3571,9 +3591,11 @@ concatenated with FILENAME-FN applied to the file name of FILE-PATH."
       (list test-file-from-test-dir-fn)
     (if-let ((plist (projectile--related-files-plist-by-kind impl-file :test)))
         (projectile--related-files-from-plist plist)
-      (when-let ((predicate (projectile--impl-to-test-predicate impl-file)))
-        (projectile--best-or-all-candidates-based-on-parents-dirs
-         impl-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
+      (if-let (test-file (projectile--test-file-from-test-dir-str impl-file))
+          (list test-file)
+        (when-let ((predicate (projectile--impl-to-test-predicate impl-file)))
+          (projectile--best-or-all-candidates-based-on-parents-dirs
+           impl-file (cl-remove-if-not predicate (projectile-current-project-files))))))))
 
 (defun projectile--test-to-impl-predicate (test-file)
   "Return a predicate, which returns t for any impl files for TEST-FILE."
@@ -3592,9 +3614,11 @@ concatenated with FILENAME-FN applied to the file name of FILE-PATH."
       (list impl-file-from-src-dir-fn)
     (if-let ((plist (projectile--related-files-plist-by-kind test-file :impl)))
         (projectile--related-files-from-plist plist)
-      (if-let ((predicate (projectile--test-to-impl-predicate test-file)))
-          (projectile--best-or-all-candidates-based-on-parents-dirs
-           test-file (cl-remove-if-not predicate (projectile-current-project-files)))))))
+      (if-let (impl-file (projectile--impl-file-from-impl-dir-str test-file))
+          (list impl-file)
+        (when-let ((predicate (projectile--test-to-impl-predicate test-file)))
+            (projectile--best-or-all-candidates-based-on-parents-dirs
+             test-file (cl-remove-if-not predicate (projectile-current-project-files))))))))
 
 (defun projectile--choose-from-candidates (candidates)
   "Choose one item from CANDIDATES."
