@@ -1163,8 +1163,23 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
            "spec/foo/foo.service.spec.js"
            "spec/bar/bar.service.spec.js")
           (:test-suffix ".spec" :test-dir "spec/" :src-dir "source/")
-        (expect (projectile--find-matching-test "source/foo/foo.service.js") :to-equal '("spec/foo/foo.service.spec.js"))
-        (expect (projectile--find-matching-file "spec/bar/bar.service.spec.js") :to-equal '("source/bar/bar.service.js")))))
+        (expect (projectile--find-matching-test
+                 "project/source/foo/foo.service.js")
+                :to-equal '("spec/foo/foo.service.spec.js"))
+        (expect (projectile--find-matching-file
+                 "project/spec/bar/bar.service.spec.js")
+                :to-equal '("source/bar/bar.service.js")))))
+
+  (it "finds matching test with dirs and inexistent test file"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files-using-custom-project
+          ("project/src/main/scala/bar/package.scala"
+           "project/src/main/scala/foo/package.scala"
+           "project/src/test/scala/foo/packageSpec.scala")
+          (:test-suffix "Spec" :test-dir "test" :src-dir "main")
+        (expect (projectile--find-matching-test
+                 "project/src/main/scala/bar/package.scala")
+                :to-equal '("src/test/scala/bar/packageSpec.scala")))))
 
   (it "finds matching test or file based on the paths returned by :related-files-fn option"
     (defun -my/related-files(file)
@@ -1721,7 +1736,8 @@ projectile-process-current-project-buffers-current to have similar behaviour"
               ((symbol-function 'file-exists-p) #'ignore)
               ((symbol-function 'projectile-expand-root) #'identity)
               ((symbol-function 'projectile-find-matching-test) (lambda (file) "dir/foo"))
-              (projectile-create-missing-test-files nil))
+              (projectile-create-missing-test-files nil)
+              (projectile-project-type 'foo))
       (expect (projectile-find-implementation-or-test "foo") :to-throw))))
 
 (describe "projectile--impl-file-from-src-dir-fn"
@@ -1808,11 +1824,26 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                 ((symbol-function 'projectile-project-type) (lambda () 'foo))
                 (projectile-project-types mock-projectile-project-types))
         (expect (projectile--impl-to-test-dir "/foo/src/Foo") :to-equal "/foo/test/")))
-    (it "error signalled when test dir property is not a string"
+    (it "nil returned when test-dir property is not a string"
       (cl-letf (((symbol-function 'projectile-project-root) (lambda () "bar"))
                 ((symbol-function 'projectile-project-type) (lambda () 'bar))
                 (projectile-project-types mock-projectile-project-types))
-        (expect (projectile--impl-to-test-dir "/bar/src/bar") :to-throw))))
+        (expect (projectile--impl-to-test-dir "/bar/src/bar") :to-be nil))))
+
+(describe "projectile--test-to-impl-dir"
+    :var ((mock-projectile-project-types
+           '((foo test-dir "test" src-dir "src")
+             (bar test-dir "test" src-dir identity))))
+    (it "replaces occurrences of test-dir with src-dir"
+      (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
+                ((symbol-function 'projectile-project-type) (lambda () 'foo))
+                (projectile-project-types mock-projectile-project-types))
+        (expect (projectile--test-to-impl-dir "/foo/test/Foo") :to-equal "/foo/src/")))
+    (it "nil returned when src-dir property is not a string"
+      (cl-letf (((symbol-function 'projectile-project-root) (lambda () "bar"))
+                ((symbol-function 'projectile-project-type) (lambda () 'bar))
+                (projectile-project-types mock-projectile-project-types))
+        (expect (projectile--test-to-impl-dir "/bar/test/bar") :to-be nil))))
 
 (describe "projectile-run-shell-command-in-root"
   (describe "when called directly in elisp"
