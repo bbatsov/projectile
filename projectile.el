@@ -3133,6 +3133,8 @@ a manual COMMAND-TYPE command is created with
 ;; Scala
 (projectile-register-project-type 'sbt '("build.sbt")
                                   :project-file "build.sbt"
+                                  :src-dir "main"
+                                  :test-dir "test"
                                   :compile "sbt compile"
                                   :test "sbt test"
                                   :test-suffix "Spec")

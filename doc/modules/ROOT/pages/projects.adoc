@@ -483,34 +483,54 @@ This will keep all existing options for the `sbt` project type, but change the v
 
 === `:test-dir`/`:src-dir` vs `:related-files-fn`
 
-Setting the `:test-dir` and `:src-dir` options to functions is useful if the
-test location for a given implementation file is almost always going to be in
-the same place across all projects belonging to a given project type, `maven`
-projects are an example of this:
+Whilst setting the `:test-dir` and `:src-dir` to strings is sufficient for most
+purposes, using functions can give more flexibility.  As an example consider
+(also using `f.el`):
+
+[source,elisp]
+----
+(defun my-get-python-test-file (impl-file-path)
+  "Return the corresponding test file directory for IMPL-FILE-PATH"
+  (let* ((rel-path (f-relative impl-file-path (projectile-project-root)))
+         (src-dir (car (f-split rel-path))))
+    (cond ((f-exists-p (f-join (projectile-project-root) "test"))
+           (projectile-complementary-dir impl-file-path src-dir "test"))
+          ((f-exists-p (f-join (projectile-project-root) "tests"))
+           (projectile-complementary-dir impl-file-path src-dir "tests"))
+          (t (error "Could not locate a test file for %s!" impl-file-path)))))
+
+(defun my-get-python-impl-file (test-file-path)
+  "Return the corresponding impl file directory for TEST-FILE-PATH"
+  (if-let* ((root (projectile-project-root))
+            (rel-path (f-relative test-file-path root))
+            (src-dir-guesses `(,(f-base root) ,(downcase (f-base root)) "src"))
+            (src-dir (cl-find-if (lambda (d) (f-exists-p (f-join root d)))
+                                 src-dir-guesses)))
+      (projectile-complementary-dir test-file-path "tests?" src-dir)
+    (error "Could not locate a impl file for %s!" test-file-path)))
+
+(projectile-update-project-type
+ 'python-pkg
+ :src-dir #'my-get-python-impl-dir
+ :test-dir #'my-get-python-test-dir)
+----
+
+This attempts to recognise projects using both `test` and `tests` as top level
+directories for test files. An alternative using the `related-files-fn` option
+could be:
 
 [source,elisp]
 ----
 (projectile-update-project-type
- 'maven
- :src-dir
- (lambda (file-path) (projectile-complementary-dir file-path "test" "main"))
- :test-dir
- (lambda (file-path) (projectile-complementary-dir file-path "main" "test")))
-----
-
-If instead you work on a lot of elisp projects using `eldev`, the
-`:related-files-fn` option may be more appropriate since the test locations tend
-to vary across projects:
-
-[source,elisp]
-----
-(projectile-update-project-type
- 'emacs-eldev
+ 'python-pkg
  :related-files-fn
  (list
-  (projectile-related-files-fn-test-with-suffix "el" "-test")
-  (projectile-related-files-fn-test-with-prefix "el" "test-")))
+  (projectile-related-files-fn-test-with-suffix "py" "_test")
+  (projectile-related-files-fn-test-with-prefix "py" "test_")))
 ----
+
+In fact this is a lot more flexible in terms of finding test files in different
+locations, but will not create test files for you.
 
 == Customizing Project Detection
 
