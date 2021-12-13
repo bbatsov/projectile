@@ -3442,17 +3442,17 @@ test file."
            "No matching source file found for project type `%s'"
            (projectile-project-type))))
     ;; find the matching test file
-    (if-let* ((error-msg (format
-                          "No matching test file found for project type `%s'"
-                          (projectile-project-type)))
-              (test-file (projectile-find-matching-test file-name))
-              (expanded-test-file (projectile-expand-root test-file)))
-        (cond ((file-exists-p expanded-test-file) expanded-test-file)
-              (projectile-create-missing-test-files
-               (projectile--create-directories-for expanded-test-file)
-               expanded-test-file)
-              (t (progn (error error-msg))))
-      (error error-msg))))
+    (let* ((error-msg (format
+                       "No matching test file found for project type `%s'"
+                       (projectile-project-type)))
+           (test-file (or (projectile-find-matching-test file-name)
+                          (error error-msg)))
+           (expanded-test-file (projectile-expand-root test-file)))
+      (cond ((file-exists-p expanded-test-file) expanded-test-file)
+            (projectile-create-missing-test-files
+             (projectile--create-directories-for expanded-test-file)
+             expanded-test-file)
+            (t (progn (error error-msg)))))))
 
 ;;;###autoload
 (defun projectile-find-implementation-or-test-other-window ()
@@ -3554,10 +3554,10 @@ More specifically, return DIR-FN applied to the directory of FILE-PATH
 concatenated with FILENAME-FN applied to the file name of FILE-PATH.
 
 If either function returns nil, return nil."
-  (when-let* ((filename (file-name-nondirectory file-path))
-              (complementary-filename (funcall filename-fn filename))
-              (dir (funcall dir-fn (file-name-directory file-path))))
-    (concat (file-name-as-directory dir) complementary-filename)))
+  (let ((filename (file-name-nondirectory file-path)))
+    (when-let ((complementary-filename (funcall filename-fn filename))
+               (dir (funcall dir-fn (file-name-directory file-path))))
+     (concat (file-name-as-directory dir) complementary-filename))))
 
 (defun projectile--impl-file-from-src-dir-str (file-name)
   "Return a path relative to the project root for the impl file of FILE-NAME using the src-dir and test-dir properties of the current project type which should be strings, nil returned if this is not the case."
