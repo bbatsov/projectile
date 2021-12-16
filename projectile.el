@@ -955,8 +955,10 @@ to invalidate."
 
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
-  (cl-destructuring-bind (high low _usec _psec) (current-time)
-    (+ (lsh high 16) low)))
+  (if (fboundp 'time-convert)
+      (time-convert nil 'integer)
+    (cl-destructuring-bind (high low _usec _psec) (current-time)
+      (+ (lsh high 16) low))))
 
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
