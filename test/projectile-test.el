@@ -883,6 +883,50 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-known-projects nil))
       (expect (projectile-switch-project) :to-throw))))
 
+(describe "projectile-delete-dir-local-variable"
+          (it "Deletes existing dir-local variables"
+              (projectile-test-with-sandbox
+               (projectile-test-with-files
+                ("project/"
+                 "project/.dir-locals.el"
+                 "project/.projectile")
+                (append-to-file
+                 "((nil . ((foo . bar))))" nil "project/.dir-locals.el")
+                (with-current-buffer (find-file-noselect "project/.projectile" t)
+                  (let ((enable-local-variables :all))
+                    (hack-dir-local-variables-non-file-buffer)
+                    (expect (boundp 'foo) :to-be 't)
+
+                    (projectile-delete-dir-local-variable nil 'foo)
+                    (expect (boundp 'foo) :to-be nil) ))))))
+
+(describe "projectile-add-dir-local-variable"
+          (it "Adds new dir-local variables"
+              (projectile-test-with-sandbox
+               (projectile-test-with-files
+                ("project/"
+                 "project/.projectile")
+                (with-current-buffer (find-file-noselect "project/.projectile" t)
+                  (let ((enable-local-variables :all))
+                    (expect (boundp 'fooo) :to-be nil)
+
+                    (projectile-add-dir-local-variable nil 'fooo 1)
+                    (hack-dir-local-variables-non-file-buffer)
+                    (expect (boundp 'fooo) :to-be 't)
+                    (expect fooo :to-be 1) ))))))
+
+(describe "projectile-add-dir-local-variable"
+          (it "Fails when there is no projectile project"
+              (projectile-test-with-sandbox
+                (let ((default-directory "/"))
+                  (expect (projectile-add-dir-local-variable nil 'fooo 1) :to-throw 'error)) )))
+
+(describe "projectile-delete-dir-local-variable"
+          (it "Fails when there is no projectile project"
+              (projectile-test-with-sandbox
+                (let ((default-directory "/"))
+                  (expect (projectile-delete-dir-local-variable nil 'fooo 1) :to-throw 'error)) )))
+
 (describe "projectile-switch-project-by-name"
   (it "calls the switch project action with project-to-switch's dir-locals loaded"
     (defvar switch-project-foo)

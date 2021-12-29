@@ -2329,6 +2329,32 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
       (read-only-mode (if val +1 -1))
       (message "[%s] read-only-mode is %s" (projectile-project-name) (if val "on" "off")))))
 
+;;;###autoload
+(defun projectile-add-dir-local-variable (mode variable value)
+  "Run `add-dir-local-variable' with .dir-locals.el in root of project.
+
+Parameters MODE VARIABLE VALUE are passed directly to `add-dir-local-variable'"
+  (let ((inhibit-read-only t)
+        (default-directory (projectile-project-root)))
+    (unless default-directory
+      (error "Setting dir-local variable in non-existing projectile project was requested"))
+    (add-dir-local-variable mode variable value)
+    (save-buffer)
+    (kill-buffer) ))
+
+;;;###autoload
+(defun projectile-delete-dir-local-variable (mode variable)
+  "Run `delete-dir-local-variable' with .dir-locals.el in root of project.
+
+Parameters MODE VARIABLE VALUE are passed directly to `delete-dir-local-variable'"
+  (let ((inhibit-read-only t)
+        (default-directory (projectile-project-root)))
+    (unless default-directory
+      (error "Setting dir-local variable in non-existing projectile project was requested"))
+    (delete-dir-local-variable mode variable)
+    (save-buffer)
+    (kill-buffer) ))
+
 
 ;;;; Sorting project files
 (defun projectile-sort-files (files)
