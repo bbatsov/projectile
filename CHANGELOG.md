@@ -7,6 +7,10 @@
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [`rg.el`](https://github.com/dajva/rg.el).
 * [#1712](https://github.com/bbatsov/projectile/issues/1712): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
 * [#1718](https://github.com/bbatsov/projectile/issues/1718): Add a project type definition for `GNUMakefile`.
+* Add helpers for `dir-local-variables` for 3rd party use.
+  Functions `projectile-add-dir-local-variable` and `projectile-delete-dir-local-variable`
+  wraps their built-in counterparts. They always use `.dir-locals.el` from root of projectile project.
+
 
 ### Bugs fixed
 

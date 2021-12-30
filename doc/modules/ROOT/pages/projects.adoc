@@ -773,3 +773,6 @@ external command or an Emacs Lisp function:
 ----
 (setq projectile-test-cmd #'custom-test-function)
 ----
+
+3rd party packages may use functions `projectile-add-dir-local-variable`
+and `projectile-delete-dir-local-variable` to store their settings.
