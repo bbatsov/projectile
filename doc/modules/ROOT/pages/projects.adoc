@@ -475,11 +475,12 @@ You can also edit specific options of already existing project types:
  :related-files-fn
  (list
   (projectile-related-files-fn-test-with-suffix "scala" "Spec")
-  (projectile-related-files-fn-test-with-suffix "scala" "Test")))
+  (projectile-related-files-fn-test-with-suffix "scala" "Test"))
+ :test-prefix nil
+ :precedence 'high)
 ----
 
-This will keep all existing options for the `sbt` project type, but change the value of the `related-files-fn` option.
-
+This will change the value of the `related-files-fn` option, remove the `test-prefix` option and `:precedence 'high` sets the sbt project type to be chosen in preference to other potentially clashing project types (a value `'low` would do the opposite).
 
 === `:test-dir`/`:src-dir` vs `:related-files-fn`
 
