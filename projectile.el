@@ -2625,16 +2625,14 @@ the properties of the various project types.")
   "Create a single property list from all plists in PLISTS.
 The process starts by copying the first list, and then setting properties
 from the other lists.  Settings in the last list are the most significant
-ones and overrule settings in the other lists.  nil values are ignored in
-all but the first plist."
+ones and overrule settings in the other lists."
   (let ((rtn (copy-sequence (pop plists)))
         p v ls)
     (while plists
       (setq ls (pop plists))
       (while ls
-        (setq p (pop ls) v (pop ls))
-        (when v
-          (setq rtn (plist-put rtn p v)))))
+	(setq p (pop ls) v (pop ls))
+	(setq rtn (plist-put rtn p v))))
     rtn))
 
 (cl-defun projectile--build-project-plist
@@ -2671,10 +2669,6 @@ test/impl/other files as below:
                              'install-command install
                              'package-command package
                              'run-command run)))
-    ;; There is no way for the function to distinguish between an
-    ;; explicit argument of nil and an omitted argument. However, the
-    ;; body of the function is free to consider nil an abbreviation
-    ;; for some other meaningful value
     (when (and project-file (not (member project-file projectile-project-root-files)))
       (add-to-list 'projectile-project-root-files project-file))
     (when test-suffix
@@ -2734,8 +2728,22 @@ test/impl/other files as below:
               projectile-project-types)))
 
 (cl-defun projectile-update-project-type
-    (project-type &key marker-files project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
-  "Update an existing projectile project type.
+    (project-type
+     &key (marker-files nil marker-files-specified)
+     (project-file nil project-file-specified)
+     (compilation-dir nil compilation-dir-specified)
+     (configure nil configure-specified)
+     (compile nil compile-specified)
+     (install nil install-specified)
+     (package nil package-specified)
+     (test nil test-specified)
+     (run nil run-specified)
+     (test-suffix nil test-suffix-specified)
+     (test-prefix nil test-prefix-specified)
+     (src-dir nil src-dir-specified)
+     (test-dir nil test-dir-specified)
+     (related-files-fn nil related-files-fn-specified))
+    "Update an existing projectile project type.
 
 Non-nil passed items will override existing values for the project type given
 by PROJECT-TYPE.  Raise an error if PROJECT-TYPE is not already registered
@@ -2764,35 +2772,39 @@ test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
     a plist containing :test, :impl or :other as key and the relative path/paths or
     predicate as value.  PREDICATE accepts a relative path as the input."
-  (if-let ((existing-project-plist
-            (cl-find-if
-             (lambda (p) (eq project-type (car p))) projectile-project-types))
+    (let* ((existing-project-plist
+            (or (cl-find-if
+                 (lambda (p) (eq project-type (car p))) projectile-project-types)
+                (error "No existing project found for: %s" project-type)))
            (new-plist
-            (projectile--build-project-plist
-             marker-files
-             :project-file project-file
-             :compilation-dir compilation-dir
-             :configure configure
-             :compile compile
-             :install install
-             :package package
-             :test test
-             :run run
-             :test-suffix test-suffix
-             :test-prefix test-prefix
-             :src-dir src-dir
-             :test-dir test-dir
-             :related-files-fn related-files-fn))
+            (append
+             (when marker-files-specified `(marker-files ,marker-files))
+             (when project-file-specified `(project-file ,project-file))
+             (when compilation-dir-specified `(compilation-dir ,compilation-dir))
+             (when configure-specified `(configure-command ,configure))
+             (when compile-specified `(compile-command ,compile))
+             (when test-specified `(test-command ,test))
+             (when install-specified `(install-command ,install))
+             (when package-specified `(package-command ,package))
+             (when run-specified `(run-command ,run))
+             (when test-suffix-specified `(test-suffix ,test-suffix))
+             (when test-prefix-specified `(test-prefix ,test-prefix))
+             (when src-dir-specified `(src-dir ,src-dir))
+             (when test-dir-specified `(test-dir ,test-dir))
+             (when related-files-fn-specified
+               `(related-files-fn ,related-files-fn))))
            (merged-plist
             (projectile--combine-plists
              (cdr existing-project-plist) new-plist))
            (project-type-elt (cons project-type merged-plist)))
-      (setq projectile-project-types
-            (mapcar (lambda (p) (if (eq project-type (car p))
-                                    project-type-elt
-                                  p))
-                    projectile-project-types))
-    (error "No existing project found for: %s" project-type)))
+      (cl-flet* ((project-filter (p) (eq project-type (car p)))
+                 (project-map (p) (if (project-filter p) project-type-elt p)))
+        (setq projectile-project-types
+              (mapcar (lambda (p) (if (eq project-type (car p))
+                                      project-type-elt
+                                    p))
+                      projectile-project-types))
+      (error "No existing project found for: %s" project-type)))
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."

@@ -169,12 +169,12 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
             '(:foo "foo" :bar "foo" :foobar "foobar"))
            :to-equal
            '(:foo "foo" :bar "foo" :foobar "foobar")))
- (it "Nil elements in second plist do not override elements in first"
+ (it "Nil elements in second plist override elements in first"
    (expect (projectile--combine-plists
             '(:foo "foo" :bar "bar")
             '(:foo "foo" :bar nil :foobar "foobar"))
            :to-equal
-           '(:foo "foo" :bar "bar" :foobar "foobar"))))
+           '(:foo "foo" :bar nil :foobar "foobar"))))
 
 (describe "projectile-register-project-type"
   (it "prepends new projects to projectile-project-types"
@@ -194,7 +194,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                   install-command "install"
                   package-command "package"
                   run-command "run"))))
-  (it "Updates existing project in projectile-project-types"
+  (it "Updates existing project type in projectile-project-types"
     (let ((projectile-project-types mock-projectile-project-types))
       (projectile-update-project-type
        'foo
@@ -211,6 +211,57 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                      package-command "package"
                      run-command "run"
                      test-suffix "suffix")))))
+  (it "Updates existing project type with nil value"
+    (let ((projectile-project-types mock-projectile-project-types))
+      (projectile-update-project-type
+       'foo
+       :marker-files "marker-file2"
+       :test-suffix nil)
+      (expect projectile-project-types :to-equal
+              '((foo marker-files "marker-file2"
+                     project-file "project-file"
+                     compilation-dir "compilation-dir"
+                     configure-command "configure"
+                     compile-command "compile"
+                     test-command "test"
+                     install-command "install"
+                     package-command "package"
+                     run-command "run"
+                     test-suffix nil)))))
+  (it "Updates existing project type using all options"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (dummy-val "foo"))
+      (projectile-update-project-type
+       'foo
+       :marker-files dummy-val
+       :project-file dummy-val
+       :compilation-dir dummy-val
+       :configure dummy-val
+       :compile dummy-val
+       :test dummy-val
+       :install dummy-val
+       :package dummy-val
+       :run dummy-val
+       :test-suffix dummy-val
+       :test-prefix dummy-val
+       :src-dir dummy-val
+       :test-dir dummy-val
+       :related-files-fn dummy-val)
+      (expect projectile-project-types :to-equal
+              `((foo marker-files ,dummy-val
+                     project-file ,dummy-val
+                     compilation-dir ,dummy-val
+                     configure-command ,dummy-val
+                     compile-command ,dummy-val
+                     test-command ,dummy-val
+                     install-command ,dummy-val
+                     package-command ,dummy-val
+                     run-command ,dummy-val
+                     test-suffix ,dummy-val
+                     test-prefix ,dummy-val
+                     src-dir ,dummy-val
+                     test-dir ,dummy-val
+                     related-files-fn ,dummy-val)))))
   (it "Error when attempt to update nonexistant project type"
     (let ((projectile-project-types mock-projectile-project-types))
       (expect (projectile-update-project-type
