@@ -185,23 +185,23 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 
 (describe "projectile-update-project-type"
   :var ((mock-projectile-project-types
-           '((foo marker-files "marker-file"
-                  project-file "project-file"
-                  compilation-dir "compilation-dir"
-                  configure-command "configure"
-                  compile-command "compile"
-                  test-command "test"
-                  install-command "install"
-                  package-command "package"
-                  run-command "run"))))
+         '((foo marker-files ("marker-file")
+                project-file "project-file"
+                compilation-dir "compilation-dir"
+                configure-command "configure"
+                compile-command "compile"
+                test-command "test"
+                install-command "install"
+                package-command "package"
+                run-command "run"))))
   (it "Updates existing project type in projectile-project-types"
     (let ((projectile-project-types mock-projectile-project-types))
       (projectile-update-project-type
        'foo
-       :marker-files "marker-file2"
+       :marker-files '("marker-file2")
        :test-suffix "suffix")
       (expect projectile-project-types :to-equal
-              '((foo marker-files "marker-file2"
+              '((foo marker-files ("marker-file2")
                      project-file "project-file"
                      compilation-dir "compilation-dir"
                      configure-command "configure"
@@ -215,10 +215,10 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-project-types mock-projectile-project-types))
       (projectile-update-project-type
        'foo
-       :marker-files "marker-file2"
+       :marker-files '("marker-file2")
        :test-suffix nil)
       (expect projectile-project-types :to-equal
-              '((foo marker-files "marker-file2"
+              '((foo marker-files ("marker-file2")
                      project-file "project-file"
                      compilation-dir "compilation-dir"
                      configure-command "configure"
@@ -233,7 +233,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (dummy-val "foo"))
       (projectile-update-project-type
        'foo
-       :marker-files dummy-val
+       :marker-files (list dummy-val)
        :project-file dummy-val
        :compilation-dir dummy-val
        :configure dummy-val
@@ -248,7 +248,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
        :test-dir dummy-val
        :related-files-fn dummy-val)
       (expect projectile-project-types :to-equal
-              `((foo marker-files ,dummy-val
+              `((foo marker-files (,dummy-val)
                      project-file ,dummy-val
                      compilation-dir ,dummy-val
                      configure-command ,dummy-val
@@ -266,9 +266,29 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-project-types mock-projectile-project-types))
       (expect (projectile-update-project-type
                'bar
-               :marker-files "marker-file"
+               :marker-files '("marker-file")
                :test-suffix "suffix")
-              :to-throw))))
+              :to-throw)))
+  (it "changes project type precendence"
+    (let ((projectile-project-types
+           '((foo marker-files ("foo"))
+             (bar marker-files ("foo")))))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("projectA/" "projectA/foo")
+          (spy-on 'projectile-project-root
+            :and-return-value
+            (file-truename (expand-file-name "projectA")))
+          (expect (projectile-project-type) :to-equal 'foo)
+          (projectile-update-project-type 'bar :precedence 'high)
+          (expect (projectile-project-type) :to-equal 'bar)
+          (projectile-update-project-type 'bar :precedence 'low)
+          (expect (projectile-project-type) :to-equal 'foo)))))
+  (it "errors if :precendence not valid"
+    (let ((projectile-project-types '((bar marker-files ("foo")))))
+      (expect
+       (projectile-update-project-type 'bar :precedence 'invalid-symbol)
+       :to-throw))))
 
 (describe "projectile-project-type"
   (it "detects the type of Projectile's project"
