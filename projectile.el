@@ -2729,7 +2729,8 @@ test/impl/other files as below:
 
 (cl-defun projectile-update-project-type
     (project-type
-     &key (marker-files nil marker-files-specified)
+     &key precedence
+     (marker-files nil marker-files-specified)
      (project-file nil project-file-specified)
      (compilation-dir nil compilation-dir-specified)
      (configure nil configure-specified)
@@ -2745,10 +2746,14 @@ test/impl/other files as below:
      (related-files-fn nil related-files-fn-specified))
     "Update an existing projectile project type.
 
-Non-nil passed items will override existing values for the project type given
-by PROJECT-TYPE.  Raise an error if PROJECT-TYPE is not already registered
-with projectile.  The arguments to this function are as for
-projectile-register-project-type:
+Passed items will override existing values for the project type given
+by PROJECT-TYPE.  nil can be used to remove a project type attribute.  Raise
+an error if PROJECT-TYPE is not already registered with projectile.  This
+function may also take the keyword argument PRECEDENCE which when set to ‘high’
+will make projectile prioritise this project type over other clashing project
+types, and a value of ‘low’ will make projectile prefer (all) other project
+types by default.  Otherwise, the arguments to this function are as for
+`projectile-register-project-type':
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
@@ -2800,11 +2805,16 @@ test/impl/other files as below:
       (cl-flet* ((project-filter (p) (eq project-type (car p)))
                  (project-map (p) (if (project-filter p) project-type-elt p)))
         (setq projectile-project-types
-              (mapcar (lambda (p) (if (eq project-type (car p))
-                                      project-type-elt
-                                    p))
-                      projectile-project-types))
-      (error "No existing project found for: %s" project-type)))
+              (if precedence
+                  (let ((filtered-types
+                       (cl-remove-if #'project-filter projectile-project-types)))
+                    (setq projectile-project-type-cache (make-hash-table))
+                    (cond ((eq precedence 'high)
+                           (cons project-type-elt filtered-types))
+                          ((eq precedence 'low)
+                           (append filtered-types (list project-type-elt)))
+                          (t (error "Precendence must be one of '(high low)"))))
+                (mapcar #'project-map projectile-project-types))))))
 
 (defun projectile-cabal-project-p ()
   "Check if a project contains *.cabal files but no stack.yaml file."
