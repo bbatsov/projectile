@@ -7,6 +7,7 @@
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [`rg.el`](https://github.com/dajva/rg.el).
 * [#1712](https://github.com/bbatsov/projectile/issues/1712): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
 * [#1718](https://github.com/bbatsov/projectile/issues/1718): Add a project type definition for `GNUMakefile`.
+* [#1747](https://github.com/bbatsov/projectile/pull/1747): Add support for preset-based install-commands for CMake projects.
 
 ### Bugs fixed
 
