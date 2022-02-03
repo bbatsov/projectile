@@ -47,17 +47,23 @@
   (require 'find-dired)
   (require 'subr-x))
 
-(eval-when-compile
-  (defvar ido-mode)
-  (defvar ivy-mode)
-  (defvar helm-mode)
-  (defvar ag-ignore-list)
-  (defvar ggtags-completion-table)
-  (defvar tags-completion-table)
-  (defvar tags-loop-scan)
-  (defvar tags-loop-operate)
-  (defvar eshell-buffer-name)
-  (defvar explicit-shell-file-name))
+;;; Declarations
+;;
+;; A bunch of variable and function declarations
+;; needed to appease the byte-compiler.
+(defvar ido-mode)
+(defvar ivy-mode)
+(defvar helm-mode)
+(defvar ag-ignore-list)
+(defvar ggtags-completion-table)
+(defvar tags-completion-table)
+(defvar tags-loop-scan)
+(defvar tags-loop-operate)
+(defvar eshell-buffer-name)
+(defvar explicit-shell-file-name)
+(defvar grep-files-aliases)
+(defvar grep-find-ignored-directories)
+(defvar grep-find-ignored-files)
 
 (declare-function tags-completion-table "etags")
 (declare-function make-term "term")
@@ -79,11 +85,6 @@
 (declare-function vterm "ext:vterm")
 (declare-function vterm-send-return "ext:vterm")
 (declare-function vterm-send-string "ext:vterm")
-
-(defvar grep-files-aliases)
-(defvar grep-find-ignored-directories)
-(defvar grep-find-ignored-files)
-
 
 ;;; Customization
 (defgroup projectile nil
