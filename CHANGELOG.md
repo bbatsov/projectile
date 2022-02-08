@@ -14,6 +14,7 @@
 * [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
 * [#1714](https://github.com/bbatsov/projectile/issues/1714): Fix `projectile-discover-projects-in-directory` not interactive.
 * [#1734](https://github.com/bbatsov/projectile/pull/1734): Make `projectile--find-matching-test` use `src-dir/test-dir` properties.
+* [#1750](https://github.com/bbatsov/projectile/issues/1750): Fix source and test directories for Maven projects.
 
 ### Changes
 
