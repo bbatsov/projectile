@@ -3116,8 +3116,8 @@ a manual COMMAND-TYPE command is created with
                                   :compile "mvn -B clean install"
                                   :test "mvn -B test"
                                   :test-suffix "Test"
-                                  :src-dir "main/src/"
-                                  :test-dir "main/test/")
+                                  :src-dir "src/main/"
+                                  :test-dir "src/test/")
 (projectile-register-project-type 'gradle '("build.gradle")
                                   :project-file "build.gradle"
                                   :compile "gradle build"
