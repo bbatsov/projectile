@@ -5589,6 +5589,7 @@ thing shown in the mode line otherwise."
          ["Run eshell" projectile-run-eshell]
          ["Run ielm" projectile-run-ielm]
          ["Run term" projectile-run-term]
+         ["Run vterm" projectile-run-vterm]
          "--"
          ["Run GDB" projectile-run-gdb])
         ("Build"
