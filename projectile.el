@@ -1341,6 +1341,7 @@ Fallback to a generic command when not in a VCS-controlled project."
     ('fossil projectile-fossil-command)
     ('bzr projectile-bzr-command)
     ('darcs projectile-darcs-command)
+    ('pijul projectile-pijul-command)
     ('svn projectile-svn-command)
     (_ projectile-generic-command)))
 
