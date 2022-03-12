@@ -1230,8 +1230,8 @@ explicitly."
   (projectile-project-root (or dir default-directory)))
 
 (defun projectile-default-project-name (project-root)
-  "Default function used create project name to be displayed based on the
-value of PROJECT-ROOT."
+  "Default function used to create the project name.
+The project name is based on the value of PROJECT-ROOT."
   (file-name-nondirectory (directory-file-name project-root)))
 
 (defun projectile-project-name (&optional project)
@@ -1745,8 +1745,8 @@ IGNORED-FILES may optionally be provided."
       (member file (file-expand-wildcards pattern t))))
 
 (defun projectile-ignored-rel-p (file directory patterns)
-  "Check if FILE should be ignored relative to DIRECTORY
-according to PATTERNS: (ignored . unignored)"
+  "Check if FILE should be ignored relative to DIRECTORY.
+PATTERNS should have the form: (ignored . unignored)"
   (let ((default-directory directory))
     (and (cl-some
           (lambda (pat) (projectile-check-pattern-p file pat))
@@ -2075,7 +2075,8 @@ Other file extensions can be customized with the variable
 
 ;;;###autoload
 (defun projectile-find-other-file-other-window (&optional flex-matching)
-  "Switch between files with the same name but different extensions in other
+  "Switch between files with different extensions in other window.
+Switch between files with the same name but different extensions in other
 window.  With FLEX-MATCHING, match any file that contains the base name of
 current file.  Other file extensions can be customized with the variable
 `projectile-other-file-alist'."
@@ -2085,7 +2086,8 @@ current file.  Other file extensions can be customized with the variable
 
 ;;;###autoload
 (defun projectile-find-other-file-other-frame (&optional flex-matching)
-  "Switch between files with the same name but different extensions in other frame.
+  "Switch between files with different extensions in other frame.
+Switch between files with the same name but different extensions in other frame.
 With FLEX-MATCHING, match any file that contains the base name of current
 file.  Other file extensions can be customized with the variable
 `projectile-other-file-alist'."
@@ -2470,8 +2472,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
                           (setq merged-plist (plist-put merged-plist key values))))))))))
 
 (defun projectile--related-files-plist (project-root file)
-  "Return a plist containing all related files information for FILE in
-PROJECT-ROOT."
+  "Return a plist containing all related files information for FILE.
+PROJECT-ROOT is the project root."
   (if-let ((rel-path (if (file-name-absolute-p file)
                          (file-relative-name file project-root)
                        file))
@@ -2593,8 +2595,8 @@ If KIND is not provided, a list of possible kinds can be chosen."
 
 ;;;###autoload
 (defun projectile-related-files-fn-test-with-prefix(extension test-prefix)
-  "Generate a related-files-fn which relates tests and impl for files with
-EXTENSION based on TEST-PREFIX."
+  "Generate a related-files-fn which relates tests and impl.
+Use files with EXTENSION based on TEST-PREFIX."
   (lambda (path)
     (when (equal (file-name-extension path) extension)
       (let* ((file-name (file-name-nondirectory path))
@@ -2609,8 +2611,8 @@ EXTENSION based on TEST-PREFIX."
 
 ;;;###autoload
 (defun projectile-related-files-fn-test-with-suffix(extension test-suffix)
-  "Generate a related-files-fn which relates tests and impl for files with
-EXTENSION based on TEST-SUFFIX."
+  "Generate a related-files-fn which relates tests and impl.
+Use files with EXTENSION based on TEST-SUFFIX."
   (lambda (path)
     (when (equal (file-name-extension path) extension)
       (let* ((file-name (file-name-nondirectory path))
@@ -3471,8 +3473,8 @@ Nil is returned if either the src-dir or test-dir properties are not strings."
       (projectile-complementary-dir impl-dir-path impl-dir test-dir))))
 
 (defun projectile-complementary-dir (dir-path string replacement)
-  "Return the \"complementary\" directory of DIR-PATH by replacing STRING in
-DIR-PATH with REPLACEMENT."
+  "Return the \"complementary\" directory of DIR-PATH.
+Replace STRING in DIR-PATH with REPLACEMENT."
   (let* ((project-root (projectile-project-root))
          (relative-dir (file-name-directory (file-relative-name dir-path project-root))))
     (projectile-expand-root
@@ -3589,8 +3591,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
            (lambda (a b) (> (car a) (car b)))))
 
 (defun projectile--best-or-all-candidates-based-on-parents-dirs (file candidates)
-  "Return a list containing the best one one for FILE from CANDIDATES or all
-CANDIDATES."
+  "Return a list of the best one one for FILE from CANDIDATES or all CANDIDATES."
   (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
     (if (= (length (car grouped-candidates)) 2)
         (list (car (last (car grouped-candidates))))
@@ -3621,7 +3622,8 @@ If either function returns nil, return nil."
      (concat (file-name-as-directory dir) complementary-filename))))
 
 (defun projectile--impl-file-from-src-dir-str (file-name)
-  "Return a path relative to the project root for the impl file of FILE-NAME
+  "Get the relative path of the implementation file FILE-NAME.
+Return a path relative to the project root for the impl file of FILE-NAME
 using the src-dir and test-dir properties of the current project type which
 should be strings, nil returned if this is not the case."
   (when-let ((complementary-file (projectile--complementary-file
@@ -3631,7 +3633,8 @@ should be strings, nil returned if this is not the case."
     (file-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--test-file-from-test-dir-str (file-name)
-  "Return a path relative to the project root for the test file of FILE-NAME
+  "Get the relative path of the test file FILE-NAME.
+Return a path relative to the project root for the test file of FILE-NAME
 using the src-dir and test-dir properties of the current project type which
 should be strings, nil returned if this is not the case."
   (when-let (complementary-file (projectile--complementary-file
@@ -3641,7 +3644,8 @@ should be strings, nil returned if this is not the case."
     (file-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--impl-file-from-src-dir-fn (test-file)
-  "Return the implementation file path for the absolute path TEST-FILE
+  "Get the relative path to the implementation file corresponding to TEST-FILE.
+Return the implementation file path for the absolute path TEST-FILE
 relative to the project root in the case the current project type's src-dir
 has been set to a custom function, return nil if this is not the case or
 the path points to a file that does not exist."
@@ -3655,7 +3659,8 @@ the path points to a file that does not exist."
           (file-relative-name impl-file (projectile-project-root)))))))
 
 (defun projectile--test-file-from-test-dir-fn (impl-file)
-  "Return the test file path for the absolute path IMPL-FILE relative to the
+  "Get the relative path to the test file corresponding to IMPL-FILE.
+Return the test file path for the absolute path IMPL-FILE relative to the
 project root, in the case the current project type's test-dir has been set
 to a custom function, else return nil."
   (when-let ((test-dir (projectile-test-directory (projectile-project-type))))
@@ -4918,10 +4923,11 @@ If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
       (ring-insert command-history executed-command))))
 
 (defun compilation-find-file-projectile-find-compilation-buffer (orig-fun marker filename directory &rest formats)
-  "Advice around compilation-find-file. We enhance its functionality by
-appending the current project's directories to its search path. This way
-when filenames in compilation buffers can't be found by compilation's
-normal logic they are searched for in project directories."
+  "Advice around compilation-find-file.
+We enhance its functionality by appending the current project's directories
+to its search path. This way when filenames in compilation buffers can't be
+found by compilation's normal logic they are searched for in project
+directories."
   (let* ((root (projectile-project-root))
          (compilation-search-path
           (if (projectile-project-p)
@@ -5085,8 +5091,8 @@ See `projectile--cleanup-known-projects'."
    ((file-readable-p project))))
 
 (defun projectile--cleanup-known-projects ()
-  "Remove known projects that don't exist anymore and return a list of
-projects removed."
+  "Remove known projects that don't exist anymore.
+Return a list of projects removed."
   (projectile-merge-known-projects)
   (let ((projects-kept (cl-remove-if-not #'projectile-keep-project-p projectile-known-projects))
         (projects-removed (cl-remove-if #'projectile-keep-project-p projectile-known-projects)))
