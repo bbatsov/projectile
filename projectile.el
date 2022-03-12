@@ -327,6 +327,7 @@ See `projectile-register-project-type'."
     "_FOSSIL_"    ; Fossil VCS root DB on Windows
     ".bzr"        ; Bazaar VCS root dir
     "_darcs"      ; Darcs VCS root dir
+    ".pijul"      ; Pijul VCS root dir
     )
   "A list of files considered to mark the root of a project.
 The bottommost (parentmost) match has precedence."
@@ -405,6 +406,7 @@ is set to 'alien'."
     "_FOSSIL_"
     ".bzr"
     "_darcs"
+    ".pijul"
     ".tox"
     ".svn"
     ".stack-work"
@@ -683,6 +685,11 @@ Set to nil to disable listing submodules contents."
   "Command used by projectile to get the files in a darcs project."
   :group 'projectile
   :type 'string)
+
+(defcustom projectile-pijul-command "pijul list | tr '\\n' '\\0'"
+   "Command used by projectile to get the files in a pijul project."
+   :group 'projectile
+   :type 'string)
 
 (defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
   "Command used by projectile to get the files in a svn project."
@@ -1334,6 +1341,7 @@ Fallback to a generic command when not in a VCS-controlled project."
     ('fossil projectile-fossil-command)
     ('bzr projectile-bzr-command)
     ('darcs projectile-darcs-command)
+    ('pijul projectile-pijul-command)
     ('svn projectile-svn-command)
     (_ projectile-generic-command)))
 
@@ -3366,6 +3374,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    ((projectile-file-exists-p (expand-file-name "_FOSSIL_" project-root)) 'fossil)
    ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
    ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
+   ((projectile-file-exists-p (expand-file-name ".pijul" project-root)) 'pijul)
    ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
    ;; then we check if there's a VCS marker up the directory tree
    ;; that covers the case when a project is part of a multi-project repository
@@ -3377,6 +3386,7 @@ PROJECT-ROOT is the targeted directory.  If nil, use
    ((projectile-locate-dominating-file project-root "_FOSSIL_") 'fossil)
    ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
    ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
+   ((projectile-locate-dominating-file project-root ".pijul") 'pijul)
    ((projectile-locate-dominating-file project-root ".svn") 'svn)
    (t 'none)))
 

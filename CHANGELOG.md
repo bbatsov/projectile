@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1757](https://github.com/bbatsov/projectile/pull/1757) Add support for the Pijul VCS
 * [#1745](https://github.com/bbatsov/projectile/pull/1745) Allow `projectile-update-project-type` to change project type precendence and remove project options.
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [`rg.el`](https://github.com/dajva/rg.el).
 * [#1712](https://github.com/bbatsov/projectile/issues/1712): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
