@@ -1230,7 +1230,8 @@ explicitly."
   (projectile-project-root (or dir default-directory)))
 
 (defun projectile-default-project-name (project-root)
-  "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
+  "Default function used create project name to be displayed based on the
+value of PROJECT-ROOT."
   (file-name-nondirectory (directory-file-name project-root)))
 
 (defun projectile-project-name (&optional project)
@@ -2067,15 +2068,17 @@ instead of `find-file'.   A typical example of such a defun would be
 (defun projectile-find-other-file (&optional flex-matching)
   "Switch between files with the same name but different extensions.
 With FLEX-MATCHING, match any file that contains the base name of current file.
-Other file extensions can be customized with the variable `projectile-other-file-alist'."
+Other file extensions can be customized with the variable
+`projectile-other-file-alist'."
   (interactive "P")
   (projectile--find-other-file flex-matching))
 
 ;;;###autoload
 (defun projectile-find-other-file-other-window (&optional flex-matching)
-  "Switch between files with the same name but different extensions in other window.
-With FLEX-MATCHING, match any file that contains the base name of current file.
-Other file extensions can be customized with the variable `projectile-other-file-alist'."
+  "Switch between files with the same name but different extensions in other
+window.  With FLEX-MATCHING, match any file that contains the base name of
+current file.  Other file extensions can be customized with the variable
+`projectile-other-file-alist'."
   (interactive "P")
   (projectile--find-other-file flex-matching
                                #'find-file-other-window))
@@ -2083,21 +2086,24 @@ Other file extensions can be customized with the variable `projectile-other-file
 ;;;###autoload
 (defun projectile-find-other-file-other-frame (&optional flex-matching)
   "Switch between files with the same name but different extensions in other frame.
-With FLEX-MATCHING, match any file that contains the base name of current file.
-Other file extensions can be customized with the variable `projectile-other-file-alist'."
+With FLEX-MATCHING, match any file that contains the base name of current
+file.  Other file extensions can be customized with the variable
+`projectile-other-file-alist'."
   (interactive "P")
   (projectile--find-other-file flex-matching
                                #'find-file-other-frame))
 
 (defun projectile--file-name-sans-extensions (file-name)
   "Return FILE-NAME sans any extensions.
-The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+The extensions, in a filename, are what follows the first '.', with the
+exception of a leading '.'"
   (setq file-name (file-name-nondirectory file-name))
   (substring file-name 0 (string-match "\\..*" file-name 1)))
 
 (defun projectile--file-name-extensions (file-name)
   "Return FILE-NAME's extensions.
-The extensions, in a filename, are what follows the first '.', with the exception of a leading '.'"
+The extensions, in a filename, are what follows the first '.', with the
+exception of a leading '.'"
   ;;would it make sense to return nil instead of an empty string if no extensions are found?
   (setq file-name (file-name-nondirectory file-name))
   (let (extensions-start)
@@ -2108,7 +2114,9 @@ The extensions, in a filename, are what follows the first '.', with the exceptio
 
 (defun projectile-associated-file-name-extensions (file-name)
   "Return projectile-other-file-extensions associated to FILE-NAME's extensions.
-If no associated other-file-extensions for the complete (nested) extension are found, remove subextensions from FILENAME's extensions until a match is found."
+If no associated other-file-extensions for the complete (nested) extension
+are found, remove subextensions from FILENAME's extensions until a match is
+found."
   (let ((current-extensions (projectile--file-name-extensions (file-name-nondirectory file-name)))
         associated-extensions)
     (catch 'break
@@ -2212,19 +2220,21 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 If point is on a filename, Projectile first tries to search for that
 file in project:
 
-- If it finds just a file, it switches to that file instantly.  This works even
-if the filename is incomplete, but there's only a single file in the current project
-that matches the filename at point.  For example, if there's only a single file named
-\"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
-`projectile-find-file-dwim' still switches to \"projectile/projectile.el\" immediately
- because this is the only filename that matches.
+- If it finds just a file, it switches to that file instantly.  This works
+even if the filename is incomplete, but there's only a single file in the
+current project that matches the filename at point.  For example, if
+there's only a single file named \"projectile/projectile.el\" but the
+current filename is \"projectile/proj\" (incomplete),
+`projectile-find-file-dwim' still switches to \"projectile/projectile.el\"
+immediately because this is the only filename that matches.
 
-- If it finds a list of files, the list is displayed for selecting.  A list of
-files is displayed when a filename appears more than one in the project or the
-filename at point is a prefix of more than two files in a project.  For example,
-if `projectile-find-file-dwim' is executed on a filepath like \"projectile/\", it lists
-the content of that directory.  If it is executed on a partial filename like
- \"projectile/a\", a list of files with character 'a' in that directory is presented.
+- If it finds a list of files, the list is displayed for selecting.  A list
+of files is displayed when a filename appears more than one in the project
+or the filename at point is a prefix of more than two files in a project.
+For example, if `projectile-find-file-dwim' is executed on a filepath like
+\"projectile/\", it lists the content of that directory.  If it is executed
+on a partial filename like \"projectile/a\", a list of files with character
+'a' in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2239,20 +2249,22 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 If point is on a filename, Projectile first tries to search for that
 file in project:
 
-- If it finds just a file, it switches to that file instantly.  This works even
-if the filename is incomplete, but there's only a single file in the current project
-that matches the filename at point.  For example, if there's only a single file named
-\"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
-`projectile-find-file-dwim-other-window' still switches to \"projectile/projectile.el\"
-immediately because this is the only filename that matches.
+- If it finds just a file, it switches to that file instantly.  This works
+even if the filename is incomplete, but there's only a single file in the
+current project that matches the filename at point.  For example, if
+there's only a single file named \"projectile/projectile.el\" but the
+current filename is \"projectile/proj\" (incomplete),
+`projectile-find-file-dwim-other-window' still switches to
+\"projectile/projectile.el\" immediately because this is the only filename
+that matches.
 
-- If it finds a list of files, the list is displayed for selecting.  A list of
-files is displayed when a filename appears more than one in the project or the
-filename at point is a prefix of more than two files in a project.  For example,
-if `projectile-find-file-dwim-other-window' is executed on a filepath like \"projectile/\", it lists
-the content of that directory.  If it is executed on a partial filename
-like \"projectile/a\", a list of files with character 'a' in that directory
-is presented.
+- If it finds a list of files, the list is displayed for selecting.  A list
+of files is displayed when a filename appears more than one in the project
+or the filename at point is a prefix of more than two files in a project.
+For example, if `projectile-find-file-dwim-other-window' is executed on a
+filepath like \"projectile/\", it lists the content of that directory.  If
+it is executed on a partial filename like \"projectile/a\", a list of files
+with character 'a' in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2267,20 +2279,22 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 If point is on a filename, Projectile first tries to search for that
 file in project:
 
-- If it finds just a file, it switches to that file instantly.  This works even
-if the filename is incomplete, but there's only a single file in the current project
-that matches the filename at point.  For example, if there's only a single file named
-\"projectile/projectile.el\" but the current filename is \"projectile/proj\" (incomplete),
-`projectile-find-file-dwim-other-frame' still switches to \"projectile/projectile.el\"
-immediately because this is the only filename that matches.
+- If it finds just a file, it switches to that file instantly.  This works
+even if the filename is incomplete, but there's only a single file in the
+current project that matches the filename at point.  For example, if
+there's only a single file named \"projectile/projectile.el\" but the
+current filename is \"projectile/proj\" (incomplete),
+`projectile-find-file-dwim-other-frame' still switches to
+\"projectile/projectile.el\" immediately because this is the only filename
+that matches.
 
-- If it finds a list of files, the list is displayed for selecting.  A list of
-files is displayed when a filename appears more than one in the project or the
-filename at point is a prefix of more than two files in a project.  For example,
-if `projectile-find-file-dwim-other-frame' is executed on a filepath like \"projectile/\", it lists
-the content of that directory.  If it is executed on a partial filename
-like \"projectile/a\", a list of files with character 'a' in that directory
-is presented.
+- If it finds a list of files, the list is displayed for selecting.  A list
+of files is displayed when a filename appears more than one in the project
+or the filename at point is a prefix of more than two files in a project.
+For example, if `projectile-find-file-dwim-other-frame' is executed on a
+filepath like \"projectile/\", it lists the content of that directory.  If
+it is executed on a partial filename like \"projectile/a\", a list of files
+with character 'a' in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2456,7 +2470,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
                           (setq merged-plist (plist-put merged-plist key values))))))))))
 
 (defun projectile--related-files-plist (project-root file)
-  "Return a plist containing all related files information for FILE in PROJECT-ROOT."
+  "Return a plist containing all related files information for FILE in
+PROJECT-ROOT."
   (if-let ((rel-path (if (file-name-absolute-p file)
                          (file-relative-name file project-root)
                        file))
@@ -2578,7 +2593,8 @@ If KIND is not provided, a list of possible kinds can be chosen."
 
 ;;;###autoload
 (defun projectile-related-files-fn-test-with-prefix(extension test-prefix)
-  "Generate a related-files-fn which relates tests and impl for files with EXTENSION based on TEST-PREFIX."
+  "Generate a related-files-fn which relates tests and impl for files with
+EXTENSION based on TEST-PREFIX."
   (lambda (path)
     (when (equal (file-name-extension path) extension)
       (let* ((file-name (file-name-nondirectory path))
@@ -2593,7 +2609,8 @@ If KIND is not provided, a list of possible kinds can be chosen."
 
 ;;;###autoload
 (defun projectile-related-files-fn-test-with-suffix(extension test-suffix)
-  "Generate a related-files-fn which relates tests and impl for files with EXTENSION based on TEST-SUFFIX."
+  "Generate a related-files-fn which relates tests and impl for files with
+EXTENSION based on TEST-SUFFIX."
   (lambda (path)
     (when (equal (file-name-extension path) extension)
       (let* ((file-name (file-name-nondirectory path))
@@ -2663,11 +2680,12 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILES-FN which specifies a custom function to find the related files such as
-test/impl/other files as below:
-    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
-    a plist containing :test, :impl or :other as key and the relative path/paths or
-    predicate as value.  PREDICATE accepts a relative path as the input."
+RELATED-FILES-FN which specifies a custom function to find the related
+files such as test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and
+    returns a plist containing :test, :impl or :other as key and the
+    relative path/paths or predicate as value.  PREDICATE accepts a
+    relative path as the input."
   (let ((project-plist (list 'marker-files marker-files
                              'project-file project-file
                              'compilation-dir compilation-dir
@@ -2711,11 +2729,12 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILES-FN which specifies a custom function to find the related files such as
-test/impl/other files as below:
-    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
-    a plist containing :test, :impl or :other as key and the relative path/paths or
-    predicate as value.  PREDICATE accepts a relative path as the input."
+RELATED-FILES-FN which specifies a custom function to find the related
+files such as test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and
+    returns a plist containing :test, :impl or :other as key and the
+    relative path/paths or predicate as value.  PREDICATE accepts a
+    relative path as the input."
   (setq projectile-project-types
         (cons `(,project-type .
                               ,(projectile--build-project-plist
@@ -2780,11 +2799,12 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILES-FN which specifies a custom function to find the related files such as
-test/impl/other files as below:
-    CUSTOM-FUNCTION accepts FILE as relative path from the project root and returns
-    a plist containing :test, :impl or :other as key and the relative path/paths or
-    predicate as value.  PREDICATE accepts a relative path as the input."
+RELATED-FILES-FN which specifies a custom function to find the related
+files such as test/impl/other files as below:
+    CUSTOM-FUNCTION accepts FILE as relative path from the project root and
+    returns a plist containing :test, :impl or :other as key and the
+    relative path/paths or predicate as value.  PREDICATE accepts a
+    relative path as the input."
     (let* ((existing-project-plist
             (or (cl-find-if
                  (lambda (p) (eq project-type (car p))) projectile-project-types)
@@ -3451,7 +3471,8 @@ Nil is returned if either the src-dir or test-dir properties are not strings."
       (projectile-complementary-dir impl-dir-path impl-dir test-dir))))
 
 (defun projectile-complementary-dir (dir-path string replacement)
-  "Return the \"complementary\" directory of DIR-PATH by replacing STRING in DIR-PATH with REPLACEMENT."
+  "Return the \"complementary\" directory of DIR-PATH by replacing STRING in
+DIR-PATH with REPLACEMENT."
   (let* ((project-root (projectile-project-root))
          (relative-dir (file-name-directory (file-relative-name dir-path project-root))))
     (projectile-expand-root
@@ -3568,7 +3589,8 @@ Fallback to DEFAULT-VALUE for missing attributes."
            (lambda (a b) (> (car a) (car b)))))
 
 (defun projectile--best-or-all-candidates-based-on-parents-dirs (file candidates)
-  "Return a list containing the best one one for FILE from CANDIDATES or all CANDIDATES."
+  "Return a list containing the best one one for FILE from CANDIDATES or all
+CANDIDATES."
   (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
     (if (= (length (car grouped-candidates)) 2)
         (list (car (last (car grouped-candidates))))
@@ -3599,7 +3621,9 @@ If either function returns nil, return nil."
      (concat (file-name-as-directory dir) complementary-filename))))
 
 (defun projectile--impl-file-from-src-dir-str (file-name)
-  "Return a path relative to the project root for the impl file of FILE-NAME using the src-dir and test-dir properties of the current project type which should be strings, nil returned if this is not the case."
+  "Return a path relative to the project root for the impl file of FILE-NAME
+using the src-dir and test-dir properties of the current project type which
+should be strings, nil returned if this is not the case."
   (when-let ((complementary-file (projectile--complementary-file
                                   file-name
                                   #'projectile--test-to-impl-dir
@@ -3607,7 +3631,9 @@ If either function returns nil, return nil."
     (file-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--test-file-from-test-dir-str (file-name)
-  "Return a path relative to the project root for the test file of FILE-NAME using the src-dir and test-dir properties of the current project type which should be strings, nil returned if this is not the case."
+  "Return a path relative to the project root for the test file of FILE-NAME
+using the src-dir and test-dir properties of the current project type which
+should be strings, nil returned if this is not the case."
   (when-let (complementary-file (projectile--complementary-file
                                  file-name
                                  #'projectile--impl-to-test-dir
@@ -3615,7 +3641,10 @@ If either function returns nil, return nil."
     (file-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--impl-file-from-src-dir-fn (test-file)
-  "Return the implementation file path for the absolute path TEST-FILE relative to the project root in the case the current project type's src-dir has been set to a custom function, return nil if this is not the case or the path points to a file that does not exist."
+  "Return the implementation file path for the absolute path TEST-FILE
+relative to the project root in the case the current project type's src-dir
+has been set to a custom function, return nil if this is not the case or
+the path points to a file that does not exist."
   (when-let ((src-dir (projectile-src-directory (projectile-project-type))))
     (when (functionp src-dir)
       (let ((impl-file (projectile--complementary-file
@@ -3626,7 +3655,9 @@ If either function returns nil, return nil."
           (file-relative-name impl-file (projectile-project-root)))))))
 
 (defun projectile--test-file-from-test-dir-fn (impl-file)
-  "Return the test file path for the absolute path IMPL-FILE relative to the project root, in the case the current project type's test-dir has been set to a custom function, else return nil."
+  "Return the test file path for the absolute path IMPL-FILE relative to the
+project root, in the case the current project type's test-dir has been set
+to a custom function, else return nil."
   (when-let ((test-dir (projectile-test-directory (projectile-project-type))))
     (when (functionp test-dir)
       (file-relative-name
@@ -4555,7 +4586,8 @@ project of that type"
 
 (defun projectile-compilation-buffer-name (compilation-mode)
   "Meant to be used for `compilation-buffer-name-function`.
-Argument COMPILATION-MODE is the name of the major mode used for the compilation buffer."
+Argument COMPILATION-MODE is the name of the major mode used for the
+compilation buffer."
   (concat "*" (downcase compilation-mode) "*"
           (if (projectile-project-p) (concat "<" (projectile-project-name) ">") "")))
 
@@ -5053,7 +5085,8 @@ See `projectile--cleanup-known-projects'."
    ((file-readable-p project))))
 
 (defun projectile--cleanup-known-projects ()
-  "Remove known projects that don't exist anymore and return a list of projects removed."
+  "Remove known projects that don't exist anymore and return a list of
+projects removed."
   (projectile-merge-known-projects)
   (let ((projects-kept (cl-remove-if-not #'projectile-keep-project-p projectile-known-projects))
         (projects-removed (cl-remove-if #'projectile-keep-project-p projectile-known-projects)))
