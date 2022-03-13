@@ -423,7 +423,7 @@ a prefix is not a wildcard; it is an indicator that the directory
 should be ignored at all levels, not just root.
 
 Examples: \"tmp\" ignores only ./tmp at the top level of the
-project, but not ./src/tmp. \"*tmp\" will ignore both ./tmp and
+project, but not ./src/tmp.  \"*tmp\" will ignore both ./tmp and
 ./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
 
 Note that files aren't filtered if `projectile-indexing-method'
@@ -612,7 +612,7 @@ project root as argument and returns non-nil if the project is to
 be ignored or nil otherwise.
 
 This function is only called if the project is not listed in
-`projectile-ignored-projects'.
+the variable `projectile-ignored-projects'.
 
 A suitable candidate would be `file-remote-p' to ignore remote
 projects."
@@ -1128,7 +1128,7 @@ which we're looking."
 This is intended to be used as a file local variable.")
 
 (defun projectile-root-local (_dir)
-  "A simple wrapper around `projectile-project-root'."
+  "A simple wrapper around the variable `projectile-project-root'."
   projectile-project-root)
 
 (defun projectile-root-top-down (dir &optional list)
@@ -1713,7 +1713,7 @@ projectile project root."
     (directory &optional ignored-directories local-directory globally-ignored-directories)
   "Check if DIRECTORY should be ignored.
 
-Regular expressions can be used. Pre-computed lists of
+Regular expressions can be used.  Pre-computed lists of
 IGNORED-DIRECTORIES and GLOBALLY-IGNORED-DIRECTORIES
 and the LOCAL-DIRECTORY name may optionally be provided."
   (let ((ignored-directories (or ignored-directories (projectile-ignored-directories)))
@@ -3386,7 +3386,7 @@ Expands wildcards using `file-expand-wildcards' before checking."
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
 PROJECT-ROOT is the targeted directory.  If nil, use
-`projectile-project-root'."
+the variable `projectile-project-root'."
   (or project-root (setq project-root (projectile-acquire-root)))
   (cond
    ;; first we check for a VCS marker in the project root itself
@@ -4690,7 +4690,7 @@ project of that type"
       (projectile-default-run-command (projectile-project-type))))
 
 (defun projectile-read-command (prompt command)
-  "Adapted from `compilation-read-command'."
+  "Adapted from the function `compilation-read-command'."
   (let ((compile-history
          ;; fetch the command history for the current project
          (ring-elements (projectile--get-command-history (projectile-acquire-root)))))
@@ -4772,37 +4772,37 @@ The command actually run is returned."
     command))
 
 (defcustom projectile-configure-use-comint-mode nil
-  "Make the output buffer of projectile-configure-project interactive."
+  "Make the output buffer of `projectile-configure-project' interactive."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-compile-use-comint-mode nil
-  "Make the output buffer of projectile-compile-project interactive."
+  "Make the output buffer of `projectile-compile-project' interactive."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-test-use-comint-mode nil
-  "Make the output buffer of projectile-test-project interactive."
+  "Make the output buffer of `projectile-test-project' interactive."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-install-use-comint-mode nil
-  "Make the output buffer of projectile-install-project interactive."
+  "Make the output buffer of `projectile-install-project' interactive."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-package-use-comint-mode nil
-  "Make the output buffer of projectile-package-project interactive."
+  "Make the output buffer of `projectile-package-project' interactive."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
 (defcustom projectile-run-use-comint-mode nil
-  "Make the output buffer of projectile-run-project interactive."
+  "Make the output buffer of `projectile-run-project' interactive."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
