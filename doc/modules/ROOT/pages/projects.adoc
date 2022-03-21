@@ -185,7 +185,7 @@ Let's see a couple of more complex examples.
 ;; Ruby + Minitest
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
                                   :project-file "Gemfile"
-                                  :compile"bundle exec rake"
+                                  :compile "bundle exec rake"
                                   :src-dir "lib/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
