@@ -672,6 +672,17 @@ Set to nil to disable listing submodules contents."
   :group 'projectile
   :type 'string)
 
+(make-obsolete-variable 'projectile-git-submodule-command "Configure `projectile-git-submodule-command-function' instead." "2.6.0")
+
+(defcustom projectile-git-submodule-command-function 'projectile--get-git-sub-projects-command
+  "Function generate command to list submodules of a given git repository.
+Set to nil to disable listing submodules contents.
+
+This has to be a function to generate the command with the correct quotes."
+  :group 'projectile
+  :type 'function
+  :package-version '(projectile . "2.6.0"))
+
 (defcustom projectile-git-ignored-command "git ls-files -zcoi --exclude-standard"
   "Command used by projectile to get the ignored files in a git project."
   :group 'projectile
@@ -1385,8 +1396,17 @@ Fallback to a generic command when not in a VCS-controlled project."
 Currently that's supported just for Git (sub-projects being Git
 sub-modules there)."
   (pcase vcs
-    ('git projectile-git-submodule-command)
+    ('git (and projectile-git-submodule-command-function (funcall projectile-git-submodule-command-function)))
     (_ "")))
+
+(defun projectile--get-git-sub-projects-command ()
+  "Get the sub-projects command for Git.
+Defined as a function in order to generate the properly-quoted command at
+runtime."
+  (format "git submodule --quiet foreach %s | tr %s %s"
+          (shell-quote-argument "echo $displaypath")
+          (shell-quote-argument "\\n")
+          (shell-quote-argument "\\0")))
 
 (defun projectile-get-ext-ignored-command (vcs)
   "Determine which external command to invoke based on the project's VCS."

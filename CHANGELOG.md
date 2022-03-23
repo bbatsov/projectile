@@ -25,6 +25,7 @@
 * Fix version extraction logic.
 * [1654](https://github.com/bbatsov/projectile/issues/1654) Fix consecutive duplicates appearing in command history
 * [#1755](https://github.com/bbatsov/projectile/issues/1755) Cache failure to find project root
+* [#1600](https://github.com/bbatsov/projectile/issues/1600): Fix error finding project files with Git submodules on Windows.
 
 ### Changes
 
