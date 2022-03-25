@@ -396,23 +396,23 @@ is set to 'alien'."
   :type '(repeat string))
 
 (defcustom projectile-globally-ignored-directories
-  '("\\.idea"
-    "\\.vscode"
-    "\\.ensime_cache"
-    "\\.eunit"
-    "\\.git"
-    "\\.hg"
-    "\\.fslckout"
-    "_FOSSIL_"
-    "\\.bzr"
-    "_darcs"
-    "\\.pijul"
-    "\\.tox"
-    "\\.svn"
-    "\\.stack-work"
-    "\\.ccls-cache"
-    "\\.cache"
-    "\\.clangd")
+  '("^\\.idea$"
+    "^\\.vscode$"
+    "^\\.ensime_cache$"
+    "^\\.eunit$"
+    "^\\.git$"
+    "^\\.hg$"
+    "^\\.fslckout$"
+    "^_FOSSIL_$"
+    "^\\.bzr$"
+    "^_darcs$"
+    "^\\.pijul$"
+    "^\\.tox$"
+    "^\\.svn$"
+    "^\\.stack-work$"
+    "^\\.ccls-cache$"
+    "^\\.cache$"
+    "^\\.clangd$")
   "A list of directories globally ignored by projectile.
 Regular expressions can be used.
 
