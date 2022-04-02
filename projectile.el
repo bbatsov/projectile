@@ -2885,7 +2885,8 @@ files such as test/impl/other files as below:
 (defconst projectile--cmake-command-presets-minimum-version-alist
   '((:configure-command . (3 19))
     (:compile-command . (3 20))
-    (:test-command . (3 20))))
+    (:test-command . (3 20))
+    (:install-command . (3 20))))
 
 (defun projectile--cmake-command-presets-supported (command-type)
   "Check if CMake supports presets for COMMAND-TYPE."
@@ -2904,7 +2905,8 @@ files such as test/impl/other files as below:
 (defconst projectile--cmake-command-preset-array-id-alist
   '((:configure-command . "configurePresets")
     (:compile-command . "buildPresets")
-    (:test-command . "testPresets")))
+    (:test-command . "testPresets")
+    (:install-command . "buildPresets")))
 
 (defun projectile--cmake-command-preset-array-id (command-type)
   "Map from COMMAND-TYPE to id of command preset array in CMake preset."
