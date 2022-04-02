@@ -4599,6 +4599,16 @@ directory to open."
   (make-hash-table :test 'equal)
   "A mapping between projects and the last run command used on them.")
 
+(defvar projectile-project-enable-cmd-caching t
+  "Enables command caching for the project.  Set to nil to disable.
+Should be set via .dir-locals.el.")
+
+(defun projectile--cache-project-commands-p ()
+  "Whether to cache project commands."
+  (with-temp-buffer
+    (hack-dir-local-variables-non-file-buffer)
+    projectile-project-enable-cmd-caching))
+
 (defvar projectile-project-configure-cmd nil
   "The command to use with `projectile-configure-project'.
 It takes precedence over the default command for the project type when set.
@@ -4923,8 +4933,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-configure-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-configure-cmd-map
+  (let ((command (projectile-configure-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-configure-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Configure command: "
                                  :save-buffers t
@@ -4938,8 +4949,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-compilation-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-compilation-cmd-map
+  (let ((command (projectile-compilation-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Compile command: "
                                  :save-buffers t
@@ -4953,8 +4965,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-test-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-test-cmd-map
+  (let ((command (projectile-test-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Test command: "
                                  :save-buffers t
@@ -4968,8 +4981,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-install-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-install-cmd-map
+  (let ((command (projectile-install-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-install-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Install command: "
                                  :save-buffers t
@@ -4983,8 +4997,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-package-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-package-cmd-map
+  (let ((command (projectile-package-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-package-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Package command: "
                                  :save-buffers t
@@ -4998,8 +5013,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-run-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-run-cmd-map
+  (let ((command (projectile-run-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-run-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Run command: "
                                  :use-comint-mode projectile-run-use-comint-mode)))

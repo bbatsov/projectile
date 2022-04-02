@@ -774,3 +774,7 @@ external command or an Emacs Lisp function:
 ----
 (setq projectile-test-cmd #'custom-test-function)
 ----
+
+In addition caching of commands can be disabled by setting the variable
+`projectile-project-enable-cmd-caching` is to `nil`. This is useful for
+preset-based CMake projects.
