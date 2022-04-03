@@ -1328,7 +1328,23 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (expect (projectile--find-matching-file
                    (projectile-expand-root "test/foo/FooTest.cpp"))
                   :to-equal
-                  (list "src/foo/Foo.cpp"))))))
+                  (list "src/foo/Foo.cpp")))))
+
+  (it "defers to a fallback using \"src\" and \"test\""
+    (projectile-test-with-sandbox
+      (projectile-test-with-files-using-custom-project
+          ("project.clj"
+           "src/example/core.clj"
+           "test/example/core2_test.clj")
+          (:test-suffix "_test")
+        (expect (projectile--find-matching-test
+                 (projectile-expand-root "src/example/core.clj"))
+                :to-equal
+                (list "test/example/core_test.clj"))
+        (expect (projectile--find-matching-file
+                 (projectile-expand-root "test/example/core2_test.clj"))
+                :to-equal
+                (list "src/example/core2.clj"))))))
 
 (describe "projectile--related-files"
   (it "returns related files for the given file"
@@ -1887,34 +1903,44 @@ projectile-process-current-project-buffers-current to have similar behaviour"
               :to-equal "foo/test/dir/Foo.test"))))
 
 (describe "projectile--impl-to-test-dir"
-    :var ((mock-projectile-project-types
-           '((foo test-dir "test" src-dir "src")
-             (bar test-dir identity src-dir "src"))))
-    (it "replaces occurrences of src-dir with test-dir"
-      (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
-                ((symbol-function 'projectile-project-type) (lambda () 'foo))
-                (projectile-project-types mock-projectile-project-types))
-        (expect (projectile--impl-to-test-dir "/foo/src/Foo") :to-equal "/foo/test/")))
-    (it "nil returned when test-dir property is not a string"
-      (cl-letf (((symbol-function 'projectile-project-root) (lambda () "bar"))
-                ((symbol-function 'projectile-project-type) (lambda () 'bar))
-                (projectile-project-types mock-projectile-project-types))
-        (expect (projectile--impl-to-test-dir "/bar/src/bar") :to-be nil))))
+  :var ((mock-projectile-project-types
+         '((foo test-dir "test" src-dir "src")
+           (bar test-dir identity src-dir "src"))))
+  (it "replaces occurrences of src-dir with test-dir"
+    (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-to-test-dir "/foo/src/Foo") :to-equal "/foo/test/")))
+  (it "nil returned when test-dir property is not a string"
+    (cl-letf (((symbol-function 'projectile-project-root) (lambda () "bar"))
+              ((symbol-function 'projectile-project-type) (lambda () 'bar))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-to-test-dir "/bar/src/bar") :to-be nil)))
+  (it "error when src-dir not a substring of impl file"
+    (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--impl-to-test-dir "/bar/other/bar") :to-throw))))
 
 (describe "projectile--test-to-impl-dir"
-    :var ((mock-projectile-project-types
-           '((foo test-dir "test" src-dir "src")
-             (bar test-dir "test" src-dir identity))))
-    (it "replaces occurrences of test-dir with src-dir"
-      (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
-                ((symbol-function 'projectile-project-type) (lambda () 'foo))
-                (projectile-project-types mock-projectile-project-types))
-        (expect (projectile--test-to-impl-dir "/foo/test/Foo") :to-equal "/foo/src/")))
-    (it "nil returned when src-dir property is not a string"
-      (cl-letf (((symbol-function 'projectile-project-root) (lambda () "bar"))
-                ((symbol-function 'projectile-project-type) (lambda () 'bar))
-                (projectile-project-types mock-projectile-project-types))
-        (expect (projectile--test-to-impl-dir "/bar/test/bar") :to-be nil))))
+  :var ((mock-projectile-project-types
+         '((foo test-dir "test" src-dir "src")
+           (bar test-dir "test" src-dir identity))))
+  (it "replaces occurrences of test-dir with src-dir"
+    (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--test-to-impl-dir "/foo/test/Foo") :to-equal "/foo/src/")))
+  (it "nil returned when src-dir property is not a string"
+    (cl-letf (((symbol-function 'projectile-project-root) (lambda () "bar"))
+              ((symbol-function 'projectile-project-type) (lambda () 'bar))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--test-to-impl-dir "/bar/test/bar") :to-be nil)))
+  (it "error when test-dir not a substring of test file"
+    (cl-letf (((symbol-function 'projectile-project-root) (lambda () "foo"))
+              ((symbol-function 'projectile-project-type) (lambda () 'foo))
+              (projectile-project-types mock-projectile-project-types))
+      (expect (projectile--test-to-impl-dir "/bar/other/bar") :to-throw))))
 
 (describe "projectile-run-shell-command-in-root"
   (describe "when called directly in elisp"
