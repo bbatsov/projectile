@@ -3189,7 +3189,7 @@ a manual COMMAND-TYPE command is created with
                                   :test "./gradlew test"
                                   :test-suffix "Spec")
 (projectile-register-project-type 'grails '("application.yml" "grails-app")
-                                  :project-file "application.properties"
+                                  :project-file "application.yml"
                                   :compile "grails package"
                                   :test "grails test-app"
                                   :test-suffix "Spec")
