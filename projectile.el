@@ -823,10 +823,16 @@ If the value is nil, there is no limit to the opend buffers count."
 
 ;;; Version information
 
-(defconst projectile-version
-  (eval-when-compile
-    (lm-version (or load-file-name buffer-file-name)))
+(defconst projectile-version "2.6.0-snapshot"
   "The current version of Projectile.")
+
+(defun projectile--pkg-version ()
+  "Extract Projectile's package version from its package metadata."
+  ;; Use `cond' below to avoid a compiler unused return value warning
+  ;; when `package-get-version' returns nil. See #3181.
+  ;; FIXME: Inline the logic from package-get-version and adapt it
+  (cond ((fboundp 'package-get-version)
+         (package-get-version))))
 
 ;;;###autoload
 (defun projectile-version (&optional show-version)
@@ -842,9 +848,10 @@ If the version number could not be determined, signal an error,
 if called interactively, or if SHOW-VERSION is non-nil, otherwise
 just return nil."
   (interactive (list t))
-  (if show-version
-      (message "Projectile %s" projectile-version)
-    projectile-version))
+  ((let ((version (or (projectile--pkg-version) projectile-version))))
+   (if show-version
+       (message "Projectile %s" version)
+     version)))
 
 ;;; Misc utility functions
 (defun projectile-difference (list1 list2)
