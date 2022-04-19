@@ -3204,8 +3204,8 @@ a manual COMMAND-TYPE command is created with
                                   :compile "./gradlew build"
                                   :test "./gradlew test"
                                   :test-suffix "Spec")
-(projectile-register-project-type 'grails '("application.properties" "grails-app")
-                                  :project-file "application.properties"
+(projectile-register-project-type 'grails '("application.yml" "grails-app")
+                                  :project-file "application.yml"
                                   :compile "grails package"
                                   :test "grails test-app"
                                   :test-suffix "Spec")
