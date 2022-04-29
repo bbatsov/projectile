@@ -848,7 +848,7 @@ If the version number could not be determined, signal an error,
 if called interactively, or if SHOW-VERSION is non-nil, otherwise
 just return nil."
   (interactive (list t))
-  ((let ((version (or (projectile--pkg-version) projectile-version))))
+  (let ((version (or (projectile--pkg-version) projectile-version)))
    (if show-version
        (message "Projectile %s" version)
      version)))
