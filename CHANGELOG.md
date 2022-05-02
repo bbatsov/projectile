@@ -21,6 +21,7 @@
 * [#1750](https://github.com/bbatsov/projectile/issues/1750): Fix source and test directories for Maven projects.
 * [#1765](https://github.com/bbatsov/projectile/issues/1765): Fix `src-dir`/`test-dir` not defaulting to `"src/"` and `"test/"` with `projectile-toggle-between-implementation-and-test`.
 * Fix version extraction logic.
+* [1654](https://github.com/bbatsov/projectile/issues/1654) Fix consecutive duplicates appearing in command history
 
 ### Changes
 
