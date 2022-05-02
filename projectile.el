@@ -4865,7 +4865,9 @@ The command actually run is returned."
          compilation-save-buffers-predicate)
     (when command-map
       (puthash default-directory command command-map)
-      (ring-insert (projectile--get-command-history project-root) command))
+      (let ((hist (projectile--get-command-history project-root)))
+        (unless (string= (car-safe (ring-elements hist)) command)
+          (ring-insert hist command))))
     (when save-buffers
       (save-some-buffers (not compilation-ask-about-save)
                          (lambda ()

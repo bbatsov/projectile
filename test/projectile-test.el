@@ -1988,6 +1988,27 @@ projectile-process-current-project-buffers-current to have similar behaviour"
       (funcall-interactively 'projectile-run-async-shell-command-in-root "cmd")
       (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))
 
+(describe "projectile--run-project-cmd"
+  (it "command history is not duplicated"
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-maybe-read-command :and-call-fake
+            (lambda (arg default-cmd prompt) default-cmd))
+    ;; Stops projectile--run-project-cmd from creating a new directory for
+    ;; the compilation dir
+    (spy-on 'file-directory-p :and-return-value t)
+    (let ((command-map (make-hash-table :test 'equal))
+          ;; history is based on the project root, so we set it to a random
+          ;; path to ensure there are no existing commands in history
+          (projectile-project-root "/a/random/path"))
+      (projectile--run-project-cmd "foo" command-map)
+      (projectile--run-project-cmd "foo" command-map)
+      (projectile--run-project-cmd "foo" command-map)
+      (projectile--run-project-cmd "bar" command-map)
+      (expect 'projectile-run-compilation :to-have-been-called-times 4)
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root))
+              :to-equal '("bar" "foo")))))
+
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
 (assert-friendly-error-when-no-project projectile-project-info)
