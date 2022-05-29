@@ -4410,11 +4410,12 @@ to run the replacement."
                          (read-directory-name "Replace in directory: "))
                       (projectile-acquire-root)))
          (file-ext (if arg
-                        (if (fboundp #'helm-grep-get-file-extensions)
-                            (car (helm-grep-get-file-extensions (list directory)))
-                          (read-string
-                           (format "Replace in files with extension: ")))
-                      nil))
+                       (if (fboundp #'helm-grep-get-file-extensions)
+                           (car (helm-grep-get-file-extensions (list directory)))
+                         (read-string
+                          (projectile-prepend-project-name
+                           "Replace in files with extension: ")))
+                     nil))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
                     (projectile-symbol-or-selection-at-point)))
