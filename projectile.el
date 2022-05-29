@@ -4349,7 +4349,7 @@ Returns a list of expanded filenames."
 
 (defvar projectile-files-with-string-commands
   '((rg . "rg -lF --no-heading --color never -- ")
-    (ag . "ag --literal --nocolor --noheading -l -- ")
+    (ag . "ag --literal --nocolor --noheading -l ")
     (ack . "ack --literal --nocolor -l -- ")
     (git . "git grep -HlI ")
     ;; -r: recursive
@@ -4358,7 +4358,17 @@ Returns a list of expanded filenames."
     ;; -I: no binary files
     (grep . "grep -rHlI %s .")))
 
-(defun projectile-files-with-string (string directory)
+(defun projectile--ag-construct-extension-option (file-ext)
+  "Construct ag options to search files by an extension."
+  (if (stringp file-ext)
+      (concat "-G "
+              (replace-regexp-in-string
+               "\\*" ""
+               (replace-regexp-in-string "\\." "\\\\." file-ext))
+              "$ ")
+    ""))
+
+(defun projectile-files-with-string (string directory &optional file-ext)
   "Return a list of all files containing STRING in DIRECTORY.
 
 Tries to use rg, ag, ack, git-grep, and grep in that order.  If those
@@ -4371,6 +4381,7 @@ files in the project."
                                  search-term))
                         ((executable-find "ag")
                          (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+                                 (projectile--ag-construct-extension-option file-ext)
                                  search-term))
                         ((executable-find "ack")
                          (concat (cdr (assoc 'ack projectile-files-with-string-commands))
@@ -4398,13 +4409,19 @@ to run the replacement."
                         (file-name-as-directory
                          (read-directory-name "Replace in directory: "))
                       (projectile-acquire-root)))
+         (file-ext (if arg
+                        (if (fboundp #'helm-grep-get-file-extensions)
+                            (car (helm-grep-get-file-extensions (list directory)))
+                          (read-string
+                           (format "Replace in files with extension: ")))
+                      nil))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
                     (projectile-symbol-or-selection-at-point)))
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
-         (files (projectile-files-with-string old-text directory)))
+         (files (projectile-files-with-string old-text directory file-ext)))
     (if (fboundp #'fileloop-continue)
         ;; Emacs 27+
         (progn (fileloop-initialize-replace old-text new-text files 'default)
