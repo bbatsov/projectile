@@ -4348,9 +4348,9 @@ Returns a list of expanded filenames."
              t))))
 
 (defvar projectile-files-with-string-commands
-  '((rg . "rg -lF --no-heading --color never -- ")
+  '((rg . "rg -lF --no-heading --color never ")
     (ag . "ag --literal --nocolor --noheading -l ")
-    (ack . "ack --literal --nocolor -l -- ")
+    (ack . "ack --literal --nocolor -l ")
     (git . "git grep -HlI ")
     ;; -r: recursive
     ;; -H: show filename for each match
@@ -4358,15 +4358,65 @@ Returns a list of expanded filenames."
     ;; -I: no binary files
     (grep . "grep -rHlI %s .")))
 
-(defun projectile--ag-construct-extension-option (file-ext)
-  "Construct ag options to search files by an extension."
+(defun projectile--rg-construct-command (file-ext search-term)
+  "Construct Rg option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
-      (concat "-G "
+      (concat (cdr (assoc 'rg projectile-files-with-string-commands))
+              "-g '"
+              file-ext
+              "' "
+              search-term)
+    (concat (cdr (assoc 'rg projectile-files-with-string-commands))
+            ;; search-term)))
+
+(defun projectile--ag-construct-command (file-ext search-term)
+  "Construct Ag option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+              "-G "
               (replace-regexp-in-string
                "\\*" ""
                (replace-regexp-in-string "\\." "\\\\." file-ext))
-              "$ ")
-    ""))
+              "$ "
+              search-term)
+    (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--ack-construct-command (file-ext search-term)
+  "Construct Ack option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat "ack -g '"
+              (replace-regexp-in-string
+               "\\*" ""
+               (replace-regexp-in-string "\\." "\\\\." file-ext))
+              "$' | "
+              (cdr (assoc 'ack projectile-files-with-string-commands))
+              "-x "
+              search-term)
+    (concat (cdr (assoc 'ack projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--git-grep-construct-command (file-ext search-term)
+  "Construct Grep option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (cdr (assoc 'git projectile-files-with-string-commands))
+              search-term
+              "  -- '"
+              file-ext
+              "'")
+    (concat (cdr (assoc 'git projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--grep-construct-command (file-ext search-term)
+  "Construct Grep option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (format (cdr (assoc 'grep projectile-files-with-string-commands))
+                      search-term)
+              " --include '"
+              file-ext
+              "'")
+    (format (cdr (assoc 'grep projectile-files-with-string-commands))
+            search-term)))
 
 (defun projectile-files-with-string (string directory &optional file-ext)
   "Return a list of all files containing STRING in DIRECTORY.
@@ -4377,20 +4427,15 @@ files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
              (cmd (cond ((executable-find "rg")
-                         (concat (cdr (assoc 'rg projectile-files-with-string-commands))
-                                 search-term))
+                         (projectile--rg-construct-command file-ext search-term))
                         ((executable-find "ag")
-                         (concat (cdr (assoc 'ag projectile-files-with-string-commands))
-                                 (projectile--ag-construct-extension-option file-ext)
-                                 search-term))
+                         (projectile--ag-construct-command file-ext search-term))
                         ((executable-find "ack")
-                         (concat (cdr (assoc 'ack projectile-files-with-string-commands))
-                                 search-term))
+                         (projectile--ack-construct-command file-ext search-term))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
                          (concat (cdr (assoc 'git projectile-files-with-string-commands)) search-term))
-                        (t
-                         (format (cdr (assoc 'grep projectile-files-with-string-commands)) search-term)))))
+                        (t (projectile--grep-construct-command file-ext search-term)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
