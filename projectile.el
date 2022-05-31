@@ -4358,7 +4358,7 @@ Returns a list of expanded filenames."
     ;; -I: no binary files
     (grep . "grep -rHlI %s .")))
 
-(defun projectile--rg-construct-command (file-ext search-term)
+(defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
       (concat (cdr (assoc 'rg projectile-files-with-string-commands))
@@ -4367,9 +4367,9 @@ Returns a list of expanded filenames."
               "' "
               search-term)
     (concat (cdr (assoc 'rg projectile-files-with-string-commands))
-            ;; search-term)))
+            search-term)))
 
-(defun projectile--ag-construct-command (file-ext search-term)
+(defun projectile--ag-construct-command (search-term &optional file-ext)
   "Construct Ag option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
       (concat (cdr (assoc 'ag projectile-files-with-string-commands))
@@ -4382,7 +4382,7 @@ Returns a list of expanded filenames."
     (concat (cdr (assoc 'ag projectile-files-with-string-commands))
             search-term)))
 
-(defun projectile--ack-construct-command (file-ext search-term)
+(defun projectile--ack-construct-command (search-term &optional file-ext)
   "Construct Ack option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
       (concat "ack -g '"
@@ -4396,7 +4396,7 @@ Returns a list of expanded filenames."
     (concat (cdr (assoc 'ack projectile-files-with-string-commands))
             search-term)))
 
-(defun projectile--git-grep-construct-command (file-ext search-term)
+(defun projectile--git-grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
       (concat (cdr (assoc 'git projectile-files-with-string-commands))
@@ -4407,7 +4407,7 @@ Returns a list of expanded filenames."
     (concat (cdr (assoc 'git projectile-files-with-string-commands))
             search-term)))
 
-(defun projectile--grep-construct-command (file-ext search-term)
+(defun projectile--grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
       (concat (format (cdr (assoc 'grep projectile-files-with-string-commands))
@@ -4427,15 +4427,16 @@ files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
              (cmd (cond ((executable-find "rg")
-                         (projectile--rg-construct-command file-ext search-term))
+                         (projectile--rg-construct-command search-term file-ext))
                         ((executable-find "ag")
-                         (projectile--ag-construct-command file-ext search-term))
+                         (projectile--ag-construct-command search-term file-ext))
                         ((executable-find "ack")
-                         (projectile--ack-construct-command file-ext search-term))
+                         (projectile--ack-construct-command search-term file-ext))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat (cdr (assoc 'git projectile-files-with-string-commands)) search-term))
-                        (t (projectile--grep-construct-command file-ext search-term)))))
+                         (projectile--git-grep-construct-command search-term file-ext))
+                        (t
+                         (projectile--grep-construct-command search-term file-ext)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
@@ -4459,7 +4460,7 @@ to run the replacement."
                            (car (helm-grep-get-file-extensions (list directory)))
                          (read-string
                           (projectile-prepend-project-name
-                           "Replace in files with extension: ")))
+                           "With file extension (empty string means all files): ")))
                      nil))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
