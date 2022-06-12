@@ -2866,7 +2866,7 @@ files such as test/impl/other files as below:
                            (cons project-type-elt filtered-types))
                           ((eq precedence 'low)
                            (append filtered-types (list project-type-elt)))
-                          (t (error "Precendence must be one of '(high low)"))))
+                          (t (error "Precedence must be one of '(high low)"))))
                 (mapcar #'project-map projectile-project-types))))))
 
 (defun projectile-cabal-project-p ()
@@ -3778,7 +3778,7 @@ anaphora.el."
 (defun projectile--find-matching-test (impl-file)
   "Return a list of test files for IMPL-FILE.
 
-The precendence for determining test files to return is:
+The precedence for determining test files to return is:
 
 1. Use the project type's test-dir property if it's set to a function
 2. Use the project type's related-files-fn property if set
@@ -3812,7 +3812,7 @@ The precendence for determining test files to return is:
 (defun projectile--find-matching-file (test-file)
   "Return a list of impl files tested by TEST-FILE.
 
-The precendence for determining implementation files to return is:
+The precedence for determining implementation files to return is:
 
 1. Use the project type's src-dir property if it's set to a function
 2. Use the project type's related-files-fn property if set
