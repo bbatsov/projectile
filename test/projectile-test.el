@@ -262,14 +262,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                      src-dir ,dummy-val
                      test-dir ,dummy-val
                      related-files-fn ,dummy-val)))))
-  (it "Error when attempt to update nonexistant project type"
+  (it "Error when attempt to update nonexistent project type"
     (let ((projectile-project-types mock-projectile-project-types))
       (expect (projectile-update-project-type
                'bar
                :marker-files '("marker-file")
                :test-suffix "suffix")
               :to-throw)))
-  (it "changes project type precendence"
+  (it "changes project type precedence"
     (let ((projectile-project-types
            '((foo marker-files ("foo"))
              (bar marker-files ("foo")))))
@@ -284,7 +284,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (expect (projectile-project-type) :to-equal 'bar)
           (projectile-update-project-type 'bar :precedence 'low)
           (expect (projectile-project-type) :to-equal 'foo)))))
-  (it "errors if :precendence not valid"
+  (it "errors if :precedence not valid"
     (let ((projectile-project-types '((bar marker-files ("foo")))))
       (expect
        (projectile-update-project-type 'bar :precedence 'invalid-symbol)
@@ -1945,15 +1945,15 @@ projectile-process-current-project-buffers-current to have similar behaviour"
 (describe "projectile-run-shell-command-in-root"
   (describe "when called directly in elisp"
     (before-each (spy-on 'shell-command))
-    (describe "when called with all three paramters"
+    (describe "when called with all three parameters"
       (it "expects to call shell-command with the same parameters"
         (projectile-run-shell-command-in-root "cmd" "output-buffer" "error-buffer")
         (expect 'shell-command :to-have-been-called-with "cmd" "output-buffer" "error-buffer")))
-    (describe "when called with only one optional paramter"
+    (describe "when called with only one optional parameter"
       (it "expects to call shell-command with the same parameters"
         (projectile-run-shell-command-in-root "cmd" "output-buffer")
         (expect 'shell-command :to-have-been-called-with "cmd" "output-buffer" nil)))
-    (describe "when called with no optional paramters"
+    (describe "when called with no optional parameters"
       (it "expects to call shell-command with the same parameters"
         (projectile-run-shell-command-in-root "cmd")
         (expect 'shell-command :to-have-been-called-with "cmd" nil nil))))
@@ -1968,15 +1968,15 @@ projectile-process-current-project-buffers-current to have similar behaviour"
 (describe "projectile-run-async-shell-command-in-root"
   (describe "when called directly in elisp"
     (before-each (spy-on 'async-shell-command))
-    (describe "when called with all three paramters"
+    (describe "when called with all three parameters"
       (it "expects to call async-shell-command with the same parameters"
         (projectile-run-async-shell-command-in-root "cmd" "output-buffer" "error-buffer")
         (expect 'async-shell-command :to-have-been-called-with "cmd" "output-buffer" "error-buffer")))
-    (describe "when called with only one optional paramter"
+    (describe "when called with only one optional parameter"
       (it "expects to call async-shell-command with the same parameters"
         (projectile-run-async-shell-command-in-root "cmd" "output-buffer")
         (expect 'async-shell-command :to-have-been-called-with "cmd" "output-buffer" nil)))
-    (describe "when called with no optional paramters"
+    (describe "when called with no optional parameters"
       (it "expects to call async-shell-command with the same parameters"
         (projectile-run-async-shell-command-in-root "cmd")
         (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))
