@@ -14,6 +14,7 @@
 
 ### Bugs fixed
 
+* [#1781](https://github.com/bbatsov/projectile/pull/1781): Fix `rails-rspec` and `rails-test` to use `app` instead of `lib` as `src-dir`
 * [#1762](https://github.com/bbatsov/projectile/pull/1762): Fix `projectile-globally-ignored-directories` unescaped regex.
 * [#1713](https://github.com/bbatsov/projectile/issues/1731): Fix `projectile-discover-projects-in-directory` reordering known projects.
 * [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
