@@ -3276,13 +3276,13 @@ a manual COMMAND-TYPE command is created with
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rails server"
-                                  :src-dir "lib/"
+                                  :src-dir "app/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rails server"
-                                  :src-dir "lib/"
+                                  :src-dir "app/"
                                   :test "bundle exec rspec"
                                   :test-dir "spec/"
                                   :test-suffix "_spec")
