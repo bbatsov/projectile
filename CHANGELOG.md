@@ -22,6 +22,7 @@
 * [#1765](https://github.com/bbatsov/projectile/issues/1765): Fix `src-dir`/`test-dir` not defaulting to `"src/"` and `"test/"` with `projectile-toggle-between-implementation-and-test`.
 * Fix version extraction logic.
 * [1654](https://github.com/bbatsov/projectile/issues/1654) Fix consecutive duplicates appearing in command history
+* [#1755](https://github.com/bbatsov/projectile/issues/1755) Cache failure to find project root
 
 ### Changes
 
