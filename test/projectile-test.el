@@ -691,7 +691,43 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                                                  projectile-root-top-down
                                                  projectile-root-top-down-recurring)))
         (projectile-test-should-root-in "projectA/src/" "projectA/src/")
-        (projectile-test-should-root-in "projectA/src/" "projectA/src/html"))))))
+        (projectile-test-should-root-in "projectA/src/" "projectA/src/html")))))
+
+  (it "caches permanent failure to find a project root"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/src/")
+      (let* ((projectile-project-root-functions '())
+             (dir "projectA/src")
+             (cache-key (format "projectilerootless-%s" dir))
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
+        (expect (projectile-project-root dir) :to-be nil)
+        ;; now that this has run once, the cache should be populated with 'none
+        (expect (gethash cache-key projectile-project-root-cache) :to-be 'none)
+        ;; but projectile-project-root should still return nil
+        (expect (projectile-project-root dir) :to-be nil)))))
+
+  (it "does not cache transitory failure to find a project root"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/src/")
+      ;; hackish, but override file-remote-p for a moment, which is called in
+      ;; projectile-project-root with 1 argument to test if the file is remote,
+      ;; and 3 arguments to see if the file is connected.  We want to return t
+      ;; when checking if remote, and nil when checking if connected.
+      (cl-letf (((symbol-function 'file-remote-p)
+                 (lambda (&rest args) (eql 1 (length args)))))
+        (let* ((projectile-project-root-functions '())
+               (dir "projectA/src")
+               (cache-key (format "projectilerootless-%s" dir))
+               (projectile-project-root-cache (make-hash-table :test 'equal)))
+          (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
+          (expect (projectile-project-root dir) :to-be nil)
+          ;; since the failure was transitory, there should be nothing cached
+          (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
+          ;; and projectile-project-root should still return nil
+          (expect (projectile-project-root dir) :to-be nil)))))))
 
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"
