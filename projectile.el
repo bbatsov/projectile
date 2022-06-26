@@ -5076,15 +5076,16 @@ with a prefix ARG."
                                  :use-comint-mode projectile-compile-use-comint-mode)))
 
 ;;;###autoload
-(defun projectile-test-project (arg)
+(defun projectile-test-project (arg &optional cmd)
   "Run project test command.
-
+Optional argument CMD s the first in command priority to be used.
 Normally you'll be prompted for a compilation command, unless
-variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
+variable `compilation-read-command' or if CMD is passed.
+You can force the prompt with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-test-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
+  (let ((command (or cmd (projectile-test-command (projectile-compilation-dir))))
+        (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map))
+				(compilation-read-command (if cmd nil compilation-read-command)))
     (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Test command: "

@@ -137,6 +137,21 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 (add-to-list 'file-name-handler-alist (cons "^#" 'file-handler-for-tests))
 
 ;;; Tests
+
+(describe "projectile-test-project"
+  (describe "when optional argument CMD is given"
+    (before-each
+      (spy-on 'projectile--run-project-cmd)
+      (projectile-test-project nil "some command"))
+    (it "should use it to test the project"
+      (expect 'projectile--run-project-cmd :to-have-been-called-with
+              "some command"
+              projectile-test-cmd-map
+              :show-prompt nil
+              :prompt-prefix "Test command: "
+              :save-buffers t
+              :use-comint-mode projectile-test-use-comint-mode))))
+
 (describe "projectile-project-name"
   (it "return projectile-project-name when present"
     (let ((projectile-project-name "name"))

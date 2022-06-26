@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1775](https://github.com/bbatsov/projectile/pull/1775): Add optional argument to projectile-test-project
 * [#1790](https://github.com/bbatsov/projectile/pull/1790): Add `src-dir` and `test-dir` properties for the mill project type.
 * [#1778](https://github.com/bbatsov/projectile/pull/1778): Allow `projectile-replace` to select file extensions when using prefix arg (`C-u`).
 * [#1757](https://github.com/bbatsov/projectile/pull/1757): Add support for the Pijul VCS.
