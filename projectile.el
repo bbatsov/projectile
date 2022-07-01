@@ -716,10 +716,10 @@ Set to nil to disable listing submodules contents."
   (cond
    ;; we prefer fd over find
    ((executable-find "fd")
-    "fd . -0 --type f --color=never")
+    "fd . -0 --type f --color=never --strip-cwd-prefix")
    ;; fd's executable is named fdfind is some Linux distros (e.g. Ubuntu)
    ((executable-find "fdfind")
-    "fdfind . -0 --type f --color=never")
+    "fdfind . -0 --type f --color=never --strip-cwd-prefix")
    ;; with find we have to be careful to strip the ./ from the paths
    ;; see https://stackoverflow.com/questions/2596462/how-to-strip-leading-in-unix-find
    (t "find . -type f | cut -c3- | tr '\\n' '\\0'"))
