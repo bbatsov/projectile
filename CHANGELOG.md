@@ -28,6 +28,7 @@
 
 ### Changes
 
+* [#1785](https://github.com/bbatsov/projectile/pull/1785): Give the project type "go" higher precedence than universal types, namely "make".
 * [#1447](https://github.com/bbatsov/projectile/issues/1447): Restructure the menu.
 * [#1692](https://github.com/bbatsov/projectile/issues/1692): Enable minibuffer completions when reading shell-commands.
 * Change the Grails project marker to `application.yml`.
