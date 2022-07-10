@@ -3074,10 +3074,6 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
-(projectile-register-project-type 'go projectile-go-project-test-function
-                                  :compile "go build"
-                                  :test "go test ./..."
-                                  :test-suffix "_test")
 ;; File-based detection project types
 
 ;; Universal
@@ -3128,6 +3124,11 @@ a manual COMMAND-TYPE command is created with
                                   :test #'projectile--cmake-test-command
                                   :install #'projectile--cmake-install-command
                                   :package "cmake --build build --target package")
+;; Go
+(projectile-register-project-type 'go projectile-go-project-test-function
+                                  :compile "go build"
+                                  :test "go test ./..."
+                                  :test-suffix "_test")
 ;; PHP
 (projectile-register-project-type 'php-symfony '("composer.json" "app" "src" "vendor")
                                   :project-file "composer.json"
