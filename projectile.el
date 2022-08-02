@@ -1087,10 +1087,16 @@ discover projects there."
           ;; sometimes that directory is an unreadable one at the root of a
           ;; volume. This is the case, for example, on macOS with the
           ;; .Spotlight-V100 directory.
-          (dolist (dir (ignore-errors (directory-files directory t)))
-            (when (and (file-directory-p dir)
-                       (not (member (file-name-nondirectory dir) '(".." "."))))
-              (projectile-discover-projects-in-directory dir (1- depth))))
+          (let ((progress-reporter
+                 (make-progress-reporter
+                  (format "Projectile is discovering projects in %s..."
+                          (propertize directory 'face 'font-lock-keyword-face)))))
+            (progress-reporter-update progress-reporter)
+            (dolist (dir (ignore-errors (directory-files directory t)))
+              (when (and (file-directory-p dir)
+                         (not (member (file-name-nondirectory dir) '(".." "."))))
+                (projectile-discover-projects-in-directory dir (1- depth))))
+            (progress-reporter-done progress-reporter))
         (when (projectile-project-p directory)
           (let ((dir (abbreviate-file-name (projectile-project-root directory))))
             (unless (member dir projectile-known-projects)

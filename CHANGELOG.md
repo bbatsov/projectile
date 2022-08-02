@@ -32,6 +32,7 @@
 * [#1447](https://github.com/bbatsov/projectile/issues/1447): Restructure the menu.
 * [#1692](https://github.com/bbatsov/projectile/issues/1692): Enable minibuffer completions when reading shell-commands.
 * Change the Grails project marker to `application.yml`.
+* [#1789](https://github.com/bbatsov/projectile/pull/1789): Progress reporter for recursive progress discovery
 
 ## 2.5.0 (2021-08-10)
 
