@@ -3239,6 +3239,8 @@ a manual COMMAND-TYPE command is created with
 
 (projectile-register-project-type 'mill '("build.sc")
                                   :project-file "build.sc"
+                                  :src-dir "src/"
+                                  :test-dir "test/src/"
                                   :compile "mill all __.compile"
                                   :test "mill all __.test"
                                   :test-suffix "Test")
