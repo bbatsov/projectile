@@ -195,7 +195,7 @@ A value of nil means the cache never expires."
 
 (defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
-When set to 'prompt Projectile will ask you to select a project
+When set to `prompt' Projectile will ask you to select a project
 directory if you're not in a project.
 
 When nil Projectile will consider the current directory the project root."
@@ -241,14 +241,14 @@ When nil Projectile will consider the current directory the project root."
 (defcustom projectile-tags-backend 'auto
   "The tag backend that Projectile should use.
 
-If set to 'auto', `projectile-find-tag' will automatically choose
+If set to `auto', `projectile-find-tag' will automatically choose
 which backend to use.  Preference order is ggtags -> xref
 -> etags-select -> `find-tag'.  Variable can also be set to specify which
 backend to use.  If selected backend is unavailable, fall back to
 `find-tag'.
 
-If this variable is set to 'auto' and ggtags is available, or if
-set to 'ggtags', then ggtags will be used for
+If this variable is set to `auto' and ggtags is available, or if
+set to `ggtags', then ggtags will be used for
 `projectile-regenerate-tags'.  For all other settings
 `projectile-tags-command' will be used."
   :group 'projectile
@@ -264,7 +264,7 @@ set to 'ggtags', then ggtags will be used for
   "The sort order used for a project's files.
 
 Note that files aren't sorted if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(radio
           (const :tag "Default (no sorting)" default)
@@ -374,7 +374,7 @@ Similar to '#' in .gitignore files."
   (list projectile-tags-file-name)
   "A list of files globally ignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string))
 
@@ -382,7 +382,7 @@ is set to 'alien'."
   "A list of files globally unignored by projectile.
 Regular expressions can be used.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -391,7 +391,7 @@ is set to 'alien'."
   nil
   "A list of file suffixes globally ignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string))
 
@@ -427,7 +427,7 @@ project, but not ./src/tmp.  \"*tmp\" will ignore both ./tmp and
 ./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
 
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
@@ -435,7 +435,7 @@ is set to 'alien'."
 (defcustom projectile-globally-unignored-directories nil
   "A list of directories globally unignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -802,9 +802,9 @@ It assumes the test/ folder is at the same level as src/."
 (defcustom projectile-current-project-on-switch 'remove
   "Determines whether to display current project when switching projects.
 
-When set to 'remove current project is not included, 'move-to-end
+When set to `remove' current project is not included, `move-to-end'
 will display current project and the end of the list of known
-projects, 'keep will leave the current project at the default
+projects, `keep' will leave the current project at the default
 position."
   :group 'projectile
   :type '(radio
@@ -989,7 +989,7 @@ to invalidate."
   (if (fboundp 'time-convert)
       (time-convert nil 'integer)
     (cl-destructuring-bind (high low _usec _psec) (current-time)
-      (+ (lsh high 16) low))))
+      (+ (ash high 16) low))))
 
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
@@ -2276,7 +2276,7 @@ or the filename at point is a prefix of more than two files in a project.
 For example, if `projectile-find-file-dwim' is executed on a filepath like
 \"projectile/\", it lists the content of that directory.  If it is executed
 on a partial filename like \"projectile/a\", a list of files with character
-'a' in that directory is presented.
+\"a\" in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2306,7 +2306,7 @@ or the filename at point is a prefix of more than two files in a project.
 For example, if `projectile-find-file-dwim-other-window' is executed on a
 filepath like \"projectile/\", it lists the content of that directory.  If
 it is executed on a partial filename like \"projectile/a\", a list of files
-with character 'a' in that directory is presented.
+with character \"a\" in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2336,7 +2336,7 @@ or the filename at point is a prefix of more than two files in a project.
 For example, if `projectile-find-file-dwim-other-frame' is executed on a
 filepath like \"projectile/\", it lists the content of that directory.  If
 it is executed on a partial filename like \"projectile/a\", a list of files
-with character 'a' in that directory is presented.
+with character \"a\" in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
