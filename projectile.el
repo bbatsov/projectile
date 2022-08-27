@@ -4468,8 +4468,8 @@ files in the project."
 (defun projectile-replace (&optional arg)
   "Replace literal string in project using non-regexp `tags-query-replace'.
 
-With a prefix argument ARG prompts you for a directory on which
-to run the replacement."
+With a prefix argument ARG prompts you for a directory and file name patterns
+on which to run the replacement."
   (interactive "P")
   (let* ((directory (if arg
                         (file-name-as-directory
