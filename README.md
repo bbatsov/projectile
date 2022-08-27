@@ -44,7 +44,7 @@ Here are some of Projectile's features:
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 [![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=GRQKNBM6P8VRQ)
 
-I've been developing Projectile for a decade now (since 2011). While it's a fun
+I've been developing Projectile for over a decade now (since 2011). While it's a fun
 project to work on, it still requires a lot of time and energy to
 maintain.
 
