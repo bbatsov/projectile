@@ -77,6 +77,7 @@
 (declare-function fileloop-continue "fileloop")
 (declare-function fileloop-initialize-replace "fileloop")
 (declare-function tramp-archive-file-name-p "tramp-archive")
+(declare-function helm-grep-get-file-extensions "helm-grep")
 
 (declare-function ggtags-ensure-project "ext:ggtags")
 (declare-function ggtags-update-tags "ext:ggtags")
