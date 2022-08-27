@@ -4,16 +4,19 @@
 
 ### New features
 
+* [#1790](https://github.com/bbatsov/projectile/pull/1790): Add `src-dir` and `test-dir` properties for the mill project type.
 * [#1778](https://github.com/bbatsov/projectile/pull/1778): Allow `projectile-replace` to select file extensions when using prefix arg (`C-u`).
 * [#1757](https://github.com/bbatsov/projectile/pull/1757): Add support for the Pijul VCS.
-* [#1745](https://github.com/bbatsov/projectile/pull/1745): Allow `projectile-update-project-type` to change project type precendence and remove project options.
+* [#1745](https://github.com/bbatsov/projectile/pull/1745): Allow `projectile-update-project-type` to change project type precedence and remove project options.
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [rg.el](https://github.com/dajva/rg.el).
 * [#1712](https://github.com/bbatsov/projectile/issues/1712): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
 * [#1718](https://github.com/bbatsov/projectile/issues/1718): Add a project type definition for `GNUMakefile`.
 * [#1747](https://github.com/bbatsov/projectile/pull/1747): Add support for preset-based install-commands for CMake projects.
+* [#1768](https://github.com/bbatsov/projectile/pull/1768) Add support for disabling command caching on a per-project basis.
 
 ### Bugs fixed
 
+* [#1781](https://github.com/bbatsov/projectile/pull/1781): Fix `rails-rspec` and `rails-test` to use `app` instead of `lib` as `src-dir`
 * [#1762](https://github.com/bbatsov/projectile/pull/1762): Fix `projectile-globally-ignored-directories` unescaped regex.
 * [#1713](https://github.com/bbatsov/projectile/issues/1731): Fix `projectile-discover-projects-in-directory` reordering known projects.
 * [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
@@ -23,12 +26,15 @@
 * [#1765](https://github.com/bbatsov/projectile/issues/1765): Fix `src-dir`/`test-dir` not defaulting to `"src/"` and `"test/"` with `projectile-toggle-between-implementation-and-test`.
 * Fix version extraction logic.
 * [1654](https://github.com/bbatsov/projectile/issues/1654) Fix consecutive duplicates appearing in command history
+* [#1755](https://github.com/bbatsov/projectile/issues/1755) Cache failure to find project root
 
 ### Changes
 
+* [#1785](https://github.com/bbatsov/projectile/pull/1785): Give the project type "go" higher precedence than universal types, namely "make".
 * [#1447](https://github.com/bbatsov/projectile/issues/1447): Restructure the menu.
 * [#1692](https://github.com/bbatsov/projectile/issues/1692): Enable minibuffer completions when reading shell-commands.
 * Change the Grails project marker to `application.yml`.
+* [#1789](https://github.com/bbatsov/projectile/pull/1789): Progress reporter for recursive progress discovery
 
 ## 2.5.0 (2021-08-10)
 

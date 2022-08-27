@@ -1,6 +1,6 @@
 ;;; projectile.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2021 Bozhidar Batsov <bozhidar@batsov.dev>
+;; Copyright © 2011-2022 Bozhidar Batsov <bozhidar@batsov.dev>
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/projectile
@@ -195,7 +195,7 @@ A value of nil means the cache never expires."
 
 (defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
-When set to 'prompt Projectile will ask you to select a project
+When set to `prompt' Projectile will ask you to select a project
 directory if you're not in a project.
 
 When nil Projectile will consider the current directory the project root."
@@ -241,14 +241,14 @@ When nil Projectile will consider the current directory the project root."
 (defcustom projectile-tags-backend 'auto
   "The tag backend that Projectile should use.
 
-If set to 'auto', `projectile-find-tag' will automatically choose
+If set to `auto', `projectile-find-tag' will automatically choose
 which backend to use.  Preference order is ggtags -> xref
 -> etags-select -> `find-tag'.  Variable can also be set to specify which
 backend to use.  If selected backend is unavailable, fall back to
 `find-tag'.
 
-If this variable is set to 'auto' and ggtags is available, or if
-set to 'ggtags', then ggtags will be used for
+If this variable is set to `auto' and ggtags is available, or if
+set to `ggtags', then ggtags will be used for
 `projectile-regenerate-tags'.  For all other settings
 `projectile-tags-command' will be used."
   :group 'projectile
@@ -264,7 +264,7 @@ set to 'ggtags', then ggtags will be used for
   "The sort order used for a project's files.
 
 Note that files aren't sorted if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(radio
           (const :tag "Default (no sorting)" default)
@@ -374,7 +374,7 @@ Similar to '#' in .gitignore files."
   (list projectile-tags-file-name)
   "A list of files globally ignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string))
 
@@ -382,7 +382,7 @@ is set to 'alien'."
   "A list of files globally unignored by projectile.
 Regular expressions can be used.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -391,7 +391,7 @@ is set to 'alien'."
   nil
   "A list of file suffixes globally ignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string))
 
@@ -427,7 +427,7 @@ project, but not ./src/tmp.  \"*tmp\" will ignore both ./tmp and
 ./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
 
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
@@ -435,7 +435,7 @@ is set to 'alien'."
 (defcustom projectile-globally-unignored-directories nil
   "A list of directories globally unignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -716,10 +716,10 @@ Set to nil to disable listing submodules contents."
   (cond
    ;; we prefer fd over find
    ((executable-find "fd")
-    "fd . -0 --type f --color=never")
+    "fd . -0 --type f --color=never --strip-cwd-prefix")
    ;; fd's executable is named fdfind is some Linux distros (e.g. Ubuntu)
    ((executable-find "fdfind")
-    "fdfind . -0 --type f --color=never")
+    "fdfind . -0 --type f --color=never --strip-cwd-prefix")
    ;; with find we have to be careful to strip the ./ from the paths
    ;; see https://stackoverflow.com/questions/2596462/how-to-strip-leading-in-unix-find
    (t "find . -type f | cut -c3- | tr '\\n' '\\0'"))
@@ -802,9 +802,9 @@ It assumes the test/ folder is at the same level as src/."
 (defcustom projectile-current-project-on-switch 'remove
   "Determines whether to display current project when switching projects.
 
-When set to 'remove current project is not included, 'move-to-end
+When set to `remove' current project is not included, `move-to-end'
 will display current project and the end of the list of known
-projects, 'keep will leave the current project at the default
+projects, `keep' will leave the current project at the default
 position."
   :group 'projectile
   :type '(radio
@@ -989,7 +989,7 @@ to invalidate."
   (if (fboundp 'time-convert)
       (time-convert nil 'integer)
     (cl-destructuring-bind (high low _usec _psec) (current-time)
-      (+ (lsh high 16) low))))
+      (+ (ash high 16) low))))
 
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
@@ -1087,10 +1087,16 @@ discover projects there."
           ;; sometimes that directory is an unreadable one at the root of a
           ;; volume. This is the case, for example, on macOS with the
           ;; .Spotlight-V100 directory.
-          (dolist (dir (ignore-errors (directory-files directory t)))
-            (when (and (file-directory-p dir)
-                       (not (member (file-name-nondirectory dir) '(".." "."))))
-              (projectile-discover-projects-in-directory dir (1- depth))))
+          (let ((progress-reporter
+                 (make-progress-reporter
+                  (format "Projectile is discovering projects in %s..."
+                          (propertize directory 'face 'font-lock-keyword-face)))))
+            (progress-reporter-update progress-reporter)
+            (dolist (dir (ignore-errors (directory-files directory t)))
+              (when (and (file-directory-p dir)
+                         (not (member (file-name-nondirectory dir) '(".." "."))))
+                (projectile-discover-projects-in-directory dir (1- depth))))
+            (progress-reporter-done progress-reporter))
         (when (projectile-project-p directory)
           (let ((dir (abbreviate-file-name (projectile-project-root directory))))
             (unless (member dir projectile-known-projects)
@@ -1189,42 +1195,53 @@ topmost sequence of matched directories.  Nil otherwise."
 (defun projectile-project-root (&optional dir)
   "Retrieves the root directory of a project if available.
 If DIR is not supplied its set to the current directory by default."
-  ;; the cached value will be 'none in the case of no project root (this is to
-  ;; ensure it is not reevaluated each time when not inside a project) so use
-  ;; cl-subst to replace this 'none value with nil so a nil value is used
-  ;; instead
   (let ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
     (when (and (fboundp 'tramp-archive-file-name-archive)
                (tramp-archive-file-name-p dir))
       (setq dir (file-name-directory (tramp-archive-file-name-archive dir))))
+    ;; the cached value will be 'none in the case of no project root (this is to
+    ;; ensure it is not reevaluated each time when not inside a project) so use
+    ;; cl-subst to replace this 'none value with nil so a nil value is used
+    ;; instead
     (cl-subst nil 'none
-              ;; The `is-local' and `is-connected' variables are
-              ;; used to fix the behavior where Emacs hangs
-              ;; because of Projectile when you open a file over
-              ;; TRAMP. It basically prevents Projectile from
-              ;; trying to find information about files for which
-              ;; it's not possible to get that information right
-              ;; now.
-              (or (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
-                        (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
-                    (when (or is-local is-connected)
-                      ;; Here is where all the magic happens.
-                      ;; We run the functions in `projectile-project-root-functions' until we find a project dir.
-                      (cl-some
-                       (lambda (func)
-                         (let* ((cache-key (format "%s-%s" func dir))
-                                (cache-value (gethash cache-key projectile-project-root-cache)))
-                           (if (and cache-value (file-exists-p cache-value))
-                               cache-value
-                             (let ((value (funcall func (file-truename dir))))
-                               (puthash cache-key value projectile-project-root-cache)
-                               value))))
-                       projectile-project-root-functions)))
-                  ;; set cached to none so is non-nil so we don't try
-                  ;; and look it up again
-                  'none))))
+      (or
+       ;; if we've already failed to find a project dir for this
+       ;; dir, and cached that failure, don't recompute
+       (let* ((cache-key (format "projectilerootless-%s" dir))
+              (cache-value (gethash cache-key projectile-project-root-cache)))
+         cache-value)
+       ;; if the file isn't local, and we're not connected, don't try to
+       ;; find a root now now, but don't cache failure, as we might
+       ;; re-connect.  The `is-local' and `is-connected' variables are
+       ;; used to fix the behavior where Emacs hangs because of
+       ;; Projectile when you open a file over TRAMP. It basically
+       ;; prevents Projectile from trying to find information about
+       ;; files for which it's not possible to get that information
+       ;; right now.
+       (let ((is-local (not (file-remote-p dir)))      ;; `true' if the file is local
+             (is-connected (file-remote-p dir nil t))) ;; `true' if the file is remote AND we are connected to the remote
+         (unless (or is-local is-connected)
+           'none))
+       ;; if the file is local or we're connected to it via TRAMP, run
+       ;; through the project root functions until we find a project dir
+       (cl-some
+        (lambda (func)
+          (let* ((cache-key (format "%s-%s" func dir))
+                 (cache-value (gethash cache-key projectile-project-root-cache)))
+            (if (and cache-value (file-exists-p cache-value))
+                cache-value
+              (let ((value (funcall func (file-truename dir))))
+                (puthash cache-key value projectile-project-root-cache)
+                value))))
+        projectile-project-root-functions)
+       ;; if we get here, we have failed to find a root by all
+       ;; conventional means, and we assume the failure isn't transient
+       ;; / network related, so cache the failure
+       (let ((cache-key (format "projectilerootless-%s" dir)))
+         (puthash cache-key 'none projectile-project-root-cache)
+         'none)))))
 
 (defun projectile-ensure-project (dir)
   "Ensure that DIR is non-nil.
@@ -2259,7 +2276,7 @@ or the filename at point is a prefix of more than two files in a project.
 For example, if `projectile-find-file-dwim' is executed on a filepath like
 \"projectile/\", it lists the content of that directory.  If it is executed
 on a partial filename like \"projectile/a\", a list of files with character
-'a' in that directory is presented.
+\"a\" in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2289,7 +2306,7 @@ or the filename at point is a prefix of more than two files in a project.
 For example, if `projectile-find-file-dwim-other-window' is executed on a
 filepath like \"projectile/\", it lists the content of that directory.  If
 it is executed on a partial filename like \"projectile/a\", a list of files
-with character 'a' in that directory is presented.
+with character \"a\" in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2319,7 +2336,7 @@ or the filename at point is a prefix of more than two files in a project.
 For example, if `projectile-find-file-dwim-other-frame' is executed on a
 filepath like \"projectile/\", it lists the content of that directory.  If
 it is executed on a partial filename like \"projectile/a\", a list of files
-with character 'a' in that directory is presented.
+with character \"a\" in that directory is presented.
 
 - If it finds nothing, display a list of all files in project for selecting."
   (interactive "P")
@@ -2866,7 +2883,7 @@ files such as test/impl/other files as below:
                            (cons project-type-elt filtered-types))
                           ((eq precedence 'low)
                            (append filtered-types (list project-type-elt)))
-                          (t (error "Precendence must be one of '(high low)"))))
+                          (t (error "Precedence must be one of '(high low)"))))
                 (mapcar #'project-map projectile-project-types))))))
 
 (defun projectile-cabal-project-p ()
@@ -3063,10 +3080,6 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
-(projectile-register-project-type 'go projectile-go-project-test-function
-                                  :compile "go build"
-                                  :test "go test ./..."
-                                  :test-suffix "_test")
 ;; File-based detection project types
 
 ;; Universal
@@ -3117,6 +3130,11 @@ a manual COMMAND-TYPE command is created with
                                   :test #'projectile--cmake-test-command
                                   :install #'projectile--cmake-install-command
                                   :package "cmake --build build --target package")
+;; Go should take higher precedence than Make because Go projects often have a Makefile.
+(projectile-register-project-type 'go projectile-go-project-test-function
+                                  :compile "go build"
+                                  :test "go test ./..."
+                                  :test-suffix "_test")
 ;; PHP
 (projectile-register-project-type 'php-symfony '("composer.json" "app" "src" "vendor")
                                   :project-file "composer.json"
@@ -3227,6 +3245,8 @@ a manual COMMAND-TYPE command is created with
 
 (projectile-register-project-type 'mill '("build.sc")
                                   :project-file "build.sc"
+                                  :src-dir "src/"
+                                  :test-dir "test/src/"
                                   :compile "mill all __.compile"
                                   :test "mill all __.test"
                                   :test-suffix "Test")
@@ -3276,13 +3296,13 @@ a manual COMMAND-TYPE command is created with
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rails server"
-                                  :src-dir "lib/"
+                                  :src-dir "app/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
                                   :project-file "Gemfile"
                                   :compile "bundle exec rails server"
-                                  :src-dir "lib/"
+                                  :src-dir "app/"
                                   :test "bundle exec rspec"
                                   :test-dir "spec/"
                                   :test-suffix "_spec")
@@ -3778,7 +3798,7 @@ anaphora.el."
 (defun projectile--find-matching-test (impl-file)
   "Return a list of test files for IMPL-FILE.
 
-The precendence for determining test files to return is:
+The precedence for determining test files to return is:
 
 1. Use the project type's test-dir property if it's set to a function
 2. Use the project type's related-files-fn property if set
@@ -3812,7 +3832,7 @@ The precendence for determining test files to return is:
 (defun projectile--find-matching-file (test-file)
   "Return a list of impl files tested by TEST-FILE.
 
-The precendence for determining implementation files to return is:
+The precedence for determining implementation files to return is:
 
 1. Use the project type's src-dir property if it's set to a function
 2. Use the project type's related-files-fn property if set
@@ -4663,6 +4683,16 @@ directory to open."
   (make-hash-table :test 'equal)
   "A mapping between projects and the last run command used on them.")
 
+(defvar projectile-project-enable-cmd-caching t
+  "Enables command caching for the project.  Set to nil to disable.
+Should be set via .dir-locals.el.")
+
+(defun projectile--cache-project-commands-p ()
+  "Whether to cache project commands."
+  (with-temp-buffer
+    (hack-dir-local-variables-non-file-buffer)
+    projectile-project-enable-cmd-caching))
+
 (defvar projectile-project-configure-cmd nil
   "The command to use with `projectile-configure-project'.
 It takes precedence over the default command for the project type when set.
@@ -4989,8 +5019,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-configure-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-configure-cmd-map
+  (let ((command (projectile-configure-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-configure-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Configure command: "
                                  :save-buffers t
@@ -5004,8 +5035,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-compilation-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-compilation-cmd-map
+  (let ((command (projectile-compilation-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Compile command: "
                                  :save-buffers t
@@ -5019,8 +5051,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-test-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-test-cmd-map
+  (let ((command (projectile-test-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Test command: "
                                  :save-buffers t
@@ -5034,8 +5067,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-install-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-install-cmd-map
+  (let ((command (projectile-install-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-install-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Install command: "
                                  :save-buffers t
@@ -5049,8 +5083,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-package-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-package-cmd-map
+  (let ((command (projectile-package-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-package-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Package command: "
                                  :save-buffers t
@@ -5064,8 +5099,9 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-run-command (projectile-compilation-dir))))
-    (projectile--run-project-cmd command projectile-run-cmd-map
+  (let ((command (projectile-run-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-run-cmd-map)))
+    (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Run command: "
                                  :use-comint-mode projectile-run-use-comint-mode)))

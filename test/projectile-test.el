@@ -1,6 +1,6 @@
 ;;; projectile-test.el --- Projectile's test suite -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2021 Bozhidar Batsov
+;; Copyright © 2011-2022 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 
@@ -262,14 +262,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                      src-dir ,dummy-val
                      test-dir ,dummy-val
                      related-files-fn ,dummy-val)))))
-  (it "Error when attempt to update nonexistant project type"
+  (it "Error when attempt to update nonexistent project type"
     (let ((projectile-project-types mock-projectile-project-types))
       (expect (projectile-update-project-type
                'bar
                :marker-files '("marker-file")
                :test-suffix "suffix")
               :to-throw)))
-  (it "changes project type precendence"
+  (it "changes project type precedence"
     (let ((projectile-project-types
            '((foo marker-files ("foo"))
              (bar marker-files ("foo")))))
@@ -284,7 +284,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (expect (projectile-project-type) :to-equal 'bar)
           (projectile-update-project-type 'bar :precedence 'low)
           (expect (projectile-project-type) :to-equal 'foo)))))
-  (it "errors if :precendence not valid"
+  (it "errors if :precedence not valid"
     (let ((projectile-project-types '((bar marker-files ("foo")))))
       (expect
        (projectile-update-project-type 'bar :precedence 'invalid-symbol)
@@ -691,7 +691,43 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                                                  projectile-root-top-down
                                                  projectile-root-top-down-recurring)))
         (projectile-test-should-root-in "projectA/src/" "projectA/src/")
-        (projectile-test-should-root-in "projectA/src/" "projectA/src/html"))))))
+        (projectile-test-should-root-in "projectA/src/" "projectA/src/html")))))
+
+  (it "caches permanent failure to find a project root"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/src/")
+      (let* ((projectile-project-root-functions '())
+             (dir "projectA/src")
+             (cache-key (format "projectilerootless-%s" dir))
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
+        (expect (projectile-project-root dir) :to-be nil)
+        ;; now that this has run once, the cache should be populated with 'none
+        (expect (gethash cache-key projectile-project-root-cache) :to-be 'none)
+        ;; but projectile-project-root should still return nil
+        (expect (projectile-project-root dir) :to-be nil)))))
+
+  (it "does not cache transitory failure to find a project root"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/src/")
+      ;; hackish, but override file-remote-p for a moment, which is called in
+      ;; projectile-project-root with 1 argument to test if the file is remote,
+      ;; and 3 arguments to see if the file is connected.  We want to return t
+      ;; when checking if remote, and nil when checking if connected.
+      (cl-letf (((symbol-function 'file-remote-p)
+                 (lambda (&rest args) (eql 1 (length args)))))
+        (let* ((projectile-project-root-functions '())
+               (dir "projectA/src")
+               (cache-key (format "projectilerootless-%s" dir))
+               (projectile-project-root-cache (make-hash-table :test 'equal)))
+          (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
+          (expect (projectile-project-root dir) :to-be nil)
+          ;; since the failure was transitory, there should be nothing cached
+          (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
+          ;; and projectile-project-root should still return nil
+          (expect (projectile-project-root dir) :to-be nil)))))))
 
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"
@@ -1945,15 +1981,15 @@ projectile-process-current-project-buffers-current to have similar behaviour"
 (describe "projectile-run-shell-command-in-root"
   (describe "when called directly in elisp"
     (before-each (spy-on 'shell-command))
-    (describe "when called with all three paramters"
+    (describe "when called with all three parameters"
       (it "expects to call shell-command with the same parameters"
         (projectile-run-shell-command-in-root "cmd" "output-buffer" "error-buffer")
         (expect 'shell-command :to-have-been-called-with "cmd" "output-buffer" "error-buffer")))
-    (describe "when called with only one optional paramter"
+    (describe "when called with only one optional parameter"
       (it "expects to call shell-command with the same parameters"
         (projectile-run-shell-command-in-root "cmd" "output-buffer")
         (expect 'shell-command :to-have-been-called-with "cmd" "output-buffer" nil)))
-    (describe "when called with no optional paramters"
+    (describe "when called with no optional parameters"
       (it "expects to call shell-command with the same parameters"
         (projectile-run-shell-command-in-root "cmd")
         (expect 'shell-command :to-have-been-called-with "cmd" nil nil))))
@@ -1968,15 +2004,15 @@ projectile-process-current-project-buffers-current to have similar behaviour"
 (describe "projectile-run-async-shell-command-in-root"
   (describe "when called directly in elisp"
     (before-each (spy-on 'async-shell-command))
-    (describe "when called with all three paramters"
+    (describe "when called with all three parameters"
       (it "expects to call async-shell-command with the same parameters"
         (projectile-run-async-shell-command-in-root "cmd" "output-buffer" "error-buffer")
         (expect 'async-shell-command :to-have-been-called-with "cmd" "output-buffer" "error-buffer")))
-    (describe "when called with only one optional paramter"
+    (describe "when called with only one optional parameter"
       (it "expects to call async-shell-command with the same parameters"
         (projectile-run-async-shell-command-in-root "cmd" "output-buffer")
         (expect 'async-shell-command :to-have-been-called-with "cmd" "output-buffer" nil)))
-    (describe "when called with no optional paramters"
+    (describe "when called with no optional parameters"
       (it "expects to call async-shell-command with the same parameters"
         (projectile-run-async-shell-command-in-root "cmd")
         (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))

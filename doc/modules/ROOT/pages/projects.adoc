@@ -210,7 +210,7 @@ Let's see a couple of more complex examples.
 
 All those projects are using `Gemfile` (``bundler``'s project file), but they have different directory structures.
 
-Bellow is a listing of all the available options for `projectile-register-project-type`:
+Below is a listing of all the available options for `projectile-register-project-type`:
 
 |===
 | Option | Documentation
@@ -774,3 +774,7 @@ external command or an Emacs Lisp function:
 ----
 (setq projectile-test-cmd #'custom-test-function)
 ----
+
+In addition caching of commands can be disabled by setting the variable
+`projectile-project-enable-cmd-caching` is to `nil`. This is useful for
+preset-based CMake projects.
