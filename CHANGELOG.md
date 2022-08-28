@@ -5,6 +5,7 @@
 ### New features
 
 * [#1790](https://github.com/bbatsov/projectile/pull/1790): Add `src-dir` and `test-dir` properties for the mill project type.
+* [#1778](https://github.com/bbatsov/projectile/pull/1778): Allow `projectile-replace` to select file extensions when using prefix arg (`C-u`).
 * [#1757](https://github.com/bbatsov/projectile/pull/1757): Add support for the Pijul VCS.
 * [#1745](https://github.com/bbatsov/projectile/pull/1745): Allow `projectile-update-project-type` to change project type precedence and remove project options.
 * [#1699](https://github.com/bbatsov/projectile/pull/1699): `projectile-ripgrep` now supports [rg.el](https://github.com/dajva/rg.el).

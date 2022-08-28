@@ -291,7 +291,7 @@ With this setting, after selecting a project to switch to, you'll be prompted to
 | Run multi-occur on project buffers.
 
 | kbd:[r]
-| Replace a string in the project.
+| Replace a string in the project (running with kbd:[C-u] will allow users to select file name patterns and extensions).
 
 | kbd:[s]
 | Switch project.

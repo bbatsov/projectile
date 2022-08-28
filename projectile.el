@@ -77,6 +77,7 @@
 (declare-function fileloop-continue "fileloop")
 (declare-function fileloop-initialize-replace "fileloop")
 (declare-function tramp-archive-file-name-p "tramp-archive")
+(declare-function helm-grep-get-file-extensions "helm-grep")
 
 (declare-function ggtags-ensure-project "ext:ggtags")
 (declare-function ggtags-update-tags "ext:ggtags")
@@ -4368,9 +4369,9 @@ Returns a list of expanded filenames."
              t))))
 
 (defvar projectile-files-with-string-commands
-  '((rg . "rg -lF --no-heading --color never -- ")
-    (ag . "ag --literal --nocolor --noheading -l -- ")
-    (ack . "ack --literal --nocolor -l -- ")
+  '((rg . "rg -lF --no-heading --color never ")
+    (ag . "ag --literal --nocolor --noheading -l ")
+    (ack . "ack --literal --nocolor -l ")
     (git . "git grep -HlI ")
     ;; -r: recursive
     ;; -H: show filename for each match
@@ -4378,7 +4379,67 @@ Returns a list of expanded filenames."
     ;; -I: no binary files
     (grep . "grep -rHlI %s .")))
 
-(defun projectile-files-with-string (string directory)
+(defun projectile--rg-construct-command (search-term &optional file-ext)
+  "Construct Rg option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (cdr (assoc 'rg projectile-files-with-string-commands))
+              "-g '"
+              file-ext
+              "' "
+              search-term)
+    (concat (cdr (assoc 'rg projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--ag-construct-command (search-term &optional file-ext)
+  "Construct Ag option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+              "-G "
+              (replace-regexp-in-string
+               "\\*" ""
+               (replace-regexp-in-string "\\." "\\\\." file-ext))
+              "$ "
+              search-term)
+    (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--ack-construct-command (search-term &optional file-ext)
+  "Construct Ack option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat "ack -g '"
+              (replace-regexp-in-string
+               "\\*" ""
+               (replace-regexp-in-string "\\." "\\\\." file-ext))
+              "$' | "
+              (cdr (assoc 'ack projectile-files-with-string-commands))
+              "-x "
+              search-term)
+    (concat (cdr (assoc 'ack projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--git-grep-construct-command (search-term &optional file-ext)
+  "Construct Grep option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (cdr (assoc 'git projectile-files-with-string-commands))
+              search-term
+              "  -- '"
+              file-ext
+              "'")
+    (concat (cdr (assoc 'git projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile--grep-construct-command (search-term &optional file-ext)
+  "Construct Grep option to search files by the extension FILE-EXT."
+  (if (stringp file-ext)
+      (concat (format (cdr (assoc 'grep projectile-files-with-string-commands))
+                      search-term)
+              " --include '"
+              file-ext
+              "'")
+    (format (cdr (assoc 'grep projectile-files-with-string-commands))
+            search-term)))
+
+(defun projectile-files-with-string (string directory &optional file-ext)
   "Return a list of all files containing STRING in DIRECTORY.
 
 Tries to use rg, ag, ack, git-grep, and grep in that order.  If those
@@ -4387,19 +4448,16 @@ files in the project."
   (if (projectile-unixy-system-p)
       (let* ((search-term (shell-quote-argument string))
              (cmd (cond ((executable-find "rg")
-                         (concat (cdr (assoc 'rg projectile-files-with-string-commands))
-                                 search-term))
+                         (projectile--rg-construct-command search-term file-ext))
                         ((executable-find "ag")
-                         (concat (cdr (assoc 'ag projectile-files-with-string-commands))
-                                 search-term))
+                         (projectile--ag-construct-command search-term file-ext))
                         ((executable-find "ack")
-                         (concat (cdr (assoc 'ack projectile-files-with-string-commands))
-                                 search-term))
+                         (projectile--ack-construct-command search-term file-ext))
                         ((and (executable-find "git")
                               (eq (projectile-project-vcs) 'git))
-                         (concat (cdr (assoc 'git projectile-files-with-string-commands)) search-term))
+                         (projectile--git-grep-construct-command search-term file-ext))
                         (t
-                         (format (cdr (assoc 'grep projectile-files-with-string-commands)) search-term)))))
+                         (projectile--grep-construct-command search-term file-ext)))))
         (projectile-files-from-cmd cmd directory))
     ;; we have to reject directories as a workaround to work with git submodules
     (cl-remove-if
@@ -4411,20 +4469,27 @@ files in the project."
 (defun projectile-replace (&optional arg)
   "Replace literal string in project using non-regexp `tags-query-replace'.
 
-With a prefix argument ARG prompts you for a directory on which
-to run the replacement."
+With a prefix argument ARG prompts you for a directory and file name patterns
+on which to run the replacement."
   (interactive "P")
   (let* ((directory (if arg
                         (file-name-as-directory
                          (read-directory-name "Replace in directory: "))
                       (projectile-acquire-root)))
+         (file-ext (if arg
+                       (if (fboundp #'helm-grep-get-file-extensions)
+                           (car (helm-grep-get-file-extensions (list directory)))
+                         (read-string
+                          (projectile-prepend-project-name
+                           "With file extension (empty string means all files): ")))
+                     nil))
          (old-text (read-string
                     (projectile-prepend-project-name "Replace: ")
                     (projectile-symbol-or-selection-at-point)))
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
-         (files (projectile-files-with-string old-text directory)))
+         (files (projectile-files-with-string old-text directory file-ext)))
     (if (fboundp #'fileloop-continue)
         ;; Emacs 27+
         (progn (fileloop-initialize-replace old-text new-text files 'default)
