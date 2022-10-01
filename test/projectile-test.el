@@ -2045,6 +2045,71 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                (projectile--get-command-history projectile-project-root))
               :to-equal '("bar" "foo")))))
 
+(describe "projectile-test-prefix"
+  :var ((mock-projectile-project-types
+         '((foo test-prefix "Test"))))
+  (it "gets set test-prefix"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo))
+      (expect (projectile-test-prefix'foo) :to-equal "Test")))
+  (it "uses local override"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo)
+          (projectile-project-test-prefix "Spec"))
+      (expect (projectile-test-prefix 'foo) :to-equal "Spec"))))
+
+(describe "projectile-test-suffix"
+  :var ((mock-projectile-project-types
+         '((foo test-suffix "Test"))))
+  (it "gets set test-suffix"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo))
+      (expect (projectile-test-suffix'foo) :to-equal "Test")))
+  (it "uses local override"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo)
+          (projectile-project-test-suffix "Spec"))
+      (expect (projectile-test-suffix 'foo) :to-equal "Spec"))))
+
+(describe "projectile-related-files-fn"
+  :var ((mock-projectile-project-types
+         '((foo related-files-fn ignore))))
+  (it "gets set related-files-fn"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo))
+      (expect (projectile-related-files-fn 'foo) :to-equal #'ignore)))
+  (it "uses local override"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo)
+          (projectile-project-related-files-fn #'identity))
+      (expect (projectile-related-files-fn 'foo) :to-equal #'identity))))
+
+(describe "projectile-test-directory"
+  :var ((mock-projectile-project-types
+         '((foo test-dir "test"))))
+  (it "gets set test directory"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo))
+      (expect (projectile-test-directory 'foo) :to-equal "test")))
+  (it "uses local override"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo)
+          (projectile-project-test-dir "other"))
+      (expect (projectile-test-directory 'foo) :to-equal "other"))))
+
+(describe "projectile-src-directory"
+  :var ((mock-projectile-project-types
+         '((foo src-dir "src"))))
+  (it "gets set src directory"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo))
+      (expect (projectile-src-directory 'foo) :to-equal "src")))
+  (it "uses local override"
+    (let ((projectile-project-types mock-projectile-project-types)
+          (projectile-project-type 'foo)
+          (projectile-project-src-dir "other"))
+      (expect (projectile-src-directory 'foo) :to-equal "other"))))
+
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
 (assert-friendly-error-when-no-project projectile-project-info)

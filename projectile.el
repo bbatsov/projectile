@@ -822,6 +822,31 @@ If the value is nil, there is no limit to the opend buffers count."
   :type 'integer
   :package-version '(projectile . "2.2.0"))
 
+(defvar projectile-project-test-suffix nil
+  "Use this variable to override the current project's test-suffix property.
+It takes precedence over the test-suffix for the project type when set.
+Should be set via .dir-locals.el.")
+
+(defvar projectile-project-test-prefix nil
+  "Use this variable to override the current project's test-prefix property.
+It takes precedence over the test-prefix for the project type when set.
+Should be set via .dir-locals.el.")
+
+(defvar projectile-project-related-files-fn nil
+  "Use this variable to override the current project's related-files-fn property.
+It takes precedence over the related-files-fn attribute for the project type
+when set.  Should be set via .dir-locals.el.")
+
+(defvar projectile-project-src-dir nil
+  "Use this variable to override the current project's src-dir property.
+It takes precedence over the src-dir for the project type when set.
+Should be set via .dir-locals.el.")
+
+(defvar projectile-project-test-dir nil
+  "Use this variable to override the current project's test-dir property.
+It takes precedence over the test-dir for the project type when set.
+Should be set via .dir-locals.el.")
+
 
 ;;; Version information
 
@@ -3652,25 +3677,30 @@ Fallback to DEFAULT-VALUE for missing attributes."
 
 (defun projectile-test-prefix (project-type)
   "Find default test files prefix based on PROJECT-TYPE."
-  (projectile-project-type-attribute project-type 'test-prefix))
+  (or projectile-project-test-prefix
+      (projectile-project-type-attribute project-type 'test-prefix)))
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
-  (projectile-project-type-attribute project-type 'test-suffix))
+  (or projectile-project-test-suffix
+      (projectile-project-type-attribute project-type 'test-suffix)))
 
 (defun projectile-related-files-fn (project-type)
   "Find relative file based on PROJECT-TYPE."
-  (projectile-project-type-attribute project-type 'related-files-fn))
+  (or projectile-project-related-files-fn
+      (projectile-project-type-attribute project-type 'related-files-fn)))
 
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
-  (projectile-project-type-attribute
-   project-type 'src-dir projectile-default-src-directory))
+  (or projectile-project-src-dir
+      (projectile-project-type-attribute
+       project-type 'src-dir projectile-default-src-directory)))
 
 (defun projectile-test-directory (project-type)
   "Find default test directory based on PROJECT-TYPE."
-  (projectile-project-type-attribute
-   project-type 'test-dir projectile-default-test-directory))
+  (or projectile-project-test-dir
+      (projectile-project-type-attribute
+       project-type 'test-dir projectile-default-test-directory)))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths in A and B."
