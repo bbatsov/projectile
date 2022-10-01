@@ -754,7 +754,7 @@ you e.g. test a command-line program with `projectile-run-project`.
 (setq projectile-comint-mode t)
 ----
 
-== Configure a Project's Lifecycle Commands
+== Configure a Project's Lifecycle Commands and Other Attributes
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
 
@@ -764,6 +764,11 @@ There are a few variables that are intended to be customized via `.dir-locals.el
 * for installation - `projectile-project-install-cmd`
 * for packaging - `projectile-project-package-cmd`
 * for running - `projectile-project-run-cmd`
+* for configuring the test prefix - `projectile-project-test-prefix`
+* for configuring the test suffix - `projectile-project-test-suffix`
+* for configuring the related-files-fn property - `projectile-project-related-files-fn`
+* for configuring the src-dir property - `projectile-project-src-dir`
+* for configuring the test-dir property - `projectile-project-test-dir`
 
 When these variables have their default value of `nil`, Projectile
 runs the default command for the current project type.  You can
