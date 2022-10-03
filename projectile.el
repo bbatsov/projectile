@@ -716,6 +716,7 @@ Set to nil to disable listing submodules contents."
 (defcustom projectile-generic-command
   (cond
    ;; we prefer fd over find
+   ;; note that --strip-cwd-prefix is only available in version 8.3.0+
    ((executable-find "fd")
     "fd . -0 --type f --color=never --strip-cwd-prefix")
    ;; fd's executable is named fdfind is some Linux distros (e.g. Ubuntu)
