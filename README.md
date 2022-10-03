@@ -109,7 +109,8 @@ See the [online documentation](https://docs.projectile.mx) for more details.
 ## Caveats
 
 * Some operations like search (grep) depend (presently) on external
-  utilities such as `find`.
+  utilities such as `find` or `fd` (version 8.3.0+).
+  * for older `fd` version add `(setq projectile-generic-command "fd . -0 --type f --color=never")` to your init-file
 * Commands depending on external utilities might misbehave on the `fish` shell.
 * Using Projectile over TRAMP might be slow in certain cases.
 * Some commands might misbehave on complex project setups (e.g. a git project with submodules).
