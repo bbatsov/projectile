@@ -5192,8 +5192,9 @@ An open project is a project with any open buffers."
    (delq nil
          (mapcar (lambda (buffer)
                    (with-current-buffer buffer
-                     (when (projectile-project-p)
-                       (abbreviate-file-name (projectile-project-root)))))
+                     (when-let ((project-root (projectile-project-root)))
+                       (when (projectile-project-buffer-p buffer project-root)
+                         (abbreviate-file-name project-root)))))
                  (buffer-list)))))
 
 (defun projectile--remove-current-project (projects)
