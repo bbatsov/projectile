@@ -371,6 +371,15 @@ Similar to '#' in .gitignore files."
   :type 'character
   :package-version '(projectile . "2.2.0"))
 
+(defcustom projectile-dirconfig-name-prefix
+  nil
+  "Projectile config file (.projectile) name start marker.
+If specified, starting a line in a project's .projectile file with
+`projectile-dirconfig-name-prefix' followed by this character marks that
+line as the name of the project instead of a pattern."
+  :group 'projectile
+  :type 'character)
+
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name)
   "A list of files globally ignored by projectile.
@@ -1299,7 +1308,9 @@ explicitly."
 (defun projectile-default-project-name (project-root)
   "Default function used to create the project name.
 The project name is based on the value of PROJECT-ROOT."
-  (file-name-nondirectory (directory-file-name project-root)))
+  (or (let ((default-directory project-root))
+        (nth 3 (projectile-parse-dirconfig-file)))
+      (file-name-nondirectory (directory-file-name project-root))))
 
 (defun projectile-project-name (&optional project)
   "Return project name.
@@ -1954,7 +1965,7 @@ Strings starting with + will be added to the list of directories
 to keep, and strings starting with - will be added to the list of
 directories to ignore.  For backward compatibility, without a
 prefix the string will be assumed to be an ignore string."
-  (let (keep ignore ensure (dirconfig (projectile-dirconfig-file)))
+  (let (name keep ignore ensure (dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
       (with-temp-buffer
         (insert-file-contents dirconfig)
@@ -1965,7 +1976,9 @@ prefix the string will be assumed to be an ignore string."
                      (and projectile-dirconfig-comment-prefix
                           (eql leading-char
                                projectile-dirconfig-comment-prefix))))
-             nil)
+             (when (eql projectile-dirconfig-name-prefix
+                        (char-after (1+ (point))))
+               (setq name (buffer-substring (+ (point) 2) (line-end-position)))))
             (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
             (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
@@ -1976,7 +1989,8 @@ prefix the string will be assumed to be an ignore string."
             (mapcar #'string-trim
                     (delete "" (reverse ignore)))
             (mapcar #'string-trim
-                    (delete "" (reverse ensure)))))))
+                    (delete "" (reverse ensure)))
+            name))))
 
 (defun projectile-expand-root (name)
   "Expand NAME to project root.
