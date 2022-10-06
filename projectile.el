@@ -5078,7 +5078,7 @@ with a prefix ARG."
 ;;;###autoload
 (defun projectile-test-project (arg &optional cmd)
   "Run project test command.
-Optional argument CMD s the first in command priority to be used.
+CMD overrides the default test command for a project.
 Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command' or if CMD is passed.
 You can force the prompt with a prefix ARG."
