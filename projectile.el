@@ -3157,6 +3157,12 @@ a manual COMMAND-TYPE command is created with
                                   :test #'projectile--cmake-test-command
                                   :install #'projectile--cmake-install-command
                                   :package "cmake --build build --target package")
+;; go-task/task
+(projectile-register-project-type 'go-task '("Taskfile.yml")
+                                  :project-file "Taskfile.yml"
+                                  :compile "task build"
+                                  :test "task test"
+                                  :install "task install")
 ;; Go should take higher precedence than Make because Go projects often have a Makefile.
 (projectile-register-project-type 'go projectile-go-project-test-function
                                   :compile "go build"
