@@ -14,6 +14,7 @@
 * [#1747](https://github.com/bbatsov/projectile/pull/1747): Add support for preset-based install-commands for CMake projects.
 * [#1768](https://github.com/bbatsov/projectile/pull/1768) Add support for disabling command caching on a per-project basis.
 * [#1797](https://github.com/bbatsov/projectile/pull/1797) Make all project type attributes locally overridable
+* [#1803](https://github.com/bbatsov/projectile/pull/1803): Add support go-task/task
 
 ### Bugs fixed
 
