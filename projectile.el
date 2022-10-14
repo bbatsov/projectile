@@ -4168,7 +4168,7 @@ installed to work."
                            (projectile-acquire-root)
                            (if arg
                                args
-                             (cons "--fixed-strings" args))))
+                             (cons "--fixed-strings --hidden" args))))
           ;; and then we try rg
           ((require 'rg nil 'noerror)
            (rg-run search-term
