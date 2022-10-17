@@ -1980,12 +1980,14 @@ prefix the string will be assumed to be an ignore string."
             (mapcar #'string-trim
                     (delete "" (reverse ensure)))))))
 
-(defun projectile-expand-root (name)
+(defun projectile-expand-root (name &optional dir)
   "Expand NAME to project root.
+When DIR is specified it uses DIR's project, otherwise it acts
+on the current project.
 
 Never use on many files since it's going to recalculate the
 project-root for every file."
-  (expand-file-name name (projectile-project-root)))
+  (expand-file-name name (projectile-project-root dir)))
 
 (cl-defun projectile-completing-read (prompt choices &key initial-input action)
   "Present a project tailored PROMPT with CHOICES."
@@ -3432,8 +3434,11 @@ a manual COMMAND-TYPE command is created with
 Normally you'd set this from .dir-locals.el.")
 (put 'projectile-project-type 'safe-local-variable #'symbolp)
 
-(defun projectile-detect-project-type ()
-  "Detect the type of the current project.
+(defun projectile-detect-project-type (&optional dir)
+  "Detect the type of the project.
+When DIR is specified it detects its project type, otherwise it acts
+on the current project.
+
 Fallsback to a generic project type when the type can't be determined."
   (let ((project-type
          (or (car (cl-find-if
@@ -3442,10 +3447,10 @@ Fallsback to a generic project type when the type can't be determined."
                            (marker (plist-get (cdr project-type-record) 'marker-files)))
                        (if (functionp marker)
                            (and (funcall marker) project-type)
-                         (and (projectile-verify-files marker) project-type))))
+                         (and (projectile-verify-files marker dir) project-type))))
                    projectile-project-types))
              'generic)))
-    (puthash (projectile-project-root) project-type projectile-project-type-cache)
+    (puthash (projectile-project-root dir) project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type (&optional dir)
@@ -3460,7 +3465,7 @@ The project type is cached for improved performance."
            (project-root (projectile-project-root dir)))
       (if project-root
           (or (gethash project-root projectile-project-type-cache)
-              (projectile-detect-project-type))
+              (projectile-detect-project-type dir))
         ;; if we're not in a project we just return nil
         nil))))
 
@@ -3473,13 +3478,17 @@ The project type is cached for improved performance."
            (projectile-project-vcs)
            (projectile-project-type)))
 
-(defun projectile-verify-files (files)
-  "Check whether all FILES exist in the current project."
-  (cl-every #'projectile-verify-file files))
+(defun projectile-verify-files (files &optional dir)
+  "Check whether all FILES exist in the project.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (cl-every #'(lambda (file) (projectile-verify-file file dir)) files))
 
-(defun projectile-verify-file (file)
-  "Check whether FILE exists in the current project."
-  (file-exists-p (projectile-expand-root file)))
+(defun projectile-verify-file (file &optional dir)
+  "Check whether FILE exists in the current project.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (file-exists-p (projectile-expand-root file dir)))
 
 (defun projectile-verify-file-wildcard (file)
   "Check whether FILE exists in the current project.
