@@ -31,6 +31,7 @@
 
 ### Bugs fixed
 
+* [#1806](https://github.com/bbatsov/projectile/pull/1806): Fix `projectile-project-type` to return the correct project type even when we pass it the DIR arg. As a result of the fix, `projectile-expand-root`, `projectile-detect-project-type`, `projectile-verify-files` and `projectile-verify-file` now also takes an &optional DIR arg to specify the directory it is acting on. 
 * [#1781](https://github.com/bbatsov/projectile/pull/1781): Fix `rails-rspec` and `rails-test` to use `app` instead of `lib` as `src-dir`.
 * [#1762](https://github.com/bbatsov/projectile/pull/1762): Fix `projectile-globally-ignored-directories` unescaped regex.
 * [#1713](https://github.com/bbatsov/projectile/issues/1731): Fix `projectile-discover-projects-in-directory` reordering known projects.
