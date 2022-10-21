@@ -3459,13 +3459,10 @@ When DIR is specified it checks it, otherwise it acts
 on the current project.
 
 The project type is cached for improved performance."
-  (if (and (not dir) projectile-project-type)
-        projectile-project-type
+  (or (and (not dir) projectile-project-type)
       (if-let ((project-root (projectile-project-root dir)))
           (or (gethash project-root projectile-project-type-cache)
-              (projectile-detect-project-type dir))
-        ;; if we're not in a project we just return nil
-         nil)))
+              (projectile-detect-project-type dir)))))
 
 ;;;###autoload
 (defun projectile-project-info ()
