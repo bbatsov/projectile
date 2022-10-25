@@ -106,6 +106,10 @@ Enable `projectile-mode`, open a file in one of your projects and type a command
 
 See the [online documentation](https://docs.projectile.mx) for more details.
 
+To get the most of Projectile you also need to enable (and potentially install) some minibuffer completion framework (e.g. `ido`, `ivy` or `selectrum`). See [this section](https://docs.projectile.mx/projectile/configuration.html#completion-options) of the documentation for more details.
+
+**Note:** Historically `projectile-completion-system` defaulted to `ido`, but this was changed in version 2.3. You may need to enable `ido-mode` in your Emacs configuration if updating from an older version of Projectile.
+
 ## Caveats
 
 * Some operations like search (grep) depend (presently) on external
