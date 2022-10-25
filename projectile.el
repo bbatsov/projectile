@@ -1308,8 +1308,18 @@ explicitly."
 (defun projectile-default-project-name (project-root)
   "Default function used to create the project name.
 The project name is based on the value of PROJECT-ROOT."
-  (or (let ((default-directory project-root))
-        (nth 3 (projectile-parse-dirconfig-file)))
+  (or (when-let*
+          ((comment-prefix projectile-dirconfig-comment-prefix)
+           (name-prefix projectile-dirconfig-name-prefix)
+           (default-directory project-root)
+           (dirconfig (projectile-dirconfig-file)))
+        (when (projectile-file-exists-p dirconfig)
+          (with-temp-buffer
+            (insert-file-contents dirconfig)
+            (when (re-search-forward
+                   (format "^%c%c\\(.*\\)$" comment-prefix name-prefix)
+                   nil t)
+              (match-string 1)))))
       (file-name-nondirectory (directory-file-name project-root))))
 
 (defun projectile-project-name (&optional project)
