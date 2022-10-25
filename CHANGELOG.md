@@ -14,8 +14,8 @@
 * [#1712](https://github.com/bbatsov/projectile/issues/1712): Make it possible to hide Projectile's menu. See `projectile-show-menu`.
 * [#1718](https://github.com/bbatsov/projectile/issues/1718): Add a project type definition for `GNUMakefile`.
 * [#1747](https://github.com/bbatsov/projectile/pull/1747): Add support for preset-based install-commands for CMake projects.
-* [#1768](https://github.com/bbatsov/projectile/pull/1768) Add support for disabling command caching on a per-project basis.
-* [#1797](https://github.com/bbatsov/projectile/pull/1797) Make all project type attributes locally overridable.
+* [#1768](https://github.com/bbatsov/projectile/pull/1768): Add support for disabling command caching on a per-project basis.
+* [#1797](https://github.com/bbatsov/projectile/pull/1797): Make all project type attributes locally overridable.
 * [#1803](https://github.com/bbatsov/projectile/pull/1803): Add support go-task/task.
 
 ### Bugs fixed
