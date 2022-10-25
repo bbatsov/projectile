@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.6.0 (2022-10-25)
+
 ### New features
 
 * [#1790](https://github.com/bbatsov/projectile/pull/1790): Add `src-dir` and `test-dir` properties for the mill project type.
@@ -13,12 +15,12 @@
 * [#1718](https://github.com/bbatsov/projectile/issues/1718): Add a project type definition for `GNUMakefile`.
 * [#1747](https://github.com/bbatsov/projectile/pull/1747): Add support for preset-based install-commands for CMake projects.
 * [#1768](https://github.com/bbatsov/projectile/pull/1768) Add support for disabling command caching on a per-project basis.
-* [#1797](https://github.com/bbatsov/projectile/pull/1797) Make all project type attributes locally overridable
-* [#1803](https://github.com/bbatsov/projectile/pull/1803): Add support go-task/task
+* [#1797](https://github.com/bbatsov/projectile/pull/1797) Make all project type attributes locally overridable.
+* [#1803](https://github.com/bbatsov/projectile/pull/1803): Add support go-task/task.
 
 ### Bugs fixed
 
-* [#1781](https://github.com/bbatsov/projectile/pull/1781): Fix `rails-rspec` and `rails-test` to use `app` instead of `lib` as `src-dir`
+* [#1781](https://github.com/bbatsov/projectile/pull/1781): Fix `rails-rspec` and `rails-test` to use `app` instead of `lib` as `src-dir`.
 * [#1762](https://github.com/bbatsov/projectile/pull/1762): Fix `projectile-globally-ignored-directories` unescaped regex.
 * [#1713](https://github.com/bbatsov/projectile/issues/1731): Fix `projectile-discover-projects-in-directory` reordering known projects.
 * [#1514](https://github.com/bbatsov/projectile/issues/1514): Fix `projectile-ag` global ignores not in effect.
@@ -27,8 +29,8 @@
 * [#1750](https://github.com/bbatsov/projectile/issues/1750): Fix source and test directories for Maven projects.
 * [#1765](https://github.com/bbatsov/projectile/issues/1765): Fix `src-dir`/`test-dir` not defaulting to `"src/"` and `"test/"` with `projectile-toggle-between-implementation-and-test`.
 * Fix version extraction logic.
-* [1654](https://github.com/bbatsov/projectile/issues/1654) Fix consecutive duplicates appearing in command history
-* [#1755](https://github.com/bbatsov/projectile/issues/1755) Cache failure to find project root
+* [1654](https://github.com/bbatsov/projectile/issues/1654) Fix consecutive duplicates appearing in command history.
+* [#1755](https://github.com/bbatsov/projectile/issues/1755) Cache failure to find project root.
 
 ### Changes
 
@@ -36,7 +38,7 @@
 * [#1447](https://github.com/bbatsov/projectile/issues/1447): Restructure the menu.
 * [#1692](https://github.com/bbatsov/projectile/issues/1692): Enable minibuffer completions when reading shell-commands.
 * Change the Grails project marker to `application.yml`.
-* [#1789](https://github.com/bbatsov/projectile/pull/1789): Progress reporter for recursive progress discovery
+* [#1789](https://github.com/bbatsov/projectile/pull/1789): Progress reporter for recursive progress discovery.
 * [#1708](https://github.com/bbatsov/projectile/issues/1708): `projectile-ripgrep` now consistently searches hidden files.
 
 ## 2.5.0 (2021-08-10)
