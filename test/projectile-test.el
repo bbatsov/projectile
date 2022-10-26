@@ -1038,6 +1038,20 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 
           (expect (current-buffer) :to-be (get-file-buffer "project/file")))))))
 
+(describe "projectile-ignored-project-buffers-p"
+  (it "checks if buffer should never associated with any specific project"
+    (let ((projectile-ignore-special-project-buffers t)
+          (projectile-ignored-project-buffers '("*nrepl messages*" "*something*")))
+      (expect (projectile-ignored-project-buffers-p (get-buffer-create "*nrepl messages*")) :to-be-truthy)
+      (expect (projectile-ignored-project-buffers-p (get-buffer-create "*something*")) :to-be-truthy)
+      (expect (projectile-ignored-project-buffers-p (get-buffer-create "test")) :not :to-be-truthy)))
+  (it "check if buffer should not ignored when not enabled"
+    (let ((projectile-ignore-special-project-buffers nil)
+          (projectile-ignored-project-buffers '("*nrepl messages*" "*something*")))
+      (expect (projectile-ignored-project-buffers-p (get-buffer-create "*nrepl messages*")) :not :to-be-truthy)
+      (expect (projectile-ignored-project-buffers-p (get-buffer-create "*something*")) :not :to-be-truthy)
+      (expect (projectile-ignored-project-buffers-p (get-buffer-create "test")) :not :to-be-truthy))))
+
 (describe "projectile-ignored-buffer-p"
   (it "checks if buffer should be ignored"
     (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))

@@ -822,6 +822,27 @@ If the value is nil, there is no limit to the opend buffers count."
   :type 'integer
   :package-version '(projectile . "2.2.0"))
 
+(defcustom projectile-ignore-special-project-buffers t
+  "When t ignore special project buffers.
+
+See `projectile-ignored-project-buffers'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.7.0"))
+
+(defcustom projectile-ignored-project-buffers
+  '(
+    "*scratch*"              ; Lisp Interaction Buffer
+    "*lsp-log*"              ; LSP Mode Troubleshooting Buffer
+    )
+  "A list of buffers considered that should never be killed or
+associated with any specific project.
+
+See `projectile-ignore-special-project-buffers'."
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile . "2.7.0"))
+
 (defvar projectile-project-test-suffix nil
   "Use this variable to override the current project's test-suffix property.
 It takes precedence over the test-suffix for the project type when set.
@@ -1641,11 +1662,21 @@ If PROJECT is not specified the command acts on the current project."
                        default-directory)))
       (and (not (string-prefix-p " " (buffer-name buffer)))
            (not (projectile-ignored-buffer-p buffer))
+           (not (projectile-ignored-project-buffers-p buffer))
            directory
            (string-equal (file-remote-p directory)
                          (file-remote-p project-root))
            (not (string-match-p "^http\\(s\\)?://" directory))
            (string-prefix-p project-root (file-truename directory) (eq system-type 'windows-nt))))))
+
+(defun projectile-ignored-project-buffers-p (buffer)
+  "Check if BUFFER should never associated with any specific project"
+  (when projectile-ignore-special-project-buffers
+    (with-current-buffer buffer
+      (cl-some
+       (lambda (name)
+         (string-match-p name (buffer-name)))
+       projectile-ignored-project-buffers))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored.
