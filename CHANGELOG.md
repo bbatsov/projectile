@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* [#1591](https://github.com/bbatsov/projectile/issues/1591): Add `project.el` integration that will make Projectile the default provider for project lookup.
+
 ## 2.6.0 (2022-10-25)
 
 ### New features

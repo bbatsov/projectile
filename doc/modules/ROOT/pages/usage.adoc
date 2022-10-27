@@ -379,3 +379,17 @@ You can add additional commands to the commander like this:
 ----
 
 Place such snippets after ``projectile-mode``'s init code.
+
+== Using Projectile with project.el
+
+Starting with version 2.7 Projectile bundles some integration with
+`project.el` that makes `project.el` use by default Projectile's
+project lookup function (`projectile-project-root`) and project file
+lookup function (`projectile-project-files`).
+
+That's useful as some packages (e.g. `eglot`) support natively only
+`project.el`'s API for project discovery. Fortunately, `project.el`
+makes it easy to install additional project lookup functions and that's
+exactly what Projectile does.
+
+TIP: You can read more about the integration https://github.com/bbatsov/projectile/issues/1591[here].
