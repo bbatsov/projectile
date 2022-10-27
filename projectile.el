@@ -6000,7 +6000,7 @@ Otherwise behave as if called interactively.
 (cl-defmethod project-root ((project (head projectile)))
   (cdr project))
 
-(cl-defmethod project-files ((project (head projectile)) &optional dirs)
+(cl-defmethod project-files ((project (head projectile)) &optional _dirs)
   (let ((root (project-root project)))
     ;; Make paths absolute and ignore the optional dirs argument,
     ;; see https://github.com/bbatsov/projectile/issues/1591#issuecomment-896423965
