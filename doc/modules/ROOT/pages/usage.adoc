@@ -391,9 +391,16 @@ Starting with version 2.7 Projectile bundles some integration with
 project lookup function (`projectile-project-root`) and project file
 lookup function (`projectile-project-files`).
 
+TIP: You can read more about the integration https://github.com/bbatsov/projectile/issues/1591[here].
+
 That's useful as some packages (e.g. `eglot`) support natively only
 `project.el`'s API for project discovery. Fortunately, `project.el`
 makes it easy to install additional project lookup functions and that's
 exactly what Projectile does.
 
-TIP: You can read more about the integration https://github.com/bbatsov/projectile/issues/1591[here].
+The popular `xref` package also relies on `project.el` to infers the project
+for use commands like `xref-find-references` (kbd:[M-?]), so it's useful to teach it
+about Projectile's project discovery logic.
+
+TIP: Projectile provides its own alternative to `xref-find-references` that's named
+`projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s-x]) and is using `xref` internally.
