@@ -4216,6 +4216,16 @@ installed to work."
                    args))
           (t (error "Packages `ripgrep' and `rg' are not available")))))
 
+(defun projectile-find-references (&optional symbol)
+  "Find all references to SYMBOL in the current project.
+
+A thin wrapper around `xref-references-in-directory'."
+  (interactive)
+  (when (fboundp 'xref-references-in-directory)
+    (let ((project-root (projectile-acquire-root))
+          (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point)))))
+      (xref--show-xrefs (xref-references-in-directory symbol project-root) nil))))
+
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
   (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
@@ -5815,6 +5825,7 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "5 t") #'projectile-find-implementation-or-test-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
+    (define-key map (kbd "?") #'projectile-find-references)
     (define-key map (kbd "a") #'projectile-find-other-file)
     (define-key map (kbd "b") #'projectile-switch-to-buffer)
     (define-key map (kbd "d") #'projectile-find-dir)
@@ -5838,6 +5849,7 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "s g") #'projectile-grep)
     (define-key map (kbd "s r") #'projectile-ripgrep)
     (define-key map (kbd "s s") #'projectile-ag)
+    (define-key map (kbd "s x") #'projectile-find-references)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
     (define-key map (kbd "T") #'projectile-find-test-file)
@@ -5912,7 +5924,8 @@ thing shown in the mode line otherwise."
          ["Search with ag" projectile-ag]
          ["Search with ripgrep" projectile-ripgrep]
          ["Replace in project" projectile-replace]
-         ["Multi-occur in project" projectile-multi-occur])
+         ["Multi-occur in project" projectile-multi-occur]
+         ["Find references in project" projectile-find-references])
         ("Run..."
          ["Run shell" projectile-run-shell]
          ["Run eshell" projectile-run-eshell]
