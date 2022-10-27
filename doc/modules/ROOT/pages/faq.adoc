@@ -27,6 +27,13 @@ yourselves.
 One under-appreciated advantage of Projectile is that it has way more documentation.
 Okay, that's only an advantage if you're one of those rare people who enjoy reading it.
 
+== Does Projectile provide any integration with `project.el`?
+
+Starting with Projectile 2.7, Projectile will plug automatically its
+project discovery functions in `project.el`. You can find more
+information on the subject in the xref:usage.adoc["Usage"] section of
+the documentation.
+
 == Does Projectile work with TRAMP?
 
 Yeah, it does. I don't use TRAMP myself, however, so I never paid that
