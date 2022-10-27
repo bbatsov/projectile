@@ -74,6 +74,7 @@ You need to know only a handful of Projectile commands to start benefiting from 
 * Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q])
 * Grep (search for text/regexp) in project (kbd:[s-p s g])
 * Replace in project (kbd:[s-p r])
+* Find references in project (kbd:[s-p ?] or kbd:[s-p s x])
 * Invoke any Projectile command via the Projectile Commander (kbd:[s-p m])
 * Toggle between implementation and test (kbd:[s-p t])
 * Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`) (kbd:[s-p a])
@@ -141,6 +142,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p s r]
 | Runs `rg` (`ripgrep`) on the project, performing a literal search. Requires the presence of `rg.el` or `ripgrep.el`. With a prefix argument it will perform a regex search.
+
+| kbd:[s-p s x]
+| Find references to the symbol at point within the project. Uses internally the `xref` library.
 
 | kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
