@@ -754,6 +754,42 @@ you e.g. test a command-line program with `projectile-run-project`.
 (setq projectile-comint-mode t)
 ----
 
+== Project Buffers
+
+Projectile offers a bunch of operations that are operating on the open buffers
+for some project (e.g. `projectile-kill-buffers`). One tricky part here are
+"special buffers" - basically buffers that are not backed by files
+(e.g. `+*dired*+`, `+*scratch+*` and so on). Projectile determines whether a
+special buffer belongs to a project simply by checking the `default-directory`
+for the special buffer, which admittedly might result in some weird results
+(e.g. if you've created a special buffer that's not related to a project, while
+visiting a file belonging to the project).
+
+That's why Projectile has a couple of configuration options for dealing with
+project buffers - namely `projectile-globally-ignored-buffers` and
+`projectile-globally-ignored-modes`. Both of them take a list of strings or
+regular expressions that will be used to match against a buffer's name or a
+buffer's major mode.
+
+Here are a couple of examples:
+
+[source,elisp]
+----
+;; ignoring specific buffers by name
+(setq projectile-globally-ignored-buffers
+  '("*scratch*"
+    "*lsp-log*"))
+
+;; ignoring buffers by their major mode
+(setq projectile-globally-ignored-modes
+  '("erc-mode"
+    "help-mode"
+    "completion-list-mode"
+    "Buffer-menu-mode"
+    "gnus-.*-mode"
+    "occur-mode"))
+----
+
 == Configure a Project's Lifecycle Commands and Other Attributes
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
