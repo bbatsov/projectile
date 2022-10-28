@@ -391,10 +391,10 @@ Starting with version 2.7 Projectile bundles some integration with
 project lookup function (`projectile-project-root`) and project file
 lookup function (`projectile-project-files`).
 
-TIP: You can read more about the integration https://github.com/bbatsov/projectile/issues/1591[here].
+TIP: You can read more about the implementation details of the integration https://github.com/bbatsov/projectile/issues/1591[here].
 
 That's useful as some packages (e.g. `eglot`) support natively only
-`project.el`'s API for project discovery. Fortunately, `project.el`
+``project.el``'s API for project discovery. Fortunately, `project.el`
 makes it easy to install additional project lookup functions and that's
 exactly what Projectile does.
 
