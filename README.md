@@ -35,10 +35,14 @@ Here are some of Projectile's features:
 * jump to recently visited files in the project
 * switch between projects you have worked on
 * kill (close) all project buffers
-* replace in project
 * grep (search) in project
+* replace in project
+* find references in project (using `xref` internally)
 * run shell commands in a project (e.g. `make`, `lein`)
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
+* integration with the built-in `project.el` library
+
+There's also a rich ecosystem of third-party [Projectile extensions](https://melpa.org/#/?q=projectile) that add even more features.
 
 ---------------
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
