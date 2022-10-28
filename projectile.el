@@ -4193,7 +4193,7 @@ installed to work."
 A thin wrapper around `xref-references-in-directory'."
   (interactive)
   (when (and (fboundp 'xref-references-in-directory)
-             (fboundp 'xref--show-refs))
+             (fboundp 'xref--show-xrefs))
     (let ((project-root (projectile-acquire-root))
           (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point)))))
       (xref--show-xrefs (xref-references-in-directory symbol project-root) nil))))
