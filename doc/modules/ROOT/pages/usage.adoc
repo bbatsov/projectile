@@ -398,9 +398,9 @@ That's useful as some packages (e.g. `eglot`) support natively only
 makes it easy to install additional project lookup functions and that's
 exactly what Projectile does.
 
-The popular `xref` package also relies on `project.el` to infers the project
-for use commands like `xref-find-references` (kbd:[M-?]), so it's useful to teach it
-about Projectile's project discovery logic.
+The popular `xref` package also relies on `project.el` to infer the project for
+helpful commands like `xref-find-references` (kbd:[M-?]), so it's useful to teach
+it about Projectile's project discovery logic.
 
 TIP: Projectile provides its own alternative to `xref-find-references` that's named
 `projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s-x]) and is using `xref` internally.
