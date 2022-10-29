@@ -6025,7 +6025,7 @@ Otherwise behave as if called interactively.
     ;; and project.el expects them to be absolute.
     ;; FIXME: That's probably going to be very slow in large projects.
     (mapcar (lambda (f)
-              (concat f root))
+              (concat root f))
             (projectile-project-files root))))
 
 (defun project-projectile (dir)
