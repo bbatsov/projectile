@@ -2438,7 +2438,8 @@ Parameters MODE VARIABLE VALUE are passed directly to `add-dir-local-variable'."
 (defun projectile-delete-dir-local-variable (mode variable)
   "Run `delete-dir-local-variable' with .dir-locals.el in root of project.
 
-Parameters MODE VARIABLE VALUE are passed directly to `delete-dir-local-variable'."
+Parameters MODE VARIABLE VALUE are passed directly to
+`delete-dir-local-variable'."
   (let ((inhibit-read-only t)
         (default-directory (projectile-acquire-root)))
     (delete-dir-local-variable mode variable)
