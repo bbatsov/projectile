@@ -291,10 +291,26 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
        :to-throw))))
 
 (describe "projectile-project-type"
+  :var ((dir default-directory))
   (it "detects the type of Projectile's project"
     (expect (projectile-project-type) :to-equal 'emacs-eldev))
   (it "caches the project type"
-    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-eldev)))
+    (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-eldev))
+  (it "detects the type of Projectile's project when it is passed as args"
+    (projectile-test-with-sandbox
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-project-type dir) :to-equal 'emacs-eldev))))
+  (describe "override by projectile-project-type"
+    (it "is respected when no DIR is passed"
+      (let ((projectile-project-type 'python-poetry))
+        (expect projectile-project-type :to-equal 'python-poetry)))
+    (it "has no effect when DIR is passed"
+      (projectile-test-with-sandbox
+        (let ((projectile-project-type 'python-poetry))
+          (expect (projectile-project-type dir) :to-equal 'emacs-eldev))))))
+
+
+
 
 (describe "projectile-ignored-directory-p"
   (it "checks if directory should be ignored"
