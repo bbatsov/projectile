@@ -2940,20 +2940,26 @@ files such as test/impl/other files as below:
                           (t (error "Precedence must be one of '(high low)"))))
                 (mapcar #'project-map projectile-project-types))))))
 
-(defun projectile-cabal-project-p ()
-  "Check if a project contains *.cabal files but no stack.yaml file."
-  (and (projectile-verify-file-wildcard "?*.cabal")
-       (not (projectile-verify-file "stack.yaml"))))
+(defun projectile-cabal-project-p (&optional dir)
+  "Check if a project contains *.cabal files but no stack.yaml file.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (and (projectile-verify-file-wildcard "?*.cabal" dir)
+       (not (projectile-verify-file "stack.yaml" dir))))
 
-(defun projectile-dotnet-project-p ()
-  "Check if a project contains a .NET project marker."
-  (or (projectile-verify-file-wildcard "?*.csproj")
-      (projectile-verify-file-wildcard "?*.fsproj")))
+(defun projectile-dotnet-project-p (&optional dir)
+  "Check if a project contains a .NET project marker.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file-wildcard "?*.csproj" dir)
+      (projectile-verify-file-wildcard "?*.fsproj" dir)))
 
-(defun projectile-go-project-p ()
-  "Check if a project contains Go source files."
-  (or (projectile-verify-file "go.mod")
-      (projectile-verify-file-wildcard "*.go")))
+(defun projectile-go-project-p (&optional dir)
+  "Check if a project contains Go source files.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file "go.mod" dir)
+      (projectile-verify-file-wildcard "*.go" dir)))
 
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
@@ -3380,8 +3386,8 @@ a manual COMMAND-TYPE command is created with
                                   :compile "cask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
-(projectile-register-project-type 'emacs-eldev (lambda () (or (projectile-verify-file "Eldev")
-                                                              (projectile-verify-file "Eldev-local")))
+(projectile-register-project-type 'emacs-eldev (lambda (&optional dir) (or (projectile-verify-file "Eldev" dir)
+                                                                      (projectile-verify-file "Eldev-local" dir)))
                                   :project-file "Eldev"
                                   :compile "eldev compile"
                                   :test "eldev test"
@@ -3446,7 +3452,7 @@ Fallsback to a generic project type when the type can't be determined."
                      (let ((project-type (car project-type-record))
                            (marker (plist-get (cdr project-type-record) 'marker-files)))
                        (if (functionp marker)
-                           (and (funcall marker) project-type)
+                           (and (funcall marker dir) project-type)
                          (and (projectile-verify-files marker dir) project-type))))
                    projectile-project-types))
              'generic)))
@@ -3485,10 +3491,12 @@ When DIR is specified it checks DIR's project, otherwise
 it acts on the current project."
   (file-exists-p (projectile-expand-root file dir)))
 
-(defun projectile-verify-file-wildcard (file)
+(defun projectile-verify-file-wildcard (file &optional dir)
   "Check whether FILE exists in the current project.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project.
 Expands wildcards using `file-expand-wildcards' before checking."
-  (file-expand-wildcards (projectile-expand-root file)))
+  (file-expand-wildcards (projectile-expand-root file dir)))
 
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
