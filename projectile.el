@@ -2940,6 +2940,13 @@ files such as test/impl/other files as below:
                           (t (error "Precedence must be one of '(high low)"))))
                 (mapcar #'project-map projectile-project-types))))))
 
+(defun projectile-eldev-project-p (&optional dir)
+  "Check if a project contains eldev files.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file "Eldev" dir)
+      (projectile-verify-file "Eldev-local" dir)))
+
 (defun projectile-cabal-project-p (&optional dir)
   "Check if a project contains *.cabal files but no stack.yaml file.
 When DIR is specified it checks DIR's project, otherwise
@@ -3386,8 +3393,7 @@ a manual COMMAND-TYPE command is created with
                                   :compile "cask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
-(projectile-register-project-type 'emacs-eldev (lambda (&optional dir) (or (projectile-verify-file "Eldev" dir)
-                                                                      (projectile-verify-file "Eldev-local" dir)))
+(projectile-register-project-type 'emacs-eldev #'projectile-eldev-project-p
                                   :project-file "Eldev"
                                   :compile "eldev compile"
                                   :test "eldev test"
