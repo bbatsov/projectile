@@ -2427,27 +2427,23 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 (defun projectile-add-dir-local-variable (mode variable value)
   "Run `add-dir-local-variable' with .dir-locals.el in root of project.
 
-Parameters MODE VARIABLE VALUE are passed directly to `add-dir-local-variable'"
+Parameters MODE VARIABLE VALUE are passed directly to `add-dir-local-variable'."
   (let ((inhibit-read-only t)
-        (default-directory (projectile-project-root)))
-    (unless default-directory
-      (error "Setting dir-local variable in non-existing projectile project was requested"))
+        (default-directory (projectile-acquire-root)))
     (add-dir-local-variable mode variable value)
     (save-buffer)
-    (kill-buffer) ))
+    (kill-buffer)))
 
 ;;;###autoload
 (defun projectile-delete-dir-local-variable (mode variable)
   "Run `delete-dir-local-variable' with .dir-locals.el in root of project.
 
-Parameters MODE VARIABLE VALUE are passed directly to `delete-dir-local-variable'"
+Parameters MODE VARIABLE VALUE are passed directly to `delete-dir-local-variable'."
   (let ((inhibit-read-only t)
-        (default-directory (projectile-project-root)))
-    (unless default-directory
-      (error "Setting dir-local variable in non-existing projectile project was requested"))
+        (default-directory (projectile-acquire-root)))
     (delete-dir-local-variable mode variable)
     (save-buffer)
-    (kill-buffer) ))
+    (kill-buffer)))
 
 
 ;;;; Sorting project files
