@@ -404,3 +404,10 @@ it about Projectile's project discovery logic.
 
 TIP: Projectile provides its own alternative to `xref-find-references` that's named
 `projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s-x]) and is using `xref` internally.
+
+You can disable the `project.el` integration like this:
+
+[source,elisp]
+----
+(remove-hook 'project-find-functions #'project-projectile)
+----
