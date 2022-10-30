@@ -35,16 +35,20 @@ Here are some of Projectile's features:
 * jump to recently visited files in the project
 * switch between projects you have worked on
 * kill (close) all project buffers
-* replace in project
 * grep (search) in project
+* replace in project
+* find references in project (using `xref` internally)
 * run shell commands in a project (e.g. `make`, `lein`)
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
+* integration with the built-in `project.el` library
+
+There's also a rich ecosystem of third-party [Projectile extensions](https://melpa.org/#/?q=projectile) that add even more features.
 
 ---------------
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 [![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=GRQKNBM6P8VRQ)
 
-I've been developing Projectile for a decade now (since 2011). While it's a fun
+I've been developing Projectile for over a decade now (since 2011). While it's a fun
 project to work on, it still requires a lot of time and energy to
 maintain.
 
@@ -106,10 +110,15 @@ Enable `projectile-mode`, open a file in one of your projects and type a command
 
 See the [online documentation](https://docs.projectile.mx) for more details.
 
+To get the most of Projectile you also need to enable (and potentially install) some minibuffer completion framework (e.g. `ido`, `ivy` or `selectrum`). See [this section](https://docs.projectile.mx/projectile/configuration.html#completion-options) of the documentation for more details.
+
+**Note:** Historically `projectile-completion-system` defaulted to `ido`, but this was changed in version 2.3. You may need to enable `ido-mode` in your Emacs configuration if updating from an older version of Projectile.
+
 ## Caveats
 
 * Some operations like search (grep) depend (presently) on external
-  utilities such as `find`.
+  utilities such as `find` or `fd` (version 8.3.0+).
+  * for older `fd` version add `(setq projectile-generic-command "fd . -0 --type f --color=never")` to your init-file
 * Commands depending on external utilities might misbehave on the `fish` shell.
 * Using Projectile over TRAMP might be slow in certain cases.
 * Some commands might misbehave on complex project setups (e.g. a git project with submodules).
@@ -137,7 +146,7 @@ A fairly extensive changelog is available [here](CHANGELOG.md).
 
 ## License
 
-Copyright © 2011-2021 Bozhidar Batsov and
+Copyright © 2011-2022 Bozhidar Batsov and
 [contributors](https://github.com/bbatsov/projectile/contributors).
 
 Distributed under the GNU General Public License, version 3

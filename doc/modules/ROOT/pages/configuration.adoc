@@ -14,14 +14,12 @@ known as the `native indexing method`) and the other two (`hybrid` and
 `alien`) rely on external commands like `find`, `git`, etc to
 obtain the list of files in a project.
 
-The `alien` indexing method optimizes to the limit the speed of
-the `hybrid` indexing method.  This means that Projectile will not do
-any processing or sorting of the files returned by the external commands
-and you're going to get the maximum performance possible.  This behaviour
-makes a lot of sense for most people, as they'd typically be putting
-ignores in their VCS config (e.g. `.gitignore`) and won't care about
-any additional ignores/unignores/sorting that Projectile might also
-provide.
+The `alien` indexing method maximizes the speed of the `hybrid` indexing
+method.  This means that Projectile will not do any processing or sorting
+of the files returned by the external commands and you're going to get
+the maximum performance possible.  This behaviour makes a lot of sense for
+most people, as they'd typically be putting ignores in their VCS config (e.g. `.gitignore`) and won't care about any additional ignores/unignores/sorting
+that Projectile might also provide.
 
 NOTE: By default the `alien` method is used on all operating systems except Windows.
  Prior to Projectile 2.0 `hybrid` used to be the default (but to make things
@@ -293,7 +291,7 @@ With this setting, after selecting a project to switch to, you'll be prompted to
 | Run multi-occur on project buffers.
 
 | kbd:[r]
-| Replace a string in the project.
+| Replace a string in the project (running with kbd:[C-u] will allow users to select file name patterns and extensions).
 
 | kbd:[s]
 | Switch project.

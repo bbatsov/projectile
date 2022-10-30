@@ -185,7 +185,7 @@ Let's see a couple of more complex examples.
 ;; Ruby + Minitest
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
                                   :project-file "Gemfile"
-                                  :compile"bundle exec rake"
+                                  :compile "bundle exec rake"
                                   :src-dir "lib/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
@@ -210,7 +210,7 @@ Let's see a couple of more complex examples.
 
 All those projects are using `Gemfile` (``bundler``'s project file), but they have different directory structures.
 
-Bellow is a listing of all the available options for `projectile-register-project-type`:
+Below is a listing of all the available options for `projectile-register-project-type`:
 
 |===
 | Option | Documentation
@@ -475,11 +475,12 @@ You can also edit specific options of already existing project types:
  :related-files-fn
  (list
   (projectile-related-files-fn-test-with-suffix "scala" "Spec")
-  (projectile-related-files-fn-test-with-suffix "scala" "Test")))
+  (projectile-related-files-fn-test-with-suffix "scala" "Test"))
+ :test-prefix nil
+ :precedence 'high)
 ----
 
-This will keep all existing options for the `sbt` project type, but change the value of the `related-files-fn` option.
-
+This will change the value of the `related-files-fn` option, remove the `test-prefix` option and `:precedence 'high` sets the sbt project type to be chosen in preference to other potentially clashing project types (a value `'low` would do the opposite).
 
 === `:test-dir`/`:src-dir` vs `:related-files-fn`
 
@@ -562,7 +563,7 @@ precedence with respect to project detection. Let's examine the defaults:
 
 * `projectile-root-local` looks for project path set via the buffer-local variable `projectile-project-root`. Typically you'd set this variable via `.dir-locals.el` and it will take precedence over everything else.
 
-* `projectile-root-bottom-up` will start looking for a project marker file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will return the first match it discovers. The assumption is pretty simple - the root marker appear only once, at the root folder of a project. If a root marker appear in several nested folders (e.g. you've got nested git projects), the bottom-most (closest to the current dir) match has precedence. You can customize the root markers recognized by this function via `projectile-project-root-functions`
+* `projectile-root-bottom-up` will start looking for a project marker file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will return the first match it discovers. The assumption is pretty simple - the root marker appear only once, at the root folder of a project. If a root marker appear in several nested folders (e.g. you've got nested git projects), the bottom-most (closest to the current dir) match has precedence. You can customize the root markers recognized by this function via `projectile-project-root-files-bottom-up`
 
 * `projectile-root-top-down` is similar, but it will return the top-most (farthest from the current directory) match. It's configurable via `projectile-project-root-files` and all project manifest markers like `pom.xml`, `Gemfile`, `project.clj`, etc go there.
 
@@ -700,7 +701,8 @@ function.  It could also be used to e.g. add such a function to a key
 map.
 
 TIP: You can also quickly visit or create the `dir-locals-file` with
-kbd:[s-p E] (kbd:[M-x] `projectile-edit-dir-locals` kbd:[RET]).
+kbd:[s-p E] (kbd:[M-x] `projectile-edit-dir-locals` kbd:[RET]). 3rd party packages may use functions `projectile-add-dir-local-variable`
+and `projectile-delete-dir-local-variable` to store their settings.
 
 Here are a few examples of how to use this feature with Projectile.
 
@@ -753,7 +755,43 @@ you e.g. test a command-line program with `projectile-run-project`.
 (setq projectile-comint-mode t)
 ----
 
-== Configure a Project's Lifecycle Commands
+== Project Buffers
+
+Projectile offers a bunch of operations that are operating on the open buffers
+for some project (e.g. `projectile-kill-buffers`). One tricky part here are
+"special buffers" - basically buffers that are not backed by files
+(e.g. `+*dired*+`, `+*scratch+*` and so on). Projectile determines whether a
+special buffer belongs to a project simply by checking the `default-directory`
+for the special buffer, which admittedly might result in some weird results
+(e.g. if you've created a special buffer that's not related to a project, while
+visiting a file belonging to the project).
+
+That's why Projectile has a couple of configuration options for dealing with
+project buffers - namely `projectile-globally-ignored-buffers` and
+`projectile-globally-ignored-modes`. Both of them take a list of strings or
+regular expressions that will be used to match against a buffer's name or a
+buffer's major mode.
+
+Here are a couple of examples:
+
+[source,elisp]
+----
+;; ignoring specific buffers by name
+(setq projectile-globally-ignored-buffers
+  '("*scratch*"
+    "*lsp-log*"))
+
+;; ignoring buffers by their major mode
+(setq projectile-globally-ignored-modes
+  '("erc-mode"
+    "help-mode"
+    "completion-list-mode"
+    "Buffer-menu-mode"
+    "gnus-.*-mode"
+    "occur-mode"))
+----
+
+== Configure a Project's Lifecycle Commands and Other Attributes
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
 
@@ -763,6 +801,11 @@ There are a few variables that are intended to be customized via `.dir-locals.el
 * for installation - `projectile-project-install-cmd`
 * for packaging - `projectile-project-package-cmd`
 * for running - `projectile-project-run-cmd`
+* for configuring the test prefix - `projectile-project-test-prefix`
+* for configuring the test suffix - `projectile-project-test-suffix`
+* for configuring the related-files-fn property - `projectile-project-related-files-fn`
+* for configuring the src-dir property - `projectile-project-src-dir`
+* for configuring the test-dir property - `projectile-project-test-dir`
 
 When these variables have their default value of `nil`, Projectile
 runs the default command for the current project type.  You can
@@ -774,5 +817,6 @@ external command or an Emacs Lisp function:
 (setq projectile-test-cmd #'custom-test-function)
 ----
 
-3rd party packages may use functions `projectile-add-dir-local-variable`
-and `projectile-delete-dir-local-variable` to store their settings.
+In addition caching of commands can be disabled by setting the variable
+`projectile-project-enable-cmd-caching` is to `nil`. This is useful for
+preset-based CMake projects.
