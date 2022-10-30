@@ -701,7 +701,8 @@ function.  It could also be used to e.g. add such a function to a key
 map.
 
 TIP: You can also quickly visit or create the `dir-locals-file` with
-kbd:[s-p E] (kbd:[M-x] `projectile-edit-dir-locals` kbd:[RET]).
+kbd:[s-p E] (kbd:[M-x] `projectile-edit-dir-locals` kbd:[RET]). 3rd party packages may use functions `projectile-add-dir-local-variable`
+and `projectile-delete-dir-local-variable` to store their settings.
 
 Here are a few examples of how to use this feature with Projectile.
 
