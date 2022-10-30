@@ -6,9 +6,7 @@
 
 * [#1591](https://github.com/bbatsov/projectile/issues/1591): Add `project.el` integration that will make Projectile the default provider for project lookup.
 * Add new command `projectile-find-references` (bound to `C-c C-p ?` and `C-c C-p s x`).
-* Add helpers for `dir-local-variables` for 3rd party use.
-  Functions `projectile-add-dir-local-variable` and `projectile-delete-dir-local-variable`
-  wraps their built-in counterparts. They always use `.dir-locals.el` from root of projectile project.
+* [#1737](https://github.com/bbatsov/projectile/pull/1737): Add helpers for `dir-local-variables` for 3rd party use. Functions `projectile-add-dir-local-variable` and `projectile-delete-dir-local-variable` wrap their built-in counterparts. They always use `.dir-locals.el` from the root of the current Projectile project.
 
 ### Bug fixed
 
