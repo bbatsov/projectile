@@ -1980,12 +1980,14 @@ prefix the string will be assumed to be an ignore string."
             (mapcar #'string-trim
                     (delete "" (reverse ensure)))))))
 
-(defun projectile-expand-root (name)
+(defun projectile-expand-root (name &optional dir)
   "Expand NAME to project root.
+When DIR is specified it uses DIR's project, otherwise it acts
+on the current project.
 
 Never use on many files since it's going to recalculate the
 project-root for every file."
-  (expand-file-name name (projectile-project-root)))
+  (expand-file-name name (projectile-project-root dir)))
 
 (cl-defun projectile-completing-read (prompt choices &key initial-input action)
   "Present a project tailored PROMPT with CHOICES."
@@ -2938,20 +2940,33 @@ files such as test/impl/other files as below:
                           (t (error "Precedence must be one of '(high low)"))))
                 (mapcar #'project-map projectile-project-types))))))
 
-(defun projectile-cabal-project-p ()
-  "Check if a project contains *.cabal files but no stack.yaml file."
-  (and (projectile-verify-file-wildcard "?*.cabal")
-       (not (projectile-verify-file "stack.yaml"))))
+(defun projectile-eldev-project-p (&optional dir)
+  "Check if a project contains eldev files.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file "Eldev" dir)
+      (projectile-verify-file "Eldev-local" dir)))
 
-(defun projectile-dotnet-project-p ()
-  "Check if a project contains a .NET project marker."
-  (or (projectile-verify-file-wildcard "?*.csproj")
-      (projectile-verify-file-wildcard "?*.fsproj")))
+(defun projectile-cabal-project-p (&optional dir)
+  "Check if a project contains *.cabal files but no stack.yaml file.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (and (projectile-verify-file-wildcard "?*.cabal" dir)
+       (not (projectile-verify-file "stack.yaml" dir))))
 
-(defun projectile-go-project-p ()
-  "Check if a project contains Go source files."
-  (or (projectile-verify-file "go.mod")
-      (projectile-verify-file-wildcard "*.go")))
+(defun projectile-dotnet-project-p (&optional dir)
+  "Check if a project contains a .NET project marker.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file-wildcard "?*.csproj" dir)
+      (projectile-verify-file-wildcard "?*.fsproj" dir)))
+
+(defun projectile-go-project-p (&optional dir)
+  "Check if a project contains Go source files.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file "go.mod" dir)
+      (projectile-verify-file-wildcard "*.go" dir)))
 
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
@@ -3378,8 +3393,7 @@ a manual COMMAND-TYPE command is created with
                                   :compile "cask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
-(projectile-register-project-type 'emacs-eldev (lambda () (or (projectile-verify-file "Eldev")
-                                                              (projectile-verify-file "Eldev-local")))
+(projectile-register-project-type 'emacs-eldev #'projectile-eldev-project-p
                                   :project-file "Eldev"
                                   :compile "eldev compile"
                                   :test "eldev test"
@@ -3432,8 +3446,11 @@ a manual COMMAND-TYPE command is created with
 Normally you'd set this from .dir-locals.el.")
 (put 'projectile-project-type 'safe-local-variable #'symbolp)
 
-(defun projectile-detect-project-type ()
-  "Detect the type of the current project.
+(defun projectile-detect-project-type (&optional dir)
+  "Detect the type of the project.
+When DIR is specified it detects its project type, otherwise it acts
+on the current project.
+
 Fallsback to a generic project type when the type can't be determined."
   (let ((project-type
          (or (car (cl-find-if
@@ -3441,11 +3458,11 @@ Fallsback to a generic project type when the type can't be determined."
                      (let ((project-type (car project-type-record))
                            (marker (plist-get (cdr project-type-record) 'marker-files)))
                        (if (functionp marker)
-                           (and (funcall marker) project-type)
-                         (and (projectile-verify-files marker) project-type))))
+                           (and (funcall marker dir) project-type)
+                         (and (projectile-verify-files marker dir) project-type))))
                    projectile-project-types))
              'generic)))
-    (puthash (projectile-project-root) project-type projectile-project-type-cache)
+    (puthash (projectile-project-root dir) project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type (&optional dir)
@@ -3454,15 +3471,10 @@ When DIR is specified it checks it, otherwise it acts
 on the current project.
 
 The project type is cached for improved performance."
-  (if projectile-project-type
-      projectile-project-type
-    (let* ((dir (or dir default-directory))
-           (project-root (projectile-project-root dir)))
-      (if project-root
+  (or (and (not dir) projectile-project-type)
+      (if-let ((project-root (projectile-project-root dir)))
           (or (gethash project-root projectile-project-type-cache)
-              (projectile-detect-project-type))
-        ;; if we're not in a project we just return nil
-        nil))))
+              (projectile-detect-project-type dir)))))
 
 ;;;###autoload
 (defun projectile-project-info ()
@@ -3473,18 +3485,24 @@ The project type is cached for improved performance."
            (projectile-project-vcs)
            (projectile-project-type)))
 
-(defun projectile-verify-files (files)
-  "Check whether all FILES exist in the current project."
-  (cl-every #'projectile-verify-file files))
+(defun projectile-verify-files (files &optional dir)
+  "Check whether all FILES exist in the project.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (cl-every #'(lambda (file) (projectile-verify-file file dir)) files))
 
-(defun projectile-verify-file (file)
-  "Check whether FILE exists in the current project."
-  (file-exists-p (projectile-expand-root file)))
-
-(defun projectile-verify-file-wildcard (file)
+(defun projectile-verify-file (file &optional dir)
   "Check whether FILE exists in the current project.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (file-exists-p (projectile-expand-root file dir)))
+
+(defun projectile-verify-file-wildcard (file &optional dir)
+  "Check whether FILE exists in the current project.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project.
 Expands wildcards using `file-expand-wildcards' before checking."
-  (file-expand-wildcards (projectile-expand-root file)))
+  (file-expand-wildcards (projectile-expand-root file dir)))
 
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
