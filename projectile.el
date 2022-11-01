@@ -5876,13 +5876,14 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "L") #'projectile-install-project)
     (define-key map (kbd "P") #'projectile-test-project)
     (define-key map (kbd "u") #'projectile-run-project)
-    ;; utilities
+    ;; integration with utilities
     (define-key map (kbd "x e") #'projectile-run-eshell)
     (define-key map (kbd "x i") #'projectile-run-ielm)
     (define-key map (kbd "x t") #'projectile-run-term)
     (define-key map (kbd "x s") #'projectile-run-shell)
     (define-key map (kbd "x g") #'projectile-run-gdb)
     (define-key map (kbd "x v") #'projectile-run-vterm)
+    ;; misc
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
     (define-key map (kbd "<right>") #'projectile-next-project-buffer)
@@ -5918,6 +5919,7 @@ thing shown in the mode line otherwise."
          ["Switch to open project" projectile-switch-open-project]
          "--"
          ["Discover projects in directory" projectile-discover-projects-in-directory]
+         ["Discover projects in search path" projectile-discover-projects-in-search-path]
          ["Clear known projects" projectile-clear-known-projects]
          ["Reset known projects" projectile-reset-known-projects]
          "--"
