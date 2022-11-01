@@ -28,7 +28,6 @@ Recursive discovery is configured by specifying the search depth in a cons cell:
 (setq projectile-project-search-path '("~/projects/" "~/work/" ("~/github" . 1)))
 ----
 
-
 You can suppress the auto-discovery of projects on startup by setting
 `projectile-auto-discover` to `nil`. You can manually trigger the project
 discovery using `M-x projectile-discover-projects-in-search-path`.
