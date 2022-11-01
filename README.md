@@ -40,6 +40,7 @@ Here are some of Projectile's features:
 * find references in project (using `xref` internally)
 * run shell commands in a project (e.g. `make`, `lein`)
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
+* automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
 
 There's also a rich ecosystem of third-party [Projectile extensions](https://melpa.org/#/?q=projectile) that add even more features.

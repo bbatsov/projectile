@@ -52,6 +52,7 @@ Here are some of Projectile's features in no particular order:
 * run `make` in a project with a single key chord
 * browse dirty version controlled projects
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
+* automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
 
 There's also a rich ecosystem of third-party xref:extensions[Projectile extensions] that add even more features.
