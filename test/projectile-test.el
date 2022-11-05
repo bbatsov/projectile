@@ -63,7 +63,10 @@ You'd normally combine this with `projectile-test-with-sandbox'."
      ,@(mapcar (lambda (file)
                  (if (string-suffix-p "/" file)
                      `(make-directory ,file t)
-                   `(with-temp-file ,file)))
+                   `(let ((dir (file-name-directory ,file)))
+                      (when dir
+                        (make-directory dir t))
+                      (with-temp-file ,file))))
                files)
      ,@body))
 
@@ -615,25 +618,34 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
   (it "identifies the root directory of a project by bottom-up search"
     (projectile-test-with-sandbox
      (projectile-test-with-files
-      ("projectA/.svn/"
+      ("projectA/.git/"
+       "projectA/.projectile"
+       "projectA/.svn/"
        "projectA/src/.svn/"
-       "projectA/src/html/.svn/"
-       "projectA/.git/"
-       "projectA/src/html/"
-       "projectA/src/framework/lib/"
        "projectA/src/framework/framework.conf"
-       "projectA/src/html/index.html"
-       "projectA/.projectile")
+       "projectA/src/framework/lib/"
+       "projectA/src/html/"
+       "projectA/src/html/.svn/"
+       "projectA/src/html/index.html")
       (expect (projectile-root-bottom-up "projectA/src/framework/lib" '(".git" ".svn"))
+              :to-equal
+              (expand-file-name "projectA/src/"))
+      (expect (projectile-root-bottom-up "projectA/src/framework/lib" '(".git"))
               :to-equal
               (expand-file-name "projectA/"))
       (expect (projectile-root-bottom-up "projectA/src/html" '(".git" ".svn"))
               :to-equal
-              (expand-file-name "projectA/"))
+              (expand-file-name "projectA/src/html/"))
       (expect (projectile-root-bottom-up "projectA/src/html" '(".svn" ".git"))
               :to-equal
               (expand-file-name "projectA/src/html/"))
       (expect (projectile-root-bottom-up "projectA/src/html" '(".projectile" "index.html"))
+              :to-equal
+              (expand-file-name "projectA/src/html/"))
+      (expect (projectile-root-bottom-up "projectA/src/html" '("index.html" ".projectile"))
+              :to-equal
+              (expand-file-name "projectA/src/html/"))
+      (expect (projectile-root-bottom-up "projectA/src/html" '(".projectile"))
               :to-equal
               (expand-file-name "projectA/"))))))
 
