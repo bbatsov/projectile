@@ -1203,8 +1203,13 @@ Return the first (topmost) matched directory or nil if not found."
   "Identify a project root in DIR by bottom-up search for files in LIST.
 If LIST is nil, use `projectile-project-root-files-bottom-up' instead.
 Return the first (bottommost) matched directory or nil if not found."
-  (cl-some (lambda (name) (projectile-locate-dominating-file dir name))
-           (or list projectile-project-root-files-bottom-up)))
+  (projectile-locate-dominating-file
+   dir
+   (lambda (directory)
+     (when (file-readable-p directory)
+       (let ((files (mapcar (lambda (file) (expand-file-name file directory))
+                            (or list projectile-project-root-files-bottom-up))))
+         (cl-some (lambda (file) (and file (file-readable-p file))) files))))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by recurring top-down search for files in LIST.

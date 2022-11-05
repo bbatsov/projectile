@@ -10,6 +10,7 @@
 
 ### Bug fixed
 
+* [#1796](https://github.com/bbatsov/projectile/issues/1796): Fix `projectile-root-bottom-up` doesn’t always find bottom-most file
 * [#1799](https://github.com/bbatsov/projectile/pull/1799): Fix `projectile-open-projects` lists projects for which all buffers are closed.
 * [#1806](https://github.com/bbatsov/projectile/pull/1806): Fix `projectile-project-type` to return the correct project type even when we pass it the DIR arg. As a result of the fix,
 `projectile-expand-root`, `projectile-detect-project-type`, `projectile-verify-files` , `projectile-verify-file` `projectile-verify-file-wildcard`, `projectile-cabal-project-p`,
