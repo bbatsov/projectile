@@ -1206,10 +1206,9 @@ Return the first (bottommost) matched directory or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (directory)
-     (when (file-readable-p directory)
-       (let ((files (mapcar (lambda (file) (expand-file-name file directory))
-                            (or list projectile-project-root-files-bottom-up))))
-         (cl-some (lambda (file) (and file (file-readable-p file))) files))))))
+     (let ((files (mapcar (lambda (file) (expand-file-name file directory))
+                          (or list projectile-project-root-files-bottom-up))))
+       (cl-some (lambda (file) (and file (file-exists-p file))) files)))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by recurring top-down search for files in LIST.
