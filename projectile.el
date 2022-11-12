@@ -321,8 +321,7 @@ See `projectile-register-project-type'."
   :type '(repeat string))
 
 (defcustom projectile-project-root-files-bottom-up
-  '(".projectile" ; projectile project marker
-    ".git"        ; Git VCS root dir
+  '(".git"        ; Git VCS root dir
     ".hg"         ; Mercurial VCS root dir
     ".fslckout"   ; Fossil VCS root dir
     "_FOSSIL_"    ; Fossil VCS root DB on Windows
@@ -351,6 +350,7 @@ containing a root file."
 
 (defcustom projectile-project-root-functions
   '(projectile-root-local
+    projectile-root-marked
     projectile-root-bottom-up
     projectile-root-top-down
     projectile-root-top-down-recurring)
@@ -1198,6 +1198,10 @@ Return the first (topmost) matched directory or nil if not found."
    (lambda (dir)
      (cl-find-if (lambda (f) (projectile-file-exists-p (expand-file-name f dir)))
                  (or list projectile-project-root-files)))))
+
+(defun projectile-root-marked (dir)
+  "Identify a project root in DIR by search for a .projectile file."
+  (projectile-root-bottom-up dir '(".projectile")))
 
 (defun projectile-root-bottom-up (dir &optional list)
   "Identify a project root in DIR by bottom-up search for files in LIST.
