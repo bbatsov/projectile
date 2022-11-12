@@ -165,6 +165,25 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
 
+(describe "projectile-expand-file-name-wildcard"
+  (it "expands a filename not containing wildcards"
+    (expect (projectile-expand-file-name-wildcard "test" "/path/to/project/")
+            :to-equal "/path/to/project/test"))
+  (it "does not try to resolve wildcards if there are none in the pattern"
+    (spy-on 'file-expand-wildcards)
+    (expect (projectile-expand-file-name-wildcard "foo" "/path/to/project/")
+            :to-equal "/path/to/project/foo")
+    (expect (spy-calls-any 'file-expand-wildcards) :to-equal nil))
+  (it "returns the first wildcard result if any exist"
+    (spy-on 'file-expand-wildcards
+            :and-return-value '("/path/to/project/one"
+                                "/path/to/project/two"))
+    (expect (projectile-expand-file-name-wildcard "*" "/path/to/project")
+            :to-equal "/path/to/project/one"))
+  (it "returns the expanded result if the are no wildcard results"
+    (expect (projectile-expand-file-name-wildcard "*" "/path/to/project-b")
+            :to-equal "/path/to/project-b/*")))
+
 (describe "projectile--combine-plists"
  (it "Items in second plist override elements in first"
    (expect (projectile--combine-plists
