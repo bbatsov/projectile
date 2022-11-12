@@ -361,9 +361,17 @@ algorithm."
   :group 'projectile
   :type '(repeat function))
 
+(defcustom projectile-dirconfig-file
+  ".projectile"
+  "The file which serves both as a project marker and configuration file.
+This should _not_ be set via .dir-locals.el."
+  :group 'projectile
+  :type 'file
+  :package-version '(projectile . "2.7.0"))
+
 (defcustom projectile-dirconfig-comment-prefix
   nil
-  "Projectile config file (.projectile) comment start marker.
+  "`projectile-dirconfig-file` comment start marker.
 If specified, starting a line in a project's .projectile file with this
 character marks that line as a comment instead of a pattern.
 Similar to '#' in .gitignore files."
@@ -1200,8 +1208,8 @@ Return the first (topmost) matched directory or nil if not found."
                  (or list projectile-project-root-files)))))
 
 (defun projectile-root-marked (dir)
-  "Identify a project root in DIR by search for a .projectile file."
-  (projectile-root-bottom-up dir '(".projectile")))
+  "Identify a project root in DIR by search for `projectile-dirconfig-file`."
+  (projectile-root-bottom-up dir (list projectile-dirconfig-file)))
 
 (defun projectile-root-bottom-up (dir &optional list)
   "Identify a project root in DIR by bottom-up search for files in LIST.
@@ -1950,7 +1958,7 @@ Unignored files/directories are not included."
 
 (defun projectile-dirconfig-file ()
   "Return the absolute path to the project's dirconfig file."
-  (expand-file-name ".projectile" (projectile-project-root)))
+  (expand-file-name projectile-dirconfig-file (projectile-project-root)))
 
 (defun projectile-parse-dirconfig-file ()
   "Parse project ignore file and return directories to ignore and keep.
