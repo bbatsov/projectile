@@ -1181,7 +1181,7 @@ which we're looking."
                     (null file)
                     (string-match locate-dominating-stop-dir-regexp file)))
       (setq try (if (stringp name)
-                    (projectile-file-exists-p (expand-file-name name file))
+                    (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
                   (funcall name file)))
       (cond (try (setq root file))
             ((equal file (setq file (file-name-directory
@@ -1204,7 +1204,7 @@ Return the first (topmost) matched directory or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
-     (cl-find-if (lambda (f) (projectile-file-exists-p (expand-file-name f dir)))
+     (cl-find-if (lambda (f) (projectile-file-exists-p (projectile-expand-file-name-wildcard f dir)))
                  (or list projectile-project-root-files)))))
 
 (defun projectile-root-marked (dir)
@@ -1232,9 +1232,9 @@ topmost sequence of matched directories.  Nil otherwise."
      (projectile-locate-dominating-file
       dir
       (lambda (dir)
-        (and (projectile-file-exists-p (expand-file-name f dir))
+        (and (projectile-file-exists-p (projectile-expand-file-name-wildcard f dir))
              (or (string-match locate-dominating-stop-dir-regexp (projectile-parent dir))
-                 (not (projectile-file-exists-p (expand-file-name f (projectile-parent dir)))))))))
+                 (not (projectile-file-exists-p (projectile-expand-file-name-wildcard f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root (&optional dir)
@@ -2612,7 +2612,7 @@ PROJECT-ROOT is the project root."
          (when (or paths (null predicates))
            (list :paths (cl-remove-if-not
                          (lambda (f)
-                           (projectile-file-exists-p (expand-file-name f project-root)))
+                           (projectile-file-exists-p (projectile-expand-file-name-wildcard f project-root)))
                          paths)))
          (when predicates
            (list :predicate (if (= 1 (length predicates))
@@ -2806,9 +2806,13 @@ files such as test/impl/other files as below:
                              'test-command test
                              'install-command install
                              'package-command package
-                             'run-command run)))
-    (when (and project-file (not (member project-file projectile-project-root-files)))
-      (add-to-list 'projectile-project-root-files project-file))
+                             'run-command run))
+        (project-files (if (listp project-file)
+                           project-file
+                         (list project-file))))
+    (dolist (project-file project-files)
+      (when (and project-file (not (member project-file projectile-project-root-files)))
+        (add-to-list 'projectile-project-root-files project-file)))
     (when test-suffix
       (plist-put project-plist 'test-suffix test-suffix))
     (when test-prefix
@@ -2962,6 +2966,16 @@ When DIR is specified it checks DIR's project, otherwise
 it acts on the current project."
   (or (projectile-verify-file "Eldev" dir)
       (projectile-verify-file "Eldev-local" dir)))
+
+(defun projectile-expand-file-name-wildcard (name-pattern dir)
+  "Expand the maybe-wildcard-containing NAME-PATTERN in DIR.
+If there are results expanding a wildcard, get the first result,
+otherwise expand NAME-PATTERN in DIR ignoring wildcards."
+  (let ((expanded (expand-file-name name-pattern dir)))
+    (or (if (string-match-p "[[*?]" name-pattern)
+            (car
+             (file-expand-wildcards expanded)))
+        expanded)))
 
 (defun projectile-cabal-project-p (&optional dir)
   "Check if a project contains *.cabal files but no stack.yaml file.

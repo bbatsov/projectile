@@ -162,14 +162,27 @@ initialization code
 What this does is:
 
 . add your own type of project, in this case `npm` package.
-. add a list of files and/or folders in a root of the project that helps to identify the type, in this case it is only `package.json`.
-. add _project-file_, which is typically the primary project configuration file. In this case that's `package.json`.
+. add a list of files and/or folders in a root of the project that helps to identify the type, in this case it is only `package.json`. This can also be a function which takes a project root as argument and verifies whether that directory has the correct project structure for the type.
+. add _project-file_, which is typically the primary project configuration file. In this case that's `package.json`. The value can contain wildcards and/or be a list containing multiple project files to look for.
 . add _compile-command_, in this case it is `npm install`.
 . add _test-command_, in this case it is `npm test`.
 . add _run-command_, in this case it is `npm start`.
 . add test files suffix for toggling between implementation/test files, in this case it is `.spec`, so the implementation/test file pair could be `service.js`/`service.spec.js` for example.
 
 Let's see a couple of more complex examples.
+
+[source,elisp]
+----
+;; .NET C# or F# projects
+(projectile-register-project-type 'dotnet #'projectile-dotnet-project-p
+                                  :project-file '("?*.csproj" "?*.fsproj")
+                                  :compile "dotnet build"
+                                  :run "dotnet run"
+                                  :test "dotnet test")
+----
+
+This example uses _projectile-dotnet-project-p_ to validate the project's structure.
+Since C# and F# project files have names containing the name of the project, it uses a list of wildcards to specify the different valid _project-file_ name patterns.
 
 [source,elisp]
 ----
