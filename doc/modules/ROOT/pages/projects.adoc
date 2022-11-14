@@ -549,6 +549,7 @@ Let's take a closer look at `projectile-project-root-functions`:
 ----
 (defcustom projectile-project-root-functions
   '(projectile-root-local
+    projectile-root-marked
     projectile-root-bottom-up
     projectile-root-top-down
     projectile-root-top-down-recurring)
@@ -562,6 +563,8 @@ order on the list, so the functions earlier in the list will have a higher
 precedence with respect to project detection. Let's examine the defaults:
 
 * `projectile-root-local` looks for project path set via the buffer-local variable `projectile-project-root`. Typically you'd set this variable via `.dir-locals.el` and it will take precedence over everything else.
+
+* `projectile-root-marked` looks for `.projectile` (or whatever you've set as the value of `projectile-dirconfig-file`). The idea is that normally if you have a `.projectile` file you'd like it to override the normal project root discovery logic.
 
 * `projectile-root-bottom-up` will start looking for a project marker file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will return the first match it discovers. The assumption is pretty simple - the root marker appear only once, at the root folder of a project. If a root marker appear in several nested folders (e.g. you've got nested git projects), the bottom-most (closest to the current dir) match has precedence. You can customize the root markers recognized by this function via `projectile-project-root-files-bottom-up`
 
