@@ -9,6 +9,10 @@
 * [#1737](https://github.com/bbatsov/projectile/pull/1737): Add helpers for `dir-local-variables` for 3rd party use. Functions `projectile-add-dir-local-variable` and `projectile-delete-dir-local-variable` wrap their built-in counterparts. They always use `.dir-locals.el` from the root of the current Projectile project.
 * Add a new defcustom (`projectile-dirconfig-file`) controlling the name of the file used as Projectile’s root marker and configuration file.
 
+### Changes
+
+* [#1812](https://github.com/bbatsov/projectile/pull/1812): Add a `projectile-root-marked` function for finding roots marked by `.projectile`. Prioritize `.projectile` above other bottom-up root files.
+
 ### Bug fixed
 
 * [#1796](https://github.com/bbatsov/projectile/issues/1796): Fix `projectile-root-bottom-up` doesn’t always find bottom-most file
