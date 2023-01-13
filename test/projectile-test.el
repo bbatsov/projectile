@@ -26,6 +26,11 @@
 
 ;;; Code:
 
+;; needed for the tests to work with native compilation
+(with-eval-after-load 'comp
+  (push 'insert-file-contents
+        native-comp-never-optimize-functions))
+
 (require 'projectile)
 (require 'buttercup)
 
