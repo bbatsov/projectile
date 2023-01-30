@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+* Add elm project type
+
 ## 2.7.0 (2022-11-22)
 
 ### New features
