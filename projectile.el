@@ -3167,6 +3167,13 @@ a manual COMMAND-TYPE command is created with
 ;;
 ;; Ideally common project types should be checked earlier than exotic ones.
 
+;; Project types with broad marker files
+(projectile-register-project-type 'dotnet-sln '("src")
+                                  :project-file "?*.sln"
+                                  :compile "dotnet build"
+                                  :run "dotnet run"
+                                  :test "dotnet test")
+
 ;; Function-based detection project type
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
                                   :compile "cabal build"
@@ -3175,11 +3182,6 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "Spec")
 (projectile-register-project-type 'dotnet #'projectile-dotnet-project-p
                                   :project-file '("?*.csproj" "?*.fsproj")
-                                  :compile "dotnet build"
-                                  :run "dotnet run"
-                                  :test "dotnet test")
-(projectile-register-project-type 'dotnet-sln '("src")
-                                  :project-file "?*.sln"
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
