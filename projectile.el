@@ -3320,6 +3320,12 @@ a manual COMMAND-TYPE command is created with
                                   :test "poetry run python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
+(projectile-register-project-type 'python-toml '("pyproject.toml")
+                                  :project-file "pyproject.toml"
+                                  :compile "python -m build"
+                                  :test "python -m unittest discover"
+                                  :test-prefix "test_"
+                                  :test-suffix "_test")
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
                                   :project-file "pom.xml"

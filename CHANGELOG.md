@@ -2,7 +2,10 @@
 
 ## master (unreleased)
 
-* Add elm project type
+### New features
+
+* Add elm project type.
+* [#1821](https://github.com/bbatsov/projectile/pull/1821): Add `pyproject.toml` discovery for python projects.
 
 ## 2.7.0 (2022-11-22)
 
