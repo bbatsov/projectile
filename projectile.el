@@ -3477,6 +3477,11 @@ a manual COMMAND-TYPE command is created with
                                   :run "dart"
                                   :test-suffix "_test.dart")
 
+;; Elm
+(projectile-register-project-type 'elm '("elm.json")
+                                  :project-file "elm.json"
+                                  :compile "elm make")
+
 ;; OCaml
 (projectile-register-project-type 'ocaml-dune '("dune-project")
                                   :project-file "dune-project"
