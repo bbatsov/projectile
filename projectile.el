@@ -355,7 +355,7 @@ containing a root file."
     projectile-root-top-down
     projectile-root-top-down-recurring)
   "A list of functions for finding project root folders.
-The functions will be ran until one of them returns a project folder.
+The functions will be run until one of them returns a project folder.
 Reordering the default functions will alter the project discovery
 algorithm."
   :group 'projectile
