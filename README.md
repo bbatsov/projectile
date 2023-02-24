@@ -5,6 +5,7 @@
 [![MELPA Stable](http://stable.melpa.org/packages/projectile-badge.svg)](http://stable.melpa.org/#/projectile)
 [![NonGNU ELPA](https://elpa.nongnu.org/nongnu/projectile.svg)](https://elpa.nongnu.org/nongnu/projectile.html)
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
+[![Discord](https://img.shields.io/badge/chat-on%20discord-7289da.svg?sanitize=true)](https://discord.gg/3Cf2Qpyry5)
 
 ## Synopsis
 
