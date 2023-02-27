@@ -5172,7 +5172,8 @@ with a prefix ARG."
 
 Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
+with a prefix ARG.  Per project default command can be set through
+`projectile-project-compilation-cmd'."
   (interactive "P")
   (let ((command (projectile-compilation-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
