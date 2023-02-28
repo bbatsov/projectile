@@ -672,8 +672,31 @@ means check all the subdirectories of DIRECTORY.  Etc."
   :type '(repeat (choice directory (cons directory (integer :tag "Depth"))))
   :package-version '(projectile . "1.0.0"))
 
+(defcustom projectile-fd-executable
+  (cond
+   ((executable-find "fdfind") "fdfind")
+   ((exectuable-find "fd") "fd"))
+  "Path or name of fd executable used by Projectile if enabled.
+Nil means fd is not installed or should not be used."
+  :type 'string)
+
+(defcustom projectile-git-use-fd (when projectile-fd-executable t)
+  "Non-nil means use fd to implement git ls-files.
+This may change Projectile's performance in large Git repositories
+depending on your system, but it will also work around the Git behavior
+that causes deleted files to still be shown in Projectile listings until
+their deletions are staged."
+  :type 'boolean)
+
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix"
+  "Arguments to fd used to re-implement 'git ls-files'.
+This is used with `projectile-fd-executable' when `projectile-git-use-fd'
+is non-nil."
   :group 'projectile
   :type 'string)
 
@@ -1422,7 +1445,12 @@ IGNORED-DIRECTORIES may optionally be provided."
   "Determine which external command to invoke based on the project's VCS.
 Fallback to a generic command when not in a VCS-controlled project."
   (pcase vcs
-    ('git projectile-git-command)
+    ('git (if projectile-git-use-fd
+              (concat
+               (or projectile-fd-executable "fdfind")
+               " "
+               projectile-git-fd-args)
+            projectile-git-command))
     ('hg projectile-hg-command)
     ('fossil projectile-fossil-command)
     ('bzr projectile-bzr-command)
