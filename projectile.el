@@ -675,7 +675,7 @@ means check all the subdirectories of DIRECTORY.  Etc."
 (defcustom projectile-fd-executable
   (cond
    ((executable-find "fdfind") "fdfind")
-   ((exectuable-find "fd") "fd"))
+   ((executable-find "fd") "fd"))
   "Path or name of fd executable used by Projectile if enabled.
 Nil means fd is not installed or should not be used."
   :type 'string)
