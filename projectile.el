@@ -694,7 +694,7 @@ their deletions are staged."
   :type 'string)
 
 (defcustom projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix"
-  "Arguments to fd used to re-implement 'git ls-files'.
+  "Arguments to fd used to re-implement `git ls-files'.
 This is used with `projectile-fd-executable' when `projectile-git-use-fd'
 is non-nil."
   :group 'projectile
