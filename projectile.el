@@ -686,7 +686,8 @@ This may change Projectile's performance in large Git repositories
 depending on your system, but it will also work around the Git behavior
 that causes deleted files to still be shown in Projectile listings until
 their deletions are staged."
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "2.8.0"))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
@@ -1445,9 +1446,9 @@ IGNORED-DIRECTORIES may optionally be provided."
   "Determine which external command to invoke based on the project's VCS.
 Fallback to a generic command when not in a VCS-controlled project."
   (pcase vcs
-    ('git (if projectile-git-use-fd
+    ('git (if (and projectile-git-use-fd projectile-fd-executable)
               (concat
-               (or projectile-fd-executable "fdfind")
+               projectile-fd-executable
                " "
                projectile-git-fd-args)
             projectile-git-command))
