@@ -4477,7 +4477,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
       (unless (require 'vterm nil 'noerror)
         (error "Package 'vterm' is not available"))
       (projectile-with-default-dir project
-        (vterm buffer)))
+        (vterm-other-window buffer)))
     (switch-to-buffer buffer)))
 
 (defun projectile-files-in-project-directory (directory)
