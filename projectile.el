@@ -3192,10 +3192,10 @@ a manual COMMAND-TYPE command is created with
                                   :test "dotnet test")
 (projectile-register-project-type 'nim-nimble #'projectile-nimble-project-p
                                   :project-file "?*.nimble"
-                                  :compile "nimble --noColor build"
-                                  :install "nimble --noColor install"
-                                  :test "nimble --noColor test"
-                                  :run "nimble --noColor run"
+                                  :compile "nimble --noColor build --colors:off"
+                                  :install "nimble --noColor install --colors:off"
+                                  :test "nimble --noColor test -d:nimUnittestColor:off --colors:off"
+                                  :run "nimble --noColor run --colors:off"
                                   :src-dir "src"
                                   :test-dir "tests")
 ;; File-based detection project types
