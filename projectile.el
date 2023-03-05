@@ -83,7 +83,7 @@
 (declare-function ggtags-update-tags "ext:ggtags")
 (declare-function ripgrep-regexp "ext:ripgrep")
 (declare-function rg-run "ext:rg")
-(declare-function vterm-other-window "ext:vterm-other-window")
+(declare-function vterm-other-window "ext:vterm")
 (declare-function vterm-send-return "ext:vterm")
 (declare-function vterm-send-string "ext:vterm")
 
