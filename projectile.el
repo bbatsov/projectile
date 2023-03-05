@@ -3004,6 +3004,13 @@ it acts on the current project."
   :type 'function
   :package-version '(projectile . "1.0.0"))
 
+(defun projectile-nimble-project-p (&optional dir)
+  "Check if a project contains a Nimble project marker.
+Nim projects that use Nimble contain a <projectname>.nimble file.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (projectile-verify-file-wildcard "?*.nimble" dir))
+
 ;;;; Constant signifying opting out of CMake preset commands.
 (defconst projectile--cmake-no-preset "*no preset*")
 
@@ -3183,6 +3190,14 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
+(projectile-register-project-type 'nim-nimble #'projectile-nimble-project-p
+                                  :project-file "?*.nimble"
+                                  :compile "nimble --noColor build"
+                                  :install "nimble --noColor install"
+                                  :test "nimble --noColor test"
+                                  :run "nimble --noColor run"
+                                  :src-dir "src"
+                                  :test-dir "tests")
 ;; File-based detection project types
 
 ;; Universal
