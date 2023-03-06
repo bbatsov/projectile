@@ -83,7 +83,7 @@
 (declare-function ggtags-update-tags "ext:ggtags")
 (declare-function ripgrep-regexp "ext:ripgrep")
 (declare-function rg-run "ext:rg")
-(declare-function vterm "ext:vterm")
+(declare-function vterm-other-window "ext:vterm")
 (declare-function vterm-send-return "ext:vterm")
 (declare-function vterm-send-string "ext:vterm")
 
@@ -4477,7 +4477,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
       (unless (require 'vterm nil 'noerror)
         (error "Package 'vterm' is not available"))
       (projectile-with-default-dir project
-        (vterm buffer)))
+        (vterm-other-window buffer)))
     (switch-to-buffer buffer)))
 
 (defun projectile-files-in-project-directory (directory)
