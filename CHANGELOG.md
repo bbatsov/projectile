@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1828](https://github.com/bbatsov/projectile/pull/1828): Add Nimble-based Nim project discovery.
 * Add elm project type.
 * [#1821](https://github.com/bbatsov/projectile/pull/1821): Add `pyproject.toml` discovery for python projects.
 
