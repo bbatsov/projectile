@@ -699,7 +699,8 @@ their deletions are staged."
 This is used with `projectile-fd-executable' when `projectile-git-use-fd'
 is non-nil."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.8.0"))
 
 (defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $displaypath' | tr '\\n' '\\0'"
   "Command used by projectile to list submodules of a given git repository.

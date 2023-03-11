@@ -46,12 +46,29 @@ a good idea to enable `prescient` (a package similar to `flx`).
 
 NOTE: Windows users can ignore this section unless they are using Emacs via WSL or `cygwin`.
 
-It's recommended to install the following command-line tools:
+Projectile will work without any external dependencies out of the box.
+However, if you have various tools installed, they will be
+automatically used when appropriate to improve performance.
 
-* `fd` (a super-fast alternative to `find`)
-* `ag` (a.k.a. `the_silver_searcher`, a powerful alternative to `grep`) or `rg` (a.k.a. `ripgrep`)
+Inside version control repositories, VC tools are used when installed
+to list files more efficiently. The supported tools include git, hg,
+fossil, bzr, darcs, pijul, and svn.
 
-Projectile will make use of them automatically when available, and fallback to the standard Unix tools otherwise.
+Outside version control repositories, file search tools are used when
+installed for a faster search than pure Elisp. The supported tools
+include https://github.com/sharkdp/fd[fd] and GNU/BSD find.
+
+By default, if fd is installed, it is also used inside Git
+repositories as an alternative to `git ls-files`, because `git
+ls-files` has the limitation that it also lists deleted files until
+the deletions are staged, which can be confusing. You can eliminate
+the use of fd in this circumstance by setting `projectile-git-use-fd`
+to nil.
+
+To benefit from the `projectile-ag` and `projectile-ripgrep` commands
+to perform file search, it's recommended to install
+https://github.com/ggreer/the_silver_searcher[ag] (`the_silver_searcher`) and/or
+https://github.com/BurntSushi/ripgrep[rg] (`ripgrep`)
 
 TIP: You should also install the Emacs packages `ag`, `ripgrep` or `rg` if you want to make sure of Projectile's commands `projectile-ag` and `projectile-ripgrep`.
 
