@@ -51,6 +51,27 @@ super convenient for many people.
 Eventually this was changed in Projectile 2.0. That's why currently Projectile
 requires users to select a prefix key for its commands explicitly.
 
+== What dependencies does Projectile have?
+
+Projectile will work without any external dependencies out of the box.
+However, if you have various tools installed, they will be
+automatically used when appropriate to improve performance.
+
+Inside version control repositories, VC tools are used when installed
+to list files more efficiently. The supported tools include git, hg,
+fossil, bzr, darcs, pijul, and svn.
+
+Outside version control repositories, file search tools are used when
+installed for a faster search than pure Elisp. The supported tools
+include https://github.com/sharkdp/fd[fd] and GNU/BSD find.
+
+By default, if fd is installed, it is also used inside Git
+repositories as an alternative to `git ls-files`, because `git
+ls-files` has the limitation that it also lists deleted files until
+the deletions are staged, which can be confusing. You can eliminate
+the use of fd in this circumstance by setting `projectile-git-use-fd`
+to nil.
+
 == Do you need some help cleanup up all those tickets that have piled up?
 
 Certainly! In our https://github.com/bbatsov/projectile/issues/[issue
