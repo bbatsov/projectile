@@ -5,7 +5,7 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 2.7.0
+;; Version: 2.8.0-snapshot
 ;; Package-Requires: ((emacs "25.1"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -885,7 +885,7 @@ Should be set via .dir-locals.el.")
 
 ;;; Version information
 
-(defconst projectile-version "2.7.0"
+(defconst projectile-version "2.8.0-snapshot"
   "The current version of Projectile.")
 
 (defun projectile--pkg-version ()
