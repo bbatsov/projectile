@@ -403,9 +403,15 @@ Place such snippets after ``projectile-mode``'s init code.
 == Using Projectile with project.el
 
 Starting with version 2.7 Projectile bundles some integration with
-`project.el` that makes `project.el` use by default Projectile's
+`project.el` that makes `project.el` use Projectile's
 project lookup function (`projectile-project-root`) and project file
-lookup function (`projectile-project-files`).
+lookup function (`projectile-project-files`) whenever `projectile-mode`
+is enabled. You can also enable the integration manually like this:
+
+[source,elisp]
+----
+(add-hook 'project-find-functions #'project-projectile)
+----
 
 TIP: You can read more about the implementation details of the integration https://github.com/bbatsov/projectile/issues/1591[here].
 
