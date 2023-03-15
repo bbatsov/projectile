@@ -6081,6 +6081,42 @@ when opening new files."
       (when (> (length project-buffers) projectile-max-file-buffer-count)
         (kill-buffer (car (last project-buffers)))))))
 
+;;;; project.el integration
+;;
+;; Projectile will become the default provider for
+;; project.el project and project files lookup when
+;; projectile-mode is enabled.
+;;
+;; The integration can also be manually enabled like this:
+;;
+;; (add-hook 'project-find-functions #'project-projectile)
+;;
+;; See https://github.com/bbatsov/projectile/issues/1591 for
+;; more details.
+
+;; it's safe to require this directly, as it was added in Emacs 25.1
+(require 'project)
+
+(cl-defmethod project-root ((project (head projectile)))
+  (cdr project))
+
+(cl-defmethod project-files ((project (head projectile)) &optional _dirs)
+  (let ((root (project-root project)))
+    ;; Make paths absolute and ignore the optional dirs argument,
+    ;; see https://github.com/bbatsov/projectile/issues/1591#issuecomment-896423965
+    ;; That's needed because Projectile uses relative paths for project files
+    ;; and project.el expects them to be absolute.
+    ;; FIXME: That's probably going to be very slow in large projects.
+    (mapcar (lambda (f)
+              (concat root f))
+            (projectile-project-files root))))
+
+(defun project-projectile (dir)
+  "Return Projectile project of form ('projectile . root-dir) for DIR."
+  (let ((root (projectile-project-root dir)))
+    (when root
+      (cons 'projectile root))))
+
 ;;;###autoload
 (define-minor-mode projectile-mode
   "Minor mode to assist project management and navigation.
@@ -6117,12 +6153,14 @@ Otherwise behave as if called interactively.
     (projectile--cleanup-known-projects)
     (when projectile-auto-discover
       (projectile-discover-projects-in-search-path))
+    (add-hook 'project-find-functions #'project-projectile)
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
    (t
+    (remove-hook 'project-find-functions #'project-projectile)
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
@@ -6139,38 +6177,6 @@ Otherwise behave as if called interactively.
 
 ;;;###autoload
 (define-obsolete-function-alias 'projectile-global-mode 'projectile-mode "1.0")
-
-;;;; project.el integration
-;;
-;; Projectile will become the default provider for
-;; project.el project and project files lookup.
-;; See https://github.com/bbatsov/projectile/issues/1591 for
-;; more details.
-
-;; it's safe to require this directly, as it was added in Emacs 25.1
-(require 'project)
-
-(cl-defmethod project-root ((project (head projectile)))
-  (cdr project))
-
-(cl-defmethod project-files ((project (head projectile)) &optional _dirs)
-  (let ((root (project-root project)))
-    ;; Make paths absolute and ignore the optional dirs argument,
-    ;; see https://github.com/bbatsov/projectile/issues/1591#issuecomment-896423965
-    ;; That's needed because Projectile uses relative paths for project files
-    ;; and project.el expects them to be absolute.
-    ;; FIXME: That's probably going to be very slow in large projects.
-    (mapcar (lambda (f)
-              (concat root f))
-            (projectile-project-files root))))
-
-(defun project-projectile (dir)
-  "Return Projectile project of form ('projectile . root-dir) for DIR."
-  (let ((root (projectile-project-root dir)))
-    (when root
-      (cons 'projectile root))))
-
-(add-hook 'project-find-functions #'project-projectile)
 
 (provide 'projectile)
 
