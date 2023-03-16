@@ -3527,6 +3527,14 @@ a manual COMMAND-TYPE command is created with
                                   :project-file "elm.json"
                                   :compile "elm make")
 
+;; Julia
+(projectile-register-project-type 'julia '("Project.toml")
+                                  :project-file "Project.toml"
+                                  :compile "julia --project=@. -e 'import Pkg; Pkg.precompile(); Pkg.build()'"
+                                  :test "julia --project=@. -e 'import Pkg; Pkg.test()' --check-bounds=yes"
+                                  :src-dir "src"
+                                  :test-dir "test")
+
 ;; OCaml
 (projectile-register-project-type 'ocaml-dune '("dune-project")
                                   :project-file "dune-project"
