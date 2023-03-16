@@ -1338,7 +1338,24 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
        "project/project.el")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'emacs-eldev))))))
+        (expect (projectile-detect-project-type) :to-equal 'emacs-eldev)))))
+  (it "detects project-type for projects with src dir and no other marker"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/src/")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'dotnet-sln)))))
+  (it "detects project-type for Julia PkgTemplates.jl projects"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/src/"
+       "project/Project.toml")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'julia))))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
