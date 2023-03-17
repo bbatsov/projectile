@@ -8,6 +8,7 @@
 * [#1828](https://github.com/bbatsov/projectile/pull/1828): Add Nimble-based Nim project discovery.
 * Add elm project type.
 * [#1821](https://github.com/bbatsov/projectile/pull/1821): Add `pyproject.toml` discovery for python projects.
+* [#1830](https://github.com/bbatsov/projectile/issues/1830): Add command `projectile-run-vterm-other-window` and bind it to `x 4 v`.
 
 ### Changes
 
