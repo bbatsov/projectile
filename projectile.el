@@ -4546,7 +4546,7 @@ Switch to the project specific term buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (project--vterm arg))
+  (projectile--vterm arg))
 
 ;;;###autoload
 (defun projectile-run-vterm-other-window (&optional arg)
@@ -4556,7 +4556,7 @@ Switch to the project specific term buffer if it already exists.
 
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (project--vterm arg 'other-window))
+  (projectile--vterm arg 'other-window))
 
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
