@@ -96,7 +96,8 @@
   :link '(url-link :tag "Online Manual" "https://docs.projectile.mx/")
   :link '(emacs-commentary-link :tag "Commentary" "projectile"))
 
-(defcustom projectile-indexing-method (if (eq system-type 'windows-nt) 'native 'alien)
+(defcustom projectile-indexing-method
+  (if (eq system-type 'windows-nt) 'native 'alien)
   "Specifies the indexing method used by Projectile.
 
 There are three indexing methods - native, hybrid and alien.
