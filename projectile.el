@@ -3091,10 +3091,17 @@ it acts on the current project."
 
 (defun projectile--cmake-command-presets (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME."
-  (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
-    (cl-remove-if
-     (lambda (preset) (equal (gethash "hidden" preset) t))
-     (gethash (projectile--cmake-command-preset-array-id command-type) preset))))
+  (when-let ((filename (projectile-expand-root filename))
+             (preset (projectile--cmake-read-preset filename)))
+    (append
+     (cl-remove-if
+      (lambda (preset) (equal (gethash "hidden" preset) t))
+      (gethash (projectile--cmake-command-preset-array-id command-type) preset))
+     (mapcar
+      (lambda (included-file) (projectile--cmake-command-presets
+                               (expand-file-name included-file (file-name-directory filename))
+                          command-type))
+      (gethash "include" preset)))))
 
 (defun projectile--cmake-all-command-presets (command-type)
   "Get CMake user and system COMMAND-TYPE presets."
