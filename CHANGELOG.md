@@ -12,6 +12,7 @@
 
 ### Changes
 
+* [#1839](https://github.com/bbatsov/projectile/issues/1839): Ensure `projectile-toggle-between-implementation-and-test` also obeys `projectile-project-test-dir` and `projectile-project-src-dir`.
 * [#1285](https://github.com/bbatsov/projectile/pull/1825): By default, use [fd](https://github.com/sharkdp/fd) in Git repositories instead of `git ls-files` when it is installed, in order to solve the problem where deleted files were still shown in `projectile-find-file` until their deletions were staged. The user-facing behavior should be the same, although potentially with different performance characteristics in large Git repositories. The old behavior can be reclaimed by setting `projectile-git-use-fd` to nil.
 * [#1831](https://github.com/bbatsov/projectile/issues/1831): Enable the project.el integration only when `projectile-mode` is active.
 
