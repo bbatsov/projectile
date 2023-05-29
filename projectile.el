@@ -3746,7 +3746,8 @@ Replace STRING in DIR-PATH with REPLACEMENT."
   (let* ((project-root (projectile-project-root))
          (relative-dir (file-name-directory (file-relative-name dir-path project-root))))
     (projectile-expand-root
-     (replace-regexp-in-string string replacement relative-dir))))
+     ;; TODO: Use string-replace once we target emacs 28
+     (replace-regexp-in-string string replacement relative-dir t))))
 
 (defun projectile--create-directories-for (path)
   "Create directories necessary for PATH."
