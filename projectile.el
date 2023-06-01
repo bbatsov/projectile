@@ -3845,14 +3845,12 @@ Fallback to DEFAULT-VALUE for missing attributes."
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
   (or projectile-project-src-dir
-      (projectile-project-type-attribute
-       project-type 'src-dir projectile-default-src-directory)))
+      (projectile-project-type-attribute project-type 'src-dir)))
 
 (defun projectile-test-directory (project-type)
   "Find default test directory based on PROJECT-TYPE."
   (or projectile-project-test-dir
-      (projectile-project-type-attribute
-       project-type 'test-dir projectile-default-test-directory)))
+      (projectile-project-type-attribute project-type 'test-dir)))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths in A and B."
