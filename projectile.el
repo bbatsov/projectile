@@ -3675,8 +3675,8 @@ string) are replaced with the current project type's src-dir property
 
 Nil is returned if either the src-dir or test-dir properties are not strings."
   (let* ((project-type (projectile-project-type))
-         (test-dir (projectile-project-type-attribute project-type 'test-dir))
-         (impl-dir (projectile-project-type-attribute project-type 'src-dir)))
+         (test-dir (projectile-test-directory project-type))
+         (impl-dir (projectile-src-directory project-type)))
     (when (and (stringp test-dir) (stringp impl-dir))
       (if (not (string-match-p test-dir (file-name-directory test-dir-path)))
           (error "Attempted to find a implementation file by switching this project type's (%s) test-dir property \"%s\" with this project type's src-dir property \"%s\", but %s does not contain \"%s\""
@@ -3732,8 +3732,8 @@ signalled.
 
 Nil is returned if either the src-dir or test-dir properties are not strings."
   (let* ((project-type (projectile-project-type))
-         (test-dir (projectile-project-type-attribute project-type 'test-dir))
-         (impl-dir (projectile-project-type-attribute project-type 'src-dir)))
+         (test-dir (projectile-test-directory project-type))
+         (impl-dir (projectile-src-directory project-type)))
     (when (and (stringp test-dir) (stringp impl-dir))
       (if (not (string-match-p impl-dir (file-name-directory impl-dir-path)))
           (error "Attempted to find a test file by switching this project type's (%s) src-dir property \"%s\" with this project type's test-dir property \"%s\", but %s does not contain \"%s\""
@@ -3846,14 +3846,12 @@ Fallback to DEFAULT-VALUE for missing attributes."
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
   (or projectile-project-src-dir
-      (projectile-project-type-attribute
-       project-type 'src-dir projectile-default-src-directory)))
+      (projectile-project-type-attribute project-type 'src-dir)))
 
 (defun projectile-test-directory (project-type)
   "Find default test directory based on PROJECT-TYPE."
   (or projectile-project-test-dir
-      (projectile-project-type-attribute
-       project-type 'test-dir projectile-default-test-directory)))
+      (projectile-project-type-attribute project-type 'test-dir)))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths in A and B."
