@@ -5753,6 +5753,10 @@ is chosen."
     "Run grep on project."
     (projectile-grep))
 
+  (def-projectile-commander-method ?p
+    "Run ripgrep on project."
+    (call-interactively #'projectile-ripgrep))
+
   (def-projectile-commander-method ?a
     "Run ag on project."
     (call-interactively #'projectile-ag))
