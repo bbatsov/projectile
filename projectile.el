@@ -3686,8 +3686,8 @@ string) are replaced with the current project type's src-dir property
 
 Nil is returned if either the src-dir or test-dir properties are not strings."
   (let* ((project-type (projectile-project-type))
-         (test-dir (projectile-project-type-attribute project-type 'test-dir))
-         (impl-dir (projectile-project-type-attribute project-type 'src-dir)))
+         (test-dir (projectile-test-directory project-type))
+         (impl-dir (projectile-src-directory project-type)))
     (when (and (stringp test-dir) (stringp impl-dir))
       (if (not (string-match-p test-dir (file-name-directory test-dir-path)))
           (error "Attempted to find a implementation file by switching this project type's (%s) test-dir property \"%s\" with this project type's src-dir property \"%s\", but %s does not contain \"%s\""
@@ -3743,8 +3743,8 @@ signalled.
 
 Nil is returned if either the src-dir or test-dir properties are not strings."
   (let* ((project-type (projectile-project-type))
-         (test-dir (projectile-project-type-attribute project-type 'test-dir))
-         (impl-dir (projectile-project-type-attribute project-type 'src-dir)))
+         (test-dir (projectile-test-directory project-type))
+         (impl-dir (projectile-src-directory project-type)))
     (when (and (stringp test-dir) (stringp impl-dir))
       (if (not (string-match-p impl-dir (file-name-directory impl-dir-path)))
           (error "Attempted to find a test file by switching this project type's (%s) src-dir property \"%s\" with this project type's test-dir property \"%s\", but %s does not contain \"%s\""
@@ -3757,7 +3757,8 @@ Replace STRING in DIR-PATH with REPLACEMENT."
   (let* ((project-root (projectile-project-root))
          (relative-dir (file-name-directory (file-relative-name dir-path project-root))))
     (projectile-expand-root
-     (replace-regexp-in-string string replacement relative-dir))))
+     ;; TODO: Use string-replace once we target emacs 28
+     (replace-regexp-in-string string replacement relative-dir t))))
 
 (defun projectile--create-directories-for (path)
   "Create directories necessary for PATH."
@@ -3856,14 +3857,12 @@ Fallback to DEFAULT-VALUE for missing attributes."
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
   (or projectile-project-src-dir
-      (projectile-project-type-attribute
-       project-type 'src-dir projectile-default-src-directory)))
+      (projectile-project-type-attribute project-type 'src-dir)))
 
 (defun projectile-test-directory (project-type)
   "Find default test directory based on PROJECT-TYPE."
   (or projectile-project-test-dir
-      (projectile-project-type-attribute
-       project-type 'test-dir projectile-default-test-directory)))
+      (projectile-project-type-attribute project-type 'test-dir)))
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths in A and B."
@@ -5764,6 +5763,10 @@ is chosen."
   (def-projectile-commander-method ?g
     "Run grep on project."
     (projectile-grep))
+
+  (def-projectile-commander-method ?p
+    "Run ripgrep on project."
+    (call-interactively #'projectile-ripgrep))
 
   (def-projectile-commander-method ?a
     "Run ag on project."
