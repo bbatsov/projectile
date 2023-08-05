@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+* [#1870](https://github.com/bbatsov/projectile/pull/1870): Add package command for CMake projects.
+
 ## 2.8.0 (2023-10-13)
 
 ### New features

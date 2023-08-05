@@ -3061,6 +3061,7 @@ it acts on the current project."
   '((:configure-command . (3 19))
     (:compile-command . (3 20))
     (:test-command . (3 20))
+    (:package-command . (3 19))
     (:install-command . (3 20))))
 
 (defun projectile--cmake-command-presets-supported (command-type)
@@ -3081,6 +3082,7 @@ it acts on the current project."
   '((:configure-command . "configurePresets")
     (:compile-command . "buildPresets")
     (:test-command . "testPresets")
+    (:package-command . "packagePresets")
     (:install-command . "buildPresets")))
 
 (defun projectile--cmake-command-preset-array-id (command-type)
@@ -3157,6 +3159,7 @@ select a name of a command preset, or opt a manual command by selecting
   '((:configure-command . "cmake -S . -B build")
     (:compile-command . "cmake --build build")
     (:test-command . "cmake --build build --target test")
+    (:package-command . "cmake --build build --target package")
     (:install-command . "cmake --build build --target install")))
 
 (defun projectile--cmake-manual-command (command-type)
@@ -3167,6 +3170,7 @@ select a name of a command preset, or opt a manual command by selecting
   '((:configure-command . "cmake . --preset %s")
     (:compile-command . "cmake --build --preset %s")
     (:test-command . "ctest --preset %s")
+    (:package-command . "cpack --preset %s")
     (:install-command . "cmake --build --preset %s --target install")))
 
 (defun projectile--cmake-preset-command (command-type preset)
@@ -3204,6 +3208,10 @@ a manual COMMAND-TYPE command is created with
 (defun projectile--cmake-install-command ()
   "CMake install command."
   (projectile--cmake-command :install-command))
+
+(defun projectile--cmake-package-command ()
+  "CMake package command."
+  (projectile--cmake-command :package-command))
 
 ;;; Project type registration
 ;;
@@ -3289,7 +3297,7 @@ a manual COMMAND-TYPE command is created with
                                   :compile #'projectile--cmake-compile-command
                                   :test #'projectile--cmake-test-command
                                   :install #'projectile--cmake-install-command
-                                  :package "cmake --build build --target package")
+                                  :package #'projectile--cmake-package-command)
 ;; go-task/task
 (projectile-register-project-type 'go-task '("Taskfile.yml")
                                   :project-file "Taskfile.yml"
