@@ -3321,7 +3321,7 @@ a manual COMMAND-TYPE command is created with
                                   :test "gulp test")
 (projectile-register-project-type 'npm '("package.json" "package-lock.json")
                                   :project-file "package.json"
-                                  :compile "npm install"
+                                  :compile "npm install && npm run build"
                                   :test "npm test"
                                   :test-suffix ".test")
 (projectile-register-project-type 'yarn '("package.json" "yarn.lock")
