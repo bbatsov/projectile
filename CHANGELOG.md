@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1862](https://github.com/bbatsov/projectile/pull/1862): Add project types "yarn" and "pnpm" separate from "npm".
 * [#1851](https://github.com/bbatsov/projectile/pull/1851): Add ripgrep to `projectile-commander` with binding `?p`.
 * [#1833](https://github.com/bbatsov/projectile/pull/1833): Add Julia project discovery.
 * [#1828](https://github.com/bbatsov/projectile/pull/1828): Add Nimble-based Nim project discovery.
