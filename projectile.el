@@ -3319,10 +3319,15 @@ a manual COMMAND-TYPE command is created with
                                   :project-file "gulpfile.js"
                                   :compile "gulp"
                                   :test "gulp test")
-(projectile-register-project-type 'npm '("package.json")
+(projectile-register-project-type 'npm '("package.json" "package-lock.json")
                                   :project-file "package.json"
                                   :compile "npm install"
                                   :test "npm test"
+                                  :test-suffix ".test")
+(projectile-register-project-type 'yarn '("package.json" "yarn.lock")
+                                  :project-file "package.json"
+                                  :compile "yarn && yarn build"
+                                  :test "yarn test"
                                   :test-suffix ".test")
 ;; Angular
 (projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
