@@ -3329,6 +3329,11 @@ a manual COMMAND-TYPE command is created with
                                   :compile "yarn && yarn build"
                                   :test "yarn test"
                                   :test-suffix ".test")
+(projectile-register-project-type 'pnpm '("package.json" "pnpm-lock.yaml")
+                                  :project-file "package.json"
+                                  :compile "pnpm install && pnpm build"
+                                  :test "pnpm test"
+                                  :test-suffix ".test")
 ;; Angular
 (projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
                                   :project-file "angular.json"
