@@ -3089,12 +3089,23 @@ it acts on the current project."
   "Map from COMMAND-TYPE to id of command preset array in CMake preset."
   (cdr (assoc command-type projectile--cmake-command-preset-array-id-alist)))
 
-(defun projectile--cmake-command-presets (filename command-type)
+(defun projectile--cmake-command-presets-shallow (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME."
   (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
     (cl-remove-if
      (lambda (preset) (equal (gethash "hidden" preset) t))
      (gethash (projectile--cmake-command-preset-array-id command-type) preset))))
+
+(defun projectile--cmake-command-presets (filename command-type)
+  "Get CMake COMMAND-TYPE presets from FILENAME. Follows included files"
+  (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
+    (append
+     (projectile--cmake-command-presets-shallow filename command-type)
+     (mapcar
+      (lambda (included-file) (projectile--cmake-command-presets
+                               (expand-file-name included-file (file-name-directory filename))
+                               command-type))
+      (gethash "include" preset)))))
 
 (defun projectile--cmake-all-command-presets (command-type)
   "Get CMake user and system COMMAND-TYPE presets."
