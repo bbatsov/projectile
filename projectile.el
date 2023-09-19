@@ -697,7 +697,7 @@ their deletions are staged."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix"
+(defcustom projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix -c never"
   "Arguments to fd used to re-implement `git ls-files'.
 This is used with `projectile-fd-executable' when `projectile-git-use-fd'
 is non-nil."
@@ -3089,12 +3089,23 @@ it acts on the current project."
   "Map from COMMAND-TYPE to id of command preset array in CMake preset."
   (cdr (assoc command-type projectile--cmake-command-preset-array-id-alist)))
 
-(defun projectile--cmake-command-presets (filename command-type)
+(defun projectile--cmake-command-presets-shallow (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME."
   (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
     (cl-remove-if
      (lambda (preset) (equal (gethash "hidden" preset) t))
      (gethash (projectile--cmake-command-preset-array-id command-type) preset))))
+
+(defun projectile--cmake-command-presets (filename command-type)
+  "Get CMake COMMAND-TYPE presets from FILENAME. Follows included files"
+  (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
+    (append
+     (projectile--cmake-command-presets-shallow filename command-type)
+     (mapcar
+      (lambda (included-file) (projectile--cmake-command-presets
+                               (expand-file-name included-file (file-name-directory filename))
+                               command-type))
+      (gethash "include" preset)))))
 
 (defun projectile--cmake-all-command-presets (command-type)
   "Get CMake user and system COMMAND-TYPE presets."
@@ -3319,10 +3330,20 @@ a manual COMMAND-TYPE command is created with
                                   :project-file "gulpfile.js"
                                   :compile "gulp"
                                   :test "gulp test")
-(projectile-register-project-type 'npm '("package.json")
+(projectile-register-project-type 'npm '("package.json" "package-lock.json")
                                   :project-file "package.json"
-                                  :compile "npm install"
+                                  :compile "npm install && npm run build"
                                   :test "npm test"
+                                  :test-suffix ".test")
+(projectile-register-project-type 'yarn '("package.json" "yarn.lock")
+                                  :project-file "package.json"
+                                  :compile "yarn && yarn build"
+                                  :test "yarn test"
+                                  :test-suffix ".test")
+(projectile-register-project-type 'pnpm '("package.json" "pnpm-lock.yaml")
+                                  :project-file "package.json"
+                                  :compile "pnpm install && pnpm build"
+                                  :test "pnpm test"
                                   :test-suffix ".test")
 ;; Angular
 (projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")

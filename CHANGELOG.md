@@ -4,6 +4,7 @@
 
 ### New features
 
+* [#1862](https://github.com/bbatsov/projectile/pull/1862): Add project types "yarn" and "pnpm" separate from "npm".
 * [#1851](https://github.com/bbatsov/projectile/pull/1851): Add ripgrep to `projectile-commander` with binding `?p`.
 * [#1833](https://github.com/bbatsov/projectile/pull/1833): Add Julia project discovery.
 * [#1828](https://github.com/bbatsov/projectile/pull/1828): Add Nimble-based Nim project discovery.
@@ -17,6 +18,10 @@
 * [#1285](https://github.com/bbatsov/projectile/pull/1825): By default, use [fd](https://github.com/sharkdp/fd) in Git repositories instead of `git ls-files` when it is installed, in order to solve the problem where deleted files were still shown in `projectile-find-file` until their deletions were staged. The user-facing behavior should be the same, although potentially with different performance characteristics in large Git repositories. The old behavior can be reclaimed by setting `projectile-git-use-fd` to nil.
 * [#1831](https://github.com/bbatsov/projectile/issues/1831): Enable the project.el integration only when `projectile-mode` is active.
 * [#1847](https://github.com/bbatsov/projectile/issues/1847): Use literal directory name casing when toggling between impl and test.
+
+### Bug fixed
+
+* Fix `fd` inserting color control sequences when used over tramp.
 
 ## 2.7.0 (2022-11-22)
 
