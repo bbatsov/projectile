@@ -4549,14 +4549,16 @@ be displayed in a different window.
 Switch to the project specific term buffer if it already exists."
   (let* ((project (projectile-acquire-root))
          (buffer (projectile-generate-process-name "vterm" new-process project)))
-    (unless (buffer-live-p (get-buffer buffer))
-      (unless (require 'vterm nil 'noerror)
-        (error "Package 'vterm' is not available"))
+    (unless (require 'vterm nil 'noerror)
+      (error "Package 'vterm' is not available"))
+    (if (buffer-live-p (get-buffer buffer))
+        (if other-window
+            (switch-to-buffer-other-window buffer)
+          (switch-to-buffer buffer))
       (projectile-with-default-dir project
         (if other-window
             (vterm-other-window buffer)
-          (vterm buffer))))
-    (switch-to-buffer buffer)))
+          (vterm buffer))))))
 
 ;;;###autoload
 (defun projectile-run-vterm (&optional arg)

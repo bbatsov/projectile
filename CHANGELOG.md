@@ -19,9 +19,10 @@
 * [#1831](https://github.com/bbatsov/projectile/issues/1831): Enable the project.el integration only when `projectile-mode` is active.
 * [#1847](https://github.com/bbatsov/projectile/issues/1847): Use literal directory name casing when toggling between impl and test.
 
-### Bug fixed
+### Bugs fixed
 
 * Fix `fd` inserting color control sequences when used over tramp.
+* [#1835](https://github.com/bbatsov/projectile/issues/1835): Reopening existing vterm buffer in other window
 
 ## 2.7.0 (2022-11-22)
 
