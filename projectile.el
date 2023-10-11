@@ -681,7 +681,8 @@ means check all the subdirectories of DIRECTORY.  Etc."
    ((executable-find "fd") "fd"))
   "Path or name of fd executable used by Projectile if enabled.
 Nil means fd is not installed or should not be used."
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.8.0"))
 
 (defcustom projectile-git-use-fd (when projectile-fd-executable t)
   "Non-nil means use fd to implement git ls-files.
