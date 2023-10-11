@@ -23,6 +23,7 @@
 
 * Fix `fd` inserting color control sequences when used over tramp.
 * [#1835](https://github.com/bbatsov/projectile/issues/1835): Reopening existing vterm buffer in other window
+* [#1865](https://github.com/bbatsov/projectile/pull/1865): `projectile-generic-command` should use `projectile-fd-executable` to find the path for fd.
 
 ## 2.7.0 (2022-11-22)
 
