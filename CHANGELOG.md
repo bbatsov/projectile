@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.8.0 (2023-10-13)
+
 ### New features
 
 * [#1862](https://github.com/bbatsov/projectile/pull/1862): Add project types "yarn" and "pnpm" separate from "npm".
