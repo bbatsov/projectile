@@ -6163,8 +6163,11 @@ when opening new files."
 ;; it's safe to require this directly, as it was added in Emacs 25.1
 (require 'project)
 
-(cl-defmethod project-root ((project (head projectile)))
-  (cdr project))
+;; Only define an override for project-root if the method exists.  For versions
+;; before emacs 28, project.el provided project-roots instead of project.root.
+(if (fboundp 'project-root)
+    (cl-defmethod project-root ((project (head projectile)))
+      (cdr project)))
 
 (cl-defmethod project-files ((project (head projectile)) &optional _dirs)
   (let ((root (project-root project)))
