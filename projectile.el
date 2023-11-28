@@ -3097,7 +3097,7 @@ it acts on the current project."
      (gethash (projectile--cmake-command-preset-array-id command-type) preset))))
 
 (defun projectile--cmake-command-presets (filename command-type)
-  "Get CMake COMMAND-TYPE presets from FILENAME. Follows included files"
+  "Get CMake COMMAND-TYPE presets from FILENAME.  Follows included files."
   (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
     (append
      (projectile--cmake-command-presets-shallow filename command-type)
