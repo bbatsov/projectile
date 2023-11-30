@@ -3437,8 +3437,8 @@ a manual COMMAND-TYPE command is created with
                                   :project-file "build.sc"
                                   :src-dir "src/"
                                   :test-dir "test/src/"
-                                  :compile "mill all __.compile"
-                                  :test "mill all __.test"
+                                  :compile "mill __.compile"
+                                  :test "mill __.test"
                                   :test-suffix "Test")
 
 ;; Clojure
