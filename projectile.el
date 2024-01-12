@@ -5384,14 +5384,18 @@ We enhance its functionality by appending the current project's directories
 to its search path. This way when filenames in compilation buffers can't be
 found by compilation's normal logic they are searched for in project
 directories."
-  (let* ((root (projectile-project-root))
-         (compilation-search-path
-          (if (projectile-project-p)
-              (append compilation-search-path (list root)
-                      (mapcar (lambda (f) (expand-file-name f root))
-                              (projectile-current-project-dirs)))
-            compilation-search-path)))
-    (apply orig-fun `(,marker ,filename ,directory ,@formats))))
+  ; If the file already exists, don't bother running the extra logic as the project directories might be massive (i.e. Unreal-sized).
+  (if (file-exists-p filename)
+      (apply orig-fun `(,marker ,filename ,directory ,@formats))
+
+    (let* ((root (projectile-project-root))
+           (compilation-search-path
+            (if (projectile-project-p)
+                (append compilation-search-path (list root)
+                        (mapcar (lambda (f) (expand-file-name f root))
+                                (projectile-current-project-dirs)))
+              compilation-search-path)))
+      (apply orig-fun `(,marker ,filename ,directory ,@formats)))))
 
 (defun projectile-open-projects ()
   "Return a list of all open projects.
