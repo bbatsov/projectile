@@ -2,6 +2,7 @@
 
 ## master (unreleased)
 
+* [#1874](https://github.com/bbatsov/projectile/pull/1874): Changes `compilation-find-file-projectile-find-compilation-buffer` to navigate directly to the file if already present on disk to help improve performance in scenarios where there are a large number of project directories.
 * [#1870](https://github.com/bbatsov/projectile/pull/1870): Add package command for CMake projects.
 
 ## 2.8.0 (2023-10-13)
