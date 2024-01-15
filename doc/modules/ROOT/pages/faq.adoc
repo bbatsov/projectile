@@ -59,7 +59,7 @@ automatically used when appropriate to improve performance.
 
 Inside version control repositories, VC tools are used when installed
 to list files more efficiently. The supported tools include git, hg,
-fossil, bzr, darcs, pijul, and svn.
+fossil, bzr, darcs, pijul, svn, and sapling.
 
 Outside version control repositories, file search tools are used when
 installed for a faster search than pure Elisp. The supported tools
