@@ -728,7 +728,8 @@ Set to nil to disable listing submodules contents."
 (defcustom projectile-sapling-command "sl locate -0 -I ."
   "Command used by projectile to get the files in a Sapling project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-fossil-command (concat "fossil ls | "
                                              (when (string-equal system-type

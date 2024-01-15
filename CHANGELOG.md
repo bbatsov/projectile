@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+### New features
+
 * [#1870](https://github.com/bbatsov/projectile/pull/1870): Add package command for CMake projects.
 * [#1875](https://github.com/bbatsov/projectile/pull/1875): Add support for Sapling VCS.
 
