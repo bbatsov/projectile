@@ -31,6 +31,7 @@ a project. Out of the box Projectile supports:
 * CVS
 * Fossil
 * Darcs
+* Sapling
 
 === File markers
 

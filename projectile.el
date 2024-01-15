@@ -331,6 +331,7 @@ See `projectile-register-project-type'."
     ".bzr"        ; Bazaar VCS root dir
     "_darcs"      ; Darcs VCS root dir
     ".pijul"      ; Pijul VCS root dir
+    ".sl"         ; Sapling VCS root dir
     )
   "A list of files considered to mark the root of a project.
 The bottommost (parentmost) match has precedence."
@@ -424,7 +425,8 @@ is set to `alien'."
     "^\\.stack-work$"
     "^\\.ccls-cache$"
     "^\\.cache$"
-    "^\\.clangd$")
+    "^\\.clangd$"
+    "^\\.sl$")
   "A list of directories globally ignored by projectile.
 Regular expressions can be used.
 
@@ -720,6 +722,11 @@ Set to nil to disable listing submodules contents."
 
 (defcustom projectile-hg-command "hg locate -f -0 -I ."
   "Command used by projectile to get the files in a hg project."
+  :group 'projectile
+  :type 'string)
+
+(defcustom projectile-sapling-command "sl locate -0 -I ."
+  "Command used by projectile to get the files in a Sapling project."
   :group 'projectile
   :type 'string)
 
@@ -1460,6 +1467,7 @@ Fallback to a generic command when not in a VCS-controlled project."
     ('darcs projectile-darcs-command)
     ('pijul projectile-pijul-command)
     ('svn projectile-svn-command)
+    ('sapling projectile-sapling-command)
     (_ projectile-generic-command)))
 
 (defun projectile-get-sub-projects-command (vcs)
@@ -3649,6 +3657,7 @@ the variable `projectile-project-root'."
    ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
    ((projectile-file-exists-p (expand-file-name ".pijul" project-root)) 'pijul)
    ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
+   ((projectile-file-exists-p (expand-file-name ".sl" project-root)) 'sapling)
    ;; then we check if there's a VCS marker up the directory tree
    ;; that covers the case when a project is part of a multi-project repository
    ;; in those cases you can still the VCS to get a list of files for
@@ -3661,6 +3670,7 @@ the variable `projectile-project-root'."
    ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
    ((projectile-locate-dominating-file project-root ".pijul") 'pijul)
    ((projectile-locate-dominating-file project-root ".svn") 'svn)
+   ((projectile-locate-dominating-file project-root ".sl") 'sapling)
    (t 'none)))
 
 (defun projectile--test-name-for-impl-name (impl-file-path)
