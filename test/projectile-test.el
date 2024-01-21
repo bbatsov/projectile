@@ -2138,25 +2138,43 @@ projectile-process-current-project-buffers-current to have similar behaviour"
       (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))
 
 (describe "projectile--run-project-cmd"
-  (it "command history is not duplicated"
+
+  (before-each
     (spy-on 'projectile-run-compilation)
     (spy-on 'projectile-maybe-read-command :and-call-fake
             (lambda (arg default-cmd prompt) default-cmd))
     ;; Stops projectile--run-project-cmd from creating a new directory for
     ;; the compilation dir
-    (spy-on 'file-directory-p :and-return-value t)
+    (spy-on 'file-directory-p :and-return-value t))
+
+  (it "projectile-cmd-hist-ignoredups set to t"
+    
     (let ((command-map (make-hash-table :test 'equal))
+          (projectile-cmd-hist-ignoredups t)
           ;; history is based on the project root, so we set it to a random
           ;; path to ensure there are no existing commands in history
           (projectile-project-root "/a/random/path"))
       (projectile--run-project-cmd "foo" command-map)
       (projectile--run-project-cmd "foo" command-map)
-      (projectile--run-project-cmd "foo" command-map)
       (projectile--run-project-cmd "bar" command-map)
+      (projectile--run-project-cmd "foo" command-map)
       (expect 'projectile-run-compilation :to-have-been-called-times 4)
       (expect (ring-elements
                (projectile--get-command-history projectile-project-root))
-              :to-equal '("bar" "foo")))))
+              :to-equal '("foo" "bar" "foo"))))
+
+  (it "projectile-cmd-hist-ignoredups set to erase"
+    (let ((command-map (make-hash-table :test 'equal))
+          (projectile-cmd-hist-ignoredups 'erase)
+          (projectile-project-root "/a/random/path"))
+      (projectile--run-project-cmd "foo" command-map)
+      (projectile--run-project-cmd "bar" command-map)
+      (projectile--run-project-cmd "foo" command-map)
+      (projectile--run-project-cmd "foo" command-map)
+      (expect 'projectile-run-compilation :to-have-been-called-times 4)
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root))
+              :to-equal '("foo" "bar")))))
 
 (describe "projectile-test-prefix"
   :var ((mock-projectile-project-types

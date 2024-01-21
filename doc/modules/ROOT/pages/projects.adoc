@@ -838,3 +838,9 @@ external command or an Emacs Lisp function:
 In addition caching of commands can be disabled by setting the variable
 `projectile-project-enable-cmd-caching` is to `nil`. This is useful for
 preset-based CMake projects.
+
+By default, Projectile will not add consecutive duplicate commands to its
+command history.  To alter this behaviour you can use `projectile-cmd-hist-ignoredups`.
+  The default value of `t` means consecutive duplicates are ignore, a value
+of `nil` means nothing is ignored, and a value of `'erase'` means only
+the last duplicate is kept in the command history.
