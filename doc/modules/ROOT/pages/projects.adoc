@@ -32,6 +32,7 @@ a project. Out of the box Projectile supports:
 * Fossil
 * Darcs
 * Sapling
+* Jujutsu
 
 === File markers
 
