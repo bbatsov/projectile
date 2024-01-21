@@ -874,6 +874,17 @@ If the value is nil, there is no limit to the opend buffers count."
   :type 'integer
   :package-version '(projectile . "2.2.0"))
 
+(defcustom projectile-cmd-hist-ignoredups t
+  "Controls when inputs are added to projectile's command history.
+
+A value of t means consecutive duplicates are ignored.
+A value of `erase' means only the last duplicate is kept.
+A value of nil means nothing is ignored."
+  :type '(choice (const :tag "Don't ignore anything" nil)
+                 (const :tag "Ignore consecutive duplicates" t)
+                 (const :tag "Only keep last duplicate" erase))
+  :package-version '(projectile . "2.9.0"))
+
 (defvar projectile-project-test-suffix nil
   "Use this variable to override the current project's test-suffix property.
 It takes precedence over the test-suffix for the project type when set.
@@ -5227,8 +5238,17 @@ The command actually run is returned."
     (when command-map
       (puthash default-directory command command-map)
       (let ((hist (projectile--get-command-history project-root)))
-        (unless (string= (car-safe (ring-elements hist)) command)
-          (ring-insert hist command))))
+        (cond
+         ((eq projectile-cmd-hist-ignoredups t)
+          (unless (string= (car-safe (ring-elements hist)) command)
+            (ring-insert hist command)))
+         ((eq projectile-cmd-hist-ignoredups 'erase)
+          (let ((idx (ring-member hist command)))
+            (while idx
+              (ring-remove hist idx)
+              (setq idx (ring-member hist command))))
+          (ring-insert hist command))
+         (t (ring-insert hist command)))))
     (when save-buffers
       (save-some-buffers (not compilation-ask-about-save)
                          (lambda ()
