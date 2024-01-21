@@ -6,6 +6,7 @@
 
 * [#1870](https://github.com/bbatsov/projectile/pull/1870): Add package command for CMake projects.
 * [#1875](https://github.com/bbatsov/projectile/pull/1875): Add support for Sapling VCS.
+* [#1876](https://github.com/bbatsov/projectile/pull/1876): Add support for Jujutsu VCS.
 
 ## 2.8.0 (2023-10-13)
 
