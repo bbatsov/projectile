@@ -862,7 +862,8 @@ position."
   :type '(radio
           (const :tag "Remove" remove)
           (const :tag "Move to end" move-to-end)
-          (const :tag "Keep" keep)))
+          (const :tag "Keep" keep)
+          (const :tag "Move to front" front)))
 
 (defcustom projectile-max-file-buffer-count nil
   "Maximum number of file buffers per project that are kept open.
@@ -5468,12 +5469,21 @@ An open project is a project with any open buffers."
        (list (abbreviate-file-name project)))
     projects))
 
+(defun projectile--move-current-project-to-front (projects)
+  "Move current project (if any) to the start of list in the list of PROJECTS."
+  (if-let ((project (projectile-project-root)))
+      (append
+       (list (abbreviate-file-name project))
+       (projectile--remove-current-project projects))
+    projects))
+
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects."
   (pcase projectile-current-project-on-switch
     ('remove (projectile--remove-current-project projectile-known-projects))
     ('move-to-end (projectile--move-current-project-to-end projectile-known-projects))
-    ('keep projectile-known-projects)))
+    ('keep projectile-known-projects)
+    ('front (projectile--move-current-project-to-front projectile-known-projects))))
 
 (defun projectile-relevant-open-projects ()
   "Return a list of open projects."
@@ -5481,7 +5491,8 @@ An open project is a project with any open buffers."
     (pcase projectile-current-project-on-switch
       ('remove (projectile--remove-current-project open-projects))
       ('move-to-end (projectile--move-current-project-to-end open-projects))
-      ('keep open-projects))))
+      ('keep open-projects)
+      ('front (projectile--move-current-project-to-front open-projects)))))
 
 ;;;###autoload
 (defun projectile-switch-project (&optional arg)

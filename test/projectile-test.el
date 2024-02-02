@@ -1832,7 +1832,21 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (spy-on 'projectile-project-root :and-return-value "~/foo/")
       (let ((projectile-current-project-on-switch 'keep)
             (projectile-known-projects known-projects))
-        (expect (projectile-relevant-known-projects) :to-equal '("~/foo/" "~/bar/" "~/baz/"))))))
+        (expect (projectile-relevant-known-projects) :to-equal '("~/foo/" "~/bar/" "~/baz/")))))
+
+  (describe "when projectile-current-project-on-switch is 'front; find-file hook not run"
+    (it "returns projectile-known-projects"
+      (spy-on 'projectile-project-root :and-return-value "~/qux/")
+      (let ((projectile-current-project-on-switch 'front)
+            (projectile-known-projects known-projects))
+        (expect (projectile-relevant-known-projects) :to-equal '("~/qux/" "~/foo/" "~/bar/" "~/baz/")))))
+
+  (describe "when projectile-current-project-on-switch is 'front"
+    (it "returns projectile-known-projects"
+      (spy-on 'projectile-project-root :and-return-value "~/bar/")
+      (let ((projectile-current-project-on-switch 'front)
+            (projectile-known-projects known-projects))
+        (expect (projectile-relevant-known-projects) :to-equal '("~/bar/" "~/foo/" "~/baz/"))))))
 
 (describe "projectile-relevant-open-projects"
   (describe "when projectile-current-project-on-switch is 'remove"
