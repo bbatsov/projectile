@@ -3539,6 +3539,13 @@ a manual COMMAND-TYPE command is created with
                                   :compile "cask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
+
+(projectile-register-project-type 'emacs-eask '("Eask")
+                                  :project-file "Eask"
+                                  :compile "eask install"
+                                  :test-prefix "test-"
+                                  :test-suffix "-test")
+
 (projectile-register-project-type 'emacs-eldev #'projectile-eldev-project-p
                                   :project-file "Eldev"
                                   :compile "eldev compile"
