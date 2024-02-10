@@ -14,6 +14,8 @@ If the functionality in `project.el` is good enough for you than you should prob
 
 == At a glance
 
+NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
+
 |===
 | | Projectile | project.el
 
@@ -45,13 +47,21 @@ If the functionality in `project.el` is good enough for you than you should prob
 | 60+
 | n/a
 
-| Extensions
+| Number of Configuration Options
+| ~90
 | ~20
-| ~10
+
+| Number of Commands
+| 80+
+| 30+
 
 | Feature-set
 | Extensive
 | Essential
+
+| Extensions
+| ~20
+| ~10
 
 | Contribution Process
 | Light-weight
