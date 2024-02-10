@@ -5873,7 +5873,7 @@ If PROJECT-PATH is a project, check this one instead."
     (save-excursion
       (vc-dir project-path)
       ;; wait until vc-dir is done
-      (while (vc-dir-busy) (sleep-for 0 100))
+      (while (vc-dir-busy) (sleep-for 0.1))
       ;; check for status
       (save-excursion
         (save-match-data
@@ -6290,9 +6290,10 @@ Otherwise behave as if called interactively.
 
 ;;; savehist-mode - When `savehist-mode' is t, projectile-project-command-history will be saved.
 ;; See https://github.com/bbatsov/projectile/issues/1637 for more details
+(defvar savehist-additional-variables nil)
+
 (if (bound-and-true-p savehist-loaded)
     (add-to-list 'savehist-additional-variables 'projectile-project-command-history)
-  (defvar savehist-additional-variables nil)
   (add-hook 'savehist-mode-hook
             (lambda()
               (add-to-list 'savehist-additional-variables 'projectile-project-command-history))))
