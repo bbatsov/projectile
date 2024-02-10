@@ -1,6 +1,6 @@
 = Projectile versus project.el
 
-NOTE: As both projects are a moving target this page might not reflect the differences between the accurately.
+NOTE: As both projects are moving targets this page might not reflect the differences between them accurately.
 
 Projectile was created at a time when Emacs didn't feature built-in project
 navigation functionality. Eventually this changed in Emacs 25 with the introduction of `project.el` and a lot of people have been asking what are the advantages of using
