@@ -19,11 +19,11 @@ If the functionality in `project.el` is good enough for you than you should prob
 
 | Created in
 | 2011
-| 2014.footnote:[It was introduced in Emacs 25.1.]
+| 2014 footnote:[It was introduced in Emacs 25.1.]
 
 | Supported Emacs versions
 | 25+
-| 25+.footnote:[Note that the versions bundled with older Emacsen will miss some of its modern features. `project.el` is distributed as a package as well, so you can still get some of the newer functionality on older Emacsen.]
+| 25+ footnote:[Note that the versions bundled with older Emacsen will miss some of its modern features. `project.el` is distributed as a package as well, so you can still get some of the newer functionality on older Emacsen.]
 
 | Built-in
 | no
@@ -60,17 +60,17 @@ If the functionality in `project.el` is good enough for you than you should prob
 
 == Projectile's Pros
 
-- Projectile targets Emacs 25, so you can get all the features even with older Emacs releases
-- Projectile has different project indexing strategies, which offer you a lot of flexibility in different situations
-- Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`)
-- Projectile has a lot more features, although one can argue that some of them are rarely needed
-  - Projectile's Commander is pretty cool for project switching!
-- It's easier to contribute to Projectile, as you don't need to deal with Emacs's contributor's agreement and the `emacs-devel` mailing list
-- Projectile has more extensive documentation
+* Projectile targets Emacs 25, so you can get all the features even with older Emacs releases
+* Projectile has different project indexing strategies, which offer you a lot of flexibility in different situations
+* Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`)
+* Projectile has a lot more features, although one can argue that some of them are rarely needed
+  ** Projectile's Commander is pretty cool for project switching!
+* It's easier to contribute to Projectile, as you don't need to deal with Emacs's contributor's agreement and the `emacs-devel` mailing list
+* Projectile has more extensive documentation
 
 == Projectile's Cons
 
-- Third-party dependency, developed outside of Emacs. This is both a pro and con depending on one's perspective, but I know that many people prefer built-in packages, so I've put it under "cons".
-  - Built-in packages in theory should be maintained better (or at least for longer), as they have the Emacs team behind them.
-  - While Projectile has a rich ecosystem of extensions, over a long enough period of time likely `project.el` will take the lead.
-- Due to its larger size, one can argue that Projectile is more complex than `project.el`
+* Third-party dependency, developed outside of Emacs. This is both a pro and con depending on one's perspective, but I know that many people prefer built-in packages, so I've put it under "cons".
+  ** Built-in packages in theory should be maintained better (or at least for longer), as they have the Emacs team behind them.
+  ** While Projectile has a rich ecosystem of extensions, over a long enough period of time likely `project.el` will take the lead.
+* Due to its larger size, one can argue that Projectile is more complex than `project.el`
