@@ -13,7 +13,7 @@
 
 ### Bugs fixed
 
-* [#1881](https://github.com/bbatsov/projectile/issues/1881): Fix projectile-recentf when called outside any project
+* [#1881](https://github.com/bbatsov/projectile/issues/1881): Fix `projectile-recentf` when called outside any project.
 
 ## 2.8.0 (2023-10-13)
 
