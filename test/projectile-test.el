@@ -1,6 +1,6 @@
 ;;; projectile-test.el --- Projectile's test suite -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2023 Bozhidar Batsov
+;; Copyright © 2011-2024 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 
@@ -2148,7 +2148,7 @@ projectile-process-current-project-buffers-current to have similar behaviour"
     (spy-on 'file-directory-p :and-return-value t))
 
   (it "projectile-cmd-hist-ignoredups set to t"
-    
+
     (let ((command-map (make-hash-table :test 'equal))
           (projectile-cmd-hist-ignoredups t)
           ;; history is based on the project root, so we set it to a random
