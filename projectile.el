@@ -3612,7 +3612,7 @@ Normally you'd set this from .dir-locals.el.")
 When DIR is specified it detects its project type, otherwise it acts
 on the current project.
 
-Fallsback to a generic project type when the type can't be determined."
+Fallback to a generic project type when the type can't be determined."
   (let ((project-type
          (or (car (cl-find-if
                    (lambda (project-type-record)
