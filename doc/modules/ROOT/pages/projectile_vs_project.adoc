@@ -43,6 +43,10 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 | Yes (`.projectile`)
 | No
 
+| Project Cache
+| Yes
+| No
+
 | Built-in Project Types
 | 60+
 | n/a
@@ -54,6 +58,18 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 | Number of Commands
 | 80+
 | 30+
+
+| Minor Mode
+| Yes
+| No
+
+| Global Keybindings
+| Require user setup
+| Out-of-the-box (`C-x p`)
+
+| Integration with `xref`
+| Yes
+| Yes
 
 | Feature-set
 | Extensive
@@ -68,6 +84,26 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 | Somewhat complicated (standard for Emacs)
 |===
 
+== Notable Differences
+
+=== Minor Mode vs Global Keymap
+
+Projectile makes heavy use of `projectile-mode`, which provides some additional features (e.g. project status in the modeline).
+You can use Projectile without it, but I guess few people do so. Most of Projectile's functionality will work fine even if the mode is not active.
+
+`project.el` on the other hand, just adds its own keymap under the global keymap (using the prefix `C-x p`). You can do the same for Projectile,
+of course, if you want to.
+
+=== Project Indexing Strategies
+
+Projectile has multiple project indexing strategies to cover a wide variety of use cases. `project.el` has only one, which is more or less the same
+as Projectile's `alien` strategy. Admittedly, that's probably the most commonly used strategy.
+
+=== `.projectile`
+
+Projectile has it's own project marker/configuration file. It's a remnant of the early days of the project where a wanted to build a tool that didn't
+rely on the third-party applications and it's significance today is not that big. (it will be completely ignored unless you're using `native` or `hybrid` indexing)
+
 == Projectile's Pros
 
 * Projectile targets Emacs 25, so you can get all the features even with older Emacs releases
@@ -75,8 +111,12 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 * Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`)
 * Projectile has a lot more features, although one can argue that some of them are rarely needed
   ** Projectile's Commander is pretty cool for project switching!
-* It's easier to contribute to Projectile, as you don't need to deal with Emacs's contributor's agreement and the `emacs-devel` mailing list
+* It's easier to contribute to Projectile
+  ** Projectile is hosted in GitHub
+  ** It accepts pull requests
+  ** You don't need to sign a contributor agreement
 * Projectile has more extensive documentation
+  ** You can compare it with [project.el's documentation](https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html) and decide for themselves
 
 == Projectile's Cons
 
@@ -84,3 +124,4 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
   ** Built-in packages in theory should be maintained better (or at least for longer), as they have the Emacs team behind them.
   ** While Projectile has a rich ecosystem of extensions, over a long enough period of time likely `project.el` will take the lead.
 * Due to its larger size, one can argue that Projectile is more complex than `project.el`
+  ** Admittedly I would have done some things differently if were starting Projectile today, but I don't think Projetile's core complexity is high.
