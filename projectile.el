@@ -5405,7 +5405,7 @@ External commands are: `projectile-configure-project',
 `projectile-install-project', `projectile-package-project',
 and `projectile-run-project'.
 
-If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
+If the prefix argument SHOW-PROMPT is non nil, the command can be edited."
   (interactive "P")
   (let* ((project-root (projectile-acquire-root))
          (command-history (projectile--get-command-history project-root))
@@ -5425,7 +5425,7 @@ If the prefix argument SHOW_PROMPT is non nil, the command can be edited."
 (defun compilation-find-file-projectile-find-compilation-buffer (orig-fun marker filename directory &rest formats)
   "Advice around compilation-find-file.
 We enhance its functionality by appending the current project's directories
-to its search path. This way when filenames in compilation buffers can't be
+to its search path.  This way when filenames in compilation buffers can't be
 found by compilation's normal logic they are searched for in project
 directories."
   ; If the file already exists, don't bother running the extra logic as the project directories might be massive (i.e. Unreal-sized).
