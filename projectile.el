@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 2.9.0-snapshot
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "25.1") (project "0.1"))
 
 ;; This file is NOT part of GNU Emacs.
 

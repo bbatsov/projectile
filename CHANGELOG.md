@@ -11,6 +11,10 @@
 * [#1877](https://github.com/bbatsov/projectile/pull/1877): Add custom variable `projectile-cmd-hist-ignoredups`.
 * Add support for Eask projects.
 
+### Changes
+
+* [#1883](https://github.com/bbatsov/projectile/pull/1883): Add an explicit dependency on `project`, so that the latest version will be installed rather than the built-in version, if using a package manager that installs the latest versions of packages by default.
+
 ### Bugs fixed
 
 * [#1881](https://github.com/bbatsov/projectile/issues/1881): Fix `projectile-recentf` when called outside any project.
