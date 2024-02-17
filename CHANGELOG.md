@@ -9,6 +9,7 @@
 * [#1875](https://github.com/bbatsov/projectile/pull/1875): Add support for Sapling VCS.
 * [#1876](https://github.com/bbatsov/projectile/pull/1876): Add support for Jujutsu VCS.
 * [#1877](https://github.com/bbatsov/projectile/pull/1877): Add custom variable `projectile-cmd-hist-ignoredups`.
+* [#1879](https://github.com/bbatsov/projectile/pull/1879): Modify the keep projectile-current-project-on-switch to move the current project to the front.
 * Add support for Eask projects.
 
 ### Bugs fixed
