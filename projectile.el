@@ -6223,19 +6223,40 @@ thing shown in the mode line otherwise."
          "--"
          ["Run GDB" projectile-run-gdb])
         ("Build"
-         ["Bootstrap project" projectile-bootstrap-project]
-         ["Configure project" projectile-configure-project]
-         ["Compile project" projectile-compile-project]
-         ["Test project" projectile-test-project]
-         ["Install project" projectile-install-project]
-         ["Package project" projectile-package-project]
-         ["Run project" projectile-run-project]
          "--"
          ["Repeat last build command" projectile-repeat-last-command])
         "--"
         ["About" projectile-version]))
     map)
   "Keymap for Projectile mode.")
+
+(defun dynamic-projectile-mode-map-hook-function ()
+  (when (projectile-current-project-buffer-p)
+    ;; remove all build items to keep dynamic menu order
+    ;; (easy-menu-remove-item projectile-mode-menu '("Build") "Repeat last build command")
+
+    ;; add optional menu items to "build" section
+    (if (projectile-bootstrap-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Boostrap project" projectile-bootstrap-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Boostrap project"))
+    (if (projectile-configure-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Configure project" projectile-configure-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Configure project"))
+    (if (projectile-compilation-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Compile project" projectile-compile-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Compile project"))
+    (if (projectile-test-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Test project" projectile-test-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Test project"))
+    (if (projectile-install-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Install project" projectile-install-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Install project"))
+    (if (projectile-package-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Package project" projectile-package-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Package project"))
+    (if (projectile-run-command (projectile-compilation-dir))
+        (easy-menu-add-item projectile-mode-menu '("Build") ["Run project" projectile-run-project] "--")
+      (easy-menu-remove-item projectile-mode-menu '("Build") "Run project"))))
 
 (defun projectile-find-file-hook-function ()
   "Called by `find-file-hook' when `projectile-mode' is on.
@@ -6339,6 +6360,7 @@ Otherwise behave as if called interactively.
       (projectile-discover-projects-in-search-path))
     (add-hook 'project-find-functions #'project-projectile)
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
+    (add-hook 'post-command-hook 'dynamic-projectile-mode-map-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
