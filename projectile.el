@@ -2828,7 +2828,7 @@ ones and overrule settings in the other lists."
     rtn))
 
 (cl-defun projectile--build-project-plist
-    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+    (marker-files &key project-file compilation-dir bootstrap configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
   "Return a project type plist with the provided arguments.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -2881,13 +2881,17 @@ files such as test/impl/other files as below:
     project-plist))
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+    (project-type marker-files &key project-file compilation-dir bootstrap configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
 PROJECT-FILE the main project file in the root project directory.
 COMPILATION-DIR the directory to run the tests- and compilations in,
+BOOTSTRAP which specifies a command that bootstraps the project
+(e.g. launch ./autogen.sh for autotools-based project)
+          `%s' in the command will be substituted with (projectile-project-root)
+          before the command is run,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
           before the command is run,
@@ -2912,6 +2916,7 @@ files such as test/impl/other files as below:
                                 marker-files
                                 :project-file project-file
                                 :compilation-dir compilation-dir
+                                :bootstrap bootstrap
                                 :configure configure
                                 :compile compile
                                 :install install
@@ -2931,6 +2936,7 @@ files such as test/impl/other files as below:
      (marker-files nil marker-files-specified)
      (project-file nil project-file-specified)
      (compilation-dir nil compilation-dir-specified)
+     (bootstrap nil bootstrap-specified)
      (configure nil configure-specified)
      (compile nil compile-specified)
      (install nil install-specified)
@@ -2958,6 +2964,10 @@ and optional keyword arguments:
 MARKER-FILES a set of indicator files for PROJECT-TYPE.
 PROJECT-FILE the main project file in the root project directory.
 COMPILATION-DIR the directory to run the tests- and compilations in,
+BOOTSTRAP which specifies a command that bootstraps the project
+(e.g. launch ./autogen.sh for autotools-based project)
+          `%s' in the command will be substituted with (projectile-project-root)
+          before the command is run,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
           before the command is run,
@@ -2985,6 +2995,7 @@ files such as test/impl/other files as below:
              (when marker-files-specified `(marker-files ,marker-files))
              (when project-file-specified `(project-file ,project-file))
              (when compilation-dir-specified `(compilation-dir ,compilation-dir))
+             (when bootstrap-specified `(bootstrap-command ,bootstrap))
              (when configure-specified `(configure-command ,configure))
              (when compile-specified `(compile-command ,compile))
              (when test-specified `(test-command ,test))
@@ -4939,6 +4950,10 @@ directory to open."
   "Serializes the memory cache to the hard drive."
   (projectile-serialize projectile-projects-cache projectile-cache-file))
 
+(defvar projectile-bootstrap-cmd-map
+  (make-hash-table :test 'equal)
+  "A mapping between projects and the last bootstrap command used on them.")
+
 (defvar projectile-configure-cmd-map
   (make-hash-table :test 'equal)
   "A mapping between projects and the last configure command used on them.")
@@ -4972,6 +4987,11 @@ Should be set via .dir-locals.el.")
   (with-temp-buffer
     (hack-dir-local-variables-non-file-buffer)
     projectile-project-enable-cmd-caching))
+
+(defvar projectile-project-bootstrap-cmd nil
+  "The command to use with `projectile-bootstrap-project'.
+It takes precedence over the default command for the project type when set.
+Should be set via .dir-locals.el.")
 
 (defvar projectile-project-configure-cmd nil
   "The command to use with `projectile-configure-project'.
@@ -5024,6 +5044,10 @@ be string to be executed as command."
      (t
       (error "The value for: %s in project-type: %s was neither a function nor a string" command-type project-type)))))
 
+(defun projectile-default-bootstrap-command (project-type)
+  "Retrieve default bootstrap command for PROJECT-TYPE."
+  (projectile-default-generic-command project-type 'bootstrap-command))
+
 (defun projectile-default-configure-command (project-type)
   "Retrieve default configure command for PROJECT-TYPE."
   (projectile-default-generic-command project-type 'configure-command))
@@ -5051,6 +5075,25 @@ be string to be executed as command."
 (defun projectile-default-run-command (project-type)
   "Retrieve default run command for PROJECT-TYPE."
   (projectile-default-generic-command project-type 'run-command))
+
+(defun projectile-bootstrap-command (compile-dir)
+  "Retrieve the bootstrap command for COMPILE-DIR.
+
+The command is determined like this:
+
+- first we check `projectile-bootstrap-cmd-map' for the last
+bootstrap command that was invoked on the project
+
+- then we check for `projectile-project-bootstrap-cmd' supplied
+via .dir-locals.el
+
+- finally we check for the default bootstrap command for a
+project of that type"
+  (or (gethash compile-dir projectile-bootstrap-cmd-map)
+      projectile-project-bootstrap-cmd
+      (let ((cmd-format-string (projectile-default-bootstrap-command (projectile-project-type))))
+        (when cmd-format-string
+          (format cmd-format-string (projectile-project-root) compile-dir)))))
 
 (defun projectile-configure-command (compile-dir)
   "Retrieve the configure command for COMPILE-DIR.
@@ -5264,6 +5307,12 @@ The command actually run is returned."
     (projectile-run-compilation command use-comint-mode)
     command))
 
+(defcustom projectile-bootstrap-use-comint-mode nil
+  "Make the output buffer of `projectile-bootstrap-project' interactive."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.5.0"))
+
 (defcustom projectile-configure-use-comint-mode nil
   "Make the output buffer of `projectile-configure-project' interactive."
   :group 'projectile
@@ -5299,6 +5348,22 @@ The command actually run is returned."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
+
+;;;###autoload
+(defun projectile-bootstrap-project (arg)
+  "Run project bootstrap command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (let ((command (projectile-bootstrap-command (projectile-compilation-dir)))
+        (command-map (if (projectile--cache-project-commands-p) projectile-bootstrap-cmd-map)))
+    (projectile--run-project-cmd command command-map
+                                 :show-prompt arg
+                                 :prompt-prefix "Bootstrap command: "
+                                 :save-buffers t
+                                 :use-comint-mode projectile-bootstrap-use-comint-mode)))
 
 ;;;###autoload
 (defun projectile-configure-project (arg)
@@ -5400,10 +5465,10 @@ with a prefix ARG."
 (defun projectile-repeat-last-command (show-prompt)
   "Run last projectile external command.
 
-External commands are: `projectile-configure-project',
-`projectile-compile-project', `projectile-test-project',
-`projectile-install-project', `projectile-package-project',
-and `projectile-run-project'.
+External commands are: `projectile-bootstrap-project',
+ `projectile-configure-project', `projectile-compile-project',
+ `projectile-test-project', `projectile-install-project',
+ `projectile-package-project', and `projectile-run-project'.
 
 If the prefix argument SHOW-PROMPT is non nil, the command can be edited."
   (interactive "P")
@@ -6076,6 +6141,7 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "V") #'projectile-browse-dirty-projects)
     ;; project lifecycle external commands
     ;; TODO: Bundle those under some prefix key
+    (define-key map (kbd "B") #'projectile-bootstrap-project)
     (define-key map (kbd "C") #'projectile-configure-project)
     (define-key map (kbd "c") #'projectile-compile-project)
     (define-key map (kbd "K") #'projectile-package-project)
@@ -6157,6 +6223,7 @@ thing shown in the mode line otherwise."
          "--"
          ["Run GDB" projectile-run-gdb])
         ("Build"
+         ["Bootstrap project" projectile-bootstrap-project]
          ["Configure project" projectile-configure-project]
          ["Compile project" projectile-compile-project]
          ["Test project" projectile-test-project]
