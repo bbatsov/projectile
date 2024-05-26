@@ -2072,7 +2072,13 @@ project-root for every file."
                       ((bound-and-true-p ivy-mode)  'ivy)
                       (t 'default))
                    projectile-completion-system)
-            ('default (completing-read prompt choices nil nil initial-input))
+            ('default (completing-read prompt (lambda (string pred action)
+                                                (cond
+                                                 ((eq action 'metadata)
+                                                  '(metadata . ((category . file))))
+                                                 (t
+                                                  (complete-with-action action choices string pred))))
+                                       nil nil initial-input))
             ('ido (ido-completing-read prompt choices nil nil initial-input))
             ('helm
              (if (and (fboundp 'helm)
