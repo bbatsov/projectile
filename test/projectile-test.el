@@ -1051,20 +1051,28 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                  "project/.projectile")
                 (append-to-file
                  "((nil . ((foo . bar))))" nil "project/.dir-locals.el")
-                (with-current-buffer (find-file-noselect "project/.projectile" t)
-                  (let ((enable-local-variables :all))
-                    (hack-dir-local-variables-non-file-buffer)
+                (let ((enable-local-variables :all))
+                  (with-current-buffer (find-file-noselect "project/.projectile" t)
+                    ;; Reload the file to ensure that this file wasn't already
+                    ;; opened from a previous test
+                    (revert-buffer :ignore-auto :noconfirm)
+                    ;; Heck that the variable is bound
                     (expect (boundp 'foo) :to-be 't)
-
+                    ;; Remove the variable
                     (projectile-delete-dir-local-variable nil 'foo)
-                    (expect (boundp 'foo) :to-be nil) ))))))
+                    ;; Reload the file
+                    (revert-buffer :ignore-auto :noconfirm)
+                    ;; Check that the variable is unbound
+                    (expect (boundp 'foo) :to-be nil)))))))
 
 (describe "projectile-add-dir-local-variable"
           (it "Adds new dir-local variables"
               (projectile-test-with-sandbox
                (projectile-test-with-files
                 ("project/"
+                 "project/.dir-locals.el"
                  "project/.projectile")
+                (append-to-file "()" nil "project/.dir-locals.el")
                 (with-current-buffer (find-file-noselect "project/.projectile" t)
                   (let ((enable-local-variables :all))
                     (expect (boundp 'fooo) :to-be nil)

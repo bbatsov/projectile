@@ -2503,9 +2503,10 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 Parameters MODE VARIABLE VALUE are passed directly to `add-dir-local-variable'."
   (let ((inhibit-read-only t)
         (default-directory (projectile-acquire-root)))
-    (add-dir-local-variable mode variable value)
-    (save-buffer)
-    (kill-buffer)))
+    (save-selected-window
+      (add-dir-local-variable mode variable value)
+      (save-buffer)
+      (kill-buffer))))
 
 ;;;###autoload
 (defun projectile-delete-dir-local-variable (mode variable)
@@ -2515,9 +2516,10 @@ Parameters MODE VARIABLE VALUE are passed directly to
 `delete-dir-local-variable'."
   (let ((inhibit-read-only t)
         (default-directory (projectile-acquire-root)))
-    (delete-dir-local-variable mode variable)
-    (save-buffer)
-    (kill-buffer)))
+    (save-selected-window
+      (delete-dir-local-variable mode variable)
+      (save-buffer)
+      (kill-buffer))))
 
 
 ;;;; Sorting project files
