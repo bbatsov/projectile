@@ -10,6 +10,7 @@
 * [#1876](https://github.com/bbatsov/projectile/pull/1876): Add support for Jujutsu VCS.
 * [#1877](https://github.com/bbatsov/projectile/pull/1877): Add custom variable `projectile-cmd-hist-ignoredups`.
 * Add support for Eask projects.
+* [#1892](https://github.com/bbatsov/projectile/pull/1892): Add category metadata to `completing-read`. (it's used by packages like `marginalia` and `embark`)
 
 ### Bugs fixed
 

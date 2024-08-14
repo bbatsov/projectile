@@ -2074,6 +2074,10 @@ project-root for every file."
                    projectile-completion-system)
             ('default (completing-read prompt (lambda (string pred action)
                                                 (cond
+                                                 ;; this metadata is used by
+                                                 ;; packages like marginalia and
+                                                 ;; embark to enhance how they
+                                                 ;; present candidates
                                                  ((eq action 'metadata)
                                                   '(metadata . ((category . file))))
                                                  (t
