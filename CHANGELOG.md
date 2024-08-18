@@ -11,7 +11,7 @@
 * [#1877](https://github.com/bbatsov/projectile/pull/1877): Add custom variable `projectile-cmd-hist-ignoredups`.
 * Add support for Eask projects.
 * [#1892](https://github.com/bbatsov/projectile/pull/1892): Add category metadata to `completing-read`. (it's used by packages like `marginalia` and `embark`)
-
+* [#1899](https://github.com/bbatsov/projectile/pull/1899): Add support for xmake build utility.
 ### Bugs fixed
 
 * [#1881](https://github.com/bbatsov/projectile/issues/1881): Fix `projectile-recentf` when called outside any project.
