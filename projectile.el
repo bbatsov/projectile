@@ -3287,6 +3287,12 @@ a manual COMMAND-TYPE command is created with
 ;; File-based detection project types
 
 ;; Universal
+(projectile-register-project-type 'xmake '("xmake.lua")
+                                  :project-file "xmake.lua"
+                                  :compile "xmake build"
+                                  :test "xmake test"
+                                  :run "xmake run"
+                                  :install "xmake install")
 (projectile-register-project-type 'scons '("SConstruct")
                                   :project-file "SConstruct"
                                   :compile "scons"
