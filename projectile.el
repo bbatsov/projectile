@@ -6290,14 +6290,24 @@ Otherwise behave as if called interactively.
       (projectile-discover-projects-in-search-path))
     (add-hook 'project-find-functions #'project-projectile)
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
-    (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
-    (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
+    ;; Add hooks to track which buffer is currently active.
+    ;; Note - In Emacs 28.1 `buffer-list-update-hook' was modified to no
+    ;; longer run on temporary buffers, this allows us to use it to track
+    ;; changes to the active buffer instead of relying on more specific hooks
+    ;; such as `dired-before-readin-hook'.
+    (if (version<= "28.1" emacs-version)
+        (add-hook 'buffer-list-update-hook #'projectile-track-known-projects-find-file-hook t)
+      (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
+      (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t))
+
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
    (t
     (remove-hook 'project-find-functions #'project-projectile)
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
-    (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
+    (if (version<= "28.1" emacs-version)
+        (remove-hook 'buffer-list-update-hook #'projectile-track-known-projects-find-file-hook)
+      (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t))
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
 
