@@ -2079,7 +2079,7 @@ project-root for every file."
                                                  ;; embark to enhance how they
                                                  ;; present candidates
                                                  ((eq action 'metadata)
-                                                  '(metadata . ((category . file))))
+                                                  '(metadata . ((category . project-file))))
                                                  (t
                                                   (complete-with-action action choices string pred))))
                                        nil nil initial-input))
