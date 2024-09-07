@@ -425,6 +425,7 @@ is set to `alien'."
     "^\\.ccls-cache$"
     "^\\.cache$"
     "^\\.clangd$"
+    "*CVS"
     "^\\.sl$"
     "^\\.jj$")
   "A list of directories globally ignored by projectile.
