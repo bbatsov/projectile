@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+* [#1910](https://github.com/bbatsov/projectile/pull/1910): Reverts [#1895](https://github.com/bbatsov/projectile/pull/1895) as those changes appear to cause a significant performance regression across a number of use-cases.
+
 ### New features
 
 * [#1874](https://github.com/bbatsov/projectile/pull/1874): Changes `compilation-find-file-projectile-find-compilation-buffer` to navigate directly to the file if already present on disk to help improve performance in scenarios where there are a large number of project directories.

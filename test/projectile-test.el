@@ -1957,40 +1957,6 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                 (with-current-buffer (find-file-noselect "foo" t))
                 (expect (length (projectile-project-buffers)) :to-equal 1)))))
 
-(describe "projectile-mode buffer-list-update-hook"
-          (it "check that the hooks properly update the known projects when changing files or windows"
-              (projectile-test-with-sandbox
-               (projectile-test-with-files
-                ("project1/"
-                 "project1/.projectile"
-                 "project1/foo"
-                 "project2/"
-                 "project2/.projectile"
-                 "project2/bar")
-                (find-file "project1/")
-                (projectile-mode 1)
-
-                ;; Check that opening a file leads to the known-projects being updated
-                (find-file "project1/foo")
-                (expect (mapcar (lambda (x) (file-name-base (directory-file-name x)))  projectile-known-projects)
-                        :to-equal '("project1"))
-
-                ;; Check that opening a file in a different project leads to the known-projects being updated
-                (find-file-other-window "../../project2/bar")
-                (expect (mapcar (lambda (x) (file-name-base (directory-file-name x)))  projectile-known-projects)
-                        :to-equal '("project2" "project1"))
-
-                ;; Check that selecting a different buffer also updates the known-projects
-                (other-window 1)
-                (expect (mapcar (lambda (x) (file-name-base (directory-file-name x)))  projectile-known-projects)
-                        ;; Sadly this behavior is contigent on the existance of
-                        ;; `buffer-list-update-hook' so it will behave
-                        ;; differently on older versions of Emacs that do not
-                        ;; have this variable.
-                        :to-equal (if (version<= "28.1" emacs-version)
-                                      '("project1" "project2")
-                                    '("project2" "project1")))))))
-
 (describe "projectile--impl-name-for-test-name"
   :var ((mock-projectile-project-types
          '((foo test-suffix "Test")
