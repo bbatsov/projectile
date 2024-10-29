@@ -1347,11 +1347,11 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
         (expect (projectile-detect-project-type) :to-equal 'emacs-eldev)))))
-  (it "detects project-type for projects with src dir and no other marker"
+  (it "detects project-type for dotnet sln projects"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/"
-       "project/src/")
+       "project/Project.sln")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
         (expect (projectile-detect-project-type) :to-equal 'dotnet-sln)))))
