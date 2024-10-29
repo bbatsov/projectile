@@ -3,6 +3,9 @@
 ## master (unreleased)
 
 * [#1910](https://github.com/bbatsov/projectile/pull/1910): Reverts [#1895](https://github.com/bbatsov/projectile/pull/1895) as those changes appear to cause a significant performance regression across a number of use-cases.
+* [#1915](https://github.com/bbatsov/projectile/pull/1915): Fix
+  dotnet-sln project-type recognition (check `*.sln` files instead of
+  `src/`)
 
 ### New features
 
