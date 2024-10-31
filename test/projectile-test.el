@@ -76,6 +76,7 @@ You'd normally combine this with `projectile-test-with-sandbox'."
      ,@body))
 
 (defmacro projectile-test-with-empty-cache (&rest body)
+  "TODO: dox"
   `(let ((projectile-indexing-method 'native)
          (projectile-projects-cache (make-hash-table :test 'equal))
          (projectile-projects-cache-time (make-hash-table :test 'equal))
