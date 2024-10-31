@@ -75,6 +75,14 @@ You'd normally combine this with `projectile-test-with-sandbox'."
                files)
      ,@body))
 
+(defmacro projectile-test-with-empty-cache (&rest body)
+  `(let ((projectile-indexing-method 'native)
+         (projectile-projects-cache (make-hash-table :test 'equal))
+         (projectile-projects-cache-time (make-hash-table :test 'equal))
+         (projectile-project-root-cache (make-hash-table :test 'equal))
+         (projectile-enable-caching nil))
+     ,@body))
+
 (defmacro projectile-test-with-files-using-custom-project (files project-options &rest body)
   "Evaluate BODY with the custom project having PROJECT-OPTIONS with FILES."
   (declare (indent 2) (debug (sexp sexp &rest form)))
@@ -637,6 +645,111 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
               (expand-file-name "projectA/"))
       (expect (projectile-root-top-down-recurring "projectA/src/html/" '("elusivefile"))
               :not :to-be-truthy)))))
+
+(describe "projectile-non-project-roots"
+  (it "ok helpers"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.git/"
+       "projectA/ok"
+       "projectA/src/.git/"
+       "projectA/src/framework/.git/")
+
+      (let ((projectile-non-project-roots nil))
+        (expect (projectile-root-local "projectA/src/framework/")
+                :to-equal
+                nil)
+
+        (expect (projectile-root-marked "projectA/src/framework/")
+                :to-equal
+                nil)
+
+        (expect (projectile-root-bottom-up "projectA/src/framework/" '(".git"))
+                :to-equal
+                (expand-file-name "projectA/src/framework/"))
+
+        (expect (projectile-root-top-down "projectA/src/framework/" '(".git"))
+                 :to-equal
+                 (expand-file-name "projectA/src/framework/"))
+
+        (expect (projectile-root-top-down-recurring "projectA/src/framework/" '(".git"))
+                :to-equal
+                (expand-file-name "projectA/")))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/src/framework/"))))
+        (expect (projectile-root-local "projectA/src/framework/")
+                :to-equal
+                nil)
+
+        (expect (projectile-root-marked "projectA/src/framework/")
+               :to-equal
+               nil)
+
+        (expect (projectile-root-bottom-up "projectA/src/framework/" '(".git"))
+               :to-equal
+               (expand-file-name "projectA/src/"))
+
+        (expect (projectile-root-top-down "projectA/src/framework/" '(".git"))
+               :to-equal
+               (expand-file-name "projectA/src/")))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/src/")
+                                                     (expand-file-name "projectA/src/framework/"))))
+        (expect (projectile-root-bottom-up "projectA/src/framework/" '(".git"))
+                :to-equal
+                (expand-file-name "projectA/"))
+
+        (expect (projectile-root-top-down "projectA/src/framework/" '(".git"))
+                :to-equal
+                (expand-file-name "projectA/")))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/")
+                                                     (expand-file-name "projectA/src/")
+                                                     (expand-file-name "projectA/src/framework/"))))
+        (expect (projectile-root-bottom-up "projectA/src/framework/" '(".git"))
+                :to-equal
+                nil))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/"))))
+        (expect (projectile-root-top-down-recurring "projectA/src/framework/" '(".git"))
+                :to-equal
+                nil)))))
+  (it "ok api"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.git/"
+       "projectA/ok"
+       "projectA/src/.git/"
+       "projectA/src/framework/.git/")
+
+      (let ((projectile-non-project-roots nil))
+        (projectile-test-with-empty-cache
+         (expect (projectile-project-root "projectA/src/framework/")
+                 :to-equal
+                 (expand-file-name "projectA/src/framework/"))))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/src/framework/"))))
+        (projectile-test-with-empty-cache
+         (expect (projectile-project-root "projectA/src/framework/")
+                 :to-equal
+                 (expand-file-name "projectA/src/"))))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/src/")
+                                                     (expand-file-name "projectA/src/framework/"))))
+        (projectile-test-with-empty-cache
+         (expect (projectile-project-root "projectA/src/framework/")
+                 :to-equal
+                 (expand-file-name "projectA/"))))
+
+      (let ((projectile-non-project-roots (list (expand-file-name "projectA/")
+                                                     (expand-file-name "projectA/src/")
+                                                     (expand-file-name "projectA/src/framework/"))))
+        (projectile-test-with-empty-cache
+         (expect (projectile-project-root "projectA/src/framework/")
+                 :to-equal
+                 ;; NOTE: i.e. the projectile project itself. This doesn't seem
+                 ;; very "sandbox" but maybe it's fine.
+                 (expand-file-name "../../"))))))))
 
 (describe "projectile-root-bottom-up"
   (it "identifies the root directory of a project by bottom-up search"

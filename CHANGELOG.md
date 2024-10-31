@@ -2,6 +2,7 @@
 
 ## master (unreleased)
 
+* [#number](link): Add variable `projectile-non-project-roots`
 * [#1910](https://github.com/bbatsov/projectile/pull/1910): Reverts [#1895](https://github.com/bbatsov/projectile/pull/1895) as those changes appear to cause a significant performance regression across a number of use-cases.
 
 ### New features

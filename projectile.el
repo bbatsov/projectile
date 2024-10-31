@@ -908,6 +908,9 @@ Should be set via .dir-locals.el.")
 It takes precedence over the test-dir for the project type when set.
 Should be set via .dir-locals.el.")
 
+(defvar projectile-non-project-roots nil
+  "TODO: dox")
+
 
 ;;; Version information
 
@@ -1234,7 +1237,12 @@ which we're looking."
       (setq try (if (stringp name)
                     (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
                   (funcall name file)))
-      (cond (try (setq root file))
+      (cond ((and try
+                  (cl-notany (lambda (d) (string=
+                                          (expand-file-name (file-name-as-directory d))
+                                          (expand-file-name (file-name-as-directory file))))
+                             projectile-non-project-roots))
+             (setq root file))
             ((equal file (setq file (file-name-directory
                                      (directory-file-name file))))
              (setq file nil))))
