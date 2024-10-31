@@ -515,3 +515,14 @@ NOTE: The project name & type will not appear when editing remote files
 Projectile supports https://cmake.org/cmake/help/git-stage/manual/cmake-presets.7.html[CMake presets]. Preset support is disabled by default, but can be enabled by setting `projectile-enable-cmake-presets` to non-nil. With preset-support enabled Projectile will parse the preset files and present the command-specific presets when executing a lifecycle command. In addition a `*no preset*` option is included for entering the command manually.
 
 NOTE: Preset support requires a CMake version that supports preset and for `json-parse-buffer` to be available.
+
+== Miscellaneous Configuration
+
+=== Marking dirs as not project roots
+
+TODO: explain
+
+[source,elisp]
+----
+(setq projectile-non-project-roots '(~))
+----
