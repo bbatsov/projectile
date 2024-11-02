@@ -3626,6 +3626,13 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dune build"
                                   :test "dune runtest")
 
+;; Zig
+(projectile-register-project-type 'zig '("build.zig.zon")
+                                  :project-file "build.zig.zon"
+                                  :compile "zig build"
+                                  :test "zig build test"
+                                  :run "zig build run")
+
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
 Normally you'd set this from .dir-locals.el.")
