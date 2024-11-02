@@ -1363,7 +1363,16 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
        "project/Project.toml")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'julia))))))
+        (expect (projectile-detect-project-type) :to-equal 'julia)))))
+  (it "detects project-type for Zig projects"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/src/"
+       "project/build.zig.zon")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'zig))))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"

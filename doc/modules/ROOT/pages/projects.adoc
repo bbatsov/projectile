@@ -143,6 +143,9 @@ are the configuration files of various build tools. Out of the box the following
 
 | `xmake.lua`
 | xmake project
+
+| `build.zig.zon`
+| Zig project file
 |===
 
 There's also Projectile's own `.projectile` which serves both as a project marker
