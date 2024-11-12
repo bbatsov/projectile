@@ -3058,6 +3058,12 @@ it acts on the current project."
   (or (projectile-verify-file-wildcard "?*.csproj" dir)
       (projectile-verify-file-wildcard "?*.fsproj" dir)))
 
+(defun projectile-dotnet-sln-project-p (&optional dir)
+  "Check if a project contains a .NET solution project marker.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file-wildcard "?*.sln" dir)))
+
 (defun projectile-go-project-p (&optional dir)
   "Check if a project contains Go source files.
 When DIR is specified it checks DIR's project, otherwise
@@ -3271,7 +3277,7 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
-(projectile-register-project-type 'dotnet-sln '("src")
+(projectile-register-project-type 'dotnet-sln #'projectile-dotnet-sln-project-p
                                   :project-file "?*.sln"
                                   :compile "dotnet build"
                                   :run "dotnet run"
@@ -3619,6 +3625,13 @@ a manual COMMAND-TYPE command is created with
                                   :project-file "dune-project"
                                   :compile "dune build"
                                   :test "dune runtest")
+
+;; Zig
+(projectile-register-project-type 'zig '("build.zig.zon")
+                                  :project-file "build.zig.zon"
+                                  :compile "zig build"
+                                  :test "zig build test"
+                                  :run "zig build run")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.

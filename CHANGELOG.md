@@ -3,6 +3,9 @@
 ## master (unreleased)
 
 * [#1910](https://github.com/bbatsov/projectile/pull/1910): Reverts [#1895](https://github.com/bbatsov/projectile/pull/1895) as those changes appear to cause a significant performance regression across a number of use-cases.
+* [#1915](https://github.com/bbatsov/projectile/pull/1915): Fix
+  dotnet-sln project-type recognition (check `*.sln` files instead of
+  `src/`)
 
 ### New features
 
@@ -15,6 +18,7 @@
 * [#1892](https://github.com/bbatsov/projectile/pull/1892): Add category metadata to `completing-read`. (it's used by packages like `marginalia` and `embark`)
 * [#1899](https://github.com/bbatsov/projectile/pull/1899): Add support for xmake build utility.
 * [#1895](https://github.com/bbatsov/projectile/pull/1895): Modify projectile-mode to add a hook to `buffer-list-update-hook` such that any change in the buffer list will update the selected project.
+* [#1918](https://github.com/bbatsov/projectile/pull/1895): Add Zig project discovery.
 
 ### Bugs fixed
 

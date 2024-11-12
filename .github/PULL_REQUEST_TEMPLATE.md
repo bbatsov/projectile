@@ -11,6 +11,6 @@ by checking the relevant checkboxes):
 - [ ] All tests are passing ([`eldev test`](https://github.com/doublep/eldev))
 - [ ] The new code is not generating bytecode or `M-x checkdoc` warnings
 - [ ] You've updated the [changelog](../blob/master/CHANGELOG.md) (if adding/changing user-visible functionality)
-- [ ] You've updated the readme (if adding/changing user-visible functionality)
+- [ ] You've updated the [docs](../blob/master/doc/modules/ROOT/pages) (when adding new project types, configuration options, commands, etc)
 
 Thanks!
