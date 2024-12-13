@@ -43,6 +43,7 @@
 (require 'compile)
 (require 'grep)
 (require 'lisp-mnt)
+(require 'xml)
 (eval-when-compile
   (require 'find-dired)
   (require 'subr-x))
@@ -331,6 +332,7 @@ See `projectile-register-project-type'."
     ".pijul"      ; Pijul VCS root dir
     ".sl"         ; Sapling VCS root dir
     ".jj"         ; Jujutsu VCS root dir
+    ".osc"        ; Osc VCS root dir
     )
   "A list of files considered to mark the root of a project.
 The bottommost (parentmost) match has precedence."
@@ -426,7 +428,9 @@ is set to `alien'."
     "^\\.cache$"
     "^\\.clangd$"
     "^\\.sl$"
-    "^\\.jj$")
+    "^\\.jj$"
+    "*\\.osc$"
+    "^\\.clangd$")
   "A list of directories globally ignored by projectile.
 Regular expressions can be used.
 
@@ -765,6 +769,10 @@ Set to nil to disable listing submodules contents."
   "Command used by projectile to get the files in a svn project."
   :group 'projectile
   :type 'string)
+(defcustom projectile-osc-command #'projectile-osc-command-files
+    "Command used by projectile to get the files in a svn project."
+  :group 'projectile
+  :type '(function string))
 
 (defcustom projectile-generic-command
   (cond
@@ -1484,7 +1492,21 @@ Fallback to a generic command when not in a VCS-controlled project."
     ('svn projectile-svn-command)
     ('sapling projectile-sapling-command)
     ('jj projectile-jj-command)
+    ('osc projectile-osc-command)
     (_ projectile-generic-command)))
+
+
+(defun projectile-osc-command-files (&optional root)
+  "Return files of osc vcs, return either packages or files belonging to package."
+  (or root (setq root default-directory))
+  (let* ((files_ (car (xml-parse-file (if (file-exists-p ".osc/_files")
+                                          (expand-file-name ".osc/_files")
+                                        (if (file-exists-p ".osc/_packages")
+                                            (expand-file-name ".osc/_packages")
+                                        (error "Directory neither osc package or project"))))))
+         (entries (or (xml-get-children files_ 'entry)
+                      (xml-get-children files_ 'package))))
+    (mapcar (lambda (entry) (xml-get-attribute entry 'name)) entries)))
 
 (defun projectile-get-sub-projects-command (vcs)
   "Get the sub-projects command for VCS.
@@ -1582,12 +1604,15 @@ If `command' is nil or an empty string, return nil.
 This allows commands to be disabled.
 
 Only text sent to standard output is taken into account."
-  (when (stringp command)
+  (when (or (stringp command)
+             (functionp command))
     (let ((default-directory root))
+      (if (functionp command)
+          (funcall command root)
       (with-temp-buffer
         (shell-command command t "*projectile-files-errors*")
         (let ((shell-output (buffer-substring (point-min) (point-max))))
-          (split-string (string-trim shell-output) "\0" t))))))
+          (split-string (string-trim shell-output) "\0" t)))))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
@@ -3713,6 +3738,7 @@ the variable `projectile-project-root'."
    ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
    ((projectile-file-exists-p (expand-file-name ".sl" project-root)) 'sapling)
    ((projectile-file-exists-p (expand-file-name ".jj" project-root)) 'jj)
+   ((projectile-file-exists-p (expand-file-name ".osc" project-root)) 'osc)
    ;; then we check if there's a VCS marker up the directory tree
    ;; that covers the case when a project is part of a multi-project repository
    ;; in those cases you can still the VCS to get a list of files for
@@ -3727,6 +3753,7 @@ the variable `projectile-project-root'."
    ((projectile-locate-dominating-file project-root ".svn") 'svn)
    ((projectile-locate-dominating-file project-root ".sl") 'sapling)
    ((projectile-locate-dominating-file project-root ".jj") 'jj)
+   ((projectile-locate-dominating-file project-root ".osc") 'osc)
    (t 'none)))
 
 (defun projectile--test-name-for-impl-name (impl-file-path)
