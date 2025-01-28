@@ -5214,14 +5214,15 @@ project of that type"
 
 (defun projectile-compilation-dir ()
   "Retrieve the compilation directory for this project."
-  (let* ((type (projectile-project-type))
-         (directory (or projectile-project-compilation-dir
+  (let* ((project-root (projectile-acquire-root))
+         (type (projectile-project-type project-root))
+         (comp-dir (or projectile-project-compilation-dir
                         (projectile-default-compilation-dir type))))
-    (if directory
+    (if comp-dir
         (file-truename
-         (concat (file-name-as-directory (projectile-project-root))
-                 (file-name-as-directory directory)))
-      (projectile-project-root))))
+         (concat (file-name-as-directory project-root)
+                 (file-name-as-directory comp-dir)))
+      project-root)))
 
 (defun projectile-maybe-read-command (arg default-cmd prompt)
   "Prompt user for command unless DEFAULT-CMD is an Elisp function."
