@@ -2835,8 +2835,8 @@ ones and overrule settings in the other lists."
     (while plists
       (setq ls (pop plists))
       (while ls
-	(setq p (pop ls) v (pop ls))
-	(setq rtn (plist-put rtn p v))))
+        (setq p (pop ls) v (pop ls))
+        (setq rtn (plist-put rtn p v))))
     rtn))
 
 (cl-defun projectile--build-project-plist
