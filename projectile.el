@@ -3633,6 +3633,13 @@ a manual COMMAND-TYPE command is created with
                                   :test "zig build test"
                                   :run "zig build run")
 
+;; Swift
+(projectile-register-project-type 'swift-spm '("Package.swift")
+                                  :project-file "Package.swift"
+                                  :compile "swift build"
+                                  :test "swift test"
+                                  :run "swift run")
+
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
 Normally you'd set this from .dir-locals.el.")

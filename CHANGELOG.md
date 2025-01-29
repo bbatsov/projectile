@@ -14,6 +14,7 @@
 * [#1899](https://github.com/bbatsov/projectile/pull/1899): Add support for xmake build utility.
 * [#1895](https://github.com/bbatsov/projectile/pull/1895): Modify projectile-mode to add a hook to `buffer-list-update-hook` such that any change in the buffer list will update the selected project.
 * [#1918](https://github.com/bbatsov/projectile/pull/1895): Add Zig project discovery.
+* Add support for Swift project discovery.
 
 ### Bugs fixed
 
