@@ -341,7 +341,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 
 (describe "projectile-ignored-directory-p"
   (it "checks if directory should be ignored"
-    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp" "/path/to/project/t.*"))
+    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp" "/path/to/project/t.ignore"))
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/t.ignore") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
@@ -1816,13 +1816,13 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
 
 (describe "projectile-test-ignored-directory-p"
-  (it "ignores specified regular directory values"
+  (it "ignores specified directory values"
     (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp"))
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy))
   (it "ignores specified directory values with characters that need to be escaped"
-    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/t.*"))
-    (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
+    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/.dir"))
+    (expect (projectile-ignored-directory-p "/path/to/project/.dir") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
 
 (describe "projectile-relevant-known-projects"
