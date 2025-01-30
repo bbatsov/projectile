@@ -24,8 +24,8 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 | 2014 footnote:[It was introduced in Emacs 25.1.]
 
 | Supported Emacs versions
-| 25+
-| 25+ footnote:[Note that the versions bundled with older Emacsen will miss some of its modern features. `project.el` is distributed as a package as well, so you can still get some of the newer functionality on older Emacsen.]
+| 26+
+| 26+ footnote:[Note that the versions bundled with older Emacsen will miss some of its modern features. `project.el` is distributed as a package as well, so you can still get some of the newer functionality on older Emacsen.]
 
 | Built-in
 | no
