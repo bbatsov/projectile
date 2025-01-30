@@ -3489,7 +3489,8 @@ a manual COMMAND-TYPE command is created with
                                   :test "mill __.test"
                                   :test-suffix "Test")
 
-(projectile-register-project-type 'bloop '(".bloop/bloop.settings.json")                                          :compile "bloop compile root"
+(projectile-register-project-type 'bloop '(".bloop/bloop.settings.json")
+                                  :compile "bloop compile root"
                                   :test "bloop test --propagate --reporter scalac root"
                                   :src-dir "src/main/"
                                   :test-dir "src/test/"
