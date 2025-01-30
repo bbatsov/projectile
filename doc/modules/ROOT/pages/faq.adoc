@@ -19,10 +19,11 @@ these days (circa 2021). Historically, Projectile had a lot more features, but m
 of them found their way into `project.el` over the years. If all you need is
 a way to quickly jump between project files or search/replace inside a project, you can't go wrong with both.
 
-For me Projectile's biggest advantage will always be that it's more community-friendly
-(e.g. the development happens on GitHub), and it's not restricted by the FSF
-contributor agreement, which means that everyone can easily contribute to the project. Of course, this comes with the downside that you have to install Projectile
-yourselves.
+For me Projectile's biggest advantage will always be that it's more
+community-friendly (e.g. the development happens on GitHub), and it's not
+restricted by the FSF contributor agreement, which means that everyone can
+easily contribute to the project. Of course, this comes with the downside that
+you have to install Projectile yourselves.
 
 One under-appreciated advantage of Projectile is that it has way more documentation.
 Okay, that's only an advantage if you're one of those rare people who enjoy reading it.
