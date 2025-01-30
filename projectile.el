@@ -407,6 +407,10 @@ is set to `alien'."
   :group 'projectile
   :type '(repeat string))
 
+;; TODO: Those are treated by parts of the code as
+;; regular expressions and by other parts as regular strings.
+;; Their handling has to be made consistent across the board.
+;; See https://github.com/bbatsov/projectile/issues/1811 for details.
 (defcustom projectile-globally-ignored-directories
   '(".idea"
     ".vscode"
