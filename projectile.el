@@ -4030,10 +4030,10 @@ should be strings, nil returned if this is not the case."
 Return a path relative to the project root for the test file of FILE-NAME
 using the src-dir and test-dir properties of the current project type which
 should be strings, nil returned if this is not the case."
-  (when-let* (complementary-file (projectile--complementary-file
-                                 file-name
-                                 #'projectile--impl-to-test-dir
-                                 #'projectile--test-name-for-impl-name))
+  (when-let* ((complementary-file (projectile--complementary-file
+                                   file-name
+                                   #'projectile--impl-to-test-dir
+                                   #'projectile--test-name-for-impl-name)))
     (file-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--impl-file-from-src-dir-fn (test-file)
