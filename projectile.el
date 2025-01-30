@@ -408,27 +408,28 @@ is set to `alien'."
   :type '(repeat string))
 
 (defcustom projectile-globally-ignored-directories
-  '("^\\.idea$"
-    "^\\.vscode$"
-    "^\\.ensime_cache$"
-    "^\\.eunit$"
-    "^\\.git$"
-    "^\\.hg$"
-    "^\\.fslckout$"
-    "^_FOSSIL_$"
-    "^\\.bzr$"
-    "^_darcs$"
-    "^\\.pijul$"
-    "^\\.tox$"
-    "^\\.svn$"
-    "^\\.stack-work$"
-    "^\\.ccls-cache$"
-    "^\\.cache$"
-    "^\\.clangd$"
-    "^\\.sl$"
-    "^\\.jj$")
+  '(".idea"
+    ".vscode"
+    ".ensime_cache"
+    ".eunit"
+    ".git"
+    ".hg"
+    ".fslckout"
+    "_FOSSIL_"
+    ".bzr"
+    "_darcs"
+    ".pijul"
+    ".tox"
+    ".svn"
+    ".stack-work"
+    ".ccls-cache"
+    ".cache"
+    ".clangd"
+    ".sl"
+    ".jj")
   "A list of directories globally ignored by projectile.
-Regular expressions can be used.
+Those are simple strings that need to be escaped properly if used
+in a context that requires regular expressions.
 
 Strings that don't start with * are only ignored at the top level
 of the project.  Strings that start with * are ignored everywhere
