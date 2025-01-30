@@ -3,8 +3,8 @@
 == Issues
 
 Report issues and suggest features and improvements on the
-https://github.com/bbatsov/projectile/issues[GitHub issue tracker]. Don't ask
-questions on the issue tracker - use the xref:support.adoc[support channels] instead.
+https://github.com/bbatsov/projectile/issues[GitHub issue tracker]
+and https://github.com/bbatsov/projectile/discussions[our discussions board].
 
 If you want to file a bug, please provide all the necessary info listed in
 our issue reporting template (it's loaded automatically when you create a
@@ -12,7 +12,7 @@ new GitHub issue).
 
 It's usually a good idea to try to reproduce (obscure) bugs in isolation. You
 can do this by cloning Projectile's GitHub repo and running `eldev emacs` inside
-it (you need to install [Eldev](https://github.com/doublep/eldev) tool first).
+it (you need to install https://github.com/doublep/eldev[Eldev] tool first).
 This will bring up Emacs with only the latest version of Projectile loaded. By
 starting fresh, with the latest code, we can ensure that the problem at hand
 isn't already fixed or caused by interactions with other packages.
