@@ -106,7 +106,7 @@ rely on the third-party applications and it's significance today is not that big
 
 == Projectile's Pros
 
-* Projectile targets Emacs 25, so you can get all the features even with older Emacs releases
+* Projectile targets Emacs 26, so you can get all the features even with older Emacs releases
 * Projectile has different project indexing strategies, which offer you a lot of flexibility in different situations
 * Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`)
 * Projectile has a lot more features, although one can argue that some of them are rarely needed

@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         # Earliest supported + latest in each stable branch + snapshot.
-        emacs_version: ['25.1', '25.3', '26.3', '27.1', '28.1', '29.1', 'snapshot']
+        emacs_version: ['26.3', '27.1', '28.1', '29.1', 'snapshot']
 
     steps:
     - name: Set up Emacs

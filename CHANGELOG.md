@@ -24,6 +24,10 @@
 * [#1850](https://github.com/bbatsov/projectile/issues/1850): Ensure the presence of a project in `projectile-compilation-dir`.
 * [#1811](https://github.com/bbatsov/projectile/issues/1811): Revert a change to `projectile-ignored-directories` that had converted them into regular expressions.
 
+### Changes
+
+* Drop support for Emacs 25.
+
 ## 2.8.0 (2023-10-13)
 
 ### New features

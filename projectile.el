@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 2.9.0-snapshot
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -2194,7 +2194,7 @@ project-root for every file."
 The list depends on `:related-files-fn' project option and
 `projectile-other-file-alist'.  For the latter, FLEX-MATCHING can be used
 to match any basename."
-  (if-let ((plist (projectile--related-files-plist-by-kind  file-name :other)))
+  (if-let* ((plist (projectile--related-files-plist-by-kind  file-name :other)))
       (projectile--related-files-from-plist plist)
     (projectile--other-extension-files file-name
                                        (projectile-current-project-files)
@@ -2652,7 +2652,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 (defun projectile--related-files-plist (project-root file)
   "Return a plist containing all related files information for FILE.
 PROJECT-ROOT is the project root."
-  (if-let ((rel-path (if (file-name-absolute-p file)
+  (if-let* ((rel-path (if (file-name-absolute-p file)
                          (file-relative-name file project-root)
                        file))
            (custom-function (funcall projectile-related-files-fn-function (projectile-project-type))))
@@ -2666,7 +2666,7 @@ PROJECT-ROOT is the project root."
 
 (defun projectile--related-files-plist-by-kind (file kind)
   "Return a plist containing :paths and/or :predicate of KIND for FILE."
-  (if-let ((project-root (projectile-project-root))
+  (if-let* ((project-root (projectile-project-root))
            (plist (projectile--related-files-plist project-root file))
            (has-kind? (plist-member plist kind)))
       (let* ((kind-value (plist-get plist kind))
@@ -2701,7 +2701,7 @@ PROJECT-ROOT is the project root."
 
 (defun projectile--related-files-kinds(file)
   "Return a list o keywords meaning available related kinds for FILE."
-  (if-let ((project-root (projectile-project-root))
+  (if-let* ((project-root (projectile-project-root))
            (plist (projectile--related-files-plist project-root file)))
       (cl-loop for key in plist by #'cddr
                collect key)))
@@ -2714,13 +2714,13 @@ PROJECT-ROOT is the project root."
   "Choose a file from files related to FILE as KIND.
 If KIND is not provided, a list of possible kinds can be chosen."
   (unless kind
-    (if-let ((available-kinds (projectile--related-files-kinds file)))
+    (if-let* ((available-kinds (projectile--related-files-kinds file)))
         (setq kind (if (= (length available-kinds) 1)
                        (car available-kinds)
                      (intern (projectile-completing-read "Kind :" available-kinds))))
       (error "No related files found")))
 
-  (if-let ((candidates (projectile--related-files file kind)))
+  (if-let* ((candidates (projectile--related-files file kind)))
       (projectile-expand-root (projectile--choose-from-candidates candidates))
     (error
      "No matching related file as `%s' found for project type `%s'"
@@ -2751,7 +2751,7 @@ If KIND is not provided, a list of possible kinds can be chosen."
 (defun projectile-related-files-fn-groups(kind groups)
   "Generate a related-files-fn which relates as KIND for files in each of GROUPS."
   (lambda (path)
-    (if-let ((group-found (cl-find-if (lambda (group)
+    (if-let* ((group-found (cl-find-if (lambda (group)
                                         (member path group))
                                       groups)))
         (list kind (cl-remove path group-found :test 'equal)))))
@@ -3134,14 +3134,14 @@ it acts on the current project."
 
 (defun projectile--cmake-command-presets-shallow (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME."
-  (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
+  (when-let* ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
     (cl-remove-if
      (lambda (preset) (equal (gethash "hidden" preset) t))
      (gethash (projectile--cmake-command-preset-array-id command-type) preset))))
 
 (defun projectile--cmake-command-presets (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME.  Follows included files."
-  (when-let ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
+  (when-let* ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
     (append
      (projectile--cmake-command-presets-shallow filename command-type)
      (mapcar
@@ -3191,7 +3191,7 @@ select a name of a command preset, or opt a manual command by selecting
 `projectile--cmake-no-preset'.
 
 - Else `projectile--cmake-no-preset' is used."
-  (if-let ((use-presets (projectile--cmake-use-command-presets command-type))
+  (if-let* ((use-presets (projectile--cmake-use-command-presets command-type))
            (preset-names (projectile--cmake-command-preset-names command-type)))
       (projectile-completing-read
        "Use preset: "
@@ -3673,7 +3673,7 @@ on the current project.
 
 The project type is cached for improved performance."
   (or (and (not dir) projectile-project-type)
-      (if-let ((project-root (projectile-project-root dir)))
+      (if-let* ((project-root (projectile-project-root dir)))
           (or (gethash project-root projectile-project-type-cache)
               (projectile-detect-project-type dir)))))
 
@@ -3792,7 +3792,7 @@ Occurrences of the `projectile-default-src-directory' in the directory of
 IMPL-DIR-PATH are replaced with `projectile-default-test-directory'.  Nil is
 returned if `projectile-default-src-directory' is not a substring of
 IMPL-DIR-PATH."
-  (when-let ((file (projectile--complementary-file
+  (when-let* ((file (projectile--complementary-file
                     impl-dir-path
                     (lambda (f)
                       (when (string-match-p projectile-default-src-directory f)
@@ -3810,7 +3810,7 @@ Occurrences of `projectile-default-test-directory' in the directory of
 TEST-DIR-PATH are replaced with `projectile-default-src-directory'.  Nil is
 returned if `projectile-default-test-directory' is not a substring of
 TEST-DIR-PATH."
-  (when-let ((file (projectile--complementary-file
+  (when-let* ((file (projectile--complementary-file
                     test-dir-path
                     (lambda (f)
                       (when (string-match-p projectile-default-test-directory f)
@@ -4006,7 +4006,7 @@ concatenated with FILENAME-FN applied to the file name of FILE-PATH.
 
 If either function returns nil, return nil."
   (let ((filename (file-name-nondirectory file-path)))
-    (when-let ((complementary-filename (funcall filename-fn filename))
+    (when-let* ((complementary-filename (funcall filename-fn filename))
                (dir (funcall dir-fn (file-name-directory file-path))))
      (concat (file-name-as-directory dir) complementary-filename))))
 
@@ -4015,7 +4015,7 @@ If either function returns nil, return nil."
 Return a path relative to the project root for the impl file of FILE-NAME
 using the src-dir and test-dir properties of the current project type which
 should be strings, nil returned if this is not the case."
-  (when-let ((complementary-file (projectile--complementary-file
+  (when-let* ((complementary-file (projectile--complementary-file
                                   file-name
                                   #'projectile--test-to-impl-dir
                                   #'projectile--impl-name-for-test-name)))
@@ -4026,7 +4026,7 @@ should be strings, nil returned if this is not the case."
 Return a path relative to the project root for the test file of FILE-NAME
 using the src-dir and test-dir properties of the current project type which
 should be strings, nil returned if this is not the case."
-  (when-let (complementary-file (projectile--complementary-file
+  (when-let* (complementary-file (projectile--complementary-file
                                  file-name
                                  #'projectile--impl-to-test-dir
                                  #'projectile--test-name-for-impl-name))
@@ -4038,7 +4038,7 @@ Return the implementation file path for the absolute path TEST-FILE
 relative to the project root in the case the current project type's src-dir
 has been set to a custom function, return nil if this is not the case or
 the path points to a file that does not exist."
-  (when-let ((src-dir (projectile-src-directory (projectile-project-type))))
+  (when-let* ((src-dir (projectile-src-directory (projectile-project-type))))
     (when (functionp src-dir)
       (let ((impl-file (projectile--complementary-file
                         test-file
@@ -4052,7 +4052,7 @@ the path points to a file that does not exist."
 Return the test file path for the absolute path IMPL-FILE relative to the
 project root, in the case the current project type's test-dir has been set
 to a custom function, else return nil."
-  (when-let ((test-dir (projectile-test-directory (projectile-project-type))))
+  (when-let* ((test-dir (projectile-test-directory (projectile-project-type))))
     (when (functionp test-dir)
       (file-relative-name
        (projectile--complementary-file
@@ -4145,12 +4145,12 @@ The precedence for determining implementation files to return is:
 
 (defun projectile-find-matching-test (impl-file)
   "Compute the name of the test matching IMPL-FILE."
-  (when-let ((candidates (projectile--find-matching-test impl-file)))
+  (when-let* ((candidates (projectile--find-matching-test impl-file)))
     (projectile--choose-from-candidates candidates)))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (when-let ((candidates (projectile--find-matching-file test-file)))
+  (when-let* ((candidates (projectile--find-matching-file test-file)))
     (projectile--choose-from-candidates candidates)))
 
 (defun projectile-grep-default-files ()
@@ -5489,21 +5489,21 @@ An open project is a project with any open buffers."
    (delq nil
          (mapcar (lambda (buffer)
                    (with-current-buffer buffer
-                     (when-let ((project-root (projectile-project-root)))
+                     (when-let* ((project-root (projectile-project-root)))
                        (when (projectile-project-buffer-p buffer project-root)
                          (abbreviate-file-name project-root)))))
                  (buffer-list)))))
 
 (defun projectile--remove-current-project (projects)
   "Remove the current project (if any) from the list of PROJECTS."
-  (if-let ((project (projectile-project-root)))
+  (if-let* ((project (projectile-project-root)))
       (projectile-difference projects
                              (list (abbreviate-file-name project)))
     projects))
 
 (defun projectile--move-current-project-to-end (projects)
   "Move current project (if any) to the end of list in the list of PROJECTS."
-  (if-let ((project (projectile-project-root)))
+  (if-let* ((project (projectile-project-root)))
       (append
        (projectile--remove-current-project projects)
        (list (abbreviate-file-name project)))
@@ -5650,7 +5650,7 @@ Return a list of projects removed."
 (defun projectile-cleanup-known-projects ()
   "Remove known projects that don't exist anymore."
   (interactive)
-  (if-let ((projects-removed (projectile--cleanup-known-projects)))
+  (if-let* ((projects-removed (projectile--cleanup-known-projects)))
       (message "Projects removed: %s"
                (mapconcat #'identity projects-removed ", "))
     (message "No projects needed to be removed.")))

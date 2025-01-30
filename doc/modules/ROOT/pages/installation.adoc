@@ -1,6 +1,6 @@
 = Installation
 
-NOTE: Projectile officially supports Emacs 25.1+.
+NOTE: Projectile officially supports Emacs 26.1+.
 
 The recommended way to install Projectile is via `package.el`.
 
