@@ -224,9 +224,9 @@ When nil Projectile will consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-cache-file
-  (expand-file-name "projectile.cache" user-emacs-directory)
-  "The name of Projectile's cache file."
+(defcustom projectile-cache-file  ".projectile.cache"
+  "The name of Projectile's cache.
+It's relative to the project root."
   :group 'projectile
   :type 'string)
 
@@ -599,10 +599,10 @@ project."
                                             (run-hooks 'projectile-idle-timer-hook)))))))
   :type 'boolean)
 
-(defvar projectile-projects-cache nil
+(defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
 
-(defvar projectile-projects-cache-time nil
+(defvar projectile-projects-cache-time (make-hash-table :test 'equal)
   "A hashmap used to record when we populated `projectile-projects-cache'.")
 
 (defvar projectile-project-root-cache (make-hash-table :test 'equal)
@@ -1066,7 +1066,7 @@ to invalidate."
     (remhash project-root projectile-project-type-cache)
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
-    (projectile-serialize-cache)
+    (projectile-serialize nil (projectile-project-cache-file project-root))
     (when projectile-verbose
       (message "Invalidated Projectile cache for %s."
                (propertize project-root 'face 'font-lock-keyword-face))))
@@ -1086,7 +1086,13 @@ The cache is created both in memory and on the hard drive."
   (when projectile-enable-caching
     (puthash project files projectile-projects-cache)
     (puthash project (projectile-time-seconds) projectile-projects-cache-time)
-    (projectile-serialize-cache)))
+    (projectile-serialize files (projectile-project-cache-file project))))
+
+(defun projectile-load-project-cache (project-root)
+  "Load the cache file for PROJECT-ROOT in memory."
+  (when-let* ((cache-file (projectile-project-cache-file project-root)))
+    (when (file-exists-p cache-file)
+      (puthash project-root (projectile-unserialize cache-file) projectile-projects-cache))))
 
 ;;;###autoload
 (defun projectile-purge-file-from-cache (file)
@@ -1100,7 +1106,7 @@ The cache is created both in memory and on the hard drive."
     (if (projectile-file-cached-p file project-root)
         (progn
           (puthash project-root (remove file project-cache) projectile-projects-cache)
-          (projectile-serialize-cache)
+          (projectile-serialize project-cache (projectile-project-cache-file project-root))
           (when projectile-verbose
             (message "%s removed from cache" file)))
       (error "%s is not in the cache" file))))
@@ -1133,10 +1139,9 @@ The cache is created both in memory and on the hard drive."
         (unless (or (projectile-file-cached-p current-file current-project)
                     (projectile-ignored-directory-p (file-name-directory abs-current-file))
                     (projectile-ignored-file-p abs-current-file))
-          (puthash current-project
-                   (cons current-file (gethash current-project projectile-projects-cache))
-                   projectile-projects-cache)
-          (projectile-serialize-cache)
+          (let ((project-files (cons current-file (gethash current-project projectile-projects-cache))))
+            (puthash current-project project-files projectile-projects-cache)
+            (projectile-serialize project-files (projectile-project-cache-file current-project)))
           (message "File %s added to project %s cache."
                    (propertize current-file 'face 'font-lock-keyword-face)
                    (propertize current-project 'face 'font-lock-keyword-face)))))))
@@ -1158,7 +1163,7 @@ The cache is created both in memory and on the hard drive."
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
   (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
-                                          projectile-cache-file))
+                                          (projectile-project-cache-file)))
     (projectile-invalidate-cache nil)))
 
 ;;;###autoload
@@ -2131,7 +2136,8 @@ project-root for every file."
 
     ;; Use the cache, if requested and available.
     (when projectile-enable-caching
-      (setq files (gethash project-root projectile-projects-cache)))
+      (setq files (or (gethash project-root projectile-projects-cache)
+                      (projectile-load-project-cache project-root))))
 
     ;; Calculate the list of files.
     (when (null files)
@@ -4979,9 +4985,12 @@ directory to open."
            (lambda (f) (string-prefix-p project-root (expand-file-name f)))
            recentf-list)))))
 
-(defun projectile-serialize-cache ()
-  "Serializes the memory cache to the hard drive."
-  (projectile-serialize projectile-projects-cache projectile-cache-file))
+(defun projectile-project-cache-file (&optional project-root)
+  "The path to a project's cache file for PROJECT-ROOT.
+Acts on the current project is not specified explicitly."
+  (if project-root
+      (expand-file-name projectile-cache-file project-root)
+    (projectile-expand-root projectile-cache-file)))
 
 (defvar projectile-configure-cmd-map
   (make-hash-table :test 'equal)
@@ -6301,14 +6310,6 @@ Otherwise behave as if called interactively.
    (projectile-mode
     ;; setup the commander bindings
     (projectile-commander-bindings)
-    ;; initialize the projects cache if needed
-    (unless projectile-projects-cache
-      (setq projectile-projects-cache
-            (or (projectile-unserialize projectile-cache-file)
-                (make-hash-table :test 'equal))))
-    (unless projectile-projects-cache-time
-      (setq projectile-projects-cache-time
-            (make-hash-table :test 'equal)))
     ;; load the known projects
     (projectile-load-known-projects)
     ;; update the list of known projects

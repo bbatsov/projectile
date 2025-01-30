@@ -153,6 +153,10 @@ The project cache is persistent and will be preserved during Emacs restarts.
 You can purge an individual file from the cache with `M-x projectile-purge-file-from-cache` or an
 entire directory with `M-x projectile-purge-dir-from-cache`.
 
+NOTE: Prior to Projectile 2.9 the cache for all projects was serialized to the same file.
+In Projectile 2.9 this was changed and now each project has it's own cache file relative to
+the project's root directory.
+
 === File exists cache
 
 Projectile does many file existence checks since that is how it identifies a
