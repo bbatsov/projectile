@@ -2,7 +2,7 @@
 
 == Overview
 
-*Projectile* is a project interaction library for Emacs. Its goal is to
+*Projectile* is a **project** **i**nteraction **l**ibrary for **E**macs. Its goal is to
 provide a nice set of features operating on a project level without
 introducing external dependencies (when feasible). For instance -
 finding project files has a portable implementation written in pure
