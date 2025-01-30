@@ -11,6 +11,32 @@ bit you'll get more out of it.
 Check out the xref:configuration.adoc["Configuration"] section of the manual
 for a lot more information about configuring Projectile.
 
+=== Basic Configuration
+
+Here's how a typical Projectile configuration would look:
+
+[source,elisp]
+----
+;; Optional: ag is nice alternative to using grep with Projectile
+(use-package ag)
+
+;; Optional: Enable vertico as the selection framework to use with Projectile
+(use-package vertico
+  :init
+  (vertico-mode))
+
+(use-package projectile
+  :init
+  (setq projectile-project-search-path '("~/projects/" "~/work/" "~/playground"))
+  :config
+  ;; I typically use this keymap prefix on macOS
+  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  ;; On Linux, however, I usually go with another one
+  (define-key projectile-mode-map (kbd "C-c C-p") 'projectile-command-map)
+  (global-set-key (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1))
+----
+
 === Automated Project Discovery
 
 To add a project to Projectile's list of known projects, open a file
