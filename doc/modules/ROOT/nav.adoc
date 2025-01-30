@@ -8,4 +8,3 @@
 * xref:faq.adoc[FAQ]
 * xref:troubleshooting.adoc[Troubleshooting]
 * xref:contributing.adoc[Contributing]
-* xref:support.adoc[Support]
