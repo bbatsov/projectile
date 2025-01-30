@@ -3489,6 +3489,12 @@ a manual COMMAND-TYPE command is created with
                                   :test "mill __.test"
                                   :test-suffix "Test")
 
+(projectile-register-project-type 'bloop '(".bloop/bloop.settings.json")                                          :compile "bloop compile root"
+                                  :test "bloop test --propagate --reporter scalac root"
+                                  :src-dir "src/main/"
+                                  :test-dir "src/test/"
+                                  :test-suffix "Spec")
+
 ;; Clojure
 (projectile-register-project-type 'lein-test '("project.clj")
                                   :project-file "project.clj"
@@ -3508,13 +3514,7 @@ a manual COMMAND-TYPE command is created with
 (projectile-register-project-type 'clojure-cli '("deps.edn")
                                   :project-file "deps.edn"
                                   :test-suffix "_test")
-(projectile-register-project-type 'bloop '(".bloop")
-                                  :project-file ".bloop"
-                                  :compile "bloop compile root"
-                                  :test "bloop test --propagate --reporter scalac root"
-                                  :src-dir "src/main/"
-                                  :test-dir "src/test/"
-                                  :test-suffix "Spec")
+
 ;; Ruby
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
                                   :project-file "Gemfile"
