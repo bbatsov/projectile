@@ -27,6 +27,13 @@
 ### Changes
 
 * Drop support for Emacs 25.
+* Rework the caching logic. The main changes from before are:
+
+    - Each project has its own cache file
+    - Cache files are consulted only when you request the files of some project
+
+    This makes caching both more robust and faster, as before the cache file
+    for all projects was loaded when projectile-mode was enabled.
 
 ## 2.8.0 (2023-10-13)
 
