@@ -14,12 +14,13 @@ known as the `native indexing method`) and the other two (`hybrid` and
 `alien`) rely on external commands like `find`, `git`, etc to
 obtain the list of files in a project.
 
-The `alien` indexing method maximizes the speed of the `hybrid` indexing
-method.  This means that Projectile will not do any processing or sorting
-of the files returned by the external commands and you're going to get
-the maximum performance possible.  This behaviour makes a lot of sense for
-most people, as they'd typically be putting ignores in their VCS config (e.g. `.gitignore`) and won't care about any additional ignores/unignores/sorting
-that Projectile might also provide.
+The `alien` indexing method maximizes the speed of the `hybrid` indexing method.
+This means that Projectile will not do any processing or sorting of the files
+returned by the external commands and you're going to get the maximum
+performance possible.  This behaviour makes a lot of sense for most people, as
+they'd typically be putting ignores in their VCS config (e.g. `.gitignore`) and
+won't care about any additional ignores/unignores/sorting that Projectile might
+also provide.
 
 NOTE: By default the `alien` method is used on all operating systems except Windows.
  Prior to Projectile 2.0 `hybrid` used to be the default (but to make things
@@ -149,6 +150,17 @@ cache for current project. Generally files created outside Emacs will
 be added to the cache automatically the first time you open them.
 
 The project cache is persistent and will be preserved during Emacs restarts.
+Each project gets its own cache file, that will be placed in the root folder of the
+project. The name of the cache file is `.projectile.cache` by default, but you can tweak it
+if you want to:
+
+[source,elisp]
+----
+(setq projectile-cache-file "foo.bar")
+----
+
+The cache file will be loaded automatically in memory the first time you trigger
+a "find file" operation for the project it belongs to.
 
 You can purge an individual file from the cache with `M-x projectile-purge-file-from-cache` or an
 entire directory with `M-x projectile-purge-dir-from-cache`.
@@ -156,6 +168,19 @@ entire directory with `M-x projectile-purge-dir-from-cache`.
 NOTE: Prior to Projectile 2.9 the cache for all projects was serialized to the same file.
 In Projectile 2.9 this was changed and now each project has it's own cache file relative to
 the project's root directory.
+
+When `projectile-mode` is enabled Projectile will auto-update the project cache when files
+within are added or deleted from within Emacs. (this is achieved by file hooks) This behavior
+can be disabled like this:
+
+[source,elisp]
+----
+(setq projectile-auto-update-cache nil)
+----
+
+One last thing - the project cache will be auto-invalidated if you're using
+`.projectile` and it's last modification time is more recent than the time at
+which the cache file was last updated.
 
 === File exists cache
 
