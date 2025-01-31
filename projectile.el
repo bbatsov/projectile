@@ -1183,6 +1183,9 @@ discover projects there."
   (interactive
    (list (read-directory-name "Starting directory: ")))
 
+  ;; set a default value for depth
+  (setq depth (or depth 1))
+
   (if (file-directory-p directory)
       (if (and (numberp depth) (> depth 0))
           ;; Ignore errors when listing files in the directory, because

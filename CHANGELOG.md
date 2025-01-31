@@ -23,6 +23,7 @@
 * [#1915](https://github.com/bbatsov/projectile/pull/1915): Fix dotnet-sln project-type recognition. (check `*.sln` files instead of `src/`)
 * [#1850](https://github.com/bbatsov/projectile/issues/1850): Ensure the presence of a project in `projectile-compilation-dir`.
 * [#1811](https://github.com/bbatsov/projectile/issues/1811): Revert a change to `projectile-ignored-directories` that had converted them into regular expressions.
+* [#1893](https://github.com/bbatsov/projectile/issues/1893): Fix `projectile-discover-projects-in-directory` when called interactively.
 
 ### Changes
 
