@@ -5536,7 +5536,7 @@ and discover new ones if `projectile-auto-discover' is enabled."
   ;; load the known projects
   (unless projectile-known-projects
     (projectile-load-known-projects))
-  (when projectile-auto-discover
+  (when (and projectile-auto-discover projectile-project-search-path)
     (projectile-discover-projects-in-search-path)))
 
 (defun projectile-relevant-known-projects ()
