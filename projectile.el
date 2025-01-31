@@ -224,7 +224,7 @@ When nil Projectile will consider the current directory the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-cache-file  ".projectile.cache"
+(defcustom projectile-cache-file  ".projectile-cache.eld"
   "The name of Projectile's cache.
 It's relative to the project root."
   :group 'projectile

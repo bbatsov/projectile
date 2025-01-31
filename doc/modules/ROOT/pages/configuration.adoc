@@ -151,12 +151,12 @@ be added to the cache automatically the first time you open them.
 
 The project cache is persistent and will be preserved during Emacs restarts.
 Each project gets its own cache file, that will be placed in the root folder of the
-project. The name of the cache file is `.projectile.cache` by default, but you can tweak it
+project. The name of the cache file is `.projectile-cache.eld` by default, but you can tweak it
 if you want to:
 
 [source,elisp]
 ----
-(setq projectile-cache-file "foo.bar")
+(setq projectile-cache-file "foo.eld")
 ----
 
 The cache file will be loaded automatically in memory the first time you trigger
