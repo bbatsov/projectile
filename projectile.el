@@ -1010,8 +1010,8 @@ The saved data can be restored with `projectile-unserialize'."
   "Timer for scheduling`projectile-file-exists-cache-cleanup'.")
 
 (defun projectile-file-exists-cache-cleanup ()
-  "Removed timed out cache entries and reschedules or remove the
-timer if no more items are in the cache."
+  "Remove timed out cache entries.
+Also reschedule or remove the timer if no more items are in the cache."
   (let ((now (current-time)))
     (maphash (lambda (key value)
                (if (time-less-p (cdr value) now)
