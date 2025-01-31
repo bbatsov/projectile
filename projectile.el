@@ -6305,6 +6305,7 @@ when opening new files."
               (concat root f))
             (projectile-project-files root))))
 
+;;;###autoload
 (defun project-projectile (dir)
   "Return Projectile project of form ('projectile . root-dir) for DIR."
   (let ((root (projectile-project-root dir)))
