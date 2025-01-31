@@ -77,8 +77,7 @@ NOTE: Those keymap prefixes are just a suggestion. Feel free to put
 
 == Installation via use-package
 
-`use-package` can be used to install Projectile via the ``package.el``'s repositories
-http://stable.melpa.org[MELPA Stable] and http://melpa.org[MELPA].
+`use-package` is a popular way to install and configure Projectile.
 
 If you wanted to install the version of Projectile which is what is to be found in
 the `master` branch, declare the following in your Emacs initialization file

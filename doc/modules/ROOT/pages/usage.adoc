@@ -18,14 +18,24 @@ Here's how a typical Projectile configuration would look:
 [source,elisp]
 ----
 ;; Optional: ag is nice alternative to using grep with Projectile
-(use-package ag)
+(use-package ag
+  :ensure t)
 
 ;; Optional: Enable vertico as the selection framework to use with Projectile
 (use-package vertico
+  :ensure t
   :init
   (vertico-mode))
 
+;; Optional: which-key will show you options for partially completed keybindings
+;; It's extremely useful for packages with many keybindings like Projectile.
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode +1))
+
 (use-package projectile
+  :ensure t
   :init
   (setq projectile-project-search-path '("~/projects/" "~/work/" "~/playground"))
   :config
@@ -36,6 +46,8 @@ Here's how a typical Projectile configuration would look:
   (global-set-key (kbd "C-c p") 'projectile-command-map)
   (projectile-mode +1))
 ----
+
+The example above builds upon the simpler setup demonstrated in the "Installation" section.
 
 === Automated Project Discovery
 
