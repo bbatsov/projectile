@@ -529,17 +529,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (projectile-mode 1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
     (projectile-mode -1)
-    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy))
-  (it "respects projectile-auto-discover setting"
-    (unwind-protect
-        (progn
-          (let ((projectile-auto-discover nil))
-            (projectile-mode 1)
-            (expect 'projectile-discover-projects-in-search-path :not :to-have-been-called))
-          (let ((projectile-auto-discover t))
-            (projectile-mode 1)
-            (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
-      (projectile-mode -1))))
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
 
 (describe "projectile-relevant-known-projects"
   (it "returns a list of known projects"
@@ -1039,8 +1029,8 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 
 (describe "projectile-switch-project"
   (it "fails if there are no projects"
-    (let ((projectile-known-projects nil))
-      (expect (projectile-switch-project) :to-throw))))
+    (spy-on 'projectile-relevant-known-projects :and-return-value nil)
+    (expect (projectile-switch-project) :to-throw)))
 
 (describe "projectile-delete-dir-local-variable"
           (it "Deletes existing dir-local variables"

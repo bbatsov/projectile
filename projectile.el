@@ -5528,8 +5528,20 @@ An open project is a project with any open buffers."
        (list (abbreviate-file-name project)))
     projects))
 
+(defun projectile--init-known-projects ()
+  "Initialize the known projects.
+
+This might potentially clean up redundant projects
+and discover new ones if `projectile-auto-discover' is enabled."
+  ;; load the known projects
+  (unless projectile-known-projects
+    (projectile-load-known-projects))
+  (when projectile-auto-discover
+    (projectile-discover-projects-in-search-path)))
+
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects."
+  (projectile--init-known-projects)
   (pcase projectile-current-project-on-switch
     ('remove (projectile--remove-current-project projectile-known-projects))
     ('move-to-end (projectile--move-current-project-to-end projectile-known-projects))
@@ -6316,12 +6328,6 @@ Otherwise behave as if called interactively.
    (projectile-mode
     ;; setup the commander bindings
     (projectile-commander-bindings)
-    ;; load the known projects
-    (projectile-load-known-projects)
-    ;; update the list of known projects
-    (projectile--cleanup-known-projects)
-    (when projectile-auto-discover
-      (projectile-discover-projects-in-search-path))
     (add-hook 'project-find-functions #'project-projectile)
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)

@@ -34,6 +34,9 @@
 
     This makes caching both more robust and faster, as before the cache file
     for all projects was loaded when projectile-mode was enabled.
+* Speed-up load time by moving known projects initialization outside of `projectile-mode`'s init.
+  * As a side effect the known projects will be initialized properly even if you're not using `projectile-mode`.
+  * The projects are read from disk the first time you invoke `projectile-switch-project` or a similar command.
 
 ## 2.8.0 (2023-10-13)
 
