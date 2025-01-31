@@ -1066,10 +1066,12 @@ to invalidate."
              (completing-read "Remove cache for: "
                               (hash-table-keys projectile-projects-cache))
            (projectile-acquire-root))))
+    ;; reset the in-memory cache
     (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-project-type-cache)
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
+    ;; reset the project's cache file
     (projectile-serialize nil (projectile-project-cache-file project-root))
     (when projectile-verbose
       (message "Invalidated Projectile cache for %s."
