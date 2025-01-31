@@ -25,7 +25,7 @@ Here's how a typical Projectile configuration would look:
 (use-package vertico
   :ensure t
   :init
-  (vertico-mode))
+  (vertico-mode +1))
 
 ;; Optional: which-key will show you options for partially completed keybindings
 ;; It's extremely useful for packages with many keybindings like Projectile.
