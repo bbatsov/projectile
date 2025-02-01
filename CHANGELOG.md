@@ -371,7 +371,7 @@ of `find` to list the files of a non-VCS project. This should be much faster.
 * New command `projectile-run-shell` (<kbd>C-c p x s</kbd>).
 * New command `projectile-run-eshell` (<kbd>C-c p x e</kbd>).
 * New command `projectile-run-term` (<kbd>C-c p x t</kbd>).
-* Let user unignore files in `.projectile` with the ! prefix.
+* [#971](https://github.com/bbatsov/projectile/pull/971): Let user unignore files in `.projectile` with the ! prefix.
 * Add a command to add all projects in a directory to the cache (`projectile-discover-projects-in-directory`).
 * Add a command to list dirty version controlled projects (`projectile-browse-dirty-projects`).
 
