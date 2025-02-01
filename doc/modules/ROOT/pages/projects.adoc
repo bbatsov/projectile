@@ -749,6 +749,8 @@ Similarly, you can leverage the built-in `project.el` like this:
 
 == Ignoring files
 
+=== Ignoring files using `.projectile` (a.k.a. dirconfig)
+
 WARNING: The contents of `.projectile` are ignored when using the
  `alien` project indexing method.
 
@@ -812,10 +814,24 @@ with a bang prefix.
 If you would like to include comment lines in your .projectile file,
 you can customize the variable `projectile-dirconfig-comment-prefix`.
 Assigning it a non-nil character value, e.g. `#`, will cause lines in
-the .projectile file starting with that character to be treated as
+the `.projectile` file starting with that character to be treated as
 comments instead of patterns.
 
-=== File-local project root definitions
+=== Ignored files using the project indexing tools
+
+If you're using the `hybrid` or `alien` indexing strategies, the simplest
+way to ignore some files is just leverage the configuration of the
+tool you're using to do the project indexing.
+
+E.g. in the case of `git` you can just tweak `.gitignore`.
+
+Sometimes, however, you'd like to have some files as part of your project,
+but you don't want to see them in Projectile for whatever reasons.
+
+In those cases the project dirconfig file (`.projectile`) can be a handy
+way to further adjust what you want to see in Projectile.
+
+== File-local project root definitions
 
 If you want to override the projectile project root for a specific
 file, you can set the file-local variable `projectile-project-root`. This
