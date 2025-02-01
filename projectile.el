@@ -394,7 +394,7 @@ is set to `alien'."
 
 (defcustom projectile-globally-unignored-files nil
   "A list of files globally unignored by projectile.
-Regular expressions can be used.
+
 Note that files aren't filtered if `projectile-indexing-method'
 is set to `alien'."
   :group 'projectile
@@ -409,10 +409,6 @@ is set to `alien'."
   :group 'projectile
   :type '(repeat string))
 
-;; TODO: Those are treated by parts of the code as
-;; regular expressions and by other parts as regular strings.
-;; Their handling has to be made consistent across the board.
-;; See https://github.com/bbatsov/projectile/issues/1811 for details.
 (defcustom projectile-globally-ignored-directories
   '(".idea"
     ".vscode"
@@ -434,8 +430,6 @@ is set to `alien'."
     ".sl"
     ".jj")
   "A list of directories globally ignored by projectile.
-Those are simple strings that need to be escaped properly if used
-in a context that requires regular expressions.
 
 Strings that don't start with * are only ignored at the top level
 of the project.  Strings that start with * are ignored everywhere
@@ -448,7 +442,9 @@ project, but not ./src/tmp.  \"*tmp\" will ignore both ./tmp and
 ./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
 
 Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'."
+is set to `alien'.
+
+See also `projectile-global-ignore-file-patterns'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
@@ -460,6 +456,21 @@ is set to `alien'."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
+
+(defcustom projectile-global-ignore-file-patterns
+  nil
+  "A list of file regexp patterns ignored by Projectile.
+
+It complements `projectile-globally-ignored-files' and
+`projectile-globally-ignored-directories'.  See also
+`projectile-ignored-file-p' and `projectile-ignored-directory-p'.
+
+Note that files aren't filtered if `projectile-indexing-method'
+is set to `alien'."
+  :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-globally-ignored-modes
   '("erc-mode"
@@ -1738,9 +1749,7 @@ If PROJECT is not specified the command acts on the current project."
            (string-prefix-p project-root (file-truename directory) (eq system-type 'windows-nt))))))
 
 (defun projectile-ignored-buffer-p (buffer)
-  "Check if BUFFER should be ignored.
-
-Regular expressions can be use."
+  "Check if BUFFER should be ignored."
   (or
    (with-current-buffer buffer
      (cl-some
@@ -1874,33 +1883,31 @@ projectile project root."
     (directory &optional ignored-directories local-directory globally-ignored-directories)
   "Check if DIRECTORY should be ignored.
 
-Regular expressions can be used.  Pre-computed lists of
-IGNORED-DIRECTORIES and GLOBALLY-IGNORED-DIRECTORIES
+Pre-computed lists of IGNORED-DIRECTORIES and GLOBALLY-IGNORED-DIRECTORIES
 and the LOCAL-DIRECTORY name may optionally be provided."
   (let ((ignored-directories (or ignored-directories (projectile-ignored-directories)))
         (globally-ignored-directories (or globally-ignored-directories (projectile-globally-ignored-directory-names)))
         (local-directory (or local-directory (file-name-nondirectory (directory-file-name directory)))))
-    (or (cl-some
-         (lambda (name)
-           (string-match-p (projectile--regexp-quote-dir name) directory))
-         ignored-directories)
+    (or (member directory ignored-directories)
         (cl-some
          (lambda (name)
-           (string-match-p (projectile--regexp-quote-dir name) local-directory))
-         globally-ignored-directories))))
+           (string-match-p name directory))
+         projectile-global-ignore-file-patterns)
+        (member local-directory globally-ignored-directories))))
 
 (defun projectile-ignored-file-p (file &optional ignored-files)
   "Check if FILE should be ignored.
 
-Regular expressions can be used.  A pre-computed list of
-IGNORED-FILES may optionally be provided."
-  (cl-some
-   (lambda (name)
-     (string-match-p name file))
-   (or ignored-files (projectile-ignored-files))))
+A pre-computed list of IGNORED-FILES may optionally be provided."
+  (or
+   (member file (or ignored-files (projectile-ignored-files)))
+   (cl-some
+    (lambda (name)
+      (string-match-p name file))
+    projectile-global-ignore-file-patterns)))
 
 (defun projectile-check-pattern-p (file pattern)
-  "Check if FILE meets PATTERN."
+  "Check if FILE matches globbing PATTERN."
   (or (string-suffix-p (directory-file-name pattern)
                        (directory-file-name file))
       (member file (file-expand-wildcards pattern t))))
@@ -1917,7 +1924,10 @@ PATTERNS should have the form: (ignored . unignored)"
           (cdr patterns)))))
 
 (defun projectile-ignored-files ()
-  "Return list of ignored files."
+  "Return list of ignored files.
+
+That's a combination of the globally ignored files and
+files ignored in a project's dirconfig."
   (projectile-difference
    (mapcar
     #'projectile-expand-root
