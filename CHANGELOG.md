@@ -39,6 +39,14 @@
 * Speed-up load time by moving known projects initialization outside of `projectile-mode`'s init.
   * As a side effect the known projects will be initialized properly even if you're not using `projectile-mode`.
   * The projects are read from disk the first time you invoke `projectile-switch-project` or a similar command.
+* Introduce a common prefix for project lifecycle command keybindings:
+  * `c o` -> `projectile-configure-project`
+  * `c c` -> `projectile-compile-project`
+  * `c p` -> `projectile-package-project`
+  * `c i` -> `projectile-install-project`
+  * `c t` -> `projectile-test-project`
+  * `c r` -> `projectile-run-project`
+  * The old keybindings will be removed in a future version of Projectile.
 
 ## 2.8.0 (2023-10-13)
 

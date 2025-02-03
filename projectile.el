@@ -6165,9 +6165,14 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "v") #'projectile-vc)
     (define-key map (kbd "V") #'projectile-browse-dirty-projects)
     ;; project lifecycle external commands
-    ;; TODO: Bundle those under some prefix key
+    (define-key map (kbd "c o") #'projectile-configure-project)
+    (define-key map (kbd "c c") #'projectile-compile-project)
+    (define-key map (kbd "c p") #'projectile-package-project)
+    (define-key map (kbd "c i") #'projectile-install-project)
+    (define-key map (kbd "c t") #'projectile-test-project)
+    (define-key map (kbd "c r") #'projectile-run-project)
+    ;; TODO: Legacy keybindings that will be removed in Projectile 3
     (define-key map (kbd "C") #'projectile-configure-project)
-    (define-key map (kbd "c") #'projectile-compile-project)
     (define-key map (kbd "K") #'projectile-package-project)
     (define-key map (kbd "L") #'projectile-install-project)
     (define-key map (kbd "P") #'projectile-test-project)
