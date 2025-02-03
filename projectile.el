@@ -1875,10 +1875,6 @@ projectile project root."
   (let ((project-root (projectile-project-root)))
     (mapcar (lambda (f) (file-relative-name f project-root)) files)))
 
-(defun projectile--regexp-quote-dir (dir)
-  "Convert the string DIR to a proper regexp."
-  (concat "^" (regexp-quote dir) "$"))
-
 (defun projectile-ignored-directory-p
     (directory &optional ignored-directories local-directory globally-ignored-directories)
   "Check if DIRECTORY should be ignored.
