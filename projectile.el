@@ -194,6 +194,14 @@ See also `projectile-project-search-path'."
   :type 'boolean
   :package-version '(projectile . "2.3.0"))
 
+(defcustom projectile-auto-cleanup-known-projects nil
+  "Whether to cleanup projects when project switching commands are invoked.
+
+See also `projectile-cleanup-known-projects'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.9.0"))
+
 (defcustom projectile-auto-update-cache t
   "Whether cache is automatically updated when files are opened or deleted."
   :group 'projectile
@@ -5547,6 +5555,8 @@ and discover new ones if `projectile-auto-discover' is enabled."
   ;; load the known projects
   (unless projectile-known-projects
     (projectile-load-known-projects))
+  (when projectile-auto-cleanup-known-projects
+    (projectile--cleanup-known-projects))
   (when (and projectile-auto-discover projectile-project-search-path)
     (projectile-discover-projects-in-search-path)))
 

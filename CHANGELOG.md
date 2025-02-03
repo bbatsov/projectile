@@ -15,7 +15,8 @@
 * [#1895](https://github.com/bbatsov/projectile/pull/1895): Modify projectile-mode to add a hook to `buffer-list-update-hook` such that any change in the buffer list will update the selected project.
 * [#1918](https://github.com/bbatsov/projectile/pull/1895): Add Zig project discovery.
 * Add support for Swift project discovery.
-* Introduce `projectile-global-ignore-file-patterns` that allows to ignore files and directories with regexp patterns.
+* Introduce `projectile-global-ignore-file-patterns` config that allows to ignore files and directories with regexp patterns.
+* Introduce `projectile-auto-cleanup-known-projects` option that allows you to auto-cleanup missing projects.
 
 ### Bugs fixed
 
