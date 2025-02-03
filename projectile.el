@@ -1166,9 +1166,15 @@ The cache is created both in memory and on the hard drive."
         (unless (or (projectile-file-cached-p current-file current-project)
                     (projectile-ignored-directory-p (file-name-directory abs-current-file))
                     (projectile-ignored-file-p abs-current-file))
-          (let ((project-files (cons current-file (gethash current-project projectile-projects-cache))))
+          (let ((project-files (cons current-file (gethash current-project projectile-projects-cache)))
+                (cache-file (projectile-project-cache-file current-project)))
             (puthash current-project project-files projectile-projects-cache)
-            (projectile-serialize project-files (projectile-project-cache-file current-project)))
+            ;; we serialize the cache with an idle time to avoid freezing the UI
+            ;; immediately after the new file was created
+            (run-with-idle-timer
+             30
+             nil
+             'projectile-serialize project-files cache-file))
           (message "File %s added to project %s cache."
                    (propertize current-file 'face 'font-lock-keyword-face)
                    (propertize current-project 'face 'font-lock-keyword-face)))))))
