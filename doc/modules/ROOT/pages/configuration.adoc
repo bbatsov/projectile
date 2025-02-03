@@ -149,7 +149,16 @@ Pressing kbd:[s-p z] will add the currently visited file to the
 cache for current project. Generally files created outside Emacs will
 be added to the cache automatically the first time you open them.
 
-The project cache is persistent and will be preserved during Emacs restarts.
+Normally the cache lasts for the duration of your Emacs session.
+If you want to cache to persist between Emacs sessions you
+should set this option to `'persistent`.
+
+[source,elisp]
+----
+(setq projectile-enable-caching 'persistent)
+----
+
+Now the project cache is persistent and will be preserved during Emacs restarts.
 Each project gets its own cache file, that will be placed in the root folder of the
 project. The name of the cache file is `.projectile-cache.eld` by default, but you can tweak it
 if you want to:

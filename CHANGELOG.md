@@ -48,6 +48,8 @@
   * `c t` -> `projectile-test-project`
   * `c r` -> `projectile-run-project`
   * The old keybindings will be removed in a future version of Projectile.
+* Make the cache transient by default. (meaning it lives only in memory and is not persisted to a file)
+  * To enable persistent caching you need to set `projectile-enable-caching` to `'persistent`.
 
 ## 2.8.0 (2023-10-13)
 

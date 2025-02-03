@@ -137,10 +137,17 @@ default on all operating systems, except Windows."
 (defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
   "When t enables project files caching.
 
+Normally the cache lasts for the duration of your Emacs session.
+If you want to cache to persist between Emacs sessions you
+should set this option to `'persistent'.
+
 Project caching is automatically enabled by default if you're
 using the native indexing method."
   :group 'projectile
-  :type 'boolean)
+  :type '(radio
+          (const :tag "Disabled" nil)
+          (const :tag "Transient" t)
+          (const :tag "Persistent" persistent)))
 
 (defcustom projectile-kill-buffers-filter 'kill-all
   "Determine which buffers are killed by `projectile-kill-buffers'.
@@ -1110,9 +1117,9 @@ to invalidate."
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
 The cache is created both in memory and on the hard drive."
-  (when projectile-enable-caching
-    (puthash project files projectile-projects-cache)
-    (puthash project (projectile-time-seconds) projectile-projects-cache-time)
+  (puthash project files projectile-projects-cache)
+  (puthash project (projectile-time-seconds) projectile-projects-cache-time)
+  (when (eq projectile-enable-caching 'persistent)
     (projectile-serialize files (projectile-project-cache-file project))))
 
 (defun projectile-load-project-cache (project-root)
@@ -2168,7 +2175,10 @@ project-root for every file."
     ;; Use the cache, if requested and available.
     (when projectile-enable-caching
       (setq files (or (gethash project-root projectile-projects-cache)
-                      (projectile-load-project-cache project-root))))
+                      ;; load the cache from disk only if persistent cache is
+                      ;; enabled
+                      (and (eq projectile-enable-caching 'persistent)
+                           (projectile-load-project-cache project-root)))))
 
     ;; Calculate the list of files.
     (when (null files)
