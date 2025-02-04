@@ -433,7 +433,7 @@ TIP: You might want to combine default completion with `icomplete-mode` for opti
 Emacs 27 added `fido-mode` to `icomplete`.
 
 If you are using `fido-mode`, Projectile will
-use the `default` completion system. The same holds for `selectrum` and `vertico` which also rely
+use the `default` completion system. The same holds for `vertico` which also rely
 on the `default` completion system.
 
 === Ido

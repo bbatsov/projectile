@@ -88,11 +88,11 @@ and cleanup projects, as the file operations are slower there.
 === Minibuffer Completion
 
 While Projectile works fine with Emacs's default minibuffer completion system you're highly encouraged to use some
-powerful alternative like `ido`, `ivy`, `selectrum` or `vertico`.
+powerful alternative like `ido`, `ivy`, `vertico`.
 
 TIP: If you're going to use the `ido` completion it's **highly** recommended that you install the optional
 https://github.com/lewang/flx[flx-ido package], which provides a much more powerful
-alternative to ``ido``'s built-in `flex` matching. Similarly, for `selectrum` it's
+alternative to ``ido``'s built-in `flex` matching. Similarly, for `ivy` and `vertico` it's
 a good idea to enable `prescient` (a package similar to `flx`).
 
 === Installing External Tools

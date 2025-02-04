@@ -40,7 +40,7 @@ Here are some of Projectile's features:
 * replace in project
 * find references in project (using `xref` internally)
 * run shell commands in a project (e.g. `make`, `lein`)
-* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
+* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm`, and the default completion system)
 * automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
 
@@ -112,7 +112,11 @@ Enable `projectile-mode`, open a file in one of your projects and type a command
 
 See the [online documentation](https://docs.projectile.mx) for more details.
 
-To get the most of Projectile you also need to enable (and potentially install) some minibuffer completion framework (e.g. `ido`, `ivy` or `selectrum`). See [this section](https://docs.projectile.mx/projectile/configuration.html#completion-options) of the documentation for more details.
+To get the most of Projectile you also need to enable (and potentially install)
+some minibuffer completion framework (e.g. `ido`, `ivy` or `vertico`). See
+[this
+section](https://docs.projectile.mx/projectile/configuration.html#completion-options)
+of the documentation for more details.
 
 > [!CAUTION]
 >
@@ -129,7 +133,11 @@ To get the most of Projectile you also need to enable (and potentially install) 
 * Using Projectile over TRAMP might be slow in certain cases.
 * Some commands might misbehave on complex project setups (e.g. a git project with submodules).
 * Projectile was mostly tested on Unix OS-es (e.g. GNU/Linux and macOS), so some functionality might not work well on Windows.
-* In Git repositories, deleted files are still shown in `projectile-find-file` until their deletions are staged, due to a limitation of `git ls-files`. If you install [fd](https://github.com/sharkdp/fd) then it is automatically used instead, and does not have this problem. (You can inhibit the use of `fd` by setting `projectile-git-use-fd` to nil.)
+* In Git repositories, deleted files are still shown in `projectile-find-file`
+  until their deletions are staged, due to a limitation of `git ls-files`. If
+  you install [fd](https://github.com/sharkdp/fd) then it is automatically used
+  instead, and does not have this problem. (You can inhibit the use of `fd` by
+  setting `projectile-git-use-fd` to `nil`.)
 
 ## Known issues
 
