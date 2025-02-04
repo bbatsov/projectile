@@ -9,24 +9,11 @@
 
 ## Synopsis
 
-**Projectile** is a project interaction library for Emacs. Its goal is to
-provide a nice set of features operating on a project level without
-introducing external dependencies (when feasible). For instance -
-finding project files has a portable implementation written in pure
-Emacs Lisp without the use of GNU `find` (but for performance sake an
-indexing mechanism backed by external commands exists as well).
+**Projectile** is a project interaction library for Emacs.
+It provides a powerful set of features operating at the project
+level, as well as simple heuristics to identify projects.
 
-Projectile tries to be practical - portability is great, but if some
-external tools could speed up some task substantially and the tools
-are available, Projectile will leverage them.
-
-This library provides easy project management and navigation. The concept of a
-project is pretty basic - just a folder containing some special file (e.g. a VCS
-marker or a project descriptor file like `pom.xml` or `Gemfile`). Projectile
-will auto-detect pretty much every popular project type out of the box
-and you can easily extend it with additional project types.
-
-Here are some of Projectile's features:
+Here are some of essential Projectile's features:
 
 * jump to a file in project
 * jump to a project buffer
@@ -123,6 +110,38 @@ of the documentation for more details.
 > Historically `projectile-completion-system` defaulted to `ido`, but this was
 > changed in version 2.3. You may need to enable `ido-mode` in your Emacs
 > configuration if updating from an older version of Projectile.
+
+## Design Goals
+
+In this section you'll find some notes on Projectile's design goals, that
+have been upheld since the earliest days of the project.
+
+### Portability
+
+Projectile provide a nice set of features operating on a project level without
+introducing external dependencies (when feasible). For instance -
+finding project files has a portable implementation written in pure
+Emacs Lisp without the use of GNU `find` (but for performance sake an
+indexing mechanism backed by external commands exists as well).
+
+### Simplicity
+
+This library provides easy project management and navigation. The concept of a
+project is pretty basic - just a folder containing some special file (e.g. a VCS
+marker or a project descriptor file like `pom.xml` or `Gemfile`). Projectile
+will auto-detect pretty much every popular project type out of the box
+and you can easily extend it with additional project types.
+
+### Practical
+
+Projectile tries to be practical - portability is great, but if some
+external tools could speed up some task substantially and the tools
+are available, Projectile will leverage them.
+
+### Super configurable
+
+In the classic spirit of Emacs almost every aspect of Projectile's behavior is
+configurable.
 
 ## Caveats
 
