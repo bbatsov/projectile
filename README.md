@@ -121,7 +121,7 @@ have been upheld since the earliest days of the project.
 Projectile provide a nice set of features operating on a project level without
 introducing external dependencies (when feasible). For instance -
 finding project files has a portable implementation written in pure
-Emacs Lisp without the use of GNU `find` (but for performance sake an
+Emacs Lisp without the use of GNU `find` (but for performance's sake an
 indexing mechanism backed by external commands exists as well).
 
 ### Simplicity
@@ -132,13 +132,21 @@ marker or a project descriptor file like `pom.xml` or `Gemfile`). Projectile
 will auto-detect pretty much every popular project type out of the box
 and you can easily extend it with additional project types.
 
-### Practical
+### Easy to Use
+
+The configuration defaults are pretty reasonable and most users
+will probably never feel a strong need to change them.
+
+All commands are easily discoverable and are unlikely to surprise you
+with their behavior.
+
+### Practicality
 
 Projectile tries to be practical - portability is great, but if some
 external tools could speed up some task substantially and the tools
 are available, Projectile will leverage them.
 
-### Super configurable
+### Flexibility
 
 In the classic spirit of Emacs almost every aspect of Projectile's behavior is
 configurable.
