@@ -27,12 +27,11 @@
 
 ;;; Commentary:
 ;;
-;; This library provides easy project management and navigation.  The
-;; concept of a project is pretty basic - just a folder containing
-;; special file.  Currently git, mercurial and bazaar repos are
-;; considered projects by default.  If you want to mark a folder
-;; manually as a project just create an empty .projectile file in
-;; it.  See the README for more details.
+;; Projectile is a project interaction library for Emacs.
+;; It provides a powerful set of features operating at the project
+;; level, as well as simple heuristics to identify projects.
+;;
+;; See the README and https://docs.projectile.mx for more details.
 ;;
 ;;; Code:
 
