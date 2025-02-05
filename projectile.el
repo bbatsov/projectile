@@ -5561,26 +5561,33 @@ An open project is a project with any open buffers."
        (list (abbreviate-file-name project)))
     projects))
 
-(defun projectile--init-known-projects ()
+(defun projectile-known-projects ()
   "Initialize the known projects.
 
-This might potentially clean up redundant projects
-and discover new ones if `projectile-auto-discover' is enabled."
+This might potentially clean up redundant projects and discover new ones if
+`projectile-auto-cleanup-known-projects' or `projectile-auto-discover' are
+enabled."
   ;; load the known projects
   (unless projectile-known-projects
     (projectile-load-known-projects))
   (when projectile-auto-cleanup-known-projects
     (projectile--cleanup-known-projects))
   (when (and projectile-auto-discover projectile-project-search-path)
-    (projectile-discover-projects-in-search-path)))
+    (projectile-discover-projects-in-search-path))
+  ;; return the list of known projects
+  projectile-known-projects)
+
+(defalias 'projectile--init-known-projects 'projectile-known-projects)
 
 (defun projectile-relevant-known-projects ()
-  "Return a list of known projects."
-  (projectile--init-known-projects)
-  (pcase projectile-current-project-on-switch
-    ('remove (projectile--remove-current-project projectile-known-projects))
-    ('move-to-end (projectile--move-current-project-to-end projectile-known-projects))
-    ('keep projectile-known-projects)))
+  "Return a list of known projects.
+
+It factors the value of `projectile-current-project-on-switch'."
+  (let ((known-projects (projectile-known-projects)))
+    (pcase projectile-current-project-on-switch
+      ('remove (projectile--remove-current-project known-projects))
+      ('move-to-end (projectile--move-current-project-to-end known-projects))
+      ('keep known-projects))))
 
 (defun projectile-relevant-open-projects ()
   "Return a list of open projects."
