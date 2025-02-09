@@ -1098,7 +1098,9 @@ to invalidate."
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
     ;; reset the project's cache file
-    (projectile-serialize nil (projectile-project-cache-file project-root))
+    (when (eq projectile-enable-caching 'persistent)
+      ;; TODO: Perhaps it's better to delete the cache file in such cases?
+      (projectile-serialize nil (projectile-project-cache-file project-root)))
     (when projectile-verbose
       (message "Invalidated Projectile cache for %s."
                (propertize project-root 'face 'font-lock-keyword-face))))
