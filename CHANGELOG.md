@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 2.9.0 (2025-02-12)
+
 ### New features
 
 * [#1870](https://github.com/bbatsov/projectile/pull/1870): Add package command for CMake projects.
@@ -37,6 +39,8 @@
 
     This makes caching both more robust and faster, as before the cache file
     for all projects was loaded when projectile-mode was enabled.
+* Make the cache transient by default. (meaning it lives only in memory and is not persisted to a file)
+  * To enable persistent caching you need to set `projectile-enable-caching` to `'persistent`.
 * Speed-up load time by moving known projects initialization outside of `projectile-mode`'s init.
   * As a side effect the known projects will be initialized properly even if you're not using `projectile-mode`.
   * The projects are read from disk the first time you invoke `projectile-switch-project` or a similar command.
@@ -48,8 +52,6 @@
   * `c t` -> `projectile-test-project`
   * `c r` -> `projectile-run-project`
   * The old keybindings will be removed in a future version of Projectile.
-* Make the cache transient by default. (meaning it lives only in memory and is not persisted to a file)
-  * To enable persistent caching you need to set `projectile-enable-caching` to `'persistent`.
 
 ## 2.8.0 (2023-10-13)
 
