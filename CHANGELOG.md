@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Bugs Fixed
+
+* [#1929](https://github.com/bbatsov/projectile/pull/1929): Don't create cache files when `projectile-use-caching` is not set to `persistent`.
+
 ## 2.9.0 (2025-02-12)
 
 ### New features
