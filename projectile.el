@@ -2902,7 +2902,8 @@ ones and overrule settings in the other lists."
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
-PROJECT-FILE the main project file in the root project directory.
+PROJECT-FILE the main project file in the root project directory.  It may be a
+             single file or a list of possible files.
 COMPILATION-DIR the directory to run the tests- and compilations in,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
@@ -2955,7 +2956,8 @@ files such as test/impl/other files as below:
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
-PROJECT-FILE the main project file in the root project directory.
+PROJECT-FILE the main project file in the root project directory.  It may be a
+             single file or a list of possible files.
 COMPILATION-DIR the directory to run the tests- and compilations in,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
@@ -3127,6 +3129,13 @@ When DIR is specified it checks DIR's project, otherwise
 it acts on the current project."
   (or (projectile-verify-file "go.mod" dir)
       (projectile-verify-file-wildcard "*.go" dir)))
+
+(defun projectile-mill-project-p (&optional dir)
+  "Check if a project contains a mill build file.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file "build.mill" dir)
+      (projectile-verify-file "build.sc" dir)))
 
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
@@ -3538,8 +3547,8 @@ a manual COMMAND-TYPE command is created with
                                   :test "sbt test"
                                   :test-suffix "Spec")
 
-(projectile-register-project-type 'mill '("build.sc")
-                                  :project-file "build.sc"
+(projectile-register-project-type 'mill #'projectile-mill-project-p
+                                  :project-file '("build.sc" "build.mill")
                                   :src-dir "src/"
                                   :test-dir "test/src/"
                                   :compile "mill __.compile"
