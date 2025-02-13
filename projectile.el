@@ -1080,7 +1080,7 @@ A wrapper around `file-exists-p' with additional caching support."
                 (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))
         (equal value 'found)))))
 
-(defsubst projectile-caching-persistent-p ()
+(defsubst projectile-persistent-cache-p ()
   (eq projectile-enable-caching 'persistent))
 
 ;;;###autoload
@@ -1101,7 +1101,7 @@ to invalidate."
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
     ;; reset the project's cache file
-    (when (projectile-caching-persistent-p)
+    (when (projectile-persistent-cache-p)
       ;; TODO: Perhaps it's better to delete the cache file in such cases?
       (projectile-serialize nil (projectile-project-cache-file project-root)))
     (when projectile-verbose
@@ -1122,7 +1122,7 @@ to invalidate."
 The cache is created both in memory and on the hard drive."
   (puthash project files projectile-projects-cache)
   (puthash project (projectile-time-seconds) projectile-projects-cache-time)
-  (when (projectile-caching-persistent-p)
+  (when (projectile-persistent-cache-p)
     (projectile-serialize files (projectile-project-cache-file project))))
 
 (defun projectile-load-project-cache (project-root)
@@ -1143,7 +1143,7 @@ The cache is created both in memory and on the hard drive."
     (if (projectile-file-cached-p file project-root)
         (progn
           (puthash project-root (remove file project-cache) projectile-projects-cache)
-          (when (projectile-caching-persistent-p)
+          (when (projectile-persistent-cache-p)
             (projectile-serialize project-cache (projectile-project-cache-file project-root)))
           (when projectile-verbose
             (message "%s removed from cache" file)))
@@ -1182,7 +1182,7 @@ The cache is created both in memory and on the hard drive."
             (puthash current-project project-files projectile-projects-cache)
             ;; we serialize the cache with an idle time to avoid freezing the UI
             ;; immediately after the new file was created
-            (when (projectile-caching-persistent-p)
+            (when (projectile-persistent-cache-p)
               (run-with-idle-timer
                30
                nil
