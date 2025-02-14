@@ -116,7 +116,7 @@ rely on the third-party applications and it's significance today is not that big
   ** It accepts pull requests
   ** You don't need to sign a contributor agreement
 * Projectile has more extensive documentation
-  ** You can compare it with [project.el's documentation](https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html) and decide for themselves
+  ** You can compare it with https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html[project.el's documentation] and decide for yourself
 
 == Projectile's Cons
 
