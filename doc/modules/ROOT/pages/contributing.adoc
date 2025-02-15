@@ -53,7 +53,6 @@ Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use 
 == Documentation
 
 Good documentation is just as important as good code.
-
 Consider improving and extending this manual and the
 https://github.com/bbatsov/projectile/wiki[community wiki].
 
@@ -61,7 +60,7 @@ https://github.com/bbatsov/projectile/wiki[community wiki].
 
 The manual is generated from the AsciiDoc files in the https://github.com/bbatsov/projectile/tree/master/doc[doc] folder of Projectile's GitHub repo and is published to https://docs.projectile.mx.
 https://antora.org[Antora] is used to convert the manual into HTML.
-The filesystem layout is described at https://docs.antora.org/antora/2.0/component-structure/.
+The filesystem layout is described at https://docs.antora.org/antora/latest/component-structure/.
 
 To make changes to the manual you simply have to change the files under `doc`.
 The manual will be regenerated manually periodically.
@@ -74,10 +73,11 @@ Installing the Antora is super simple:
 
 [source]
 ----
-$ npm i -g @antora/cli@2.0 @antora/site-generator-default@2.0
+$ cd docs.projectile.mx
+$ npm install
 ----
 
-Check out https://docs.antora.org/antora/2.0/install/install-antora/[the detailed installation instructions]
+Check out https://docs.antora.org/antora/latest/install/install-antora/[the detailed installation instructions]
 if you run into any problems.
 
 ==== Building the Site
@@ -87,14 +87,14 @@ You can build the documentation locally from the https://github.com/bbatsov/docs
 [source]
 ----
 $ cd docs.projectile.mx
-$ antora --pull antora-playbook.yml
+$ make build
 ----
 
-After you're done with the initial setup you can use the `deploy` script to push changes to the site:
+After you're done with the initial setup you can use the `make` to push changes to the site:
 
 [source]
 ----
-./deploy
+$ make deploy
 ----
 
 NOTE: You'll need commit access to the repository for this to work.
