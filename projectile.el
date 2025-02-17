@@ -369,8 +369,8 @@ containing a root file."
 (defcustom projectile-project-root-functions
   '(projectile-root-local
     projectile-root-marked
-    projectile-root-bottom-up
     projectile-root-top-down
+    projectile-root-bottom-up
     projectile-root-top-down-recurring)
   "A list of functions for finding project root folders.
 The functions will be run until one of them returns a project folder.
