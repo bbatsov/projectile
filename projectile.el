@@ -6176,6 +6176,7 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
     (define-key map (kbd "?") #'projectile-find-references)
     (define-key map (kbd "a") #'projectile-find-other-file)
+    (define-key map (kbd "A") #'projectile-add-known-project)
     (define-key map (kbd "b") #'projectile-switch-to-buffer)
     (define-key map (kbd "d") #'projectile-find-dir)
     (define-key map (kbd "D") #'projectile-dired)
@@ -6260,6 +6261,8 @@ thing shown in the mode line otherwise."
          ["Previous buffer" projectile-previous-project-buffer]
          ["Next buffer" projectile-next-project-buffer])
         ("Projects"
+         ["Add known project" projectile-add-known-project]
+         "--"
          ["Switch to project" projectile-switch-project]
          ["Switch to open project" projectile-switch-open-project]
          "--"
