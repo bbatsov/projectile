@@ -191,7 +191,7 @@ A value of nil means the cache never expires."
   :type '(choice (const :tag "Disabled" nil)
                  (integer :tag "Seconds")))
 
-(defcustom projectile-auto-discover t
+(defcustom projectile-auto-discover nil
   "Whether to discover projects when project switching commands are invoked.
 
 See also `projectile-project-search-path'."

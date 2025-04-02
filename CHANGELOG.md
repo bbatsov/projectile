@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+* Set `projectile-auto-discover` to `nil` by default.
+
 ## 2.9.1 (2025-02-13)
 
 ### Bugs Fixed
