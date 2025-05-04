@@ -3156,7 +3156,7 @@ it acts on the current project."
 (defun projectile--cmake-version ()
   "Compute CMake version."
   (let* ((string (shell-command-to-string "cmake --version"))
-         (match (string-match "^cmake version \\(.*\\)$" string)))
+         (match (string-match "^cmake version \\([0-9]+\\.[0-9]+\\.[0-9]+\\).*$" string)))
     (when match
       (version-to-list (match-string 1 string)))))
 
