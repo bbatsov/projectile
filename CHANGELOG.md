@@ -5,6 +5,7 @@
 ### Changes
 
 * Set `projectile-auto-discover` to `nil` by default.
+* [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values
 
 ## 2.9.1 (2025-02-13)
 
