@@ -126,6 +126,7 @@ Projectile might also provide.
 The disadvantage of the hybrid and alien methods is that they are not well
 supported on Windows systems.  That's why by default alien indexing is the
 default on all operating systems, except Windows."
+  :safe (lambda (x) (memq x '(native hybrid alien)))
   :group 'projectile
   :type '(radio
           (const :tag "Native" native)
