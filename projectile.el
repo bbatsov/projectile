@@ -757,7 +757,7 @@ Set to nil to disable listing submodules contents."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-jj-command "jj file list --no-pager . | tr '\\n' '\\0'"
+(defcustom projectile-jj-command "jj file list -T 'path ++ \"\\0\"' --no-pager ."
   "Command used by projectile to get the files in a Jujutsu project."
   :group 'projectile
   :type 'string
