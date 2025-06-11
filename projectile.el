@@ -1089,15 +1089,21 @@ A wrapper around `file-exists-p' with additional caching support."
   "Remove the current project's files from `projectile-projects-cache'.
 
 With a prefix argument PROMPT prompts for the name of the project whose cache
-to invalidate."
+to invalidate.
+
+The global (project-independent) cache for checking which project a file
+belongs to, is also cleared. Therefore this function is still useful even
+when not operating on a specific project, and as such only the global cache
+is cleared when there is no current project (unless you give a prefix
+argument)."
   (interactive "P")
-  (let ((project-root
-         (if prompt
-             (completing-read "Remove cache for: "
-                              (hash-table-keys projectile-projects-cache))
-           (projectile-acquire-root))))
+  (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  (when-let ((project-root
+              (if prompt
+                  (completing-read "Remove cache for: "
+                                   (hash-table-keys projectile-projects-cache))
+                (projectile-project-root))))
     ;; reset the in-memory cache
-    (setq projectile-project-root-cache (make-hash-table :test 'equal))
     (remhash project-root projectile-project-type-cache)
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)

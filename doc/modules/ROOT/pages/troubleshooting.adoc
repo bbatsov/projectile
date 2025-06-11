@@ -57,6 +57,19 @@ This will bring up a backtrace with the entire function stack, including
 function arguments. So you should be able to figure out what's going on (or at
 least what's being required).
 
+=== Projectile recognizes the wrong project
+
+If Projectile does not think you are in a project, check how you
+expect Projectile to recognize the project: it needs the presence of
+an indicator file like `.git` or similar at the project root. If the
+directory you want to be a project is not version-controlled, a file
+named `.projectile` will do.
+
+Note that Projectile caches the operation of checking which project
+(if any) a file belongs to. If you have already opened a file, then
+later added a marker file like `.projectile`, run `M-x
+projectile-invalidate-cache` to reset the cache.
+
 === I upgraded Projectile using `package.el` and nothing changed
 
 Emacs doesn't load the new files, it only installs them on disk.  To see the
