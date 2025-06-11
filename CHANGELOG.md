@@ -6,6 +6,7 @@
 
 * Set `projectile-auto-discover` to `nil` by default.
 * [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values.
+* [#1936](https://github.com/bbatsov/projectile/issues/1936): Do not require selecting a project when using `M-x projectile-invalidate-cache`, since there is a global cache that is also cleared by that command, even when not operating on any specific project.
 
 ## 2.9.1 (2025-02-13)
 
