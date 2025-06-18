@@ -312,6 +312,9 @@ Two example filter functions are shipped by default -
 It has precedence over function `projectile-project-name-function'."
   :group 'projectile
   :type 'string
+  :safe (lambda (v) (or (null v)
+                        (and (stringp v)
+                             (not (string-blank-p v)))))
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-project-name-function 'projectile-default-project-name
