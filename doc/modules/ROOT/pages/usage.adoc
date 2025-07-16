@@ -87,7 +87,7 @@ around. (e.g. they were removed or renamed) You can either trigger the command
 
 [source,elisp]
 ----
-(setq projectile-cleanup-known-projects nil)
+(customize-set-variable 'projectile-auto-cleanup-known-projects t)
 ----
 
 TIP: If you're a heavy TRAMP user it's probably not a good idea to auto-discover

@@ -3,6 +3,7 @@
 ## master (unreleased)
 
 ### Changes
+* [#1954](https://github.com/bbatsov/projectile/issues/1954): update ELisp for usage.html / "Removal of missing projects"
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe
 * Set `projectile-auto-discover` to `nil` by default.
 * [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values.
