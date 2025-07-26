@@ -1150,7 +1150,8 @@ The cache is created both in memory and on the hard drive."
   (interactive
    (list (projectile-completing-read
           "Remove file from cache: "
-          (projectile-current-project-files))))
+          (projectile-current-project-files)
+          :caller 'projectile-read-file)))
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (if (projectile-file-cached-p file project-root)
@@ -1168,7 +1169,8 @@ The cache is created both in memory and on the hard drive."
   (interactive
    (list (projectile-completing-read
           "Remove directory from cache: "
-          (projectile-current-project-dirs))))
+          (projectile-current-project-dirs)
+          :caller 'projectile-read-directory)))
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (puthash project-root
@@ -1416,7 +1418,8 @@ See also `projectile-acquire-root'."
       dir
     (cond
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
-                                                    "Switch to project: " projectile-known-projects))
+                                                    "Switch to project: " projectile-known-projects
+                                                    :caller 'projectile-read-project))
      (projectile-require-project-root (error "Projectile cannot find a project definition in %s" default-directory))
      (t default-directory))))
 
@@ -1829,7 +1832,8 @@ choices."
   (projectile-completing-read
    prompt
    (delete (buffer-name (current-buffer))
-           (projectile-project-buffer-names))))
+           (projectile-project-buffer-names))
+   :caller 'projectile-read-buffer))
 
 ;;;###autoload
 (defun projectile-switch-to-buffer ()
@@ -1859,7 +1863,8 @@ choices."
   (display-buffer
    (projectile-completing-read
     "Display buffer: "
-    (projectile-project-buffer-names))))
+    (projectile-project-buffer-names)
+    :caller 'projectile-read-buffer)))
 
 ;;;###autoload
 (defun projectile-project-buffers-other-buffer ()
@@ -2126,9 +2131,10 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
-(cl-defun projectile-completing-read (prompt choices &key initial-input action)
+(cl-defun projectile-completing-read (prompt choices &key initial-input action caller)
   "Present a project tailored PROMPT with CHOICES."
   (let ((prompt (projectile-prepend-project-name prompt))
+        (caller (or caller 'projectile-completing-read))
         res)
     (setq res
           (pcase (if (eq projectile-completion-system 'auto)
@@ -2170,7 +2176,7 @@ project-root for every file."
                            :initial-input initial-input
                            :action (prog1 action
                                      (setq action nil))
-                           :caller 'projectile-completing-read)
+                           :caller caller)
                (user-error "Please install ivy")))
             (_ (funcall projectile-completion-system prompt choices))))
     (if action
@@ -2279,7 +2285,7 @@ instead of `find-file'.   A typical example of such a defun would be
   (let ((ff (or ff-variant #'find-file))
         (other-files (projectile-get-other-files (buffer-file-name) flex-matching)))
     (if other-files
-        (let ((file-name (projectile--choose-from-candidates other-files)))
+        (let ((file-name (projectile--choose-from-candidates other-files :caller 'projectile-read-file)))
           (funcall ff (expand-file-name file-name
                                         (projectile-project-root))))
       (error "No other file found"))))
@@ -2428,9 +2434,11 @@ Subroutine for `projectile-find-file-dwim' and
          (file (cond ((= (length files) 1)
                       (car files))
                      ((> (length files) 1)
-                      (projectile-completing-read "Switch to: " files))
+                      (projectile-completing-read "Switch to: " files
+                                                  :caller 'projectile-read-file))
                      (t
-                      (projectile-completing-read "Switch to: " project-files))))
+                      (projectile-completing-read "Switch to: " project-files
+                                                  :caller 'projectile-read-file))))
          (ff (or ff-variant #'find-file)))
     (funcall ff (expand-file-name file project-root))
     (run-hooks 'projectile-find-file-hook)))
@@ -2533,7 +2541,8 @@ would be `find-file-other-window' or `find-file-other-frame'"
   (projectile-maybe-invalidate-cache invalidate-cache)
   (let* ((project-root (projectile-acquire-root))
          (file (projectile-completing-read "Find file: "
-                                           (projectile-project-files project-root)))
+                                           (projectile-project-files project-root)
+                                           :caller 'projectile-read-file))
          (ff (or ff-variant #'find-file)))
     (when file
       (funcall ff (expand-file-name file project-root))
@@ -2689,7 +2698,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
      "Find dir: "
      (if projectile-find-dir-includes-top-level
          (append '("./") project-dirs)
-       project-dirs))))
+       project-dirs)
+     :caller 'projectile-read-directory)))
 
 ;;;###autoload
 (defun projectile-find-test-file (&optional invalidate-cache)
@@ -2699,7 +2709,8 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (interactive "P")
   (projectile-maybe-invalidate-cache invalidate-cache)
   (let ((file (projectile-completing-read "Find test file: "
-                                          (projectile-current-project-test-files))))
+                                          (projectile-current-project-test-files)
+                                          :caller 'projectile-read-file)))
     (find-file (expand-file-name file (projectile-project-root)))))
 
 (defun projectile-test-files (files)
@@ -2786,11 +2797,12 @@ If KIND is not provided, a list of possible kinds can be chosen."
     (if-let* ((available-kinds (projectile--related-files-kinds file)))
         (setq kind (if (= (length available-kinds) 1)
                        (car available-kinds)
-                     (intern (projectile-completing-read "Kind :" available-kinds))))
+                     (intern (projectile-completing-read "Kind :" available-kinds
+                                                         :caller 'projectile-read-file))))
       (error "No related files found")))
 
-  (if-let* ((candidates (projectile--related-files file kind)))
-      (projectile-expand-root (projectile--choose-from-candidates candidates))
+  (if-let ((candidates (projectile--related-files file kind)))
+      (projectile-expand-root (projectile--choose-from-candidates candidates :caller 'projectile-read-file))
     (error
      "No matching related file as `%s' found for project type `%s'"
      kind (projectile-project-type))))
@@ -3273,7 +3285,8 @@ select a name of a command preset, or opt a manual command by selecting
            (preset-names (projectile--cmake-command-preset-names command-type)))
       (projectile-completing-read
        "Use preset: "
-       (append preset-names `(,projectile--cmake-no-preset)))
+       (append preset-names `(,projectile--cmake-no-preset))
+       :caller nil)
     projectile--cmake-no-preset))
 
 (defconst projectile--cmake-manual-command-alist
@@ -4215,21 +4228,21 @@ The precedence for determining implementation files to return is:
                 (projectile-current-project-files))) it)
    ((projectile--test-to-impl-dir-fallback test-file) (list it))))
 
-(defun projectile--choose-from-candidates (candidates)
+(defun projectile--choose-from-candidates (candidates &key caller)
   "Choose one item from CANDIDATES."
   (if (= (length candidates) 1)
       (car candidates)
-    (projectile-completing-read "Switch to: " candidates)))
+    (projectile-completing-read "Switch to: " candidates :caller caller)))
 
 (defun projectile-find-matching-test (impl-file)
   "Compute the name of the test matching IMPL-FILE."
-  (when-let* ((candidates (projectile--find-matching-test impl-file)))
-    (projectile--choose-from-candidates candidates)))
+  (when-let ((candidates (projectile--find-matching-test impl-file)))
+    (projectile--choose-from-candidates candidates :caller 'projectile-read-file)))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (when-let* ((candidates (projectile--find-matching-file test-file)))
-    (projectile--choose-from-candidates candidates)))
+  (when-let ((candidates (projectile--find-matching-file test-file)))
+    (projectile--choose-from-candidates candidates :caller 'projectile-read-file)))
 
 (defun projectile-grep-default-files ()
   "Try to find a default pattern for `projectile-grep'.
@@ -5051,7 +5064,8 @@ directory to open."
                     (list
                      (projectile-completing-read
                       "Open project VC in: "
-                      projectile-known-projects))))
+                      projectile-known-projects
+                      :caller 'projectile-read-project))))
   (unless project-root
     (setq project-root (projectile-acquire-root)))
   (let ((vcs (projectile-project-vcs project-root)))
@@ -5077,7 +5091,8 @@ directory to open."
       (find-file (projectile-expand-root
                   (projectile-completing-read
                    "Recently visited files: "
-                   (projectile-recentf-files))))
+                   (projectile-recentf-files)
+                   :caller 'projectile-read-file)))
     (message "recentf is not enabled")))
 
 (defun projectile-recentf-files ()
@@ -5675,7 +5690,8 @@ With a prefix ARG invokes `projectile-commander' instead of
         (projectile-completing-read
          "Switch to project: " projects
          :action (lambda (project)
-                   (projectile-switch-project-by-name project arg)))
+                   (projectile-switch-project-by-name project arg))
+         :caller 'projectile-read-project)
       (user-error "There are no known projects"))))
 
 ;;;###autoload
@@ -5690,7 +5706,8 @@ With a prefix ARG invokes `projectile-commander' instead of
         (projectile-completing-read
          "Switch to open project: " projects
          :action (lambda (project)
-                   (projectile-switch-project-by-name project arg)))
+                   (projectile-switch-project-by-name project arg))
+         :caller 'projectile-read-project)
       (user-error "There are no open projects"))))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
@@ -5742,7 +5759,8 @@ This command will first prompt for the directory the file is in."
     (if (projectile-project-p)
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
-                                                (projectile-dir-files directory))))
+                                                (projectile-dir-files directory)
+                                                :caller 'projectile-read-file)))
           (find-file (expand-file-name file directory))
           (run-hooks 'projectile-find-file-hook))
       ;; target directory is not in a project
@@ -5762,7 +5780,8 @@ This command will first prompt for the directory the file is in."
 (defun projectile-find-file-in-known-projects ()
   "Jump to a file in any of the known projects."
   (interactive)
-  (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files))))
+  (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)
+                                         :caller 'projectile-read-file)))
 
 (defun projectile-keep-project-p (project)
   "Determine whether we should cleanup (remove) PROJECT or not.
@@ -5813,7 +5832,8 @@ Return a list of projects removed."
   "Remove PROJECT from the list of known projects."
   (interactive (list (projectile-completing-read
                       "Remove from known projects: " projectile-known-projects
-                      :action 'projectile-remove-known-project)))
+                      :action 'projectile-remove-known-project
+                      :caller 'projectile-read-project)))
   (unless (called-interactively-p 'any)
     (setq projectile-known-projects
           (cl-remove-if
@@ -5911,7 +5931,8 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
   (let ((project-root (if prompt-for-project
                           (projectile-completing-read
                            "Project name: "
-                           (projectile-relevant-known-projects))
+                           (projectile-relevant-known-projects)
+                           :caller 'projectile-read-project)
                         (projectile-acquire-root))))
     (projectile-ibuffer-by-project project-root)))
 
@@ -6094,7 +6115,8 @@ dirty project list."
     (while (not (= (length status) 0))
       (setq mod-proj (cons (car (pop status)) mod-proj)))
     (projectile-completing-read "Select project: " mod-proj
-                                :action 'projectile-vc)))
+                                :action 'projectile-vc
+                                :caller 'projectile-read-project)))
 
 
 ;;; Find next/previous project buffer
