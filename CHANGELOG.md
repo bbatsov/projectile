@@ -3,7 +3,7 @@
 ## master (unreleased)
 
 ### Changes
-* (TODO link): Add :caller information to calls to `ivy-read` (used by packages like `ivy-rich`)
+* [#1957](https://github.com/bbatsov/projectile/pull/1957): Add :caller information to calls to `ivy-read` (used by packages like `ivy-rich`)
 * [#1954](https://github.com/bbatsov/projectile/issues/1954): update ELisp for usage.html / "Removal of missing projects"
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe
 * Set `projectile-auto-discover` to `nil` by default.
