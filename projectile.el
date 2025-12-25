@@ -2384,7 +2384,8 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
          (candidates
           (cl-sort (copy-sequence candidates)
                    (lambda (file _)
-                     (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
+                     (let ((candidate-dirname (file-name-nondirectory (directory-file-name (if (file-name-directory file)
+                                                                                               (file-name-directory file) "./")))))
                        (unless (equal fulldirname (file-name-directory file))
                          (equal dirname candidate-dirname)))))))
     candidates))
