@@ -6379,6 +6379,12 @@ when opening new files."
               (concat root f))
             (projectile-project-files root))))
 
+(cl-defmethod project-name ((project (head projectile)))
+  (projectile-project-name (cdr project)))
+
+(cl-defmethod project-buffers ((project (head projectile)))
+  (projectile-project-buffers (cdr project)))
+
 ;;;###autoload
 (defun project-projectile (dir)
   "Return Projectile project of form ('projectile . root-dir) for DIR."
