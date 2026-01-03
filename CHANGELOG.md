@@ -3,6 +3,7 @@
 ## master (unreleased)
 
 ### Changes
+* [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.
 * [#1954](https://github.com/bbatsov/projectile/issues/1954): update ELisp for usage.html / "Removal of missing projects"
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe
 * Set `projectile-auto-discover` to `nil` by default.
