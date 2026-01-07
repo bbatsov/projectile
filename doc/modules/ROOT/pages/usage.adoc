@@ -354,6 +354,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p x v]
 | Start or visit a `vterm` for the project.
 
+| kbd:[s-p x x]
+| Start or visit an `eat` terminal for the project.
+
 | kbd:[s-p ESC]
 | Switch to the most recently selected Projectile buffer.
 |===

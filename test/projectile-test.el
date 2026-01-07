@@ -1169,7 +1169,10 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
   (it "returns files with same names but different extensions"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
-          ("src/test1.c"
+          ("root.c"
+           "root.h"
+           "src/root.h"
+           "src/test1.c"
            "src/test2.c"
            "src/test+copying.m"
            "src/test1.cpp"
@@ -1179,6 +1182,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
            "src/test.frag"
            "src/same_name.c"
            "src/some_module/same_name.c"
+           "include1/root.h"
            "include1/same_name.h"
            "include1/test1.h"
            "include1/test1.h~"
@@ -1222,6 +1226,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                                              ;; handle files with nested extensions
                                              ("service.js" . ("service.spec.js"))
                                              ("js" . ("js")))))
+          (expect (projectile-get-other-files "root.c") :to-equal '("root.h" "include1/root.h" "src/root.h"))
           (expect (projectile-get-other-files "src/test1.c") :to-equal '("include1/test1.h" "include2/test1.h"))
           (expect (projectile-get-other-files "src/test1.cpp") :to-equal '("include1/test1.h" "include2/test1.h" "include1/test1.hpp"))
           (expect (projectile-get-other-files "test2.c") :to-equal '("include1/test2.h" "include2/test2.h"))
