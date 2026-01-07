@@ -1101,7 +1101,7 @@ is cleared when there is no current project (unless you give a prefix
 argument)."
   (interactive "P")
   (setq projectile-project-root-cache (make-hash-table :test 'equal))
-  (when-let ((project-root
+  (when-let* ((project-root
               (if prompt
                   (completing-read "Remove cache for: "
                                    (hash-table-keys projectile-projects-cache))
@@ -4147,7 +4147,7 @@ anaphora.el."
   (if (null clauses)
       nil
     (let ((cl1 (car clauses))
-          (sym (cl-gensym)))
+          (sym (gensym)))
       `(let ((,sym ,(car cl1)))
          (if ,sym
              (if (null ',(cdr cl1))
