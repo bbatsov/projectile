@@ -62,6 +62,7 @@
 (defvar grep-files-aliases)
 (defvar grep-find-ignored-directories)
 (defvar grep-find-ignored-files)
+(defvar eat-buffer-name)
 
 (declare-function tags-completion-table "etags")
 (declare-function make-term "term")
@@ -85,6 +86,8 @@
 (declare-function vterm-other-window "ext:vterm")
 (declare-function vterm-send-return "ext:vterm")
 (declare-function vterm-send-string "ext:vterm")
+(declare-function eat "ext:eat")
+(declare-function eat-other-window "ext:eat")
 
 
 ;;; Customization
@@ -4716,6 +4719,23 @@ Switch to the project specific term buffer if it already exists."
             (vterm-other-window buffer)
           (vterm buffer))))))
 
+(defun projectile--eat (&optional new-process other-window)
+  "Invoke `eat' in the project's root.
+
+Use argument NEW-PROCESS to indicate creation of a new process instead.
+Use argument OTHER-WINDOW to indicate whether the buffer should
+be displayed in a different window.
+
+Switch to the project specific eat buffer if it already exists."
+  (let* ((project (projectile-acquire-root))
+         (eat-buffer-name (projectile-generate-process-name "eat" nil project)))
+    (unless (require 'eat nil 'noerror)
+      (error "Package 'eat' is not available"))
+    (projectile-with-default-dir project
+      (if other-window
+          (eat-other-window nil new-process)
+        (eat nil new-process)))))
+
 ;;;###autoload
 (defun projectile-run-vterm (&optional arg)
   "Invoke `vterm' in the project's root.
@@ -4735,6 +4755,26 @@ Switch to the project specific term buffer if it already exists.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--vterm arg 'other-window))
+
+;;;###autoload
+(defun projectile-run-eat (&optional arg)
+  "Invoke `eat' in the project's root.
+
+Switch to the project specific eat buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--eat arg))
+
+;;;###autoload
+(defun projectile-run-eat-other-window (&optional arg)
+  "Invoke `eat' in the project's root.
+
+Switch to the project specific eat buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--eat arg 'other-window))
 
 (defun projectile-files-in-project-directory (directory)
   "Return a list of files in DIRECTORY."
@@ -6239,6 +6279,8 @@ thing shown in the mode line otherwise."
     (define-key map (kbd "x g") #'projectile-run-gdb)
     (define-key map (kbd "x v") #'projectile-run-vterm)
     (define-key map (kbd "x 4 v") #'projectile-run-vterm-other-window)
+    (define-key map (kbd "x x") #'projectile-run-eat)
+    (define-key map (kbd "x 4 x") #'projectile-run-eat-other-window)
     ;; misc
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
@@ -6305,6 +6347,7 @@ thing shown in the mode line otherwise."
          ["Run ielm" projectile-run-ielm]
          ["Run term" projectile-run-term]
          ["Run vterm" projectile-run-vterm]
+         ["Run eat" projectile-run-eat]
          "--"
          ["Run GDB" projectile-run-gdb])
         ("Build"
