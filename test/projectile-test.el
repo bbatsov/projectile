@@ -391,6 +391,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (projectile-ignored-files '("TAGS" "file\d+\\.log")))
       (expect (projectile-ignored-files) :not :to-equal files)
       (expect (projectile-ignored-files) :to-equal '("/path/to/project/TAGS"
+                                                     "/path/to/project/.projectile-cache.eld"
                                                      "/path/to/project/foo.js"
                                                      "/path/to/project/bar.rb")))))
 
