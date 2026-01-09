@@ -1,6 +1,6 @@
 ;;; projectile-test.el --- Projectile's test suite -*- lexical-binding: t -*-
 
-;; Copyright © 2011-2025 Bozhidar Batsov
+;; Copyright © 2011-2026 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 
