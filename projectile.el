@@ -405,10 +405,11 @@ Similar to '#' in .gitignore files."
   :package-version '(projectile . "2.2.0"))
 
 (defcustom projectile-globally-ignored-files
-  (list projectile-tags-file-name)
+  (list projectile-tags-file-name projectile-cache-file)
   "A list of files globally ignored by projectile.
 Note that files aren't filtered if `projectile-indexing-method'
 is set to `alien'."
+  :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string))
 
@@ -2802,7 +2803,7 @@ If KIND is not provided, a list of possible kinds can be chosen."
                                                          :caller 'projectile-read-file))))
       (error "No related files found")))
 
-  (if-let ((candidates (projectile--related-files file kind)))
+  (if-let* ((candidates (projectile--related-files file kind)))
       (projectile-expand-root (projectile--choose-from-candidates candidates :caller 'projectile-read-file))
     (error
      "No matching related file as `%s' found for project type `%s'"
@@ -4237,12 +4238,12 @@ The precedence for determining implementation files to return is:
 
 (defun projectile-find-matching-test (impl-file)
   "Compute the name of the test matching IMPL-FILE."
-  (when-let ((candidates (projectile--find-matching-test impl-file)))
+  (when-let* ((candidates (projectile--find-matching-test impl-file)))
     (projectile--choose-from-candidates candidates :caller 'projectile-read-file)))
 
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
-  (when-let ((candidates (projectile--find-matching-file test-file)))
+  (when-let* ((candidates (projectile--find-matching-file test-file)))
     (projectile--choose-from-candidates candidates :caller 'projectile-read-file)))
 
 (defun projectile-grep-default-files ()

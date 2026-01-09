@@ -352,6 +352,32 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect (projectile-ignored-file-p "/path/to/project/TAGS") :to-be-truthy)
     (expect (projectile-ignored-file-p "/path/to/project/foo.el") :not :to-be-truthy)))
 
+(describe "projectile-globally-ignored-files"
+  (it "includes TAGS file by default"
+    (expect (member projectile-tags-file-name projectile-globally-ignored-files) :to-be-truthy))
+  (it "includes cache file by default"
+    (expect (member projectile-cache-file projectile-globally-ignored-files) :to-be-truthy))
+  (it "causes cache file to be ignored via projectile-ignored-file-p"
+    (spy-on 'projectile-ignored-files :and-return-value
+            (list (concat "/path/to/project/" projectile-cache-file)
+                  (concat "/path/to/project/" projectile-tags-file-name)))
+    (expect (projectile-ignored-file-p (concat "/path/to/project/" projectile-cache-file)) :to-be-truthy)
+    (expect (projectile-ignored-file-p "/path/to/project/source.el") :not :to-be-truthy)))
+
+(describe "projectile-globally-ignored-files :safe predicate"
+  (it "accepts list of strings as safe"
+    (let ((pred (get 'projectile-globally-ignored-files 'safe-local-variable)))
+      (expect (funcall pred '("file1" "file2")) :to-be-truthy)))
+  (it "rejects list containing non-strings as unsafe"
+    (let ((pred (get 'projectile-globally-ignored-files 'safe-local-variable)))
+      (expect (funcall pred '("file1" 123)) :not :to-be-truthy)))
+  (it "accepts empty list as safe"
+    (let ((pred (get 'projectile-globally-ignored-files 'safe-local-variable)))
+      (expect (funcall pred '()) :to-be-truthy)))
+  (it "rejects non-list as unsafe"
+    (let ((pred (get 'projectile-globally-ignored-files 'safe-local-variable)))
+      (expect (funcall pred "not-a-list") :not :to-be-truthy))))
+
 (describe "projectile-ignored-files"
   (it "returns list of ignored files"
     (spy-on 'projectile-project-root :and-return-value "/path/to/project")
@@ -365,6 +391,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (projectile-ignored-files '("TAGS" "file\d+\\.log")))
       (expect (projectile-ignored-files) :not :to-equal files)
       (expect (projectile-ignored-files) :to-equal '("/path/to/project/TAGS"
+                                                     "/path/to/project/.projectile-cache.eld"
                                                      "/path/to/project/foo.js"
                                                      "/path/to/project/bar.rb")))))
 
