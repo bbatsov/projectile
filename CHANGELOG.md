@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
+
 ### Changes
 
 * Set `projectile-auto-discover` to `nil` by default (to avoid startup slowdowns in some situations).
@@ -9,7 +13,6 @@
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe.
 * [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values.
 * [#1936](https://github.com/bbatsov/projectile/issues/1936): Do not require selecting a project when using `M-x projectile-invalidate-cache`, since there is a global cache that is also cleared by that command, even when not operating on any specific project.
-* [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
 
 ## 2.9.1 (2025-02-13)
 
