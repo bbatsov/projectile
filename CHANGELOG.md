@@ -8,6 +8,7 @@
 
 ### Changes
 
+* [#1771](https://github.com/bbatsov/projectile/issues/1771): Apply `.projectile` ignore/ensure patterns to file listing (not just grep/ripgrep). Patterns prefixed with `-` are now respected by `projectile-remove-ignored`. Also filter out path traversal patterns (containing `..`) in `projectile-normalise-patterns` for security.
 * [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.
 * [#1957](https://github.com/bbatsov/projectile/pull/1957): Add `:caller` information to calls to `ivy-read` (used by packages like `ivy-rich`).
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe.

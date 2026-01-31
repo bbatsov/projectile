@@ -1664,14 +1664,41 @@ Only text sent to standard output is taken into account."
   "First remove ignored files from FILES, then add back unignored files."
   (projectile-add-unignored project vcs (projectile-remove-ignored files)))
 
+(defun projectile--pattern-to-regex (pattern)
+  "Convert a glob PATTERN to a regular expression using `wildcard-to-regexp'."
+  (wildcard-to-regexp pattern))
+
+(defun projectile--file-matches-patterns-p (file patterns)
+  "Check if FILE matches any of glob PATTERNS.
+For patterns without directory separators (e.g., \"*.text\"), matches against
+the file's basename to apply the pattern recursively across all directories.
+For patterns with directory separators (e.g., \"src/*.c\"), matches against
+the full relative path."
+  (cl-some
+   (lambda (pattern)
+     (let ((regex (projectile--pattern-to-regex pattern)))
+       (if (string-match-p "/" pattern)
+           ;; Pattern contains directory separator: match against full path
+           (string-match-p regex file)
+         ;; Pattern without directory: match against basename only
+         ;; This makes "*.text" match "subdir/file.text"
+         (string-match-p regex (file-name-nondirectory file)))))
+   patterns))
+
 (defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
 
 If ignored directory prefixed with '*', then ignore all
 directories/subdirectories with matching filename,
-otherwise operates relative to project root."
-  (let ((ignored-files (projectile-ignored-files-rel))
-        (ignored-dirs (projectile-ignored-directories-rel)))
+otherwise operates relative to project root.
+
+Also applies glob patterns from the project's .projectile file,
+respecting both ignore patterns (prefixed with -) and ensure
+patterns (prefixed with !)."
+  (let* ((ignored-files (projectile-ignored-files-rel))
+         (ignored-dirs (projectile-ignored-directories-rel))
+         (patterns-to-ignore (projectile-patterns-to-ignore))
+         (patterns-to-ensure (projectile-patterns-to-ensure)))
     (cl-remove-if
      (lambda (file)
        (or (cl-some
@@ -1694,7 +1721,11 @@ otherwise operates relative to project root."
            (cl-some
             (lambda (suf)
               (string-suffix-p suf file t))
-            projectile-globally-ignored-file-suffixes)))
+            projectile-globally-ignored-file-suffixes)
+           ;; Check glob patterns from .projectile file
+           (and (projectile--file-matches-patterns-p file patterns-to-ignore)
+                ;; Respect ensure patterns (unignore)
+                (not (projectile--file-matches-patterns-p file patterns-to-ensure)))))
      files)))
 
 (defun projectile-keep-ignored-files (project vcs files)
@@ -1912,8 +1943,13 @@ projectile project root."
                          paths))))
 
 (defun projectile-normalise-patterns (patterns)
-  "Remove paths from PATTERNS."
-  (cl-remove-if (lambda (pat) (string-prefix-p "/" pat)) patterns))
+  "Remove paths from PATTERNS and filter out unsafe patterns.
+Patterns starting with `/' are removed as they are paths, not patterns.
+Patterns containing `..' are removed to prevent path traversal attacks."
+  (cl-remove-if (lambda (pat)
+                  (or (string-prefix-p "/" pat)
+                      (string-match-p "\\.\\." pat)))
+                patterns))
 
 (defun projectile-make-relative-to-root (files)
   "Make FILES relative to the project root."
