@@ -1377,6 +1377,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
         (expect (projectile-detect-project-type) :to-equal 'dotnet-sln)))))
+  (it "detects project-type for dotnet slnx projects"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/Project.slnx")
+      (let ((projectile-indexing-method 'native))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'dotnet-sln)))))
   (it "detects project-type for Julia PkgTemplates.jl projects"
     (projectile-test-with-sandbox
      (projectile-test-with-files
