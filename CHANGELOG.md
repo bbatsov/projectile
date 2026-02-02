@@ -8,6 +8,7 @@
 
 ### Changes
 
+* [#1971](https://github.com/bbatsov/projectile/pull/1971): Support `slnx` files for dotnet project types.
 * [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.
 * [#1957](https://github.com/bbatsov/projectile/pull/1957): Add `:caller` information to calls to `ivy-read` (used by packages like `ivy-rich`).
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe.
