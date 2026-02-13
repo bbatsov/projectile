@@ -67,7 +67,50 @@ git ls-files -zco --exclude-standard
 ----
 
 For every supported VCS there's a matching Projectile defcustom holding the command
-to invoke for it (e.g. `projectile-git-command`, `projectile-hg-command`, etc).
+to invoke for it:
+
+|===
+| Variable | VCS
+
+| `projectile-git-command`
+| Git
+
+| `projectile-hg-command`
+| Mercurial
+
+| `projectile-svn-command`
+| Subversion
+
+| `projectile-bzr-command`
+| Bazaar
+
+| `projectile-darcs-command`
+| Darcs
+
+| `projectile-fossil-command`
+| Fossil
+
+| `projectile-pijul-command`
+| Pijul
+
+| `projectile-sapling-command`
+| Sapling
+
+| `projectile-jj-command`
+| Jujutsu
+|===
+
+There are also two Git-specific commands for listing submodules and ignored files:
+
+[source,elisp]
+----
+;; Command to list git submodules (set to nil to disable)
+(setq projectile-git-submodule-command
+  "git submodule --quiet foreach 'echo $displaypath' | tr '\\n' '\\0'")
+
+;; Command to get git-ignored files
+(setq projectile-git-ignored-command "git ls-files -zcoi --exclude-standard")
+----
 
 WARNING: If you ever decide to tweak those keep in mind that the command should always be returning
  the list of files **relative** to the project root and the resulting file list should be 0-delimited
@@ -207,6 +250,18 @@ can be disabled like this:
 ----
 (setq projectile-auto-update-cache nil)
 ----
+
+You can also set the project files cache to expire after a given number of
+seconds:
+
+[source,elisp]
+----
+;; Expire the project files cache after 5 minutes
+(setq projectile-files-cache-expire (* 5 60))
+----
+
+By default `projectile-files-cache-expire` is `nil`, meaning the cache never
+expires automatically.
 
 One last thing - the project cache will be auto-invalidated if you're using
 `.projectile` and it's last modification time is more recent than the time at
@@ -583,12 +638,28 @@ count.
 Note that special project buffers (e.g. compilation, `dired`, etc) are not
 affected by this setting.
 
-== Regenerate tags
+== Tags
 
 To be able to regenerate a project's tags via `projectile-tags-command`, you
 should install and add to the PATH
 http://ctags.sourceforge.net/[Exuberant Ctags] instead of a plain ctags, which
 ships with Emacs distribution.
+
+You can customize the tags filename and the backend used for tag navigation:
+
+[source,elisp]
+----
+;; The name of the tags file (default: "TAGS")
+(setq projectile-tags-file-name "TAGS")
+
+;; Tag backend for projectile-find-tag
+;; Options: 'auto, 'xref, 'ggtags, 'etags-select, 'find-tag
+(setq projectile-tags-backend 'auto)
+----
+
+When set to `auto` (the default), `projectile-find-tag` will choose a backend
+automatically with the following preference order: ggtags -> xref ->
+etags-select -> `find-tag`.
 
 == Idle Timer
 
@@ -623,6 +694,90 @@ NOTE: The project name & type will not appear when editing remote files
  (via TRAMP), as recalculating the project name is a fairly slow operation there
  and would slow down a bit opening the files. They will also not appear for
  non-file buffers, as they get updated via `find-file-hook`.
+
+== Searching
+
+By default, Projectile uses Emacs's built-in `grep` for searching.  In Git
+projects you can use `vc-git-grep` instead, which tends to be faster as it
+respects `.gitignore`:
+
+[source,elisp]
+----
+(setq projectile-use-git-grep t)
+----
+
+== Project name
+
+The project name displayed in the mode line and used in buffer names is
+determined by `projectile-project-name-function`.  The default implementation
+uses the project root directory name, but you can provide your own:
+
+[source,elisp]
+----
+(setq projectile-project-name-function
+      (lambda (project-root)
+        (file-name-nondirectory
+         (directory-file-name project-root))))
+----
+
+NOTE: If the variable `projectile-project-name` is set (e.g. via
+`.dir-locals.el`), it takes precedence over the function.
+
+== Dirty projects
+
+`projectile-browse-dirty-projects` (kbd:[s-p V]) shows projects with
+uncommitted VCS changes.  The variable `projectile-vcs-dirty-state` controls
+which VC states are considered dirty:
+
+[source,elisp]
+----
+;; Default value — all states
+(setq projectile-vcs-dirty-state
+  '("edited" "unregistered" "needs-update" "needs-merge"
+    "unlocked-changes" "conflict"))
+
+;; Only consider edited and unregistered files as dirty
+(setq projectile-vcs-dirty-state '("edited" "unregistered"))
+----
+
+The possible states are those defined in `vc.el`.
+
+== Hooks
+
+Projectile provides several hooks for integrating with your workflow:
+
+[source,elisp]
+----
+;; Run after a file is opened via projectile-find-file
+(add-hook 'projectile-find-file-hook #'my-find-file-setup)
+
+;; Run after a directory is opened via projectile-find-dir
+(add-hook 'projectile-find-dir-hook #'my-find-dir-setup)
+
+;; Run right before switching projects
+(add-hook 'projectile-before-switch-project-hook #'my-before-switch-setup)
+----
+
+== Miscellaneous
+
+=== Verbose messages
+
+By default Projectile echoes informational messages (not just errors).  To
+suppress them:
+
+[source,elisp]
+----
+(setq projectile-verbose nil)
+----
+
+=== Menu bar
+
+Projectile adds a menu to the Emacs menu bar by default.  To disable it:
+
+[source,elisp]
+----
+(setq projectile-show-menu nil)
+----
 
 == Project-type-specific Configuration
 

@@ -886,6 +886,34 @@ but you don't want to see them in Projectile for whatever reasons.
 In those cases the project dirconfig file (`.projectile`) can be a handy
 way to further adjust what you want to see in Projectile.
 
+=== Global ignore and unignore settings
+
+In addition to per-project ignores, Projectile provides several variables for
+globally ignoring files and directories.  These take effect with `native` and
+`hybrid` indexing but are **not** applied with the `alien` indexing method.
+
+[source,elisp]
+----
+;; Ignore files by suffix (e.g. compiled artifacts)
+(setq projectile-globally-ignored-file-suffixes '(".o" ".pyc" ".elc"))
+
+;; Ignore files matching regexp patterns
+(setq projectile-global-ignore-file-patterns '("\\.min\\.js$" "\\.map$"))
+----
+
+You can also _unignore_ specific files or directories that would otherwise be
+excluded.  This is useful when your VCS ignores files that you still want
+Projectile to show:
+
+[source,elisp]
+----
+;; Unignore specific files
+(setq projectile-globally-unignored-files '("important.dat"))
+
+;; Unignore specific directories
+(setq projectile-globally-unignored-directories '("vendor"))
+----
+
 == File-local project root definitions
 
 If you want to override the projectile project root for a specific
