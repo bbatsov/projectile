@@ -82,6 +82,27 @@ find . -type f -print0
 TIP: It's a great idea to install https://github.com/sharkdp/fd[fd] which is much faster than `find`.
  If `fd` is found, projectile will use it as a replacement for `find`.
 
+By default, `fd` is also used inside Git repositories (instead of `git ls-files`),
+because `git ls-files` has the limitation that it lists deleted files until the
+deletions are staged. You can control this with `projectile-git-use-fd`:
+
+[source,elisp]
+----
+;; Disable fd in git repos (use git ls-files instead)
+(setq projectile-git-use-fd nil)
+----
+
+You can also customize the path to the `fd` executable and the arguments passed to it:
+
+[source,elisp]
+----
+;; Use a custom fd path
+(setq projectile-fd-executable "/usr/local/bin/fd")
+
+;; Customize the fd arguments used in git repos
+(setq projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix -c never")
+----
+
 == Sorting
 
 You can choose how Projectile sorts files by customizing `projectile-sort-order`.
@@ -397,6 +418,46 @@ want to set
 
 in order to allow for the occasions where you want to select the
 top-level directory.
+
+== Known Projects
+
+Projectile stores the list of known projects in a file on disk.  You can
+customize its location:
+
+[source,elisp]
+----
+(setq projectile-known-projects-file "~/.emacs.d/projectile-bookmarks.eld")
+----
+
+=== Ignoring projects
+
+You can prevent certain projects from being added to the known projects list:
+
+[source,elisp]
+----
+;; A list of projects to ignore
+(setq projectile-ignored-projects '("/tmp/" "~/.emacs.d/"))
+----
+
+For more flexible filtering, set `projectile-ignored-project-function` to a
+predicate that receives a project root and returns non-nil if the project should
+be ignored:
+
+[source,elisp]
+----
+;; Ignore all remote (TRAMP) projects
+(setq projectile-ignored-project-function #'file-remote-p)
+----
+
+=== Automatic tracking
+
+By default, Projectile automatically adds projects to the known projects list
+whenever you visit a file in a project.  You can disable this:
+
+[source,elisp]
+----
+(setq projectile-track-known-projects-automatically nil)
+----
 
 == Completion Options
 

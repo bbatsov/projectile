@@ -681,6 +681,40 @@ could be:
 In fact this is a lot more flexible in terms of finding test files in different
 locations, but will not create test files for you.
 
+=== Default source and test directories
+
+When a project type doesn't specify `:src-dir` or `:test-dir`, Projectile falls
+back to these defaults:
+
+[source,elisp]
+----
+(setq projectile-default-src-directory "src/")
+(setq projectile-default-test-directory "test/")
+----
+
+=== Custom test prefix/suffix functions
+
+For advanced use cases you can replace the functions that determine the test
+file prefix and suffix.  These receive the project type and should return the
+appropriate prefix or suffix string:
+
+[source,elisp]
+----
+(setq projectile-test-prefix-function #'my-test-prefix)
+(setq projectile-test-suffix-function #'my-test-suffix)
+----
+
+=== Creating missing test files
+
+By default, when you toggle to a test file that doesn't exist, Projectile will
+signal an error.  If you'd like Projectile to create the missing test file
+automatically:
+
+[source,elisp]
+----
+(setq projectile-create-missing-test-files t)
+----
+
 == Customizing Project Detection
 
 Project detection is pretty simple - Projectile just runs a list of
@@ -978,6 +1012,38 @@ Here are a couple of examples:
     "gnus-.*-mode"
     "occur-mode"))
 ----
+
+=== Buffer filtering
+
+You can supply a custom filter function for `projectile-project-buffers` via
+`projectile-buffers-filter-function`.  Projectile ships with two built-in
+filters you can use:
+
+[source,elisp]
+----
+;; Only include file-backed buffers
+(setq projectile-buffers-filter-function #'projectile-buffers-with-file)
+
+;; Include file-backed buffers and process buffers (e.g. REPLs, shells)
+(setq projectile-buffers-filter-function #'projectile-buffers-with-file-or-process)
+----
+
+=== Killing project buffers
+
+When you run `projectile-kill-buffers` (kbd:[s-p k]), the variable
+`projectile-kill-buffers-filter` controls which buffers get killed:
+
+[source,elisp]
+----
+;; Kill all project buffers (the default)
+(setq projectile-kill-buffers-filter 'kill-all)
+
+;; Kill only file-visiting buffers (keep shells, REPLs, etc.)
+(setq projectile-kill-buffers-filter 'kill-only-files)
+----
+
+You can also set it to a custom predicate function that receives a buffer and
+returns non-nil if the buffer should be killed.
 
 == Configure a Project's Lifecycle Commands and Other Attributes
 
