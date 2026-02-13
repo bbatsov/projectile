@@ -1661,7 +1661,11 @@ Only text sent to standard output is taken into account."
       (with-temp-buffer
         (shell-command command t "*projectile-files-errors*")
         (let ((shell-output (buffer-substring (point-min) (point-max))))
-          (split-string (string-trim shell-output) "\0" t))))))
+          (mapcar (lambda (f)
+                    (if (string-prefix-p "./" f)
+                        (substring f 2)
+                      f))
+                  (split-string (string-trim shell-output) "\0" t)))))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."

@@ -546,7 +546,11 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
               (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename")))
 
           (it "supports magic file handlers"
-              (expect (projectile-files-via-ext-command "#magic#" "echo filename") :to-equal '("magic"))))
+              (expect (projectile-files-via-ext-command "#magic#" "echo filename") :to-equal '("magic")))
+
+          (it "strips ./ prefix from results"
+              (expect (projectile-files-via-ext-command "" "printf './foo\\0./bar/baz\\0quux'")
+                      :to-equal '("foo" "bar/baz" "quux"))))
 
 (describe "projectile-mode"
   (before-each
