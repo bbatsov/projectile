@@ -109,7 +109,7 @@
 
 * [#1812](https://github.com/bbatsov/projectile/pull/1812): Add a `projectile-root-marked` function for finding roots marked by `.projectile`. Prioritize `.projectile` above other bottom-up root files.
 
-### Bug fixed
+### Bugs fixed
 
 * [#1796](https://github.com/bbatsov/projectile/issues/1796): Fix `projectile-root-bottom-up` doesn't always find bottom-most file.
 * [#1799](https://github.com/bbatsov/projectile/pull/1799): Fix `projectile-open-projects` lists projects for which all buffers are closed.
@@ -285,7 +285,7 @@ of `find` to list the files of a non-VCS project. This should be much faster.
 * Add [crystal](https://crystal-lang.org) project type.
 * [#850](https://github.com/bbatsov/projectile/issues/850): Make it possible to prompt for a project, when you're not in a project, instead of raising an error. (see `projectile-require-project-root`).
 * [#1147](https://github.com/bbatsov/projectile/issues/1147): Introduce a new indexing method called `hybrid` which behaves like the old `alien`.
-* [#896](https://github.com/bbatsov/projectile/issues/896) Add commands `projectile-previous-project-buffer ` and
+* [#896](https://github.com/bbatsov/projectile/issues/896) Add commands `projectile-previous-project-buffer` and
 `projectile-next-project-buffer` to switch to other buffer in the project.
 * [#1016](https://github.com/bbatsov/projectile/issues/1016): Add a new defcustom (`projectile-current-project-on-switch`) controlling what to do with the current project on switch.
 * [#1233](https://github.com/bbatsov/projectile/issues/1233): Add a new defcustom (`projectile-kill-buffers-filter`) controlling which buffers are killed by `projectile-kill-buffers`.
@@ -331,16 +331,16 @@ of `find` to list the files of a non-VCS project. This should be much faster.
 * Added ability to specify test files suffix and prefix at the project registration.
 * [#1154](https://github.com/bbatsov/projectile/pull/1154) Use npm install instead of build.
 * Added the ability to expire old files list caches via `projectile-projectile-files-cache-expire`.
-* [#1204](https://github.com/bbatsov/projectile/pull/1204): `projectile-register-project-type` can now be use to customize the source and test directory via `:src-dir` and `:test-dir` for projects with custom needs (eg. maven).
-* [#1240](https://github.com/bbatsov/projectile/pull/1240): Add some integration with riggrep.
+* [#1204](https://github.com/bbatsov/projectile/pull/1204): `projectile-register-project-type` can now be used to customize the source and test directory via `:src-dir` and `:test-dir` for projects with custom needs (eg. maven).
+* [#1240](https://github.com/bbatsov/projectile/pull/1240): Add some integration with ripgrep.
 * Add `projectile-project-search-path`, which is auto-searched for projects when `projectile-mode` starts.
 * Add `projectile-discover-projects-in-search-path` command which searches for projects in `projectile-project-search-path`.
 * Auto-cleanup missing known-projects on `projectile-mode` start.
 
 ### Changes
 
-* [#1213](https://github.com/bbatsov/projectile/pull/1213): Cache project root in non-filed-backed buffers.
-* [#1175](https://github.com/bbatsov/projectile/pull/1175): `projectile-register-project-type` can now set a default compilation directory for build systems that needs to build out-of-tree (eg. meson).
+* [#1213](https://github.com/bbatsov/projectile/pull/1213): Cache project root in non-file-backed buffers.
+* [#1175](https://github.com/bbatsov/projectile/pull/1175): `projectile-register-project-type` can now set a default compilation directory for build systems that need to build out-of-tree (eg. meson).
 * [#1175](https://github.com/bbatsov/projectile/pull/1175): `projectile-{test,run}-project` now run inside `(projectile-compilation-dir)`, just like `projectile-compile-project`.
 * [#1175](https://github.com/bbatsov/projectile/pull/1175): `projectile-{test,run}-project` now stores the default command per directory instead of per project, just like `projectile-compile-project`.
 * Cache the root of the current project to increase performance
@@ -357,7 +357,7 @@ of `find` to list the files of a non-VCS project. This should be much faster.
 * Don't treat `package.json` as a project marker.
 * [#987](https://github.com/bbatsov/projectile/issues/987): projectile-ag ignores ag-ignore-list when projectile-project-vcs is git
 * [#1119](https://github.com/bbatsov/projectile/issues/1119): File search ignores non-root dirs if prefixed with "*"
-* Treat members of `projectile-globally-ignored-file-suffixes` as file name suffixes (previous treat as file extensions).
+* Treat members of `projectile-globally-ignored-file-suffixes` as file name suffixes (previously treated as file extensions).
 * Ensure project roots are added as directory names to avoid near-duplicate projects, e.g. "~/project/" and "~/project".
 * Don't autoload defcustoms.
 * **(Breaking)** Require Emacs 25.1.
@@ -417,7 +417,7 @@ of `find` to list the files of a non-VCS project. This should be much faster.
 * [#871](https://github.com/bbatsov/projectile/issues/871): Stop advice for `compilation-find-file` to override other advices.
 * [#557](https://github.com/bbatsov/projectile/issues/557): stack overflow in `projectile-find-tag`.
 * [#955](https://github.com/bbatsov/projectile/issues/955): Error while toggling between test and source file.
-* [#952](https://github.com/bbatsov/projectile/issues/952): VCS submodules brought in even thought not descendent of project root.
+* [#952](https://github.com/bbatsov/projectile/issues/952): VCS submodules brought in even though not descendent of project root.
 * [#576](https://github.com/bbatsov/projectile/issues/576): `projectile-replace` stomps regular expressions.
 * [#957](https://github.com/bbatsov/projectile/pull/957): When opening a specified file from the terminal, do not error inside of `projectile-cache-current-file`.
 * [#984](https://github.com/bbatsov/projectile/pull/984): Error when a project is a symlink that changes target.
@@ -438,7 +438,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
 * [#489](https://github.com/bbatsov/projectile/issues/489): New interactive command `projectile-run-project`.
 * Optionally run [monky](http://ananthakumaran.in/monky/) on Mercurial projects.
 * Add the ability to specify a project compilation directory relative to the root directory via `.dir-locals.el` with the variable `projectile-project-compilation-dir`.
-* When there is a selected region, projectile-ag, projectile-grep, projectile-replace and projectile-find-tag uses it's content as a search term instead of symbol at point.
+* When there is a selected region, projectile-ag, projectile-grep, projectile-replace and projectile-find-tag uses its content as a search term instead of symbol at point.
 
 ### Changes
 
@@ -446,7 +446,7 @@ This is done via the variables `projectile-project-compilation-cmd` and `project
 * `projectile-compile-project` now offers appropriate completion
 targets even when called from a subdirectory.
 * Add an argument specifying the regexp to search to `projectile-grep`.
-* Use `help-projectile-grep` instead of `helm-find-file` when selecting a project.
+* Use `helm-projectile-grep` instead of `helm-find-file` when selecting a project.
 * Omit current buffer from `projectile-switch-to-buffer` and `projectile-switch-to-buffer-other-window` choices.
 
 ### Bugs fixed
@@ -462,7 +462,7 @@ targets even when called from a subdirectory.
 ### New features
 
 * Replace Helm equivalent commands in `projectile-commander` when using Helm.
-* Add replacement commands projectile-grep, projectile-ack and projectile-ag with its Helm version.
+* Add replacement commands projectile-grep, projectile-ack and projectile-ag with their Helm versions.
 * Add virtual directory manager that allows to create/update (add or delete files) a Dired buffer based on Projectile files.
 * Add a new Helm command: `helm-projectile-find-file-in-known-projects` that opens all files in all known projects.
 * Add an action for `helm-projectile-switch-project` to delete multiple marked projects.
@@ -517,7 +517,7 @@ buffers.
 * Added new command `projectile-save-project-buffers`.
 * Added new command `projectile-cleanup-known-projects`.
 * Added new commands `projectile-display-buffer`
-and`projectile-find-dir-other-window`.
+and `projectile-find-dir-other-window`.
 * Added new interactive function `projectile-project-buffers-other-buffer`
 which runs new `projectile-project-buffers-non-visible` function, the former
 is bound to `C-c p ESC`.
@@ -536,7 +536,7 @@ for git projects.
 `projectile-vc` and `projectile-regenerate-tags`, respectively.
 * `projectile-vc` will use `magit-status` if available.
 * New functions `projectile-find-implementation-or-test` and
-`projectile-find-implementation-or-test-other-window`, the later is
+`projectile-find-implementation-or-test-other-window`, the latter is
 bound to `C-c p 4 t`.
 * New defcustoms `projectile-test-prefix-function` and `projectile-test-suffix-function`
 allow users to customize how projectile identifies test files by project type.
