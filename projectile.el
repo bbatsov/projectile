@@ -1546,7 +1546,7 @@ IGNORED-DIRECTORIES may optionally be provided."
              (deleted (unless (and projectile-git-use-fd projectile-fd-executable)
                         (projectile-git-deleted-files directory))))
         (if deleted
-            (seq-remove (lambda (f) (member f deleted)) files)
+            (cl-remove-if (lambda (f) (member f deleted)) files)
           files)))
      (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
 

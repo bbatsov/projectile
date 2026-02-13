@@ -537,12 +537,10 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/"
-       "project/.git/"
        "project/existing.txt")
       (let ((default-directory (file-truename (expand-file-name "project/")))
             (projectile-git-use-fd nil)
-            (projectile-fd-executable nil)
-            (projectile-indexing-method 'alien))
+            (projectile-fd-executable nil))
         ;; Initialize a real git repo, commit a file, then delete it without staging
         (call-process "git" nil nil nil "init")
         (call-process "git" nil nil nil "config" "user.email" "test@test.com")
