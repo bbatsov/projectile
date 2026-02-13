@@ -8,6 +8,7 @@
 
 ### Bugs fixed
 
+* [#1897](https://github.com/bbatsov/projectile/issues/1897): Filter deleted-but-unstaged files from `git ls-files` output in alien/hybrid indexing (when `fd` is not used).
 * [#1873](https://github.com/bbatsov/projectile/issues/1873): Skip unreadable directories during native indexing instead of aborting with a permission error.
 * [#1961](https://github.com/bbatsov/projectile/issues/1961): Prevent directories from matching file-type project root markers (e.g., a `workspace` directory no longer matches the `WORKSPACE` Bazel marker on case-insensitive filesystems).
 * [#1749](https://github.com/bbatsov/projectile/issues/1749): Strip `./` prefix from `fd` output in `projectile-files-via-ext-command`, fixing compatibility with older `fd` versions that don't support `--strip-cwd-prefix`.

@@ -532,6 +532,30 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-indexing-method 'hybrid))
       (expect (projectile-dir-files "/my/root/") :to-equal '("a/b/c" "a/d/e")))))
 
+(describe "projectile-dir-files-alien"
+  (it "excludes deleted-but-unstaged files when not using fd"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.git/"
+       "project/existing.txt")
+      (let ((default-directory (file-truename (expand-file-name "project/")))
+            (projectile-git-use-fd nil)
+            (projectile-fd-executable nil)
+            (projectile-indexing-method 'alien))
+        ;; Initialize a real git repo, commit a file, then delete it without staging
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "config" "user.email" "test@test.com")
+        (call-process "git" nil nil nil "config" "user.name" "Test")
+        (call-process "git" nil nil nil "add" "existing.txt")
+        (write-region "content" nil "deleted.txt")
+        (call-process "git" nil nil nil "add" "deleted.txt")
+        (call-process "git" nil nil nil "commit" "-m" "init")
+        (delete-file "deleted.txt")
+        (let ((files (projectile-dir-files-alien default-directory)))
+          (expect files :to-contain "existing.txt")
+          (expect files :not :to-contain "deleted.txt")))))))
+
 (describe "projectile-index-directory"
   (it "skips unreadable directories"
     (unless (eq system-type 'windows-nt)

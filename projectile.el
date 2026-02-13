@@ -1539,9 +1539,20 @@ IGNORED-DIRECTORIES may optionally be provided."
   (let ((vcs (projectile-project-vcs directory)))
     (cond
      ((eq vcs 'git)
-      (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
-             (projectile-get-sub-projects-files directory vcs)))
+      (let* ((files (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
+                           (projectile-get-sub-projects-files directory vcs)))
+             ;; When using git ls-files (not fd), deleted but unstaged
+             ;; files are still reported.  Remove them.
+             (deleted (unless (and projectile-git-use-fd projectile-fd-executable)
+                        (projectile-git-deleted-files directory))))
+        (if deleted
+            (seq-remove (lambda (f) (member f deleted)) files)
+          files)))
      (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
+
+(defun projectile-git-deleted-files (directory)
+  "Get a list of deleted but unstaged files in DIRECTORY."
+  (projectile-files-via-ext-command directory "git ls-files -zd"))
 
 (defun projectile-get-ext-command (vcs)
   "Determine which external command to invoke based on the project's VCS.
