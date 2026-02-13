@@ -1325,7 +1325,10 @@ Return the first (topmost) matched directory or nil if not found."
   (projectile-locate-dominating-file
    dir
    (lambda (dir)
-     (cl-find-if (lambda (f) (projectile-file-exists-p (projectile-expand-file-name-wildcard f dir)))
+     (cl-find-if (lambda (f)
+                    (let ((expanded (projectile-expand-file-name-wildcard f dir)))
+                      (and (projectile-file-exists-p expanded)
+                           (not (file-directory-p expanded)))))
                  (or list projectile-project-root-files)))))
 
 (defun projectile-root-marked (dir)

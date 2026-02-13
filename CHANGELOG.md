@@ -6,6 +6,10 @@
 
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
 
+### Bugs fixed
+
+* [#1961](https://github.com/bbatsov/projectile/issues/1961): Prevent directories from matching file-type project root markers (e.g., a `workspace` directory no longer matches the `WORKSPACE` Bazel marker on case-insensitive filesystems).
+
 ### Changes
 
 * [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.

@@ -629,9 +629,16 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (expect (projectile-root-top-down "projectA/src/framework/lib" '(".git" "framework.conf"))
               :to-equal
               (expand-file-name "projectA/src/"))
-      (expect (projectile-root-top-down "projectA/src/html/" '(".svn"))
+      (expect (projectile-root-top-down "projectA/src/html/" '("index.html"))
               :to-equal
-              (expand-file-name "projectA/src/html/"))))))
+              (expand-file-name "projectA/src/html/")))))
+  (it "does not match directories for file-type markers"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/workspace/"
+       "projectA/src/")
+      (expect (projectile-root-top-down "projectA/src/" '("workspace"))
+              :not :to-be-truthy)))))
 
 (describe "projectile-root-top-down-recurring"
   (it "identifies the root directory of a project by recurring top-down search"
