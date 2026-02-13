@@ -361,7 +361,7 @@ The bottommost (parentmost) match has precedence."
 
 (defcustom projectile-project-root-files-top-down-recurring
   '(".svn" ; Svn VCS root dir
-    "CVS"  ; Csv VCS root dir
+    "CVS"  ; CVS VCS root dir
     "Makefile")
   "A list of files considered to mark the root of a project.
 The search starts at the top and descends down till a directory
@@ -697,7 +697,7 @@ projects."
 (defcustom projectile-track-known-projects-automatically t
   "Controls whether Projectile will automatically register known projects.
 
-When set to nil you'll have always add projects explicitly with
+When set to nil you'll always have to add projects explicitly with
 `projectile-add-known-project'."
   :group 'projectile
   :type 'boolean
@@ -886,7 +886,7 @@ It assumes the test/ folder is at the same level as src/."
   :type 'hook)
 
 (defcustom projectile-before-switch-project-hook nil
-  "Hooks run when right before project is switched."
+  "Hooks run right before project is switched."
   :group 'projectile
   :type 'hook)
 
@@ -906,7 +906,7 @@ position."
 (defcustom projectile-max-file-buffer-count nil
   "Maximum number of file buffers per project that are kept open.
 
-If the value is nil, there is no limit to the opend buffers count."
+If the value is nil, there is no limit to the opened buffers count."
   :group 'projectile
   :type 'integer
   :package-version '(projectile . "2.2.0"))
@@ -969,7 +969,7 @@ If called interactively or if SHOW-VERSION is non-nil, show the
 version in the echo area and the messages buffer.
 
 The returned string includes both, the version from package.el
-and the library version, if both a present and different.
+and the library version, if both are present and different.
 
 If the version number could not be determined, signal an error,
 if called interactively, or if SHOW-VERSION is non-nil, otherwise
@@ -1041,7 +1041,7 @@ The saved data can be restored with `projectile-unserialize'."
   "Cached `projectile-file-exists-p' results.")
 
 (defvar projectile-file-exists-cache-timer nil
-  "Timer for scheduling`projectile-file-exists-cache-cleanup'.")
+  "Timer for scheduling `projectile-file-exists-cache-cleanup'.")
 
 (defun projectile-file-exists-cache-cleanup ()
   "Remove timed out cache entries.
@@ -1056,7 +1056,7 @@ Also reschedule or remove the timer if no more items are in the cache."
               (run-with-timer 10 nil 'projectile-file-exists-cache-cleanup)))))
 
 (defun projectile-file-exists-p (filename)
-  "Return t if file FILENAME exist.
+  "Return t if file FILENAME exists.
 A wrapper around `file-exists-p' with additional caching support."
   (let* ((file-remote (file-remote-p filename))
          (expire-seconds
@@ -1360,7 +1360,7 @@ topmost sequence of matched directories.  Nil otherwise."
 
 (defun projectile-project-root (&optional dir)
   "Retrieves the root directory of a project if available.
-If DIR is not supplied its set to the current directory by default."
+If DIR is not supplied it's set to the current directory by default."
   (let ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
@@ -1379,7 +1379,7 @@ If DIR is not supplied its set to the current directory by default."
               (cache-value (gethash cache-key projectile-project-root-cache)))
          cache-value)
        ;; if the file isn't local, and we're not connected, don't try to
-       ;; find a root now now, but don't cache failure, as we might
+       ;; find a root now, but don't cache failure, as we might
        ;; re-connect.  The `is-local' and `is-connected' variables are
        ;; used to fix the behavior where Emacs hangs because of
        ;; Projectile when you open a file over TRAMP. It basically
@@ -1483,7 +1483,7 @@ Files are returned as relative paths to DIRECTORY."
 ;;
 ;; This corresponds to `projectile-indexing-method' being set to native.
 (defun projectile-dir-files-native (directory)
-  "Get the files for ROOT under DIRECTORY using just Emacs Lisp."
+  "Get the files under DIRECTORY using just Emacs Lisp."
   (let ((progress-reporter
          (make-progress-reporter
           (format "Projectile is indexing %s"
@@ -2782,7 +2782,7 @@ PROJECT-ROOT is the project root."
                     (cl-remove-if-not predicate (projectile-current-project-files)))))))
 
 (defun projectile--related-files-kinds(file)
-  "Return a list o keywords meaning available related kinds for FILE."
+  "Return a list of keywords meaning available related kinds for FILE."
   (if-let* ((project-root (projectile-project-root))
            (plist (projectile--related-files-plist project-root file)))
       (cl-loop for key in plist by #'cddr
@@ -2938,7 +2938,7 @@ CONFIGURE which specifies a command that configures the project
 COMPILE which specifies a command that builds the project,
 INSTALL which specifies a command to install the project.
 PACKAGE which specifies a command to package the project.
-TEST which specified a command that tests the project,
+TEST which specifies a command that tests the project,
 RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
@@ -2992,7 +2992,7 @@ CONFIGURE which specifies a command that configures the project
 COMPILE which specifies a command that builds the project,
 INSTALL which specifies a command to install the project.
 PACKAGE which specifies a command to package the project.
-TEST which specified a command that tests the project,
+TEST which specifies a command that tests the project,
 RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
@@ -3062,7 +3062,7 @@ CONFIGURE which specifies a command that configures the project
 COMPILE which specifies a command that builds the project,
 INSTALL which specifies a command to install the project.
 PACKAGE which specifies a command to package the project.
-TEST which specified a command that tests the project,
+TEST which specifies a command that tests the project,
 RUN which specifies a command that runs the project,
 TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
@@ -3299,7 +3299,7 @@ select a name of a command preset, or opt a manual command by selecting
     (:install-command . "cmake --build build --target install")))
 
 (defun projectile--cmake-manual-command (command-type)
-  "Create maunual CMake COMMAND-TYPE command."
+  "Create manual CMake COMMAND-TYPE command."
   (cdr (assoc command-type projectile--cmake-manual-command-alist)))
 
 (defconst projectile--cmake-preset-command-alist
@@ -3354,7 +3354,7 @@ a manual COMMAND-TYPE command is created with
 ;; Project type detection happens in a reverse order with respect to
 ;; project type registration (invocations of `projectile-register-project-type').
 ;;
-;; As function-based project type detection is pretty slow, so it
+;; As function-based project type detection is pretty slow, it
 ;; should be tried at the end if everything else failed (meaning here
 ;; it should be listed first).
 ;;
@@ -3506,25 +3506,25 @@ a manual COMMAND-TYPE command is created with
                                   :compile "python manage.py runserver"
                                   :test "python manage.py test"
                                   :test-prefix "test_"
-                                  :test-suffix"_test")
+                                  :test-suffix "_test")
 (projectile-register-project-type 'python-pip '("requirements.txt")
                                   :project-file "requirements.txt"
                                   :compile "python setup.py build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
-                                  :test-suffix"_test")
+                                  :test-suffix "_test")
 (projectile-register-project-type 'python-pkg '("setup.py")
                                   :project-file "setup.py"
                                   :compile "python setup.py build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
-                                  :test-suffix"_test")
+                                  :test-suffix "_test")
 (projectile-register-project-type 'python-tox '("tox.ini")
                                   :project-file "tox.ini"
                                   :compile "tox -r --notest"
                                   :test "tox"
                                   :test-prefix "test_"
-                                  :test-suffix"_test")
+                                  :test-suffix "_test")
 (projectile-register-project-type 'python-pipenv '("Pipfile")
                                   :project-file "Pipfile"
                                   :compile "pipenv run build"
@@ -3620,7 +3620,7 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "_spec")
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
                                   :project-file "Gemfile"
-                                  :compile"bundle exec rake"
+                                  :compile "bundle exec rake"
                                   :src-dir "lib/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
@@ -3817,7 +3817,7 @@ the variable `projectile-project-root'."
    ((projectile-file-exists-p (expand-file-name ".jj" project-root)) 'jj)
    ;; then we check if there's a VCS marker up the directory tree
    ;; that covers the case when a project is part of a multi-project repository
-   ;; in those cases you can still the VCS to get a list of files for
+   ;; in those cases you can still use the VCS to get a list of files for
    ;; the project in question
    ((projectile-locate-dominating-file project-root ".git") 'git)
    ((projectile-locate-dominating-file project-root ".hg") 'hg)
@@ -3834,7 +3834,7 @@ the variable `projectile-project-root'."
 (defun projectile--test-name-for-impl-name (impl-file-path)
   "Determine the name of the test file for IMPL-FILE-PATH.
 
-IMPL-FILE-PATH may be a absolute path, relative path or a file name."
+IMPL-FILE-PATH may be an absolute path, relative path or a file name."
   (let* ((project-type (projectile-project-type))
          (impl-file-name (file-name-sans-extension (file-name-nondirectory impl-file-path)))
          (impl-file-ext (file-name-extension impl-file-path))
@@ -3848,7 +3848,7 @@ IMPL-FILE-PATH may be a absolute path, relative path or a file name."
 (defun projectile--impl-name-for-test-name (test-file-path)
   "Determine the name of the implementation file for TEST-FILE-PATH.
 
-TEST-FILE-PATH may be a absolute path, relative path or a file name."
+TEST-FILE-PATH may be an absolute path, relative path or a file name."
   (let* ((project-type (projectile-project-type))
          (test-file-name (file-name-sans-extension (file-name-nondirectory test-file-path)))
          (test-file-ext (file-name-extension test-file-path))
@@ -4073,7 +4073,7 @@ Fallback to DEFAULT-VALUE for missing attributes."
            (lambda (a b) (> (car a) (car b)))))
 
 (defun projectile--best-or-all-candidates-based-on-parents-dirs (file candidates)
-  "Return a list of the best one one for FILE from CANDIDATES or all CANDIDATES."
+  "Return a list of the best one for FILE from CANDIDATES or all CANDIDATES."
   (let ((grouped-candidates (projectile-group-file-candidates file candidates)))
     (if (= (length (car grouped-candidates)) 2)
         (list (car (last (car grouped-candidates))))
@@ -4497,7 +4497,7 @@ regular expression."
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression.
 
-This command depends on of the Emacs packages ripgrep or rg being
+This command depends on the Emacs packages ripgrep or rg being
 installed to work."
   (interactive
    (list (projectile--read-search-string-with-default
@@ -4717,7 +4717,7 @@ Use a prefix argument ARG to indicate creation of a new process instead."
   "Invoke `vterm' in the project's root.
 
 Use argument NEW-PROCESS to indicate creation of a new process instead.
-Use argument OTHER-WINDOW to indentation whether the buffer should
+Use argument OTHER-WINDOW to indicate whether the buffer should
 be displayed in a different window.
 
 Switch to the project specific term buffer if it already exists."
@@ -4994,7 +4994,7 @@ to run the replacement."
 (defun projectile-kill-buffers ()
   "Kill project buffers.
 
-The buffer are killed according to the value of
+The buffers are killed according to the value of
 `projectile-kill-buffers-filter'."
   (interactive)
   (let* ((project (projectile-acquire-root))
@@ -5109,7 +5109,7 @@ directory to open."
 
 (defun projectile-project-cache-file (&optional project-root)
   "The path to a project's cache file for PROJECT-ROOT.
-Acts on the current project is not specified explicitly."
+Acts on the current project if not specified explicitly."
   (if project-root
       (expand-file-name projectile-cache-file project-root)
     (projectile-expand-root projectile-cache-file)))
@@ -5317,7 +5317,7 @@ project of that type"
 
 The command is determined like this:
 
-- first we check `projectile-packgage-cmd-map' for the last
+- first we check `projectile-package-cmd-map' for the last
 install command that was invoked on the project
 
 - then we check for `projectile-project-package-cmd' supplied
@@ -5637,7 +5637,7 @@ An open project is a project with any open buffers."
     projects))
 
 (defun projectile--move-current-project-to-end (projects)
-  "Move current project (if any) to the end of list in the list of PROJECTS."
+  "Move current project (if any) to the end of the list of PROJECTS."
   (if-let* ((project (projectile-project-root)))
       (append
        (projectile--remove-current-project projects)
@@ -5790,7 +5790,7 @@ This command will first prompt for the directory the file is in."
 
 It handles the case of remote projects as well.
 See `projectile--cleanup-known-projects'."
-  ;; Taken from from `recentf-keep-default-predicate'
+  ;; Taken from `recentf-keep-default-predicate'
   (cond
    ((file-remote-p project nil t) (file-readable-p project))
    ((file-remote-p project))
@@ -5852,7 +5852,7 @@ Return a list of projects removed."
   (projectile-remove-known-project (abbreviate-file-name (projectile-acquire-root))))
 
 (defun projectile-ignored-projects ()
-  "A list of projects that should not be save in `projectile-known-projects'."
+  "A list of projects that should not be saved in `projectile-known-projects'."
   (mapcar #'file-truename projectile-ignored-projects))
 
 (defun projectile-ignored-project-p (project-root)
@@ -5952,7 +5952,7 @@ DESCRIPTION is a one-line description of what the key selects.")
 (defun projectile-commander ()
   "Execute a Projectile command with a single letter.
 The user is prompted for a single character indicating the action to invoke.
-The `?' character describes then
+The `?' character describes the
 available actions.
 
 See `def-projectile-commander-method' for defining new methods."
@@ -5968,9 +5968,9 @@ See `def-projectile-commander-method' for defining new methods."
 
 KEY is the key the user will enter to choose this method.
 
-DESCRIPTION is a one-line sentence describing how the method.
+DESCRIPTION is a one-line sentence describing the method.
 
-BODY is a series of forms which are evaluated when the find
+BODY is a series of forms which are evaluated when the method
 is chosen."
   (let ((method `(lambda ()
                    ,@body)))
@@ -6088,7 +6088,7 @@ If PROJECT-PATH is a project, check this one instead."
 (defun projectile-check-vcs-status-of-known-projects ()
   "Return the list of dirty projects.
 The list is composed of sublists~: (project-path, project-status).
-Raise an error if their is no dirty project."
+Raise an error if there is no dirty project."
   (save-window-excursion
     (message "Checking for modifications in known projects...")
     (let ((projects projectile-known-projects)
@@ -6430,7 +6430,7 @@ when opening new files."
 (require 'project)
 
 ;; Only define an override for project-root if the method exists.  For versions
-;; before emacs 28, project.el provided project-roots instead of project.root.
+;; before emacs 28, project.el provided project-roots instead of project-root.
 (if (fboundp 'project-root)
     (cl-defmethod project-root ((project (head projectile)))
       (cdr project)))
