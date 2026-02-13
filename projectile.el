@@ -1524,7 +1524,10 @@ IGNORED-DIRECTORIES may optionally be provided."
                         (projectile-index-directory f patterns progress-reporter ignored-files ignored-directories globally-ignored-directories))
                     (unless (projectile-ignored-file-p f ignored-files)
                       (list f))))))
-            (directory-files directory t)))))
+            ;; Use ignore-errors to skip unreadable directories (e.g.
+            ;; .Spotlight-V100 on macOS) instead of aborting the entire
+            ;; indexing operation.
+            (ignore-errors (directory-files directory t))))))
 
 ;;; Alien Project Indexing
 ;;

@@ -532,6 +532,25 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-indexing-method 'hybrid))
       (expect (projectile-dir-files "/my/root/") :to-equal '("a/b/c" "a/d/e")))))
 
+(describe "projectile-index-directory"
+  (it "skips unreadable directories"
+    (unless (eq system-type 'windows-nt)
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/"
+         "project/.projectile"
+         "project/readable-file.el"
+         "project/unreadable-dir/")
+        (let* ((project-dir (file-name-as-directory (expand-file-name "project")))
+               (unreadable-dir (expand-file-name "unreadable-dir" project-dir))
+               (progress-reporter (make-progress-reporter "Indexing...")))
+          (set-file-modes unreadable-dir #o000)
+          (unwind-protect
+              (let ((files (projectile-index-directory project-dir nil progress-reporter)))
+                (expect (cl-some (lambda (f) (string-match-p "readable-file" f)) files) :to-be-truthy)
+                (expect (cl-some (lambda (f) (string-match-p "unreadable-dir" f)) files) :not :to-be-truthy))
+            (set-file-modes unreadable-dir #o755))))))))
+
 (describe "projectile-get-sub-projects-command"
   (it "gets sub projects command for git"
     (expect (string-prefix-p "git" (projectile-get-sub-projects-command 'git)) :to-be-truthy))
