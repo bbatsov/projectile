@@ -75,7 +75,7 @@ the deletions are staged, which can be confusing. You can eliminate
 the use of fd in this circumstance by setting `projectile-git-use-fd`
 to nil.
 
-== Do you need some help cleanup up all those tickets that have piled up?
+== Do you need some help cleaning up all those tickets that have piled up?
 
 Certainly! In our https://github.com/bbatsov/projectile/issues/[issue
 tracker] we've got

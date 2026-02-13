@@ -131,7 +131,7 @@ to perform file search, it's recommended to install
 https://github.com/ggreer/the_silver_searcher[ag] (`the_silver_searcher`) and/or
 https://github.com/BurntSushi/ripgrep[rg] (`ripgrep`)
 
-TIP: You should also install the Emacs packages `ag`, `ripgrep` or `rg` if you want to make sure of Projectile's commands `projectile-ag` and `projectile-ripgrep`.
+TIP: You should also install the Emacs packages `ag`, `ripgrep` or `rg` if you want to make use of Projectile's commands `projectile-ag` and `projectile-ripgrep`.
 
 == Basic Usage
 
@@ -143,7 +143,7 @@ You can learn more about Projectile's notion of a project xref:projects.adoc[her
 
 NOTE: The extent of the support for every VCS differs and Git is the best supported
  one. Projectile supports some advanced features like working with Git submodules
- and using `git-grep` instead GNU grep.
+ and using `git-grep` instead of GNU grep.
 
 You need to know only a handful of Projectile commands to start benefiting from it.
 
@@ -369,7 +369,7 @@ kbd:[s-p C-h]
 
 It is possible to add additional commands to
 `projectile-command-map` referenced by the prefix key in
-`projectile-mode-map`. You can add multiple keymap prefix for all
+`projectile-mode-map`. You can add multiple keymap prefixes for all
 commands. Here's an example that adds `super-,` as a command prefix:
 
 [source,elisp]
@@ -395,7 +395,7 @@ add to your Emacs config:
 (define-key projectile-mode-map [?\s-g] 'projectile-grep)
 ----
 
-NOTE: Note that the `Super` keybindings are not usable in Windows, as Windows
+NOTE: The `Super` keybindings are not usable in Windows, as Windows
  makes heavy use of such keybindings itself. Emacs Prelude already adds those
  extra keybindings.
 

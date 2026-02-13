@@ -160,7 +160,7 @@ are the configuration files of various build tools. Out of the box the following
 
 | Java & friends
 | `application.yaml`
-| Gradle wrapper script
+| Gradle project file
 
 | Scala
 | `build.sbt`
@@ -204,7 +204,7 @@ are the configuration files of various build tools. Out of the box the following
 
 | Emacs
 | `Eask`
-| Emacs cask file
+| Emacs Eask file
 
 | Emacs
 | `Eldev`
@@ -433,7 +433,7 @@ You can also pass a symbolic reference to a function into your project type defi
                                   :test 'my/test-command)
 ----
 
-If you would now navigate to a file that has the `*.java` extension under the `./tests/` directory and hit `C-c c p` you
+If you would now navigate to a file that has the `*.java` extension under the `./tests/` directory and hit `C-c p c` you
 will see `./gradlew build` as the suggestion. If you were to navigate to a HTML file the compile command will have switched
 to `./gradlew compile-templates`.
 
@@ -449,7 +449,7 @@ Note that your function has to return a string to work properly.
 === Related file location
 
 The `:test-prefix` and `:test-suffix` will work regardless of file extension
-or directory path should and be enough for simple projects.  The
+or directory path and should be enough for simple projects.  The
 `projectile-other-file-alist` variable can also be set to find other files
 based on the extension.
 
@@ -515,7 +515,7 @@ Notes:
 of a function can be fast as it does not iterate over each source file.
 . There is a difference in behaviour between no key and `nil` value for the
 key. Only when the key does not exist, other project options such as
-`:test_prefix` or `projectile-other-file-alist` mechanism is tried.
+`:test-prefix` or `projectile-other-file-alist` mechanism is tried.
 . If the `:test-dir` option is set to a function, this will take precedence over
 any value for `:related-files-fn` set when `projectile-toggle-between-implementation-and-test` is called.
 
@@ -656,7 +656,7 @@ purposes, using functions can give more flexibility.  As an example consider
             (src-dir (cl-find-if (lambda (d) (f-exists-p (f-join root d)))
                                  src-dir-guesses)))
       (projectile-complementary-dir test-file-path "tests?" src-dir)
-    (error "Could not locate a impl file for %s!" test-file-path)))
+    (error "Could not locate an impl file for %s!" test-file-path)))
 
 (projectile-update-project-type
  'python-pkg
@@ -724,7 +724,7 @@ precedence with respect to project detection. Let's examine the defaults:
   (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will
   return the first match it discovers. The assumption is pretty simple - the
   root marker appear only once, at the root folder of a project. If a root
-  marker appear in several nested folders (e.g. you've got nested git projects),
+  marker appears in several nested folders (e.g. you've got nested git projects),
   the bottom-most (closest to the current dir) match has precedence. You can
   customize the root markers recognized by this function via
   `projectile-project-root-files-bottom-up`
@@ -1006,11 +1006,11 @@ external command or an Emacs Lisp function:
 ----
 
 In addition caching of commands can be disabled by setting the variable
-`projectile-project-enable-cmd-caching` is to `nil`. This is useful for
+`projectile-project-enable-cmd-caching` to `nil`. This is useful for
 preset-based CMake projects.
 
 By default, Projectile will not add consecutive duplicate commands to its
 command history.  To alter this behaviour you can use `projectile-cmd-hist-ignoredups`.
-  The default value of `t` means consecutive duplicates are ignore, a value
+  The default value of `t` means consecutive duplicates are ignored, a value
 of `nil` means nothing is ignored, and a value of `'erase'` means only
 the last duplicate is kept in the command history.

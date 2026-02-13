@@ -51,7 +51,7 @@ To force the use of alien indexing in all operating systems:
 This can speed up Projectile in Windows significantly (especially on
 big projects). The disadvantage of this method is that it's not well
 supported on Windows systems, as it requires setting up some Unix
-utilities there. If there's problem, you can always use `native`
+utilities there. If there's a problem, you can always use `native`
 indexing mode.
 
 === Alien indexing
@@ -80,13 +80,13 @@ find . -type f -print0
 ----
 
 TIP: It's a great idea to install https://github.com/sharkdp/fd[fd] which is much faster than `find`.
- If `fd` is found, projectile will use as a replacement for `find`.
+ If `fd` is found, projectile will use it as a replacement for `find`.
 
 == Sorting
 
 You can choose how Projectile sorts files by customizing `projectile-sort-order`.
 
-NOTE: Note that if Alien indexing is set, files are not sorted by Projectile at all.
+NOTE: If Alien indexing is set, files are not sorted by Projectile at all.
 
 The default is to not sort files:
 
@@ -175,7 +175,7 @@ You can purge an individual file from the cache with `M-x projectile-purge-file-
 entire directory with `M-x projectile-purge-dir-from-cache`.
 
 NOTE: Prior to Projectile 2.9 the cache for all projects was serialized to the same file.
-In Projectile 2.9 this was changed and now each project has it's own cache file relative to
+In Projectile 2.9 this was changed and now each project has its own cache file relative to
 the project's root directory.
 
 When `projectile-mode` is enabled Projectile will auto-update the project cache when files
@@ -511,7 +511,7 @@ Projectile can be configured to keep a maximum number of file buffers of a proje
 that are opened at one point. The custom variable `projectile-max-buffer-count`
 can be set to an integer that will be the buffer count cap. If this limit is
 reached, by opening a new file, Projectile will close the least recent buffer of
-the current project. If the variable is `nil`, the will be no cap on the buffer
+the current project. If the variable is `nil`, there will be no cap on the buffer
 count.
 
 [source,elisp]

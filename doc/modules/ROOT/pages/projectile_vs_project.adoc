@@ -10,7 +10,7 @@ When `project.el` was originally introduced it's feature-set was quite spartan, 
 
 == TLDR;
 
-If the functionality in `project.el` is good enough for you than you should probably use `project.el`.
+If the functionality in `project.el` is good enough for you then you should probably use `project.el`.
 
 == At a glance
 
@@ -101,8 +101,8 @@ as Projectile's `alien` strategy. Admittedly, that's probably the most commonly 
 
 === `.projectile`
 
-Projectile has it's own project marker/configuration file. It's a remnant of the early days of the project where a wanted to build a tool that didn't
-rely on the third-party applications and it's significance today is not that big. (it will be completely ignored unless you're using `native` or `hybrid` indexing)
+Projectile has its own project marker/configuration file. It's a remnant of the early days of the project where I wanted to build a tool that didn't
+rely on the third-party applications and its significance today is not that big. (it will be completely ignored unless you're using `native` or `hybrid` indexing)
 
 == Projectile's Pros
 
@@ -124,4 +124,4 @@ rely on the third-party applications and it's significance today is not that big
   ** Built-in packages in theory should be maintained better (or at least for longer), as they have the Emacs team behind them.
   ** While Projectile has a rich ecosystem of extensions, over a long enough period of time likely `project.el` will take the lead.
 * Due to its larger size, one can argue that Projectile is more complex than `project.el`
-  ** Admittedly I would have done some things differently if were starting Projectile today, but I don't think Projetile's core complexity is high.
+  ** Admittedly I would have done some things differently if I were starting Projectile today, but I don't think Projectile's core complexity is high.

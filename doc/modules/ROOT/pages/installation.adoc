@@ -38,7 +38,7 @@ kbd:[M-x] `package-refresh-contents` kbd:[RET]
 
 Keep in mind that MELPA packages are built automatically from
 the `master` branch, meaning bugs might creep in there from time to
-time. Never-the-less, installing from MELPA is a reasonable way of
+time. Nevertheless, installing from MELPA is a reasonable way of
 obtaining Projectile, as the `master` branch is normally quite stable
 and serious regressions there are usually fixed pretty quickly.
 
