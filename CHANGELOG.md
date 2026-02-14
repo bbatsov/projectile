@@ -8,6 +8,8 @@
 
 ### Bugs fixed
 
+* [#1823](https://github.com/bbatsov/projectile/issues/1823): Update the mode-line via `window-configuration-change-hook` so non-file buffers (e.g. Magit) display the correct project info.
+* [#1886](https://github.com/bbatsov/projectile/issues/1886): Fix `(wrong-type-argument stringp nil)` error when running project commands in a newly created project by using `projectile-acquire-root` instead of `projectile-project-root` in `projectile--run-project-cmd`.
 * [#1748](https://github.com/bbatsov/projectile/issues/1748): Fix `projectile-replace` falling back to the legacy Emacs 25/26 code path on Emacs 27+ because `fileloop` was not loaded.
 * [#1741](https://github.com/bbatsov/projectile/issues/1741): Fix `projectile-replace` treating the search string as a regexp instead of a literal string on Emacs 27+.
 * [#1729](https://github.com/bbatsov/projectile/issues/1729): Fix `projectile-root-top-down` to actually return the topmost matching project root instead of the bottommost.

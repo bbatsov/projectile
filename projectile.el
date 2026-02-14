@@ -569,8 +569,8 @@ Any function that does not take arguments will do."
 
 (defcustom projectile-dynamic-mode-line t
   "If true, update the mode-line dynamically.
-Only file buffers are affected by this, as the update happens via
-`find-file-hook'.
+The mode-line is updated when files are opened via `find-file-hook'
+and when the window configuration changes.
 
 See also `projectile-mode-line-function' and `projectile-update-mode-line'."
   :group 'projectile
@@ -5463,7 +5463,7 @@ If SAVE-BUFFERS is non-nil save all projectile buffers before
 running the command.
 
 The command actually run is returned."
-  (let* ((project-root (projectile-project-root))
+  (let* ((project-root (projectile-acquire-root))
          (default-directory (projectile-compilation-dir))
          (command (projectile-maybe-read-command show-prompt
                                                  command
@@ -6286,6 +6286,14 @@ thing shown in the mode line otherwise."
     (setq projectile--mode-line mode-line))
   (force-mode-line-update))
 
+(defun projectile-update-mode-line-on-window-change ()
+  "Update the mode-line when the window configuration changes.
+This ensures the mode-line is correct in non-file buffers like
+Magit that don't trigger `find-file-hook'."
+  (when projectile-dynamic-mode-line
+    (unless (file-remote-p default-directory)
+      (projectile-update-mode-line))))
+
 (defvar projectile-command-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "4 a") #'projectile-find-other-file-other-window)
@@ -6542,12 +6550,14 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t t)
+    (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
    (t
     (remove-hook 'project-find-functions #'project-projectile)
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
+    (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
 
