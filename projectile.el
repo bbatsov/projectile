@@ -1920,6 +1920,7 @@ With a prefix argument, show NLINES of context."
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
+  ;; TODO: Replace delq+mapcar with seq-keep when Emacs 29.1 is the minimum version
   (delq nil (mapcar (lambda (pat) (and (string-prefix-p "/" pat)
                                        ;; remove the leading /
                                        (substring pat 1)))
@@ -4349,6 +4350,7 @@ which it shares its arglist."
                  " -path "
                  (mapconcat
                   #'identity
+                  ;; TODO: Replace delq+mapcar with seq-keep when Emacs 29.1 is the minimum version
                   (delq nil (mapcar (lambda (ignore)
                                       (cond ((stringp ignore)
                                              (shell-quote-argument
@@ -4464,6 +4466,7 @@ With REGEXP given, don't query the user for a regexp."
                projectile-use-git-grep)
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
+        ;; TODO: Replace seq-uniq+append with seq-union when Emacs 28.1 is the minimum version
         (let ((grep-find-ignored-files
                (seq-uniq (append (projectile--globally-ignored-file-suffixes-glob)
                                  grep-find-ignored-files)))
@@ -5620,6 +5623,7 @@ directories."
   "Return a list of all open projects.
 An open project is a project with any open buffers."
   (seq-uniq
+   ;; TODO: Replace delq+mapcar with seq-keep when Emacs 29.1 is the minimum version
    (delq nil
          (mapcar (lambda (buffer)
                    (with-current-buffer buffer
