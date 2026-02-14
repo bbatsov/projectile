@@ -3182,7 +3182,7 @@ otherwise expand NAME-PATTERN in DIR ignoring wildcards."
   (let ((expanded (expand-file-name name-pattern dir)))
     (or (if (string-match-p "[[*?]" name-pattern)
             (car
-             (file-expand-wildcards expanded)))
+             (ignore-errors (file-expand-wildcards expanded))))
         expanded)))
 
 (defun projectile-cabal-project-p (&optional dir)
@@ -5469,8 +5469,8 @@ The command actually run is returned."
          (command (projectile-maybe-read-command show-prompt
                                                  command
                                                  prompt-prefix))
-         compilation-buffer-name-function
-         compilation-save-buffers-predicate)
+         (compilation-buffer-name-function compilation-buffer-name-function)
+         (compilation-save-buffers-predicate compilation-save-buffers-predicate))
     (when command-map
       (puthash default-directory command command-map)
       (let ((hist (projectile--get-command-history project-root)))

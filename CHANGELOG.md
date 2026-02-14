@@ -8,6 +8,8 @@
 
 ### Bugs fixed
 
+* [#1816](https://github.com/bbatsov/projectile/issues/1816): Fix `projectile-expand-file-name-wildcard` failing when a parent directory is not readable (e.g. iCloud Drive, Termux).
+* [#1841](https://github.com/bbatsov/projectile/issues/1841): Preserve user's `compilation-buffer-name-function` when `projectile-per-project-compilation-buffer` is nil.
 * [#1823](https://github.com/bbatsov/projectile/issues/1823): Update the mode-line via `window-configuration-change-hook` so non-file buffers (e.g. Magit) display the correct project info.
 * [#1886](https://github.com/bbatsov/projectile/issues/1886): Fix `(wrong-type-argument stringp nil)` error when running project commands in a newly created project by using `projectile-acquire-root` instead of `projectile-project-root` in `projectile--run-project-cmd`.
 * [#1456](https://github.com/bbatsov/projectile/issues/1456): Fix `projectile-replace-regexp` stopping when encountering a missing file by filtering nonexistent files from the replacement file list.
