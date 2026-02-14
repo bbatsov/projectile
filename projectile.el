@@ -1684,9 +1684,7 @@ Only text sent to standard output is taken into account."
         (shell-command command t "*projectile-files-errors*")
         (let ((shell-output (buffer-substring (point-min) (point-max))))
           (mapcar (lambda (f)
-                    (if (string-prefix-p "./" f)
-                        (substring f 2)
-                      f))
+                    (string-remove-prefix "./" f))
                   (split-string (string-trim shell-output) "\0" t)))))))
 
 (defun projectile-adjust-files (project vcs files)
@@ -1712,7 +1710,7 @@ otherwise operates relative to project root."
               ;; if the directory is prefixed with '*' then ignore all directories matching that name
               (if (string-prefix-p "*" dir)
                   ;; remove '*' and trailing slash from ignored directory name
-                  (let ((d (substring dir 1 (if (equal (substring dir -1) "/") -1 nil))))
+                  (let ((d (string-remove-suffix "/" (substring dir 1))))
                     (seq-some
                      (lambda (p)
                        (string= d p))
@@ -4839,9 +4837,7 @@ Returns a list of expanded filenames."
   (let ((default-directory directory))
     (mapcar (lambda (str)
               (concat directory
-                      (if (string-prefix-p "./" str)
-                          (substring str 2)
-                        str)))
+                      (string-remove-prefix "./" str)))
             (split-string
              (string-trim (shell-command-to-string cmd))
              "\n+"
