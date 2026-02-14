@@ -73,7 +73,6 @@
 (declare-function eshell-search-path "esh-ext")
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
-(declare-function string-trim "subr-x")
 (declare-function tramp-archive-file-name-p "tramp-archive")
 (declare-function tramp-archive-file-name-archive "tramp-archive")
 (declare-function helm-grep-get-file-extensions "helm-grep")
@@ -4462,8 +4461,7 @@ With REGEXP given, don't query the user for a regexp."
       (require 'vc-git) ;; for `vc-git-grep'
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
       (if (and (eq (projectile-project-vcs) 'git)
-               projectile-use-git-grep
-               (fboundp 'vc-git-grep))
+               projectile-use-git-grep)
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-files
