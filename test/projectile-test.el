@@ -554,6 +554,20 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (expect files :to-contain "existing.txt")
           (expect files :not :to-contain "deleted.txt")))))))
 
+(describe "projectile-project-dirs"
+  (it "includes intermediate directories that contain only subdirectories"
+    (spy-on 'projectile-project-files
+            :and-return-value '("src/ComponentA/a.cc"
+                                "src/ComponentB/b.cc"
+                                "config/config_file"))
+    (let ((dirs (projectile-project-dirs "/project/")))
+      ;; Leaf directories
+      (expect dirs :to-contain "src/ComponentA/")
+      (expect dirs :to-contain "src/ComponentB/")
+      (expect dirs :to-contain "config/")
+      ;; Intermediate directory (only has subdirectories, no direct files)
+      (expect dirs :to-contain "src/"))))
+
 (describe "projectile-index-directory"
   (it "skips unreadable directories"
     (unless (eq system-type 'windows-nt)

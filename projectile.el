@@ -2281,8 +2281,19 @@ project-root for every file."
   "Return a list of dirs for PROJECT."
   (delete-dups
    (delq nil
-         (mapcar #'file-name-directory
-                 (projectile-project-files project)))))
+         (cl-mapcan #'projectile--directory-ancestors
+                    (projectile-project-files project)))))
+
+(defun projectile--directory-ancestors (path)
+  "Return a list of the directory of PATH and all its ancestor directories.
+For example, \"src/foo/bar.el\" returns (\"src/foo/\" \"src/\")."
+  (let ((dir (file-name-directory path))
+        result)
+    (while (and dir (not (equal dir "")))
+      (push dir result)
+      (let ((parent (file-name-directory (directory-file-name dir))))
+        (setq dir (unless (equal parent dir) parent))))
+    result))
 
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
