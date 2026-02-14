@@ -4,10 +4,13 @@
 
 ### New features
 
+* [#1964](https://github.com/bbatsov/projectile/issues/1964): Implement `project-name` and `project-buffers` methods for the `project.el` integration, so that code using `project.el` APIs returns correct results for Projectile-managed projects.
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
+* Add keybinding `A` (in the projectile command map) and a menu entry for `projectile-add-known-project`.
 
 ### Bugs fixed
 
+* [#1962](https://github.com/bbatsov/projectile/issues/1962): Fix `projectile-get-other-files` crashing when a candidate other-file lives in the project root directory.
 * [#1816](https://github.com/bbatsov/projectile/issues/1816): Fix `projectile-expand-file-name-wildcard` failing when a parent directory is not readable (e.g. iCloud Drive, Termux).
 * [#1841](https://github.com/bbatsov/projectile/issues/1841): Preserve user's `compilation-buffer-name-function` when `projectile-per-project-compilation-buffer` is nil.
 * [#1823](https://github.com/bbatsov/projectile/issues/1823): Update the mode-line via `window-configuration-change-hook` so non-file buffers (e.g. Magit) display the correct project info.
@@ -25,6 +28,9 @@
 * [#1873](https://github.com/bbatsov/projectile/issues/1873): Skip unreadable directories during native indexing instead of aborting with a permission error.
 * [#1961](https://github.com/bbatsov/projectile/issues/1961): Prevent directories from matching file-type project root markers (e.g., a `workspace` directory no longer matches the `WORKSPACE` Bazel marker on case-insensitive filesystems).
 * [#1749](https://github.com/bbatsov/projectile/issues/1749): Strip `./` prefix from `fd` output in `projectile-files-via-ext-command`, fixing compatibility with older `fd` versions that don't support `--strip-cwd-prefix`.
+* Fix `projectile-ripgrep` failing on zsh when ignored file patterns contain glob characters, by quoting `--glob` arguments.
+* Fix CMake version parsing failing when `cmake --version` output contains extra text after the version number.
+* Fix Jujutsu file listing to use template syntax for null-byte-separated output, making it robust against user customization of `jj` output format.
 
 ### Changes
 
@@ -34,6 +40,8 @@
 * Set `projectile-auto-discover` to `nil` by default (to avoid startup slowdowns in some situations).
 * [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values.
 * [#1936](https://github.com/bbatsov/projectile/issues/1936): Do not require selecting a project when using `M-x projectile-invalidate-cache`, since there is a global cache that is also cleared by that command, even when not operating on any specific project.
+* Add `build.mill` as an alternative project marker for the Mill project type, matching Mill's current recommended file extension.
+* Replace obsolete `when-let` and `cl-gensym` with `when-let*` and `gensym` for compatibility with Emacs 31+.
 
 ## 2.9.1 (2025-02-13)
 
