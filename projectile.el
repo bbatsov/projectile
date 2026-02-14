@@ -2392,7 +2392,7 @@ found."
         associated-extensions)
     (catch 'break
       (while (not (string= "" current-extensions))
-        (if (setq associated-extensions (cdr (assoc current-extensions projectile-other-file-alist)))
+        (if (setq associated-extensions (alist-get current-extensions projectile-other-file-alist nil nil #'equal))
             (throw 'break associated-extensions))
         (setq current-extensions (projectile--file-name-extensions current-extensions))))))
 
@@ -3240,7 +3240,7 @@ it acts on the current project."
 (defun projectile--cmake-command-presets-supported (command-type)
   "Check if CMake supports presets for COMMAND-TYPE."
   (let ((minimum-version
-         (cdr (assoc command-type projectile--cmake-command-presets-minimum-version-alist))))
+         (alist-get command-type projectile--cmake-command-presets-minimum-version-alist)))
     (projectile--cmake-check-version minimum-version)))
 
 (defun projectile--cmake-read-preset (filename)
@@ -3259,7 +3259,7 @@ it acts on the current project."
 
 (defun projectile--cmake-command-preset-array-id (command-type)
   "Map from COMMAND-TYPE to id of command preset array in CMake preset."
-  (cdr (assoc command-type projectile--cmake-command-preset-array-id-alist)))
+  (alist-get command-type projectile--cmake-command-preset-array-id-alist))
 
 (defun projectile--cmake-command-presets-shallow (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME."
@@ -3337,7 +3337,7 @@ select a name of a command preset, or opt a manual command by selecting
 
 (defun projectile--cmake-manual-command (command-type)
   "Create manual CMake COMMAND-TYPE command."
-  (cdr (assoc command-type projectile--cmake-manual-command-alist)))
+  (alist-get command-type projectile--cmake-manual-command-alist))
 
 (defconst projectile--cmake-preset-command-alist
   '((:configure-command . "cmake . --preset %s")
@@ -3348,7 +3348,7 @@ select a name of a command preset, or opt a manual command by selecting
 
 (defun projectile--cmake-preset-command (command-type preset)
   "Create CMake COMMAND-TYPE command using PRESET."
-  (format (cdr (assoc command-type projectile--cmake-preset-command-alist)) preset))
+  (format (alist-get command-type projectile--cmake-preset-command-alist) preset))
 
 (defun projectile--cmake-command (command-type)
   "Create a CMake COMMAND-TYPE command.
@@ -4862,25 +4862,25 @@ Returns a list of expanded filenames."
 (defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
-      (concat (cdr (assoc 'rg projectile-files-with-string-commands))
+      (concat (alist-get 'rg projectile-files-with-string-commands)
               "-g '"
               file-ext
               "' "
               search-term)
-    (concat (cdr (assoc 'rg projectile-files-with-string-commands))
+    (concat (alist-get 'rg projectile-files-with-string-commands)
             search-term)))
 
 (defun projectile--ag-construct-command (search-term &optional file-ext)
   "Construct Ag option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
-      (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+      (concat (alist-get 'ag projectile-files-with-string-commands)
               "-G "
               (replace-regexp-in-string
                "\\*" ""
                (replace-regexp-in-string "\\." "\\\\." file-ext))
               "$ "
               search-term)
-    (concat (cdr (assoc 'ag projectile-files-with-string-commands))
+    (concat (alist-get 'ag projectile-files-with-string-commands)
             search-term)))
 
 (defun projectile--ack-construct-command (search-term &optional file-ext)
@@ -4891,32 +4891,32 @@ Returns a list of expanded filenames."
                "\\*" ""
                (replace-regexp-in-string "\\." "\\\\." file-ext))
               "$' | "
-              (cdr (assoc 'ack projectile-files-with-string-commands))
+              (alist-get 'ack projectile-files-with-string-commands)
               "-x "
               search-term)
-    (concat (cdr (assoc 'ack projectile-files-with-string-commands))
+    (concat (alist-get 'ack projectile-files-with-string-commands)
             search-term)))
 
 (defun projectile--git-grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
-      (concat (cdr (assoc 'git projectile-files-with-string-commands))
+      (concat (alist-get 'git projectile-files-with-string-commands)
               search-term
               "  -- '"
               file-ext
               "'")
-    (concat (cdr (assoc 'git projectile-files-with-string-commands))
+    (concat (alist-get 'git projectile-files-with-string-commands)
             search-term)))
 
 (defun projectile--grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
   (if (stringp file-ext)
-      (concat (format (cdr (assoc 'grep projectile-files-with-string-commands))
+      (concat (format (alist-get 'grep projectile-files-with-string-commands)
                       search-term)
               " --include '"
               file-ext
               "'")
-    (format (cdr (assoc 'grep projectile-files-with-string-commands))
+    (format (alist-get 'grep projectile-files-with-string-commands)
             search-term)))
 
 (defun projectile-files-with-string (string directory &optional file-ext)
