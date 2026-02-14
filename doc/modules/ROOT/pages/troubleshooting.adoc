@@ -69,6 +69,9 @@ Note that Projectile caches the operation of checking which project
 (if any) a file belongs to. If you have already opened a file, then
 later added a marker file like `.projectile`, run `M-x
 projectile-invalidate-cache` to reset the cache.
+To invalidate the cache for all known projects at once (useful before
+using `projectile-find-file-in-known-projects`), run `M-x
+projectile-invalidate-cache-all`.
 
 === I upgraded Projectile using `package.el` and nothing changed
 

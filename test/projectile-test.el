@@ -656,6 +656,67 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (spy-on 'file-newer-than-file-p :and-return-value t)
     (expect (projectile-maybe-invalidate-cache nil) :to-be-truthy)))
 
+(describe "projectile-invalidate-cache-all"
+  (it "should clear projectile-projects-cache"
+    (puthash "/project1/" '("file1.el") projectile-projects-cache)
+    (puthash "/project2/" '("file2.el") projectile-projects-cache)
+    (projectile-invalidate-cache-all)
+    (expect (hash-table-count projectile-projects-cache) :to-equal 0))
+  (it "should clear projectile-projects-cache-time"
+    (puthash "/project1/" 1234567890 projectile-projects-cache-time)
+    (projectile-invalidate-cache-all)
+    (expect (hash-table-count projectile-projects-cache-time) :to-equal 0))
+  (it "should clear projectile-project-root-cache"
+    (puthash "buffer1" "/project1/" projectile-project-root-cache)
+    (projectile-invalidate-cache-all)
+    (expect (hash-table-count projectile-project-root-cache) :to-equal 0))
+  (it "should clear projectile-project-type-cache"
+    (puthash "/project1/" 'generic projectile-project-type-cache)
+    (projectile-invalidate-cache-all)
+    (expect (hash-table-count projectile-project-type-cache) :to-equal 0))
+  (it "should call projectile-serialize for persistent cache"
+    (spy-on 'projectile-serialize)
+    (let* ((dir1 (make-temp-file "projectile-test1" t))
+           (dir2 (make-temp-file "projectile-test2" t))
+           (projectile-enable-caching 'persistent)
+           (projectile-known-projects (list (file-name-as-directory dir1)
+                                            (file-name-as-directory dir2))))
+      (unwind-protect
+          (progn
+            (projectile-invalidate-cache-all)
+            (expect 'projectile-serialize :to-have-been-called-times 2))
+        (delete-directory dir1 t)
+        (delete-directory dir2 t))))
+  (it "should work when no projects are cached"
+    (projectile-invalidate-cache-all)
+    (expect (hash-table-count projectile-projects-cache) :to-equal 0))
+  (it "should call recentf-cleanup when available"
+    (spy-on 'recentf-cleanup)
+    (projectile-invalidate-cache-all)
+    (expect 'recentf-cleanup :to-have-been-called))
+  (it "should skip non-existent projects for persistent cache"
+    (spy-on 'projectile-serialize)
+    (let* ((dir1 (make-temp-file "projectile-test1" t))
+           (projectile-enable-caching 'persistent)
+           (projectile-known-projects (list (file-name-as-directory dir1)
+                                            "/definitely-nonexistent-dir/")))
+      (unwind-protect
+          (progn
+            (projectile-invalidate-cache-all)
+            (expect 'projectile-serialize :to-have-been-called-times 1))
+        (delete-directory dir1 t))))
+  (it "should skip remote projects for persistent cache"
+    (spy-on 'projectile-serialize)
+    (let* ((dir1 (make-temp-file "projectile-test1" t))
+           (projectile-enable-caching 'persistent)
+           (projectile-known-projects (list (file-name-as-directory dir1)
+                                            "/ssh:host:/remote/project/")))
+      (unwind-protect
+          (progn
+            (projectile-invalidate-cache-all)
+            (expect 'projectile-serialize :to-have-been-called-times 1))
+        (delete-directory dir1 t)))))
+
 (describe "projectile-root-top-down"
   (it "identifies the root directory of a project by top-down search"
     (projectile-test-with-sandbox
