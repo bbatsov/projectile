@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 2.9.1
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "27.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -41,6 +41,7 @@
 (require 'ibuf-ext)
 (require 'compile)
 (require 'grep)
+(require 'fileloop)
 (eval-when-compile
   (require 'find-dired)
   (require 'subr-x))
@@ -55,8 +56,6 @@
 (defvar ag-ignore-list)
 (defvar ggtags-completion-table)
 (defvar tags-completion-table)
-(defvar tags-loop-scan)
-(defvar tags-loop-operate)
 (defvar eshell-buffer-name)
 (defvar explicit-shell-file-name)
 (defvar grep-files-aliases)
@@ -73,9 +72,8 @@
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
 (declare-function string-trim "subr-x")
-(declare-function fileloop-continue "fileloop")
-(declare-function fileloop-initialize-replace "fileloop")
 (declare-function tramp-archive-file-name-p "tramp-archive")
+(declare-function tramp-archive-file-name-archive "tramp-archive")
 (declare-function helm-grep-get-file-extensions "helm-grep")
 
 (declare-function ggtags-ensure-project "ext:ggtags")
@@ -957,9 +955,7 @@ Should be set via .dir-locals.el.")
   "Extract Projectile's package version from its package metadata."
   ;; Use `cond' below to avoid a compiler unused return value warning
   ;; when `package-get-version' returns nil. See #3181.
-  ;; FIXME: Inline the logic from package-get-version and adapt it
-  (cond ((fboundp 'package-get-version)
-         (package-get-version))))
+  (cond ((package-get-version))))
 
 ;;;###autoload
 (defun projectile-version (&optional show-version)
@@ -1126,10 +1122,7 @@ argument)."
 
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
-  (if (fboundp 'time-convert)
-      (time-convert nil 'integer)
-    (cl-destructuring-bind (high low _usec _psec) (current-time)
-      (+ (ash high 16) low))))
+  (time-convert nil 'integer))
 
 (defun projectile-cache-project (project files)
   "Cache PROJECTs FILES.
@@ -1390,7 +1383,7 @@ If DIR is not supplied it's set to the current directory by default."
   (let ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
-    (when (and (fboundp 'tramp-archive-file-name-archive)
+    (when (and (fboundp 'tramp-archive-file-name-p)
                (tramp-archive-file-name-p dir))
       (setq dir (file-name-directory (tramp-archive-file-name-archive dir))))
     ;; the cached value will be 'none in the case of no project root (this is to
@@ -1612,11 +1605,6 @@ sub-modules there)."
     ;; TODO: Add support for other VCS
     (_ nil)))
 
-(defun projectile-flatten (lst)
-  "Take a nested list LST and return its contents as a single, flat list."
-  (if (and (listp lst) (listp (cdr lst)))
-      (cl-mapcan 'projectile-flatten lst)
-    (list lst)))
 
 (defun projectile-get-all-sub-projects (project)
   "Get all sub-projects for a given project.
@@ -1627,7 +1615,7 @@ PROJECT is base directory to start search recursively."
      ((null submodules)
       nil)
      (t
-      (nconc submodules (projectile-flatten
+      (nconc submodules (flatten-tree
                          ;; recursively get sub-projects of each sub-project
                          (mapcar (lambda (s)
                                    (projectile-get-all-sub-projects s)) submodules)))))))
@@ -1662,7 +1650,7 @@ they are excluded from the results of this function."
 
 (defun projectile-get-sub-projects-files (project-root _vcs)
   "Get files from sub-projects for PROJECT-ROOT recursively."
-  (projectile-flatten
+  (flatten-tree
    (mapcar (lambda (sub-project)
              (let ((project-relative-path
                     (file-name-as-directory (file-relative-name
@@ -1949,7 +1937,7 @@ Elements containing wildcards are expanded and spliced into the
 resulting paths.  The returned PATHS are absolute, based on the
 projectile project root."
   (let ((default-directory (projectile-project-root)))
-    (projectile-flatten (mapcar
+    (flatten-tree (mapcar
                          (lambda (pattern)
                            (or (file-expand-wildcards pattern t)
                                (projectile-expand-root pattern)))
@@ -2110,7 +2098,7 @@ Unignored files/directories are not included."
   (projectile-normalise-paths (nth 2 (projectile-parse-dirconfig-file))))
 
 (defun projectile-files-to-ensure ()
-  (projectile-flatten (mapcar (lambda (pat) (file-expand-wildcards pat t))
+  (flatten-tree (mapcar (lambda (pat) (file-expand-wildcards pat t))
                               (projectile-patterns-to-ensure))))
 
 (defun projectile-patterns-to-ensure ()
@@ -2434,7 +2422,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                         (string-match filename project-file))
                       project-file-list))
          (candidates
-          (projectile-flatten (mapcar
+          (flatten-tree (mapcar
                                (lambda (file)
                                  (cl-remove-if-not
                                   (lambda (project-file)
@@ -3265,8 +3253,7 @@ it acts on the current project."
   (when (file-exists-p filename)
     (with-temp-buffer
       (insert-file-contents filename)
-      (when (functionp 'json-parse-buffer)
-        (json-parse-buffer :array-type 'list)))))
+      (json-parse-buffer :array-type 'list))))
 
 (defconst projectile--cmake-command-preset-array-id-alist
   '((:configure-command . "configurePresets")
@@ -3299,7 +3286,7 @@ it acts on the current project."
 
 (defun projectile--cmake-all-command-presets (command-type)
   "Get CMake user and system COMMAND-TYPE presets."
-  (projectile-flatten
+  (flatten-tree
    (mapcar (lambda (filename) (projectile--cmake-command-presets filename command-type))
            '("CMakeUserPresets.json" "CMakePresets.json"))))
 
@@ -4995,27 +4982,8 @@ on which to run the replacement."
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
          (files (projectile-files-with-string old-text directory file-ext)))
-    (require 'fileloop nil t)
-    (if (fboundp #'fileloop-continue)
-        ;; Emacs 27+
-        (progn (fileloop-initialize-replace (regexp-quote old-text) new-text files 'default)
-               (fileloop-continue))
-      ;; Emacs 25 and 26
-      ;;
-      ;; Adapted from `tags-query-replace' for literal strings (not regexp)
-      (with-no-warnings
-        (setq tags-loop-scan
-              `(let ,(unless (equal old-text (downcase old-text))
-                       '((case-fold-search nil)))
-                 (if (search-forward ',old-text nil t)
-                     ;; When we find a match, move back to
-                     ;; the beginning of it so
-                     ;; perform-replace will see it.
-                     (goto-char (match-beginning 0)))))
-        (setq tags-loop-operate
-              `(perform-replace ',old-text ',new-text t nil nil
-                                nil multi-query-replace-map))
-        (tags-loop-continue (or (cons 'list files) t))))))
+    (fileloop-initialize-replace (regexp-quote old-text) new-text files 'default)
+    (fileloop-continue)))
 
 ;;;###autoload
 (defun projectile-replace-regexp (&optional arg)
@@ -5045,8 +5013,8 @@ to run the replacement."
            (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
            (mapcar #'(lambda (file) (expand-file-name file directory))
                    (projectile-dir-files directory)))))
-    ;; FIXME: Probably would fail on Emacs 27+, fourth argument is gone.
-    (with-no-warnings (tags-query-replace old-text new-text nil (cons 'list files)))))
+    (fileloop-initialize-replace old-text new-text files 'default)
+    (fileloop-continue)))
 
 ;;;###autoload
 (defun projectile-kill-buffers ()
@@ -5933,7 +5901,7 @@ Return a list of projects removed."
 Also set `projectile-known-projects'."
   (let ((data (projectile-unserialize projectile-known-projects-file)))
     (setq projectile-known-projects
-          (if (and (listp data) (null (cdr (last data)))) data nil))
+          (if (proper-list-p data) data nil))
     (unless (equal data projectile-known-projects)
       (message "Warning: Projectile known projects file was corrupted, ignoring saved data"))
     (setq projectile-known-projects-on-file
@@ -5957,7 +5925,7 @@ overwriting each other's changes."
          (known-on-last-sync projectile-known-projects-on-file)
          (known-on-file
           (let ((data (projectile-unserialize projectile-known-projects-file)))
-            (if (and (listp data) (null (cdr (last data)))) data nil)))
+            (if (proper-list-p data) data nil)))
          (removed-after-sync (projectile-difference known-on-last-sync known-now))
          (removed-in-other-process
           (projectile-difference known-on-last-sync known-on-file))

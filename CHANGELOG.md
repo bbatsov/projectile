@@ -34,6 +34,7 @@
 
 ### Changes
 
+* **[Breaking]** Bump minimum required Emacs version from 26.1 to 27.1. This removes ~30 lines of compatibility code (fileloop fallback, `time-convert` fallback, `projectile-flatten` shim) and fixes the `tags-query-replace` FIXME in `projectile-replace-regexp`.
 * [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.
 * [#1957](https://github.com/bbatsov/projectile/pull/1957): Add `:caller` information to calls to `ivy-read` (used by packages like `ivy-rich`).
 * [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe.
