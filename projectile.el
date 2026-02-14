@@ -4816,15 +4816,6 @@ Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--eat arg 'other-window))
 
-(defun projectile-files-in-project-directory (directory)
-  "Return a list of files in DIRECTORY."
-  (let* ((project (projectile-acquire-root))
-         (dir (file-relative-name (expand-file-name directory)
-                                  project)))
-    (seq-filter
-     (lambda (f) (string-prefix-p dir f))
-     (projectile-project-files project))))
-
 (defun projectile-files-from-cmd (cmd directory)
   "Use a grep-like CMD to search for files within DIRECTORY.
 
