@@ -1312,6 +1312,27 @@ which we're looking."
              (setq file nil))))
     (and root (expand-file-name (file-name-as-directory root)))))
 
+(defun projectile-locate-dominating-file-top-down (file name)
+  "Look up the directory hierarchy from FILE for a directory containing NAME.
+Unlike `projectile-locate-dominating-file' which returns the first (bottommost)
+match, this returns the topmost match.  Return nil if not found.
+Instead of a string, NAME can also be a predicate taking one argument
+\(a directory) and returning a non-nil value if that directory is the one for
+which we're looking."
+  (setq file (abbreviate-file-name file))
+  (let ((root nil)
+        try)
+    (while (not (or (null file)
+                    (string-match locate-dominating-stop-dir-regexp file)))
+      (setq try (if (stringp name)
+                    (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
+                  (funcall name file)))
+      (when try (setq root file))
+      (if (equal file (setq file (file-name-directory
+                                   (directory-file-name file))))
+          (setq file nil)))
+    (and root (expand-file-name (file-name-as-directory root)))))
+
 (defvar-local projectile-project-root nil
   "Defines a custom Projectile project root.
 This is intended to be used as a file local variable.")
@@ -1324,7 +1345,7 @@ This is intended to be used as a file local variable.")
   "Identify a project root in DIR by top-down search for files in LIST.
 If LIST is nil, use `projectile-project-root-files' instead.
 Return the first (topmost) matched directory or nil if not found."
-  (projectile-locate-dominating-file
+  (projectile-locate-dominating-file-top-down
    dir
    (lambda (dir)
      (cl-find-if (lambda (f)

@@ -10,6 +10,7 @@
 
 * [#1748](https://github.com/bbatsov/projectile/issues/1748): Fix `projectile-replace` falling back to the legacy Emacs 25/26 code path on Emacs 27+ because `fileloop` was not loaded.
 * [#1741](https://github.com/bbatsov/projectile/issues/1741): Fix `projectile-replace` treating the search string as a regexp instead of a literal string on Emacs 27+.
+* [#1729](https://github.com/bbatsov/projectile/issues/1729): Fix `projectile-root-top-down` to actually return the topmost matching project root instead of the bottommost.
 * [#1596](https://github.com/bbatsov/projectile/issues/1596): `projectile-find-dir` now includes intermediate directories that contain only subdirectories (e.g. `src/` when it only has `src/ComponentA/`, `src/ComponentB/`).
 * [#1551](https://github.com/bbatsov/projectile/issues/1551): Don't add nonexistent files to the project cache (e.g. when visiting a new file with `find-file` and then abandoning the buffer).
 * [#1554](https://github.com/bbatsov/projectile/issues/1554): Fix `projectile-files-with-string` failing on special characters when using `grep` or `git-grep` by adding the `-F` (fixed-string) flag.

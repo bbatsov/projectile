@@ -682,6 +682,8 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
        "projectA/src/framework/lib/"
        "projectA/src/framework.conf"
        "projectA/src/html/index.html")
+      ;; .git is a directory, so it's not matched by top-down (file markers only);
+      ;; framework.conf at projectA/src/ is the only match
       (expect (projectile-root-top-down "projectA/src/framework/lib" '("framework.conf" ".git"))
               :to-equal
               (expand-file-name "projectA/src/"))
@@ -691,6 +693,15 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (expect (projectile-root-top-down "projectA/src/html/" '("index.html"))
               :to-equal
               (expand-file-name "projectA/src/html/")))))
+  (it "returns the topmost match when file markers exist at multiple levels"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/Makefile"
+       "project/subdir/Makefile"
+       "project/subdir/file.txt")
+      (expect (projectile-root-top-down "project/subdir" '("Makefile"))
+              :to-equal
+              (expand-file-name "project/")))))
   (it "does not match directories for file-type markers"
     (projectile-test-with-sandbox
      (projectile-test-with-files
