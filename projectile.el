@@ -4465,8 +4465,8 @@ With REGEXP given, don't query the user for a regexp."
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
         (let ((grep-find-ignored-files
-               (seq-union (projectile--globally-ignored-file-suffixes-glob)
-                         grep-find-ignored-files))
+               (seq-uniq (append (projectile--globally-ignored-file-suffixes-glob)
+                                 grep-find-ignored-files)))
               (projectile-grep-find-ignored-paths
                (append (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
                                (projectile-ignored-directories))
