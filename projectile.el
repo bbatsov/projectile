@@ -1471,7 +1471,7 @@ If PROJECT is not specified acts on the current project."
 (defun projectile-get-project-directories (project-dir)
   "Get the list of PROJECT-DIR directories that are of interest to the user."
   (mapcar (lambda (subdir) (concat project-dir subdir))
-          (or (nth 0 (projectile-parse-dirconfig-file)) '(""))))
+          (or (car (projectile-parse-dirconfig-file)) '(""))))
 
 (defun projectile--directory-p (directory)
   "Checks if DIRECTORY is a string designating a valid directory."
@@ -2042,11 +2042,11 @@ Unignored directories are not included."
 
 (defun projectile-paths-to-ignore ()
   "Return a list of ignored project paths."
-  (projectile-normalise-paths (nth 1 (projectile-parse-dirconfig-file))))
+  (projectile-normalise-paths (cadr (projectile-parse-dirconfig-file))))
 
 (defun projectile-patterns-to-ignore ()
   "Return a list of relative file patterns."
-  (projectile-normalise-patterns (nth 1 (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (cadr (projectile-parse-dirconfig-file))))
 
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories.
@@ -2090,7 +2090,7 @@ Unignored files/directories are not included."
 
 (defun projectile-paths-to-ensure ()
   "Return a list of unignored project paths."
-  (projectile-normalise-paths (nth 2 (projectile-parse-dirconfig-file))))
+  (projectile-normalise-paths (caddr (projectile-parse-dirconfig-file))))
 
 (defun projectile-files-to-ensure ()
   (flatten-tree (mapcar (lambda (pat) (file-expand-wildcards pat t))
@@ -2098,7 +2098,7 @@ Unignored files/directories are not included."
 
 (defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
-  (projectile-normalise-patterns (nth 2 (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (caddr (projectile-parse-dirconfig-file))))
 
 (defun projectile-filtering-patterns ()
   (cons (projectile-patterns-to-ignore)
@@ -2423,7 +2423,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                   (lambda (project-file)
                                     (string-match file
                                                   (concat (file-name-base project-file)
-                                                          (unless (equal (file-name-extension project-file) nil)
+                                                          (when (file-name-extension project-file)
                                                             (concat "\." (file-name-extension project-file))))))
                                   candidates))
                                file-list)))
@@ -2473,7 +2473,7 @@ Subroutine for `projectile-find-file-dwim' and
          (files (projectile-select-files project-files invalidate-cache))
          (file (cond ((= (length files) 1)
                       (car files))
-                     ((> (length files) 1)
+                     ((length> files 1)
                       (projectile-completing-read "Switch to: " files
                                                   :caller 'projectile-read-file))
                      (t
@@ -5974,7 +5974,7 @@ See `def-projectile-commander-method' for defining new methods."
   (let* ((choices (mapcar #'car projectile-commander-methods))
          (prompt (concat "Select Projectile command [" choices "]: "))
          (ch (read-char-choice prompt choices))
-         (fn (nth 2 (assq ch projectile-commander-methods))))
+         (fn (caddr (assq ch projectile-commander-methods))))
     (funcall fn)))
 
 (defmacro def-projectile-commander-method (key description &rest body)
@@ -6431,7 +6431,7 @@ The function simply kills the last buffer, as it's normally called
 when opening new files."
   (when projectile-max-file-buffer-count
     (let ((project-buffers (projectile-project-buffer-files)))
-      (when (> (length project-buffers) projectile-max-file-buffer-count)
+      (when (length> project-buffers projectile-max-file-buffer-count)
         (kill-buffer (car (last project-buffers)))))))
 
 ;;;; project.el integration
