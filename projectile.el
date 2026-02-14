@@ -73,6 +73,7 @@
 (declare-function eshell-search-path "esh-ext")
 (declare-function vc-dir "vc-dir")
 (declare-function vc-dir-busy "vc-dir")
+(declare-function vc-git-grep "vc-git")
 (declare-function tramp-archive-file-name-p "tramp-archive")
 (declare-function tramp-archive-file-name-archive "tramp-archive")
 (declare-function helm-grep-get-file-extensions "helm-grep")
