@@ -2105,8 +2105,8 @@ Unignored files/directories are not included."
 
 (defun projectile-project-unignored ()
   "Return list of project ignored files/directories."
-  (delete-dups (append (projectile-expand-paths (projectile-paths-to-ensure))
-                       (projectile-expand-paths (projectile-files-to-ensure)))))
+  (seq-uniq (append (projectile-expand-paths (projectile-paths-to-ensure))
+                    (projectile-expand-paths (projectile-files-to-ensure)))))
 
 
 (defun projectile-dirconfig-file ()
@@ -2282,7 +2282,7 @@ project-root for every file."
 
 (defun projectile-project-dirs (project)
   "Return a list of dirs for PROJECT."
-  (delete-dups
+  (seq-uniq
    (delq nil
          (mapcan #'projectile--directory-ancestors
                     (projectile-project-files project)))))
@@ -2790,8 +2790,8 @@ PROJECT-ROOT is the project root."
              (values (if (or (stringp kind-value) (functionp kind-value))
                          (list kind-value)
                        kind-value))
-             (paths (delete-dups (seq-filter 'stringp values)))
-             (predicates (delete-dups (seq-filter 'functionp values))))
+             (paths (seq-uniq (seq-filter 'stringp values)))
+             (predicates (seq-uniq (seq-filter 'functionp values))))
         (append
          ;; Make sure that :paths exists even with nil if there is no predicates
          (when (or paths (null predicates))
@@ -2811,10 +2811,10 @@ PROJECT-ROOT is the project root."
   "Return a list of files matching to PLIST from current project files."
   (let* ((predicate (plist-get plist :predicate))
          (paths (plist-get plist :paths)))
-    (delete-dups (append
-                  paths
-                  (when predicate
-                    (seq-filter predicate (projectile-current-project-files)))))))
+    (seq-uniq (append
+               paths
+               (when predicate
+                 (seq-filter predicate (projectile-current-project-files)))))))
 
 (defun projectile--related-files-kinds(file)
   "Return a list of keywords meaning available related kinds for FILE."
@@ -4505,7 +4505,7 @@ regular expression."
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
             (ag-ignore-list (delq nil
-                                  (delete-dups
+                                  (seq-uniq
                                    (append
                                     ag-ignore-list
                                     (projectile-ignored-files-rel)
@@ -5628,7 +5628,7 @@ directories."
 (defun projectile-open-projects ()
   "Return a list of all open projects.
 An open project is a project with any open buffers."
-  (delete-dups
+  (seq-uniq
    (delq nil
          (mapcar (lambda (buffer)
                    (with-current-buffer buffer
@@ -5875,7 +5875,7 @@ Return a list of projects removed."
   (interactive (list (read-directory-name "Add to known projects: ")))
   (unless (projectile-ignored-project-p project-root)
     (push (file-name-as-directory (abbreviate-file-name project-root)) projectile-known-projects)
-    (delete-dups projectile-known-projects)
+    (setq projectile-known-projects (seq-uniq projectile-known-projects))
     (projectile-merge-known-projects)))
 
 (defun projectile-load-known-projects ()
@@ -5911,7 +5911,7 @@ overwriting each other's changes."
          (removed-after-sync (seq-difference known-on-last-sync known-now))
          (removed-in-other-process
           (seq-difference known-on-last-sync known-on-file))
-         (result (delete-dups
+         (result (seq-uniq
                   (seq-difference
                    (append known-now known-on-file)
                    (append removed-after-sync removed-in-other-process)))))
