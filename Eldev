@@ -1,1 +1,2 @@
+(eldev-use-package-archive 'gnu-elpa)
 (eldev-use-package-archive 'melpa)
