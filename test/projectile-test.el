@@ -1064,7 +1064,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
             (projectile-grep "hi")))
         (expect 'compilation-start :to-have-been-called-with
                 (concat "-type d \\( -path \\*/IG_DIR \\) -prune -o "
-                        "\\! -type d \\( -name IG_FILE -o -name \\*IG_SUF \\) -prune -o "
+                        "\\! -type d \\( -name \\*IG_SUF -o -name IG_FILE \\) -prune -o "
                         "\\( -path ./GLOB_IG_DIR -o -path ./GLOB_IG_FILE \\) -prune -o ")
                 'grep-mode))))
     (it "excludes project ignores"
