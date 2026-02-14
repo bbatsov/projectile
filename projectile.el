@@ -1919,10 +1919,10 @@ With a prefix argument, show NLINES of context."
 
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
-  (delq nil (mapcar (lambda (pat) (and (string-prefix-p "/" pat)
-                                       ;; remove the leading /
-                                       (substring pat 1)))
-                    patterns)))
+  (seq-keep (lambda (pat) (and (string-prefix-p "/" pat)
+                               ;; remove the leading /
+                               (substring pat 1)))
+             patterns))
 
 (defun projectile-expand-paths (paths)
   "Expand the elements of PATHS.
@@ -4348,17 +4348,16 @@ which it shares its arglist."
                  " -path "
                  (mapconcat
                   #'identity
-                  (delq nil (mapcar
-                             #'(lambda (ignore)
-                                 (cond ((stringp ignore)
-                                        (shell-quote-argument
-                                         (concat "*/" ignore)))
-                                       ((consp ignore)
-                                        (and (funcall (car ignore) dir)
-                                             (shell-quote-argument
-                                              (concat "*/"
-                                                      (cdr ignore)))))))
-                             grep-find-ignored-directories))
+                  (seq-keep (lambda (ignore)
+                              (cond ((stringp ignore)
+                                     (shell-quote-argument
+                                      (concat "*/" ignore)))
+                                    ((consp ignore)
+                                     (and (funcall (car ignore) dir)
+                                          (shell-quote-argument
+                                           (concat "*/"
+                                                   (cdr ignore)))))))
+                            grep-find-ignored-directories)
                   " -o -path ")
                  " "
                  (shell-quote-argument ")")
@@ -5629,13 +5628,12 @@ directories."
   "Return a list of all open projects.
 An open project is a project with any open buffers."
   (seq-uniq
-   (delq nil
-         (mapcar (lambda (buffer)
-                   (with-current-buffer buffer
-                     (when-let* ((project-root (projectile-project-root)))
-                       (when (projectile-project-buffer-p buffer project-root)
-                         (abbreviate-file-name project-root)))))
-                 (buffer-list)))))
+   (seq-keep (lambda (buffer)
+               (with-current-buffer buffer
+                 (when-let* ((project-root (projectile-project-root)))
+                   (when (projectile-project-buffer-p buffer project-root)
+                     (abbreviate-file-name project-root)))))
+             (buffer-list))))
 
 (defun projectile--remove-current-project (projects)
   "Remove the current project (if any) from the list of PROJECTS."
