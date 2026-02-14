@@ -6,7 +6,7 @@
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
 ;; Version: 2.9.1
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "27.1") (compat "30"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,6 +36,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'compat)
 (require 'thingatpt)
 (require 'ibuffer)
 (require 'ibuf-ext)
@@ -3983,8 +3984,7 @@ Replace STRING in DIR-PATH with REPLACEMENT."
   (let* ((project-root (projectile-project-root))
          (relative-dir (file-name-directory (file-relative-name dir-path project-root))))
     (projectile-expand-root
-     ;; TODO: Use string-replace once we target emacs 28
-     (replace-regexp-in-string string replacement relative-dir t))))
+     (string-replace string replacement relative-dir))))
 
 (defun projectile--create-directories-for (path)
   "Create directories necessary for PATH."
@@ -4572,8 +4572,7 @@ installed to work."
 
 A thin wrapper around `xref-references-in-directory'."
   (interactive)
-  (when (and (fboundp 'xref-references-in-directory)
-             (fboundp 'xref--show-xrefs))
+  (when (fboundp 'xref--show-xrefs)
     (let ((project-root (projectile-acquire-root))
           (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point)))))
       (xref--show-xrefs (xref-references-in-directory symbol project-root) nil))))
@@ -4632,13 +4631,9 @@ A thin wrapper around `xref-references-in-directory'."
      (cond
       ((fboundp 'ggtags-find-tag-dwim)
        'ggtags-find-tag-dwim)
-      ((fboundp 'xref-find-definitions)
-       'xref-find-definitions)
-      ((fboundp 'etags-select-find-tag)
-       'etags-select-find-tag)))
+      (t 'xref-find-definitions)))
     ((eq projectile-tags-backend 'xref)
-     (when (fboundp 'xref-find-definitions)
-       'xref-find-definitions))
+     'xref-find-definitions)
     ((eq projectile-tags-backend 'ggtags)
      (when (fboundp 'ggtags-find-tag-dwim)
        'ggtags-find-tag-dwim))
