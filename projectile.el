@@ -4513,7 +4513,7 @@ With REGEXP given, don't query the user for a regexp."
               ;; scoped to the current root to allow multiple concurrent grep
               ;; operations, one per root
               (with-current-buffer "*grep*"
-                (rename-buffer (concat "*grep <" root-dir ">*"))))))))
+                (rename-buffer (concat "*grep <" root-dir ">*") t)))))))
     (run-hooks 'projectile-grep-finished-hook)))
 
 ;;;###autoload
@@ -5036,12 +5036,13 @@ to run the replacement."
                      (format "Replace regexp %s with: " old-text))))
          (files
           ;; We have to reject directories as a workaround to work with git submodules.
+          ;; We also reject nonexistent files to avoid errors during replacement.
           ;;
           ;; We can't narrow the list of files with
           ;; `projectile-files-with-string' because those regexp tools
           ;; don't support Emacs regular expressions.
           (cl-remove-if
-           #'file-directory-p
+           (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
            (mapcar #'(lambda (file) (expand-file-name file directory))
                    (projectile-dir-files directory)))))
     ;; FIXME: Probably would fail on Emacs 27+, fourth argument is gone.
@@ -5930,11 +5931,14 @@ Return a list of projects removed."
 (defun projectile-load-known-projects ()
   "Load saved projects from `projectile-known-projects-file'.
 Also set `projectile-known-projects'."
-  (setq projectile-known-projects
-        (projectile-unserialize projectile-known-projects-file))
-  (setq projectile-known-projects-on-file
-        (and (sequencep projectile-known-projects)
-             (copy-sequence projectile-known-projects))))
+  (let ((data (projectile-unserialize projectile-known-projects-file)))
+    (setq projectile-known-projects
+          (if (and (listp data) (null (cdr (last data)))) data nil))
+    (unless (equal data projectile-known-projects)
+      (message "Warning: Projectile known projects file was corrupted, ignoring saved data"))
+    (setq projectile-known-projects-on-file
+          (and (sequencep projectile-known-projects)
+               (copy-sequence projectile-known-projects)))))
 
 (defun projectile-save-known-projects ()
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
@@ -5952,7 +5956,8 @@ overwriting each other's changes."
   (let* ((known-now projectile-known-projects)
          (known-on-last-sync projectile-known-projects-on-file)
          (known-on-file
-          (projectile-unserialize projectile-known-projects-file))
+          (let ((data (projectile-unserialize projectile-known-projects-file)))
+            (if (and (listp data) (null (cdr (last data)))) data nil)))
          (removed-after-sync (projectile-difference known-on-last-sync known-now))
          (removed-in-other-process
           (projectile-difference known-on-last-sync known-on-file))
