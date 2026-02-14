@@ -4960,9 +4960,10 @@ on which to run the replacement."
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
          (files (projectile-files-with-string old-text directory file-ext)))
+    (require 'fileloop nil t)
     (if (fboundp #'fileloop-continue)
         ;; Emacs 27+
-        (progn (fileloop-initialize-replace old-text new-text files 'default)
+        (progn (fileloop-initialize-replace (regexp-quote old-text) new-text files 'default)
                (fileloop-continue))
       ;; Emacs 25 and 26
       ;;
