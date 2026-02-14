@@ -10,6 +10,8 @@
 
 * [#1748](https://github.com/bbatsov/projectile/issues/1748): Fix `projectile-replace` falling back to the legacy Emacs 25/26 code path on Emacs 27+ because `fileloop` was not loaded.
 * [#1741](https://github.com/bbatsov/projectile/issues/1741): Fix `projectile-replace` treating the search string as a regexp instead of a literal string on Emacs 27+.
+* [#1551](https://github.com/bbatsov/projectile/issues/1551): Don't add nonexistent files to the project cache (e.g. when visiting a new file with `find-file` and then abandoning the buffer).
+* [#1554](https://github.com/bbatsov/projectile/issues/1554): Fix `projectile-files-with-string` failing on special characters when using `grep` or `git-grep` by adding the `-F` (fixed-string) flag.
 * [#1897](https://github.com/bbatsov/projectile/issues/1897): Filter deleted-but-unstaged files from `git ls-files` output in alien/hybrid indexing (when `fd` is not used).
 * [#1873](https://github.com/bbatsov/projectile/issues/1873): Skip unreadable directories during native indexing instead of aborting with a permission error.
 * [#1961](https://github.com/bbatsov/projectile/issues/1961): Prevent directories from matching file-type project root markers (e.g., a `workspace` directory no longer matches the `WORKSPACE` Bazel marker on case-insensitive filesystems).

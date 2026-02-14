@@ -1187,7 +1187,9 @@ The cache is created both in memory and on the hard drive."
   "Add the currently visited file to the cache."
   (interactive)
   (let ((current-project (projectile-project-root)))
-    (when (and (buffer-file-name) (gethash (projectile-project-root) projectile-projects-cache))
+    (when (and (buffer-file-name)
+               (file-exists-p (buffer-file-name))
+               (gethash (projectile-project-root) projectile-projects-cache))
       (let* ((abs-current-file (file-truename (buffer-file-name)))
              (current-file (file-relative-name abs-current-file current-project)))
         (unless (or (projectile-file-cached-p current-file current-project)
@@ -4842,12 +4844,13 @@ Returns a list of expanded filenames."
   '((rg . "rg -lF --no-heading --color never ")
     (ag . "ag --literal --nocolor --noheading -l ")
     (ack . "ack --literal --nocolor -l ")
-    (git . "git grep -HlI ")
+    (git . "git grep -HlIF ")
     ;; -r: recursive
     ;; -H: show filename for each match
     ;; -l: show only file names with matches
     ;; -I: no binary files
-    (grep . "grep -rHlI %s .")))
+    ;; -F: interpret pattern as fixed string, not regexp
+    (grep . "grep -rHlIF %s .")))
 
 (defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."
