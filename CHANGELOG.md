@@ -5,6 +5,7 @@
 ### New features
 
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
+* [#1694](https://github.com/bbatsov/projectile/issues/1694): Add `projectile-invalidate-cache-all` command to clear the file cache for all known projects at once.
 
 ### Bugs fixed
 

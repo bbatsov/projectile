@@ -1124,6 +1124,31 @@ argument)."
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
+;;;###autoload
+(defun projectile-invalidate-cache-all ()
+  "Remove all known projects' files from `projectile-projects-cache'.
+
+Also clears `projectile-projects-cache-time',
+`projectile-project-type-cache', and `projectile-project-root-cache'.
+
+When persistent caching is enabled, on-disk cache files are also
+cleared for all known projects (excluding remote TRAMP paths)."
+  (interactive)
+  (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  (let ((count (hash-table-count projectile-projects-cache)))
+    (setq projectile-projects-cache (make-hash-table :test 'equal))
+    (setq projectile-projects-cache-time (make-hash-table :test 'equal))
+    (setq projectile-project-type-cache (make-hash-table :test 'equal))
+    (when (projectile-persistent-cache-p)
+      (dolist (project projectile-known-projects)
+        (when (and (not (file-remote-p project))
+                   (file-exists-p project))
+          (projectile-serialize nil (projectile-project-cache-file project)))))
+    (when (fboundp 'recentf-cleanup)
+      (recentf-cleanup))
+    (when projectile-verbose
+      (message "Invalidated Projectile cache for %d projects." count))))
+
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
   (if (fboundp 'time-convert)
@@ -6374,6 +6399,7 @@ thing shown in the mode line otherwise."
          "--"
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
+         ["Invalidate all caches" projectile-invalidate-cache-all]
          ["Regenerate [e|g]tags" projectile-regenerate-tags]
          "--"
          ["Toggle project wide read-only" projectile-toggle-project-read-only]
