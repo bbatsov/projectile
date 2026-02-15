@@ -5619,16 +5619,25 @@ We enhance its functionality by appending the current project's directories
 to its search path.  This way when filenames in compilation buffers can't be
 found by compilation's normal logic they are searched for in project
 directories."
-  ; If the file already exists, don't bother running the extra logic as the project directories might be massive (i.e. Unreal-sized).
+  ;; If the file already exists, don't bother running the extra logic as the
+  ;; project directories might be massive (i.e. Unreal-sized).
   (if (file-exists-p filename)
       (apply orig-fun `(,marker ,filename ,directory ,@formats))
 
     (let* ((root (projectile-project-root))
            (compilation-search-path
             (if (projectile-project-p)
-                (append compilation-search-path (list root)
-                        (mapcar (lambda (f) (expand-file-name f root))
-                                (projectile-current-project-dirs)))
+                (let ((dirs (append compilation-search-path (list root)
+                                    (mapcar (lambda (f) (expand-file-name f root))
+                                            (projectile-current-project-dirs)))))
+                  ;; If the file can be found relative to the project root,
+                  ;; add its parent directory to the search path.  This
+                  ;; handles directories that contain only subdirectories
+                  ;; and no files directly.
+                  (let ((candidate (expand-file-name filename root)))
+                    (when (file-exists-p candidate)
+                      (push (file-name-directory candidate) dirs)))
+                  dirs)
               compilation-search-path)))
       (apply orig-fun `(,marker ,filename ,directory ,@formats)))))
 
