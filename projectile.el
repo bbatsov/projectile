@@ -5886,6 +5886,15 @@ Return a list of projects removed."
     (setq projectile-known-projects (seq-uniq projectile-known-projects))
     (projectile-merge-known-projects)))
 
+;;;###autoload
+(defun projectile-add-and-switch-project (project-root)
+  "Add PROJECT-ROOT to the list of known projects and switch to it.
+This combines `projectile-add-known-project' and
+`projectile-switch-project-by-name' into a single command."
+  (interactive (list (read-directory-name "Add and switch to project: ")))
+  (projectile-add-known-project project-root)
+  (projectile-switch-project-by-name (file-name-as-directory project-root)))
+
 (defun projectile-load-known-projects ()
   "Load saved projects from `projectile-known-projects-file'.
 Also set `projectile-known-projects'."
@@ -6365,6 +6374,7 @@ Magit that don't trigger `find-file-hook'."
          ["Next buffer" projectile-next-project-buffer])
         ("Projects"
          ["Add known project" projectile-add-known-project]
+         ["Add and switch to project" projectile-add-and-switch-project]
          "--"
          ["Switch to project" projectile-switch-project]
          ["Switch to open project" projectile-switch-open-project]
