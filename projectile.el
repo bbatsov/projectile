@@ -2626,6 +2626,21 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (projectile--find-file invalidate-cache #'find-file-other-frame))
 
 ;;;###autoload
+(defun projectile-find-file-all ()
+  "Jump to any file in the project, ignoring VCS and projectile ignore rules.
+This lists all files under the project root using a generic file listing
+command (fd or find), bypassing `.gitignore', `.projectile', and other
+ignore mechanisms."
+  (interactive)
+  (let* ((project-root (projectile-acquire-root))
+         (all-files (projectile-files-via-ext-command project-root projectile-generic-command))
+         (file (projectile-completing-read "Find file (all): " all-files
+                                           :caller 'projectile-read-file)))
+    (when file
+      (find-file (expand-file-name file project-root))
+      (run-hooks 'projectile-find-file-hook))))
+
+;;;###autoload
 (defun projectile-toggle-project-read-only ()
   "Toggle project read only."
   (interactive)
@@ -6350,6 +6365,7 @@ Magit that don't trigger `find-file-hook'."
       '("Projectile" :visible projectile-show-menu
         ("Find..."
          ["Find file" projectile-find-file]
+         ["Find file (all, ignoring rules)" projectile-find-file-all]
          ["Find file in known projects" projectile-find-file-in-known-projects]
          ["Find test file" projectile-find-test-file]
          ["Find directory" projectile-find-dir]
