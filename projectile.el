@@ -1130,6 +1130,23 @@ argument)."
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
+;;;###autoload
+(defun projectile-invalidate-all-caches ()
+  "Remove the cache files for all known projects."
+  (interactive)
+  (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  (clrhash projectile-project-type-cache)
+  (let ((projects (hash-table-keys projectile-projects-cache)))
+    (clrhash projectile-projects-cache)
+    (clrhash projectile-projects-cache-time)
+    (when (projectile-persistent-cache-p)
+      (dolist (project-root projects)
+        (projectile-serialize nil (projectile-project-cache-file project-root)))))
+  (when projectile-verbose
+    (message "Invalidated Projectile cache for all projects."))
+  (when (fboundp 'recentf-cleanup)
+    (recentf-cleanup)))
+
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
   (time-convert nil 'integer))
