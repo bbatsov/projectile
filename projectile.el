@@ -3053,7 +3053,11 @@ files such as test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and
     returns a plist containing :test, :impl or :other as key and the
     relative path/paths or predicate as value.  PREDICATE accepts a
-    relative path as the input."
+    relative path as the input.
+
+All command strings (CONFIGURE, COMPILE, INSTALL, PACKAGE, TEST, RUN)
+support `%p' as a placeholder that will be replaced with the project name
+at execution time."
   (setq projectile-project-types
         (cons `(,project-type .
                               ,(projectile--build-project-plist
@@ -5420,6 +5424,8 @@ by setting SHOW-PROMPT.  The prompt will be prefixed with PROMPT-PREFIX.
 If SAVE-BUFFERS is non-nil save all projectile buffers before
 running the command.
 
+The placeholder `%p' in COMMAND is replaced with the project name.
+
 The command actually run is returned."
   (let* ((project-root (projectile-acquire-root))
          (default-directory (projectile-compilation-dir))
@@ -5452,6 +5458,9 @@ The command actually run is returned."
       (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
     (unless (file-directory-p default-directory)
       (mkdir default-directory))
+    ;; Substitute placeholders: %p -> project name
+    (when (string-match-p "%p" command)
+      (setq command (string-replace "%p" (projectile-project-name project-root) command)))
     (projectile-run-compilation command use-comint-mode)
     command))
 
