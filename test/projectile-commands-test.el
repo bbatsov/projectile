@@ -285,4 +285,25 @@
     (projectile-find-implementation-or-test-other-window)
     (expect 'find-file-other-window :to-have-been-called-with "/proj/x.el")))
 
+(describe "projectile--run-project-cmd %p substitution"
+  (it "replaces %p with the project name before running the command"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-compilation-dir :and-return-value temporary-file-directory)
+    (spy-on 'projectile-maybe-read-command :and-call-fake (lambda (_show cmd &rest _) cmd))
+    (spy-on 'projectile-project-name :and-return-value "myproj")
+    (spy-on 'projectile-run-compilation)
+    (projectile--run-project-cmd "make -C %p build" nil)
+    (expect 'projectile-run-compilation
+            :to-have-been-called-with "make -C myproj build" nil))
+
+  (it "leaves a command without %p untouched"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-compilation-dir :and-return-value temporary-file-directory)
+    (spy-on 'projectile-maybe-read-command :and-call-fake (lambda (_show cmd &rest _) cmd))
+    (spy-on 'projectile-project-name :and-return-value "myproj")
+    (spy-on 'projectile-run-compilation)
+    (projectile--run-project-cmd "make build" nil)
+    (expect 'projectile-run-compilation
+            :to-have-been-called-with "make build" nil)))
+
 ;;; projectile-commands-test.el ends here
