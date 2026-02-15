@@ -334,4 +334,15 @@
                    (file-attributes cache-file))
                   'integer)))))))
 
+(describe "projectile-add-and-switch-project"
+  (it "adds the project to the known projects and switches to it"
+    (spy-on 'projectile-add-known-project)
+    (spy-on 'projectile-switch-project-by-name)
+    (projectile-add-and-switch-project "/tmp/some-project")
+    (expect 'projectile-add-known-project
+            :to-have-been-called-with "/tmp/some-project")
+    ;; the switch is handed a directory-terminated root
+    (expect 'projectile-switch-project-by-name
+            :to-have-been-called-with "/tmp/some-project/")))
+
 ;;; projectile-known-projects-test.el ends here
