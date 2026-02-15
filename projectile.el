@@ -1013,7 +1013,17 @@ just return nil."
 The function operates on the current project by default, but you can also
 specify a project explicitly via the optional PROJECT param."
   (let* ((project (or project (projectile-acquire-root)))
-         (base-name (format "*%s %s*" process (projectile-project-name project))))
+         (name (projectile-project-name project))
+         (base-name (format "*%s %s*" process name))
+         ;; When a buffer with the same name already exists but belongs to a
+         ;; different project root, disambiguate using the project path.
+         (base-name (if (and (not make-new)
+                             (let ((buf (get-buffer base-name)))
+                               (and buf
+                                    (not (string= (with-current-buffer buf default-directory)
+                                                  project)))))
+                        (format "*%s %s*" process (abbreviate-file-name project))
+                      base-name)))
     (if make-new
         (generate-new-buffer-name base-name)
       base-name)))
