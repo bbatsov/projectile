@@ -764,6 +764,12 @@ Set to nil to disable listing submodules contents."
   :group 'projectile
   :type 'string)
 
+(defcustom projectile-hg-ignored-command "hg status -in0 ."
+  "Command used by projectile to get the ignored files in a hg project."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-jj-command "jj file list -T 'path ++ \"\\0\"' --no-pager ."
   "Command used by projectile to get the files in a Jujutsu project."
   :group 'projectile
@@ -804,6 +810,12 @@ Set to nil to disable listing submodules contents."
   "Command used by projectile to get the files in a svn project."
   :group 'projectile
   :type 'string)
+
+(defcustom projectile-svn-ignored-command "svn status --no-ignore | grep '^I' | cut -c9- | tr '\\n' '\\0'"
+  "Command used by projectile to get the ignored files in a svn project."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "2.10.0"))
 
 (defcustom projectile-generic-command
   (cond
@@ -1599,7 +1611,8 @@ sub-modules there)."
   "Determine which external command to invoke based on the project's VCS."
   (pcase vcs
     ('git projectile-git-ignored-command)
-    ;; TODO: Add support for other VCS
+    ('hg projectile-hg-ignored-command)
+    ('svn projectile-svn-ignored-command)
     (_ nil)))
 
 
@@ -1645,8 +1658,9 @@ they are excluded from the results of this function."
                        submodule))
      submodules)))
 
-(defun projectile-get-sub-projects-files (project-root _vcs)
-  "Get files from sub-projects for PROJECT-ROOT recursively."
+(defun projectile-get-sub-projects-files (project-root vcs)
+  "Get files from sub-projects for PROJECT-ROOT recursively.
+VCS is the version control system of the project."
   (flatten-tree
    (mapcar (lambda (sub-project)
              (let ((project-relative-path
@@ -1654,8 +1668,7 @@ they are excluded from the results of this function."
                                              sub-project project-root))))
                (mapcar (lambda (file)
                          (concat project-relative-path file))
-                       ;; TODO: Seems we forgot git hardcoded here
-                       (projectile-files-via-ext-command sub-project projectile-git-command))))
+                       (projectile-files-via-ext-command sub-project (projectile-get-ext-command vcs)))))
            (projectile-get-all-sub-projects project-root))))
 
 (defun projectile-get-repo-ignored-files (project vcs)
