@@ -306,4 +306,64 @@
     (expect 'projectile-run-compilation
             :to-have-been-called-with "make build" nil)))
 
+(describe "projectile-subproject-root"
+  (it "returns the nearest ancestor directory that holds a project-file marker"
+    (let* ((root (file-name-as-directory (make-temp-file "projectile-sub" t)))
+           (sub (file-name-as-directory (expand-file-name "mod" root)))
+           (deep (file-name-as-directory (expand-file-name "src" sub))))
+      (unwind-protect
+          (progn
+            (make-directory deep t)
+            (write-region "" nil (expand-file-name "pom.xml" root))
+            (write-region "" nil (expand-file-name "pom.xml" sub))
+            (spy-on 'projectile-acquire-root :and-return-value root)
+            (spy-on 'projectile-project-type :and-return-value 'maven)
+            (spy-on 'projectile-project-type-attribute :and-return-value "pom.xml")
+            (let ((default-directory deep))
+              (expect (projectile-subproject-root) :to-equal sub)))
+        (delete-directory root t))))
+
+  (it "falls back to the project root when only the root holds a marker"
+    (let* ((root (file-name-as-directory (make-temp-file "projectile-sub" t)))
+           (sub (file-name-as-directory (expand-file-name "mod" root)))
+           (deep (file-name-as-directory (expand-file-name "src" sub))))
+      (unwind-protect
+          (progn
+            (make-directory deep t)
+            (write-region "" nil (expand-file-name "pom.xml" root))
+            (spy-on 'projectile-acquire-root :and-return-value root)
+            (spy-on 'projectile-project-type :and-return-value 'maven)
+            (spy-on 'projectile-project-type-attribute :and-return-value "pom.xml")
+            (let ((default-directory deep))
+              (expect (projectile-subproject-root) :to-equal root)))
+        (delete-directory root t))))
+
+  (it "errors when there is no marker up to the project root"
+    (let* ((root (file-name-as-directory (make-temp-file "projectile-sub" t)))
+           (deep (file-name-as-directory (expand-file-name "mod/src" root))))
+      (unwind-protect
+          (progn
+            (make-directory deep t)
+            (spy-on 'projectile-acquire-root :and-return-value root)
+            (spy-on 'projectile-project-type :and-return-value 'maven)
+            (spy-on 'projectile-project-type-attribute :and-return-value "pom.xml")
+            (let ((default-directory deep))
+              (expect (projectile-subproject-root) :to-throw 'user-error)))
+        (delete-directory root t)))))
+
+(describe "projectile-compile-subproject"
+  (it "compiles with the subproject as the relative compilation dir"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-subproject-root :and-return-value "/proj/mod/")
+    (spy-on 'projectile-compilation-dir :and-return-value "/proj/mod/")
+    (spy-on 'projectile-compilation-command :and-return-value "make")
+    (spy-on 'projectile--cache-project-commands-p :and-return-value nil)
+    (let (seen-dir)
+      (spy-on 'projectile--run-project-cmd :and-call-fake
+              (lambda (&rest _) (setq seen-dir projectile-project-compilation-dir)))
+      (projectile-compile-subproject nil)
+      (expect 'projectile--run-project-cmd :to-have-been-called)
+      ;; the subproject dir is passed relative to the project root
+      (expect seen-dir :to-equal "mod/"))))
+
 ;;; projectile-commands-test.el ends here
