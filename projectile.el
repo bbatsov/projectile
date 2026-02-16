@@ -5372,6 +5372,33 @@ project of that type"
                             '(compile-history . 1)
                           'compile-history))))
 
+(defun projectile-subproject-root ()
+  "Find the root of the nearest subproject containing the current file.
+Walk up from `default-directory' looking for the project type's
+`:project-file' marker, stopping at the project root.  Returns the
+directory containing the nearest marker, or signals an error if no
+subproject is found between the current directory and the project root."
+  (let* ((project-root (projectile-acquire-root))
+         (type (projectile-project-type project-root))
+         (project-file (projectile-project-type-attribute type 'project-file))
+         (markers (if (listp project-file) project-file (list project-file)))
+         (dir (file-name-directory (or (buffer-file-name) default-directory)))
+         (result nil))
+    (unless markers
+      (user-error "Project type `%s' has no project-file defined" type))
+    ;; Walk up from current directory, stop at (but include) project root.
+    (while (and (not result)
+                dir
+                (string-prefix-p project-root dir))
+      (when (seq-some (lambda (m)
+                        (file-exists-p (expand-file-name m dir)))
+                      markers)
+        (setq result dir))
+      (let ((parent (file-name-directory (directory-file-name dir))))
+        (setq dir (unless (string= parent dir) parent))))
+    (or result
+        (user-error "No subproject found between current directory and project root"))))
+
 (defun projectile-compilation-dir ()
   "Retrieve the compilation directory for this project."
   (let* ((project-root (projectile-acquire-root))
@@ -5538,6 +5565,54 @@ with a prefix ARG."
     (projectile--run-project-cmd command command-map
                                  :show-prompt arg
                                  :prompt-prefix "Test command: "
+                                 :save-buffers t
+                                 :use-comint-mode projectile-test-use-comint-mode)))
+
+;;;###autoload
+(defun projectile-compile-subproject (arg)
+  "Run compilation in the nearest subproject.
+Find the closest build file (e.g. pom.xml, build.gradle) between the
+current directory and the project root, then run the project's compile
+command there.  This is useful for multi-module projects where building
+a single module is faster than building the entire project.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (let* ((subproject-root (projectile-subproject-root))
+         (project-root (projectile-acquire-root))
+         (projectile-project-compilation-dir
+          (file-relative-name subproject-root project-root))
+         (command (projectile-compilation-command (projectile-compilation-dir)))
+         (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
+    (projectile--run-project-cmd command command-map
+                                 :show-prompt arg
+                                 :prompt-prefix "Compile subproject command: "
+                                 :save-buffers t
+                                 :use-comint-mode projectile-compile-use-comint-mode)))
+
+;;;###autoload
+(defun projectile-test-subproject (arg)
+  "Run tests in the nearest subproject.
+Find the closest build file (e.g. pom.xml, build.gradle) between the
+current directory and the project root, then run the project's test
+command there.  This is useful for multi-module projects where testing
+a single module is faster than testing the entire project.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (let* ((subproject-root (projectile-subproject-root))
+         (project-root (projectile-acquire-root))
+         (projectile-project-compilation-dir
+          (file-relative-name subproject-root project-root))
+         (command (projectile-test-command (projectile-compilation-dir)))
+         (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
+    (projectile--run-project-cmd command command-map
+                                 :show-prompt arg
+                                 :prompt-prefix "Test subproject command: "
                                  :save-buffers t
                                  :use-comint-mode projectile-test-use-comint-mode)))
 
@@ -6317,6 +6392,8 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c i") #'projectile-install-project)
     (define-key map (kbd "c t") #'projectile-test-project)
     (define-key map (kbd "c r") #'projectile-run-project)
+    (define-key map (kbd "c m c") #'projectile-compile-subproject)
+    (define-key map (kbd "c m t") #'projectile-test-subproject)
     ;; TODO: Legacy keybindings that will be removed in Projectile 3
     (define-key map (kbd "C") #'projectile-configure-project)
     (define-key map (kbd "K") #'projectile-package-project)
