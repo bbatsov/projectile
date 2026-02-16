@@ -5050,22 +5050,37 @@ The buffers are killed according to the value of
       (message "[%s] Saved %d buffers" project-name (length modified-buffers)))))
 
 ;;;###autoload
-(defun projectile-dired ()
-  "Open `dired' at the root of the project."
-  (interactive)
-  (dired (projectile-acquire-root)))
+(defun projectile-dired (&optional arg)
+  "Open `dired' at the root of the project.
+With a prefix argument ARG, prompt for a known project to open in dired."
+  (interactive "P")
+  (dired (if arg
+             (projectile-completing-read
+              "Dired in project: " (projectile-relevant-known-projects)
+              :caller 'projectile-read-project)
+           (projectile-acquire-root))))
 
 ;;;###autoload
-(defun projectile-dired-other-window ()
-  "Open `dired'  at the root of the project in another window."
-  (interactive)
-  (dired-other-window (projectile-acquire-root)))
+(defun projectile-dired-other-window (&optional arg)
+  "Open `dired' at the root of the project in another window.
+With a prefix argument ARG, prompt for a known project to open in dired."
+  (interactive "P")
+  (dired-other-window (if arg
+                           (projectile-completing-read
+                            "Dired in project: " (projectile-relevant-known-projects)
+                            :caller 'projectile-read-project)
+                         (projectile-acquire-root))))
 
 ;;;###autoload
-(defun projectile-dired-other-frame ()
-  "Open `dired' at the root of the project in another frame."
-  (interactive)
-  (dired-other-frame (projectile-acquire-root)))
+(defun projectile-dired-other-frame (&optional arg)
+  "Open `dired' at the root of the project in another frame.
+With a prefix argument ARG, prompt for a known project to open in dired."
+  (interactive "P")
+  (dired-other-frame (if arg
+                          (projectile-completing-read
+                           "Dired in project: " (projectile-relevant-known-projects)
+                           :caller 'projectile-read-project)
+                        (projectile-acquire-root))))
 
 ;;;###autoload
 (defun projectile-vc (&optional project-root)
