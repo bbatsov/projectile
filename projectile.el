@@ -1986,7 +1986,11 @@ A pre-computed list of IGNORED-FILES may optionally be provided."
    (seq-some
     (lambda (name)
       (string-match-p name file))
-    projectile-global-ignore-file-patterns)))
+    projectile-global-ignore-file-patterns)
+   (seq-some
+    (lambda (suffix)
+      (string-suffix-p suffix file t))
+    projectile-globally-ignored-file-suffixes)))
 
 (defun projectile-check-pattern-p (file pattern)
   "Check if FILE matches globbing PATTERN."
