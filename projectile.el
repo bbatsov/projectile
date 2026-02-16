@@ -3198,7 +3198,8 @@ it acts on the current project."
   "Check if a project contains a .NET solution project marker.
 When DIR is specified it checks DIR's project, otherwise
 it acts on the current project."
-  (or (projectile-verify-file-wildcard "?*.sln" dir)))
+  (or (projectile-verify-file-wildcard "?*.sln" dir)
+      (projectile-verify-file-wildcard "?*.slnx" dir)))
 
 (defun projectile-go-project-p (&optional dir)
   "Check if a project contains Go source files.
@@ -3421,7 +3422,7 @@ a manual COMMAND-TYPE command is created with
                                   :run "dotnet run"
                                   :test "dotnet test")
 (projectile-register-project-type 'dotnet-sln #'projectile-dotnet-sln-project-p
-                                  :project-file "?*.sln"
+                                  :project-file '("?*.sln" "?*.slnx")
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
