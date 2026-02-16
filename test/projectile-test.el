@@ -492,7 +492,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 							   "no-prefix"
 							   "left-wspace"
 							   "right-wspace")
-                                                          nil))
+                                                          nil nil))
     ;; same test - but with comment lines enabled using prefix '#'
     (let ((projectile-dirconfig-comment-prefix ?#))
       (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
@@ -500,7 +500,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 							     "no-prefix"
 							     "left-wspace"
 							     "right-wspace")
-							    nil)))
+							    nil nil)))
     ))
 
 (describe "projectile-get-project-directories"
