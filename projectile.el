@@ -4971,8 +4971,13 @@ on which to run the replacement."
          (new-text (read-string
                     (projectile-prepend-project-name
                      (format "Replace %s with: " old-text))))
-         (files (projectile-files-with-string old-text directory file-ext)))
-    (fileloop-initialize-replace (regexp-quote old-text) new-text files 'default)
+         (files (projectile-files-with-string old-text directory file-ext))
+         ;; Filter results through the project's file list so that files
+         ;; ignored via .projectile or other ignore rules are excluded.
+         (project-files (mapcar (lambda (file) (expand-file-name file directory))
+                                (projectile-dir-files directory)))
+         (filtered-files (seq-filter (lambda (f) (member f project-files)) files)))
+    (fileloop-initialize-replace (regexp-quote old-text) new-text filtered-files 'default)
     (fileloop-continue)))
 
 ;;;###autoload
