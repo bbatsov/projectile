@@ -662,6 +662,11 @@ See also `projectile-remove-known-project',
 Contains a copy of `projectile-known-projects' when it was last
 synchronized with `projectile-known-projects-file'.")
 
+(defvar projectile-last-known-project nil
+  "The root of the most recently accessed project.
+This is set automatically by `projectile-acquire-root' and can be
+used to reference the last project from non-project buffers.")
+
 (defcustom projectile-known-projects-file
   (expand-file-name "projectile-bookmarks.eld"
                     user-emacs-directory)
@@ -1456,7 +1461,9 @@ See also `projectile-acquire-root'."
   "Find the current project root, and prompts the user for it if that fails.
 Provides the common idiom (projectile-ensure-project (projectile-project-root)).
 Starts the search for the project with DIR."
-  (projectile-ensure-project (projectile-project-root dir)))
+  (let ((root (projectile-ensure-project (projectile-project-root dir))))
+    (setq projectile-last-known-project root)
+    root))
 
 (defun projectile-project-p (&optional dir)
   "Check if DIR is a project.
