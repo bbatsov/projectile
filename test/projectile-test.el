@@ -2365,6 +2365,35 @@ projectile-process-current-project-buffers-current to have similar behaviour"
           (projectile-project-src-dir "other"))
       (expect (projectile-src-directory 'foo) :to-equal "other"))))
 
+(describe "projectile-project-vcs"
+  (it "returns git for a repo with only .git"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       (".git/")
+       (expect (projectile-project-vcs default-directory) :to-equal 'git))))
+  (it "returns jj for a repo with only .jj"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       (".jj/")
+       (expect (projectile-project-vcs default-directory) :to-equal 'jj))))
+  (it "defaults to git before jj for colocated repos"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       (".git/" ".jj/")
+       (expect (projectile-project-vcs default-directory) :to-equal 'git))))
+  (it "respects custom marker order: jj before git"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       (".git/" ".jj/")
+       (let ((projectile-vcs-markers '((".jj" . jj) (".git" . git))))
+         (expect (projectile-project-vcs default-directory) :to-equal 'jj)))))
+  (it "returns none when no VCS marker is present"
+    (let* ((tmpdir (make-temp-file "projectile-test-" t))
+           (default-directory tmpdir))
+      (unwind-protect
+          (expect (projectile-project-vcs default-directory) :to-equal 'none)
+        (delete-directory tmpdir t)))))
+
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
 (assert-friendly-error-when-no-project projectile-project-info)
