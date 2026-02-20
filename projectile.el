@@ -3771,38 +3771,43 @@ it acts on the current project.
 Expands wildcards using `file-expand-wildcards' before checking."
   (file-expand-wildcards (projectile-expand-root file dir)))
 
+(defcustom projectile-vcs-markers
+  '((".git"      . git)
+    (".hg"       . hg)
+    (".fslckout" . fossil)
+    ("_FOSSIL_"  . fossil)
+    (".bzr"      . bzr)
+    ("_darcs"    . darcs)
+    (".pijul"    . pijul)
+    (".svn"      . svn)
+    (".sl"       . sapling)
+    (".jj"       . jj))
+  "Ordered alist mapping VCS marker filenames to VCS symbols.
+Earlier entries take priority over later ones.  To prefer jj over
+git in colocated repos, move the \".jj\" entry before \".git\".
+Keys should be kept in sync with `projectile-project-root-files-bottom-up'."
+  :group 'projectile
+  :type '(alist :key-type string :value-type symbol)
+  :package-version '(projectile . "2.9.0"))
+
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
 PROJECT-ROOT is the targeted directory.  If nil, use
 the variable `projectile-project-root'."
   (or project-root (setq project-root (projectile-acquire-root)))
-  (cond
+  (or
    ;; first we check for a VCS marker in the project root itself
-   ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
-   ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
-   ((projectile-file-exists-p (expand-file-name ".fslckout" project-root)) 'fossil)
-   ((projectile-file-exists-p (expand-file-name "_FOSSIL_" project-root)) 'fossil)
-   ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
-   ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
-   ((projectile-file-exists-p (expand-file-name ".pijul" project-root)) 'pijul)
-   ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
-   ((projectile-file-exists-p (expand-file-name ".sl" project-root)) 'sapling)
-   ((projectile-file-exists-p (expand-file-name ".jj" project-root)) 'jj)
+   (cl-loop for (marker . vcs) in projectile-vcs-markers
+            when (projectile-file-exists-p (expand-file-name marker project-root))
+            return vcs)
    ;; then we check if there's a VCS marker up the directory tree
    ;; that covers the case when a project is part of a multi-project repository
-   ;; in those cases you can still the VCS to get a list of files for
+   ;; in those cases you can still use the VCS to get a list of files for
    ;; the project in question
-   ((projectile-locate-dominating-file project-root ".git") 'git)
-   ((projectile-locate-dominating-file project-root ".hg") 'hg)
-   ((projectile-locate-dominating-file project-root ".fslckout") 'fossil)
-   ((projectile-locate-dominating-file project-root "_FOSSIL_") 'fossil)
-   ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
-   ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
-   ((projectile-locate-dominating-file project-root ".pijul") 'pijul)
-   ((projectile-locate-dominating-file project-root ".svn") 'svn)
-   ((projectile-locate-dominating-file project-root ".sl") 'sapling)
-   ((projectile-locate-dominating-file project-root ".jj") 'jj)
-   (t 'none)))
+   (cl-loop for (marker . vcs) in projectile-vcs-markers
+            when (projectile-locate-dominating-file project-root marker)
+            return vcs)
+   'none))
 
 (defun projectile--test-name-for-impl-name (impl-file-path)
   "Determine the name of the test file for IMPL-FILE-PATH.
