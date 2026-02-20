@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* [#1984](https://github.com/bbatsov/projectile/pull/1984): Add `projectile-vcs-markers` to make VCS detection order configurable.
+
 ### Changes
 
 * Set `projectile-auto-discover` to `nil` by default.

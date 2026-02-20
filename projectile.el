@@ -3788,7 +3788,7 @@ git in colocated repos, move the \".jj\" entry before \".git\".
 Keys should be kept in sync with `projectile-project-root-files-bottom-up'."
   :group 'projectile
   :type '(alist :key-type string :value-type symbol)
-  :package-version '(projectile . "2.9.0"))
+  :package-version '(projectile . "2.10.0"))
 
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
