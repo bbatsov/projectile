@@ -1234,7 +1234,24 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (projectile-add-known-project (file-name-as-directory (expand-file-name "project")))
           (projectile-switch-project-by-name (file-name-as-directory (expand-file-name "project")))
 
-          (expect (current-buffer) :to-be (get-file-buffer "project/file")))))))
+          (expect (current-buffer) :to-be (get-file-buffer "project/file"))))))
+
+  (it "recognizes Mercurial project roots when switching known projects"
+      (defvar switch-project-root)
+      (defvar switch-project-vcs)
+      (let ((projectile-switch-project-action
+             (lambda ()
+               (setq switch-project-root (projectile-acquire-root))
+               (setq switch-project-vcs (projectile-project-vcs switch-project-root)))))
+        (projectile-test-with-sandbox
+         (projectile-test-with-files
+          ("project/.hg/" "project/file")
+          (let ((project-dir (file-name-as-directory (expand-file-name "project"))))
+            (projectile-add-known-project project-dir)
+            (projectile-switch-project-by-name project-dir)
+            (expect switch-project-root :to-equal project-dir)
+            (expect switch-project-vcs :to-equal 'hg)
+            (expect switch-project-root :not :to-equal (file-name-as-directory (expand-file-name "~")))))))))
 
 (describe "projectile-ignored-buffer-p"
   (it "checks if buffer should be ignored"
