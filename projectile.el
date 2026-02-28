@@ -649,6 +649,10 @@ project."
 (defvar projectile-project-type-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project type to speed up related operations.")
 
+(defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
+  "Cache for parsed dirconfig files, keyed by project root.
+Each value is a cons of (MTIME . PARSED-RESULT).")
+
 (defvar projectile-known-projects nil
   "List of locations where we have previously seen projects.
 The list of projects is ordered by the time they have been accessed.
@@ -2135,10 +2139,6 @@ Unignored files/directories are not included."
   "Return the absolute path to the project's dirconfig file."
   (expand-file-name projectile-dirconfig-file (projectile-project-root)))
 
-(defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
-  "Cache for parsed dirconfig files, keyed by project root.
-Each value is a cons of (MTIME . PARSED-RESULT).")
-
 (defun projectile--parse-dirconfig-file-uncached ()
   "Parse the dirconfig file without caching.
 Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
@@ -2184,11 +2184,13 @@ dirconfig file's modification time changes."
   (let* ((dirconfig (projectile-dirconfig-file))
          (project-root (projectile-project-root))
          (cached (gethash project-root projectile--dirconfig-cache))
-         (mtime (file-attribute-modification-time (file-attributes dirconfig))))
-    (if (and cached (equal (car cached) mtime))
+         (attrs (file-attributes dirconfig))
+         (mtime (when attrs (file-attribute-modification-time attrs))))
+    (if (and cached mtime (equal (car cached) mtime))
         (cdr cached)
       (let ((result (projectile--parse-dirconfig-file-uncached)))
-        (puthash project-root (cons mtime result) projectile--dirconfig-cache)
+        (when mtime
+          (puthash project-root (cons mtime result) projectile--dirconfig-cache))
         result))))
 
 (defun projectile-expand-root (name &optional dir)
