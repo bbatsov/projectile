@@ -1200,7 +1200,7 @@ The cache is created both in memory and on the hard drive."
   (let ((current-project (projectile-project-root)))
     (when (and (buffer-file-name)
                (file-exists-p (buffer-file-name))
-               (gethash (projectile-project-root) projectile-projects-cache))
+               (gethash current-project projectile-projects-cache))
       (let* ((abs-current-file (file-truename (buffer-file-name)))
              (current-file (file-relative-name abs-current-file current-project)))
         (unless (or (projectile-file-cached-p current-file current-project)
