@@ -941,11 +941,13 @@ A value of nil means nothing is ignored."
   "Use this variable to override the current project's test-suffix property.
 It takes precedence over the test-suffix for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-test-suffix 'safe-local-variable #'stringp)
 
 (defvar projectile-project-test-prefix nil
   "Use this variable to override the current project's test-prefix property.
 It takes precedence over the test-prefix for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-test-prefix 'safe-local-variable #'stringp)
 
 (defvar projectile-project-related-files-fn nil
   "Use this variable to override the current project's related-files-fn property.
@@ -956,11 +958,13 @@ when set.  Should be set via .dir-locals.el.")
   "Use this variable to override the current project's src-dir property.
 It takes precedence over the src-dir for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-src-dir 'safe-local-variable #'stringp)
 
 (defvar projectile-project-test-dir nil
   "Use this variable to override the current project's test-dir property.
 It takes precedence over the test-dir for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-test-dir 'safe-local-variable #'stringp)
 
 
 ;;; Version information
@@ -5190,6 +5194,7 @@ Acts on the current project if not specified explicitly."
 (defvar projectile-project-enable-cmd-caching t
   "Enables command caching for the project.  Set to nil to disable.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-enable-cmd-caching 'safe-local-variable #'booleanp)
 
 (defun projectile--cache-project-commands-p ()
   "Whether to cache project commands."
@@ -5201,36 +5206,43 @@ Should be set via .dir-locals.el.")
   "The command to use with `projectile-configure-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-configure-cmd 'safe-local-variable #'stringp)
 
 (defvar projectile-project-compilation-cmd nil
   "The command to use with `projectile-compile-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-compilation-cmd 'safe-local-variable #'stringp)
 
 (defvar projectile-project-compilation-dir nil
   "The directory to use with `projectile-compile-project'.
 The directory path is relative to the project root.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-compilation-dir 'safe-local-variable #'stringp)
 
 (defvar projectile-project-test-cmd nil
   "The command to use with `projectile-test-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-test-cmd 'safe-local-variable #'stringp)
 
 (defvar projectile-project-install-cmd nil
   "The command to use with `projectile-install-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-install-cmd 'safe-local-variable #'stringp)
 
 (defvar projectile-project-package-cmd nil
   "The command to use with `projectile-package-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-package-cmd 'safe-local-variable #'stringp)
 
 (defvar projectile-project-run-cmd nil
   "The command to use with `projectile-run-project'.
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
+(put 'projectile-project-run-cmd 'safe-local-variable #'stringp)
 
 (defun projectile-default-generic-command (project-type command-type)
   "Generic retrieval of COMMAND-TYPEs default cmd-value for PROJECT-TYPE.
