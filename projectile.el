@@ -1783,9 +1783,10 @@ this case unignored files will be absent from FILES."
   "Get a list of a project's buffers.
 If PROJECT is not specified the command acts on the current project."
   (let* ((project-root (or project (projectile-acquire-root)))
+         (truename-cache (make-hash-table :test 'equal))
          (all-buffers (seq-filter
                        (lambda (buffer)
-                         (projectile-project-buffer-p buffer project-root))
+                         (projectile-project-buffer-p buffer project-root truename-cache))
                        (buffer-list))))
     (if projectile-buffers-filter-function
         (funcall projectile-buffers-filter-function all-buffers)
@@ -1817,8 +1818,10 @@ If PROJECT is not specified the command acts on the current project."
      (projectile-buffers-with-file
       (projectile-project-buffers project)))))
 
-(defun projectile-project-buffer-p (buffer project-root)
-  "Check if BUFFER is under PROJECT-ROOT."
+(defun projectile-project-buffer-p (buffer project-root &optional truename-cache)
+  "Check if BUFFER is under PROJECT-ROOT.
+Optional TRUENAME-CACHE is a hash table used to memoize `file-truename'
+calls when checking multiple buffers against the same project root."
   (with-current-buffer buffer
     (let ((directory (if buffer-file-name
                          (file-name-directory buffer-file-name)
@@ -1829,7 +1832,11 @@ If PROJECT is not specified the command acts on the current project."
            (string-equal (file-remote-p directory)
                          (file-remote-p project-root))
            (not (string-match-p "^http\\(s\\)?://" directory))
-           (string-prefix-p project-root (file-truename directory) (eq system-type 'windows-nt))))))
+           (let ((true-dir (if truename-cache
+                               (or (gethash directory truename-cache)
+                                   (puthash directory (file-truename directory) truename-cache))
+                             (file-truename directory))))
+             (string-prefix-p project-root true-dir (eq system-type 'windows-nt)))))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."
