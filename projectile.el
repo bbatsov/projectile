@@ -5210,8 +5210,7 @@ be string to be executed as command."
      ((not command) nil)
      ((stringp command) command)
      ((functionp command)
-      (if (fboundp command)
-          (funcall (symbol-function command))))
+      (funcall command))
      (t
       (error "The value for: %s in project-type: %s was neither a function nor a string" command-type project-type)))))
 
