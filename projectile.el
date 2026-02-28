@@ -5685,15 +5685,16 @@ directories."
 (defun projectile-open-projects ()
   "Return a list of all open projects.
 An open project is a project with any open buffers."
-  (seq-uniq
-   ;; TODO: Replace delq+mapcar with seq-keep when Emacs 29.1 is the minimum version
-   (delq nil
-         (mapcar (lambda (buffer)
-                   (with-current-buffer buffer
-                     (when-let* ((project-root (projectile-project-root)))
-                       (when (projectile-project-buffer-p buffer project-root)
-                         (abbreviate-file-name project-root)))))
-                 (buffer-list)))))
+  (let ((truename-cache (make-hash-table :test 'equal)))
+    (seq-uniq
+     ;; TODO: Replace delq+mapcar with seq-keep when Emacs 29.1 is the minimum version
+     (delq nil
+           (mapcar (lambda (buffer)
+                     (with-current-buffer buffer
+                       (when-let* ((project-root (projectile-project-root)))
+                         (when (projectile-project-buffer-p buffer project-root truename-cache)
+                           (abbreviate-file-name project-root)))))
+                   (buffer-list))))))
 
 (defun projectile--remove-current-project (projects)
   "Remove the current project (if any) from the list of PROJECTS."
