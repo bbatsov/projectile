@@ -315,7 +315,15 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-project-types '((bar marker-files ("foo")))))
       (expect
        (projectile-update-project-type 'bar :precedence 'invalid-symbol)
-       :to-throw))))
+       :to-throw)))
+  (it "resets project type cache with correct :test"
+    (let ((projectile-project-types '((foo marker-files ("foo"))))
+          (projectile-project-type-cache (make-hash-table :test 'equal)))
+      (puthash "/path/to/project" 'foo projectile-project-type-cache)
+      (projectile-update-project-type 'foo :compile "make")
+      ;; Cache should have been reset but still use 'equal test
+      (puthash "/path/to/project" 'foo projectile-project-type-cache)
+      (expect (gethash "/path/to/project" projectile-project-type-cache) :to-equal 'foo))))
 
 (describe "projectile-project-type"
   :var ((dir default-directory))
@@ -334,10 +342,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (it "has no effect when DIR is passed"
       (projectile-test-with-sandbox
         (let ((projectile-project-type 'python-poetry))
-          (expect (projectile-project-type dir) :to-equal 'emacs-eldev))))))
-
-
-
+          (expect (projectile-project-type dir) :to-equal 'emacs-eldev)))))
+  (it "passes project-root to detect-project-type to avoid redundant resolution"
+    (projectile-test-with-sandbox
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile-detect-project-type :and-call-through)
+        (projectile-project-type dir)
+        (expect 'projectile-detect-project-type
+                :to-have-been-called-with dir (projectile-project-root dir))))))
 
 (describe "projectile-ignored-directory-p"
   (it "checks if directory should be ignored"
@@ -377,6 +389,42 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
   (it "rejects non-list as unsafe"
     (let ((pred (get 'projectile-globally-ignored-files 'safe-local-variable)))
       (expect (funcall pred "not-a-list") :not :to-be-truthy))))
+
+(describe "safe-local-variable predicates for project settings"
+  (it "accepts strings for string-valued project settings"
+    (dolist (var '(projectile-project-test-suffix
+                   projectile-project-test-prefix
+                   projectile-project-src-dir
+                   projectile-project-test-dir
+                   projectile-project-configure-cmd
+                   projectile-project-compilation-cmd
+                   projectile-project-compilation-dir
+                   projectile-project-test-cmd
+                   projectile-project-install-cmd
+                   projectile-project-package-cmd
+                   projectile-project-run-cmd))
+      (expect (funcall (get var 'safe-local-variable) "some-value") :to-be-truthy)))
+  (it "rejects non-strings for string-valued project settings"
+    (dolist (var '(projectile-project-test-suffix
+                   projectile-project-compilation-cmd
+                   projectile-project-run-cmd))
+      (expect (funcall (get var 'safe-local-variable) 123) :not :to-be-truthy)
+      (expect (funcall (get var 'safe-local-variable) '("list")) :not :to-be-truthy)))
+  (it "accepts booleans for projectile-project-enable-cmd-caching"
+    (let ((pred (get 'projectile-project-enable-cmd-caching 'safe-local-variable)))
+      (expect (funcall pred t) :to-be-truthy)
+      (expect (funcall pred nil) :to-be-truthy)))
+  (it "rejects non-booleans for projectile-project-enable-cmd-caching"
+    (let ((pred (get 'projectile-project-enable-cmd-caching 'safe-local-variable)))
+      (expect (funcall pred "yes") :not :to-be-truthy)
+      (expect (funcall pred 1) :not :to-be-truthy)))
+  (it "accepts symbols for projectile-project-type"
+    (let ((pred (get 'projectile-project-type 'safe-local-variable)))
+      (expect (funcall pred 'maven) :to-be-truthy)
+      (expect (funcall pred 'generic) :to-be-truthy)))
+  (it "rejects non-symbols for projectile-project-type"
+    (let ((pred (get 'projectile-project-type 'safe-local-variable)))
+      (expect (funcall pred "maven") :not :to-be-truthy))))
 
 (describe "projectile-ignored-files"
   (it "returns list of ignored files"
