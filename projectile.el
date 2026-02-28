@@ -1154,7 +1154,9 @@ The cache is created both in memory and on the hard drive."
   "Load the cache file for PROJECT-ROOT in memory."
   (when-let* ((cache-file (projectile-project-cache-file project-root)))
     (when (file-exists-p cache-file)
-      (puthash project-root (projectile-unserialize cache-file) projectile-projects-cache))))
+      (when-let* ((data (projectile-unserialize cache-file)))
+        (puthash project-root data projectile-projects-cache)
+        data))))
 
 ;;;###autoload
 (defun projectile-purge-file-from-cache (file)
