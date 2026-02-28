@@ -3327,7 +3327,7 @@ it acts on the current project."
   (when-let* ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
     (append
      (projectile--cmake-command-presets-shallow filename command-type)
-     (mapcar
+     (mapcan
       (lambda (included-file) (projectile--cmake-command-presets
                                (expand-file-name included-file (file-name-directory filename))
                                command-type))
