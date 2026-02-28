@@ -2688,20 +2688,24 @@ Parameters MODE VARIABLE VALUE are passed directly to
 
 (defun projectile-sort-by-modification-time (files)
   "Sort FILES by modification time."
-  (let ((default-directory (projectile-project-root)))
+  (let ((default-directory (projectile-project-root))
+        (mtimes (make-hash-table :test 'equal :size (length files))))
+    (dolist (file files)
+      (puthash file (file-attribute-modification-time (file-attributes file)) mtimes))
     (seq-sort (lambda (file1 file2)
-                (let ((file1-mtime (nth 5 (file-attributes file1)))
-                      (file2-mtime (nth 5 (file-attributes file2))))
-                  (not (time-less-p file1-mtime file2-mtime))))
+                (not (time-less-p (gethash file1 mtimes)
+                                  (gethash file2 mtimes))))
               files)))
 
 (defun projectile-sort-by-access-time (files)
   "Sort FILES by access time."
-  (let ((default-directory (projectile-project-root)))
+  (let ((default-directory (projectile-project-root))
+        (atimes (make-hash-table :test 'equal :size (length files))))
+    (dolist (file files)
+      (puthash file (file-attribute-access-time (file-attributes file)) atimes))
     (seq-sort (lambda (file1 file2)
-                (let ((file1-atime (nth 4 (file-attributes file1)))
-                      (file2-atime (nth 4 (file-attributes file2))))
-                  (not (time-less-p file1-atime file2-atime))))
+                (not (time-less-p (gethash file1 atimes)
+                                  (gethash file2 atimes))))
               files)))
 
 
