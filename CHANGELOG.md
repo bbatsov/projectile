@@ -10,6 +10,16 @@
 
 ### Bugs fixed
 
+* Fix `projectile-cache-current-file` calling `projectile-project-root` twice instead of reusing the already-resolved value.
+* Fix `projectile-load-project-cache` storing nil in cache on corrupt/empty cache files, preventing future reload attempts.
+* Fix `projectile--cmake-command-presets` using `mapcar` instead of `mapcan`, producing nested lists for included presets.
+* Fix `projectile--eat` ignoring the `new-process` argument when generating buffer names.
+* Fix `projectile-check-vcs-status` hanging indefinitely by adding a 30-second timeout to its busy-wait loop.
+* Fix `projectile-sort-by-modification-time` and `projectile-sort-by-access-time` crashing on deleted files (nil `file-attributes`).
+* Fix `projectile-recentf-files` failing to match files when the project root contains symlinks.
+* Fix `projectile--run-project-cmd` passing nil to `compile` when no command is configured and `compilation-read-command` is nil — now signals a clear `user-error`.
+* Fix `projectile--merge-related-files-fns` using destructive `nconc` which could corrupt shared data and silently drop values when the existing list was nil.
+* Fix `projectile-configure-command` format call passing an unused `compile-dir` argument.
 * Fix `projectile-update-project-type` resetting the project type cache with wrong hash table `:test` (used default `eql` instead of `equal` for string keys).
 * Fix `projectile-find-file-hook-function` running `projectile-maybe-limit-project-file-buffers` on TRAMP buffers, causing potential hangs on slow connections.
 * Use `expand-file-name` instead of `file-truename` in `projectile-compilation-dir` to avoid unnecessary symlink resolution (and TRAMP network round-trips).
@@ -50,6 +60,8 @@
 * Cache `file-truename` results in `projectile-project-buffer-p` when checking multiple buffers, reducing redundant symlink resolution.
 * Use a hash set for deleted file removal in `projectile-dir-files-alien`, improving performance from O(n*m) to O(n+m) when filtering deleted-but-unstaged files.
 * Avoid redundant `projectile-project-root` call in `projectile-detect-project-type` by passing through the already-resolved root.
+* Share `file-truename` cache across buffers in `projectile-open-projects`, matching the optimization already in `projectile-project-buffers`.
+* Remove unnecessary temp buffer creation in `projectile--cache-project-commands-p` (was creating a buffer and re-reading `.dir-locals.el` on every compile/test/run invocation).
 * **[Breaking]** Bump minimum required Emacs version from 26.1 to 27.1. This removes ~30 lines of compatibility code (fileloop fallback, `time-convert` fallback, `projectile-flatten` shim) and fixes the `tags-query-replace` FIXME in `projectile-replace-regexp`.
 * Add `compat` as a dependency, enabling the use of modern Emacs APIs (e.g. `string-replace`) on older Emacs versions.
 * Replace most `cl-lib` sequence functions with `seq.el` equivalents (`seq-filter`, `seq-remove`, `seq-some`, `seq-find`, `seq-sort`, `seq-every-p`, `seq-difference`) and convert `cl-case` to `pcase`.
