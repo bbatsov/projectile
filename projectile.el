@@ -1159,10 +1159,10 @@ The cache is created both in memory and on the hard drive."
   (let* ((project-root (projectile-project-root))
          (project-cache (gethash project-root projectile-projects-cache)))
     (if (projectile-file-cached-p file project-root)
-        (progn
-          (puthash project-root (remove file project-cache) projectile-projects-cache)
+        (let ((new-cache (remove file project-cache)))
+          (puthash project-root new-cache projectile-projects-cache)
           (when (projectile-persistent-cache-p)
-            (projectile-serialize project-cache (projectile-project-cache-file project-root)))
+            (projectile-serialize new-cache (projectile-project-cache-file project-root)))
           (when projectile-verbose
             (message "%s removed from cache" file)))
       (error "%s is not in the cache" file))))
