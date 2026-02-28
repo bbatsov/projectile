@@ -1579,7 +1579,9 @@ IGNORED-DIRECTORIES may optionally be provided."
              (deleted (unless (and projectile-git-use-fd projectile-fd-executable)
                         (projectile-git-deleted-files directory))))
         (if deleted
-            (seq-remove (lambda (f) (member f deleted)) files)
+            (let ((deleted-set (make-hash-table :test 'equal :size (length deleted))))
+              (dolist (f deleted) (puthash f t deleted-set))
+              (seq-remove (lambda (f) (gethash f deleted-set)) files))
           files)))
      (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
 
