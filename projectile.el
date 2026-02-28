@@ -2820,9 +2820,9 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
         (let ((plist (funcall fn path)))
           (cl-loop for (key value) on plist by #'cddr
                    do (let ((values (if (consp value) value (list value))))
-                        (if (plist-member merged-plist key)
-                            (nconc (plist-get merged-plist key) values)
-                          (setq merged-plist (plist-put merged-plist key values))))))))))
+                        (setq merged-plist
+                              (plist-put merged-plist key
+                                         (append (plist-get merged-plist key) values))))))))))
 
 (defun projectile--related-files-plist (project-root file)
   "Return a plist containing all related files information for FILE.
