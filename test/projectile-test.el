@@ -2365,6 +2365,69 @@ projectile-process-current-project-buffers-current to have similar behaviour"
           (projectile-project-src-dir "other"))
       (expect (projectile-src-directory 'foo) :to-equal "other"))))
 
+(describe "projectile-purge-file-from-cache"
+  (it "serializes the updated cache without the purged file"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching 'persistent))
+      (puthash "/project/" '("foo.el" "bar.el" "baz.el") projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/project/")
+      (spy-on 'projectile-serialize)
+      (spy-on 'projectile-project-cache-file :and-return-value "/tmp/cache.eld")
+      (projectile-purge-file-from-cache "bar.el")
+      ;; The in-memory cache should be updated
+      (expect (gethash "/project/" projectile-projects-cache) :to-equal '("foo.el" "baz.el"))
+      ;; projectile-serialize should be called with the updated list, not the stale one
+      (expect 'projectile-serialize :to-have-been-called-with '("foo.el" "baz.el") "/tmp/cache.eld"))))
+
+(describe "projectile-default-generic-command"
+  (it "returns a string command as-is"
+    (let ((projectile-project-types '((test-type compile-command "make"))))
+      (expect (projectile-default-generic-command 'test-type 'compile-command) :to-equal "make")))
+  (it "calls a function symbol and returns its result"
+    (let ((projectile-project-types '((test-type compile-command my-compile-fn))))
+      (spy-on 'my-compile-fn :and-return-value "custom-build")
+      (expect (projectile-default-generic-command 'test-type 'compile-command) :to-equal "custom-build")))
+  (it "calls a lambda command and returns its result"
+    (let ((projectile-project-types
+           `((test-type compile-command ,(lambda () "lambda-build")))))
+      (expect (projectile-default-generic-command 'test-type 'compile-command) :to-equal "lambda-build")))
+  (it "returns nil for missing command"
+    (let ((projectile-project-types '((test-type))))
+      (expect (projectile-default-generic-command 'test-type 'compile-command) :to-equal nil))))
+
+(describe "projectile-sort-by-modification-time"
+  (it "sorts files by modification time in descending order"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+        ("old.el" "new.el")
+        ;; Touch old.el first, then new.el with a delay to ensure different mtimes
+        (spy-on 'projectile-project-root :and-return-value default-directory)
+        (let ((now (current-time))
+              (old-time (time-subtract (current-time) 100)))
+          (spy-on 'file-attributes :and-call-fake
+                  (lambda (file &rest _)
+                    (let ((attrs (make-list 12 nil)))
+                      ;; Set modification time (index 5)
+                      (setf (nth 5 attrs) (if (string-match-p "old" file) old-time now))
+                      attrs)))
+          (expect (projectile-sort-by-modification-time '("old.el" "new.el"))
+                  :to-equal '("new.el" "old.el")))))))
+
+(describe "projectile-project-buffer-p"
+  (it "uses the truename cache when provided"
+    (let* ((project-root "/projects/foo/")
+           (cache (make-hash-table :test 'equal)))
+      (spy-on 'file-truename :and-call-fake (lambda (f) f))
+      (with-temp-buffer
+        (setq default-directory "/projects/foo/src/")
+        (rename-buffer "test-buffer")
+        (projectile-project-buffer-p (current-buffer) project-root cache)
+        ;; The truename result should be cached
+        (expect (gethash "/projects/foo/src/" cache) :to-equal "/projects/foo/src/")
+        ;; A second call should use the cache, not call file-truename again
+        (projectile-project-buffer-p (current-buffer) project-root cache)
+        (expect 'file-truename :to-have-been-called-times 1)))))
+
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
 (assert-friendly-error-when-no-project projectile-project-info)
