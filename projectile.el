@@ -6454,8 +6454,8 @@ Magit that don't trigger `find-file-hook'."
 The function does pretty much nothing when triggered on remote files
 as all the operations it normally performs are extremely slow over
 tramp."
-  (projectile-maybe-limit-project-file-buffers)
   (unless (file-remote-p default-directory)
+    (projectile-maybe-limit-project-file-buffers)
     (when projectile-dynamic-mode-line
       (projectile-update-mode-line))
     (when projectile-auto-update-cache
