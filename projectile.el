@@ -3188,7 +3188,7 @@ files such as test/impl/other files as below:
               (if precedence
                   (let ((filtered-types
                        (seq-remove #'project-filter projectile-project-types)))
-                    (setq projectile-project-type-cache (make-hash-table))
+                    (setq projectile-project-type-cache (make-hash-table :test 'equal))
                     (cond ((eq precedence 'high)
                            (cons project-type-elt filtered-types))
                           ((eq precedence 'low)
