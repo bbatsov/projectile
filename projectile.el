@@ -1635,10 +1635,10 @@ PROJECT is base directory to start search recursively."
      ((null submodules)
       nil)
      (t
-      (nconc submodules (flatten-tree
-                         ;; recursively get sub-projects of each sub-project
-                         (mapcar (lambda (s)
-                                   (projectile-get-all-sub-projects s)) submodules)))))))
+      (append submodules (flatten-tree
+                          ;; recursively get sub-projects of each sub-project
+                          (mapcar (lambda (s)
+                                    (projectile-get-all-sub-projects s)) submodules)))))))
 
 (defun projectile-get-immediate-sub-projects (path)
   "Get immediate sub-projects for a given project without recursing.
