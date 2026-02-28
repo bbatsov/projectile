@@ -3829,10 +3829,11 @@ a manual COMMAND-TYPE command is created with
 Normally you'd set this from .dir-locals.el.")
 (put 'projectile-project-type 'safe-local-variable #'symbolp)
 
-(defun projectile-detect-project-type (&optional dir)
+(defun projectile-detect-project-type (&optional dir project-root)
   "Detect the type of the project.
 When DIR is specified it detects its project type, otherwise it acts
-on the current project.
+on the current project.  PROJECT-ROOT, if provided, is used for caching
+instead of re-resolving via `projectile-project-root'.
 
 Fallback to a generic project type when the type can't be determined."
   (let ((project-type
@@ -3845,7 +3846,8 @@ Fallback to a generic project type when the type can't be determined."
                          (and (projectile-verify-files marker dir) project-type))))
                    projectile-project-types))
              'generic)))
-    (puthash (projectile-project-root dir) project-type projectile-project-type-cache)
+    (puthash (or project-root (projectile-project-root dir))
+             project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type (&optional dir)
@@ -3857,7 +3859,7 @@ The project type is cached for improved performance."
   (or (and (not dir) projectile-project-type)
       (if-let* ((project-root (projectile-project-root dir)))
           (or (gethash project-root projectile-project-type-cache)
-              (projectile-detect-project-type dir)))))
+              (projectile-detect-project-type dir project-root)))))
 
 ;;;###autoload
 (defun projectile-project-info ()
