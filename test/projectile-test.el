@@ -2459,7 +2459,43 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                       (setf (nth 5 attrs) (if (string-match-p "old" file) old-time now))
                       attrs)))
           (expect (projectile-sort-by-modification-time '("old.el" "new.el"))
-                  :to-equal '("new.el" "old.el")))))))
+                  :to-equal '("new.el" "old.el"))))))
+  (it "handles deleted files (nil file-attributes) without error"
+    (spy-on 'projectile-project-root :and-return-value "/project/")
+    (spy-on 'file-attributes :and-return-value nil)
+    (expect (projectile-sort-by-modification-time '("gone.el" "also-gone.el"))
+            :not :to-throw)))
+
+(describe "projectile--merge-related-files-fns"
+  (it "merges values from multiple functions for the same key"
+    (let* ((fn1 (lambda (_path) '(:test ("test1.el"))))
+           (fn2 (lambda (_path) '(:test ("test2.el"))))
+           (merged (projectile--merge-related-files-fns (list fn1 fn2))))
+      (expect (plist-get (funcall merged "src.el") :test)
+              :to-equal '("test1.el" "test2.el"))))
+  (it "merges values across different keys"
+    (let* ((fn1 (lambda (_path) '(:test ("test.el"))))
+           (fn2 (lambda (_path) '(:impl ("impl.el"))))
+           (merged (projectile--merge-related-files-fns (list fn1 fn2))))
+      (let ((result (funcall merged "src.el")))
+        (expect (plist-get result :test) :to-equal '("test.el"))
+        (expect (plist-get result :impl) :to-equal '("impl.el")))))
+  (it "does not mutate original function return values"
+    (let* ((shared-list '("test.el"))
+           (fn1 (lambda (_path) (list :test shared-list)))
+           (fn2 (lambda (_path) '(:test ("test2.el"))))
+           (merged (projectile--merge-related-files-fns (list fn1 fn2))))
+      (funcall merged "src.el")
+      (expect shared-list :to-equal '("test.el")))))
+
+(describe "projectile-load-project-cache"
+  (it "does not store nil in cache for corrupt files"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal)))
+      (spy-on 'projectile-project-cache-file :and-return-value "/tmp/fake-cache.eld")
+      (spy-on 'file-exists-p :and-return-value t)
+      (spy-on 'projectile-unserialize :and-return-value nil)
+      (projectile-load-project-cache "/project/")
+      (expect (gethash "/project/" projectile-projects-cache) :to-be nil))))
 
 (describe "projectile-project-buffer-p"
   (it "uses the truename cache when provided"
