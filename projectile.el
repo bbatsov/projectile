@@ -5161,7 +5161,7 @@ directory to open."
 (defun projectile-recentf-files ()
   "Return a list of recently visited files in a project."
   (and (boundp 'recentf-list)
-       (let ((project-root (expand-file-name (projectile-acquire-root))))
+       (let ((project-root (file-truename (projectile-acquire-root))))
          (mapcar
           (lambda (f) (file-relative-name f project-root))
           (seq-filter
