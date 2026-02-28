@@ -783,8 +783,7 @@ Set to nil to disable listing submodules contents."
   :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-fossil-command (concat "fossil ls | "
-                                             (when (string-equal system-type
-                                                                 "windows-nt")
+                                             (when (eq system-type 'windows-nt)
                                                "dos2unix | ")
                                              "tr '\\n' '\\0'")
   "Command used by projectile to get the files in a fossil project."
@@ -6113,7 +6112,7 @@ Raise an error if there is no dirty project."
     (let ((projects projectile-known-projects)
           (status ()))
       (dolist (project projects)
-        (when (and (projectile-keep-project-p project) (not (string= 'none (projectile-project-vcs project))))
+        (when (and (projectile-keep-project-p project) (not (eq 'none (projectile-project-vcs project))))
           (let ((tmp-status (projectile-check-vcs-status project)))
             (when tmp-status
               (setq status (cons (list project tmp-status) status))))))
