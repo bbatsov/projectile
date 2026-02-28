@@ -5203,10 +5203,11 @@ Should be set via .dir-locals.el.")
 (put 'projectile-project-enable-cmd-caching 'safe-local-variable #'booleanp)
 
 (defun projectile--cache-project-commands-p ()
-  "Whether to cache project commands."
-  (with-temp-buffer
-    (hack-dir-local-variables-non-file-buffer)
-    projectile-project-enable-cmd-caching))
+  "Whether to cache project commands.
+The variable `projectile-project-enable-cmd-caching' is typically
+set via .dir-locals.el, which applies it buffer-locally in file
+buffers."
+  projectile-project-enable-cmd-caching)
 
 (defvar projectile-project-configure-cmd nil
   "The command to use with `projectile-configure-project'.
