@@ -5411,9 +5411,7 @@ project of that type"
          (comp-dir (or projectile-project-compilation-dir
                         (projectile-default-compilation-dir type))))
     (if comp-dir
-        (file-truename
-         (concat (file-name-as-directory project-root)
-                 (file-name-as-directory comp-dir)))
+        (expand-file-name (file-name-as-directory comp-dir) project-root)
       project-root)))
 
 (defun projectile-maybe-read-command (arg default-cmd prompt)
