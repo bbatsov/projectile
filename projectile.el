@@ -6138,8 +6138,10 @@ If PROJECT-PATH is a project, check this one instead."
         (project-status nil))
     (save-excursion
       (vc-dir project-path)
-      ;; wait until vc-dir is done
-      (while (vc-dir-busy) (sleep-for 0.1))
+      ;; wait until vc-dir is done (with a 30s timeout to avoid freezing)
+      (let ((deadline (time-add (current-time) 30)))
+        (while (and (vc-dir-busy) (time-less-p (current-time) deadline))
+          (sleep-for 0.1)))
       ;; check for status
       (save-excursion
         (save-match-data
