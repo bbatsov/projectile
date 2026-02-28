@@ -5502,6 +5502,9 @@ The command actually run is returned."
     (when projectile-per-project-compilation-buffer
       (setq compilation-buffer-name-function #'projectile-compilation-buffer-name)
       (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
+    (unless command
+      (user-error "No %scommand configured for project type `%s'"
+                  (or prompt-prefix "") (projectile-project-type)))
     (unless (file-directory-p default-directory)
       (mkdir default-directory))
     (projectile-run-compilation command use-comint-mode)
