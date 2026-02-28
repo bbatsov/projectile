@@ -1119,6 +1119,7 @@ argument)."
     (remhash project-root projectile-project-type-cache)
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
+    (remhash project-root projectile--dirconfig-cache)
     ;; reset the project's cache file
     (when (projectile-persistent-cache-p)
       ;; TODO: Perhaps it's better to delete the cache file in such cases?
@@ -2127,18 +2128,13 @@ Unignored files/directories are not included."
   "Return the absolute path to the project's dirconfig file."
   (expand-file-name projectile-dirconfig-file (projectile-project-root)))
 
-(defun projectile-parse-dirconfig-file ()
-  "Parse project ignore file and return directories to ignore and keep.
+(defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
+  "Cache for parsed dirconfig files, keyed by project root.
+Each value is a cons of (MTIME . PARSED-RESULT).")
 
-The return value will be a list of three elements, the car being
-the list of directories to keep, the cadr being the list of files
-or directories to ignore, and the caddr being the list of files
-or directories to ensure.
-
-Strings starting with + will be added to the list of directories
-to keep, and strings starting with - will be added to the list of
-directories to ignore.  For backward compatibility, without a
-prefix the string will be assumed to be an ignore string."
+(defun projectile--parse-dirconfig-file-uncached ()
+  "Parse the dirconfig file without caching.
+Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
   (let (keep ignore ensure (dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
       (with-temp-buffer
@@ -2162,6 +2158,31 @@ prefix the string will be assumed to be an ignore string."
                     (delete "" (reverse ignore)))
             (mapcar #'string-trim
                     (delete "" (reverse ensure)))))))
+
+(defun projectile-parse-dirconfig-file ()
+  "Parse project ignore file and return directories to ignore and keep.
+
+The return value will be a list of three elements, the car being
+the list of directories to keep, the cadr being the list of files
+or directories to ignore, and the caddr being the list of files
+or directories to ensure.
+
+Strings starting with + will be added to the list of directories
+to keep, and strings starting with - will be added to the list of
+directories to ignore.  For backward compatibility, without a
+prefix the string will be assumed to be an ignore string.
+
+Results are cached per project root and invalidated when the
+dirconfig file's modification time changes."
+  (let* ((dirconfig (projectile-dirconfig-file))
+         (project-root (projectile-project-root))
+         (cached (gethash project-root projectile--dirconfig-cache))
+         (mtime (file-attribute-modification-time (file-attributes dirconfig))))
+    (if (and cached (equal (car cached) mtime))
+        (cdr cached)
+      (let ((result (projectile--parse-dirconfig-file-uncached)))
+        (puthash project-root (cons mtime result) projectile--dirconfig-cache)
+        result))))
 
 (defun projectile-expand-root (name &optional dir)
   "Expand NAME to project root.
