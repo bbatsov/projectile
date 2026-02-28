@@ -4829,7 +4829,7 @@ be displayed in a different window.
 
 Switch to the project specific eat buffer if it already exists."
   (let* ((project (projectile-acquire-root))
-         (eat-buffer-name (projectile-generate-process-name "eat" nil project)))
+         (eat-buffer-name (projectile-generate-process-name "eat" new-process project)))
     (unless (require 'eat nil 'noerror)
       (error "Package 'eat' is not available"))
     (projectile-with-default-dir project
