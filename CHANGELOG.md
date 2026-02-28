@@ -10,6 +10,11 @@
 
 ### Bugs fixed
 
+* Fix `projectile-update-project-type` resetting the project type cache with wrong hash table `:test` (used default `eql` instead of `equal` for string keys).
+* Fix `projectile-find-file-hook-function` running `projectile-maybe-limit-project-file-buffers` on TRAMP buffers, causing potential hangs on slow connections.
+* Use `expand-file-name` instead of `file-truename` in `projectile-compilation-dir` to avoid unnecessary symlink resolution (and TRAMP network round-trips).
+* Use non-destructive `append` instead of `nconc` in `projectile-get-all-sub-projects` to avoid mutating caller data.
+* Add `safe-local-variable` predicates for project settings variables (`projectile-project-test-suffix`, `projectile-project-compilation-cmd`, etc.) so they can be set in `.dir-locals.el` without prompting.
 * [#1962](https://github.com/bbatsov/projectile/issues/1962): Fix `projectile-get-other-files` crashing when a candidate other-file lives in the project root directory.
 * [#1816](https://github.com/bbatsov/projectile/issues/1816): Fix `projectile-expand-file-name-wildcard` failing when a parent directory is not readable (e.g. iCloud Drive, Termux).
 * [#1841](https://github.com/bbatsov/projectile/issues/1841): Preserve user's `compilation-buffer-name-function` when `projectile-per-project-compilation-buffer` is nil.
@@ -43,7 +48,8 @@
 * Pre-compute file timestamps in `projectile-sort-by-modification-time` and `projectile-sort-by-access-time` to reduce stat calls from O(n log n) to O(n).
 * Cache `projectile-parse-dirconfig-file` results per project root (invalidated by file modification time), avoiding redundant file reads during indexing.
 * Cache `file-truename` results in `projectile-project-buffer-p` when checking multiple buffers, reducing redundant symlink resolution.
-
+* Use a hash set for deleted file removal in `projectile-dir-files-alien`, improving performance from O(n*m) to O(n+m) when filtering deleted-but-unstaged files.
+* Avoid redundant `projectile-project-root` call in `projectile-detect-project-type` by passing through the already-resolved root.
 * **[Breaking]** Bump minimum required Emacs version from 26.1 to 27.1. This removes ~30 lines of compatibility code (fileloop fallback, `time-convert` fallback, `projectile-flatten` shim) and fixes the `tags-query-replace` FIXME in `projectile-replace-regexp`.
 * Add `compat` as a dependency, enabling the use of modern Emacs APIs (e.g. `string-replace`) on older Emacs versions.
 * Replace most `cl-lib` sequence functions with `seq.el` equivalents (`seq-filter`, `seq-remove`, `seq-some`, `seq-find`, `seq-sort`, `seq-every-p`, `seq-difference`) and convert `cl-case` to `pcase`.
