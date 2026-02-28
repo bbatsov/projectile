@@ -1912,7 +1912,7 @@ choices."
   "Switch to the most recently selected buffer project buffer.
 Only buffers not visible in windows are returned."
   (interactive)
-  (switch-to-buffer (car (projectile-project-buffers-non-visible))) nil t)
+  (switch-to-buffer (car (projectile-project-buffers-non-visible)) nil t))
 
 (defun projectile-project-buffers-non-visible ()
   "Get a list of non visible project buffers."
