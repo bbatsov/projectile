@@ -31,8 +31,18 @@
 * Fix `projectile-ripgrep` failing on zsh when ignored file patterns contain glob characters, by quoting `--glob` arguments.
 * Fix CMake version parsing failing when `cmake --version` output contains extra text after the version number.
 * Fix Jujutsu file listing to use template syntax for null-byte-separated output, making it robust against user customization of `jj` output format.
+* Fix `projectile-purge-file-from-cache` serializing the stale file list to disk instead of the updated one.
+* Fix misplaced paren in `projectile-project-buffers-other-buffer` causing `switch-to-buffer` arguments to be ignored.
+* Fix `projectile-default-generic-command` silently dropping lambda/closure commands (only symbol commands worked).
+* Fix `dired-before-readin-hook` being added as buffer-local instead of global in `projectile-mode`, so it now correctly fires in all dired buffers.
+* Fix `projectile-find-dir-hook` not being cleaned up when disabling `projectile-mode`.
+* Use `display-warning` instead of `message` when cache serialization fails, making the failure visible in the `*Warnings*` buffer.
 
 ### Changes
+
+* Pre-compute file timestamps in `projectile-sort-by-modification-time` and `projectile-sort-by-access-time` to reduce stat calls from O(n log n) to O(n).
+* Cache `projectile-parse-dirconfig-file` results per project root (invalidated by file modification time), avoiding redundant file reads during indexing.
+* Cache `file-truename` results in `projectile-project-buffer-p` when checking multiple buffers, reducing redundant symlink resolution.
 
 * **[Breaking]** Bump minimum required Emacs version from 26.1 to 27.1. This removes ~30 lines of compatibility code (fileloop fallback, `time-convert` fallback, `projectile-flatten` shim) and fixes the `tags-query-replace` FIXME in `projectile-replace-regexp`.
 * Add `compat` as a dependency, enabling the use of modern Emacs APIs (e.g. `string-replace`) on older Emacs versions.
