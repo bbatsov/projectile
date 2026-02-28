@@ -1026,7 +1026,7 @@ The saved data can be restored with `projectile-unserialize'."
   (if (file-writable-p filename)
     (with-temp-file filename
       (insert (let (print-length) (prin1-to-string data))))
-    (message "Projectile cache '%s' not writeable" filename)))
+    (display-warning 'projectile (format "Cache file '%s' is not writable" filename) :warning)))
 
 (defun projectile-unserialize (filename)
   "Read data serialized by `projectile-serialize' from FILENAME."
