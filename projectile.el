@@ -1617,7 +1617,7 @@ Currently that's supported just for Git (sub-projects being Git
 sub-modules there)."
   (pcase vcs
     ('git projectile-git-submodule-command)
-    (_ "")))
+    (_ nil)))
 
 (defun projectile-get-ext-ignored-command (vcs)
   "Determine which external command to invoke based on the project's VCS."
@@ -1703,7 +1703,7 @@ If `command' is nil or an empty string, return nil.
 This allows commands to be disabled.
 
 Only text sent to standard output is taken into account."
-  (when (stringp command)
+  (when (and (stringp command) (not (string-empty-p command)))
     (let ((default-directory root))
       (with-temp-buffer
         (shell-command command t "*projectile-files-errors*")
