@@ -638,8 +638,8 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 (describe "projectile-get-sub-projects-command"
   (it "gets sub projects command for git"
     (expect (string-prefix-p "git" (projectile-get-sub-projects-command 'git)) :to-be-truthy))
-  (it "returns empty when vcs is not supported"
-    (expect (string-empty-p (projectile-get-sub-projects-command 'none)) :to-be-truthy)))
+  (it "returns nil when vcs is not supported"
+    (expect (projectile-get-sub-projects-command 'none) :to-be nil)))
 
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty or fails"
