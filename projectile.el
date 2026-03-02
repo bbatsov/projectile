@@ -2503,7 +2503,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
          (files (if file
                     (seq-filter
                      (lambda (project-file)
-                       (string-match file project-file))
+                       (string-search file project-file))
                      project-files)
                   nil)))
     files))
