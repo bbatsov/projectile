@@ -4627,11 +4627,15 @@ installed to work."
 A thin wrapper around `xref-references-in-directory' scoped to the
 project root."
   (interactive)
-  (let ((project-root (projectile-acquire-root))
-        (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point)))))
-    (xref-show-xrefs
-     (lambda () (xref-references-in-directory symbol project-root))
-     nil)))
+  (let* ((project-root (projectile-acquire-root))
+         (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point))))
+         (fetcher (lambda () (xref-references-in-directory symbol project-root))))
+    (cond
+     ((fboundp 'xref-show-xrefs)
+      (xref-show-xrefs fetcher nil))
+     ((fboundp 'xref--show-xrefs)
+      (xref--show-xrefs fetcher nil))
+     (t (error "No suitable xref display function available")))))
 
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."

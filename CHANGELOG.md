@@ -10,6 +10,15 @@
 
 ### Bugs fixed
 
+* Fix `projectile-files-via-ext-command` executing empty string as shell command for non-git VCS sub-projects.
+* Fix `projectile-select-files` crashing on filenames with regexp metacharacters by using `string-search` instead of `string-match`.
+* Fix `projectile-find-references` using internal `xref--show-xrefs` API whose signature changed across Emacs versions.
+* Fix `projectile-determine-find-tag-fn` falling back to `find-tag` which was removed in Emacs 29; now falls back to `xref-find-definitions`.
+* Fix `projectile-files-to-ensure` expanding wildcards relative to the current buffer instead of the project root.
+* Fix `projectile-ignored-project-p` failing to match abbreviated paths against truename-resolved ignored projects list.
+* Fix `projectile-edit-dir-locals` saving partial `.dir-locals.el` content when the user aborts skeleton insertion with `C-g`.
+* Fix `projectile--other-extension-files` sort comparator ignoring its second argument, producing undefined ordering; replaced with a stable partition.
+* Fix `projectile-toggle-project-read-only` operating on the wrong buffer after `add-dir-local-variable` by wrapping in `save-selected-window`.
 * Fix `projectile-cache-current-file` calling `projectile-project-root` twice instead of reusing the already-resolved value.
 * Fix `projectile-load-project-cache` storing nil in cache on corrupt/empty cache files, preventing future reload attempts.
 * Fix `projectile--cmake-command-presets` using `mapcar` instead of `mapcan`, producing nested lists for included presets.
