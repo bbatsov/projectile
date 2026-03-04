@@ -2126,8 +2126,9 @@ Unignored files/directories are not included."
   (projectile-normalise-paths (caddr (projectile-parse-dirconfig-file))))
 
 (defun projectile-files-to-ensure ()
-  (flatten-tree (mapcar (lambda (pat) (file-expand-wildcards pat t))
-                              (projectile-patterns-to-ensure))))
+  (let ((default-directory (projectile-project-root)))
+    (flatten-tree (mapcar #'file-expand-wildcards
+                          (projectile-patterns-to-ensure)))))
 
 (defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
