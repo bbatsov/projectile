@@ -6268,9 +6268,8 @@ If the current buffer does not belong to a project, call `previous-buffer'."
   (let ((file (expand-file-name ".dir-locals.el" (projectile-acquire-root))))
     (find-file file)
     (when (not (file-exists-p file))
-      (unwind-protect
-          (projectile-skel-dir-locals)
-        (save-buffer)))))
+      (projectile-skel-dir-locals)
+      (save-buffer))))
 
 
 ;;; Projectile Minor mode
