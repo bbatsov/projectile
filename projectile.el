@@ -2481,13 +2481,14 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                file-list)))
          (candidates
           (seq-filter (lambda (file) (not (backup-file-name-p file))) candidates))
-         (candidates
-          (seq-sort (lambda (file _)
-                      (let ((candidate-dirname (file-name-nondirectory (directory-file-name (if (file-name-directory file)
-                                                                                                (file-name-directory file) "./")))))
-                        (unless (equal fulldirname (file-name-directory file))
-                          (equal dirname candidate-dirname))))
-                    candidates)))
+         (sibling-dir-p (lambda (file)
+                          (let ((candidate-dirname (file-name-nondirectory
+                                                    (directory-file-name
+                                                     (or (file-name-directory file) "./")))))
+                            (and (not (equal fulldirname (file-name-directory file)))
+                                 (equal dirname candidate-dirname)))))
+         (candidates (append (seq-filter sibling-dir-p candidates)
+                             (seq-remove sibling-dir-p candidates))))
     candidates))
 
 (defun projectile-select-files (project-files &optional invalidate-cache)
