@@ -5932,9 +5932,10 @@ Return a list of projects removed."
 
 (defun projectile-ignored-project-p (project-root)
   "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'."
-  (or (member project-root (projectile-ignored-projects))
-      (and (functionp projectile-ignored-project-function)
-           (funcall projectile-ignored-project-function project-root))))
+  (let ((project-root (file-truename project-root)))
+    (or (member project-root (projectile-ignored-projects))
+        (and (functionp projectile-ignored-project-function)
+             (funcall projectile-ignored-project-function project-root)))))
 
 ;;;###autoload
 (defun projectile-add-known-project (project-root)
