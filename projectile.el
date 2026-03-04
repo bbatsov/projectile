@@ -4621,12 +4621,14 @@ installed to work."
 (defun projectile-find-references (&optional symbol)
   "Find all references to SYMBOL in the current project.
 
-A thin wrapper around `xref-references-in-directory'."
+A thin wrapper around `xref-references-in-directory' scoped to the
+project root."
   (interactive)
-  (when (fboundp 'xref--show-xrefs)
-    (let ((project-root (projectile-acquire-root))
-          (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point)))))
-      (xref--show-xrefs (xref-references-in-directory symbol project-root) nil))))
+  (let ((project-root (projectile-acquire-root))
+        (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point)))))
+    (xref-show-xrefs
+     (lambda () (xref-references-in-directory symbol project-root))
+     nil)))
 
 (defun projectile-tags-exclude-patterns ()
   "Return a string with exclude patterns for ctags."
