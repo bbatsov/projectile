@@ -4693,7 +4693,7 @@ project root."
     ((eq projectile-tags-backend 'etags-select)
      (when (fboundp 'etags-select-find-tag)
        'etags-select-find-tag)))
-   'find-tag))
+   'xref-find-definitions))
 
 ;;;###autoload
 (defun projectile-find-tag ()
