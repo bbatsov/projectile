@@ -643,8 +643,8 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty or fails"
-              (expect (projectile-files-via-ext-command "" "") :not :to-be-truthy)
-              (expect (projectile-files-via-ext-command "" nil) :not :to-be-truthy)
+              (expect (projectile-files-via-ext-command "/" "") :not :to-be-truthy)
+              (expect (projectile-files-via-ext-command "/" nil) :not :to-be-truthy)
               (expect (projectile-files-via-ext-command "" "echo Not a file name! > &2") :not :to-be-truthy)
               (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename")))
 
@@ -654,6 +654,30 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           (it "strips ./ prefix from results"
               (expect (projectile-files-via-ext-command "" "printf './foo\\0./bar/baz\\0quux'")
                       :to-equal '("foo" "bar/baz" "quux"))))
+
+(describe "projectile-ignored-project-p"
+  (it "matches abbreviated paths against truename-resolved ignored list"
+    (let ((projectile-ignored-projects (list default-directory)))
+      (spy-on 'file-truename :and-call-fake
+              (lambda (f) (expand-file-name f)))
+      (expect (projectile-ignored-project-p
+               (abbreviate-file-name default-directory))
+              :to-be-truthy)))
+  (it "returns nil for non-ignored projects"
+    (let ((projectile-ignored-projects '("/some/other/project/")))
+      (expect (projectile-ignored-project-p "/my/project/")
+              :not :to-be-truthy))))
+
+(describe "projectile-determine-find-tag-fn"
+  (it "falls back to xref-find-definitions when ggtags backend is unavailable"
+    (let ((projectile-tags-backend 'ggtags))
+      (expect (projectile-determine-find-tag-fn) :to-equal 'xref-find-definitions)))
+  (it "falls back to xref-find-definitions when etags-select backend is unavailable"
+    (let ((projectile-tags-backend 'etags-select))
+      (expect (projectile-determine-find-tag-fn) :to-equal 'xref-find-definitions)))
+  (it "returns xref-find-definitions for auto backend without ggtags"
+    (let ((projectile-tags-backend 'auto))
+      (expect (projectile-determine-find-tag-fn) :to-equal 'xref-find-definitions))))
 
 (describe "projectile-mode"
   (before-each
