@@ -2671,9 +2671,10 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
   (let ((inhibit-read-only t)
         (val (not buffer-read-only))
         (default-directory (projectile-acquire-root)))
-    (add-dir-local-variable nil 'buffer-read-only val)
-    (save-buffer)
-    (kill-buffer)
+    (save-selected-window
+      (add-dir-local-variable nil 'buffer-read-only val)
+      (save-buffer)
+      (kill-buffer))
     (when buffer-file-name
       (read-only-mode (if val +1 -1))
       (message "[%s] read-only-mode is %s" (projectile-project-name) (if val "on" "off")))))
