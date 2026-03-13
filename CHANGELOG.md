@@ -7,6 +7,7 @@
 * [#1964](https://github.com/bbatsov/projectile/issues/1964): Implement `project-name` and `project-buffers` methods for the `project.el` integration, so that code using `project.el` APIs returns correct results for Projectile-managed projects.
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
 * Add keybinding `A` (in the projectile command map) and a menu entry for `projectile-add-known-project`.
+* [#1653](https://github.com/bbatsov/projectile/issues/1653): Add `projectile-compile-subproject` and `projectile-test-subproject` commands for building/testing individual modules in multi-module projects (e.g. Maven, Gradle). Bound to `c m c` and `c m t`.
 
 ### Bugs fixed
 
