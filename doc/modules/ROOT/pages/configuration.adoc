@@ -723,6 +723,39 @@ uses the project root directory name, but you can provide your own:
 NOTE: If the variable `projectile-project-name` is set (e.g. via
 `.dir-locals.el`), it takes precedence over the function.
 
+== VCS detection order
+
+Projectile automatically detects which version control system a project uses
+by checking for marker directories (`.git`, `.hg`, `.jj`, etc.).  The variable
+`projectile-vcs-markers` controls the detection order — earlier entries take
+priority:
+
+[source,elisp]
+----
+;; Default value — git is detected before jj
+(setq projectile-vcs-markers
+  '((".git"      . git)
+    (".hg"       . hg)
+    (".fslckout" . fossil)
+    ("_FOSSIL_"  . fossil)
+    (".bzr"      . bzr)
+    ("_darcs"    . darcs)
+    (".pijul"    . pijul)
+    (".sl"       . sapling)
+    (".jj"       . jj)
+    (".svn"      . svn)))
+----
+
+This is useful for colocated repositories where multiple VCS markers are
+present.  For example, https://martinvonz.github.io/jj/[Jujutsu] colocated
+repos contain both `.jj` and `.git`.  To detect them as `jj` instead of `git`:
+
+[source,elisp]
+----
+;; Prefer jj over git for colocated repos
+(push '(".jj" . jj) projectile-vcs-markers)
+----
+
 == Dirty projects
 
 `projectile-browse-dirty-projects` (kbd:[s-p V]) shows projects with
