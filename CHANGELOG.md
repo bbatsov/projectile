@@ -4,6 +4,7 @@
 
 ### New features
 
+* Warn once per session when `projectile-indexing-method' is `alien' but the project has a non-empty `.projectile' file, so users notice their dirconfig rules are being bypassed. Controlled by the new `projectile-warn-when-dirconfig-is-ignored' option.
 * [#1964](https://github.com/bbatsov/projectile/issues/1964): Implement `project-name` and `project-buffers` methods for the `project.el` integration, so that code using `project.el` APIs returns correct results for Projectile-managed projects.
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
 * Add keybinding `A` (in the projectile command map) and a menu entry for `projectile-add-known-project`.

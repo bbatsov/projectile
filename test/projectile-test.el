@@ -633,6 +633,69 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (projectile-invalidate-cache nil)
         (expect (gethash root projectile--dirconfig-cache) :to-be nil))))))
 
+(describe "alien-mode dirconfig warning"
+  (before-each
+    (clrhash projectile--alien-dirconfig-warned-projects))
+  (it "warns once when alien indexing skips a populated .projectile"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'alien)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored t))
+          (projectile-project-files root)
+          (projectile-project-files root))
+        (expect 'display-warning :to-have-been-called-times 1)))))
+  (it "does not warn for an empty .projectile"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'alien)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored t))
+          (projectile-project-files root))
+        (expect 'display-warning :not :to-have-been-called)))))
+  (it "does not warn when the warning is disabled"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'alien)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored nil))
+          (projectile-project-files root))
+        (expect 'display-warning :not :to-have-been-called)))))
+  (it "does not warn under non-alien indexing"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-get-project-directories :and-return-value '())
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'native)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored t))
+          (projectile-project-files root))
+        (expect 'display-warning :not :to-have-been-called))))))
+
 (describe "projectile-get-project-directories"
   (it "gets the list of project directories"
     (spy-on 'projectile-project-root :and-return-value "/my/root/")

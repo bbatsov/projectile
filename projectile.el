@@ -404,6 +404,17 @@ Similar to '#' in .gitignore files."
   :type 'character
   :package-version '(projectile . "2.2.0"))
 
+(defcustom projectile-warn-when-dirconfig-is-ignored t
+  "Whether to warn when a non-empty .projectile is bypassed by alien indexing.
+Under the `alien' indexing method, Projectile does not consult the
+project's dirconfig file at indexing time.  When this option is
+non-nil, a one-time warning is shown for each project where a
+non-empty dirconfig is present alongside alien indexing, since the
+silent bypass is a frequent source of confusion."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name projectile-cache-file)
   "A list of files globally ignored by projectile.
@@ -652,6 +663,9 @@ project."
 (defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
   "Cache for parsed dirconfig files, keyed by project root.
 Each value is a cons of (MTIME . PARSED-RESULT).")
+
+(defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
+  "Set of project roots already warned about alien indexing skipping the dirconfig.")
 
 (defvar projectile-known-projects nil
   "List of locations where we have previously seen projects.
@@ -2288,6 +2302,30 @@ project-root for every file."
         (funcall action res)
       res)))
 
+(defun projectile--dirconfig-non-empty-p ()
+  "Return non-nil if the current project's dirconfig file has any content."
+  (let* ((dirconfig (projectile-dirconfig-file))
+         (attrs (and (projectile-file-exists-p dirconfig)
+                     (file-attributes dirconfig))))
+    (and attrs (> (file-attribute-size attrs) 0))))
+
+(defun projectile--maybe-warn-dirconfig-ignored (project-root)
+  "Warn once per session that PROJECT-ROOT's dirconfig is bypassed by alien mode."
+  (when (and projectile-warn-when-dirconfig-is-ignored
+             (eq projectile-indexing-method 'alien)
+             (not (gethash project-root
+                           projectile--alien-dirconfig-warned-projects))
+             (projectile--dirconfig-non-empty-p))
+    (puthash project-root t projectile--alien-dirconfig-warned-projects)
+    (display-warning
+     'projectile
+     (format "Project %s has a non-empty %s but `projectile-indexing-method' \
+is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
+`native' if you need those rules to apply, or set \
+`projectile-warn-when-dirconfig-is-ignored' to nil to silence this warning."
+             project-root projectile-dirconfig-file)
+     :warning)))
+
 (defun projectile-project-files (project-root)
   "Return a list of files for the PROJECT-ROOT."
   (let (files)
@@ -2317,7 +2355,9 @@ project-root for every file."
             (if (eq projectile-indexing-method 'alien)
                 ;; In alien mode we can just skip reading
                 ;; .projectile and find all files in the root dir.
-                (projectile-dir-files-alien project-root)
+                (progn
+                  (projectile--maybe-warn-dirconfig-ignored project-root)
+                  (projectile-dir-files-alien project-root))
               ;; If a project is defined as a list of subfolders
               ;; then we'll have the files returned for each subfolder,
               ;; so they are relative to the project root.
