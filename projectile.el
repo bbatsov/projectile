@@ -681,6 +681,9 @@ Each value is a cons of (MTIME . PARSED-RESULT).")
 (defvar projectile--prefixless-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about prefix-less dirconfig entries.")
 
+(defvar projectile--glob-keep-warned-projects (make-hash-table :test 'equal)
+  "Set of project roots already warned about glob patterns in + keep entries.")
+
 (defvar projectile-known-projects nil
   "List of locations where we have previously seen projects.
 The list of projects is ordered by the time they have been accessed.
@@ -2213,17 +2216,27 @@ are accepted for backward compatibility but recorded separately so
 callers can flag the deprecated syntax.  All slots default to nil."
   (keep nil) (ignore nil) (ensure nil) (prefixless-ignore nil))
 
-(defun projectile--warn-glob-in-keep-entry (entry dirconfig)
-  "Warn that ENTRY in DIRCONFIG looks like a glob pattern after a `+'.
-The `+' prefix is for subdirectories only; the parser silently coerces
-each entry to a directory, so a glob pattern would never match."
-  (display-warning
-   'projectile
-   (format "%s contains `+%s', but `+' entries are treated as \
-subdirectory paths and globs are not expanded.  Use a plain directory \
-or move the pattern to a `-'/`!' rule."
-           dirconfig entry)
-   :warning))
+(defun projectile--maybe-warn-glob-keep-entries (project-root cfg)
+  "Warn once per session about glob patterns in + keep entries.
+PROJECT-ROOT identifies the warned-projects set; CFG is the parsed
+`projectile-dirconfig' struct.  The `+' prefix is for subdirectories
+only; the parser silently coerces each entry to a directory, so a
+glob pattern would never match."
+  (when (and cfg
+             (not (gethash project-root projectile--glob-keep-warned-projects)))
+    (when-let* ((globbed (seq-filter
+                          (lambda (entry) (string-match-p "[][*?]" entry))
+                          (projectile-dirconfig-keep cfg))))
+      (puthash project-root t projectile--glob-keep-warned-projects)
+      (display-warning
+       'projectile
+       (format "%s contains `+' entries with glob metacharacters: %s.  \
+The `+' prefix is for subdirectory paths only; globs are not expanded \
+and the entries are silently coerced to directory names.  Use a plain \
+directory or move the pattern to a `-'/`!' rule."
+               (expand-file-name projectile-dirconfig-file project-root)
+               (mapconcat (lambda (s) (format "`%s'" s)) globbed ", "))
+       :warning))))
 
 (defun projectile--dirconfig-classify-line (line)
   "Classify LINE from a dirconfig file.
@@ -2268,14 +2281,10 @@ compatibility but are tracked separately so callers can warn."
 Return a `projectile-dirconfig' or nil if the file doesn't exist."
   (let ((dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
-      (let ((cfg (projectile--parse-dirconfig-string
-                  (with-temp-buffer
-                    (insert-file-contents dirconfig)
-                    (buffer-string)))))
-        (dolist (entry (projectile-dirconfig-keep cfg))
-          (when (string-match-p "[*?[]" entry)
-            (projectile--warn-glob-in-keep-entry entry dirconfig)))
-        cfg))))
+      (projectile--parse-dirconfig-string
+       (with-temp-buffer
+         (insert-file-contents dirconfig)
+         (buffer-string))))))
 
 (defun projectile--maybe-warn-prefixless-entries (project-root cfg)
   "Warn once per session about prefix-less ignore entries in CFG for PROJECT-ROOT.
@@ -2335,6 +2344,7 @@ dirconfig file's modification time changes."
                                 projectile--dirconfig-cache))
                      parsed))))
     (projectile--maybe-warn-prefixless-entries project-root result)
+    (projectile--maybe-warn-glob-keep-entries project-root result)
     result))
 
 (defun projectile-expand-root (name &optional dir)
