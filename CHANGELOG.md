@@ -2,6 +2,11 @@
 
 ## master (unreleased)
 
+### Changes
+
+* `projectile-parse-dirconfig-file' now returns a `projectile-dirconfig' struct (with `keep', `ignore', `ensure', and `prefixless-ignore' slots) instead of a positional 3-tuple. External callers should use the accessors (`projectile-dirconfig-keep' etc.) rather than `car'/`cadr'/`caddr'.
+* Soft-deprecate prefix-less ignore entries in `.projectile'. Lines without a `+'/`-'/`!' prefix are still treated as ignore patterns for backward compatibility, but a one-time warning is now shown for each project that uses them. Set `projectile-warn-on-prefixless-dirconfig-lines' to nil to silence.
+
 ### New features
 
 * Warn once per session when `projectile-indexing-method' is `alien' but the project has a non-empty `.projectile' file, so users notice their dirconfig rules are being bypassed. Controlled by the new `projectile-warn-when-dirconfig-is-ignored' option.

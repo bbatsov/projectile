@@ -527,6 +527,37 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (let ((projectile-globally-unignored-files '("path/unignored-file")))
           (expect (projectile-add-unignored nil nil '("file")) :to-equal '("file" "path/unignored-file")))))))
 
+(describe "projectile--dirconfig-classify-line"
+  (it "returns nil for blank or whitespace-only lines"
+    (expect (projectile--dirconfig-classify-line "") :to-be nil)
+    (expect (projectile--dirconfig-classify-line "   ") :to-be nil)
+    (expect (projectile--dirconfig-classify-line "\t") :to-be nil))
+  (it "classifies prefix dispatches"
+    (expect (projectile--dirconfig-classify-line "+/src")
+            :to-equal '(:keep . "/src"))
+    (expect (projectile--dirconfig-classify-line "-/build")
+            :to-equal '(:ignore . "/build"))
+    (expect (projectile--dirconfig-classify-line "!/build/keepme")
+            :to-equal '(:ensure . "/build/keepme")))
+  (it "tags prefix-less lines as legacy-ignore for backward compatibility"
+    (expect (projectile--dirconfig-classify-line "stale-pattern")
+            :to-equal '(:legacy-ignore . "stale-pattern")))
+  (it "skips leading whitespace before dispatch"
+    (expect (projectile--dirconfig-classify-line "  -indented")
+            :to-equal '(:ignore . "indented"))
+    (expect (projectile--dirconfig-classify-line "\t+keep")
+            :to-equal '(:keep . "keep")))
+  (it "honors the comment prefix when configured"
+    (let ((projectile-dirconfig-comment-prefix ?#))
+      (expect (projectile--dirconfig-classify-line "# a comment")
+              :to-equal '(:comment))
+      (expect (projectile--dirconfig-classify-line "  # indented comment")
+              :to-equal '(:comment)))
+    ;; Without a comment prefix, # is just a regular character.
+    (let ((projectile-dirconfig-comment-prefix nil))
+      (expect (projectile--dirconfig-classify-line "#may-be-a-comment")
+              :to-equal '(:legacy-ignore . "#may-be-a-comment")))))
+
 (describe "projectile-parse-dirconfig-file"
   (it "parses dirconfig and returns directories to ignore and keep"
     (spy-on 'file-exists-p :and-return-value t)
@@ -534,22 +565,30 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (spy-on 'insert-file-contents :and-call-fake
             (lambda (filename)
               (save-excursion (insert "\n-exclude\n+include\n#may-be-a-comment\nno-prefix\n left-wspace\nright-wspace\t\n"))))
-    (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
-                                                          ("exclude"
-							   "#may-be-a-comment"
-							   "no-prefix"
-							   "left-wspace"
-							   "right-wspace")
-                                                          nil))
+    (expect (projectile-parse-dirconfig-file)
+            :to-equal (make-projectile-dirconfig
+                       :keep '("include/")
+                       :ignore '("exclude"
+                                 "#may-be-a-comment"
+                                 "no-prefix"
+                                 "left-wspace"
+                                 "right-wspace")
+                       :prefixless-ignore '("#may-be-a-comment"
+                                            "no-prefix"
+                                            "left-wspace"
+                                            "right-wspace")))
     ;; same test - but with comment lines enabled using prefix '#'
     (let ((projectile-dirconfig-comment-prefix ?#))
-      (expect (projectile-parse-dirconfig-file) :to-equal '(("include/")
-							    ("exclude"
-							     "no-prefix"
-							     "left-wspace"
-							     "right-wspace")
-							    nil)))
-    )
+      (expect (projectile-parse-dirconfig-file)
+              :to-equal (make-projectile-dirconfig
+                         :keep '("include/")
+                         :ignore '("exclude"
+                                   "no-prefix"
+                                   "left-wspace"
+                                   "right-wspace")
+                         :prefixless-ignore '("no-prefix"
+                                              "left-wspace"
+                                              "right-wspace")))))
   (it "skips leading whitespace before dispatching on the prefix"
     (spy-on 'file-exists-p :and-return-value t)
     (spy-on 'insert-file-contents :and-call-fake
@@ -560,9 +599,11 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                         " !indented-ensure\n"
                         "  no-prefix-indented\n"))))
     (expect (projectile-parse-dirconfig-file)
-            :to-equal '(("indented-include/")
-                        ("indented-exclude" "no-prefix-indented")
-                        ("indented-ensure"))))
+            :to-equal (make-projectile-dirconfig
+                       :keep '("indented-include/")
+                       :ignore '("indented-exclude" "no-prefix-indented")
+                       :ensure '("indented-ensure")
+                       :prefixless-ignore '("no-prefix-indented"))))
   (it "treats indented comment-prefix lines as comments"
     (spy-on 'file-exists-p :and-return-value t)
     (spy-on 'insert-file-contents :and-call-fake
@@ -572,7 +613,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                         "-keep-this\n"))))
     (let ((projectile-dirconfig-comment-prefix ?#))
       (expect (projectile-parse-dirconfig-file)
-              :to-equal '(nil ("keep-this") nil))))
+              :to-equal (make-projectile-dirconfig :ignore '("keep-this")))))
   (it "warns when a + keep entry contains glob metacharacters"
     (spy-on 'file-exists-p :and-return-value t)
     (spy-on 'insert-file-contents :and-call-fake
@@ -613,9 +654,11 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                   "stale-pattern\n"))
         (spy-on 'projectile-project-root :and-return-value root)
         (expect (projectile-parse-dirconfig-file)
-                :to-equal '(("/src/")
-                            ("/build" "stale-pattern")
-                            ("/build/keepme")))))))
+                :to-equal (make-projectile-dirconfig
+                           :keep '("/src/")
+                           :ignore '("/build" "stale-pattern")
+                           :ensure '("/build/keepme")
+                           :prefixless-ignore '("stale-pattern")))))))
   (it "round-trips non-ASCII paths through the parser"
     (projectile-test-with-sandbox
      (projectile-test-with-files
@@ -627,9 +670,9 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                   "+/プロジェクト\n"))
         (spy-on 'projectile-project-root :and-return-value root)
         (expect (projectile-parse-dirconfig-file)
-                :to-equal '(("/プロジェクト/")
-                            ("héllo/wörld")
-                            nil))))))
+                :to-equal (make-projectile-dirconfig
+                           :keep '("/プロジェクト/")
+                           :ignore '("héllo/wörld")))))))
   (it "tolerates a trailing line without a final newline"
     (projectile-test-with-sandbox
      (projectile-test-with-files
@@ -638,7 +681,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n-bar"))
         (spy-on 'projectile-project-root :and-return-value root)
-        (expect (cadr (projectile-parse-dirconfig-file))
+        (expect (projectile-dirconfig-ignore (projectile-parse-dirconfig-file))
                 :to-equal '("foo" "bar")))))))
 
 (describe "dirconfig cache"
@@ -667,14 +710,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
              (dirconfig (expand-file-name ".projectile" root)))
         (with-temp-file dirconfig (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)
-        (expect (cadr (projectile-parse-dirconfig-file))
+        (expect (projectile-dirconfig-ignore (projectile-parse-dirconfig-file))
                 :to-equal '("foo"))
         ;; Force a distinct mtime — file-attribute-modification-time has
         ;; second-level resolution on some filesystems.
         (set-file-times dirconfig (time-add (current-time) 5))
         (with-temp-file dirconfig (insert "-bar\n"))
         (set-file-times dirconfig (time-add (current-time) 5))
-        (expect (cadr (projectile-parse-dirconfig-file))
+        (expect (projectile-dirconfig-ignore (projectile-parse-dirconfig-file))
                 :to-equal '("bar"))))))
   (it "returns nil and does not cache when the dirconfig file is absent"
     (projectile-test-with-sandbox
@@ -699,6 +742,48 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (expect (gethash root projectile--dirconfig-cache) :not :to-be nil)
         (projectile-invalidate-cache nil)
         (expect (gethash root projectile--dirconfig-cache) :to-be nil))))))
+
+(describe "prefix-less dirconfig warning"
+  (before-each
+    (clrhash projectile--dirconfig-cache)
+    (clrhash projectile--prefixless-dirconfig-warned-projects))
+  (it "warns once when a dirconfig contains prefix-less ignore lines"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\nstale-pattern\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'display-warning)
+        (let ((projectile-warn-on-prefixless-dirconfig-lines t))
+          (projectile-parse-dirconfig-file)
+          (projectile-parse-dirconfig-file))
+        (expect 'display-warning :to-have-been-called-times 1)))))
+  (it "does not warn for a fully-prefixed dirconfig"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n+/src\n!/build/keep\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'display-warning)
+        (let ((projectile-warn-on-prefixless-dirconfig-lines t))
+          (projectile-parse-dirconfig-file))
+        (expect 'display-warning :not :to-have-been-called)))))
+  (it "does not warn when the option is disabled"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "stale-pattern\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'display-warning)
+        (let ((projectile-warn-on-prefixless-dirconfig-lines nil))
+          (projectile-parse-dirconfig-file))
+        (expect 'display-warning :not :to-have-been-called))))))
 
 (describe "alien-mode dirconfig warning"
   (before-each
@@ -766,11 +851,12 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 (describe "projectile-get-project-directories"
   (it "gets the list of project directories"
     (spy-on 'projectile-project-root :and-return-value "/my/root/")
-    (spy-on 'projectile-parse-dirconfig-file :and-return-value '(nil))
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value nil)
     (expect (projectile-get-project-directories "/my/root") :to-equal '("/my/root")))
   (it "gets the list of project directories with dirs to keep"
     (spy-on 'projectile-project-root :and-return-value "/my/root/")
-    (spy-on 'projectile-parse-dirconfig-file :and-return-value '(("foo" "bar/baz")))
+    (spy-on 'projectile-parse-dirconfig-file
+            :and-return-value (make-projectile-dirconfig :keep '("foo" "bar/baz")))
     (expect (projectile-get-project-directories "/my/root/") :to-equal '("/my/root/foo" "/my/root/bar/baz"))))
 
 (describe "projectile-dir-files"

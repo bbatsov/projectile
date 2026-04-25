@@ -415,6 +415,17 @@ silent bypass is a frequent source of confusion."
   :type 'boolean
   :package-version '(projectile . "2.10.0"))
 
+(defcustom projectile-warn-on-prefixless-dirconfig-lines t
+  "Whether to warn about deprecated prefix-less ignore entries.
+Lines in `.projectile' that start with no `+'/`-'/`!' prefix are
+still accepted as ignore patterns for backward compatibility, but
+the implicit form is being phased out.  When this option is
+non-nil, a one-time warning is shown per project that uses any
+such line, listing the offending entries."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name projectile-cache-file)
   "A list of files globally ignored by projectile.
@@ -666,6 +677,9 @@ Each value is a cons of (MTIME . PARSED-RESULT).")
 
 (defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about alien indexing skipping the dirconfig.")
+
+(defvar projectile--prefixless-dirconfig-warned-projects (make-hash-table :test 'equal)
+  "Set of project roots already warned about prefix-less dirconfig entries.")
 
 (defvar projectile-known-projects nil
   "List of locations where we have previously seen projects.
@@ -1516,8 +1530,10 @@ If PROJECT is not specified acts on the current project."
 ;;; Project indexing
 (defun projectile-get-project-directories (project-dir)
   "Get the list of PROJECT-DIR directories that are of interest to the user."
-  (mapcar (lambda (subdir) (concat project-dir subdir))
-          (or (car (projectile-parse-dirconfig-file)) '(""))))
+  (let* ((cfg (projectile-parse-dirconfig-file))
+         (keep (and cfg (projectile-dirconfig-keep cfg))))
+    (mapcar (lambda (subdir) (concat project-dir subdir))
+            (or keep '("")))))
 
 (defun projectile--directory-p (directory)
   "Checks if DIRECTORY is a string designating a valid directory."
@@ -2101,13 +2117,23 @@ Unignored files are not included."
 Unignored directories are not included."
   (seq-filter 'file-directory-p (projectile-project-ignored)))
 
+(defun projectile--dirconfig-ignore ()
+  "Return the IGNORE entries from the project's dirconfig, or nil."
+  (when-let* ((cfg (projectile-parse-dirconfig-file)))
+    (projectile-dirconfig-ignore cfg)))
+
+(defun projectile--dirconfig-ensure ()
+  "Return the ENSURE entries from the project's dirconfig, or nil."
+  (when-let* ((cfg (projectile-parse-dirconfig-file)))
+    (projectile-dirconfig-ensure cfg)))
+
 (defun projectile-paths-to-ignore ()
   "Return a list of ignored project paths."
-  (projectile-normalise-paths (cadr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-paths (projectile--dirconfig-ignore)))
 
 (defun projectile-patterns-to-ignore ()
   "Return a list of relative file patterns."
-  (projectile-normalise-patterns (cadr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (projectile--dirconfig-ignore)))
 
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories.
@@ -2151,7 +2177,7 @@ Unignored files/directories are not included."
 
 (defun projectile-paths-to-ensure ()
   "Return a list of unignored project paths."
-  (projectile-normalise-paths (caddr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-paths (projectile--dirconfig-ensure)))
 
 (defun projectile-files-to-ensure ()
   (let ((default-directory (projectile-project-root)))
@@ -2160,7 +2186,7 @@ Unignored files/directories are not included."
 
 (defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
-  (projectile-normalise-patterns (caddr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (projectile--dirconfig-ensure)))
 
 (defun projectile-filtering-patterns ()
   (cons (projectile-patterns-to-ignore)
@@ -2176,6 +2202,17 @@ Unignored files/directories are not included."
   "Return the absolute path to the project's dirconfig file."
   (expand-file-name projectile-dirconfig-file (projectile-project-root)))
 
+(cl-defstruct projectile-dirconfig
+  "Parsed contents of a project's dirconfig file.
+KEEP is the list of subdirectories to restrict the project to (as
+returned with a trailing slash).  IGNORE and ENSURE are the lists
+of files or directories to ignore and to forcibly include,
+respectively.  PREFIXLESS-IGNORE is the subset of IGNORE entries
+that arrived without a leading `+'/`-'/`!'/comment marker; they
+are accepted for backward compatibility but recorded separately so
+callers can flag the deprecated syntax.  All slots default to nil."
+  (keep nil) (ignore nil) (ensure nil) (prefixless-ignore nil))
+
 (defun projectile--warn-glob-in-keep-entry (entry dirconfig)
   "Warn that ENTRY in DIRCONFIG looks like a glob pattern after a `+'.
 The `+' prefix is for subdirectories only; the parser silently coerces
@@ -2188,48 +2225,88 @@ or move the pattern to a `-'/`!' rule."
            dirconfig entry)
    :warning))
 
+(defun projectile--dirconfig-classify-line (line)
+  "Classify LINE from a dirconfig file.
+Return a cons (BUCKET . VALUE) where BUCKET is one of `:keep',
+`:ignore', `:ensure', `:legacy-ignore', or `:comment'.  Return nil
+for a blank line.  Leading whitespace is skipped before dispatch
+so an accidental space or tab before the prefix does not change
+classification.  `:legacy-ignore' is reserved for prefix-less
+lines, which are still treated as ignore patterns for backward
+compatibility but are tracked separately so callers can warn."
+  (let* ((trimmed (string-trim-left line))
+         (first-char (and (> (length trimmed) 0) (aref trimmed 0))))
+    (cond
+     ((null first-char) nil)
+     ((and projectile-dirconfig-comment-prefix
+           (eql first-char projectile-dirconfig-comment-prefix))
+      (cons :comment nil))
+     ((eql first-char ?+) (cons :keep          (string-trim (substring trimmed 1))))
+     ((eql first-char ?-) (cons :ignore        (string-trim (substring trimmed 1))))
+     ((eql first-char ?!) (cons :ensure        (string-trim (substring trimmed 1))))
+     (t                   (cons :legacy-ignore (string-trim trimmed))))))
+
+(defun projectile--parse-dirconfig-string (text)
+  "Parse TEXT (a dirconfig file's contents) into a `projectile-dirconfig'."
+  (let (keep ignore ensure prefixless)
+    (dolist (line (split-string text "\n"))
+      (pcase (projectile--dirconfig-classify-line line)
+        (`(:keep . ,v)          (unless (string-empty-p v) (push v keep)))
+        (`(:ignore . ,v)        (unless (string-empty-p v) (push v ignore)))
+        (`(:ensure . ,v)        (unless (string-empty-p v) (push v ensure)))
+        (`(:legacy-ignore . ,v) (unless (string-empty-p v)
+                                  (push v ignore)
+                                  (push v prefixless)))))
+    (make-projectile-dirconfig
+     :keep              (mapcar #'file-name-as-directory (nreverse keep))
+     :ignore            (nreverse ignore)
+     :ensure            (nreverse ensure)
+     :prefixless-ignore (nreverse prefixless))))
+
 (defun projectile--parse-dirconfig-file-uncached ()
   "Parse the dirconfig file without caching.
-Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
-  (let (keep ignore ensure (dirconfig (projectile-dirconfig-file)))
+Return a `projectile-dirconfig' or nil if the file doesn't exist."
+  (let ((dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
-      (with-temp-buffer
-        (insert-file-contents dirconfig)
-        (while (not (eobp))
-          ;; Skip leading whitespace so prefix dispatch isn't defeated by
-          ;; an accidental space or tab before the +/-/! marker or the
-          ;; configured comment character.
-          (skip-chars-forward " \t")
-          (pcase (char-after)
-            ;; ignore comment lines if prefix char has been set
-            ((pred (lambda (leading-char)
-                     (and projectile-dirconfig-comment-prefix
-                          (eql leading-char
-                               projectile-dirconfig-comment-prefix))))
-             nil)
-            (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
-            (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
-            (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
-            (_ (push (buffer-substring (point) (line-end-position)) ignore)))
-          (forward-line)))
-      (let ((trimmed-keep (mapcar #'string-trim (delete "" (reverse keep)))))
-        (dolist (entry trimmed-keep)
+      (let ((cfg (projectile--parse-dirconfig-string
+                  (with-temp-buffer
+                    (insert-file-contents dirconfig)
+                    (buffer-string)))))
+        (dolist (entry (projectile-dirconfig-keep cfg))
           (when (string-match-p "[*?[]" entry)
             (projectile--warn-glob-in-keep-entry entry dirconfig)))
-        (list (mapcar #'file-name-as-directory trimmed-keep)
-              (mapcar #'string-trim
-                      (delete "" (reverse ignore)))
-              (mapcar #'string-trim
-                      (delete "" (reverse ensure))))))))
+        cfg))))
+
+(defun projectile--maybe-warn-prefixless-entries (project-root cfg)
+  "Warn once per session about prefix-less ignore entries in CFG for PROJECT-ROOT.
+CFG is a `projectile-dirconfig' struct."
+  (when (and projectile-warn-on-prefixless-dirconfig-lines
+             cfg
+             (projectile-dirconfig-prefixless-ignore cfg)
+             (not (gethash project-root
+                           projectile--prefixless-dirconfig-warned-projects)))
+    (puthash project-root t projectile--prefixless-dirconfig-warned-projects)
+    (display-warning
+     'projectile
+     (format "%s contains entries without a `+'/`-'/`!' prefix: %s.  \
+The implicit form is treated as an ignore rule for backward \
+compatibility but is being phased out — please prefix the lines \
+explicitly.  Set `projectile-warn-on-prefixless-dirconfig-lines' \
+to nil to silence this warning."
+             (expand-file-name projectile-dirconfig-file project-root)
+             (mapconcat (lambda (s) (format "`%s'" s))
+                        (projectile-dirconfig-prefixless-ignore cfg)
+                        ", "))
+     :warning)))
 
 (defun projectile-parse-dirconfig-file ()
-  "Parse project ignore file and return directories to ignore and keep.
+  "Parse project ignore file and return its rules.
 
-The return value is a list of three elements: the car is the list
-of directories to keep, the cadr is the list of files or
-directories to ignore, and the caddr is the list of files or
-directories to ensure (i.e. forcibly include even when otherwise
-ignored).
+The return value is a `projectile-dirconfig' struct with three
+slots: KEEP (subdirectories to restrict the project to), IGNORE
+(files or directories to skip), and ENSURE (files or directories
+to forcibly include even when otherwise ignored).  When the file
+does not exist, the return value is nil.
 
 Lines are dispatched on their first non-whitespace character:
 
@@ -2248,13 +2325,17 @@ dirconfig file's modification time changes."
          (project-root (projectile-project-root))
          (cached (gethash project-root projectile--dirconfig-cache))
          (attrs (file-attributes dirconfig))
-         (mtime (when attrs (file-attribute-modification-time attrs))))
-    (if (and cached mtime (equal (car cached) mtime))
-        (cdr cached)
-      (let ((result (projectile--parse-dirconfig-file-uncached)))
-        (when mtime
-          (puthash project-root (cons mtime result) projectile--dirconfig-cache))
-        result))))
+         (mtime (when attrs (file-attribute-modification-time attrs)))
+         (result (if (and cached mtime (equal (car cached) mtime))
+                     (cdr cached)
+                   (let ((parsed (projectile--parse-dirconfig-file-uncached)))
+                     (when mtime
+                       (puthash project-root
+                                (cons mtime parsed)
+                                projectile--dirconfig-cache))
+                     parsed))))
+    (projectile--maybe-warn-prefixless-entries project-root result)
+    result))
 
 (defun projectile-expand-root (name &optional dir)
   "Expand NAME to project root.
