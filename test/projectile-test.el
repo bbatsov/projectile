@@ -559,6 +559,10 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
               :to-equal '(:legacy-ignore . "#may-be-a-comment")))))
 
 (describe "projectile-parse-dirconfig-file"
+  (before-each
+    (clrhash projectile--dirconfig-cache)
+    (clrhash projectile--glob-keep-warned-projects)
+    (clrhash projectile--prefixless-dirconfig-warned-projects))
   (it "parses dirconfig and returns directories to ignore and keep"
     (spy-on 'file-exists-p :and-return-value t)
     (spy-on 'file-truename :and-call-fake (lambda (filename) filename))
@@ -614,12 +618,13 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-dirconfig-comment-prefix ?#))
       (expect (projectile-parse-dirconfig-file)
               :to-equal (make-projectile-dirconfig :ignore '("keep-this")))))
-  (it "warns when a + keep entry contains glob metacharacters"
+  (it "warns once per project even when multiple + entries contain globs"
     (spy-on 'file-exists-p :and-return-value t)
     (spy-on 'insert-file-contents :and-call-fake
             (lambda (_filename)
-              (save-excursion (insert "+/*.json\n+/src\n"))))
+              (save-excursion (insert "+/*.json\n+/src\n+/[abc]/lib\n"))))
     (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
     (projectile-parse-dirconfig-file)
     (expect 'display-warning :to-have-been-called-times 1))
   (it "does not warn for plain + subdirectory entries"
@@ -741,7 +746,23 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (projectile-parse-dirconfig-file)
         (expect (gethash root projectile--dirconfig-cache) :not :to-be nil)
         (projectile-invalidate-cache nil)
-        (expect (gethash root projectile--dirconfig-cache) :to-be nil))))))
+        (expect (gethash root projectile--dirconfig-cache) :to-be nil)))))
+  (it "re-parses when projectile-dirconfig-file points to a different file"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (with-temp-file (expand-file-name ".projectile-alt" root)
+          (insert "-bar\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (let ((projectile-dirconfig-file ".projectile"))
+          (expect (projectile-dirconfig-ignore (projectile-parse-dirconfig-file))
+                  :to-equal '("foo")))
+        (let ((projectile-dirconfig-file ".projectile-alt"))
+          (expect (projectile-dirconfig-ignore (projectile-parse-dirconfig-file))
+                  :to-equal '("bar"))))))))
 
 (describe "prefix-less dirconfig warning"
   (before-each
