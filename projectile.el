@@ -2176,6 +2176,18 @@ Unignored files/directories are not included."
   "Return the absolute path to the project's dirconfig file."
   (expand-file-name projectile-dirconfig-file (projectile-project-root)))
 
+(defun projectile--warn-glob-in-keep-entry (entry dirconfig)
+  "Warn that ENTRY in DIRCONFIG looks like a glob pattern after a `+'.
+The `+' prefix is for subdirectories only; the parser silently coerces
+each entry to a directory, so a glob pattern would never match."
+  (display-warning
+   'projectile
+   (format "%s contains `+%s', but `+' entries are treated as \
+subdirectory paths and globs are not expanded.  Use a plain directory \
+or move the pattern to a `-'/`!' rule."
+           dirconfig entry)
+   :warning))
+
 (defun projectile--parse-dirconfig-file-uncached ()
   "Parse the dirconfig file without caching.
 Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
@@ -2200,12 +2212,15 @@ Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
             (_ (push (buffer-substring (point) (line-end-position)) ignore)))
           (forward-line)))
-      (list (mapcar (lambda (f) (file-name-as-directory (string-trim f)))
-                    (delete "" (reverse keep)))
-            (mapcar #'string-trim
-                    (delete "" (reverse ignore)))
-            (mapcar #'string-trim
-                    (delete "" (reverse ensure)))))))
+      (let ((trimmed-keep (mapcar #'string-trim (delete "" (reverse keep)))))
+        (dolist (entry trimmed-keep)
+          (when (string-match-p "[*?[]" entry)
+            (projectile--warn-glob-in-keep-entry entry dirconfig)))
+        (list (mapcar #'file-name-as-directory trimmed-keep)
+              (mapcar #'string-trim
+                      (delete "" (reverse ignore)))
+              (mapcar #'string-trim
+                      (delete "" (reverse ensure))))))))
 
 (defun projectile-parse-dirconfig-file ()
   "Parse project ignore file and return directories to ignore and keep.

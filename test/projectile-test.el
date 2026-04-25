@@ -572,7 +572,31 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                         "-keep-this\n"))))
     (let ((projectile-dirconfig-comment-prefix ?#))
       (expect (projectile-parse-dirconfig-file)
-              :to-equal '(nil ("keep-this") nil)))))
+              :to-equal '(nil ("keep-this") nil))))
+  (it "warns when a + keep entry contains glob metacharacters"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion (insert "+/*.json\n+/src\n"))))
+    (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
+    (expect 'display-warning :to-have-been-called-times 1))
+  (it "does not warn for plain + subdirectory entries"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion (insert "+/src\n+/tests/foo\n"))))
+    (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
+    (expect 'display-warning :not :to-have-been-called))
+  (it "does not warn for - ignore entries that contain globs"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion (insert "-*.json\n-build/*.tmp\n"))))
+    (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
+    (expect 'display-warning :not :to-have-been-called)))
 
 (describe "projectile-parse-dirconfig-file with a real file"
   (before-each
