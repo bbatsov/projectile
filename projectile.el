@@ -389,6 +389,13 @@ algorithm."
 (defcustom projectile-dirconfig-file
   ".projectile"
   "The file which serves both as a project marker and configuration file.
+
+The mere presence of this file in a directory marks that directory
+as a Projectile project root, even when the file is empty.  When
+the file has content, it is parsed by `projectile-parse-dirconfig-file'
+to drive `+' keep / `-' ignore / `!' ensure rules; see the manual
+for the full format.
+
 This should _not_ be set via .dir-locals.el."
   :group 'projectile
   :type 'file
@@ -1535,11 +1542,14 @@ If PROJECT is not specified acts on the current project."
 
 ;;; Project indexing
 (defun projectile-get-project-directories (project-dir)
-  "Get the list of PROJECT-DIR directories that are of interest to the user."
+  "Get the list of PROJECT-DIR directories that are of interest to the user.
+When the dirconfig file has no `+' keep entries, return a single-
+element list with PROJECT-DIR itself."
   (let* ((cfg (projectile-parse-dirconfig-file))
          (keep (and cfg (projectile-dirconfig-keep cfg))))
-    (mapcar (lambda (subdir) (concat project-dir subdir))
-            (or keep '("")))))
+    (if keep
+        (mapcar (lambda (subdir) (concat project-dir subdir)) keep)
+      (list project-dir))))
 
 (defun projectile--directory-p (directory)
   "Checks if DIRECTORY is a string designating a valid directory."
