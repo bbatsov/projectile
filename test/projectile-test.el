@@ -574,6 +574,49 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (expect (projectile-parse-dirconfig-file)
               :to-equal '(nil ("keep-this") nil)))))
 
+(describe "projectile-parse-dirconfig-file with a real file"
+  (before-each
+    (clrhash projectile--dirconfig-cache))
+  (it "parses a mix of keep, ignore, ensure and unprefixed entries from disk"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "+/src\n"
+                  "-/build\n"
+                  "!/build/keepme\n"
+                  "stale-pattern\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (projectile-parse-dirconfig-file)
+                :to-equal '(("/src/")
+                            ("/build" "stale-pattern")
+                            ("/build/keepme")))))))
+  (it "round-trips non-ASCII paths through the parser"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/")))
+            (coding-system-for-write 'utf-8-unix))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-héllo/wörld\n"
+                  "+/プロジェクト\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (projectile-parse-dirconfig-file)
+                :to-equal '(("/プロジェクト/")
+                            ("héllo/wörld")
+                            nil))))))
+  (it "tolerates a trailing line without a final newline"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n-bar"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (cadr (projectile-parse-dirconfig-file))
+                :to-equal '("foo" "bar")))))))
+
 (describe "dirconfig cache"
   (before-each
     (clrhash projectile--dirconfig-cache))
