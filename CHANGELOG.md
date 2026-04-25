@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+* `projectile-parse-dirconfig-file' now returns a `projectile-dirconfig' struct (with `keep', `ignore', and `ensure' slots) instead of a positional 3-tuple. External callers should use the accessors (`projectile-dirconfig-keep' etc.) rather than `car'/`cadr'/`caddr'.
+
 ### New features
 
 * Warn once per session when `projectile-indexing-method' is `alien' but the project has a non-empty `.projectile' file, so users notice their dirconfig rules are being bypassed. Controlled by the new `projectile-warn-when-dirconfig-is-ignored' option.

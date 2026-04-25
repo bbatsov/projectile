@@ -1516,8 +1516,10 @@ If PROJECT is not specified acts on the current project."
 ;;; Project indexing
 (defun projectile-get-project-directories (project-dir)
   "Get the list of PROJECT-DIR directories that are of interest to the user."
-  (mapcar (lambda (subdir) (concat project-dir subdir))
-          (or (car (projectile-parse-dirconfig-file)) '(""))))
+  (let* ((cfg (projectile-parse-dirconfig-file))
+         (keep (and cfg (projectile-dirconfig-keep cfg))))
+    (mapcar (lambda (subdir) (concat project-dir subdir))
+            (or keep '("")))))
 
 (defun projectile--directory-p (directory)
   "Checks if DIRECTORY is a string designating a valid directory."
@@ -2101,13 +2103,23 @@ Unignored files are not included."
 Unignored directories are not included."
   (seq-filter 'file-directory-p (projectile-project-ignored)))
 
+(defun projectile--dirconfig-ignore ()
+  "Return the IGNORE entries from the project's dirconfig, or nil."
+  (when-let* ((cfg (projectile-parse-dirconfig-file)))
+    (projectile-dirconfig-ignore cfg)))
+
+(defun projectile--dirconfig-ensure ()
+  "Return the ENSURE entries from the project's dirconfig, or nil."
+  (when-let* ((cfg (projectile-parse-dirconfig-file)))
+    (projectile-dirconfig-ensure cfg)))
+
 (defun projectile-paths-to-ignore ()
   "Return a list of ignored project paths."
-  (projectile-normalise-paths (cadr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-paths (projectile--dirconfig-ignore)))
 
 (defun projectile-patterns-to-ignore ()
   "Return a list of relative file patterns."
-  (projectile-normalise-patterns (cadr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (projectile--dirconfig-ignore)))
 
 (defun projectile-project-ignored ()
   "Return list of project ignored files/directories.
@@ -2151,7 +2163,7 @@ Unignored files/directories are not included."
 
 (defun projectile-paths-to-ensure ()
   "Return a list of unignored project paths."
-  (projectile-normalise-paths (caddr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-paths (projectile--dirconfig-ensure)))
 
 (defun projectile-files-to-ensure ()
   (let ((default-directory (projectile-project-root)))
@@ -2160,7 +2172,7 @@ Unignored files/directories are not included."
 
 (defun projectile-patterns-to-ensure ()
   "Return a list of relative file patterns."
-  (projectile-normalise-patterns (caddr (projectile-parse-dirconfig-file))))
+  (projectile-normalise-patterns (projectile--dirconfig-ensure)))
 
 (defun projectile-filtering-patterns ()
   (cons (projectile-patterns-to-ignore)
@@ -2176,6 +2188,15 @@ Unignored files/directories are not included."
   "Return the absolute path to the project's dirconfig file."
   (expand-file-name projectile-dirconfig-file (projectile-project-root)))
 
+(cl-defstruct projectile-dirconfig
+  "Parsed contents of a project's dirconfig file.
+KEEP is the list of subdirectories to restrict the project to (as
+returned with a trailing slash).  IGNORE and ENSURE are the lists
+of files or directories to ignore and to forcibly include,
+respectively.  All slots default to nil, which represents \"no
+file present or no entries of this kind\"."
+  (keep nil) (ignore nil) (ensure nil))
+
 (defun projectile--warn-glob-in-keep-entry (entry dirconfig)
   "Warn that ENTRY in DIRCONFIG looks like a glob pattern after a `+'.
 The `+' prefix is for subdirectories only; the parser silently coerces
@@ -2190,7 +2211,7 @@ or move the pattern to a `-'/`!' rule."
 
 (defun projectile--parse-dirconfig-file-uncached ()
   "Parse the dirconfig file without caching.
-Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
+Return a `projectile-dirconfig' or nil if the file doesn't exist."
   (let (keep ignore ensure (dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
       (with-temp-buffer
@@ -2216,20 +2237,19 @@ Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
         (dolist (entry trimmed-keep)
           (when (string-match-p "[*?[]" entry)
             (projectile--warn-glob-in-keep-entry entry dirconfig)))
-        (list (mapcar #'file-name-as-directory trimmed-keep)
-              (mapcar #'string-trim
-                      (delete "" (reverse ignore)))
-              (mapcar #'string-trim
-                      (delete "" (reverse ensure))))))))
+        (make-projectile-dirconfig
+         :keep (mapcar #'file-name-as-directory trimmed-keep)
+         :ignore (mapcar #'string-trim (delete "" (reverse ignore)))
+         :ensure (mapcar #'string-trim (delete "" (reverse ensure))))))))
 
 (defun projectile-parse-dirconfig-file ()
-  "Parse project ignore file and return directories to ignore and keep.
+  "Parse project ignore file and return its rules.
 
-The return value is a list of three elements: the car is the list
-of directories to keep, the cadr is the list of files or
-directories to ignore, and the caddr is the list of files or
-directories to ensure (i.e. forcibly include even when otherwise
-ignored).
+The return value is a `projectile-dirconfig' struct with three
+slots: KEEP (subdirectories to restrict the project to), IGNORE
+(files or directories to skip), and ENSURE (files or directories
+to forcibly include even when otherwise ignored).  When the file
+does not exist, the return value is nil.
 
 Lines are dispatched on their first non-whitespace character:
 
