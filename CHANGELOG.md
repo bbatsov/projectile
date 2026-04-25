@@ -10,6 +10,7 @@
 
 ### Bugs fixed
 
+* [#1508](https://github.com/bbatsov/projectile/issues/1508): Fix dirconfig parser silently treating lines as ignore patterns when the `+`/`-`/`!` prefix or the comment character is preceded by whitespace; leading spaces and tabs are now skipped before prefix dispatch.
 * Fix `projectile-files-via-ext-command` executing empty string as shell command for non-git VCS sub-projects.
 * Fix `projectile-select-files` crashing on filenames with regexp metacharacters by using `string-search` instead of `string-match`.
 * Fix `projectile-find-references` using internal `xref--show-xrefs` API whose signature changed across Emacs versions.

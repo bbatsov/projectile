@@ -549,7 +549,30 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 							     "left-wspace"
 							     "right-wspace")
 							    nil)))
-    ))
+    )
+  (it "skips leading whitespace before dispatching on the prefix"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion
+                (insert "  -indented-exclude\n"
+                        "\t+indented-include\n"
+                        " !indented-ensure\n"
+                        "  no-prefix-indented\n"))))
+    (expect (projectile-parse-dirconfig-file)
+            :to-equal '(("indented-include/")
+                        ("indented-exclude" "no-prefix-indented")
+                        ("indented-ensure"))))
+  (it "treats indented comment-prefix lines as comments"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion
+                (insert "  # indented comment\n"
+                        "-keep-this\n"))))
+    (let ((projectile-dirconfig-comment-prefix ?#))
+      (expect (projectile-parse-dirconfig-file)
+              :to-equal '(nil ("keep-this") nil)))))
 
 (describe "projectile-get-project-directories"
   (it "gets the list of project directories"

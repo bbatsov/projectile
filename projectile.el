@@ -2170,6 +2170,10 @@ Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
       (with-temp-buffer
         (insert-file-contents dirconfig)
         (while (not (eobp))
+          ;; Skip leading whitespace so prefix dispatch isn't defeated by
+          ;; an accidental space or tab before the +/-/! marker or the
+          ;; configured comment character.
+          (skip-chars-forward " \t")
           (pcase (char-after)
             ;; ignore comment lines if prefix char has been set
             ((pred (lambda (leading-char)
