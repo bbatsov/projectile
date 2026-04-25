@@ -2196,15 +2196,22 @@ Returns a list of (KEEP IGNORE ENSURE) or nil if the file doesn't exist."
 (defun projectile-parse-dirconfig-file ()
   "Parse project ignore file and return directories to ignore and keep.
 
-The return value will be a list of three elements, the car being
-the list of directories to keep, the cadr being the list of files
-or directories to ignore, and the caddr being the list of files
-or directories to ensure.
+The return value is a list of three elements: the car is the list
+of directories to keep, the cadr is the list of files or
+directories to ignore, and the caddr is the list of files or
+directories to ensure (i.e. forcibly include even when otherwise
+ignored).
 
-Strings starting with + will be added to the list of directories
-to keep, and strings starting with - will be added to the list of
-directories to ignore.  For backward compatibility, without a
-prefix the string will be assumed to be an ignore string.
+Lines are dispatched on their first non-whitespace character:
+
+  +  add to the keep list
+  -  add to the ignore list
+  !  add to the ensure list
+
+Without a prefix, the line is assumed to be an ignore pattern, for
+backward compatibility.  When `projectile-dirconfig-comment-prefix'
+is non-nil, lines whose first non-whitespace character matches it
+are treated as comments.
 
 Results are cached per project root and invalidated when the
 dirconfig file's modification time changes."
