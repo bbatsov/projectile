@@ -2209,38 +2209,50 @@ or move the pattern to a `-'/`!' rule."
            dirconfig entry)
    :warning))
 
+(defun projectile--dirconfig-classify-line (line)
+  "Classify LINE from a dirconfig file.
+Return a cons (BUCKET . VALUE) where BUCKET is one of `:keep',
+`:ignore', `:ensure', or `:comment'.  Return nil for a blank line.
+Leading whitespace is skipped before dispatch so an accidental space
+or tab before the prefix does not change classification."
+  (let* ((trimmed (string-trim-left line))
+         (first-char (and (> (length trimmed) 0) (aref trimmed 0))))
+    (cond
+     ((null first-char) nil)
+     ((and projectile-dirconfig-comment-prefix
+           (eql first-char projectile-dirconfig-comment-prefix))
+      (cons :comment nil))
+     ((eql first-char ?+) (cons :keep   (string-trim (substring trimmed 1))))
+     ((eql first-char ?-) (cons :ignore (string-trim (substring trimmed 1))))
+     ((eql first-char ?!) (cons :ensure (string-trim (substring trimmed 1))))
+     (t                   (cons :ignore (string-trim trimmed))))))
+
+(defun projectile--parse-dirconfig-string (text)
+  "Parse TEXT (a dirconfig file's contents) into a `projectile-dirconfig'."
+  (let (keep ignore ensure)
+    (dolist (line (split-string text "\n"))
+      (pcase (projectile--dirconfig-classify-line line)
+        (`(:keep   . ,v) (unless (string-empty-p v) (push v keep)))
+        (`(:ignore . ,v) (unless (string-empty-p v) (push v ignore)))
+        (`(:ensure . ,v) (unless (string-empty-p v) (push v ensure)))))
+    (make-projectile-dirconfig
+     :keep   (mapcar #'file-name-as-directory (nreverse keep))
+     :ignore (nreverse ignore)
+     :ensure (nreverse ensure))))
+
 (defun projectile--parse-dirconfig-file-uncached ()
   "Parse the dirconfig file without caching.
 Return a `projectile-dirconfig' or nil if the file doesn't exist."
-  (let (keep ignore ensure (dirconfig (projectile-dirconfig-file)))
+  (let ((dirconfig (projectile-dirconfig-file)))
     (when (projectile-file-exists-p dirconfig)
-      (with-temp-buffer
-        (insert-file-contents dirconfig)
-        (while (not (eobp))
-          ;; Skip leading whitespace so prefix dispatch isn't defeated by
-          ;; an accidental space or tab before the +/-/! marker or the
-          ;; configured comment character.
-          (skip-chars-forward " \t")
-          (pcase (char-after)
-            ;; ignore comment lines if prefix char has been set
-            ((pred (lambda (leading-char)
-                     (and projectile-dirconfig-comment-prefix
-                          (eql leading-char
-                               projectile-dirconfig-comment-prefix))))
-             nil)
-            (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
-            (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
-            (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
-            (_ (push (buffer-substring (point) (line-end-position)) ignore)))
-          (forward-line)))
-      (let ((trimmed-keep (mapcar #'string-trim (delete "" (reverse keep)))))
-        (dolist (entry trimmed-keep)
+      (let ((cfg (projectile--parse-dirconfig-string
+                  (with-temp-buffer
+                    (insert-file-contents dirconfig)
+                    (buffer-string)))))
+        (dolist (entry (projectile-dirconfig-keep cfg))
           (when (string-match-p "[*?[]" entry)
             (projectile--warn-glob-in-keep-entry entry dirconfig)))
-        (make-projectile-dirconfig
-         :keep (mapcar #'file-name-as-directory trimmed-keep)
-         :ignore (mapcar #'string-trim (delete "" (reverse ignore)))
-         :ensure (mapcar #'string-trim (delete "" (reverse ensure))))))))
+        cfg))))
 
 (defun projectile-parse-dirconfig-file ()
   "Parse project ignore file and return its rules.

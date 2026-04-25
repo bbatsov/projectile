@@ -527,6 +527,37 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (let ((projectile-globally-unignored-files '("path/unignored-file")))
           (expect (projectile-add-unignored nil nil '("file")) :to-equal '("file" "path/unignored-file")))))))
 
+(describe "projectile--dirconfig-classify-line"
+  (it "returns nil for blank or whitespace-only lines"
+    (expect (projectile--dirconfig-classify-line "") :to-be nil)
+    (expect (projectile--dirconfig-classify-line "   ") :to-be nil)
+    (expect (projectile--dirconfig-classify-line "\t") :to-be nil))
+  (it "classifies prefix dispatches"
+    (expect (projectile--dirconfig-classify-line "+/src")
+            :to-equal '(:keep . "/src"))
+    (expect (projectile--dirconfig-classify-line "-/build")
+            :to-equal '(:ignore . "/build"))
+    (expect (projectile--dirconfig-classify-line "!/build/keepme")
+            :to-equal '(:ensure . "/build/keepme")))
+  (it "treats prefix-less lines as ignore for backward compatibility"
+    (expect (projectile--dirconfig-classify-line "stale-pattern")
+            :to-equal '(:ignore . "stale-pattern")))
+  (it "skips leading whitespace before dispatch"
+    (expect (projectile--dirconfig-classify-line "  -indented")
+            :to-equal '(:ignore . "indented"))
+    (expect (projectile--dirconfig-classify-line "\t+keep")
+            :to-equal '(:keep . "keep")))
+  (it "honors the comment prefix when configured"
+    (let ((projectile-dirconfig-comment-prefix ?#))
+      (expect (projectile--dirconfig-classify-line "# a comment")
+              :to-equal '(:comment))
+      (expect (projectile--dirconfig-classify-line "  # indented comment")
+              :to-equal '(:comment)))
+    ;; Without a comment prefix, # is just a regular character.
+    (let ((projectile-dirconfig-comment-prefix nil))
+      (expect (projectile--dirconfig-classify-line "#may-be-a-comment")
+              :to-equal '(:ignore . "#may-be-a-comment")))))
+
 (describe "projectile-parse-dirconfig-file"
   (it "parses dirconfig and returns directories to ignore and keep"
     (spy-on 'file-exists-p :and-return-value t)
