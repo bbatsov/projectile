@@ -866,11 +866,35 @@ When a path is overridden, its contents are still subject to ignore
 patterns. To override those files as well, specify their full path
 with a bang prefix.
 
+==== Path entries vs. glob patterns
+
+The two ignore examples above look similar but go through different
+matchers. An entry that begins with a slash (e.g. `-/log`,
+`+/src/foo`, `!/src/foo`) is treated as a *path* relative to the
+project root and is expanded literally. An entry without a leading
+slash (e.g. `-tmp`, `-*.rb`) is treated as a *glob pattern* applied
+to every file's path. As a consequence:
+
+* `-/log` ignores only the top-level `log` directory.
+* `-log` ignores anything called `log` at any depth, but only matches
+  full path components — it will not match `xlog` or `log.txt`.
+* `-*.rb` ignores any file whose path matches the glob `*.rb`.
+
+If a glob pattern doesn't behave the way you'd expect — particularly
+across nested directories — try the explicit path form first to
+confirm whether the file is being indexed at all.
+
+==== Comments
+
 If you would like to include comment lines in your .projectile file,
 you can customize the variable `projectile-dirconfig-comment-prefix`.
 Assigning it a non-nil character value, e.g. `#`, will cause lines in
-the `.projectile` file starting with that character to be treated as
-comments instead of patterns.
+the `.projectile` file whose first non-whitespace character matches
+that character to be treated as comments instead of patterns.
+
+The same is true of the `+`, `-`, and `!` prefixes: leading spaces
+and tabs before the prefix are skipped, so accidental indentation
+won't silently turn the entry into a literal ignore pattern.
 
 === Ignored files using the project indexing tools
 

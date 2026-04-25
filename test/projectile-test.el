@@ -549,7 +549,219 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 							     "left-wspace"
 							     "right-wspace")
 							    nil)))
-    ))
+    )
+  (it "skips leading whitespace before dispatching on the prefix"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion
+                (insert "  -indented-exclude\n"
+                        "\t+indented-include\n"
+                        " !indented-ensure\n"
+                        "  no-prefix-indented\n"))))
+    (expect (projectile-parse-dirconfig-file)
+            :to-equal '(("indented-include/")
+                        ("indented-exclude" "no-prefix-indented")
+                        ("indented-ensure"))))
+  (it "treats indented comment-prefix lines as comments"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion
+                (insert "  # indented comment\n"
+                        "-keep-this\n"))))
+    (let ((projectile-dirconfig-comment-prefix ?#))
+      (expect (projectile-parse-dirconfig-file)
+              :to-equal '(nil ("keep-this") nil))))
+  (it "warns when a + keep entry contains glob metacharacters"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion (insert "+/*.json\n+/src\n"))))
+    (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
+    (expect 'display-warning :to-have-been-called-times 1))
+  (it "does not warn for plain + subdirectory entries"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion (insert "+/src\n+/tests/foo\n"))))
+    (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
+    (expect 'display-warning :not :to-have-been-called))
+  (it "does not warn for - ignore entries that contain globs"
+    (spy-on 'file-exists-p :and-return-value t)
+    (spy-on 'insert-file-contents :and-call-fake
+            (lambda (_filename)
+              (save-excursion (insert "-*.json\n-build/*.tmp\n"))))
+    (spy-on 'display-warning)
+    (projectile-parse-dirconfig-file)
+    (expect 'display-warning :not :to-have-been-called)))
+
+(describe "projectile-parse-dirconfig-file with a real file"
+  (before-each
+    (clrhash projectile--dirconfig-cache))
+  (it "parses a mix of keep, ignore, ensure and unprefixed entries from disk"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "+/src\n"
+                  "-/build\n"
+                  "!/build/keepme\n"
+                  "stale-pattern\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (projectile-parse-dirconfig-file)
+                :to-equal '(("/src/")
+                            ("/build" "stale-pattern")
+                            ("/build/keepme")))))))
+  (it "round-trips non-ASCII paths through the parser"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/")))
+            (coding-system-for-write 'utf-8-unix))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-héllo/wörld\n"
+                  "+/プロジェクト\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (projectile-parse-dirconfig-file)
+                :to-equal '(("/プロジェクト/")
+                            ("héllo/wörld")
+                            nil))))))
+  (it "tolerates a trailing line without a final newline"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n-bar"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (cadr (projectile-parse-dirconfig-file))
+                :to-equal '("foo" "bar")))))))
+
+(describe "dirconfig cache"
+  (before-each
+    (clrhash projectile--dirconfig-cache))
+  (it "memoizes the parsed result while the file is unchanged"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile--parse-dirconfig-file-uncached
+                :and-call-through)
+        (projectile-parse-dirconfig-file)
+        (projectile-parse-dirconfig-file)
+        (projectile-parse-dirconfig-file)
+        (expect 'projectile--parse-dirconfig-file-uncached
+                :to-have-been-called-times 1)))))
+  (it "re-parses when the dirconfig file's mtime changes"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let* ((root (file-truename (expand-file-name "project/")))
+             (dirconfig (expand-file-name ".projectile" root)))
+        (with-temp-file dirconfig (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (cadr (projectile-parse-dirconfig-file))
+                :to-equal '("foo"))
+        ;; Force a distinct mtime — file-attribute-modification-time has
+        ;; second-level resolution on some filesystems.
+        (set-file-times dirconfig (time-add (current-time) 5))
+        (with-temp-file dirconfig (insert "-bar\n"))
+        (set-file-times dirconfig (time-add (current-time) 5))
+        (expect (cadr (projectile-parse-dirconfig-file))
+                :to-equal '("bar"))))))
+  (it "returns nil and does not cache when the dirconfig file is absent"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (expect (projectile-parse-dirconfig-file) :to-be nil)
+        (expect (gethash root projectile--dirconfig-cache) :to-be nil)))))
+  (it "is cleared for the project by projectile-invalidate-cache"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        ;; Avoid touching the on-disk cache file or recentf during the test.
+        (spy-on 'projectile-persistent-cache-p :and-return-value nil)
+        (spy-on 'recentf-cleanup)
+        (projectile-parse-dirconfig-file)
+        (expect (gethash root projectile--dirconfig-cache) :not :to-be nil)
+        (projectile-invalidate-cache nil)
+        (expect (gethash root projectile--dirconfig-cache) :to-be nil))))))
+
+(describe "alien-mode dirconfig warning"
+  (before-each
+    (clrhash projectile--alien-dirconfig-warned-projects))
+  (it "warns once when alien indexing skips a populated .projectile"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'alien)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored t))
+          (projectile-project-files root)
+          (projectile-project-files root))
+        (expect 'display-warning :to-have-been-called-times 1)))))
+  (it "does not warn for an empty .projectile"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'alien)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored t))
+          (projectile-project-files root))
+        (expect 'display-warning :not :to-have-been-called)))))
+  (it "does not warn when the warning is disabled"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'alien)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored nil))
+          (projectile-project-files root))
+        (expect 'display-warning :not :to-have-been-called)))))
+  (it "does not warn under non-alien indexing"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-foo\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-get-project-directories :and-return-value '())
+        (spy-on 'display-warning)
+        (let ((projectile-indexing-method 'native)
+              (projectile-enable-caching nil)
+              (projectile-warn-when-dirconfig-is-ignored t))
+          (projectile-project-files root))
+        (expect 'display-warning :not :to-have-been-called))))))
 
 (describe "projectile-get-project-directories"
   (it "gets the list of project directories"
