@@ -673,7 +673,10 @@ project."
 
 (defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
   "Cache for parsed dirconfig files, keyed by project root.
-Each value is a cons of (MTIME . PARSED-RESULT).")
+Each value is a list of (DIRCONFIG-PATH MTIME PARSED-RESULT); a
+cache hit requires both DIRCONFIG-PATH and MTIME to match the
+current file, so changing `projectile-dirconfig-file' mid-session
+naturally invalidates the entry.")
 
 (defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about alien indexing skipping the dirconfig.")
@@ -2335,12 +2338,14 @@ dirconfig file's modification time changes."
          (cached (gethash project-root projectile--dirconfig-cache))
          (attrs (file-attributes dirconfig))
          (mtime (when attrs (file-attribute-modification-time attrs)))
-         (result (if (and cached mtime (equal (car cached) mtime))
-                     (cdr cached)
+         (result (if (and cached mtime
+                          (equal (nth 0 cached) dirconfig)
+                          (equal (nth 1 cached) mtime))
+                     (nth 2 cached)
                    (let ((parsed (projectile--parse-dirconfig-file-uncached)))
                      (when mtime
                        (puthash project-root
-                                (cons mtime parsed)
+                                (list dirconfig mtime parsed)
                                 projectile--dirconfig-cache))
                      parsed))))
     (projectile--maybe-warn-prefixless-entries project-root result)
