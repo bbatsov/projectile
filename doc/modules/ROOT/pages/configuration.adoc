@@ -146,6 +146,80 @@ You can also customize the path to the `fd` executable and the arguments passed 
 (setq projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix -c never")
 ----
 
+=== Hybrid indexing
+
+The `hybrid` method runs the same external command as `alien` and then
+post-processes the result with Projectile's filtering rules.  In other
+words, it's `alien` plus a second pass that applies:
+
+* `.projectile` (dirconfig) ignore/keep/ensure entries
+* `projectile-globally-ignored-files`,
+  `projectile-globally-ignored-directories`,
+  `projectile-globally-ignored-file-suffixes`, and
+  `projectile-global-ignore-file-patterns`
+* `projectile-globally-unignored-files` and
+  `projectile-globally-unignored-directories`
+* The configured sort order from `projectile-sort-order`
+
+This is the right choice when your VCS lists more files than you want
+Projectile to surface (e.g. you want to drop `*.elc` even though they're
+checked in), or when you rely on `.projectile` to keep/ignore subtrees
+inside an otherwise large repository.  It's slower than `alien` because
+of the extra pass, but it remains substantially faster than `native` for
+big projects since the file list itself is still produced by the
+external tool.
+
+=== Indexing method comparison
+
+Not all Projectile features apply to every indexing method.  The table
+below summarises which configuration knobs take effect under which mode:
+
+[cols="3,1,1,1", options="header"]
+|===
+| Feature | `native` | `hybrid` | `alien`
+
+| Project file listing speed
+| Slow (Elisp)
+| Fast
+| Fastest
+
+| Honors `.projectile` (dirconfig) `+`/`-`/`!` rules
+| Yes
+| Yes
+| No
+
+| Honors `projectile-globally-ignored-files` / `-directories` / `-file-suffixes` / `projectile-global-ignore-file-patterns`
+| Yes
+| Yes
+| No (rely on the VCS / `fd` / `find` ignores instead)
+
+| Honors `projectile-globally-unignored-*`
+| Yes
+| Yes
+| No
+
+| Sorts via `projectile-sort-order`
+| Yes
+| Yes
+| No (returned in the external tool's order)
+
+| File caching enabled by default
+| Yes
+| No
+| No
+
+| Works on Windows out of the box
+| Yes
+| Requires Unix utilities
+| Requires Unix utilities
+|===
+
+NOTE: When `alien` is in use and a non-empty `.projectile` file is
+present, Projectile emits a one-time warning so the silent bypass
+doesn't catch you off guard.  Switch to `hybrid` (or `native`) if you
+need those rules applied; set
+`projectile-warn-when-dirconfig-is-ignored` to nil to silence.
+
 == Sorting
 
 You can choose how Projectile sorts files by customizing `projectile-sort-order`.
