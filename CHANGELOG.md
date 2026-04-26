@@ -4,6 +4,8 @@
 
 ### Changes
 
+* Speed up native indexing on large trees: `projectile-index-directory` now hashes the ignored-files / ignored-directories / globally-ignored-directory-names lists once per indexing call (the per-file `member' scans were O(N*M)), expands dirconfig glob patterns once per directory level instead of once per (file, pattern) pair, and accumulates results into a shared cell so we no longer pay for an `apply append' at each recursion level.
+* `projectile-remove-ignored` (hybrid post-processing) now hashes the ignored-files basenames and pre-splits ignored-dirs into prefix-match and any-segment groups, so the per-file inner loops drop from O(M) `seq-some` walks to O(1) hash lookups (or O(segments) for `*`-prefixed entries).
 * Hybrid indexing now batches the external command into a single invocation when the project's `.projectile` declares multiple `+` keep entries, instead of shelling out once per kept subdirectory. The kept paths are passed to the indexing tool (e.g. `git ls-files`, `fd`, `find`) as positional pathspecs and submodule files outside those subdirectories are filtered out. Resolves the long-standing TODO in `projectile-project-files`.
 * `projectile-files-via-ext-command` now accepts an optional `pathspecs` argument; entries are shell-quoted before being appended to the command. `projectile-dir-files-alien` similarly accepts an optional `subdirs` argument that threads through.
 * Document the `hybrid` indexing method in the manual and add a feature matrix showing which Projectile knobs (dirconfig, global ignores/unignores, sort order, default caching) apply under `native`/`hybrid`/`alien`.

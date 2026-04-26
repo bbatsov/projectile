@@ -1086,7 +1086,113 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
               (let ((files (projectile-index-directory project-dir nil progress-reporter)))
                 (expect (cl-some (lambda (f) (string-match-p "readable-file" f)) files) :to-be-truthy)
                 (expect (cl-some (lambda (f) (string-match-p "unreadable-dir" f)) files) :not :to-be-truthy))
-            (set-file-modes unreadable-dir #o755))))))))
+            (set-file-modes unreadable-dir #o755)))))))
+  (it "honors dirconfig glob ignore patterns at every level"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.projectile"
+       "project/keep.el"
+       "project/skip.elc"
+       "project/src/"
+       "project/src/keep.el"
+       "project/src/skip.elc")
+      (let* ((project-dir (file-name-as-directory (expand-file-name "project")))
+             (progress-reporter (make-progress-reporter "Indexing...")))
+        (with-temp-file (expand-file-name ".projectile" project-dir)
+          (insert "-*.elc\n"))
+        (spy-on 'projectile-project-root :and-return-value project-dir)
+        (let ((files (projectile-index-directory project-dir
+                                                 (projectile-filtering-patterns)
+                                                 progress-reporter)))
+          (expect (cl-some (lambda (f) (string-match-p "/keep.el\\'" f)) files)
+                  :to-be-truthy)
+          (expect (cl-some (lambda (f) (string-match-p "/src/keep.el\\'" f)) files)
+                  :to-be-truthy)
+          (expect (cl-some (lambda (f) (string-match-p "skip\\.elc\\'" f)) files)
+                  :not :to-be-truthy))))))
+  (it "honors dirconfig ensure entries that override an ignore pattern"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.projectile"
+       "project/keep.elc"
+       "project/skip.elc")
+      (let* ((project-dir (file-name-as-directory (expand-file-name "project")))
+             (progress-reporter (make-progress-reporter "Indexing...")))
+        (with-temp-file (expand-file-name ".projectile" project-dir)
+          (insert "-*.elc\n!keep.elc\n"))
+        (spy-on 'projectile-project-root :and-return-value project-dir)
+        (let ((files (projectile-index-directory project-dir
+                                                 (projectile-filtering-patterns)
+                                                 progress-reporter)))
+          (expect (cl-some (lambda (f) (string-match-p "/keep\\.elc\\'" f)) files)
+                  :to-be-truthy)
+          (expect (cl-some (lambda (f) (string-match-p "skip\\.elc\\'" f)) files)
+                  :not :to-be-truthy)))))))
+
+(describe "projectile--list->set"
+  (it "puts all elements as keys with value t and tests with equal"
+    (let ((set (projectile--list->set '("a" "b/" "c"))))
+      (expect (gethash "a" set) :to-be t)
+      (expect (gethash "b/" set) :to-be t)
+      (expect (gethash "missing" set) :to-be nil)))
+  (it "handles the empty list without error"
+    (let ((set (projectile--list->set nil)))
+      (expect (hash-table-count set) :to-equal 0))))
+
+(describe "projectile--ignored-file-fast-p"
+  (it "returns t for files in the pre-computed ignored-files-set"
+    (let ((rules (projectile--make-walk-rules
+                  '("/r/TAGS") nil nil)))
+      (expect (projectile--ignored-file-fast-p "/r/TAGS" rules) :to-be-truthy)
+      (expect (projectile--ignored-file-fast-p "/r/keep.el" rules)
+              :not :to-be-truthy)))
+  (it "honors projectile-globally-ignored-file-suffixes"
+    (let ((rules (projectile--make-walk-rules nil nil nil))
+          (projectile-globally-ignored-file-suffixes '(".elc")))
+      (expect (projectile--ignored-file-fast-p "/r/foo.elc" rules) :to-be-truthy)
+      (expect (projectile--ignored-file-fast-p "/r/foo.el" rules)
+              :not :to-be-truthy)))
+  (it "honors projectile-global-ignore-file-patterns"
+    (let ((rules (projectile--make-walk-rules nil nil nil))
+          (projectile-global-ignore-file-patterns '("\\.min\\.js\\'")))
+      (expect (projectile--ignored-file-fast-p "/r/foo.min.js" rules) :to-be-truthy)
+      (expect (projectile--ignored-file-fast-p "/r/foo.js" rules)
+              :not :to-be-truthy))))
+
+(describe "projectile--ignored-directory-fast-p"
+  (it "matches absolute ignored-dirs entries"
+    (let ((rules (projectile--make-walk-rules
+                  nil '("/r/build/") nil)))
+      (expect (projectile--ignored-directory-fast-p "/r/build/" "build" rules)
+              :to-be-truthy)))
+  (it "matches globally ignored directory basenames"
+    (let ((rules (projectile--make-walk-rules nil nil '(".git"))))
+      (expect (projectile--ignored-directory-fast-p "/r/.git/" ".git" rules)
+              :to-be-truthy)
+      (expect (projectile--ignored-directory-fast-p "/r/src/" "src" rules)
+              :not :to-be-truthy))))
+
+(describe "projectile-remove-ignored"
+  (it "drops files whose basename matches an ignored entry"
+    (spy-on 'projectile-ignored-files-rel :and-return-value '("TAGS"))
+    (spy-on 'projectile-ignored-directories-rel :and-return-value nil)
+    (expect (projectile-remove-ignored '("a/TAGS" "src/foo.el" "TAGS"))
+            :to-equal '("src/foo.el")))
+  (it "treats `*'-prefixed entries as any-segment matches"
+    (spy-on 'projectile-ignored-files-rel :and-return-value nil)
+    (spy-on 'projectile-ignored-directories-rel :and-return-value '("*node_modules/"))
+    (expect (projectile-remove-ignored
+             '("src/foo.js"
+               "node_modules/lib/index.js"
+               "vendor/node_modules/lib/index.js"))
+            :to-equal '("src/foo.js")))
+  (it "treats plain entries as path-prefix matches"
+    (spy-on 'projectile-ignored-files-rel :and-return-value nil)
+    (spy-on 'projectile-ignored-directories-rel :and-return-value '("build/"))
+    (expect (projectile-remove-ignored '("build/foo.o" "src/foo.c" "buildbot/x"))
+            :to-equal '("src/foo.c" "buildbot/x"))))
 
 (describe "projectile-get-sub-projects-command"
   (it "gets sub projects command for git"

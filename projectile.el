@@ -1622,40 +1622,126 @@ Files are returned as relative paths to DIRECTORY."
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
+(defun projectile--list->set (list)
+  "Return a hash table whose keys are the elements of LIST.
+Values are all `t'.  Tests with `equal'."
+  (let ((set (make-hash-table :test 'equal :size (max 1 (length list)))))
+    (dolist (elt list set)
+      (puthash elt t set))))
+
+(defun projectile--make-walk-rules (ignored-files ignored-directories globally-ignored-directories)
+  "Build a plist of pre-computed rule sets used by `projectile-index-directory'.
+IGNORED-FILES and IGNORED-DIRECTORIES are the absolute paths to
+ignore; GLOBALLY-IGNORED-DIRECTORIES is the list of directory
+basenames to ignore anywhere in the tree."
+  (list :ignored-files-set (projectile--list->set ignored-files)
+        :ignored-dirs-set (projectile--list->set ignored-directories)
+        :globally-ignored-dir-names-set
+        (projectile--list->set globally-ignored-directories)))
+
+(defun projectile--ignored-file-fast-p (file rules)
+  "Like `projectile-ignored-file-p' but consulting pre-built RULES.
+Used on the hot indexing path to avoid O(N*M) `member' scans."
+  (or (gethash file (plist-get rules :ignored-files-set))
+      (seq-some (lambda (re) (string-match-p re file))
+                projectile-global-ignore-file-patterns)
+      (seq-some (lambda (suf) (string-suffix-p suf file t))
+                projectile-globally-ignored-file-suffixes)))
+
+(defun projectile--ignored-directory-fast-p (directory local-name rules)
+  "Like `projectile-ignored-directory-p' but consulting pre-built RULES.
+LOCAL-NAME is the basename of DIRECTORY."
+  (or (gethash directory (plist-get rules :ignored-dirs-set))
+      (seq-some (lambda (re) (string-match-p re directory))
+                projectile-global-ignore-file-patterns)
+      (gethash local-name (plist-get rules :globally-ignored-dir-names-set))))
+
+(defun projectile--expand-glob-set (patterns)
+  "Expand glob PATTERNS in the current `default-directory'.
+Return a hash-set of absolute file paths matched by any pattern.
+Patterns that don't contain wildcard metacharacters expand to the
+file itself if it exists, so a single hash lookup later catches
+both glob and literal matches without revisiting the filesystem."
+  (let ((set (make-hash-table :test 'equal)))
+    (dolist (p patterns set)
+      (dolist (f (file-expand-wildcards p t))
+        (puthash f t set)))))
+
+(defun projectile--matches-pattern-set-p (file pats glob-set)
+  "Return non-nil when FILE matches any of PATS or is in GLOB-SET.
+PATS is the original pattern list (for the literal-suffix fallback
+that `projectile-check-pattern-p' uses); GLOB-SET is a hash-set
+returned by `projectile--expand-glob-set' for the same patterns,
+or nil when PATS is empty."
+  (or (and glob-set (gethash file glob-set))
+      (seq-some (lambda (p)
+                  (string-suffix-p (directory-file-name p)
+                                   (directory-file-name file)))
+                pats)))
+
 (defun projectile-index-directory (directory patterns progress-reporter &optional ignored-files ignored-directories globally-ignored-directories)
   "Index DIRECTORY taking into account PATTERNS.
 
-The function calls itself recursively until all sub-directories
-have been indexed.  The PROGRESS-REPORTER is updated while the
-function is executing.  The list of IGNORED-FILES and
-IGNORED-DIRECTORIES may optionally be provided."
-  ;; we compute the ignored files and directories only once and then we reuse the
-  ;; pre-computed values in the subsequent recursive invocations of the function
-  (let ((ignored-files (or ignored-files (projectile-ignored-files)))
-        (ignored-directories (or ignored-directories (projectile-ignored-directories)))
-        (globally-ignored-directories (or globally-ignored-directories (projectile-globally-ignored-directory-names))))
-    (apply #'append
-           (mapcar
-            (lambda (f)
-              (let ((local-f (file-name-nondirectory (directory-file-name f))))
-                (unless (and patterns (projectile-ignored-rel-p f directory patterns))
-                  (progress-reporter-update progress-reporter)
-                  (if (file-directory-p f)
-                      (unless (projectile-ignored-directory-p
-                               (file-name-as-directory f)
-                               ignored-directories
-                               local-f
-                               globally-ignored-directories)
-                        (projectile-index-directory f patterns progress-reporter ignored-files ignored-directories globally-ignored-directories))
-                    (unless (projectile-ignored-file-p f ignored-files)
-                      (list f))))))
-            ;; Use ignore-errors to skip unreadable directories (e.g.
-            ;; .Spotlight-V100 on macOS) instead of aborting the entire
-            ;; indexing operation.  `directory-files-no-dot-files-regexp'
-            ;; filters out . and .. at the C level so we don't have to
-            ;; do it again in the loop.
-            (ignore-errors
-              (directory-files directory t directory-files-no-dot-files-regexp))))))
+The function dispatches to an internal walker that uses pre-built
+hash sets, so the per-file membership checks stay O(1) on large
+projects.  The PROGRESS-REPORTER is updated while the function is
+executing.  Lists of IGNORED-FILES, IGNORED-DIRECTORIES, and
+GLOBALLY-IGNORED-DIRECTORIES may optionally be provided to share
+state across calls."
+  (let* ((ignored-files (or ignored-files (projectile-ignored-files)))
+         (ignored-directories (or ignored-directories (projectile-ignored-directories)))
+         (globally-ignored-directories (or globally-ignored-directories
+                                           (projectile-globally-ignored-directory-names)))
+         (rules (projectile--make-walk-rules ignored-files ignored-directories
+                                             globally-ignored-directories))
+         ;; A 1-element list whose car is the accumulator.  Using a
+         ;; mutable cell lets the recursive walker push results onto a
+         ;; single shared list (O(N) total) instead of `apply append'-ing
+         ;; per-level results (O(N*depth)).
+         (acc-cell (list nil)))
+    (projectile--index-directory-walk directory patterns progress-reporter
+                                      rules acc-cell)
+    (nreverse (car acc-cell))))
+
+(defun projectile--index-directory-walk (directory patterns progress-reporter rules acc-cell)
+  "Recursive walker for `projectile-index-directory'.
+DIRECTORY, PATTERNS, PROGRESS-REPORTER and RULES carry the same
+state as the public entry point.  ACC-CELL is a 1-element list
+whose car accumulates discovered file paths in reverse order."
+  ;; Resolve the directory listing first.  We rebind `default-directory'
+  ;; below for `file-expand-wildcards', so the relative `directory'
+  ;; argument has to be resolved against the caller's `default-directory'
+  ;; before that rebind takes effect.  Use ignore-errors to skip
+  ;; unreadable directories (e.g.  .Spotlight-V100 on macOS) instead of
+  ;; aborting the entire indexing operation.
+  ;; `directory-files-no-dot-files-regexp' filters out . and .. at the
+  ;; C level so we don't have to do it again in the loop.
+  (let ((entries (ignore-errors
+                   (directory-files directory t directory-files-no-dot-files-regexp))))
+    (let* ((default-directory (file-name-as-directory directory))
+           (ignore-pats (car patterns))
+           (ensure-pats (cdr patterns))
+           ;; Glob expansion is sensitive to `default-directory' so it
+           ;; has to happen at every recursion level - but only once
+           ;; per level rather than once per (file, pattern) pair as
+           ;; it used to.
+           (ignore-glob-set (and ignore-pats (projectile--expand-glob-set ignore-pats)))
+           (ensure-glob-set (and ensure-pats (projectile--expand-glob-set ensure-pats))))
+      (dolist (f entries)
+        (let ((local-f (file-name-nondirectory (directory-file-name f))))
+          (unless (and patterns
+                       (projectile--matches-pattern-set-p f ignore-pats ignore-glob-set)
+                       (not (projectile--matches-pattern-set-p f ensure-pats ensure-glob-set)))
+            (progress-reporter-update progress-reporter)
+            (cond
+             ((file-directory-p f)
+              (unless (projectile--ignored-directory-fast-p
+                       (file-name-as-directory f) local-f rules)
+                (projectile--index-directory-walk f patterns progress-reporter
+                                                  rules acc-cell)))
+             (t
+              (unless (projectile--ignored-file-fast-p f rules)
+                (setcar acc-cell (cons f (car acc-cell))))))))))))
 
 ;;; Alien Project Indexing
 ;;
@@ -1852,35 +1938,40 @@ Only text sent to standard output is taken into account."
 (defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
 
-If ignored directory prefixed with '*', then ignore all
+If ignored directory prefixed with `*', then ignore all
 directories/subdirectories with matching filename,
 otherwise operates relative to project root."
-  (let ((ignored-files (projectile-ignored-files-rel))
-        (ignored-dirs (projectile-ignored-directories-rel)))
-    (seq-remove
-     (lambda (file)
-       (or (seq-some
-            (lambda (f)
-              (string= f (file-name-nondirectory file)))
-            ignored-files)
-           (seq-some
-            (lambda (dir)
-              ;; if the directory is prefixed with '*' then ignore all directories matching that name
-              (if (string-prefix-p "*" dir)
-                  ;; remove '*' and trailing slash from ignored directory name
-                  (let ((d (string-remove-suffix "/" (substring dir 1))))
-                    (seq-some
-                     (lambda (p)
-                       (string= d p))
-                     ;; split path by '/', remove empty strings, and check if any subdirs match name 'd'
-                     (delete "" (split-string (or (file-name-directory file) "") "/"))))
-                (string-prefix-p dir file)))
-            ignored-dirs)
-           (seq-some
-            (lambda (suf)
-              (string-suffix-p suf file t))
-            projectile-globally-ignored-file-suffixes)))
-     files)))
+  (let* ((ignored-files (projectile-ignored-files-rel))
+         (ignored-dirs (projectile-ignored-directories-rel))
+         ;; Hash basenames of ignored files for O(1) lookup per project
+         ;; file (the original `seq-some'/`string=' over the list was
+         ;; O(M) per file).
+         (ignored-files-set (projectile--list->set ignored-files))
+         ;; Split ignored dirs into the two matching modes used below:
+         ;; entries prefixed with `*' are matched as a path *segment*
+         ;; (basename anywhere in the file's directory chain), the rest
+         ;; are matched as a literal path *prefix*.  Hash the segment
+         ;; entries so the per-file segment loop becomes O(segments).
+         (any-segment-dir-names nil)
+         (prefix-dirs nil))
+    (dolist (dir ignored-dirs)
+      (if (string-prefix-p "*" dir)
+          (push (string-remove-suffix "/" (substring dir 1))
+                any-segment-dir-names)
+        (push dir prefix-dirs)))
+    (let ((any-segment-dir-set (projectile--list->set any-segment-dir-names))
+          (suffixes projectile-globally-ignored-file-suffixes))
+      (seq-remove
+       (lambda (file)
+         (or (gethash (file-name-nondirectory file) ignored-files-set)
+             (and any-segment-dir-names
+                  (seq-some
+                   (lambda (segment) (gethash segment any-segment-dir-set))
+                   (delete "" (split-string
+                               (or (file-name-directory file) "") "/"))))
+             (seq-some (lambda (dir) (string-prefix-p dir file)) prefix-dirs)
+             (seq-some (lambda (suf) (string-suffix-p suf file t)) suffixes)))
+       files))))
 
 (defun projectile-keep-ignored-files (project vcs files)
   "Filter FILES to retain only those that are ignored."
