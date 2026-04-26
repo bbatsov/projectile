@@ -10,6 +10,7 @@
 
 ### New features
 
+* [#1936](https://github.com/bbatsov/projectile/issues/1936): Add `projectile-discard-root-cache` command to clear `projectile-project-root-cache` without touching other Projectile caches. Useful after creating or removing a project marker, since the existing `projectile-invalidate-cache` either also drops the file list cache or prompts for a project depending on context.
 * Warn once per session when `projectile-indexing-method' is `alien' but the project has a non-empty `.projectile' file, so users notice their dirconfig rules are being bypassed. Controlled by the new `projectile-warn-when-dirconfig-is-ignored' option.
 * Warn when a `+' keep entry in `.projectile' contains glob metacharacters. The `+' prefix is for subdirectory paths only and globs are silently coerced into a non-matching directory name; the warning surfaces the misuse rather than letting it fail silently.
 * [#1964](https://github.com/bbatsov/projectile/issues/1964): Implement `project-name` and `project-buffers` methods for the `project.el` integration, so that code using `project.el` APIs returns correct results for Projectile-managed projects.

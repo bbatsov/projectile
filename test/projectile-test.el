@@ -1406,6 +1406,23 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       (spy-on 'projectile-project-root :and-return-value nil)
       (expect (projectile-acquire-root) :to-equal "/here/"))))
 
+(describe "projectile-discard-root-cache"
+  (it "empties the root cache without touching other caches"
+    (let ((projectile-project-root-cache (make-hash-table :test 'equal))
+          (projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-project-type-cache (make-hash-table :test 'equal))
+          (projectile-verbose nil))
+      (puthash (cons 'projectile-root-bottom-up "/x/") "/x/"
+               projectile-project-root-cache)
+      (puthash (cons 'none "/y/") 'none projectile-project-root-cache)
+      (puthash "/x/" '("a" "b") projectile-projects-cache)
+      (puthash "/x/" 'emacs-eldev projectile-project-type-cache)
+      (projectile-discard-root-cache)
+      (expect (hash-table-count projectile-project-root-cache) :to-equal 0)
+      ;; Other caches must be untouched.
+      (expect (gethash "/x/" projectile-projects-cache) :to-equal '("a" "b"))
+      (expect (gethash "/x/" projectile-project-type-cache) :to-equal 'emacs-eldev))))
+
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"
     (projectile-test-with-sandbox

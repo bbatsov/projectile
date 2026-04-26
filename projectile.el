@@ -1189,6 +1189,20 @@ argument)."
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
+;;;###autoload
+(defun projectile-discard-root-cache ()
+  "Clear `projectile-project-root-cache' without touching other caches.
+Useful after creating, removing, or moving a project marker (e.g.
+`.projectile' or `.git') - Projectile would otherwise keep returning
+its previously cached answer for that directory.
+
+See also `projectile-invalidate-cache', which does this and also drops
+the per-project file list and project-type caches."
+  (interactive)
+  (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  (when projectile-verbose
+    (message "Cleared Projectile project root cache.")))
+
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
   (time-convert nil 'integer))
@@ -6698,6 +6712,7 @@ Magit that don't trigger `find-file-hook'."
          "--"
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
+         ["Discard project root cache" projectile-discard-root-cache]
          ["Regenerate [e|g]tags" projectile-regenerate-tags]
          "--"
          ["Toggle project wide read-only" projectile-toggle-project-read-only]

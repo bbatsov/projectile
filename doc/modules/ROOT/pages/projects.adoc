@@ -822,6 +822,10 @@ The cache is populated lazily and only invalidated when:
   project, so this is also the right command to run after creating a new
   `.projectile`/`.git`/etc. in a directory that Projectile previously
   considered rootless.
+* You call `projectile-discard-root-cache` if you want to clear *only* the
+  project root cache without dropping the per-project file lists - useful
+  when you've just added a marker file and don't want to re-index large
+  projects.
 * You restart Emacs.
 
 The cache is keyed on the search start directory and a positive entry is
