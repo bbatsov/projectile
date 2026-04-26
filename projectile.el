@@ -1662,17 +1662,24 @@ IGNORED-DIRECTORIES may optionally be provided."
 ;; This corresponds to `projectile-indexing-method' being set to hybrid or alien.
 ;; The only difference between the two methods is that alien doesn't do
 ;; any post-processing of the files obtained via the external command.
-(defun projectile-dir-files-alien (directory &optional vcs)
+(defun projectile-dir-files-alien (directory &optional vcs subdirs)
   "Get the files for DIRECTORY using external tools.
 VCS, when supplied, must be the project's VCS as returned by
 `projectile-project-vcs'.  It is computed from DIRECTORY when
 omitted; callers that already resolved the VCS can pass it in to
-avoid the redundant work."
+avoid the redundant work.
+
+SUBDIRS, when non-nil, is a list of subdirectory paths (relative
+to DIRECTORY) restricting the listing.  The external command
+receives them as positional arguments and submodule files are
+filtered to those falling under one of the subdirectories.  This
+is how dirconfig `+' keep entries are honoured by hybrid indexing
+without shelling out per kept directory."
   (let ((vcs (or vcs (projectile-project-vcs directory))))
     (cond
      ((eq vcs 'git)
-      (let* ((files (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
-                           (projectile-get-sub-projects-files directory vcs)))
+      (let* ((files (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs) subdirs)
+                           (projectile--restricted-sub-projects-files directory vcs subdirs)))
              ;; When using git ls-files (not fd), deleted but unstaged
              ;; files are still reported.  Remove them.
              (deleted (unless (and projectile-git-use-fd projectile-fd-executable)
@@ -1682,7 +1689,22 @@ avoid the redundant work."
               (dolist (f deleted) (puthash f t deleted-set))
               (seq-remove (lambda (f) (gethash f deleted-set)) files))
           files)))
-     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))))))
+     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs) subdirs)))))
+
+(defun projectile--restricted-sub-projects-files (project-root vcs subdirs)
+  "Return git submodule files under PROJECT-ROOT, optionally restricted to SUBDIRS.
+SUBDIRS is a list of paths relative to PROJECT-ROOT; when non-nil
+only files whose project-relative path starts with one of those
+subdirectories are returned.  When nil, behaves exactly like
+`projectile-get-sub-projects-files'."
+  (let ((files (projectile-get-sub-projects-files project-root vcs)))
+    (if subdirs
+        (let ((normalized (mapcar #'file-name-as-directory subdirs)))
+          (seq-filter
+           (lambda (f)
+             (seq-some (lambda (sd) (string-prefix-p sd f)) normalized))
+           files))
+      files)))
 
 (defun projectile-git-deleted-files (directory)
   "Get a list of deleted but unstaged files in DIRECTORY."
@@ -1793,17 +1815,31 @@ VCS is the VCS of the project."
     (when cmd
       (projectile-files-via-ext-command project (concat cmd " " dir)))))
 
-(defun projectile-files-via-ext-command (root command)
+(defun projectile-files-via-ext-command (root command &optional pathspecs)
   "Get a list of relative file names in the project ROOT by executing COMMAND.
+
+PATHSPECS, when non-nil, is a list of subdirectories (relative to
+ROOT) appended to COMMAND as positional arguments.  Each entry is
+shell-quoted before being appended.  All of the indexing commands
+shipped with Projectile (`git ls-files', `fd', `find', `hg locate'
+etc.) accept additional path arguments at the end of the command
+line; users with heavily customised commands that don't should
+either not rely on `+' keep entries in `.projectile' or arrange
+their command to accept positional paths.
 
 If `command' is nil or an empty string, return nil.
 This allows commands to be disabled.
 
 Only text sent to standard output is taken into account."
   (when (and (stringp command) (not (string-empty-p command)))
-    (let ((default-directory root))
+    (let ((default-directory root)
+          (full-command (if pathspecs
+                            (concat command " "
+                                    (mapconcat #'shell-quote-argument
+                                               pathspecs " "))
+                          command)))
       (with-temp-buffer
-        (shell-command command t "*projectile-files-errors*")
+        (shell-command full-command t "*projectile-files-errors*")
         (let ((shell-output (buffer-substring (point-min) (point-max))))
           (mapcar (lambda (f)
                     (string-remove-prefix "./" f))
@@ -2520,21 +2556,33 @@ is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
                 (progn
                   (projectile--maybe-warn-dirconfig-ignored project-root)
                   (projectile-dir-files-alien project-root))
-              ;; If a project is defined as a list of subfolders
-              ;; then we'll have the files returned for each subfolder,
-              ;; so they are relative to the project root.
-              ;;
-              ;; TODO: That's pretty slow and we need to improve it.
-              ;; One options would be to pass explicitly the subdirs
-              ;; to commands like `git ls-files` which would return
-              ;; files paths relative to the project root.
-              (mapcan
-               (lambda (dir)
-                 (mapcar (lambda (f)
-                           (file-relative-name (concat dir f)
-                                               project-root))
-                         (projectile-dir-files dir)))
-               (projectile-get-project-directories project-root))))
+              (let ((dirs (projectile-get-project-directories project-root)))
+                (cond
+                 ((and (eq projectile-indexing-method 'hybrid) (cdr dirs))
+                  ;; Hybrid + dirconfig `+' keep entries: batch the
+                  ;; external command into a single invocation with
+                  ;; the kept subdirectories as pathspecs, then run
+                  ;; projectile-adjust-files once over the combined
+                  ;; result.  Avoids one shell-out per kept directory.
+                  (let* ((vcs (projectile-project-vcs project-root))
+                         (subdirs (mapcar
+                                   (lambda (d) (file-relative-name d project-root))
+                                   dirs)))
+                    (projectile-adjust-files
+                     project-root vcs
+                     (projectile-dir-files-alien project-root vcs subdirs))))
+                 (t
+                  ;; Native, or hybrid without keep entries: walk each
+                  ;; project directory.  For native this is the only
+                  ;; implementation; for hybrid+single-dir it's
+                  ;; equivalent to the batched call above.
+                  (mapcan
+                   (lambda (dir)
+                     (mapcar (lambda (f)
+                               (file-relative-name (concat dir f)
+                                                   project-root))
+                             (projectile-dir-files dir)))
+                   dirs))))))
 
       ;; Save the cached list.
       (when projectile-enable-caching
