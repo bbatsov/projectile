@@ -1457,15 +1457,14 @@ If DIR is not supplied it's set to the current directory by default."
     (when (and (fboundp 'tramp-archive-file-name-p)
                (tramp-archive-file-name-p dir))
       (setq dir (file-name-directory (tramp-archive-file-name-archive dir))))
-    ;; the cached value will be 'none in the case of no project root (this is to
-    ;; ensure it is not reevaluated each time when not inside a project) so
-    ;; replace this 'none value with nil so a nil value is used instead
+    ;; The cached value is 'none when no project root was found (so we don't
+    ;; reevaluate every time when not inside a project); we map that back to
+    ;; nil for callers.  Cache keys are conses: (FUNC . DIR) for per-function
+    ;; results, ('none . DIR) for the overall failure marker.
     (let ((result (or
        ;; if we've already failed to find a project dir for this
        ;; dir, and cached that failure, don't recompute
-       (let* ((cache-key (format "projectilerootless-%s" dir))
-              (cache-value (gethash cache-key projectile-project-root-cache)))
-         cache-value)
+       (gethash (cons 'none dir) projectile-project-root-cache)
        ;; if the file isn't local, and we're not connected, don't try to
        ;; find a root now, but don't cache failure, as we might
        ;; re-connect.  The `is-local' and `is-connected' variables are
@@ -1482,7 +1481,7 @@ If DIR is not supplied it's set to the current directory by default."
        ;; through the project root functions until we find a project dir
        (seq-some
         (lambda (func)
-          (let* ((cache-key (format "%s-%s" func dir))
+          (let* ((cache-key (cons func dir))
                  (cache-value (gethash cache-key projectile-project-root-cache)))
             (if (and cache-value (file-exists-p cache-value))
                 cache-value
@@ -1493,9 +1492,7 @@ If DIR is not supplied it's set to the current directory by default."
        ;; if we get here, we have failed to find a root by all
        ;; conventional means, and we assume the failure isn't transient
        ;; / network related, so cache the failure
-       (let ((cache-key (format "projectilerootless-%s" dir)))
-         (puthash cache-key 'none projectile-project-root-cache)
-         'none))))
+       (puthash (cons 'none dir) 'none projectile-project-root-cache))))
       (unless (eq result 'none) result))))
 
 (defun projectile-ensure-project (dir)
