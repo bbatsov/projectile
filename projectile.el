@@ -1330,9 +1330,10 @@ discover projects there."
                   (format "Projectile is discovering projects in %s..."
                           (propertize directory 'face 'font-lock-keyword-face)))))
             (progress-reporter-update progress-reporter)
-            (dolist (dir (ignore-errors (directory-files directory t)))
-              (when (and (file-directory-p dir)
-                         (not (member (file-name-nondirectory dir) '(".." "."))))
+            (dolist (dir (ignore-errors
+                           (directory-files directory t
+                                            directory-files-no-dot-files-regexp)))
+              (when (file-directory-p dir)
                 (projectile-discover-projects-in-directory dir (1- depth))))
             (progress-reporter-done progress-reporter))
         (when (projectile-project-p directory)
@@ -1856,24 +1857,31 @@ searching, and should end with an appropriate path delimiter, such as
 
 If the vcs get-sub-projects query returns results outside of path,
 they are excluded from the results of this function."
-  (let* ((vcs (projectile-project-vcs path))
-         ;; search for sub-projects under current project `project'
-         (submodules (mapcar
-                      (lambda (s)
-                        (file-name-as-directory (expand-file-name s path)))
-                      (projectile-files-via-ext-command path (projectile-get-sub-projects-command vcs))))
-         (project-child-folder-regex
-          (concat "\\`"
-                  (regexp-quote path))))
-
-    ;; If project root is inside of an VCS folder, but not actually an
-    ;; VCS root itself, submodules external to the project will be
-    ;; included in the VCS get sub-projects result. Let's remove them.
-    (seq-filter
-     (lambda (submodule)
-       (string-match-p project-child-folder-regex
-                       submodule))
-     submodules)))
+  (let ((vcs (projectile-project-vcs path)))
+    ;; For Git projects without a `.gitmodules' file there is nothing
+    ;; for `git submodule foreach' to find, so we can skip the
+    ;; shell-out altogether.  PATH may be inside a Git repo without
+    ;; being its toplevel (e.g. a subproject of an outer repo) so look
+    ;; for `.gitmodules' along the parent chain rather than just at
+    ;; PATH itself.  This is hot for monorepos that index the project
+    ;; root often.
+    (unless (and (eq vcs 'git)
+                 (not (locate-dominating-file path ".gitmodules")))
+      (let* ((submodules (mapcar
+                          (lambda (s)
+                            (file-name-as-directory (expand-file-name s path)))
+                          (projectile-files-via-ext-command
+                           path (projectile-get-sub-projects-command vcs))))
+             (project-child-folder-regex
+              (concat "\\`" (regexp-quote path))))
+        ;; If project root is inside of an VCS folder, but not
+        ;; actually an VCS root itself, submodules external to the
+        ;; project will be included in the VCS get sub-projects
+        ;; result.  Let's remove them.
+        (seq-filter
+         (lambda (submodule)
+           (string-match-p project-child-folder-regex submodule))
+         submodules)))))
 
 (defun projectile-get-sub-projects-files (project-root vcs)
   "Get files from sub-projects for PROJECT-ROOT recursively.
