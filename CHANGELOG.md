@@ -4,11 +4,13 @@
 
 ### Changes
 
+* `projectile-project-root-cache` now keys entries on cons cells (`(FUNC . DIR)` for per-function results, `('none . DIR)` for the overall failure marker) instead of formatted strings. This is internal state, but third-party code that reaches into the cache directly will need to update.
 * `projectile-parse-dirconfig-file' now returns a `projectile-dirconfig' struct (with `keep', `ignore', `ensure', and `prefixless-ignore' slots) instead of a positional 3-tuple. External callers should use the accessors (`projectile-dirconfig-keep' etc.) rather than `car'/`cadr'/`caddr'.
 * Soft-deprecate prefix-less ignore entries in `.projectile'. Lines without a `+'/`-'/`!' prefix are still treated as ignore patterns for backward compatibility, but a one-time warning is now shown for each project that uses them. Set `projectile-warn-on-prefixless-dirconfig-lines' to nil to silence.
 
 ### New features
 
+* [#1936](https://github.com/bbatsov/projectile/issues/1936): Add `projectile-discard-root-cache` command to clear `projectile-project-root-cache` without touching other Projectile caches. Useful after creating or removing a project marker, since the existing `projectile-invalidate-cache` either also drops the file list cache or prompts for a project depending on context.
 * Warn once per session when `projectile-indexing-method' is `alien' but the project has a non-empty `.projectile' file, so users notice their dirconfig rules are being bypassed. Controlled by the new `projectile-warn-when-dirconfig-is-ignored' option.
 * Warn when a `+' keep entry in `.projectile' contains glob metacharacters. The `+' prefix is for subdirectory paths only and globs are silently coerced into a non-matching directory name; the warning surfaces the misuse rather than letting it fail silently.
 * [#1964](https://github.com/bbatsov/projectile/issues/1964): Implement `project-name` and `project-buffers` methods for the `project.el` integration, so that code using `project.el` APIs returns correct results for Projectile-managed projects.
@@ -17,6 +19,8 @@
 
 ### Bugs fixed
 
+* [#1211](https://github.com/bbatsov/projectile/issues/1211): Fix file-local `projectile-project-root` overrides being ignored after the first buffer in a directory was visited. The cache used `(default-directory)` as part of the key but `projectile-root-local` reads a buffer-local variable, so two buffers in the same directory with different overrides got the first buffer's answer. Results from `projectile-root-local` are no longer cached.
+* [#1836](https://github.com/bbatsov/projectile/issues/1836): Memoize per-function `nil` results in the project root cache. Previously, when an early entry in `projectile-project-root-functions` returned nil, the nil was indistinguishable from a missing cache entry, so the function was re-run on every `projectile-project-root` call. With many entries this could cost several full directory walks per call. A `'none` sentinel is now stored for unsuccessful entries.
 * [#1508](https://github.com/bbatsov/projectile/issues/1508): Fix dirconfig parser silently treating lines as ignore patterns when the `+`/`-`/`!` prefix or the comment character is preceded by whitespace; leading spaces and tabs are now skipped before prefix dispatch.
 * Fix `projectile-files-via-ext-command` executing empty string as shell command for non-git VCS sub-projects.
 * Fix `projectile-select-files` crashing on filenames with regexp metacharacters by using `string-search` instead of `string-match`.

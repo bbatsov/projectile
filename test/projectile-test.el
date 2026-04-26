@@ -1156,7 +1156,47 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
               (expand-file-name "projectA/src/html/"))
       (expect (projectile-root-bottom-up "projectA/src/html" '(".projectile"))
               :to-equal
-              (expand-file-name "projectA/"))))))
+              (expand-file-name "projectA/")))))
+  (it "matches a regular-file marker (e.g. git worktree's .git file)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("worktree/.git"
+       "worktree/src/file.txt")
+      (expect (projectile-root-bottom-up "worktree/src/" '(".git"))
+              :to-equal
+              (expand-file-name "worktree/"))))))
+
+(describe "projectile-root-marked"
+  (it "finds the closest dirconfig-file bottom-up"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.projectile"
+       "alpha/sub/file.txt")
+      (expect (projectile-root-marked "alpha/sub/")
+              :to-equal
+              (expand-file-name "alpha/")))))
+  (it "honors a custom projectile-dirconfig-file"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.myproject"
+       "alpha/sub/file.txt")
+      (let ((projectile-dirconfig-file ".myproject"))
+        (expect (projectile-root-marked "alpha/sub/")
+                :to-equal
+                (expand-file-name "alpha/"))))))
+  (it "returns nil when no marker is present"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/sub/file.txt")
+      (expect (projectile-root-marked "alpha/sub/") :not :to-be-truthy)))))
+
+(describe "projectile-root-local"
+  (it "returns the buffer-local projectile-project-root variable"
+    (let ((projectile-project-root "/some/override/"))
+      (expect (projectile-root-local "/totally/unrelated/") :to-equal "/some/override/")))
+  (it "returns nil when the buffer-local variable is unset"
+    (let ((projectile-project-root nil))
+      (expect (projectile-root-local "/anywhere/") :not :to-be-truthy))))
 
 (describe "projectile-project-root"
   (defun projectile-test-should-root-in (root directory)
@@ -1236,7 +1276,7 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
       ("projectA/src/")
       (let* ((projectile-project-root-functions '())
              (dir "projectA/src")
-             (cache-key (format "projectilerootless-%s" dir))
+             (cache-key (cons 'none dir))
              (projectile-project-root-cache (make-hash-table :test 'equal)))
         (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
         (expect (projectile-project-root dir) :to-be nil)
@@ -1257,14 +1297,131 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
                  (lambda (&rest args) (eql 1 (length args)))))
         (let* ((projectile-project-root-functions '())
                (dir "projectA/src")
-               (cache-key (format "projectilerootless-%s" dir))
+               (cache-key (cons 'none dir))
                (projectile-project-root-cache (make-hash-table :test 'equal)))
           (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
           (expect (projectile-project-root dir) :to-be nil)
           ;; since the failure was transitory, there should be nothing cached
           (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
           ;; and projectile-project-root should still return nil
-          (expect (projectile-project-root dir) :to-be nil)))))))
+          (expect (projectile-project-root dir) :to-be nil))))))
+
+  (it "honors a buffer-local projectile-project-root after it changes (#1211)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.projectile"
+       "beta/.projectile"
+       "host/notes.org")
+      (let* ((dir (expand-file-name "host/"))
+             (alpha-root (file-truename (expand-file-name "alpha/")))
+             (beta-root (file-truename (expand-file-name "beta/")))
+             (default-directory dir)
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        ;; First "buffer": file-local override pointing at alpha.
+        (let ((projectile-project-root alpha-root))
+          (expect (projectile-project-root) :to-equal alpha-root))
+        ;; Second "buffer": same default-directory, different override.
+        ;; The cache must not return the previous buffer's answer.
+        (let ((projectile-project-root beta-root))
+          (expect (projectile-project-root) :to-equal beta-root))))))
+
+  (it "caches per-function nil results so earlier misses aren't re-walked (#1836)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.git/"
+       "projectA/src/")
+      (let* ((calls 0)
+             (always-nil (lambda (_dir) (cl-incf calls) nil))
+             (projectile-project-root-functions
+              (list always-nil 'projectile-root-bottom-up))
+             (projectile-project-root-files-bottom-up '(".git"))
+             (dir (expand-file-name "projectA/src/"))
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        ;; first call: always-nil is invoked, then bottom-up wins
+        (expect (file-truename (projectile-project-root dir))
+                :to-equal (file-truename (expand-file-name "projectA/")))
+        (expect calls :to-equal 1)
+        ;; second call: the cached 'none for always-nil should be honoured
+        (expect (file-truename (projectile-project-root dir))
+                :to-equal (file-truename (expand-file-name "projectA/")))
+        (expect calls :to-equal 1)
+        ;; and the cache holds the 'none sentinel for the failing function
+        (expect (gethash (cons always-nil dir) projectile-project-root-cache)
+                :to-be 'none)))))
+
+  (it "unwraps tramp-archive paths to the enclosing directory"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("hostproj/.git/"
+       "hostproj/archive.zip")
+      (defvar projectile-test--root-fn-arg)
+      (let* ((archive (expand-file-name "hostproj/archive.zip"))
+             (inside (concat archive "/inside/"))
+             (projectile-test--root-fn-arg nil)
+             (projectile-project-root-cache (make-hash-table :test 'equal))
+             (projectile-project-root-functions
+              (list (lambda (d) (setq projectile-test--root-fn-arg d) nil))))
+        (cl-letf (((symbol-function 'tramp-archive-file-name-p)
+                   (lambda (d) (string-prefix-p archive d)))
+                  ((symbol-function 'tramp-archive-file-name-archive)
+                   (lambda (_d) archive)))
+          (projectile-project-root inside)
+          ;; The root function should have been handed the archive's enclosing
+          ;; directory, not a path inside the archive.
+          (expect projectile-test--root-fn-arg
+                  :to-equal
+                  (file-truename (expand-file-name "hostproj/")))))))))
+
+(describe "projectile-ensure-project"
+  (it "returns DIR unchanged when non-nil"
+    (expect (projectile-ensure-project "/already/found/") :to-equal "/already/found/"))
+  (it "falls back to default-directory when require-project-root is nil"
+    (let ((projectile-require-project-root nil)
+          (default-directory "/here/"))
+      (expect (projectile-ensure-project nil) :to-equal "/here/")))
+  (it "signals an error when require-project-root is t"
+    (let ((projectile-require-project-root t)
+          (default-directory "/here/"))
+      (expect (projectile-ensure-project nil) :to-throw 'error)))
+  (it "prompts when require-project-root is 'prompt"
+    (let ((projectile-require-project-root 'prompt))
+      (spy-on 'projectile-completing-read :and-return-value "/picked/")
+      (expect (projectile-ensure-project nil) :to-equal "/picked/")
+      (expect 'projectile-completing-read :to-have-been-called))))
+
+(describe "projectile-acquire-root"
+  (it "returns the resolved root when one is found"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.projectile"
+       "alpha/src/file.txt")
+      (let* ((expected (file-truename (expand-file-name "alpha/")))
+             (dir (expand-file-name "alpha/src/"))
+             (default-directory dir)
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        (expect (file-truename (projectile-acquire-root)) :to-equal expected)))))
+  (it "delegates to projectile-ensure-project when no root is found"
+    (let ((projectile-require-project-root nil)
+          (default-directory "/here/"))
+      (spy-on 'projectile-project-root :and-return-value nil)
+      (expect (projectile-acquire-root) :to-equal "/here/"))))
+
+(describe "projectile-discard-root-cache"
+  (it "empties the root cache without touching other caches"
+    (let ((projectile-project-root-cache (make-hash-table :test 'equal))
+          (projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-project-type-cache (make-hash-table :test 'equal))
+          (projectile-verbose nil))
+      (puthash (cons 'projectile-root-bottom-up "/x/") "/x/"
+               projectile-project-root-cache)
+      (puthash (cons 'none "/y/") 'none projectile-project-root-cache)
+      (puthash "/x/" '("a" "b") projectile-projects-cache)
+      (puthash "/x/" 'emacs-eldev projectile-project-type-cache)
+      (projectile-discard-root-cache)
+      (expect (hash-table-count projectile-project-root-cache) :to-equal 0)
+      ;; Other caches must be untouched.
+      (expect (gethash "/x/" projectile-projects-cache) :to-equal '("a" "b"))
+      (expect (gethash "/x/" projectile-project-type-cache) :to-equal 'emacs-eldev))))
 
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"

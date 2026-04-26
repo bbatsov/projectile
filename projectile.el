@@ -1189,6 +1189,20 @@ argument)."
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
+;;;###autoload
+(defun projectile-discard-root-cache ()
+  "Clear `projectile-project-root-cache' without touching other caches.
+Useful after creating, removing, or moving a project marker (e.g.
+`.projectile' or `.git') - Projectile would otherwise keep returning
+its previously cached answer for that directory.
+
+See also `projectile-invalidate-cache', which does this and also drops
+the per-project file list and project-type caches."
+  (interactive)
+  (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  (when projectile-verbose
+    (message "Cleared Projectile project root cache.")))
+
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
   (time-convert nil 'integer))
@@ -1353,6 +1367,32 @@ Invoked automatically when `projectile-mode' is enabled."
 PATH may be a file or directory and directory paths may end with a slash."
   (directory-file-name (file-name-directory (directory-file-name (expand-file-name path)))))
 
+(defun projectile--locate-dominating-file (file name first-match-only)
+  "Walk up from FILE looking for NAME and return the matching directory.
+NAME is either a filename (matched via `projectile-file-exists-p' in
+each candidate directory) or a predicate of one argument (the candidate
+directory).
+
+When FIRST-MATCH-ONLY is non-nil, return the bottommost (closest to
+FILE) match; otherwise keep walking and return the topmost match.
+Returns nil when no match is found."
+  ;; The walk skeleton was originally copied from files.el; the bottom-up
+  ;; / top-down split was previously two near-identical functions.
+  (setq file (abbreviate-file-name file))
+  (let ((root nil)
+        try)
+    (while (and file
+                (not (string-match locate-dominating-stop-dir-regexp file))
+                (not (and first-match-only root)))
+      (setq try (if (stringp name)
+                    (projectile-file-exists-p
+                     (projectile-expand-file-name-wildcard name file))
+                  (funcall name file)))
+      (when try (setq root file))
+      (let ((parent (file-name-directory (directory-file-name file))))
+        (setq file (and (not (equal file parent)) parent))))
+    (and root (expand-file-name (file-name-as-directory root)))))
+
 (defun projectile-locate-dominating-file (file name)
   "Look up the directory hierarchy from FILE for a directory containing NAME.
 Stop at the first parent directory containing a file NAME,
@@ -1360,21 +1400,7 @@ and return the directory.  Return nil if not found.
 Instead of a string, NAME can also be a predicate taking one argument
 \(a directory) and returning a non-nil value if that directory is the one for
 which we're looking."
-  ;; copied from files.el (stripped comments) emacs-24 bzr branch 2014-03-28 10:20
-  (setq file (abbreviate-file-name file))
-  (let ((root nil)
-        try)
-    (while (not (or root
-                    (null file)
-                    (string-match locate-dominating-stop-dir-regexp file)))
-      (setq try (if (stringp name)
-                    (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
-                  (funcall name file)))
-      (cond (try (setq root file))
-            ((equal file (setq file (file-name-directory
-                                     (directory-file-name file))))
-             (setq file nil))))
-    (and root (expand-file-name (file-name-as-directory root)))))
+  (projectile--locate-dominating-file file name t))
 
 (defun projectile-locate-dominating-file-top-down (file name)
   "Look up the directory hierarchy from FILE for a directory containing NAME.
@@ -1383,19 +1409,7 @@ match, this returns the topmost match.  Return nil if not found.
 Instead of a string, NAME can also be a predicate taking one argument
 \(a directory) and returning a non-nil value if that directory is the one for
 which we're looking."
-  (setq file (abbreviate-file-name file))
-  (let ((root nil)
-        try)
-    (while (not (or (null file)
-                    (string-match locate-dominating-stop-dir-regexp file)))
-      (setq try (if (stringp name)
-                    (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
-                  (funcall name file)))
-      (when try (setq root file))
-      (if (equal file (setq file (file-name-directory
-                                   (directory-file-name file))))
-          (setq file nil)))
-    (and root (expand-file-name (file-name-as-directory root)))))
+  (projectile--locate-dominating-file file name nil))
 
 (defvar-local projectile-project-root nil
   "Defines a custom Projectile project root.
@@ -1449,23 +1463,35 @@ topmost sequence of matched directories.  Nil otherwise."
    (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root (&optional dir)
-  "Retrieves the root directory of a project if available.
-If DIR is not supplied it's set to the current directory by default."
+  "Return the root directory of the project containing DIR, or nil.
+If DIR is not supplied it defaults to `default-directory'.
+
+Each function in `projectile-project-root-functions' is tried in order;
+the first non-nil result wins.  Results - including failures - are
+memoized in `projectile-project-root-cache' (see the Project root cache
+section in the manual).  Use `projectile-invalidate-cache' to reset.
+
+Special cases:
+
+- Tramp archive paths (e.g. inside a `.zip') are unwrapped to the
+  directory that contains the archive before searching.
+- Remote files reached via TRAMP whose host is not currently connected
+  return nil without caching, so reconnecting works without manual cache
+  invalidation."
   (let ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
     (when (and (fboundp 'tramp-archive-file-name-p)
                (tramp-archive-file-name-p dir))
       (setq dir (file-name-directory (tramp-archive-file-name-archive dir))))
-    ;; the cached value will be 'none in the case of no project root (this is to
-    ;; ensure it is not reevaluated each time when not inside a project) so
-    ;; replace this 'none value with nil so a nil value is used instead
+    ;; The cached value is 'none when no project root was found (so we don't
+    ;; reevaluate every time when not inside a project); we map that back to
+    ;; nil for callers.  Cache keys are conses: (FUNC . DIR) for per-function
+    ;; results, ('none . DIR) for the overall failure marker.
     (let ((result (or
        ;; if we've already failed to find a project dir for this
        ;; dir, and cached that failure, don't recompute
-       (let* ((cache-key (format "projectilerootless-%s" dir))
-              (cache-value (gethash cache-key projectile-project-root-cache)))
-         cache-value)
+       (gethash (cons 'none dir) projectile-project-root-cache)
        ;; if the file isn't local, and we're not connected, don't try to
        ;; find a root now, but don't cache failure, as we might
        ;; re-connect.  The `is-local' and `is-connected' variables are
@@ -1479,23 +1505,31 @@ If DIR is not supplied it's set to the current directory by default."
          (unless (or is-local is-connected)
            'none))
        ;; if the file is local or we're connected to it via TRAMP, run
-       ;; through the project root functions until we find a project dir
+       ;; through the project root functions until we find a project dir.
+       ;; `projectile-root-local' reads a buffer-local variable rather
+       ;; than inspecting DIR, so its result must not be cached - two
+       ;; buffers in the same directory can legitimately disagree.
+       ;; For other functions, both successes and per-function failures
+       ;; (stored as the 'none sentinel) are memoized, so functions
+       ;; earlier in the list that returned nil aren't re-walked on
+       ;; every call.
        (seq-some
         (lambda (func)
-          (let* ((cache-key (format "%s-%s" func dir))
-                 (cache-value (gethash cache-key projectile-project-root-cache)))
-            (if (and cache-value (file-exists-p cache-value))
-                cache-value
-              (let ((value (funcall func (file-truename dir))))
-                (puthash cache-key value projectile-project-root-cache)
-                value))))
+          (if (eq func 'projectile-root-local)
+              (funcall func dir)
+            (let* ((cache-key (cons func dir))
+                   (cache-value (gethash cache-key projectile-project-root-cache)))
+              (cond
+               ((eq cache-value 'none) nil)
+               ((and cache-value (file-exists-p cache-value)) cache-value)
+               (t (let ((value (funcall func (file-truename dir))))
+                    (puthash cache-key (or value 'none) projectile-project-root-cache)
+                    value))))))
         projectile-project-root-functions)
        ;; if we get here, we have failed to find a root by all
        ;; conventional means, and we assume the failure isn't transient
        ;; / network related, so cache the failure
-       (let ((cache-key (format "projectilerootless-%s" dir)))
-         (puthash cache-key 'none projectile-project-root-cache)
-         'none))))
+       (puthash (cons 'none dir) 'none projectile-project-root-cache))))
       (unless (eq result 'none) result))))
 
 (defun projectile-ensure-project (dir)
@@ -6678,6 +6712,7 @@ Magit that don't trigger `find-file-hook'."
          "--"
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
+         ["Discard project root cache" projectile-discard-root-cache]
          ["Regenerate [e|g]tags" projectile-regenerate-tags]
          "--"
          ["Toggle project wide read-only" projectile-toggle-project-read-only]

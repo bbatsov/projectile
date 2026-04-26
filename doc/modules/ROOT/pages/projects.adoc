@@ -772,6 +772,13 @@ precedence with respect to project detection. Let's examine the defaults:
   appear at every level of a project (e.g. `Makefile` or `.svn`) and will return
   the top-most match for those.
 
+NOTE: `projectile-root-top-down` only matches *regular files* — directories
+with names listed in `projectile-project-root-files` are skipped.  This is
+why the default list contains files like `configure.ac` or `TAGS` rather than
+VCS directories.  `projectile-root-bottom-up` matches both files and
+directories, so VCS markers like `.git` (a directory in normal repos, a file
+in worktrees and submodules) belong on the bottom-up list.
+
 The default ordering should work well for most people, but depending on the
 structure of your project you might want to tweak it.
 
@@ -801,6 +808,45 @@ Similarly, you can leverage the built-in `project.el` like this:
 
 (setq projectile-project-root-functions '(projectile-project-current))
 ----
+
+=== Project root cache
+
+To keep `projectile-project-root` cheap (it's called from the mode-line and
+several `find-file-hook` paths), Projectile memoizes the result of every
+project root function in the variable `projectile-project-root-cache`.
+The cache is populated lazily and only invalidated when:
+
+* You call `projectile-invalidate-cache` (`s-p i` by default), which clears
+  both the per-project files cache *and* the project root cache.  The root
+  cache is cleared even when you cancel the project prompt or aren't in a
+  project, so this is also the right command to run after creating a new
+  `.projectile`/`.git`/etc. in a directory that Projectile previously
+  considered rootless.
+* You call `projectile-discard-root-cache` if you want to clear *only* the
+  project root cache without dropping the per-project file lists - useful
+  when you've just added a marker file and don't want to re-index large
+  projects.
+* You restart Emacs.
+
+The cache is keyed on the search start directory and a positive entry is
+revalidated against the filesystem (via `file-exists-p`) on every lookup, so
+a deleted root naturally invalidates itself.  Negative entries (no project
+found) are also memoized to avoid re-walking the directory tree on every
+call; this is the main source of confusion when adding a marker file:
+*Projectile remembers that the directory was rootless and won't notice the
+new marker until you invalidate the cache.*
+
+If you frequently script Projectile from elisp and need finer-grained
+control, you can clear individual entries with `remhash` against the cache,
+or reset the whole thing with `(setq projectile-project-root-cache
+(make-hash-table :test 'equal))`.
+
+[NOTE]
+====
+The buffer-local file variable `projectile-project-root` is read by
+`projectile-root-local` and is *not* cached, so per-buffer overrides take
+effect immediately even when several buffers share the same directory.
+====
 
 == Ignoring files
 
@@ -950,6 +996,16 @@ file, you can set the file-local variable `projectile-project-root`. This
 can be useful if you have files within one project that are related to
 a different project (for instance, Org files in one git repo that
 correspond to other projects).
+
+[source,elisp]
+----
+;; -*- projectile-project-root: "/path/to/other/project/" -*-
+----
+
+Override values are read from the buffer-local variable on every lookup
+(they're intentionally exempt from the project root cache), so two buffers
+in the same directory can have different overrides and each will resolve to
+its own root.
 
 == Storing project settings
 
