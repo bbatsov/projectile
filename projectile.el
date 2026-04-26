@@ -1367,6 +1367,32 @@ Invoked automatically when `projectile-mode' is enabled."
 PATH may be a file or directory and directory paths may end with a slash."
   (directory-file-name (file-name-directory (directory-file-name (expand-file-name path)))))
 
+(defun projectile--locate-dominating-file (file name first-match-only)
+  "Walk up from FILE looking for NAME and return the matching directory.
+NAME is either a filename (matched via `projectile-file-exists-p' in
+each candidate directory) or a predicate of one argument (the candidate
+directory).
+
+When FIRST-MATCH-ONLY is non-nil, return the bottommost (closest to
+FILE) match; otherwise keep walking and return the topmost match.
+Returns nil when no match is found."
+  ;; The walk skeleton was originally copied from files.el; the bottom-up
+  ;; / top-down split was previously two near-identical functions.
+  (setq file (abbreviate-file-name file))
+  (let ((root nil)
+        try)
+    (while (and file
+                (not (string-match locate-dominating-stop-dir-regexp file))
+                (not (and first-match-only root)))
+      (setq try (if (stringp name)
+                    (projectile-file-exists-p
+                     (projectile-expand-file-name-wildcard name file))
+                  (funcall name file)))
+      (when try (setq root file))
+      (let ((parent (file-name-directory (directory-file-name file))))
+        (setq file (and (not (equal file parent)) parent))))
+    (and root (expand-file-name (file-name-as-directory root)))))
+
 (defun projectile-locate-dominating-file (file name)
   "Look up the directory hierarchy from FILE for a directory containing NAME.
 Stop at the first parent directory containing a file NAME,
@@ -1374,21 +1400,7 @@ and return the directory.  Return nil if not found.
 Instead of a string, NAME can also be a predicate taking one argument
 \(a directory) and returning a non-nil value if that directory is the one for
 which we're looking."
-  ;; copied from files.el (stripped comments) emacs-24 bzr branch 2014-03-28 10:20
-  (setq file (abbreviate-file-name file))
-  (let ((root nil)
-        try)
-    (while (not (or root
-                    (null file)
-                    (string-match locate-dominating-stop-dir-regexp file)))
-      (setq try (if (stringp name)
-                    (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
-                  (funcall name file)))
-      (cond (try (setq root file))
-            ((equal file (setq file (file-name-directory
-                                     (directory-file-name file))))
-             (setq file nil))))
-    (and root (expand-file-name (file-name-as-directory root)))))
+  (projectile--locate-dominating-file file name t))
 
 (defun projectile-locate-dominating-file-top-down (file name)
   "Look up the directory hierarchy from FILE for a directory containing NAME.
@@ -1397,19 +1409,7 @@ match, this returns the topmost match.  Return nil if not found.
 Instead of a string, NAME can also be a predicate taking one argument
 \(a directory) and returning a non-nil value if that directory is the one for
 which we're looking."
-  (setq file (abbreviate-file-name file))
-  (let ((root nil)
-        try)
-    (while (not (or (null file)
-                    (string-match locate-dominating-stop-dir-regexp file)))
-      (setq try (if (stringp name)
-                    (projectile-file-exists-p (projectile-expand-file-name-wildcard name file))
-                  (funcall name file)))
-      (when try (setq root file))
-      (if (equal file (setq file (file-name-directory
-                                   (directory-file-name file))))
-          (setq file nil)))
-    (and root (expand-file-name (file-name-as-directory root)))))
+  (projectile--locate-dominating-file file name nil))
 
 (defvar-local projectile-project-root nil
   "Defines a custom Projectile project root.
