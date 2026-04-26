@@ -992,6 +992,69 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect 'projectile-dir-files-alien
             :to-have-been-called-with "/my/root/" 'git)))
 
+(describe "hybrid indexing with `+' keep entries"
+  (it "batches dirconfig keep dirs into a single external command"
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-files-via-ext-command :and-return-value
+            '("src/a.el" "test/b.el"))
+    (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
+    (spy-on 'projectile-git-deleted-files :and-return-value nil)
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value
+            (make-projectile-dirconfig :keep '("src/" "test/")))
+    (spy-on 'projectile-project-root :and-return-value "/my/root/")
+    (let ((projectile-indexing-method 'hybrid)
+          (projectile-enable-caching nil)
+          (projectile-files-cache-expire nil)
+          (projectile-git-use-fd nil)
+          (projectile-fd-executable nil)
+          (projectile-globally-ignored-files nil)
+          (projectile-globally-ignored-directories nil)
+          (projectile-globally-ignored-file-suffixes nil)
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-unignored-directories nil))
+      (projectile-project-files "/my/root/")
+      ;; The external command is invoked exactly once - not once per
+      ;; kept subdirectory - and receives the kept paths as pathspecs.
+      (expect 'projectile-files-via-ext-command :to-have-been-called-times 1)
+      (expect (spy-calls-args-for 'projectile-files-via-ext-command 0)
+              :to-equal (list "/my/root/" projectile-git-command '("src/" "test/")))))
+  (it "leaves the single-keep-dir case on the per-directory path"
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-dir-files-alien :and-return-value '("a.el"))
+    (spy-on 'projectile-adjust-files :and-call-fake (lambda (_p _v files) files))
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value
+            (make-projectile-dirconfig :keep '("src/")))
+    (spy-on 'projectile-project-root :and-return-value "/my/root/")
+    (spy-on 'file-directory-p :and-call-fake
+            (lambda (filename)
+              (member filename '("/my/root/" "/my/root/src/"))))
+    (let ((projectile-indexing-method 'hybrid)
+          (projectile-enable-caching nil)
+          (projectile-files-cache-expire nil))
+      (projectile-project-files "/my/root/"))
+    ;; With one keep entry there are no extra shell calls to save, so
+    ;; we keep going through projectile-dir-files (which threads vcs
+    ;; through to projectile-dir-files-alien).
+    (expect 'projectile-dir-files-alien
+            :to-have-been-called-with "/my/root/src/" 'git)))
+
+(describe "projectile--restricted-sub-projects-files"
+  (it "returns all submodule files when no subdirs are supplied"
+    (spy-on 'projectile-get-sub-projects-files :and-return-value
+            '("vendor/foo/x.txt" "src/sub/y.txt"))
+    (expect (projectile--restricted-sub-projects-files "/r/" 'git nil)
+            :to-equal '("vendor/foo/x.txt" "src/sub/y.txt")))
+  (it "drops submodule files outside the supplied subdirs"
+    (spy-on 'projectile-get-sub-projects-files :and-return-value
+            '("vendor/foo/x.txt" "src/sub/y.txt"))
+    (expect (projectile--restricted-sub-projects-files "/r/" 'git '("src/"))
+            :to-equal '("src/sub/y.txt")))
+  (it "normalises subdirs without a trailing slash"
+    (spy-on 'projectile-get-sub-projects-files :and-return-value
+            '("src/sub/y.txt"))
+    (expect (projectile--restricted-sub-projects-files "/r/" 'git '("src"))
+            :to-equal '("src/sub/y.txt"))))
+
 (describe "projectile-project-dirs"
   (it "includes intermediate directories that contain only subdirectories"
     (spy-on 'projectile-project-files
@@ -1043,7 +1106,14 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
 
           (it "strips ./ prefix from results"
               (expect (projectile-files-via-ext-command "" "printf './foo\\0./bar/baz\\0quux'")
-                      :to-equal '("foo" "bar/baz" "quux"))))
+                      :to-equal '("foo" "bar/baz" "quux")))
+
+          (it "appends shell-quoted pathspecs to the command when supplied"
+              (expect (projectile-files-via-ext-command
+                       "" "printf 'args: %s\\0' --"
+                       '("src dir" "test"))
+                      :to-equal
+                      '("args: --" "args: src dir" "args: test"))))
 
 (describe "projectile-ignored-project-p"
   (it "matches abbreviated paths against truename-resolved ignored list"
