@@ -1283,7 +1283,31 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         ;; Second "buffer": same default-directory, different override.
         ;; The cache must not return the previous buffer's answer.
         (let ((projectile-project-root beta-root))
-          (expect (projectile-project-root) :to-equal beta-root)))))))
+          (expect (projectile-project-root) :to-equal beta-root))))))
+
+  (it "caches per-function nil results so earlier misses aren't re-walked (#1836)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.git/"
+       "projectA/src/")
+      (let* ((calls 0)
+             (always-nil (lambda (_dir) (cl-incf calls) nil))
+             (projectile-project-root-functions
+              (list always-nil 'projectile-root-bottom-up))
+             (projectile-project-root-files-bottom-up '(".git"))
+             (dir (expand-file-name "projectA/src/"))
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        ;; first call: always-nil is invoked, then bottom-up wins
+        (expect (file-truename (projectile-project-root dir))
+                :to-equal (file-truename (expand-file-name "projectA/")))
+        (expect calls :to-equal 1)
+        ;; second call: the cached 'none for always-nil should be honoured
+        (expect (file-truename (projectile-project-root dir))
+                :to-equal (file-truename (expand-file-name "projectA/")))
+        (expect calls :to-equal 1)
+        ;; and the cache holds the 'none sentinel for the failing function
+        (expect (gethash (cons always-nil dir) projectile-project-root-cache)
+                :to-be 'none))))))
 
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"

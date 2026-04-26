@@ -1482,17 +1482,22 @@ If DIR is not supplied it's set to the current directory by default."
        ;; `projectile-root-local' reads a buffer-local variable rather
        ;; than inspecting DIR, so its result must not be cached - two
        ;; buffers in the same directory can legitimately disagree.
+       ;; For other functions, both successes and per-function failures
+       ;; (stored as the 'none sentinel) are memoized, so functions
+       ;; earlier in the list that returned nil aren't re-walked on
+       ;; every call.
        (seq-some
         (lambda (func)
           (if (eq func 'projectile-root-local)
               (funcall func dir)
             (let* ((cache-key (cons func dir))
                    (cache-value (gethash cache-key projectile-project-root-cache)))
-              (if (and cache-value (file-exists-p cache-value))
-                  cache-value
-                (let ((value (funcall func (file-truename dir))))
-                  (puthash cache-key value projectile-project-root-cache)
-                  value)))))
+              (cond
+               ((eq cache-value 'none) nil)
+               ((and cache-value (file-exists-p cache-value)) cache-value)
+               (t (let ((value (funcall func (file-truename dir))))
+                    (puthash cache-key (or value 'none) projectile-project-root-cache)
+                    value))))))
         projectile-project-root-functions)
        ;; if we get here, we have failed to find a root by all
        ;; conventional means, and we assume the failure isn't transient
