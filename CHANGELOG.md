@@ -4,6 +4,8 @@
 
 ### Changes
 
+* Hybrid indexing now batches the external command into a single invocation when the project's `.projectile` declares multiple `+` keep entries, instead of shelling out once per kept subdirectory. The kept paths are passed to the indexing tool (e.g. `git ls-files`, `fd`, `find`) as positional pathspecs and submodule files outside those subdirectories are filtered out. Resolves the long-standing TODO in `projectile-project-files`.
+* `projectile-files-via-ext-command` now accepts an optional `pathspecs` argument; entries are shell-quoted before being appended to the command. `projectile-dir-files-alien` similarly accepts an optional `subdirs` argument that threads through.
 * Document the `hybrid` indexing method in the manual and add a feature matrix showing which Projectile knobs (dirconfig, global ignores/unignores, sort order, default caching) apply under `native`/`hybrid`/`alien`.
 * `projectile-dir-files-alien` now accepts an optional `vcs` argument so the dispatcher can thread through the already-resolved VCS instead of recomputing it. Existing single-argument callers are unaffected.
 * `projectile-index-directory` (native indexing) now relies on `directory-files-no-dot-files-regexp` to filter out `.` and `..` at the C level instead of walking past them in Elisp.
