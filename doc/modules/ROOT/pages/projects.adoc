@@ -976,6 +976,25 @@ globally ignoring files and directories.  These take effect with `native` and
 (setq projectile-global-ignore-file-patterns '("\\.min\\.js$" "\\.map$"))
 ----
 
+==== Anchored vs anywhere directory ignores
+
+`projectile-globally-ignored-directories` distinguishes between *anchored*
+entries (matched as a path prefix relative to the project root) and *anywhere*
+entries (matched at any depth in the tree). The leading `*` is **not** a glob
+character — it is the marker that promotes an entry from anchored to anywhere.
+
+[source,elisp]
+----
+(setq projectile-globally-ignored-directories
+      '("tmp"           ; only ignores ./tmp at the project root
+        "*node_modules" ; ignores any directory named node_modules at any depth
+        ))
+----
+
+The `*` prefix only matters for the `hybrid` post-processor; in `native`
+indexing every entry is matched by directory basename at every traversal step
+(so `tmp` and `*tmp` behave the same). `alien` ignores both forms entirely.
+
 You can also _unignore_ specific files or directories that would otherwise be
 excluded.  This is useful when your VCS ignores files that you still want
 Projectile to show:

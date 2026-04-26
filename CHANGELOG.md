@@ -4,6 +4,9 @@
 
 ### Changes
 
+* `projectile-get-immediate-sub-projects` skips the `git submodule foreach` shell-out for git projects with no `.gitmodules` file anywhere up the parent chain. Hot path for monorepos that index the project root often.
+* `projectile-discover-projects-in-directory` now uses `directory-files-no-dot-files-regexp` to skip `.` and `..` at the C level instead of doing the post-filter in Elisp - matches the indexing walker.
+* Document the anchored vs `*`-prefixed semantics of `projectile-globally-ignored-directories`, the `find` fallback's lack of common directory exclusions when `fd` isn't available, and how `fd`/`git ls-files` handle deleted-but-unstaged files differently.
 * Speed up native indexing on large trees: `projectile-index-directory` now hashes the ignored-files / ignored-directories / globally-ignored-directory-names lists once per indexing call (the per-file `member' scans were O(N*M)), expands dirconfig glob patterns once per directory level instead of once per (file, pattern) pair, and accumulates results into a shared cell so we no longer pay for an `apply append' at each recursion level.
 * `projectile-remove-ignored` (hybrid post-processing) now hashes the ignored-files basenames and pre-splits ignored-dirs into prefix-match and any-segment groups, so the per-file inner loops drop from O(M) `seq-some` walks to O(1) hash lookups (or O(segments) for `*`-prefixed entries).
 * Hybrid indexing now batches the external command into a single invocation when the project's `.projectile` declares multiple `+` keep entries, instead of shelling out once per kept subdirectory. The kept paths are passed to the indexing tool (e.g. `git ls-files`, `fd`, `find`) as positional pathspecs and submodule files outside those subdirectories are filtered out. Resolves the long-standing TODO in `projectile-project-files`.
