@@ -18,6 +18,7 @@
 
 ### Bugs fixed
 
+* [#1211](https://github.com/bbatsov/projectile/issues/1211): Fix file-local `projectile-project-root` overrides being ignored after the first buffer in a directory was visited. The cache used `(default-directory)` as part of the key but `projectile-root-local` reads a buffer-local variable, so two buffers in the same directory with different overrides got the first buffer's answer. Results from `projectile-root-local` are no longer cached.
 * [#1508](https://github.com/bbatsov/projectile/issues/1508): Fix dirconfig parser silently treating lines as ignore patterns when the `+`/`-`/`!` prefix or the comment character is preceded by whitespace; leading spaces and tabs are now skipped before prefix dispatch.
 * Fix `projectile-files-via-ext-command` executing empty string as shell command for non-git VCS sub-projects.
 * Fix `projectile-select-files` crashing on filenames with regexp metacharacters by using `string-search` instead of `string-match`.

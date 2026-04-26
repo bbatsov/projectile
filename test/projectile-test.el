@@ -1264,7 +1264,26 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
           ;; since the failure was transitory, there should be nothing cached
           (expect (gethash cache-key projectile-project-root-cache) :to-be nil)
           ;; and projectile-project-root should still return nil
-          (expect (projectile-project-root dir) :to-be nil)))))))
+          (expect (projectile-project-root dir) :to-be nil))))))
+
+  (it "honors a buffer-local projectile-project-root after it changes (#1211)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.projectile"
+       "beta/.projectile"
+       "host/notes.org")
+      (let* ((dir (expand-file-name "host/"))
+             (alpha-root (file-truename (expand-file-name "alpha/")))
+             (beta-root (file-truename (expand-file-name "beta/")))
+             (default-directory dir)
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        ;; First "buffer": file-local override pointing at alpha.
+        (let ((projectile-project-root alpha-root))
+          (expect (projectile-project-root) :to-equal alpha-root))
+        ;; Second "buffer": same default-directory, different override.
+        ;; The cache must not return the previous buffer's answer.
+        (let ((projectile-project-root beta-root))
+          (expect (projectile-project-root) :to-equal beta-root)))))))
 
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"

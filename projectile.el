@@ -1478,16 +1478,21 @@ If DIR is not supplied it's set to the current directory by default."
          (unless (or is-local is-connected)
            'none))
        ;; if the file is local or we're connected to it via TRAMP, run
-       ;; through the project root functions until we find a project dir
+       ;; through the project root functions until we find a project dir.
+       ;; `projectile-root-local' reads a buffer-local variable rather
+       ;; than inspecting DIR, so its result must not be cached - two
+       ;; buffers in the same directory can legitimately disagree.
        (seq-some
         (lambda (func)
-          (let* ((cache-key (cons func dir))
-                 (cache-value (gethash cache-key projectile-project-root-cache)))
-            (if (and cache-value (file-exists-p cache-value))
-                cache-value
-              (let ((value (funcall func (file-truename dir))))
-                (puthash cache-key value projectile-project-root-cache)
-                value))))
+          (if (eq func 'projectile-root-local)
+              (funcall func dir)
+            (let* ((cache-key (cons func dir))
+                   (cache-value (gethash cache-key projectile-project-root-cache)))
+              (if (and cache-value (file-exists-p cache-value))
+                  cache-value
+                (let ((value (funcall func (file-truename dir))))
+                  (puthash cache-key value projectile-project-root-cache)
+                  value)))))
         projectile-project-root-functions)
        ;; if we get here, we have failed to find a root by all
        ;; conventional means, and we assume the failure isn't transient
