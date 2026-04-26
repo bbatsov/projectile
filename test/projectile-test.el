@@ -1156,7 +1156,47 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
               (expand-file-name "projectA/src/html/"))
       (expect (projectile-root-bottom-up "projectA/src/html" '(".projectile"))
               :to-equal
-              (expand-file-name "projectA/"))))))
+              (expand-file-name "projectA/")))))
+  (it "matches a regular-file marker (e.g. git worktree's .git file)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("worktree/.git"
+       "worktree/src/file.txt")
+      (expect (projectile-root-bottom-up "worktree/src/" '(".git"))
+              :to-equal
+              (expand-file-name "worktree/"))))))
+
+(describe "projectile-root-marked"
+  (it "finds the closest dirconfig-file bottom-up"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.projectile"
+       "alpha/sub/file.txt")
+      (expect (projectile-root-marked "alpha/sub/")
+              :to-equal
+              (expand-file-name "alpha/")))))
+  (it "honors a custom projectile-dirconfig-file"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.myproject"
+       "alpha/sub/file.txt")
+      (let ((projectile-dirconfig-file ".myproject"))
+        (expect (projectile-root-marked "alpha/sub/")
+                :to-equal
+                (expand-file-name "alpha/"))))))
+  (it "returns nil when no marker is present"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/sub/file.txt")
+      (expect (projectile-root-marked "alpha/sub/") :not :to-be-truthy)))))
+
+(describe "projectile-root-local"
+  (it "returns the buffer-local projectile-project-root variable"
+    (let ((projectile-project-root "/some/override/"))
+      (expect (projectile-root-local "/totally/unrelated/") :to-equal "/some/override/")))
+  (it "returns nil when the buffer-local variable is unset"
+    (let ((projectile-project-root nil))
+      (expect (projectile-root-local "/anywhere/") :not :to-be-truthy))))
 
 (describe "projectile-project-root"
   (defun projectile-test-should-root-in (root directory)
@@ -1307,7 +1347,64 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (expect calls :to-equal 1)
         ;; and the cache holds the 'none sentinel for the failing function
         (expect (gethash (cons always-nil dir) projectile-project-root-cache)
-                :to-be 'none))))))
+                :to-be 'none)))))
+
+  (it "unwraps tramp-archive paths to the enclosing directory"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("hostproj/.git/"
+       "hostproj/archive.zip")
+      (defvar projectile-test--root-fn-arg)
+      (let* ((archive (expand-file-name "hostproj/archive.zip"))
+             (inside (concat archive "/inside/"))
+             (projectile-test--root-fn-arg nil)
+             (projectile-project-root-cache (make-hash-table :test 'equal))
+             (projectile-project-root-functions
+              (list (lambda (d) (setq projectile-test--root-fn-arg d) nil))))
+        (cl-letf (((symbol-function 'tramp-archive-file-name-p)
+                   (lambda (d) (string-prefix-p archive d)))
+                  ((symbol-function 'tramp-archive-file-name-archive)
+                   (lambda (_d) archive)))
+          (projectile-project-root inside)
+          ;; The root function should have been handed the archive's enclosing
+          ;; directory, not a path inside the archive.
+          (expect projectile-test--root-fn-arg
+                  :to-equal
+                  (file-truename (expand-file-name "hostproj/")))))))))
+
+(describe "projectile-ensure-project"
+  (it "returns DIR unchanged when non-nil"
+    (expect (projectile-ensure-project "/already/found/") :to-equal "/already/found/"))
+  (it "falls back to default-directory when require-project-root is nil"
+    (let ((projectile-require-project-root nil)
+          (default-directory "/here/"))
+      (expect (projectile-ensure-project nil) :to-equal "/here/")))
+  (it "signals an error when require-project-root is t"
+    (let ((projectile-require-project-root t)
+          (default-directory "/here/"))
+      (expect (projectile-ensure-project nil) :to-throw 'error)))
+  (it "prompts when require-project-root is 'prompt"
+    (let ((projectile-require-project-root 'prompt))
+      (spy-on 'projectile-completing-read :and-return-value "/picked/")
+      (expect (projectile-ensure-project nil) :to-equal "/picked/")
+      (expect 'projectile-completing-read :to-have-been-called))))
+
+(describe "projectile-acquire-root"
+  (it "returns the resolved root when one is found"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("alpha/.projectile"
+       "alpha/src/file.txt")
+      (let* ((expected (file-truename (expand-file-name "alpha/")))
+             (dir (expand-file-name "alpha/src/"))
+             (default-directory dir)
+             (projectile-project-root-cache (make-hash-table :test 'equal)))
+        (expect (file-truename (projectile-acquire-root)) :to-equal expected)))))
+  (it "delegates to projectile-ensure-project when no root is found"
+    (let ((projectile-require-project-root nil)
+          (default-directory "/here/"))
+      (spy-on 'projectile-project-root :and-return-value nil)
+      (expect (projectile-acquire-root) :to-equal "/here/"))))
 
 (describe "projectile-file-exists-p"
   (it "returns t if file exists"
