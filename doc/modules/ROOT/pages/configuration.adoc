@@ -116,18 +116,32 @@ WARNING: If you ever decide to tweak those keep in mind that the command should 
  the list of files **relative** to the project root and the resulting file list should be 0-delimited
  (as opposed to newline delimited).
 
-For non-VCS projects Projectile will invoke whatever is in `projectile-generic-command`. By default that's:
+For non-VCS projects Projectile will invoke whatever is in `projectile-generic-command`. The default chooses `fd` when it's installed and falls back to `find`:
 
+[source,elisp]
 ----
-find . -type f -print0
+;; Effective default value of projectile-generic-command, picked at load time:
+;;   when fd is on PATH:
+"fd . -0 --type f --color=never --strip-cwd-prefix"
+;;   otherwise:
+"find . -type f | cut -c3- | tr '\\n' '\\0'"
 ----
 
 TIP: It's a great idea to install https://github.com/sharkdp/fd[fd] which is much faster than `find`.
- If `fd` is found, projectile will use it as a replacement for `find`.
+ If `fd` is found, projectile will use it as a replacement for `find` for non-VCS projects.
+
+WARNING: The `find` fallback does *not* exclude common build/cache directories
+ (`.git`, `node_modules`, `target`, `build`, …); a non-VCS project under `alien`
+ indexing on a host without `fd` will list everything.  Either install `fd`,
+ switch to `hybrid` indexing so `projectile-globally-ignored-directories`
+ applies, or override `projectile-generic-command` with a tighter recipe.
 
 By default, `fd` is also used inside Git repositories (instead of `git ls-files`),
 because `git ls-files` has the limitation that it lists deleted files until the
-deletions are staged. You can control this with `projectile-git-use-fd`:
+deletions are staged. With `fd`, deleted files disappear from the listing
+immediately; with `git ls-files`, Projectile post-filters the listing against
+`git ls-files -zd` to hide deletions until they're staged. You can control this
+with `projectile-git-use-fd`:
 
 [source,elisp]
 ----
