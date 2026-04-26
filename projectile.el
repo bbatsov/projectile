@@ -1449,8 +1449,21 @@ topmost sequence of matched directories.  Nil otherwise."
    (or list projectile-project-root-files-top-down-recurring)))
 
 (defun projectile-project-root (&optional dir)
-  "Retrieves the root directory of a project if available.
-If DIR is not supplied it's set to the current directory by default."
+  "Return the root directory of the project containing DIR, or nil.
+If DIR is not supplied it defaults to `default-directory'.
+
+Each function in `projectile-project-root-functions' is tried in order;
+the first non-nil result wins.  Results - including failures - are
+memoized in `projectile-project-root-cache' (see the Project root cache
+section in the manual).  Use `projectile-invalidate-cache' to reset.
+
+Special cases:
+
+- Tramp archive paths (e.g. inside a `.zip') are unwrapped to the
+  directory that contains the archive before searching.
+- Remote files reached via TRAMP whose host is not currently connected
+  return nil without caching, so reconnecting works without manual cache
+  invalidation."
   (let ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
