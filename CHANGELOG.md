@@ -4,6 +4,8 @@
 
 ### Changes
 
+* `projectile-dir-files-alien` now accepts an optional `vcs` argument so the dispatcher can thread through the already-resolved VCS instead of recomputing it. Existing single-argument callers are unaffected.
+* `projectile-index-directory` (native indexing) now relies on `directory-files-no-dot-files-regexp` to filter out `.` and `..` at the C level instead of walking past them in Elisp.
 * `projectile-project-root-cache` now keys entries on cons cells (`(FUNC . DIR)` for per-function results, `('none . DIR)` for the overall failure marker) instead of formatted strings. This is internal state, but third-party code that reaches into the cache directly will need to update.
 * `projectile-parse-dirconfig-file' now returns a `projectile-dirconfig' struct (with `keep', `ignore', `ensure', and `prefixless-ignore' slots) instead of a positional 3-tuple. External callers should use the accessors (`projectile-dirconfig-keep' etc.) rather than `car'/`cadr'/`caddr'.
 * Soft-deprecate prefix-less ignore entries in `.projectile'. Lines without a `+'/`-'/`!' prefix are still treated as ignore patterns for backward compatibility, but a one-time warning is now shown for each project that uses them. Set `projectile-warn-on-prefixless-dirconfig-lines' to nil to silence.

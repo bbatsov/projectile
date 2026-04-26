@@ -1599,13 +1599,14 @@ Files are returned as relative paths to DIRECTORY."
                          (gethash directory projectile-projects-cache))))
     ;; cache disabled or cache miss
     (or files-list
-        (let ((vcs (projectile-project-vcs directory)))
-          (pcase projectile-indexing-method
-            ('native (projectile-dir-files-native directory))
-            ;; use external tools to get the project files
-            ('hybrid (projectile-adjust-files directory vcs (projectile-dir-files-alien directory)))
-            ('alien (projectile-dir-files-alien directory))
-            (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method)))))))
+        (pcase projectile-indexing-method
+          ('native (projectile-dir-files-native directory))
+          ;; use external tools to get the project files
+          ('hybrid (let ((vcs (projectile-project-vcs directory)))
+                     (projectile-adjust-files directory vcs
+                                              (projectile-dir-files-alien directory vcs))))
+          ('alien (projectile-dir-files-alien directory))
+          (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method))))))
 
 ;;; Native Project Indexing
 ;;
@@ -1637,8 +1638,7 @@ IGNORED-DIRECTORIES may optionally be provided."
            (mapcar
             (lambda (f)
               (let ((local-f (file-name-nondirectory (directory-file-name f))))
-                (unless (or (and patterns (projectile-ignored-rel-p f directory patterns))
-                            (member local-f '("." "..")))
+                (unless (and patterns (projectile-ignored-rel-p f directory patterns))
                   (progress-reporter-update progress-reporter)
                   (if (file-directory-p f)
                       (unless (projectile-ignored-directory-p
@@ -1651,17 +1651,24 @@ IGNORED-DIRECTORIES may optionally be provided."
                       (list f))))))
             ;; Use ignore-errors to skip unreadable directories (e.g.
             ;; .Spotlight-V100 on macOS) instead of aborting the entire
-            ;; indexing operation.
-            (ignore-errors (directory-files directory t))))))
+            ;; indexing operation.  `directory-files-no-dot-files-regexp'
+            ;; filters out . and .. at the C level so we don't have to
+            ;; do it again in the loop.
+            (ignore-errors
+              (directory-files directory t directory-files-no-dot-files-regexp))))))
 
 ;;; Alien Project Indexing
 ;;
 ;; This corresponds to `projectile-indexing-method' being set to hybrid or alien.
 ;; The only difference between the two methods is that alien doesn't do
 ;; any post-processing of the files obtained via the external command.
-(defun projectile-dir-files-alien (directory)
-  "Get the files for DIRECTORY using external tools."
-  (let ((vcs (projectile-project-vcs directory)))
+(defun projectile-dir-files-alien (directory &optional vcs)
+  "Get the files for DIRECTORY using external tools.
+VCS, when supplied, must be the project's VCS as returned by
+`projectile-project-vcs'.  It is computed from DIRECTORY when
+omitted; callers that already resolved the VCS can pass it in to
+avoid the redundant work."
+  (let ((vcs (or vcs (projectile-project-vcs directory))))
     (cond
      ((eq vcs 'git)
       (let* ((files (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs))
