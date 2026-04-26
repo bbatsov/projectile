@@ -4,6 +4,7 @@
 
 ### Changes
 
+* Document the `hybrid` indexing method in the manual and add a feature matrix showing which Projectile knobs (dirconfig, global ignores/unignores, sort order, default caching) apply under `native`/`hybrid`/`alien`.
 * `projectile-dir-files-alien` now accepts an optional `vcs` argument so the dispatcher can thread through the already-resolved VCS instead of recomputing it. Existing single-argument callers are unaffected.
 * `projectile-index-directory` (native indexing) now relies on `directory-files-no-dot-files-regexp` to filter out `.` and `..` at the C level instead of walking past them in Elisp.
 * `projectile-project-root-cache` now keys entries on cons cells (`(FUNC . DIR)` for per-function results, `('none . DIR)` for the overall failure marker) instead of formatted strings. This is internal state, but third-party code that reaches into the cache directly will need to update.
