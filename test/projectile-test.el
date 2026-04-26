@@ -928,7 +928,25 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (let ((projectile-git-use-fd nil)
           (projectile-fd-executable nil))
       (projectile-dir-files-alien "/my/root/" 'git))
-    (expect 'projectile-project-vcs :not :to-have-been-called)))
+    (expect 'projectile-project-vcs :not :to-have-been-called))
+  (it "uses the fd-based command when fd is configured for git"
+    (spy-on 'projectile-files-via-ext-command :and-return-value '("a"))
+    (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
+    (spy-on 'projectile-git-deleted-files :and-return-value nil)
+    (let ((projectile-git-use-fd t)
+          (projectile-fd-executable "fd"))
+      (projectile-dir-files-alien "/my/root/" 'git)
+      ;; When fd is on we don't ask git for deleted files.
+      (expect 'projectile-git-deleted-files :not :to-have-been-called)
+      (let ((cmd (cadr (spy-calls-args-for 'projectile-files-via-ext-command 0))))
+        (expect cmd :to-equal
+                (concat "fd " projectile-git-fd-args)))))
+  (it "falls back to the generic command for projects without a VCS"
+    (spy-on 'projectile-files-via-ext-command :and-return-value '("a.txt"))
+    (let ((files (projectile-dir-files-alien "/my/root/" 'none)))
+      (expect files :to-equal '("a.txt"))
+      (expect (cadr (spy-calls-args-for 'projectile-files-via-ext-command 0))
+              :to-equal projectile-generic-command))))
 
 (describe "hybrid indexing"
   (it "applies projectile-globally-ignored-file-suffixes on top of the alien result"
@@ -1199,6 +1217,29 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect (string-prefix-p "git" (projectile-get-sub-projects-command 'git)) :to-be-truthy))
   (it "returns nil when vcs is not supported"
     (expect (projectile-get-sub-projects-command 'none) :to-be nil)))
+
+(describe "projectile-get-ext-command"
+  (it "returns the git command for git"
+    (let ((projectile-git-use-fd nil)
+          (projectile-fd-executable nil))
+      (expect (projectile-get-ext-command 'git) :to-equal projectile-git-command)))
+  (it "uses fd for git when fd is configured"
+    (let ((projectile-git-use-fd t)
+          (projectile-fd-executable "fd")
+          (projectile-git-fd-args "-H -0"))
+      (expect (projectile-get-ext-command 'git) :to-equal "fd -H -0")))
+  (it "returns the matching command for each non-git VCS"
+    (expect (projectile-get-ext-command 'hg) :to-equal projectile-hg-command)
+    (expect (projectile-get-ext-command 'svn) :to-equal projectile-svn-command)
+    (expect (projectile-get-ext-command 'bzr) :to-equal projectile-bzr-command)
+    (expect (projectile-get-ext-command 'darcs) :to-equal projectile-darcs-command)
+    (expect (projectile-get-ext-command 'fossil) :to-equal projectile-fossil-command)
+    (expect (projectile-get-ext-command 'pijul) :to-equal projectile-pijul-command)
+    (expect (projectile-get-ext-command 'sapling) :to-equal projectile-sapling-command)
+    (expect (projectile-get-ext-command 'jj) :to-equal projectile-jj-command))
+  (it "falls back to the generic command for unknown / no VCS"
+    (expect (projectile-get-ext-command 'none) :to-equal projectile-generic-command)
+    (expect (projectile-get-ext-command nil) :to-equal projectile-generic-command)))
 
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty or fails"
