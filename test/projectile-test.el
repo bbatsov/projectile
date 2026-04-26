@@ -919,7 +919,78 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
         (delete-file "deleted.txt")
         (let ((files (projectile-dir-files-alien default-directory)))
           (expect files :to-contain "existing.txt")
-          (expect files :not :to-contain "deleted.txt")))))))
+          (expect files :not :to-contain "deleted.txt"))))))
+  (it "uses the VCS argument when supplied without recomputing it"
+    (spy-on 'projectile-project-vcs)
+    (spy-on 'projectile-files-via-ext-command :and-return-value '("a"))
+    (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
+    (spy-on 'projectile-git-deleted-files :and-return-value nil)
+    (let ((projectile-git-use-fd nil)
+          (projectile-fd-executable nil))
+      (projectile-dir-files-alien "/my/root/" 'git))
+    (expect 'projectile-project-vcs :not :to-have-been-called)))
+
+(describe "hybrid indexing"
+  (it "applies projectile-globally-ignored-file-suffixes on top of the alien result"
+    (spy-on 'projectile-files-via-ext-command :and-return-value
+            '("foo.el" "build/foo.elc" "README"))
+    (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
+    (spy-on 'projectile-git-deleted-files :and-return-value nil)
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-project-root :and-return-value "/my/root/")
+    (spy-on 'file-directory-p :and-call-fake
+            (lambda (filename) (equal filename "/my/root/")))
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value nil)
+    (let ((projectile-indexing-method 'hybrid)
+          (projectile-enable-caching nil)
+          (projectile-globally-ignored-file-suffixes '(".elc"))
+          (projectile-globally-ignored-files nil)
+          (projectile-globally-ignored-directories nil)
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-unignored-directories nil)
+          (projectile-git-use-fd nil)
+          (projectile-fd-executable nil))
+      (let ((files (projectile-dir-files "/my/root/")))
+        (expect files :to-contain "foo.el")
+        (expect files :to-contain "README")
+        (expect files :not :to-contain "build/foo.elc"))))
+  (it "honors dirconfig ignore patterns on top of the alien result"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/keep.txt"
+       "project/drop.txt"
+       "project/.projectile")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-/drop.txt\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        (spy-on 'projectile-files-via-ext-command :and-return-value
+                '("keep.txt" "drop.txt"))
+        (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
+        (spy-on 'projectile-git-deleted-files :and-return-value nil)
+        (let ((projectile-indexing-method 'hybrid)
+              (projectile-enable-caching nil)
+              (projectile-git-use-fd nil)
+              (projectile-fd-executable nil))
+          (let ((files (projectile-dir-files root)))
+            (expect files :to-contain "keep.txt")
+            (expect files :not :to-contain "drop.txt")))))))
+  (it "passes the resolved VCS to projectile-dir-files-alien"
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
+    (spy-on 'projectile-adjust-files :and-call-fake (lambda (_p _v files) files))
+    (spy-on 'file-directory-p :and-call-fake
+            (lambda (filename) (equal filename "/my/root/")))
+    (let ((projectile-indexing-method 'hybrid)
+          (projectile-enable-caching nil))
+      (projectile-dir-files "/my/root/"))
+    ;; vcs is resolved once by the dispatcher and threaded through; the
+    ;; redundant call inside projectile-dir-files-alien is gone.
+    (expect 'projectile-project-vcs :to-have-been-called-times 1)
+    (expect 'projectile-dir-files-alien
+            :to-have-been-called-with "/my/root/" 'git)))
 
 (describe "projectile-project-dirs"
   (it "includes intermediate directories that contain only subdirectories"
