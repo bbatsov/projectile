@@ -3300,7 +3300,31 @@ projectile-process-current-project-buffers-current to have similar behaviour"
       (spy-on 'file-exists-p :and-return-value t)
       (spy-on 'projectile-unserialize :and-return-value nil)
       (projectile-load-project-cache "/project/")
-      (expect (gethash "/project/" projectile-projects-cache) :to-be nil))))
+      (expect (gethash "/project/" projectile-projects-cache) :to-be nil)))
+  (it "records a cache time so TTL checks don't immediately evict the loaded data"
+    ;; Without this, `projectile-files-cache-expire' combined with persistent
+    ;; caching would re-read the cache file from disk on every call (and never
+    ;; reindex), because the TTL check evicts entries that have no recorded time.
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("project/")
+       (let ((cache-file (expand-file-name "project/.projectile-cache.eld"))
+             (projectile-projects-cache (make-hash-table :test 'equal))
+             (projectile-projects-cache-time (make-hash-table :test 'equal)))
+         (with-temp-file cache-file
+           (insert (prin1-to-string '("file1.el" "file2.el"))))
+         (spy-on 'projectile-project-cache-file :and-return-value cache-file)
+         (projectile-load-project-cache "/project/")
+         (expect (gethash "/project/" projectile-projects-cache)
+                 :to-equal '("file1.el" "file2.el"))
+         (expect (gethash "/project/" projectile-projects-cache-time)
+                 :to-be-truthy)
+         (expect (gethash "/project/" projectile-projects-cache-time)
+                 :to-equal
+                 (time-convert
+                  (file-attribute-modification-time
+                   (file-attributes cache-file))
+                  'integer)))))))
 
 (describe "projectile-project-buffer-p"
   (it "uses the truename cache when provided"

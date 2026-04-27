@@ -1221,6 +1221,16 @@ The cache is created both in memory and on the hard drive."
     (when (file-exists-p cache-file)
       (when-let* ((data (projectile-unserialize cache-file)))
         (puthash project-root data projectile-projects-cache)
+        ;; Seed the cache time from the file's mtime so the TTL check in
+        ;; `projectile-project-files' can decide whether the loaded data is
+        ;; already stale, and so the in-memory entry isn't evicted on the
+        ;; next call just because no time was recorded.
+        (puthash project-root
+                 (time-convert
+                  (file-attribute-modification-time
+                   (file-attributes cache-file))
+                  'integer)
+                 projectile-projects-cache-time)
         data))))
 
 ;;;###autoload

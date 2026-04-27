@@ -42,6 +42,7 @@
 * Fix `projectile--other-extension-files` sort comparator ignoring its second argument, producing undefined ordering; replaced with a stable partition.
 * Fix `projectile-toggle-project-read-only` operating on the wrong buffer after `add-dir-local-variable` by wrapping in `save-selected-window`.
 * Fix `projectile-cache-current-file` calling `projectile-project-root` twice instead of reusing the already-resolved value.
+* Fix `projectile-load-project-cache` not recording a cache time, which combined with `projectile-files-cache-expire` made the TTL check immediately re-evict freshly loaded data — every call ended up re-reading the cache file from disk and the data was never reindexed. The cache file's mtime is now used to seed `projectile-projects-cache-time`.
 * Fix `projectile-load-project-cache` storing nil in cache on corrupt/empty cache files, preventing future reload attempts.
 * Fix `projectile--cmake-command-presets` using `mapcar` instead of `mapcan`, producing nested lists for included presets.
 * Fix `projectile--eat` ignoring the `new-process` argument when generating buffer names.
