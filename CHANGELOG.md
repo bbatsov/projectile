@@ -44,6 +44,7 @@
 * Fix `projectile-cache-current-file` calling `projectile-project-root` twice instead of reusing the already-resolved value.
 * Fix `projectile-load-project-cache` not recording a cache time, which combined with `projectile-files-cache-expire` made the TTL check immediately re-evict freshly loaded data — every call ended up re-reading the cache file from disk and the data was never reindexed. The cache file's mtime is now used to seed `projectile-projects-cache-time`.
 * Fix `projectile-load-project-cache` storing nil in cache on corrupt/empty cache files, preventing future reload attempts.
+* Fix `projectile-purge-dir-from-cache` only updating the in-memory cache; with persistent caching the purged directory's files would reappear on the next session. The on-disk cache is now updated as well, matching the behavior of `projectile-purge-file-from-cache`.
 * Fix `projectile--cmake-command-presets` using `mapcar` instead of `mapcan`, producing nested lists for included presets.
 * Fix `projectile--eat` ignoring the `new-process` argument when generating buffer names.
 * Fix `projectile-check-vcs-status` hanging indefinitely by adding a 30-second timeout to its busy-wait loop.

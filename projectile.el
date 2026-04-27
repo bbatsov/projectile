@@ -1261,10 +1261,12 @@ The cache is created both in memory and on the hard drive."
           (projectile-current-project-dirs)
           :caller 'projectile-read-directory)))
   (let* ((project-root (projectile-project-root))
-         (project-cache (gethash project-root projectile-projects-cache)))
-    (puthash project-root
-             (seq-remove (lambda (str) (string-prefix-p dir str)) project-cache)
-             projectile-projects-cache)))
+         (project-cache (gethash project-root projectile-projects-cache))
+         (new-cache (seq-remove (lambda (str) (string-prefix-p dir str))
+                                project-cache)))
+    (puthash project-root new-cache projectile-projects-cache)
+    (when (projectile-persistent-cache-p)
+      (projectile-serialize new-cache (projectile-project-cache-file project-root)))))
 
 (defun projectile-file-cached-p (file project)
   "Check if FILE is already in PROJECT cache."

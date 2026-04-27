@@ -3232,6 +3232,40 @@ projectile-process-current-project-buffers-current to have similar behaviour"
       ;; projectile-serialize should be called with the updated list, not the stale one
       (expect 'projectile-serialize :to-have-been-called-with '("foo.el" "baz.el") "/tmp/cache.eld"))))
 
+(describe "projectile-purge-dir-from-cache"
+  (it "removes files under the directory from the in-memory cache"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching t))
+      (puthash "/project/"
+               '("src/foo.el" "src/sub/bar.el" "test/baz.el")
+               projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/project/")
+      (projectile-purge-dir-from-cache "src/")
+      (expect (gethash "/project/" projectile-projects-cache)
+              :to-equal '("test/baz.el"))))
+  (it "serializes the updated cache when persistent caching is enabled"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching 'persistent))
+      (puthash "/project/"
+               '("src/foo.el" "src/sub/bar.el" "test/baz.el")
+               projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/project/")
+      (spy-on 'projectile-serialize)
+      (spy-on 'projectile-project-cache-file :and-return-value "/tmp/cache.eld")
+      (projectile-purge-dir-from-cache "src/")
+      (expect 'projectile-serialize
+              :to-have-been-called-with '("test/baz.el") "/tmp/cache.eld")))
+  (it "does not touch disk when persistent caching is disabled"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching t))
+      (puthash "/project/"
+               '("src/foo.el" "test/baz.el")
+               projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/project/")
+      (spy-on 'projectile-serialize)
+      (projectile-purge-dir-from-cache "src/")
+      (expect 'projectile-serialize :not :to-have-been-called))))
+
 (describe "projectile-default-generic-command"
   (it "returns a string command as-is"
     (let ((projectile-project-types '((test-type compile-command "make"))))
