@@ -1236,6 +1236,22 @@ by `projectile-files-via-ext-command')."
           (projectile-fd-executable "fd")
           (projectile-git-fd-args "-H -0"))
       (expect (projectile-get-ext-command 'git) :to-equal "fd -H -0")))
+  (it "uses the remote-detected fd over TRAMP, not the local one"
+    ;; With a remote DIRECTORY argument we should consult
+    ;; `projectile-fd-executable-for' / the per-host cache, not just the
+    ;; local `projectile-fd-executable'.
+    (let ((projectile-git-use-fd t)
+          (projectile-fd-executable "fd")
+          (projectile-git-fd-args "-H -0")
+          (projectile--remote-fd-executable-cache (make-hash-table :test 'equal)))
+      ;; Cache says the remote has fdfind (not fd) - we must prefer it.
+      (puthash "/ssh:host:" "fdfind" projectile--remote-fd-executable-cache)
+      (expect (projectile-get-ext-command 'git "/ssh:host:/proj/")
+              :to-equal "fdfind -H -0")
+      ;; Cache says the remote has no fd at all - we must fall back to git.
+      (puthash "/ssh:nofd:" nil projectile--remote-fd-executable-cache)
+      (expect (projectile-get-ext-command 'git "/ssh:nofd:/proj/")
+              :to-equal projectile-git-command)))
   (it "returns the matching command for each non-git VCS"
     (expect (projectile-get-ext-command 'hg) :to-equal projectile-hg-command)
     (expect (projectile-get-ext-command 'svn) :to-equal projectile-svn-command)
@@ -1248,6 +1264,31 @@ by `projectile-files-via-ext-command')."
   (it "falls back to the generic command for unknown / no VCS"
     (expect (projectile-get-ext-command 'none) :to-equal projectile-generic-command)
     (expect (projectile-get-ext-command nil) :to-equal projectile-generic-command)))
+
+(describe "projectile-fd-executable-for"
+  (it "returns the local fd executable for a local directory"
+    (let ((projectile-fd-executable "fd"))
+      (expect (projectile-fd-executable-for "/tmp/") :to-equal "fd"))
+    (let ((projectile-fd-executable nil))
+      (expect (projectile-fd-executable-for "/tmp/") :to-be nil)))
+  (it "consults the per-host cache for remote directories"
+    (let ((projectile-fd-executable "fd")
+          (projectile--remote-fd-executable-cache (make-hash-table :test 'equal)))
+      (puthash "/ssh:host:" "fdfind" projectile--remote-fd-executable-cache)
+      (expect (projectile-fd-executable-for "/ssh:host:/proj/") :to-equal "fdfind")
+      (puthash "/ssh:nofd:" nil projectile--remote-fd-executable-cache)
+      (expect (projectile-fd-executable-for "/ssh:nofd:/proj/") :to-be nil)))
+  (it "performs the remote lookup once per host and caches the result"
+    (let ((projectile--remote-fd-executable-cache (make-hash-table :test 'equal))
+          (call-count 0))
+      (spy-on 'executable-find :and-call-fake
+              (lambda (name &optional _remote)
+                (cl-incf call-count)
+                (when (equal name "fdfind") "/usr/bin/fdfind")))
+      (expect (projectile-fd-executable-for "/ssh:host:/proj/") :to-equal "fdfind")
+      ;; Second call hits the cache, no new lookup.
+      (expect (projectile-fd-executable-for "/ssh:host:/other/") :to-equal "fdfind")
+      (expect call-count :to-equal 1))))
 
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty"

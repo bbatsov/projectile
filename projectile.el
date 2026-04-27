@@ -771,9 +771,47 @@ means check all the subdirectories of DIRECTORY.  Etc."
    ((executable-find "fdfind") "fdfind")
    ((executable-find "fd") "fd"))
   "Path or name of fd executable used by Projectile if enabled.
-Nil means fd is not installed or should not be used."
+Nil means fd is not installed or should not be used.
+
+Note: this variable holds the locally-detected executable.  For
+projects on a TRAMP host fd is detected separately on the remote (and
+cached per host), since whatever is on the local box may not exist on
+the remote.  See `projectile-fd-executable-for'."
   :type 'string
   :package-version '(projectile . "2.8.0"))
+
+(defvar projectile--remote-fd-executable-cache (make-hash-table :test 'equal)
+  "Per-host cache of fd availability on remote (TRAMP) hosts.
+Keys are the prefixes returned by `file-remote-p' (e.g.
+`/ssh:user@host:'); values are either the executable name (a string)
+or nil for hosts where neither `fd' nor `fdfind' is available.  The
+sentinel `unset' distinguishes \"never looked up\" from \"looked up
+and unavailable\".")
+
+(defun projectile--remote-fd-executable (remote)
+  "Return the fd executable available on REMOTE, or nil.
+REMOTE is a TRAMP file name prefix as returned by `file-remote-p'.
+The lookup is performed once per host and cached in
+`projectile--remote-fd-executable-cache' to avoid the round-trip on
+every indexing call."
+  (let ((cached (gethash remote projectile--remote-fd-executable-cache 'unset)))
+    (if (not (eq cached 'unset))
+        cached
+      (let* ((default-directory remote)
+             (found (or (executable-find "fdfind" t)
+                        (executable-find "fd" t)))
+             (program (and found (file-name-nondirectory found))))
+        (puthash remote program projectile--remote-fd-executable-cache)
+        program))))
+
+(defun projectile-fd-executable-for (directory)
+  "Return the fd executable to use for DIRECTORY.
+For local directories returns `projectile-fd-executable'.  For remote
+directories looks up `fd'/`fdfind' on the remote (cached per host) and
+returns the bare program name, or nil when fd is not available there."
+  (if-let* ((remote (file-remote-p directory)))
+      (projectile--remote-fd-executable remote)
+    projectile-fd-executable))
 
 (defcustom projectile-git-use-fd (when projectile-fd-executable t)
   "Non-nil means use fd to implement git ls-files.
@@ -1796,18 +1834,25 @@ without shelling out per kept directory."
   (let ((vcs (or vcs (projectile-project-vcs directory))))
     (cond
      ((eq vcs 'git)
-      (let* ((files (nconc (projectile-files-via-ext-command directory (projectile-get-ext-command vcs) subdirs)
+      (let* ((fd (and projectile-git-use-fd
+                      (projectile-fd-executable-for directory)))
+             (files (nconc (projectile-files-via-ext-command
+                            directory (projectile-get-ext-command vcs directory)
+                            subdirs)
                            (projectile--restricted-sub-projects-files directory vcs subdirs)))
              ;; When using git ls-files (not fd), deleted but unstaged
-             ;; files are still reported.  Remove them.
-             (deleted (unless (and projectile-git-use-fd projectile-fd-executable)
+             ;; files are still reported.  Remove them.  Note that the
+             ;; fd-availability check is per-DIRECTORY: a project may be
+             ;; on a remote host where fd isn't installed even though it
+             ;; is locally.
+             (deleted (unless fd
                         (projectile-git-deleted-files directory))))
         (if deleted
             (let ((deleted-set (make-hash-table :test 'equal :size (length deleted))))
               (dolist (f deleted) (puthash f t deleted-set))
               (seq-remove (lambda (f) (gethash f deleted-set)) files))
           files)))
-     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs) subdirs)))))
+     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs directory) subdirs)))))
 
 (defun projectile--restricted-sub-projects-files (project-root vcs subdirs)
   "Return git submodule files under PROJECT-ROOT, optionally restricted to SUBDIRS.
@@ -1828,25 +1873,32 @@ subdirectories are returned.  When nil, behaves exactly like
   "Get a list of deleted but unstaged files in DIRECTORY."
   (projectile-files-via-ext-command directory "git ls-files -zd"))
 
-(defun projectile-get-ext-command (vcs)
+(defun projectile-get-ext-command (vcs &optional directory)
   "Determine which external command to invoke based on the project's VCS.
-Fallback to a generic command when not in a VCS-controlled project."
-  (pcase vcs
-    ('git (if (and projectile-git-use-fd projectile-fd-executable)
-              (concat
-               projectile-fd-executable
-               " "
-               projectile-git-fd-args)
-            projectile-git-command))
-    ('hg projectile-hg-command)
-    ('fossil projectile-fossil-command)
-    ('bzr projectile-bzr-command)
-    ('darcs projectile-darcs-command)
-    ('pijul projectile-pijul-command)
-    ('svn projectile-svn-command)
-    ('sapling projectile-sapling-command)
-    ('jj projectile-jj-command)
-    (_ projectile-generic-command)))
+Fallback to a generic command when not in a VCS-controlled project.
+
+DIRECTORY, when supplied, is used to pick the right fd executable for
+the git case: for remote projects the local `projectile-fd-executable'
+may not exist on the remote host, so fd is detected per-host (see
+`projectile-fd-executable-for').  When DIRECTORY is omitted the
+current `default-directory' is used, preserving backward compatibility
+for callers that don't yet thread it through."
+  (let* ((directory (or directory default-directory))
+         (fd (and projectile-git-use-fd
+                  (projectile-fd-executable-for directory))))
+    (pcase vcs
+      ('git (if fd
+                (concat fd " " projectile-git-fd-args)
+              projectile-git-command))
+      ('hg projectile-hg-command)
+      ('fossil projectile-fossil-command)
+      ('bzr projectile-bzr-command)
+      ('darcs projectile-darcs-command)
+      ('pijul projectile-pijul-command)
+      ('svn projectile-svn-command)
+      ('sapling projectile-sapling-command)
+      ('jj projectile-jj-command)
+      (_ projectile-generic-command))))
 
 (defun projectile-get-sub-projects-command (vcs)
   "Get the sub-projects command for VCS.
@@ -1924,7 +1976,9 @@ VCS is the version control system of the project."
                                              sub-project project-root))))
                (mapcar (lambda (file)
                          (concat project-relative-path file))
-                       (projectile-files-via-ext-command sub-project (projectile-get-ext-command vcs)))))
+                       (projectile-files-via-ext-command
+                        sub-project
+                        (projectile-get-ext-command vcs sub-project)))))
            (projectile-get-all-sub-projects project-root))))
 
 (defun projectile-get-repo-ignored-files (project vcs)
