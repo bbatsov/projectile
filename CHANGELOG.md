@@ -42,6 +42,7 @@
 * Fix `projectile--other-extension-files` sort comparator ignoring its second argument, producing undefined ordering; replaced with a stable partition.
 * Fix `projectile-toggle-project-read-only` operating on the wrong buffer after `add-dir-local-variable` by wrapping in `save-selected-window`.
 * Fix `projectile-cache-current-file` calling `projectile-project-root` twice instead of reusing the already-resolved value.
+* Fix `projectile-cache-current-file` queueing one idle timer per opened file, each capturing a stale snapshot of the file list. With persistent caching, opening many files in a session would result in N redundant disk writes after Emacs went idle. A pending flush is now coalesced per project and reads the latest in-memory cache at fire time.
 * Fix `projectile-load-project-cache` not recording a cache time, which combined with `projectile-files-cache-expire` made the TTL check immediately re-evict freshly loaded data — every call ended up re-reading the cache file from disk and the data was never reindexed. The cache file's mtime is now used to seed `projectile-projects-cache-time`.
 * Fix `projectile-load-project-cache` storing nil in cache on corrupt/empty cache files, preventing future reload attempts.
 * Fix `projectile-purge-dir-from-cache` only updating the in-memory cache; with persistent caching the purged directory's files would reappear on the next session. The on-disk cache is now updated as well, matching the behavior of `projectile-purge-file-from-cache`.

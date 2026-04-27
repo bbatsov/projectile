@@ -685,6 +685,11 @@ cache hit requires both DIRCONFIG-PATH and MTIME to match the
 current file, so changing `projectile-dirconfig-file' mid-session
 naturally invalidates the entry.")
 
+(defvar projectile--pending-cache-flush-timers (make-hash-table :test 'equal)
+  "Map of project root to a pending idle-timer that will serialize its cache.
+Used by `projectile-cache-current-file' to coalesce rapid file additions
+into a single delayed disk write per project.")
+
 (defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about alien indexing skipping the dirconfig.")
 
@@ -1273,6 +1278,23 @@ The cache is created both in memory and on the hard drive."
   "Check if FILE is already in PROJECT cache."
   (member file (gethash project projectile-projects-cache)))
 
+(defun projectile--schedule-cache-flush (project)
+  "Arrange for PROJECT's in-memory cache to be serialized after Emacs is idle.
+A pending flush for the same PROJECT is cancelled and rescheduled, so that
+adding several files in quick succession only results in a single disk write,
+and the write always uses the latest in-memory contents."
+  (when-let* ((existing (gethash project projectile--pending-cache-flush-timers)))
+    (cancel-timer existing))
+  (puthash project
+           (run-with-idle-timer
+            30 nil
+            (lambda ()
+              (remhash project projectile--pending-cache-flush-timers)
+              (projectile-serialize
+               (gethash project projectile-projects-cache)
+               (projectile-project-cache-file project))))
+           projectile--pending-cache-flush-timers))
+
 ;;;###autoload
 (defun projectile-cache-current-file ()
   "Add the currently visited file to the cache."
@@ -1286,16 +1308,12 @@ The cache is created both in memory and on the hard drive."
         (unless (or (projectile-file-cached-p current-file current-project)
                     (projectile-ignored-directory-p (file-name-directory abs-current-file))
                     (projectile-ignored-file-p abs-current-file))
-          (let ((project-files (cons current-file (gethash current-project projectile-projects-cache)))
-                (cache-file (projectile-project-cache-file current-project)))
+          (let ((project-files (cons current-file (gethash current-project projectile-projects-cache))))
             (puthash current-project project-files projectile-projects-cache)
-            ;; we serialize the cache with an idle time to avoid freezing the UI
-            ;; immediately after the new file was created
+            ;; Defer the disk write until Emacs is idle to avoid freezing the
+            ;; UI immediately after the new file was created.
             (when (projectile-persistent-cache-p)
-              (run-with-idle-timer
-               30
-               nil
-               'projectile-serialize project-files cache-file)))
+              (projectile--schedule-cache-flush current-project)))
           (message "File %s added to project %s cache."
                    (propertize current-file 'face 'font-lock-keyword-face)
                    (propertize current-project 'face 'font-lock-keyword-face)))))))
