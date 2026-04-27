@@ -1433,6 +1433,49 @@ by `projectile-files-via-ext-command')."
     (projectile-mode -1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
 
+(describe "projectile-find-file-hook-function"
+  ;; The hook fans out into several operations; the contract under test
+  ;; is which ones are gated behind the remote check.  Cheap ones must
+  ;; run for remote buffers too; slow ones (mode-line / tags) must not.
+  :var (called)
+  (before-each
+    (setq called nil)
+    (cl-flet ((track (name) (lambda (&rest _) (push name called))))
+      (spy-on 'projectile-maybe-limit-project-file-buffers
+              :and-call-fake (track 'limit))
+      (spy-on 'projectile-cache-files-find-file-hook
+              :and-call-fake (track 'cache))
+      (spy-on 'projectile-track-known-projects-find-file-hook
+              :and-call-fake (track 'track))
+      (spy-on 'projectile-update-mode-line
+              :and-call-fake (track 'mode-line))
+      (spy-on 'projectile-visit-project-tags-table
+              :and-call-fake (track 'tags))))
+
+  (it "runs every operation for local buffers"
+    (let ((default-directory "/tmp/")
+          (projectile-auto-update-cache t)
+          (projectile-dynamic-mode-line t))
+      (projectile-find-file-hook-function))
+    (expect (memq 'limit called) :to-be-truthy)
+    (expect (memq 'cache called) :to-be-truthy)
+    (expect (memq 'track called) :to-be-truthy)
+    (expect (memq 'mode-line called) :to-be-truthy)
+    (expect (memq 'tags called) :to-be-truthy))
+
+  (it "runs cheap operations for remote buffers but skips mode-line and tags"
+    (let ((default-directory "/ssh:host:/proj/")
+          (projectile-auto-update-cache t)
+          (projectile-dynamic-mode-line t))
+      (projectile-find-file-hook-function))
+    ;; cheap ones still run
+    (expect (memq 'limit called) :to-be-truthy)
+    (expect (memq 'cache called) :to-be-truthy)
+    (expect (memq 'track called) :to-be-truthy)
+    ;; slow ones are skipped
+    (expect (memq 'mode-line called) :not :to-be-truthy)
+    (expect (memq 'tags called) :not :to-be-truthy)))
+
 (describe "projectile-relevant-known-projects"
   (it "returns a list of known projects"
     (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))

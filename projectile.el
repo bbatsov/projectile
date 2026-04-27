@@ -7092,17 +7092,22 @@ Magit that don't trigger `find-file-hook'."
 (defun projectile-find-file-hook-function ()
   "Called by `find-file-hook' when `projectile-mode' is on.
 
-The function does pretty much nothing when triggered on remote files
-as all the operations it normally performs are extremely slow over
-tramp."
-  (unless (file-remote-p default-directory)
+For remote (TRAMP) buffers the slow operations are skipped: the
+mode-line update probes many project-type markers on cold cache, and
+visiting the tags table stats (and possibly loads) a remote file on
+every visit.  The cheap operations - caching the visited file,
+registering the project as a known project, and the open-buffer-count
+cap - run regardless of remoteness; they were previously skipped only
+because the original blanket guard was overly broad."
+  (let ((remote (file-remote-p default-directory)))
     (projectile-maybe-limit-project-file-buffers)
-    (when projectile-dynamic-mode-line
-      (projectile-update-mode-line))
     (when projectile-auto-update-cache
       (projectile-cache-files-find-file-hook))
     (projectile-track-known-projects-find-file-hook)
-    (projectile-visit-project-tags-table)))
+    (unless remote
+      (when projectile-dynamic-mode-line
+        (projectile-update-mode-line))
+      (projectile-visit-project-tags-table))))
 
 (defun projectile-maybe-limit-project-file-buffers ()
   "Limit the opened file buffers for a project.
