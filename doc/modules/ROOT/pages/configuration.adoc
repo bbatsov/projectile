@@ -388,6 +388,52 @@ needed but possible:
 (setq projectile-file-exists-local-cache-expire (* 5 60))
 ----
 
+[#_tramp_performance]
+== TRAMP performance
+
+Projectile is TRAMP-aware and the hot paths cache aggressively, so
+once the caches are warm, navigating a remote project should feel
+similar to a local one.  The first command on a fresh remote project
+pays a one-time setup cost (one VCS-detection listing, one project-root
+walk, one indexing shell-out); after that everything is served from
+memory until you invalidate it.
+
+The following knobs are most relevant for remote use:
+
+* `projectile-indexing-method` - leave at the default (`hybrid`) or set
+  to `alien`.  *Don't* use `native` over TRAMP: native indexing walks
+  the tree with one `directory-files` call per subdirectory, which is
+  one remote round-trip per subdirectory.  `hybrid` and `alien` use a
+  single `git ls-files` / `fd` shell-out.
+* `projectile-enable-caching` - enables the per-project file list
+  cache.  Set to `'persistent` if you want the cache to survive Emacs
+  restarts, so reopening a remote project doesn't re-shell-out.
+* `projectile-file-exists-remote-cache-expire` (default 5 minutes) -
+  TTL for cached remote file-existence results.  Lower it if you
+  frequently create new project markers (`.projectile`, `.git`, ...)
+  on the remote and want them detected sooner; raise it if your
+  remotes are stable and you'd rather avoid the round-trip.
+
+After creating, removing, or moving a project marker on a remote, run
+`projectile-discard-root-cache` (or `projectile-invalidate-cache`) -
+both also clear the file-existence cache, so the new state takes
+effect on the next call instead of waiting for the TTL.
+
+A few things that don't require configuration but are worth knowing:
+
+* `fd` is auto-detected per remote host (cached for the session).  The
+  `projectile-fd-executable` defcustom is the *local* detection result
+  and isn't used remotely - whatever Projectile finds at
+  `executable-find` time on the remote (`fd` or `fdfind`) is what runs
+  there.  No `fd` on the remote means the indexing path falls back to
+  `git ls-files`.
+* If indexing fails (e.g. `git` or `fd` isn't on the remote `PATH`),
+  Projectile signals a `user-error` pointing at
+  `+*projectile-files-errors*+` instead of returning an empty file
+  list.  Older versions silently returned `nil`, which manifested as
+  unexplained empty completion lists or `stringp, nil` crashes
+  downstream.
+
 == Using Projectile Commands Outside of Projects Directories
 
 Normally, you'd be using Projectile's commands from within some project directory.

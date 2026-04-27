@@ -39,8 +39,29 @@ the documentation.
 
 == Does Projectile work with TRAMP?
 
-Yeah, it does. I don't use TRAMP myself, however, so I never paid that
-much attention to the TRAMP support. It's mostly community-maintained.
+Yes. The hot paths (project root detection, VCS detection, project
+buffer membership, known-project tracking) cache aggressively and
+avoid redundant remote round-trips, so day-to-day use should feel
+similar to a local project once the caches are warm.
+
+A few things to know:
+
+* The first command that touches a remote project pays a one-time
+  cost to detect the VCS and list files - everything after that is
+  served from cache until you invalidate it.
+* Switching `projectile-indexing-method` to `'native` over TRAMP is
+  generally a bad idea: native indexing walks the tree with one
+  remote `directory-files` call per subdirectory.  Stick with the
+  default `hybrid` (or `alien`) so a single `git ls-files` / `fd`
+  shell-out lists the whole project.
+* `fd` is auto-detected per remote host (cached for the session) -
+  whatever you have installed locally is irrelevant to what runs on
+  the remote.  If `fd` isn't available remotely, Projectile falls
+  back to `git ls-files`.
+
+See xref:configuration.adoc#_tramp_performance[TRAMP performance] in
+the configuration guide for the relevant tuning knobs and
+recommended settings for remote-heavy use.
 
 == Why doesn't Projectile have a default prefix for its keybinding?
 
