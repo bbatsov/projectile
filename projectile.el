@@ -2196,7 +2196,14 @@ If PROJECT is not specified the command acts on the current project."
 (defun projectile-project-buffer-p (buffer project-root &optional truename-cache)
   "Check if BUFFER is under PROJECT-ROOT.
 Optional TRUENAME-CACHE is a hash table used to memoize `file-truename'
-calls when checking multiple buffers against the same project root."
+calls when checking multiple buffers against the same project root.
+
+For buffers visiting remote (TRAMP) files we skip the `file-truename'
+call: each such call is a remote round-trip, and resolving symlinks
+across a TRAMP boundary is rarely what users want.  The downside is
+that a remote project reached via two different symlinked paths won't
+be matched - we trade that edge case for not stalling
+`projectile-project-buffers' on networks with high latency."
   (with-current-buffer buffer
     (let ((directory (if buffer-file-name
                          (file-name-directory buffer-file-name)
@@ -2207,11 +2214,14 @@ calls when checking multiple buffers against the same project root."
            (string-equal (file-remote-p directory)
                          (file-remote-p project-root))
            (not (string-match-p "^http\\(s\\)?://" directory))
-           (let ((true-dir (if truename-cache
-                               (or (gethash directory truename-cache)
-                                   (puthash directory (file-truename directory) truename-cache))
-                             (file-truename directory))))
-             (string-prefix-p project-root true-dir (eq system-type 'windows-nt)))))))
+           (let ((compare-dir
+                  (cond
+                   ((file-remote-p directory) directory)
+                   (truename-cache
+                    (or (gethash directory truename-cache)
+                        (puthash directory (file-truename directory) truename-cache)))
+                   (t (file-truename directory)))))
+             (string-prefix-p project-root compare-dir (eq system-type 'windows-nt)))))))
 
 (defun projectile-ignored-buffer-p (buffer)
   "Check if BUFFER should be ignored."

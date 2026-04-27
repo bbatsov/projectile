@@ -3483,7 +3483,26 @@ projectile-process-current-project-buffers-current to have similar behaviour"
         (expect (gethash "/projects/foo/src/" cache) :to-equal "/projects/foo/src/")
         ;; A second call should use the cache, not call file-truename again
         (projectile-project-buffer-p (current-buffer) project-root cache)
-        (expect 'file-truename :to-have-been-called-times 1)))))
+        (expect 'file-truename :to-have-been-called-times 1))))
+
+  (it "skips file-truename for buffers visiting remote files"
+    ;; Each `file-truename' on a TRAMP path is a remote stat;
+    ;; iterating `(buffer-list)' for a remote project should not
+    ;; trigger any of them.
+    (spy-on 'file-truename :and-call-fake (lambda (f) f))
+    (with-temp-buffer
+      (setq default-directory "/ssh:host:/proj/src/")
+      (rename-buffer "remote-test-buffer")
+      (expect (projectile-project-buffer-p (current-buffer) "/ssh:host:/proj/" nil)
+              :to-be-truthy)
+      (expect 'file-truename :not :to-have-been-called)))
+
+  (it "does not match a remote buffer against a local project root"
+    (with-temp-buffer
+      (setq default-directory "/ssh:host:/proj/src/")
+      (rename-buffer "remote-test-buffer-2")
+      (expect (projectile-project-buffer-p (current-buffer) "/local/proj/" nil)
+              :not :to-be-truthy))))
 
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
