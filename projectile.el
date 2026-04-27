@@ -6455,10 +6455,18 @@ This command will first prompt for the directory the file is in."
   "Determine whether we should cleanup (remove) PROJECT or not.
 
 It handles the case of remote projects as well.
-See `projectile--cleanup-known-projects'."
+See `projectile--cleanup-known-projects'.
+
+Remote projects are always kept regardless of connection state.
+Previously a remote project that *was* connected was tested with
+`file-readable-p', which is a remote round-trip per project - and
+since `projectile--cleanup-known-projects' may be called every time
+the user invokes a switch-project command (when
+`projectile-auto-cleanup-known-projects' is on), that turned project
+switching into a sequence of network stats.  The user can still
+explicitly drop dead remote projects via `projectile-remove-known-project'."
   ;; Taken from `recentf-keep-default-predicate'
   (cond
-   ((file-remote-p project nil t) (file-readable-p project))
    ((file-remote-p project))
    ((file-readable-p project))))
 
@@ -6518,12 +6526,24 @@ Return a list of projects removed."
   (projectile-remove-known-project (abbreviate-file-name (projectile-acquire-root))))
 
 (defun projectile-ignored-projects ()
-  "A list of projects that should not be saved in `projectile-known-projects'."
-  (mapcar #'file-truename projectile-ignored-projects))
+  "A list of projects that should not be saved in `projectile-known-projects'.
+Local entries are canonicalized via `file-truename'; remote entries
+are returned as-is to avoid a remote round-trip per entry on every
+lookup (see `projectile-ignored-project-p')."
+  (mapcar (lambda (project)
+            (if (file-remote-p project) project (file-truename project)))
+          projectile-ignored-projects))
 
 (defun projectile-ignored-project-p (project-root)
-  "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'."
-  (let ((project-root (file-truename project-root)))
+  "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'.
+
+For remote (TRAMP) paths the symlink-resolution step is skipped:
+`file-truename' would round-trip to the remote, and matching against
+`projectile-ignored-projects' for a remote project is uncommon enough
+that requiring exact paths is acceptable.  Local behavior is unchanged."
+  (let ((project-root (if (file-remote-p project-root)
+                          project-root
+                        (file-truename project-root))))
     (or (member project-root (projectile-ignored-projects))
         (and (functionp projectile-ignored-project-function)
              (funcall projectile-ignored-project-function project-root)))))

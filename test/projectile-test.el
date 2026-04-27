@@ -1383,7 +1383,34 @@ by `projectile-files-via-ext-command')."
   (it "returns nil for non-ignored projects"
     (let ((projectile-ignored-projects '("/some/other/project/")))
       (expect (projectile-ignored-project-p "/my/project/")
-              :not :to-be-truthy))))
+              :not :to-be-truthy)))
+  (it "skips file-truename for remote project paths"
+    ;; `file-truename' on a TRAMP path is a remote stat; the
+    ;; find-file-hook's known-projects tracker calls
+    ;; `projectile-ignored-project-p' for every visit, so it must
+    ;; not round-trip just to canonicalize symlinks.
+    (spy-on 'file-truename :and-call-fake (lambda (f) f))
+    (let ((projectile-ignored-projects '("/ssh:host:/proj/")))
+      (expect (projectile-ignored-project-p "/ssh:host:/proj/")
+              :to-be-truthy))
+    (expect 'file-truename :not :to-have-been-called)))
+
+(describe "projectile-keep-project-p"
+  (it "keeps remote projects without stat'ing them"
+    ;; Both connected and disconnected remote paths must be kept
+    ;; without a `file-readable-p' round-trip.  Previously the
+    ;; connected branch issued one stat per remote project, which
+    ;; turned `projectile--cleanup-known-projects' into a serial
+    ;; remote walk on every project switch.
+    (spy-on 'file-readable-p :and-return-value nil)
+    (expect (projectile-keep-project-p "/ssh:host:/proj/") :to-be-truthy)
+    (expect 'file-readable-p :not :to-have-been-called))
+  (it "stat's local projects to detect deletion"
+    (let ((real-readable (symbol-function 'file-readable-p)))
+      (spy-on 'file-readable-p :and-call-fake real-readable))
+    (expect (projectile-keep-project-p temporary-file-directory) :to-be-truthy)
+    (expect (projectile-keep-project-p "/this/path/should/not/exist/")
+            :not :to-be-truthy)))
 
 (describe "projectile-determine-find-tag-fn"
   (it "falls back to xref-find-definitions when ggtags backend is unavailable"
