@@ -678,6 +678,12 @@ project."
 (defvar projectile-project-type-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project type to speed up related operations.")
 
+(defvar projectile-project-vcs-cache (make-hash-table :test 'equal)
+  "Cache of `projectile-project-vcs' results keyed by directory.
+Cleared by `projectile-invalidate-cache' and
+`projectile-discard-root-cache'.  Entries are VCS symbols (or `none'
+for projects with no detected VCS).")
+
 (defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
   "Cache for parsed dirconfig files, keyed by project root.
 Each value is a list of (DIRCONFIG-PATH MTIME PARSED-RESULT); a
@@ -1219,6 +1225,7 @@ argument)."
                 (projectile-project-root))))
     ;; reset the in-memory cache
     (remhash project-root projectile-project-type-cache)
+    (remhash project-root projectile-project-vcs-cache)
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
     (remhash project-root projectile--dirconfig-cache)
@@ -4409,38 +4416,64 @@ it acts on the current project.
 Expands wildcards using `file-expand-wildcards' before checking."
   (file-expand-wildcards (projectile-expand-root file dir)))
 
+(defconst projectile--vcs-markers
+  '((".git" . git)
+    (".hg" . hg)
+    (".fslckout" . fossil)
+    ("_FOSSIL_" . fossil)
+    (".bzr" . bzr)
+    ("_darcs" . darcs)
+    (".pijul" . pijul)
+    (".svn" . svn)
+    (".sl" . sapling)
+    (".jj" . jj))
+  "Alist of (MARKER . VCS) pairs probed by `projectile-project-vcs'.
+Order matches the historic `cond' chain: the first matching marker
+wins, so changes here are visible to all VCS detection.")
+
+(defun projectile--vcs-from-directory-listing (directory)
+  "Return the VCS symbol matching a marker directly inside DIRECTORY.
+Issues a single `directory-files' call rather than one
+`file-exists-p' per marker - over TRAMP that turns 10 sequential
+remote round-trips into one."
+  (when-let* ((entries (ignore-errors
+                         (directory-files directory nil nil t))))
+    (let ((entry-set (make-hash-table :test 'equal :size (length entries))))
+      (dolist (e entries) (puthash e t entry-set))
+      (cl-some (lambda (cell)
+                 (and (gethash (car cell) entry-set) (cdr cell)))
+               projectile--vcs-markers))))
+
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
 PROJECT-ROOT is the targeted directory.  If nil, use
-the variable `projectile-project-root'."
+the variable `projectile-project-root'.
+
+Results are cached in `projectile-project-vcs-cache' (cleared by
+`projectile-invalidate-cache')."
   (or project-root (setq project-root (projectile-acquire-root)))
-  (cond
-   ;; first we check for a VCS marker in the project root itself
-   ((projectile-file-exists-p (expand-file-name ".git" project-root)) 'git)
-   ((projectile-file-exists-p (expand-file-name ".hg" project-root)) 'hg)
-   ((projectile-file-exists-p (expand-file-name ".fslckout" project-root)) 'fossil)
-   ((projectile-file-exists-p (expand-file-name "_FOSSIL_" project-root)) 'fossil)
-   ((projectile-file-exists-p (expand-file-name ".bzr" project-root)) 'bzr)
-   ((projectile-file-exists-p (expand-file-name "_darcs" project-root)) 'darcs)
-   ((projectile-file-exists-p (expand-file-name ".pijul" project-root)) 'pijul)
-   ((projectile-file-exists-p (expand-file-name ".svn" project-root)) 'svn)
-   ((projectile-file-exists-p (expand-file-name ".sl" project-root)) 'sapling)
-   ((projectile-file-exists-p (expand-file-name ".jj" project-root)) 'jj)
-   ;; then we check if there's a VCS marker up the directory tree
-   ;; that covers the case when a project is part of a multi-project repository
-   ;; in those cases you can still use the VCS to get a list of files for
-   ;; the project in question
-   ((projectile-locate-dominating-file project-root ".git") 'git)
-   ((projectile-locate-dominating-file project-root ".hg") 'hg)
-   ((projectile-locate-dominating-file project-root ".fslckout") 'fossil)
-   ((projectile-locate-dominating-file project-root "_FOSSIL_") 'fossil)
-   ((projectile-locate-dominating-file project-root ".bzr") 'bzr)
-   ((projectile-locate-dominating-file project-root "_darcs") 'darcs)
-   ((projectile-locate-dominating-file project-root ".pijul") 'pijul)
-   ((projectile-locate-dominating-file project-root ".svn") 'svn)
-   ((projectile-locate-dominating-file project-root ".sl") 'sapling)
-   ((projectile-locate-dominating-file project-root ".jj") 'jj)
-   (t 'none)))
+  (let ((cached (gethash project-root projectile-project-vcs-cache 'unset)))
+    (if (not (eq cached 'unset))
+        cached
+      (let ((vcs (or
+                  ;; first we check for a VCS marker in the project root itself
+                  (projectile--vcs-from-directory-listing project-root)
+                  ;; then we check if there's a VCS marker up the directory tree
+                  ;; that covers the case when a project is part of a
+                  ;; multi-project repository - in those cases you can still
+                  ;; use the VCS to get a list of files for the project in
+                  ;; question.  All markers are checked together via a single
+                  ;; predicate so each ancestor directory is listed at most
+                  ;; once instead of up to 10 times.
+                  (let ((found nil))
+                    (projectile-locate-dominating-file
+                     project-root
+                     (lambda (dir)
+                       (setq found (projectile--vcs-from-directory-listing dir))))
+                    found)
+                  'none)))
+        (puthash project-root vcs projectile-project-vcs-cache)
+        vcs))))
 
 (defun projectile--test-name-for-impl-name (impl-file-path)
   "Determine the name of the test file for IMPL-FILE-PATH.

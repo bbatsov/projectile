@@ -48,11 +48,18 @@
 
 ;;; Test Utilities
 (defmacro projectile-test-with-sandbox (&rest body)
-  "Evaluate BODY in an empty temporary directory."
+  "Evaluate BODY in an empty temporary directory.
+
+Path-keyed caches (`projectile-project-vcs-cache' etc.) are bound to
+fresh hash tables for the duration of BODY so that one test's view of
+the sandbox doesn't leak into the next via the cache - the sandbox
+directory is reused across tests, so a cached VCS or project-type
+answer from a previous test would otherwise still be live."
   (declare (indent 0) (debug (&rest form)))
   `(let ((sandbox (expand-file-name
                    (convert-standard-filename "test/sandbox/")
-                   (file-name-directory (locate-library "projectile.el" t)))))
+                   (file-name-directory (locate-library "projectile.el" t))))
+         (projectile-project-vcs-cache (make-hash-table :test 'equal)))
      (when (file-directory-p sandbox)
        (delete-directory sandbox t))
      (make-directory sandbox t)
@@ -1289,6 +1296,52 @@ by `projectile-files-via-ext-command')."
       ;; Second call hits the cache, no new lookup.
       (expect (projectile-fd-executable-for "/ssh:host:/other/") :to-equal "fdfind")
       (expect call-count :to-equal 1))))
+
+(describe "projectile-project-vcs"
+  (it "detects each marker via a single directory listing"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("project/.git/" "project/file")
+       (let ((dir (file-name-as-directory (expand-file-name "project")))
+             (listing-calls 0))
+         (spy-on 'directory-files :and-call-through)
+         (expect (projectile-project-vcs dir) :to-equal 'git)
+         (setq listing-calls
+               (length (spy-calls-all 'directory-files)))
+         ;; The listing-calls count is bounded - we shouldn't be issuing
+         ;; one per VCS marker (10 was the historic worst case).
+         (expect listing-calls :to-be-less-than 3)))))
+
+  (it "recognizes each VCS marker"
+    ;; `projectile-test-with-files' is a macro that needs literal filenames,
+    ;; so the markers are listed inline rather than via a `dolist'.
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("hg/.hg/" "bzr/.bzr/" "fslckout/.fslckout"
+        "fossil/_FOSSIL_" "darcs/_darcs/" "pijul/.pijul/"
+        "svn/.svn/" "sapling/.sl/" "jj/.jj/")
+       (dolist (case '(("hg" . hg) ("bzr" . bzr) ("fslckout" . fossil)
+                       ("fossil" . fossil) ("darcs" . darcs) ("pijul" . pijul)
+                       ("svn" . svn) ("sapling" . sapling) ("jj" . jj)))
+         (let ((dir (file-name-as-directory (expand-file-name (car case)))))
+           (expect (projectile-project-vcs dir) :to-equal (cdr case)))))))
+
+  (it "walks up to find a marker on an ancestor"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("repo/.git/" "repo/sub/file")
+       (let ((dir (file-name-as-directory (expand-file-name "repo/sub"))))
+         (expect (projectile-project-vcs dir) :to-equal 'git)))))
+
+  (it "caches the result and skips the directory listing on hit"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("project/.git/")
+       (let ((dir (file-name-as-directory (expand-file-name "project"))))
+         (expect (projectile-project-vcs dir) :to-equal 'git)
+         (spy-on 'directory-files :and-call-through)
+         (expect (projectile-project-vcs dir) :to-equal 'git)
+         (expect 'directory-files :not :to-have-been-called))))))
 
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty"
