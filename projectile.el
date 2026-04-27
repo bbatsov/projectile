@@ -1218,6 +1218,12 @@ is cleared when there is no current project (unless you give a prefix
 argument)."
   (interactive "P")
   (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  ;; Drop the file-existence cache too - otherwise, after the user
+  ;; creates a project marker (`.projectile', `.git', etc.) over TRAMP,
+  ;; the negative entries cached during earlier root-walks would keep
+  ;; reporting "not found" for up to `projectile-file-exists-remote-cache-expire'
+  ;; seconds even though the project root walk has been invalidated.
+  (clrhash projectile-file-exists-cache)
   (when-let* ((project-root
               (if prompt
                   (completing-read "Remove cache for: "
@@ -1251,6 +1257,12 @@ See also `projectile-invalidate-cache', which does this and also drops
 the per-project file list and project-type caches."
   (interactive)
   (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  ;; The file-existence cache holds the negative answers gathered
+  ;; while walking up looking for project markers; without clearing it
+  ;; here, a freshly-created `.projectile' over TRAMP wouldn't be
+  ;; visible until the entries time out (see
+  ;; `projectile-file-exists-remote-cache-expire').
+  (clrhash projectile-file-exists-cache)
   (when projectile-verbose
     (message "Cleared Projectile project root cache.")))
 
