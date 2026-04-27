@@ -1583,19 +1583,31 @@ Special cases:
        ;; (stored as the 'none sentinel) are memoized, so functions
        ;; earlier in the list that returned nil aren't re-walked on
        ;; every call.
-       (seq-some
-        (lambda (func)
-          (if (eq func 'projectile-root-local)
-              (funcall func dir)
-            (let* ((cache-key (cons func dir))
-                   (cache-value (gethash cache-key projectile-project-root-cache)))
-              (cond
-               ((eq cache-value 'none) nil)
-               ((and cache-value (file-exists-p cache-value)) cache-value)
-               (t (let ((value (funcall func (file-truename dir))))
-                    (puthash cache-key (or value 'none) projectile-project-root-cache)
-                    value))))))
-        projectile-project-root-functions)
+       ;;
+       ;; `true-dir-cell' lazily memoizes `(file-truename dir)' across
+       ;; the loop so we pay the (potentially remote) symlink resolution
+       ;; at most once per `projectile-project-root' call instead of
+       ;; once per project-root-function on cache miss.
+       (let ((true-dir-cell (list nil)))
+         (seq-some
+          (lambda (func)
+            (if (eq func 'projectile-root-local)
+                (funcall func dir)
+              (let* ((cache-key (cons func dir))
+                     (cache-value (gethash cache-key projectile-project-root-cache)))
+                (cond
+                 ((eq cache-value 'none) nil)
+                 ;; Use `projectile-file-exists-p' so the remote
+                 ;; stat is cached (per `projectile-file-exists-remote-cache-expire')
+                 ;; instead of round-tripping on every call.
+                 ((and cache-value (projectile-file-exists-p cache-value)) cache-value)
+                 (t (let ((value (funcall
+                                  func
+                                  (or (car true-dir-cell)
+                                      (setcar true-dir-cell (file-truename dir))))))
+                      (puthash cache-key (or value 'none) projectile-project-root-cache)
+                      value))))))
+          projectile-project-root-functions))
        ;; if we get here, we have failed to find a root by all
        ;; conventional means, and we assume the failure isn't transient
        ;; / network related, so cache the failure
