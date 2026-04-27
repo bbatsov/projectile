@@ -1181,8 +1181,9 @@ argument)."
     (remhash project-root projectile--dirconfig-cache)
     ;; reset the project's cache file
     (when (projectile-persistent-cache-p)
-      ;; TODO: Perhaps it's better to delete the cache file in such cases?
-      (projectile-serialize nil (projectile-project-cache-file project-root)))
+      (let ((cache-file (projectile-project-cache-file project-root)))
+        (when (file-exists-p cache-file)
+          (delete-file cache-file))))
     (when projectile-verbose
       (message "Invalidated Projectile cache for %s."
                (propertize project-root 'face 'font-lock-keyword-face))))
