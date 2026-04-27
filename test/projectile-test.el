@@ -132,14 +132,22 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
-Just delegates OPERATION and ARGS for all operations except for`shell-command`'."
+Just delegates OPERATION and ARGS for all operations except for
+`shell-command' / `process-file-shell-command' (the entry points used
+by `projectile-files-via-ext-command')."
   (let ((inhibit-file-name-handlers
          (cons 'file-handler-for-tests
                (and (eq inhibit-file-name-operation operation)
                   inhibit-file-name-handlers)))
         (inhibit-file-name-operation operation))
-    (cond ((eq operation 'shell-command) (let ((default-directory ""))
-                                           (shell-command "echo magic" t)))
+    (cond ((memq operation '(shell-command process-file process-file-shell-command))
+           ;; Re-run in a real directory so the underlying call doesn't
+           ;; choke on the synthetic `#magic#' path.  We always emit
+           ;; "magic" regardless of the requested command - the tests
+           ;; that hit this handler only care that the magic dispatch
+           ;; happened at all.
+           (let ((default-directory temporary-file-directory))
+             (process-file-shell-command "echo magic" nil t)))
           (t (apply operation args)))))
 
 (add-to-list 'file-name-handler-alist (cons "^#" 'file-handler-for-tests))
@@ -1242,22 +1250,30 @@ Just delegates OPERATION and ARGS for all operations except for`shell-command`'.
     (expect (projectile-get-ext-command nil) :to-equal projectile-generic-command)))
 
 (describe "projectile-files-via-ext-command"
-          (it "returns nil when command is nil or empty or fails"
+          (it "returns nil when command is nil or empty"
               (expect (projectile-files-via-ext-command "/" "") :not :to-be-truthy)
               (expect (projectile-files-via-ext-command "/" nil) :not :to-be-truthy)
-              (expect (projectile-files-via-ext-command "" "echo Not a file name! > &2") :not :to-be-truthy)
-              (expect (projectile-files-via-ext-command "" "echo filename") :to-equal '("filename")))
+              (expect (projectile-files-via-ext-command temporary-file-directory "echo filename")
+                      :to-equal '("filename")))
+
+          (it "signals a user-error when the command exits non-zero"
+              ;; `false' is a portable way to force a non-zero exit; the previous
+              ;; behavior was to silently return nil, which made fd-on-remote
+              ;; failures look like empty projects.
+              (expect (projectile-files-via-ext-command temporary-file-directory "false")
+                      :to-throw 'user-error))
 
           (it "supports magic file handlers"
               (expect (projectile-files-via-ext-command "#magic#" "echo filename") :to-equal '("magic")))
 
           (it "strips ./ prefix from results"
-              (expect (projectile-files-via-ext-command "" "printf './foo\\0./bar/baz\\0quux'")
+              (expect (projectile-files-via-ext-command
+                       temporary-file-directory "printf './foo\\0./bar/baz\\0quux'")
                       :to-equal '("foo" "bar/baz" "quux")))
 
           (it "appends shell-quoted pathspecs to the command when supplied"
               (expect (projectile-files-via-ext-command
-                       "" "printf 'args: %s\\0' --"
+                       temporary-file-directory "printf 'args: %s\\0' --"
                        '("src dir" "test"))
                       :to-equal
                       '("args: --" "args: src dir" "args: test"))))

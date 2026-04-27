@@ -1955,6 +1955,12 @@ their command to accept positional paths.
 If `command' is nil or an empty string, return nil.
 This allows commands to be disabled.
 
+Signals a `user-error' when COMMAND exits non-zero so that failures
+on the indexing path (most commonly a binary like `fd' or `git'
+missing on a remote host) surface immediately instead of being
+mistaken for an empty project.  Stderr is captured into the
+`*projectile-files-errors*' buffer.
+
 Only text sent to standard output is taken into account."
   (when (and (stringp command) (not (string-empty-p command)))
     (let ((default-directory root)
@@ -1962,13 +1968,34 @@ Only text sent to standard output is taken into account."
                             (concat command " "
                                     (mapconcat #'shell-quote-argument
                                                pathspecs " "))
-                          command)))
-      (with-temp-buffer
-        (shell-command full-command t "*projectile-files-errors*")
-        (let ((shell-output (buffer-substring (point-min) (point-max))))
-          (mapcar (lambda (f)
-                    (string-remove-prefix "./" f))
-                  (split-string (string-trim shell-output) "\0" t)))))))
+                          command))
+          (errors-buffer (get-buffer-create "*projectile-files-errors*"))
+          (errors-file (make-temp-file "projectile-files-errors")))
+      (unwind-protect
+          (with-temp-buffer
+            ;; `process-file-shell-command' goes through TRAMP for remote
+            ;; roots and returns a reliable exit code.  Stderr is collected
+            ;; into a temp file and copied into `*projectile-files-errors*'
+            ;; only when the command fails, so we don't pollute the buffer
+            ;; on the happy path.
+            (let ((exit-code
+                   (process-file-shell-command full-command nil
+                                               (list t errors-file))))
+              (when (and (numberp exit-code) (not (zerop exit-code)))
+                (with-current-buffer errors-buffer
+                  (let ((inhibit-read-only t))
+                    (erase-buffer)
+                    (insert-file-contents errors-file)))
+                (user-error
+                 "Projectile indexing command failed with exit code %d: %s\n\
+See the *projectile-files-errors* buffer for details"
+                 exit-code full-command))
+              (let ((shell-output (buffer-substring (point-min) (point-max))))
+                (mapcar (lambda (f)
+                          (string-remove-prefix "./" f))
+                        (split-string (string-trim shell-output) "\0" t)))))
+        (when (file-exists-p errors-file)
+          (delete-file errors-file))))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
