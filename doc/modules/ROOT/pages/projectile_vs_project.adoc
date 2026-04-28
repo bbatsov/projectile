@@ -6,7 +6,7 @@ Projectile was created at a time when Emacs didn't feature built-in project
 navigation functionality. Eventually this changed in Emacs 25 with the introduction of `project.el` and a lot of people have been asking what are the advantages of using
 Projectile over the built-in library. This section of the documentation will try to answer this question.
 
-When `project.el` was originally introduced it's feature-set was quite spartan, but it has added some new features in every Emacs release and circa 2024 it should cover the needs of most casual users. I'm guessing that Projectile inspired many features in `project.el`, and Projectile itself was inspired by tools like IntelliJ IDEA.
+When `project.el` was originally introduced it's feature-set was quite spartan, but it has added some new features in every Emacs release and circa 2026 it should cover the needs of most casual users. I'm guessing that Projectile inspired many features in `project.el`, and Projectile itself was inspired by tools like IntelliJ IDEA.
 
 == TLDR;
 
@@ -14,7 +14,7 @@ If the functionality in `project.el` is good enough for you then you should prob
 
 == At a glance
 
-NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
+NOTE: As of early 2026. (Projectile 2.10 and `project.el` in Emacs 31)
 
 |===
 | | Projectile | project.el
@@ -24,7 +24,7 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 | 2014 footnote:[It was introduced in Emacs 25.1.]
 
 | Supported Emacs versions
-| 26+
+| 27.1+
 | 26+ footnote:[Note that the versions bundled with older Emacsen will miss some of its modern features. `project.el` is distributed as a package as well, so you can still get some of the newer functionality on older Emacsen.]
 
 | Built-in
@@ -41,23 +41,27 @@ NOTE: As of early 2024. (Projectile 2.8 and `project.el` in Emacs 29)
 
 | Native Project Config
 | Yes (`.projectile`)
-| No
+| No (uses `.dir-locals.el`)
 
 | Project Cache
-| Yes
-| No
+| Yes (persisted to disk)
+| In-memory only
+
+| Backend Protocol
+| Project-type alist
+| `cl-defgeneric` / `cl-defmethod`
 
 | Built-in Project Types
 | 60+
 | n/a
 
 | Number of Configuration Options
-| ~90
-| ~20
+| ~95
+| ~25
 
 | Number of Commands
-| 80+
-| 30+
+| ~90
+| ~35
 
 | Minor Mode
 | Yes
@@ -104,13 +108,38 @@ as Projectile's `alien` strategy. Admittedly, that's probably the most commonly 
 Projectile has its own project marker/configuration file. It's a remnant of the early days of the project where I wanted to build a tool that didn't
 rely on the third-party applications and its significance today is not that big. (it will be completely ignored unless you're using `native` or `hybrid` indexing)
 
+=== Backend Protocol
+
+`project.el` defines a small protocol via `cl-defgeneric` (`project-root`, `project-files`, `project-buffers`, etc.) and ships two backends: a transient one for ad-hoc directories and a VC-aware one. New backends are added with `cl-defmethod`.
+
+Projectile detects projects via root markers and expresses per-language behavior through *project types* (`projectile-register-project-type`). More opinionated, more out of the box, less polymorphic.
+
+== What `project.el` does that Projectile doesn't (yet)
+
+A few `project.el` features have no real equivalent in Projectile:
+
+* `project-find-matching-buffer` — jump to the equivalent buffer in another known project, matched by relative path. Handy for forks and parallel-layout microservices.
+* `project-file-history-behavior` set to `relativize` — when switching projects, file-name history is rewritten as relative paths, so muscle memory carries across projects.
+* `project-other-window-command` / `-other-frame-command` / `-other-tab-command` — prefix commands that redirect the next project command's output. Projectile takes the brute-force route instead: a `-other-window` and `-other-frame` variant for almost every command.
+* `project-prompter` and `project-read-file-name-function` — single-function knobs for the project / file-name prompts. Cleaner extension point than `projectile-completion-system`.
+* `project-list-exclude` and `project-prune-zombie-projects` (Emacs 31) — finer control over auto-remembering and zombie cleanup. Projectile only has a boolean for the latter.
+* `project-vc-cache-timeout` as an alist of `(predicate . timeout)` pairs, so e.g. remote and local can have different TTLs.
+* `project-vc-merge-submodules` — explicit Git submodule strategy. Projectile has none.
+* Sparse-index support on Emacs 31 with Git ≥ 2.35 (`git ls-files --sparse`).
+
+We're at parity (or close) on a few others:
+
+* `project-customize-dirlocals` vs `projectile-edit-dir-locals` (we just open the file).
+* `project-vc-name` and `project-vc-extra-root-markers` are covered by `projectile-project-name` (via dir-locals) and the project-type system.
+
 == Projectile's Pros
 
-* Projectile targets Emacs 26, so you can get all the features even with older Emacs releases
+* Projectile targets Emacs 27.1, so you can get all the features even with older Emacs releases
 * Projectile has different project indexing strategies, which offer you a lot of flexibility in different situations
-* Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`)
+* Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`), with per-type hooks for compile/test/run/install/package/configure
 * Projectile has a lot more features, although one can argue that some of them are rarely needed
   ** Projectile's Commander is pretty cool for project switching!
+  ** Test/implementation toggling, a related-files framework, persistent on-disk caching, integrations with most Emacs shells out of the box
 * It's easier to contribute to Projectile
   ** Projectile is hosted in GitHub
   ** It accepts pull requests
@@ -125,3 +154,4 @@ rely on the third-party applications and its significance today is not that big.
   ** While Projectile has a rich ecosystem of extensions, over a long enough period of time likely `project.el` will take the lead.
 * Due to its larger size, one can argue that Projectile is more complex than `project.el`
   ** Admittedly I would have done some things differently if I were starting Projectile today, but I don't think Projectile's core complexity is high.
+* `project.el` keeps gaining features each release, and a few of them have no Projectile equivalent yet (see the section above).
