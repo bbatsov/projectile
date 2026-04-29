@@ -133,6 +133,294 @@ We're at parity (or close) on a few others:
 * `project-vc-name` and `project-vc-extra-root-markers` are covered by `projectile-project-name` (via dir-locals) and the project-type system.
 * `project-list-exclude` is covered by `projectile-ignored-projects` and `projectile-ignored-project-function` (the latter even accepts a predicate, e.g. `file-remote-p`).
 
+== Concept and command concordance
+
+Side-by-side mapping of the most common entry points. Useful both when picking between the two and when switching from one to the other. Empty cells mean there's no direct equivalent (which doesn't necessarily mean the functionality can't be had — just that you'd need to wire something up yourself).
+
+=== Project root and detection
+
+|===
+| Concept | Projectile | project.el
+
+| Project root of `default-directory`
+| `projectile-project-root`
+| `project-root` (via `project-current`)
+
+| Project name
+| `projectile-project-name`
+| `project-name`
+
+| Detection hook
+| `projectile-project-root-functions`
+| `project-find-functions`
+
+| Extra project markers
+| `projectile-project-root-files-bottom-up` (and friends)
+| `project-vc-extra-root-markers`
+
+| Native config file
+| `.projectile`
+| —
+|===
+
+=== File and directory navigation
+
+|===
+| Concept | Projectile | project.el
+
+| Find file in project
+| `projectile-find-file`
+| `project-find-file`
+
+| Find file in known projects
+| `projectile-find-file-in-known-projects`
+| —
+
+| Find directory
+| `projectile-find-dir`
+| `project-find-dir`
+
+| Open dired in root
+| `projectile-dired`
+| `project-dired`
+
+| Toggle test ↔ implementation
+| `projectile-toggle-between-implementation-and-test`
+| —
+
+| Find related file
+| `projectile-find-other-file`, `projectile-find-related-file`
+| —
+
+| "Other window/frame" variants
+| `…-other-window` / `…-other-frame` per command
+| `project-other-window-command` / `-other-frame-command` / `-other-tab-command` (prefix style)
+|===
+
+=== Buffer management
+
+|===
+| Concept | Projectile | project.el
+
+| Switch to project buffer
+| `projectile-switch-to-buffer`
+| `project-switch-to-buffer`
+
+| List project buffers
+| `projectile-display-buffer` / `projectile-ibuffer`
+| `project-list-buffers` (via `project-buffers-viewer`)
+
+| Kill project buffers
+| `projectile-kill-buffers`
+| `project-kill-buffers`
+
+| Save project buffers
+| `projectile-save-project-buffers`
+| `project-save-some-buffers`
+
+| Find equivalent buffer in another project
+| —
+| `project-find-matching-buffer`
+|===
+
+=== Search and replace
+
+|===
+| Concept | Projectile | project.el
+
+| Grep
+| `projectile-grep`
+| —
+
+| Ripgrep
+| `projectile-ripgrep`
+| —
+
+| Ag
+| `projectile-ag`
+| —
+
+| Find regex via xref
+| —
+| `project-find-regexp`
+
+| Multi-occur
+| `projectile-multi-occur`
+| —
+
+| Query-replace
+| `projectile-replace`, `projectile-replace-regexp`
+| `project-query-replace-regexp`
+
+| Find references
+| `projectile-find-references`
+| (use `xref-find-references`)
+|===
+
+=== Build, test, run, VC
+
+|===
+| Concept | Projectile | project.el
+
+| Compile
+| `projectile-compile-project`
+| `project-compile`
+
+| Recompile
+| (re-runs last compile per project)
+| `project-recompile`
+
+| Test
+| `projectile-test-project`
+| —
+
+| Run
+| `projectile-run-project`
+| —
+
+| Configure
+| `projectile-configure-project`
+| —
+
+| Install
+| `projectile-install-project`
+| —
+
+| Package
+| `projectile-package-project`
+| —
+
+| VC dir
+| `projectile-vc`
+| `project-vc-dir`
+|===
+
+=== Shell, terminal, REPL
+
+|===
+| Concept | Projectile | project.el
+
+| Shell command in root
+| `projectile-run-shell-command-in-root`
+| `project-shell-command`
+
+| Async shell command in root
+| `projectile-run-async-shell-command-in-root`
+| `project-async-shell-command`
+
+| `M-x shell`
+| `projectile-run-shell`
+| `project-shell`
+
+| `M-x eshell`
+| `projectile-run-eshell`
+| `project-eshell`
+
+| `M-x term`
+| `projectile-run-term`
+| —
+
+| Vterm
+| `projectile-run-vterm`
+| —
+
+| Eat
+| `projectile-run-eat`
+| —
+
+| IELM
+| `projectile-run-ielm`
+| —
+
+| GDB
+| `projectile-run-gdb`
+| —
+|===
+
+=== Project switching and known projects
+
+|===
+| Concept | Projectile | project.el
+
+| Switch project
+| `projectile-switch-project`
+| `project-switch-project`
+
+| Switch to open project
+| `projectile-switch-open-project`
+| —
+
+| Forget project
+| `projectile-remove-known-project`
+| `project-forget-project`
+
+| Forget current
+| `projectile-remove-current-project-from-known-projects`
+| —
+
+| Remember project
+| `projectile-add-known-project`
+| `project-remember-project`
+
+| Discover projects in path
+| `projectile-discover-projects-in-search-path`
+| —
+
+| Clean up zombies (manual)
+| `projectile-cleanup-known-projects`
+| `project-forget-zombie-projects`
+
+| Auto-clean zombies
+| `projectile-auto-cleanup-known-projects` (boolean)
+| `project-prune-zombie-projects` (granular triggers)
+
+| Known-projects file
+| `projectile-known-projects-file`
+| `project-list-file`
+
+| Block from being remembered
+| `projectile-ignored-projects`, `projectile-ignored-project-function`
+| `project-list-exclude`
+|===
+
+=== Configuration and extension
+
+|===
+| Concept | Projectile | project.el
+
+| Custom completion UI
+| `projectile-completion-system` (enum)
+| `project-prompter` (function)
+
+| Custom file-name reader
+| —
+| `project-read-file-name-function`
+
+| Persistent file cache
+| `projectile-cache-file`
+| —
+
+| Ignore patterns
+| `projectile-globally-ignored-files`, `…-directories`, `…-file-suffixes`, `.projectile`
+| `project-vc-ignores`, plus `.gitignore`/`.hgignore`
+
+| Per-project name override
+| `projectile-project-name` (via dir-locals)
+| `project-vc-name` (via dir-locals)
+
+| Edit dir-locals
+| `projectile-edit-dir-locals`
+| `project-customize-dirlocals`
+
+| Backend extension
+| `projectile-register-project-type` (project types)
+| `cl-defmethod` on the project protocol
+
+| Switch-project hook
+| `projectile-before-switch-project-hook`, `projectile-after-switch-project-hook`
+| —
+|===
+
 == Projectile's Pros
 
 * Projectile targets Emacs 27.1, so you can get all the features even with older Emacs releases
