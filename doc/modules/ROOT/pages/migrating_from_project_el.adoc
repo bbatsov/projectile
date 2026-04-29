@@ -1,0 +1,73 @@
+= Migrating from project.el
+
+A short guide for people who've been using Emacs's built-in `project.el` and want to try Projectile. For the bigger picture (philosophical differences, feature gaps in either direction) see xref:projectile_vs_project.adoc[Projectile versus project.el]; for a side-by-side mapping of commands and config knobs see the "Concept and command concordance" section there.
+
+== Quick start
+
+Install Projectile from MELPA (or NonGNU ELPA), enable the global mode, and bind a prefix key:
+
+[source,emacs-lisp]
+----
+(require 'projectile)
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+----
+
+`project.el`'s `C-x p` keymap continues to work; Projectile's keymap is independent. The prefix doesn't have to be `C-c p` — many people use `s-p` or whatever else fits their setup.
+
+That's enough to get going. Most of `project.el`'s commands have a direct Projectile counterpart (e.g. `C-x p f` becomes `C-c p f`, `C-x p p` becomes `C-c p p`).
+
+== Behavioral differences worth knowing
+
+A handful of places where Projectile doesn't behave like `project.el`:
+
+* **Switching projects.** `project-switch-project` opens a command menu; Projectile instead runs whatever's in `projectile-switch-project-action` after picking a project (find-file by default). If you miss the menu UX, set `projectile-switch-project-action` to `projectile-commander` — same idea, different implementation.
+* **Indexing strategies.** Projectile has three (`native`, `hybrid`, `alien`) controlled by `projectile-indexing-method`. The default is `alien` and behaves like `project.el`'s VC backend (delegates to `git ls-files`, `fd`, `find` etc.). Pick `native` if you need to work somewhere external tools aren't available.
+* **`.projectile`.** Projectile's native config file is consulted only under `native` or `hybrid` indexing. Under `alien` (the default) it's mostly ignored — the external tool's ignore rules (`.gitignore` etc.) take over. So in most modern setups, `.projectile` doesn't do much.
+* **Project types.** Projectile auto-detects ~60 project types (Cargo, Maven, Mix, npm, etc.) and pre-fills `projectile-compile-project`, `projectile-test-project`, `projectile-run-project`, `projectile-install-project`, `projectile-package-project`, and `projectile-configure-project` with sensible defaults for each. There's no equivalent in `project.el` — `project-compile` runs whatever `compile-command` happens to be.
+* **Buffer ownership.** Projectile and `project.el` use slightly different rules to decide which buffers belong to a project. Don't expect `projectile-kill-buffers` and `project-kill-buffers` to act on identical sets.
+* **Persistent caches.** Projectile maintains a project-file cache (controlled by `projectile-enable-caching`) and a known-projects file (`projectile-known-projects-file`). The latter is roughly analogous to `project-list-file`, but the format differs.
+
+== Configuration knob translation
+
+Most knob-for-knob mappings are in the concordance table in xref:projectile_vs_project.adoc[the comparison page]. A few common ones:
+
+|===
+| If you had | Use
+
+| `project-list-file`
+| `projectile-known-projects-file`
+
+| `project-vc-ignores`
+| `projectile-globally-ignored-files`, `projectile-globally-ignored-directories`, `projectile-globally-ignored-file-suffixes`, plus the project-local `.projectile`
+
+| `project-vc-extra-root-markers`
+| `projectile-project-root-files-bottom-up` (and its sibling defcustoms)
+
+| `project-prompter`
+| `projectile-completion-system` (an enum: `auto`, `default`, `ido`, `ivy`, `helm`, or a custom function)
+
+| `project-vc-name`
+| `projectile-project-name` set via `.dir-locals.el`
+
+| `project-list-exclude`
+| `projectile-ignored-projects` (list) or `projectile-ignored-project-function` (predicate)
+|===
+
+== Things that don't have a direct equivalent (yet)
+
+A few `project.el` features have no real Projectile counterpart at the time of writing:
+
+* `project-find-matching-buffer` (jump to the equivalent buffer in another project)
+* `project-file-history-behavior` `'relativize` (file-name history rewritten across projects)
+* `project-other-window-command` / `-other-frame-command` / `-other-tab-command` (prefix-style display redirection — we duplicate commands instead)
+* Sparse-index support for Git
+* `project-vc-merge-submodules` (explicit Git submodule strategy)
+
+See xref:projectile_vs_project.adoc[the comparison page] for the full list.
+
+== Coexisting with project.el
+
+You don't have to pick one. `project.el` ships with Emacs and won't go away, and several other packages (`xref`, `eglot`, modern compilation buffers) will reach for `project-current` regardless of whether Projectile is loaded.
+
+In practice this means: enabling `projectile-mode` doesn't disable `project.el`. Both keymaps coexist, both sets of commands are available via `M-x`. Just keep in mind that some features (e.g. modeline integration, idle file-existence caching) come from `projectile-mode` itself, so if you turn the mode off you lose them.

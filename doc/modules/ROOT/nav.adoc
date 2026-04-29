@@ -5,6 +5,7 @@
 * xref:configuration.adoc[Configuration]
 * xref:extensions.adoc[Extensions]
 * xref:projectile_vs_project.adoc[Projectile vs project.el]
+* xref:migrating_from_project_el.adoc[Migrating from project.el]
 * xref:faq.adoc[FAQ]
 * xref:troubleshooting.adoc[Troubleshooting]
 * xref:contributing.adoc[Contributing]
