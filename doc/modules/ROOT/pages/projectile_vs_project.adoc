@@ -122,7 +122,7 @@ A few `project.el` features have no real equivalent in Projectile:
 * `project-file-history-behavior` set to `relativize` — when switching projects, file-name history is rewritten as relative paths, so muscle memory carries across projects.
 * `project-other-window-command` / `-other-frame-command` / `-other-tab-command` — prefix commands that redirect the next project command's output. Projectile takes the brute-force route instead: a `-other-window` and `-other-frame` variant for almost every command.
 * `project-prompter` and `project-read-file-name-function` — single-function knobs for the project / file-name prompts. Cleaner extension point than `projectile-completion-system`.
-* `project-list-exclude` and `project-prune-zombie-projects` (Emacs 31) — finer control over auto-remembering and zombie cleanup. Projectile only has a boolean for the latter.
+* `project-prune-zombie-projects` (Emacs 31) — finer-grained pruning triggers for zombie projects. Projectile only has a single boolean (`projectile-auto-cleanup-known-projects`).
 * `project-vc-cache-timeout` as an alist of `(predicate . timeout)` pairs, so e.g. remote and local can have different TTLs.
 * `project-vc-merge-submodules` — explicit Git submodule strategy. Projectile has none.
 * Sparse-index support on Emacs 31 with Git ≥ 2.35 (`git ls-files --sparse`).
@@ -131,6 +131,7 @@ We're at parity (or close) on a few others:
 
 * `project-customize-dirlocals` vs `projectile-edit-dir-locals` (we just open the file).
 * `project-vc-name` and `project-vc-extra-root-markers` are covered by `projectile-project-name` (via dir-locals) and the project-type system.
+* `project-list-exclude` is covered by `projectile-ignored-projects` and `projectile-ignored-project-function` (the latter even accepts a predicate, e.g. `file-remote-p`).
 
 == Projectile's Pros
 
