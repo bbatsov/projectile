@@ -5463,9 +5463,7 @@ CMD should include the necessary search params and should output
 equivalently to grep -HlI (only unique matching filenames).
 Returns a list of expanded filenames."
   (let ((default-directory directory))
-    (mapcar (lambda (str)
-              (concat directory
-                      (string-remove-prefix "./" str)))
+    (mapcar #'expand-file-name
             (split-string
              (string-trim (shell-command-to-string cmd))
              "\n+"
