@@ -2267,7 +2267,38 @@ by `projectile-files-via-ext-command')."
             (projectile-switch-project-by-name project-dir)
             (expect switch-project-root :to-equal project-dir)
             (expect switch-project-vcs :to-equal 'hg)
-            (expect switch-project-root :not :to-equal (file-name-as-directory (expand-file-name "~")))))))))
+            (expect switch-project-root :not :to-equal (file-name-as-directory (expand-file-name "~"))))))))
+
+  (it "does not mutate the calling buffer's default-directory while running the action"
+      ;; Regression test: a previous implementation wrapped the action in
+      ;; (let* ((default-directory project-to-switch)) ...).  Because
+      ;; `default-directory' is auto-buffer-local, that let-binding mutated
+      ;; the calling buffer's local value for the duration of the action.
+      ;; Actions that iterate (buffer-list) and read each buffer's
+      ;; `default-directory' (e.g. `projectile-switch-to-buffer' as a
+      ;; switch-project-action) would then misclassify the calling buffer
+      ;; as belonging to the target project.
+      (let* ((origin-buffer nil)
+             (origin-dd nil)
+             (observed nil)
+             (projectile-switch-project-action
+              (lambda ()
+                (setq observed (with-current-buffer origin-buffer
+                                 default-directory)))))
+        (projectile-test-with-sandbox
+         (projectile-test-with-files
+          ("origin/" "project/" "project/.projectile")
+          (setq origin-buffer (get-buffer-create "*projectile-test-origin*"))
+          (setq origin-dd (file-name-as-directory (expand-file-name "origin")))
+          (with-current-buffer origin-buffer
+            (setq-local default-directory origin-dd))
+          (let ((project-dir (file-name-as-directory (expand-file-name "project"))))
+            (projectile-add-known-project project-dir)
+            (unwind-protect
+                (with-current-buffer origin-buffer
+                  (projectile-switch-project-by-name project-dir))
+              (kill-buffer origin-buffer)))
+          (expect observed :to-equal origin-dd))))))
 
 (describe "projectile-ignored-buffer-p"
   (it "checks if buffer should be ignored"
