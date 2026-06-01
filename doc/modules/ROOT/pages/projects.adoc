@@ -757,22 +757,26 @@ precedence with respect to project detection. Let's examine the defaults:
   file/folder (e.g. `.projectile`, `.hg`, `.git`, `deps.edn`,
   `Cargo.toml`, `pyproject.toml`) from the current folder
   (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will
-  return the first match it discovers. The default list (configurable via
-  `projectile-project-root-files-bottom-up`) contains VCS markers and the
-  language-specific project manifests registered via
-  `projectile-register-project-type`. The bottom-most (closest to the
+  return the first match it discovers. The bottom-most (closest to the
   current dir) match wins, so in a polyglot or monorepo layout where a
   `.git` sits at the top and a language manifest lives in a subdirectory,
-  the language subdirectory wins.
+  the language subdirectory wins.  The seed list
+  (`projectile-project-root-files-bottom-up`) contains only VCS markers;
+  per-language manifests are appended automatically by
+  `projectile-register-project-type` from each type's `:project-file`
+  value, with two exclusions: filenames listed in
+  `projectile-non-root-manifest-files` (e.g. `Makefile`,
+  `application.yml`, `requirements.txt`, `manage.py`, `gradlew`), which
+  legitimately appear at multiple levels of a single project, and
+  wildcard patterns (e.g. `?*.csproj`), which the bottom-up search does
+  not expand.
 
 * `projectile-root-top-down` is similar, but it will return the top-most
   (farthest from the current directory) match. It is configurable via
-  `projectile-project-root-files`, which is also populated automatically
-  from `projectile-register-project-type`. It is only consulted when no
-  bottom-up match was found, so today it primarily covers projects whose
-  marker is a wildcard pattern (e.g. `?*.csproj`, `?*.sln`), since
-  `projectile-root-bottom-up` matches via `file-exists-p` and does not
-  expand globs.
+  `projectile-project-root-files`, also populated automatically from
+  `projectile-register-project-type`. It is consulted after bottom-up
+  fails, so today it primarily covers project types whose marker is a
+  wildcard pattern (e.g. `?*.csproj`, `?*.sln`).
 
 * `projectile-root-top-down-recurring` will look for project markers that can
   appear at every level of a project (e.g. `Makefile` or `.svn`) and will return

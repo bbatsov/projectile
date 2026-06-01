@@ -353,64 +353,32 @@ See `projectile-register-project-type'."
     ".pijul"      ; Pijul VCS root dir
     ".sl"         ; Sapling VCS root dir
     ".jj"         ; Jujutsu VCS root dir
-    ;; Per-language project manifests.  Including these alongside VC
-    ;; markers means that in a polyglot or monorepo layout (e.g. a
-    ;; `.git' at the repo root with a `deps.edn' in a language
-    ;; subdirectory), the inner project marker wins for tools that ask
-    ;; `projectile-project-root' which subproject the buffer belongs to.
-    ;; Markers that legitimately appear at multiple levels of a single
-    ;; project (Makefile, application.yml, requirements.txt, manage.py,
-    ;; gradlew) are intentionally left in the top-down list instead.
-    "Cargo.toml"      ; Rust
-    "Package.swift"   ; Swift
-    "build.zig.zon"   ; Zig
-    "dune-project"    ; OCaml
-    "Project.toml"    ; Julia
-    "elm.json"        ; Elm
-    "pubspec.yaml"    ; Dart
-    "info.rkt"        ; Racket
-    "stack.yaml"      ; Haskell
-    "DESCRIPTION"     ; R
-    "Eldev"           ; Emacs (Eldev)
-    "Eask"            ; Emacs (Eask)
-    "Cask"            ; Emacs (Cask)
-    "shard.yml"       ; Crystal
-    "Gemfile"         ; Ruby
-    "deps.edn"        ; Clojure CLI
-    "build.boot"      ; Boot
-    "project.clj"     ; Leiningen
-    "build.mill"      ; Mill
-    "build.sc"        ; Mill (legacy)
-    "build.sbt"       ; sbt
-    "build.gradle"    ; Gradle
-    "pom.xml"         ; Maven
-    "pyproject.toml"  ; Python (PEP 518)
-    "poetry.lock"     ; Python (Poetry)
-    "Pipfile"         ; Python (pipenv)
-    "tox.ini"         ; Python (tox)
-    "setup.py"        ; Python (setuptools)
-    "angular.json"    ; Angular
-    "package.json"    ; npm/yarn/pnpm
-    "Gruntfile.js"    ; Grunt
-    "gulpfile.js"     ; Gulp
-    "Taskfile.yml"    ; go-task
-    "composer.json"   ; PHP
-    "rebar.config"    ; Erlang (rebar3)
-    "mix.exs"         ; Elixir
-    "CMakeLists.txt"  ; CMake
-    "WORKSPACE"       ; Bazel
-    "flake.nix"       ; Nix flake
-    "default.nix"     ; Nix
-    "meson.build"     ; Meson
-    "SConstruct"      ; SCons
-    "xmake.lua"       ; xmake
-    "debian/control"  ; Debian source package
     )
   "A list of files considered to mark the root of a project.
-The bottommost (parentmost) match has precedence -- so a project
-manifest in a subdirectory wins over an enclosing VC root."
+The bottommost (parentmost) match has precedence.
+
+This seed list contains only VCS markers; per-language project
+manifests (e.g. `deps.edn', `Cargo.toml', `pom.xml') are appended at
+load time by `projectile-register-project-type' from each type's
+`:project-file' value, so the closer language subproject wins over an
+enclosing VC root in a polyglot or monorepo layout.
+
+Filenames listed in `projectile-non-root-manifest-files' and wildcard
+patterns are *not* auto-added here; they remain top-down only."
   :group 'projectile
   :type '(repeat string))
+
+(defconst projectile-non-root-manifest-files
+  '("Makefile"
+    "GNUMakefile"
+    "application.yml"  ; Spring Boot config, found in many resource dirs
+    "manage.py"        ; Django, can appear in subapps
+    "requirements.txt" ; Python, often present in multiple subdirs
+    "gradlew")         ; Gradle wrapper; only the top-level one matters
+  "Manifest filenames that legitimately appear at multiple levels of a
+single project, so they must not be treated as bottom-up root markers.
+`projectile-register-project-type' skips these when auto-populating
+`projectile-project-root-files-bottom-up'.")
 
 (defcustom projectile-project-root-files-top-down-recurring
   '(".svn" ; Svn VCS root dir
@@ -3655,7 +3623,16 @@ files such as test/impl/other files as below:
                          (list project-file))))
     (dolist (project-file project-files)
       (when (and project-file (not (member project-file projectile-project-root-files)))
-        (add-to-list 'projectile-project-root-files project-file)))
+        (add-to-list 'projectile-project-root-files project-file))
+      ;; Also seed the bottom-up list so a deeper project manifest beats
+      ;; an outer VC root.  Skip wildcards (the bottom-up search uses
+      ;; `file-exists-p' rather than glob expansion) and filenames known
+      ;; to legitimately recur in non-root subdirectories.
+      (when (and project-file
+                 (not (string-match-p "[*?]" project-file))
+                 (not (member project-file projectile-non-root-manifest-files))
+                 (not (member project-file projectile-project-root-files-bottom-up)))
+        (add-to-list 'projectile-project-root-files-bottom-up project-file t)))
     (when test-suffix
       (plist-put project-plist 'test-suffix test-suffix))
     (when test-prefix
