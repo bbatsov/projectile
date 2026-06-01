@@ -1632,7 +1632,21 @@ by `projectile-files-via-ext-command')."
        "worktree/src/file.txt")
       (expect (projectile-root-bottom-up "worktree/src/" '(".git"))
               :to-equal
-              (expand-file-name "worktree/"))))))
+              (expand-file-name "worktree/")))))
+  (it "prefers a nearer project manifest over an outer VC root via the default list"
+    ;; Regression: in a polyglot/monorepo layout (`.git' at the top, a
+    ;; language manifest deeper down), `projectile-project-root-files-bottom-up'
+    ;; ships the common manifests, so the closer subproject root wins.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("monorepo/.git/"
+       "monorepo/clj/deps.edn"
+       "monorepo/clj/src/foo.clj")
+      (expect (projectile-root-bottom-up
+               "monorepo/clj/src/"
+               projectile-project-root-files-bottom-up)
+              :to-equal
+              (expand-file-name "monorepo/clj/"))))))
 
 (describe "projectile-root-marked"
   (it "finds the closest dirconfig-file bottom-up"

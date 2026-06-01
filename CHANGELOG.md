@@ -4,6 +4,7 @@
 
 ### Changes
 
+* `projectile-project-root-files-bottom-up` now ships with the common per-language project manifests (`deps.edn`, `project.clj`, `Cargo.toml`, `pyproject.toml`, `pom.xml`, `package.json`, etc.) alongside the VC markers. In a polyglot or monorepo layout where the language manifest sits in a subdirectory of an enclosing `.git` root, the closer subproject now wins. Markers that legitimately appear at multiple levels of a single project (Makefile, application.yml, requirements.txt, manage.py, gradlew) are intentionally left in the top-down list.
 * `projectile-get-immediate-sub-projects` skips the `git submodule foreach` shell-out for git projects with no `.gitmodules` file anywhere up the parent chain. Hot path for monorepos that index the project root often.
 * `projectile-discover-projects-in-directory` now uses `directory-files-no-dot-files-regexp` to skip `.` and `..` at the C level instead of doing the post-filter in Elisp - matches the indexing walker.
 * Document the anchored vs `*`-prefixed semantics of `projectile-globally-ignored-directories`, the `find` fallback's lack of common directory exclusions when `fd` isn't available, and how `fd`/`git ls-files` handle deleted-but-unstaged files differently.

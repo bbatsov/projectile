@@ -754,19 +754,25 @@ precedence with respect to project detection. Let's examine the defaults:
   discovery logic.
 
 * `projectile-root-bottom-up` will start looking for a project marker
-  file/folder(e.g. `.projectile`, `.hg`, `.git`) from the current folder
+  file/folder (e.g. `.projectile`, `.hg`, `.git`, `deps.edn`,
+  `Cargo.toml`, `pyproject.toml`) from the current folder
   (a.k.a. `default-directory` in Emacs lingo) up the directory tree. It will
-  return the first match it discovers. The assumption is pretty simple - the
-  root marker appear only once, at the root folder of a project. If a root
-  marker appears in several nested folders (e.g. you've got nested git projects),
-  the bottom-most (closest to the current dir) match has precedence. You can
-  customize the root markers recognized by this function via
-  `projectile-project-root-files-bottom-up`
+  return the first match it discovers. The default list (configurable via
+  `projectile-project-root-files-bottom-up`) contains VCS markers and the
+  language-specific project manifests registered via
+  `projectile-register-project-type`. The bottom-most (closest to the
+  current dir) match wins, so in a polyglot or monorepo layout where a
+  `.git` sits at the top and a language manifest lives in a subdirectory,
+  the language subdirectory wins.
 
 * `projectile-root-top-down` is similar, but it will return the top-most
-  (farthest from the current directory) match. It's configurable via
-  `projectile-project-root-files` and all project manifest markers like
-  `pom.xml`, `Gemfile`, `project.clj`, etc go there.
+  (farthest from the current directory) match. It is configurable via
+  `projectile-project-root-files`, which is also populated automatically
+  from `projectile-register-project-type`. It is only consulted when no
+  bottom-up match was found, so today it primarily covers projects whose
+  marker is a wildcard pattern (e.g. `?*.csproj`, `?*.sln`), since
+  `projectile-root-bottom-up` matches via `file-exists-p` and does not
+  expand globs.
 
 * `projectile-root-top-down-recurring` will look for project markers that can
   appear at every level of a project (e.g. `Makefile` or `.svn`) and will return
@@ -774,10 +780,10 @@ precedence with respect to project detection. Let's examine the defaults:
 
 NOTE: `projectile-root-top-down` only matches *regular files* — directories
 with names listed in `projectile-project-root-files` are skipped.  This is
-why the default list contains files like `configure.ac` or `TAGS` rather than
-VCS directories.  `projectile-root-bottom-up` matches both files and
-directories, so VCS markers like `.git` (a directory in normal repos, a file
-in worktrees and submodules) belong on the bottom-up list.
+why the default seed list contains files like `configure.ac` or `TAGS`
+rather than VCS directories.  `projectile-root-bottom-up` matches both
+files and directories, so VCS markers like `.git` (a directory in normal
+repos, a file in worktrees and submodules) belong on the bottom-up list.
 
 The default ordering should work well for most people, but depending on the
 structure of your project you might want to tweak it.

@@ -353,9 +353,62 @@ See `projectile-register-project-type'."
     ".pijul"      ; Pijul VCS root dir
     ".sl"         ; Sapling VCS root dir
     ".jj"         ; Jujutsu VCS root dir
+    ;; Per-language project manifests.  Including these alongside VC
+    ;; markers means that in a polyglot or monorepo layout (e.g. a
+    ;; `.git' at the repo root with a `deps.edn' in a language
+    ;; subdirectory), the inner project marker wins for tools that ask
+    ;; `projectile-project-root' which subproject the buffer belongs to.
+    ;; Markers that legitimately appear at multiple levels of a single
+    ;; project (Makefile, application.yml, requirements.txt, manage.py,
+    ;; gradlew) are intentionally left in the top-down list instead.
+    "Cargo.toml"      ; Rust
+    "Package.swift"   ; Swift
+    "build.zig.zon"   ; Zig
+    "dune-project"    ; OCaml
+    "Project.toml"    ; Julia
+    "elm.json"        ; Elm
+    "pubspec.yaml"    ; Dart
+    "info.rkt"        ; Racket
+    "stack.yaml"      ; Haskell
+    "DESCRIPTION"     ; R
+    "Eldev"           ; Emacs (Eldev)
+    "Eask"            ; Emacs (Eask)
+    "Cask"            ; Emacs (Cask)
+    "shard.yml"       ; Crystal
+    "Gemfile"         ; Ruby
+    "deps.edn"        ; Clojure CLI
+    "build.boot"      ; Boot
+    "project.clj"     ; Leiningen
+    "build.mill"      ; Mill
+    "build.sc"        ; Mill (legacy)
+    "build.sbt"       ; sbt
+    "build.gradle"    ; Gradle
+    "pom.xml"         ; Maven
+    "pyproject.toml"  ; Python (PEP 518)
+    "poetry.lock"     ; Python (Poetry)
+    "Pipfile"         ; Python (pipenv)
+    "tox.ini"         ; Python (tox)
+    "setup.py"        ; Python (setuptools)
+    "angular.json"    ; Angular
+    "package.json"    ; npm/yarn/pnpm
+    "Gruntfile.js"    ; Grunt
+    "gulpfile.js"     ; Gulp
+    "Taskfile.yml"    ; go-task
+    "composer.json"   ; PHP
+    "rebar.config"    ; Erlang (rebar3)
+    "mix.exs"         ; Elixir
+    "CMakeLists.txt"  ; CMake
+    "WORKSPACE"       ; Bazel
+    "flake.nix"       ; Nix flake
+    "default.nix"     ; Nix
+    "meson.build"     ; Meson
+    "SConstruct"      ; SCons
+    "xmake.lua"       ; xmake
+    "debian/control"  ; Debian source package
     )
   "A list of files considered to mark the root of a project.
-The bottommost (parentmost) match has precedence."
+The bottommost (parentmost) match has precedence -- so a project
+manifest in a subdirectory wins over an enclosing VC root."
   :group 'projectile
   :type '(repeat string))
 
