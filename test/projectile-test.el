@@ -223,7 +223,43 @@ by `projectile-files-via-ext-command')."
     (projectile-register-project-type 'foo '("Foo"))
     (expect (caar projectile-project-types) :to-equal 'foo)
     (projectile-register-project-type 'bar '("Bar"))
-    (expect (caar projectile-project-types) :to-equal 'bar)))
+    (expect (caar projectile-project-types) :to-equal 'bar))
+
+  (it "derives project-file from the first marker file and seeds the top-down list"
+    (let ((projectile-project-types nil)
+          (projectile-project-root-files nil)
+          (projectile-project-root-files-bottom-up '(".git")))
+      (projectile-register-project-type 'foo '("foo.manifest" "extra-dir"))
+      (expect (projectile-project-type-attribute 'foo 'project-file)
+              :to-equal "foo.manifest")
+      ;; only the first marker is treated as the project file
+      (expect (member "foo.manifest" projectile-project-root-files) :to-be-truthy)
+      (expect (member "extra-dir" projectile-project-root-files) :not :to-be-truthy)
+      ;; manifests never leak into the bottom-up list (VCS markers win)
+      (expect (member "foo.manifest" projectile-project-root-files-bottom-up)
+              :not :to-be-truthy)))
+
+  (it "honors an explicit project-file over the first marker file"
+    (let ((projectile-project-types nil)
+          (projectile-project-root-files nil))
+      (projectile-register-project-type 'foo '("foo.manifest") :project-file "real.manifest")
+      (expect (projectile-project-type-attribute 'foo 'project-file)
+              :to-equal "real.manifest")
+      (expect (member "real.manifest" projectile-project-root-files) :to-be-truthy)
+      (expect (member "foo.manifest" projectile-project-root-files) :not :to-be-truthy)))
+
+  (it "opts out of root-file seeding when project-file is `none'"
+    ;; Regression for #1901: bloop's marker also lives in $HOME, so it
+    ;; must drive detection without ever anchoring a project root.
+    (let ((projectile-project-types nil)
+          (projectile-project-root-files nil)
+          (projectile-project-root-files-bottom-up '(".git")))
+      (projectile-register-project-type 'foo '(".foo/settings.json") :project-file 'none)
+      (expect (projectile-project-type-attribute 'foo 'project-file) :to-equal nil)
+      (expect (member ".foo/settings.json" projectile-project-root-files)
+              :not :to-be-truthy)
+      (expect (member ".foo/settings.json" projectile-project-root-files-bottom-up)
+              :not :to-be-truthy))))
 
 (describe "projectile-update-project-type"
   :var ((mock-projectile-project-types

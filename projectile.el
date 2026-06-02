@@ -3577,7 +3577,11 @@ ones and overrule settings in the other lists."
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
 PROJECT-FILE the main project file in the root project directory.  It may be a
-             single file or a list of possible files.
+             single file or a list of possible files.  When omitted it
+             defaults to the first marker file.  Pass the symbol `none'
+             to opt out, so the type is detected but contributes no
+             project-root marker (e.g. when its marker also appears
+             outside real projects).
 COMPILATION-DIR the directory to run the tests- and compilations in,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
@@ -3597,18 +3601,30 @@ files such as test/impl/other files as below:
     returns a plist containing :test, :impl or :other as key and the
     relative path/paths or predicate as value.  PREDICATE accepts a
     relative path as the input."
-  (let ((project-plist (list 'marker-files marker-files
-                             'project-file project-file
-                             'compilation-dir compilation-dir
-                             'configure-command configure
-                             'compile-command compile
-                             'test-command test
-                             'install-command install
-                             'package-command package
-                             'run-command run))
-        (project-files (if (listp project-file)
-                           project-file
-                         (list project-file))))
+  ;; When PROJECT-FILE isn't given explicitly, derive it from the first
+  ;; marker file - that's the project's primary manifest in every
+  ;; file-based registration, so callers needn't repeat it.  Function
+  ;; markers (a symbol or lambda) have no list to derive from.  Passing
+  ;; the symbol `none' opts out of both the derivation and the root-file
+  ;; seeding below, for types (e.g. bloop) whose only marker also shows
+  ;; up outside real projects and so must not anchor a project root.
+  (let* ((project-file (cond ((eq project-file 'none) nil)
+                             (project-file project-file)
+                             ((and (consp marker-files)
+                                   (stringp (car marker-files)))
+                              (car marker-files))))
+         (project-plist (list 'marker-files marker-files
+                              'project-file project-file
+                              'compilation-dir compilation-dir
+                              'configure-command configure
+                              'compile-command compile
+                              'test-command test
+                              'install-command install
+                              'package-command package
+                              'run-command run))
+         (project-files (if (listp project-file)
+                            project-file
+                          (list project-file))))
     (dolist (project-file project-files)
       (when (and project-file (not (member project-file projectile-project-root-files)))
         (add-to-list 'projectile-project-root-files project-file)))
@@ -3631,7 +3647,11 @@ files such as test/impl/other files as below:
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments:
 PROJECT-FILE the main project file in the root project directory.  It may be a
-             single file or a list of possible files.
+             single file or a list of possible files.  When omitted it
+             defaults to the first marker file.  Pass the symbol `none'
+             to opt out, so the type is detected but contributes no
+             project-root marker (e.g. when its marker also appears
+             outside real projects).
 COMPILATION-DIR the directory to run the tests- and compilations in,
 CONFIGURE which specifies a command that configures the project
           `%s' in the command will be substituted with (projectile-project-root)
@@ -4035,53 +4055,43 @@ a manual COMMAND-TYPE command is created with
 
 ;; Universal
 (projectile-register-project-type 'xmake '("xmake.lua")
-                                  :project-file "xmake.lua"
                                   :compile "xmake build"
                                   :test "xmake test"
                                   :run "xmake run"
                                   :install "xmake install")
 (projectile-register-project-type 'scons '("SConstruct")
-                                  :project-file "SConstruct"
                                   :compile "scons"
                                   :test "scons test"
                                   :test-suffix "test")
 (projectile-register-project-type 'meson '("meson.build")
-                                  :project-file "meson.build"
                                   :compilation-dir "build"
                                   :configure "meson %s"
                                   :compile "ninja"
                                   :test "ninja test")
 (projectile-register-project-type 'nix '("default.nix")
-                                  :project-file "default.nix"
                                   :compile "nix-build"
                                   :test "nix-build")
 (projectile-register-project-type 'nix-flake '("flake.nix")
-                                  :project-file "flake.nix"
                                   :compile "nix build"
                                   :test "nix flake check"
                                   :run "nix run")
 (projectile-register-project-type 'bazel '("WORKSPACE")
-                                  :project-file "WORKSPACE"
                                   :compile "bazel build"
                                   :test "bazel test"
                                   :run "bazel run")
 (projectile-register-project-type 'debian '("debian/control")
-                                  :project-file "debian/control"
                                   :compile "debuild -uc -us")
 
 ;; Make & CMake
 (projectile-register-project-type 'make '("Makefile")
-                                  :project-file "Makefile"
                                   :compile "make"
                                   :test "make test"
                                   :install "make install")
 (projectile-register-project-type 'gnumake '("GNUMakefile")
-                                  :project-file "GNUMakefile"
                                   :compile "make"
                                   :test "make test"
                                   :install "make install")
 (projectile-register-project-type 'cmake '("CMakeLists.txt")
-                                  :project-file "CMakeLists.txt"
                                   :configure #'projectile--cmake-configure-command
                                   :compile #'projectile--cmake-compile-command
                                   :test #'projectile--cmake-test-command
@@ -4089,7 +4099,6 @@ a manual COMMAND-TYPE command is created with
                                   :package #'projectile--cmake-package-command)
 ;; go-task/task
 (projectile-register-project-type 'go-task '("Taskfile.yml")
-                                  :project-file "Taskfile.yml"
                                   :compile "task build"
                                   :test "task test"
                                   :install "task install")
@@ -4100,122 +4109,101 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "_test")
 ;; PHP
 (projectile-register-project-type 'php-symfony '("composer.json" "app" "src" "vendor")
-                                  :project-file "composer.json"
                                   :compile "app/console server:run"
                                   :test "phpunit -c app "
                                   :test-suffix "Test")
 ;; Erlang & Elixir
 (projectile-register-project-type 'rebar '("rebar.config")
-                                  :project-file "rebar.config"
                                   :compile "rebar3 compile"
                                   :test "rebar3 do eunit,ct"
                                   :test-suffix "_SUITE")
 (projectile-register-project-type 'elixir '("mix.exs")
-                                  :project-file "mix.exs"
                                   :compile "mix compile"
                                   :src-dir "lib/"
                                   :test "mix test"
                                   :test-suffix "_test")
 ;; JavaScript
 (projectile-register-project-type 'grunt '("Gruntfile.js")
-                                  :project-file "Gruntfile.js"
                                   :compile "grunt"
                                   :test "grunt test")
 (projectile-register-project-type 'gulp '("gulpfile.js")
-                                  :project-file "gulpfile.js"
                                   :compile "gulp"
                                   :test "gulp test")
 (projectile-register-project-type 'npm '("package.json" "package-lock.json")
-                                  :project-file "package.json"
                                   :compile "npm install && npm run build"
                                   :test "npm test"
                                   :test-suffix ".test")
 (projectile-register-project-type 'yarn '("package.json" "yarn.lock")
-                                  :project-file "package.json"
                                   :compile "yarn && yarn build"
                                   :test "yarn test"
                                   :test-suffix ".test")
 (projectile-register-project-type 'pnpm '("package.json" "pnpm-lock.yaml")
-                                  :project-file "package.json"
                                   :compile "pnpm install && pnpm build"
                                   :test "pnpm test"
                                   :test-suffix ".test")
 ;; Angular
 (projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
-                                  :project-file "angular.json"
                                   :compile "ng build"
                                   :run "ng serve"
                                   :test "ng test"
                                   :test-suffix ".spec")
 ;; Python
 (projectile-register-project-type 'django '("manage.py")
-                                  :project-file "manage.py"
                                   :compile "python manage.py runserver"
                                   :test "python manage.py test"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-pip '("requirements.txt")
-                                  :project-file "requirements.txt"
                                   :compile "python setup.py build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-pkg '("setup.py")
-                                  :project-file "setup.py"
                                   :compile "python setup.py build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-tox '("tox.ini")
-                                  :project-file "tox.ini"
                                   :compile "tox -r --notest"
                                   :test "tox"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-pipenv '("Pipfile")
-                                  :project-file "Pipfile"
                                   :compile "pipenv run build"
                                   :test "pipenv run test"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-poetry '("poetry.lock")
-                                  :project-file "poetry.lock"
                                   :compile "poetry build"
                                   :test "poetry run python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-toml '("pyproject.toml")
-                                  :project-file "pyproject.toml"
                                   :compile "python -m build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
-                                  :project-file "pom.xml"
                                   :compile "mvn -B clean install"
                                   :test "mvn -B test"
                                   :test-suffix "Test"
                                   :src-dir "src/main/"
                                   :test-dir "src/test/")
 (projectile-register-project-type 'gradle '("build.gradle")
-                                  :project-file "build.gradle"
                                   :compile "gradle build"
                                   :test "gradle test"
                                   :test-suffix "Spec")
 (projectile-register-project-type 'gradlew '("gradlew")
-                                  :project-file "gradlew"
                                   :compile "./gradlew build"
                                   :test "./gradlew test"
                                   :test-suffix "Spec")
 (projectile-register-project-type 'grails '("application.yml" "grails-app")
-                                  :project-file "application.yml"
                                   :compile "grails package"
                                   :test "grails test-app"
                                   :test-suffix "Spec")
 ;; Scala
 (projectile-register-project-type 'sbt '("build.sbt")
-                                  :project-file "build.sbt"
                                   :src-dir "main"
                                   :test-dir "test"
                                   :compile "sbt compile"
@@ -4230,7 +4218,11 @@ a manual COMMAND-TYPE command is created with
                                   :test "mill __.test"
                                   :test-suffix "Test")
 
+;; Bloop drops a `.bloop/bloop.settings.json' in the project, but its
+;; server also keeps one in `$HOME', so the marker must not anchor a
+;; project root (see #1901) - only drive type detection.
 (projectile-register-project-type 'bloop '(".bloop/bloop.settings.json")
+                                  :project-file 'none
                                   :compile "bloop compile root"
                                   :test "bloop test --propagate --reporter scalac root"
                                   :src-dir "src/main/"
@@ -4239,34 +4231,28 @@ a manual COMMAND-TYPE command is created with
 
 ;; Clojure
 (projectile-register-project-type 'lein-test '("project.clj")
-                                  :project-file "project.clj"
                                   :compile "lein compile"
                                   :test "lein test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'lein-midje '("project.clj" ".midje.clj")
-                                  :project-file "project.clj"
                                   :compile "lein compile"
                                   :test "lein midje"
                                   :test-prefix "t_")
 (projectile-register-project-type 'boot-clj '("build.boot")
-                                  :project-file "build.boot"
                                   :compile "boot aot"
                                   :test "boot test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'clojure-cli '("deps.edn")
-                                  :project-file "deps.edn"
                                   :test-suffix "_test")
 
 ;; Ruby
 (projectile-register-project-type 'ruby-rspec '("Gemfile" "lib" "spec")
-                                  :project-file "Gemfile"
                                   :compile "bundle exec rake"
                                   :src-dir "lib/"
                                   :test "bundle exec rspec"
                                   :test-dir "spec/"
                                   :test-suffix "_spec")
 (projectile-register-project-type 'ruby-test '("Gemfile" "lib" "test")
-                                  :project-file "Gemfile"
                                   :compile "bundle exec rake"
                                   :src-dir "lib/"
                                   :test "bundle exec rake test"
@@ -4274,13 +4260,11 @@ a manual COMMAND-TYPE command is created with
 ;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
 ;; https://github.com/bbatsov/projectile/pull/1191
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
-                                  :project-file "Gemfile"
                                   :compile "bundle exec rails server"
                                   :src-dir "app/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
-                                  :project-file "Gemfile"
                                   :compile "bundle exec rails server"
                                   :src-dir "app/"
                                   :test "bundle exec rspec"
@@ -4288,7 +4272,6 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "_spec")
 ;; Crystal
 (projectile-register-project-type 'crystal-spec '("shard.yml")
-                                  :project-file "shard.yml"
                                   :src-dir "src/"
                                   :test "crystal spec"
                                   :test-dir "spec/"
@@ -4296,13 +4279,11 @@ a manual COMMAND-TYPE command is created with
 
 ;; Emacs
 (projectile-register-project-type 'emacs-cask '("Cask")
-                                  :project-file "Cask"
                                   :compile "cask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
 
 (projectile-register-project-type 'emacs-eask '("Eask")
-                                  :project-file "Eask"
                                   :compile "eask install"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
@@ -4316,34 +4297,29 @@ a manual COMMAND-TYPE command is created with
 
 ;; R
 (projectile-register-project-type 'r '("DESCRIPTION")
-                                  :project-file "DESCRIPTION"
                                   :compile "R CMD INSTALL --with-keep.source ."
                                   :test (concat "R CMD check -o " temporary-file-directory " ."))
 
 ;; Haskell
 (projectile-register-project-type 'haskell-stack '("stack.yaml")
-                                  :project-file "stack.yaml"
                                   :compile "stack build"
                                   :test "stack build --test"
                                   :test-suffix "Spec")
 
 ;; Rust
 (projectile-register-project-type 'rust-cargo '("Cargo.toml")
-                                  :project-file "Cargo.toml"
                                   :compile "cargo build"
                                   :test "cargo test"
                                   :run "cargo run")
 
 ;; Racket
 (projectile-register-project-type 'racket '("info.rkt")
-                                  :project-file "info.rkt"
                                   :test "raco test ."
                                   :install "raco pkg install"
                                   :package "raco pkg create --source $(pwd)")
 
 ;; Dart
 (projectile-register-project-type 'dart '("pubspec.yaml")
-                                  :project-file "pubspec.yaml"
                                   :compile "pub get"
                                   :test "pub run test"
                                   :run "dart"
@@ -4351,12 +4327,10 @@ a manual COMMAND-TYPE command is created with
 
 ;; Elm
 (projectile-register-project-type 'elm '("elm.json")
-                                  :project-file "elm.json"
                                   :compile "elm make")
 
 ;; Julia
 (projectile-register-project-type 'julia '("Project.toml")
-                                  :project-file "Project.toml"
                                   :compile "julia --project=@. -e 'import Pkg; Pkg.precompile(); Pkg.build()'"
                                   :test "julia --project=@. -e 'import Pkg; Pkg.test()' --check-bounds=yes"
                                   :src-dir "src"
@@ -4364,20 +4338,17 @@ a manual COMMAND-TYPE command is created with
 
 ;; OCaml
 (projectile-register-project-type 'ocaml-dune '("dune-project")
-                                  :project-file "dune-project"
                                   :compile "dune build"
                                   :test "dune runtest")
 
 ;; Zig
 (projectile-register-project-type 'zig '("build.zig.zon")
-                                  :project-file "build.zig.zon"
                                   :compile "zig build"
                                   :test "zig build test"
                                   :run "zig build run")
 
 ;; Swift
 (projectile-register-project-type 'swift-spm '("Package.swift")
-                                  :project-file "Package.swift"
                                   :compile "swift build"
                                   :test "swift test"
                                   :run "swift run")

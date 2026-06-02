@@ -298,7 +298,7 @@ What this does is:
 
 . add your own type of project, in this case `npm` package.
 . add a list of files and/or folders in a root of the project that helps to identify the type, in this case it is only `package.json`. This can also be a function which takes a project root as argument and verifies whether that directory has the correct project structure for the type.
-. add _project-file_, which is typically the primary project configuration file. In this case that's `package.json`. The value can contain wildcards and/or be a list containing multiple project files to look for.
+. add _project-file_, which is typically the primary project configuration file. In this case that's `package.json`. When omitted it defaults to the first marker file (so the explicit `:project-file` above is optional here); supply it explicitly when the marker is a function or when the primary file differs from the first marker. The value can contain wildcards and/or be a list containing multiple project files to look for. Pass the symbol `none` for a type that should be detected but never anchor a project root (e.g. its marker also shows up outside real projects).
 . add _compile-command_, in this case it is `npm install`.
 . add _test-command_, in this case it is `npm test`.
 . add _run-command_, in this case it is `npm start`.
@@ -769,10 +769,11 @@ precedence with respect to project detection. Let's examine the defaults:
 * `projectile-root-top-down` is similar, but it will return the top-most
   (farthest from the current directory) match. It is configurable via
   `projectile-project-root-files`, which is populated automatically from the
-  project types registered via `projectile-register-project-type`. It is
-  consulted after the bottom-up search fails, so it's where the per-language
-  manifests (`deps.edn`, `Cargo.toml`, `pom.xml`, `?*.csproj`, ...) actually
-  get matched.
+  project types registered via `projectile-register-project-type` (each
+  type's `:project-file`, or the first of its marker files when no
+  `:project-file` is given). It is consulted after the bottom-up search
+  fails, so it's where the per-language manifests (`deps.edn`, `Cargo.toml`,
+  `pom.xml`, `?*.csproj`, ...) actually get matched.
 
 * `projectile-root-top-down-recurring` will look for project markers that can
   appear at every level of a project (e.g. `Makefile` or `.svn`) and will return
