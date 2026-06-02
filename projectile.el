@@ -357,28 +357,16 @@ See `projectile-register-project-type'."
   "A list of files considered to mark the root of a project.
 The bottommost (parentmost) match has precedence.
 
-This seed list contains only VCS markers; per-language project
-manifests (e.g. `deps.edn', `Cargo.toml', `pom.xml') are appended at
-load time by `projectile-register-project-type' from each type's
-`:project-file' value, so the closer language subproject wins over an
-enclosing VC root in a polyglot or monorepo layout.
-
-Filenames listed in `projectile-non-root-manifest-files' and wildcard
-patterns are *not* auto-added here; they remain top-down only."
+This list holds only VCS markers (plus whatever you add yourself).
+Per-language project manifests are deliberately *not* included, so an
+enclosing VC root wins over a manifest sitting in a subdirectory - the
+behavior most users and IDEs expect (the git repository is the
+project).  In a polyglot or monorepo layout where you want a deeper
+subproject to win instead, drop a `.projectile' file in it;
+`projectile-root-marked' runs before `projectile-root-bottom-up', so
+the marked subproject takes precedence over the outer VC root."
   :group 'projectile
   :type '(repeat string))
-
-(defconst projectile-non-root-manifest-files
-  '("Makefile"
-    "GNUMakefile"
-    "application.yml"  ; Spring Boot config, found in many resource dirs
-    "manage.py"        ; Django, can appear in subapps
-    "requirements.txt" ; Python, often present in multiple subdirs
-    "gradlew")         ; Gradle wrapper; only the top-level one matters
-  "Manifest filenames that legitimately appear at multiple levels of a
-single project, so they must not be treated as bottom-up root markers.
-`projectile-register-project-type' skips these when auto-populating
-`projectile-project-root-files-bottom-up'.")
 
 (defcustom projectile-project-root-files-top-down-recurring
   '(".svn" ; Svn VCS root dir
@@ -3623,16 +3611,7 @@ files such as test/impl/other files as below:
                          (list project-file))))
     (dolist (project-file project-files)
       (when (and project-file (not (member project-file projectile-project-root-files)))
-        (add-to-list 'projectile-project-root-files project-file))
-      ;; Also seed the bottom-up list so a deeper project manifest beats
-      ;; an outer VC root.  Skip wildcards (the bottom-up search uses
-      ;; `file-exists-p' rather than glob expansion) and filenames known
-      ;; to legitimately recur in non-root subdirectories.
-      (when (and project-file
-                 (not (string-match-p "[*?]" project-file))
-                 (not (member project-file projectile-non-root-manifest-files))
-                 (not (member project-file projectile-project-root-files-bottom-up)))
-        (add-to-list 'projectile-project-root-files-bottom-up project-file t)))
+        (add-to-list 'projectile-project-root-files project-file)))
     (when test-suffix
       (plist-put project-plist 'test-suffix test-suffix))
     (when test-prefix
