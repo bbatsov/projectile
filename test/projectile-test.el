@@ -1633,10 +1633,10 @@ by `projectile-files-via-ext-command')."
       (expect (projectile-root-bottom-up "worktree/src/" '(".git"))
               :to-equal
               (expand-file-name "worktree/")))))
-  (it "prefers a nearer project manifest over an outer VC root via the default list"
-    ;; Regression: in a polyglot/monorepo layout (`.git' at the top, a
-    ;; language manifest deeper down), `projectile-project-root-files-bottom-up'
-    ;; ships the common manifests, so the closer subproject root wins.
+  (it "lets an outer VC root win over a nearer manifest by default"
+    ;; The default bottom-up list is VCS markers only, so in a monorepo
+    ;; layout (`.git' at the top, a language manifest deeper down) the
+    ;; enclosing repository wins - the git repo is the project.
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("monorepo/.git/"
@@ -1645,6 +1645,18 @@ by `projectile-files-via-ext-command')."
       (expect (projectile-root-bottom-up
                "monorepo/clj/src/"
                projectile-project-root-files-bottom-up)
+              :to-equal
+              (expand-file-name "monorepo/")))))
+  (it "lets a .projectile-marked subproject win over an outer VC root"
+    ;; The escape hatch for polyglot/monorepo layouts: drop a
+    ;; `.projectile' in the subproject and `projectile-root-marked'
+    ;; (which runs before the bottom-up search) anchors the root there.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("monorepo/.git/"
+       "monorepo/clj/.projectile"
+       "monorepo/clj/src/foo.clj")
+      (expect (projectile-root-marked "monorepo/clj/src/")
               :to-equal
               (expand-file-name "monorepo/clj/"))))))
 

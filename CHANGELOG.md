@@ -4,7 +4,6 @@
 
 ### Changes
 
-* `projectile-register-project-type` now appends each type's `:project-file` to `projectile-project-root-files-bottom-up` (in addition to the existing top-down list), so a deeper language manifest beats an enclosing VC root in polyglot or monorepo layouts. Filenames listed in the new `projectile-non-root-manifest-files` defconst (Makefile, GNUMakefile, application.yml, manage.py, requirements.txt, gradlew) and wildcard patterns (`?*.csproj`, etc.) are skipped, since they either legitimately recur in non-root subdirectories or aren't supported by the bottom-up `file-exists-p` path.
 * `projectile-get-immediate-sub-projects` skips the `git submodule foreach` shell-out for git projects with no `.gitmodules` file anywhere up the parent chain. Hot path for monorepos that index the project root often.
 * `projectile-discover-projects-in-directory` now uses `directory-files-no-dot-files-regexp` to skip `.` and `..` at the C level instead of doing the post-filter in Elisp - matches the indexing walker.
 * Document the anchored vs `*`-prefixed semantics of `projectile-globally-ignored-directories`, the `find` fallback's lack of common directory exclusions when `fd` isn't available, and how `fd`/`git ls-files` handle deleted-but-unstaged files differently.
