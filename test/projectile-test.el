@@ -2574,7 +2574,26 @@ by `projectile-files-via-ext-command')."
        "project/build.zig.zon")
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'zig))))))
+        (expect (projectile-detect-project-type) :to-equal 'zig)))))
+  (it "does not match a project type whose marker-files are empty"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/foo")
+      (let ((projectile-project-types '((empty marker-files nil)
+                                        (real marker-files ("foo"))))
+            (projectile-project-type-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'real)))))
+  (it "falls back to generic when the only type has empty marker-files"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/foo")
+      (let ((projectile-project-types '((empty marker-files nil)))
+            (projectile-project-type-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'generic))))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
