@@ -21,6 +21,7 @@
 
 ### New features
 
+* Add `projectile-uniquify-dirname-transform`, a project-aware value for `uniquify-dirname-transform` that disambiguates same-named buffers using the project name. Mirrors `project.el`'s `project-uniquify-dirname-transform`.
 * [#2008](https://github.com/bbatsov/projectile/issues/2008): Add `projectile-remove-project-type` to unregister a project type. This is the supported way to stop Projectile auto-detecting a type; clearing its `marker-files` does not work (see the related bug fix below).
 * [#1936](https://github.com/bbatsov/projectile/issues/1936): Add `projectile-discard-root-cache` command to clear `projectile-project-root-cache` without touching other Projectile caches. Useful after creating or removing a project marker, since the existing `projectile-invalidate-cache` either also drops the file list cache or prompts for a project depending on context.
 * Warn once per session when `projectile-indexing-method' is `alien' but the project has a non-empty `.projectile' file, so users notice their dirconfig rules are being bypassed. Controlled by the new `projectile-warn-when-dirconfig-is-ignored' option.

@@ -1200,6 +1200,21 @@ When you run `projectile-kill-buffers` (kbd:[s-p k]), the variable
 You can also set it to a custom predicate function that receives a buffer and
 returns non-nil if the buffer should be killed.
 
+=== Uniquifying buffer names by project
+
+When you open same-named files from different projects (say two `README.md`
+files), Emacs's `uniquify` library disambiguates the buffer names using parent
+directory components. Projectile can make that disambiguation use the project
+name instead, via `projectile-uniquify-dirname-transform`:
+
+[source,elisp]
+----
+(setq uniquify-dirname-transform #'projectile-uniquify-dirname-transform)
+----
+
+Outside of a project the directory is left untouched, so this is safe to set
+globally. This mirrors `project.el`'s `project-uniquify-dirname-transform`.
+
 == Configure a Project's Lifecycle Commands and Other Attributes
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.

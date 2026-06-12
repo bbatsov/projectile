@@ -173,6 +173,17 @@ by `projectile-files-via-ext-command')."
     (let ((projectile-project-name-function (lambda (dir) dir)))
       (expect (projectile-project-name) :to-equal "current/project"))))
 
+(describe "projectile-uniquify-dirname-transform"
+  (it "splices the project name into a directory inside a project"
+    (spy-on 'projectile-project-root :and-return-value "/home/me/work/checkout-42/")
+    (spy-on 'projectile-project-name :and-return-value "myproject")
+    (expect (projectile-uniquify-dirname-transform "/home/me/work/checkout-42/src/")
+            :to-equal "/home/me/work/checkout-42/myproject/src/"))
+  (it "returns the directory unchanged outside a project"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (expect (projectile-uniquify-dirname-transform "/tmp/not-a-project/")
+            :to-equal "/tmp/not-a-project/")))
+
 (describe "projectile-prepend-project-name"
   (it "prepends the project name to its parameter"
     (spy-on 'projectile-project-name :and-return-value "project")

@@ -1684,6 +1684,25 @@ If PROJECT is not specified acts on the current project."
           "-"))))
 
 
+(defun projectile-uniquify-dirname-transform (dirname)
+  "Project-aware transform for `uniquify-dirname-transform'.
+When DIRNAME is inside a project, return a path with the project name
+spliced in, so buffers visiting same-named files in different projects
+get distinct, project-qualified names.  Outside a project DIRNAME is
+returned unchanged.
+
+To enable, set `uniquify-dirname-transform' to this function:
+
+    (setq uniquify-dirname-transform #\\='projectile-uniquify-dirname-transform)"
+  (if-let* ((root (projectile-project-root dirname)))
+      (expand-file-name
+       (file-name-concat
+        (file-name-directory root)
+        (projectile-project-name root)
+        (file-relative-name dirname root)))
+    dirname))
+
+
 ;;; Project indexing
 (defun projectile-get-project-directories (project-dir)
   "Get the list of PROJECT-DIR directories that are of interest to the user.
