@@ -472,6 +472,25 @@ You can add additional commands to the commander like this:
 
 Place such snippets after ``projectile-mode``'s init code.
 
+== Transient Dispatch Menu
+
+If you have the `transient` library available (it's bundled with Emacs 28+;
+older Emacsen are not supported by current `transient` releases), Projectile
+provides `projectile-dispatch`, a
+transient menu that mirrors `projectile-command-map`. It's a more discoverable
+alternative to memorizing the keybindings or using the Commander: the menu keys
+match the command map (e.g. kbd:[f] to find a file, kbd:[c c] to compile,
+kbd:[s g] to grep).
+
+`transient` is an optional dependency, so `projectile-dispatch` is only defined
+when it's present. It is not bound to a key by default; bind it to whatever you
+like, for instance:
+
+[source,elisp]
+----
+(define-key projectile-mode-map (kbd "C-c P") #'projectile-dispatch)
+----
+
 == Using Projectile with project.el
 
 Starting with version 2.7 Projectile bundles some integration with

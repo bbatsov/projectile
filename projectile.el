@@ -7045,6 +7045,89 @@ Magit that don't trigger `find-file-hook'."
   "Keymap for Projectile commands after `projectile-keymap-prefix'.")
 (fset 'projectile-command-map projectile-command-map)
 
+;; `projectile-dispatch' is a transient menu mirroring `projectile-command-map'.
+;; `transient' is an optional dependency that requires Emacs 28.1+, so it can be
+;; entirely absent (including on Emacs 27, which Projectile still supports and
+;; where transient cannot even be installed).  The prefix is therefore defined
+;; at load time only when transient is present, and via `eval' so the
+;; `transient-define-prefix' macro is not needed at byte-compile time.  The menu
+;; keys deliberately match the `projectile-command-map' bindings.
+(when (require 'transient nil t)
+  (eval
+   '(transient-define-prefix projectile-dispatch ()
+    "Dispatch menu for Projectile commands."
+    [["Find"
+      ("f" "file" projectile-find-file)
+      ("g" "file dwim" projectile-find-file-dwim)
+      ("a" "other file" projectile-find-other-file)
+      ("l" "file in dir" projectile-find-file-in-directory)
+      ("F" "file in known projects" projectile-find-file-in-known-projects)
+      ("d" "dir" projectile-find-dir)
+      ("D" "dired" projectile-dired)
+      ("e" "recentf" projectile-recentf)
+      ("E" "edit .dir-locals" projectile-edit-dir-locals)
+      ("T" "test file" projectile-find-test-file)
+      ("t" "toggle impl/test" projectile-toggle-between-implementation-and-test)]
+     ["Buffers"
+      ("b" "switch buffer" projectile-switch-to-buffer)
+      ("I" "ibuffer" projectile-ibuffer)
+      ("k" "kill buffers" projectile-kill-buffers)
+      ("S" "save buffers" projectile-save-project-buffers)]
+     ["Search / Replace"
+      ("ss" "ag" projectile-ag)
+      ("sg" "grep" projectile-grep)
+      ("sr" "ripgrep" projectile-ripgrep)
+      ("sx" "references" projectile-find-references)
+      ("o" "multi-occur" projectile-multi-occur)
+      ("r" "replace" projectile-replace)
+      ("j" "find tag" projectile-find-tag)
+      ("R" "regenerate tags" projectile-regenerate-tags)]]
+    [["Project"
+      ("p" "switch project" projectile-switch-project)
+      ("q" "switch open project" projectile-switch-open-project)
+      ("A" "add known project" projectile-add-known-project)
+      ("m" "commander" projectile-commander)
+      ("V" "browse dirty projects" projectile-browse-dirty-projects)
+      ("v" "vc" projectile-vc)]
+     ["Lifecycle"
+      ("cc" "compile" projectile-compile-project)
+      ("ct" "test" projectile-test-project)
+      ("cr" "run" projectile-run-project)
+      ("co" "configure" projectile-configure-project)
+      ("ci" "install" projectile-install-project)
+      ("cp" "package" projectile-package-project)]
+     ["Shells / Run"
+      ("xe" "eshell" projectile-run-eshell)
+      ("xs" "shell" projectile-run-shell)
+      ("xt" "term" projectile-run-term)
+      ("xi" "ielm" projectile-run-ielm)
+      ("xg" "gdb" projectile-run-gdb)
+      ("xv" "vterm" projectile-run-vterm)
+      ("xx" "eat" projectile-run-eat)
+      ("!" "shell command" projectile-run-shell-command-in-root)
+      ("&" "async shell command" projectile-run-async-shell-command-in-root)]
+     ["Cache"
+      ("i" "invalidate cache" projectile-invalidate-cache)
+      ("z" "cache current file" projectile-cache-current-file)]]
+    [["Other window"
+      ("4f" "file" projectile-find-file-other-window)
+      ("4g" "file dwim" projectile-find-file-dwim-other-window)
+      ("4a" "other file" projectile-find-other-file-other-window)
+      ("4d" "dir" projectile-find-dir-other-window)
+      ("4D" "dired" projectile-dired-other-window)
+      ("4b" "buffer" projectile-switch-to-buffer-other-window)
+      ("4t" "impl/test" projectile-find-implementation-or-test-other-window)
+      ("4o" "display buffer" projectile-display-buffer)]
+     ["Other frame"
+      ("5f" "file" projectile-find-file-other-frame)
+      ("5g" "file dwim" projectile-find-file-dwim-other-frame)
+      ("5a" "other file" projectile-find-other-file-other-frame)
+      ("5d" "dir" projectile-find-dir-other-frame)
+      ("5D" "dired" projectile-dired-other-frame)
+      ("5b" "buffer" projectile-switch-to-buffer-other-frame)
+      ("5t" "impl/test" projectile-find-implementation-or-test-other-frame)]])
+   t))
+
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
     (when projectile-keymap-prefix
