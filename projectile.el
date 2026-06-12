@@ -4372,7 +4372,12 @@ Fallback to a generic project type when the type can't be determined."
                            (marker (plist-get (cdr project-type-record) 'marker-files)))
                        (if (functionp marker)
                            (and (funcall marker dir) project-type)
-                         (and (projectile-verify-files marker dir) project-type))))
+                         ;; An empty marker set is vacuously satisfied by
+                         ;; `projectile-verify-files' (`seq-every-p' over nil
+                         ;; is t), which would make the type match every
+                         ;; project.  Guard against it so clearing a type's
+                         ;; markers disables detection instead of inverting it.
+                         (and marker (projectile-verify-files marker dir) project-type))))
                    projectile-project-types))
              'generic)))
     (puthash (or project-root (projectile-project-root dir))
