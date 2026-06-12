@@ -4,6 +4,7 @@
 
 ### Changes
 
+* Remove the unused private `projectile--init-known-projects` alias (a leftover compatibility shim for the old known-projects API; nothing in the codebase referenced it).
 * `projectile-get-immediate-sub-projects` skips the `git submodule foreach` shell-out for git projects with no `.gitmodules` file anywhere up the parent chain. Hot path for monorepos that index the project root often.
 * `projectile-discover-projects-in-directory` now uses `directory-files-no-dot-files-regexp` to skip `.` and `..` at the C level instead of doing the post-filter in Elisp - matches the indexing walker.
 * Document the anchored vs `*`-prefixed semantics of `projectile-globally-ignored-directories`, the `find` fallback's lack of common directory exclusions when `fd` isn't available, and how `fd`/`git ls-files` handle deleted-but-unstaged files differently.

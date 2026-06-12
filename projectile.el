@@ -6341,8 +6341,6 @@ enabled."
   ;; return the list of known projects
   projectile-known-projects)
 
-(defalias 'projectile--init-known-projects 'projectile-known-projects)
-
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects.
 
