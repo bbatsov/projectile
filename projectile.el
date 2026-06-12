@@ -3780,6 +3780,24 @@ files such as test/impl/other files as below:
                           (t (error "Precedence must be one of '(high low)"))))
                 (mapcar #'project-map projectile-project-types))))))
 
+(defun projectile-remove-project-type (project-type)
+  "Remove PROJECT-TYPE from the list of registered project types.
+
+This is the supported way to stop Projectile from auto-detecting a
+project type.  Clearing the type's marker files instead does not work:
+an empty marker set is vacuously satisfied, so the type would match
+every project rather than none.
+
+Raise an error if PROJECT-TYPE is not currently registered.  The project
+type cache is reset so the change takes effect immediately."
+  (unless (seq-find (lambda (p) (eq project-type (car p)))
+                    projectile-project-types)
+    (error "No existing project found for: %s" project-type))
+  (setq projectile-project-types
+        (seq-remove (lambda (p) (eq project-type (car p)))
+                    projectile-project-types))
+  (setq projectile-project-type-cache (make-hash-table :test 'equal)))
+
 (defun projectile-eldev-project-p (&optional dir)
   "Check if a project contains eldev files.
 When DIR is specified it checks DIR's project, otherwise

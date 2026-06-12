@@ -376,6 +376,22 @@ by `projectile-files-via-ext-command')."
       (puthash "/path/to/project" 'foo projectile-project-type-cache)
       (expect (gethash "/path/to/project" projectile-project-type-cache) :to-equal 'foo))))
 
+(describe "projectile-remove-project-type"
+  (it "removes a registered project type"
+    (let ((projectile-project-types '((foo marker-files ("foo"))
+                                      (bar marker-files ("bar")))))
+      (projectile-remove-project-type 'foo)
+      (expect projectile-project-types :to-equal '((bar marker-files ("bar"))))))
+  (it "resets the project type cache"
+    (let ((projectile-project-types '((foo marker-files ("foo"))))
+          (projectile-project-type-cache (make-hash-table :test 'equal)))
+      (puthash "/path/to/project" 'foo projectile-project-type-cache)
+      (projectile-remove-project-type 'foo)
+      (expect (gethash "/path/to/project" projectile-project-type-cache) :to-equal nil)))
+  (it "errors when the project type is not registered"
+    (let ((projectile-project-types '((foo marker-files ("foo")))))
+      (expect (projectile-remove-project-type 'bar) :to-throw))))
+
 (describe "projectile-project-type"
   :var ((dir default-directory))
   (it "detects the type of Projectile's project"
