@@ -630,6 +630,22 @@ You can also edit specific options of already existing project types:
 
 This will change the value of the `related-files-fn` option, remove the `test-prefix` option and `:precedence 'high` sets the sbt project type to be chosen in preference to other potentially clashing project types (a value `'low` would do the opposite).
 
+=== Removing a Project Type
+
+If a built-in project type mis-detects your projects (e.g. a language
+manifest that also appears in subdirectories of a larger repo), you can
+unregister it entirely:
+
+[source,elisp]
+----
+(projectile-remove-project-type 'nix)
+----
+
+NOTE: Don't try to disable a type by clearing its markers with
+`(projectile-update-project-type 'nix :marker-files nil)`. An empty marker
+set matches _every_ project rather than none, so the type would be detected
+everywhere. Use `projectile-remove-project-type` instead.
+
 === `:test-dir`/`:src-dir` vs `:related-files-fn`
 
 Whilst setting the `:test-dir` and `:src-dir` to strings is sufficient for most
