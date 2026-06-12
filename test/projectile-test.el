@@ -110,6 +110,11 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 ;;; buttercup allowed us to specify a custom error message like this:
 ;;;
 ;;; (expect (funcall 'foo) :to-throw 'error nil "Custom error message here")
+(describe "projectile-dispatch"
+  (it "is defined as a command when transient is available"
+    (assume (require 'transient nil t) "transient is not available")
+    (expect (commandp 'projectile-dispatch) :to-be-truthy)))
+
 (defmacro assert-friendly-error-when-no-project (fn)
   "Write a test that ensures FN throws a friendly error when called without a project."
   (let ((description (concat "when calling " (symbol-name fn) " without a project")))
