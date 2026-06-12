@@ -1465,6 +1465,17 @@ Invoked automatically when `projectile-mode' is enabled."
 PATH may be a file or directory and directory paths may end with a slash."
   (directory-file-name (file-name-directory (directory-file-name (expand-file-name path)))))
 
+(defun projectile--directory-entry-set (directory)
+  "Return a hash set of the immediate entry names of DIRECTORY, or nil.
+A single `directory-files' call replaces one `file-exists-p' per
+candidate name - over TRAMP that turns N sequential remote round-trips
+into one.  Returns nil when DIRECTORY can't be listed (missing or
+permission denied)."
+  (when-let* ((entries (ignore-errors (directory-files directory nil nil t))))
+    (let ((set (make-hash-table :test 'equal :size (length entries))))
+      (dolist (entry entries) (puthash entry t set))
+      set)))
+
 (defun projectile--locate-dominating-file (file name first-match-only)
   "Walk up from FILE looking for NAME and return the matching directory.
 NAME is either a filename (matched via `projectile-file-exists-p' in
@@ -1538,12 +1549,28 @@ Return the first (topmost) matched directory or nil if not found."
   "Identify a project root in DIR by bottom-up search for files in LIST.
 If LIST is nil, use `projectile-project-root-files-bottom-up' instead.
 Return the first (bottommost) matched directory or nil if not found."
-  (projectile-locate-dominating-file
-   dir
-   (lambda (directory)
-     (let ((files (mapcar (lambda (file) (expand-file-name file directory))
-                          (or list projectile-project-root-files-bottom-up))))
-       (seq-some (lambda (file) (and file (file-exists-p file))) files)))))
+  (let ((markers (or list projectile-project-root-files-bottom-up)))
+    (projectile-locate-dominating-file
+     dir
+     (lambda (directory)
+       ;; Probe each level with a single `directory-files' listing rather
+       ;; than one `file-exists-p' per marker.  The default markers are all
+       ;; plain names sitting directly in the directory, so membership in
+       ;; the listing is equivalent; markers carrying a path separator
+       ;; (a user customization) can't be answered from the basename listing
+       ;; and fall back to `file-exists-p'.
+       (let ((entries nil) (listed nil))
+         (seq-some
+          (lambda (marker)
+            (cond
+             ((not marker) nil)
+             ((string-match-p "/" marker)
+              (file-exists-p (expand-file-name marker directory)))
+             (t (unless listed
+                  (setq entries (projectile--directory-entry-set directory)
+                        listed t))
+                (and entries (gethash marker entries)))))
+          markers))))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by recurring top-down search for files in LIST.
@@ -4383,23 +4410,29 @@ on the current project.  PROJECT-ROOT, if provided, is used for caching
 instead of re-resolving via `projectile-project-root'.
 
 Fallback to a generic project type when the type can't be determined."
-  (let ((project-type
-         (or (car (seq-find
-                   (lambda (project-type-record)
-                     (let ((project-type (car project-type-record))
-                           (marker (plist-get (cdr project-type-record) 'marker-files)))
-                       (if (functionp marker)
-                           (and (funcall marker dir) project-type)
-                         ;; An empty marker set is vacuously satisfied by
-                         ;; `projectile-verify-files' (`seq-every-p' over nil
-                         ;; is t), which would make the type match every
-                         ;; project.  Guard against it so clearing a type's
-                         ;; markers disables detection instead of inverting it.
-                         (and marker (projectile-verify-files marker dir) project-type))))
-                   projectile-project-types))
-             'generic)))
-    (puthash (or project-root (projectile-project-root dir))
-             project-type projectile-project-type-cache)
+  (let* ((root (or project-root (projectile-project-root dir)))
+         ;; List the root once and answer plain-name markers from the
+         ;; listing.  Detection walks every registered type (50+), and the
+         ;; vast majority use plain-name markers in the root, so this turns
+         ;; "one stat per marker per type" into a single `directory-files'
+         ;; call - a big win on the first detection of a remote project.
+         (entry-set (and root (projectile--directory-entry-set root)))
+         (project-type
+          (or (car (seq-find
+                    (lambda (project-type-record)
+                      (let ((project-type (car project-type-record))
+                            (marker (plist-get (cdr project-type-record) 'marker-files)))
+                        (if (functionp marker)
+                            (and (funcall marker dir) project-type)
+                          ;; An empty marker set is vacuously satisfied by
+                          ;; `projectile-verify-files' (`seq-every-p' over nil
+                          ;; is t), which would make the type match every
+                          ;; project.  Guard against it so clearing a type's
+                          ;; markers disables detection instead of inverting it.
+                          (and marker (projectile-verify-files marker dir entry-set) project-type))))
+                    projectile-project-types))
+              'generic)))
+    (puthash root project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type (&optional dir)
@@ -4422,17 +4455,27 @@ The project type is cached for improved performance."
            (projectile-project-vcs)
            (projectile-project-type)))
 
-(defun projectile-verify-files (files &optional dir)
+(defun projectile-verify-files (files &optional dir entry-set)
   "Check whether all FILES exist in the project.
 When DIR is specified it checks DIR's project, otherwise
-it acts on the current project."
-  (seq-every-p #'(lambda (file) (projectile-verify-file file dir)) files))
+it acts on the current project.  ENTRY-SET, when non-nil, is a hash set
+of the project root's immediate entries (see
+`projectile--directory-entry-set') used to answer plain-name FILES
+without a `file-exists-p' round-trip each."
+  (seq-every-p (lambda (file) (projectile-verify-file file dir entry-set)) files))
 
-(defun projectile-verify-file (file &optional dir)
+(defun projectile-verify-file (file &optional dir entry-set)
   "Check whether FILE exists in the current project.
 When DIR is specified it checks DIR's project, otherwise
-it acts on the current project."
-  (file-exists-p (projectile-expand-root file dir)))
+it acts on the current project.
+
+ENTRY-SET, when non-nil, is a hash set of the project root's immediate
+entries.  A plain-name FILE (one sitting directly in the root) is then
+answered by membership in ENTRY-SET instead of a filesystem stat; a FILE
+carrying a path separator can't be and falls back to `file-exists-p'."
+  (if (and entry-set (not (string-match-p "/" file)))
+      (and (gethash file entry-set) t)
+    (file-exists-p (projectile-expand-root file dir))))
 
 (defun projectile-verify-file-wildcard (file &optional dir)
   "Check whether FILE exists in the current project.
@@ -4461,13 +4504,10 @@ wins, so changes here are visible to all VCS detection.")
 Issues a single `directory-files' call rather than one
 `file-exists-p' per marker - over TRAMP that turns 10 sequential
 remote round-trips into one."
-  (when-let* ((entries (ignore-errors
-                         (directory-files directory nil nil t))))
-    (let ((entry-set (make-hash-table :test 'equal :size (length entries))))
-      (dolist (e entries) (puthash e t entry-set))
-      (cl-some (lambda (cell)
-                 (and (gethash (car cell) entry-set) (cdr cell)))
-               projectile--vcs-markers))))
+  (when-let* ((entry-set (projectile--directory-entry-set directory)))
+    (cl-some (lambda (cell)
+               (and (gethash (car cell) entry-set) (cdr cell)))
+             projectile--vcs-markers)))
 
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.
