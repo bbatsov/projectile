@@ -1685,6 +1685,17 @@ by `projectile-files-via-ext-command')."
       (expect (projectile-root-bottom-up "worktree/src/" '(".git"))
               :to-equal
               (expand-file-name "worktree/")))))
+  (it "matches a marker containing a path separator via fallback"
+    ;; Plain markers are answered from a single directory listing per
+    ;; level; a marker carrying a `/' can't be, so it falls back to
+    ;; `file-exists-p' on the expanded path.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("repo/build/marker"
+       "repo/sub/file.txt")
+      (expect (projectile-root-bottom-up "repo/sub/" '("build/marker"))
+              :to-equal
+              (expand-file-name "repo/")))))
   (it "lets an outer VC root win over a nearer manifest by default"
     ;; The default bottom-up list is VCS markers only, so in a monorepo
     ;; layout (`.git' at the top, a language manifest deeper down) the

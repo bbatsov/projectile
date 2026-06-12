@@ -1465,6 +1465,17 @@ Invoked automatically when `projectile-mode' is enabled."
 PATH may be a file or directory and directory paths may end with a slash."
   (directory-file-name (file-name-directory (directory-file-name (expand-file-name path)))))
 
+(defun projectile--directory-entry-set (directory)
+  "Return a hash set of the immediate entry names of DIRECTORY, or nil.
+A single `directory-files' call replaces one `file-exists-p' per
+candidate name - over TRAMP that turns N sequential remote round-trips
+into one.  Returns nil when DIRECTORY can't be listed (missing or
+permission denied)."
+  (when-let* ((entries (ignore-errors (directory-files directory nil nil t))))
+    (let ((set (make-hash-table :test 'equal :size (length entries))))
+      (dolist (entry entries) (puthash entry t set))
+      set)))
+
 (defun projectile--locate-dominating-file (file name first-match-only)
   "Walk up from FILE looking for NAME and return the matching directory.
 NAME is either a filename (matched via `projectile-file-exists-p' in
@@ -1538,12 +1549,28 @@ Return the first (topmost) matched directory or nil if not found."
   "Identify a project root in DIR by bottom-up search for files in LIST.
 If LIST is nil, use `projectile-project-root-files-bottom-up' instead.
 Return the first (bottommost) matched directory or nil if not found."
-  (projectile-locate-dominating-file
-   dir
-   (lambda (directory)
-     (let ((files (mapcar (lambda (file) (expand-file-name file directory))
-                          (or list projectile-project-root-files-bottom-up))))
-       (seq-some (lambda (file) (and file (file-exists-p file))) files)))))
+  (let ((markers (or list projectile-project-root-files-bottom-up)))
+    (projectile-locate-dominating-file
+     dir
+     (lambda (directory)
+       ;; Probe each level with a single `directory-files' listing rather
+       ;; than one `file-exists-p' per marker.  The default markers are all
+       ;; plain names sitting directly in the directory, so membership in
+       ;; the listing is equivalent; markers carrying a path separator
+       ;; (a user customization) can't be answered from the basename listing
+       ;; and fall back to `file-exists-p'.
+       (let ((entries nil) (listed nil))
+         (seq-some
+          (lambda (marker)
+            (cond
+             ((not marker) nil)
+             ((string-match-p "/" marker)
+              (file-exists-p (expand-file-name marker directory)))
+             (t (unless listed
+                  (setq entries (projectile--directory-entry-set directory)
+                        listed t))
+                (and entries (gethash marker entries)))))
+          markers))))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by recurring top-down search for files in LIST.
@@ -4461,13 +4488,10 @@ wins, so changes here are visible to all VCS detection.")
 Issues a single `directory-files' call rather than one
 `file-exists-p' per marker - over TRAMP that turns 10 sequential
 remote round-trips into one."
-  (when-let* ((entries (ignore-errors
-                         (directory-files directory nil nil t))))
-    (let ((entry-set (make-hash-table :test 'equal :size (length entries))))
-      (dolist (e entries) (puthash e t entry-set))
-      (cl-some (lambda (cell)
-                 (and (gethash (car cell) entry-set) (cdr cell)))
-               projectile--vcs-markers))))
+  (when-let* ((entry-set (projectile--directory-entry-set directory)))
+    (cl-some (lambda (cell)
+               (and (gethash (car cell) entry-set) (cdr cell)))
+             projectile--vcs-markers)))
 
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.

@@ -4,6 +4,7 @@
 
 ### Changes
 
+* `projectile-root-bottom-up` now probes each directory level with a single `directory-files` listing instead of one `file-exists-p` per marker (9 stats per level with the default VCS list). Over TRAMP a cache-miss walk up a deep tree drops from `depth * markers` round-trips to `depth`. Markers containing a path separator fall back to `file-exists-p`.
 * `projectile-get-immediate-sub-projects` skips the `git submodule foreach` shell-out for git projects with no `.gitmodules` file anywhere up the parent chain. Hot path for monorepos that index the project root often.
 * `projectile-discover-projects-in-directory` now uses `directory-files-no-dot-files-regexp` to skip `.` and `..` at the C level instead of doing the post-filter in Elisp - matches the indexing walker.
 * Document the anchored vs `*`-prefixed semantics of `projectile-globally-ignored-directories`, the `find` fallback's lack of common directory exclusions when `fd` isn't available, and how `fd`/`git ls-files` handle deleted-but-unstaged files differently.
