@@ -4410,23 +4410,29 @@ on the current project.  PROJECT-ROOT, if provided, is used for caching
 instead of re-resolving via `projectile-project-root'.
 
 Fallback to a generic project type when the type can't be determined."
-  (let ((project-type
-         (or (car (seq-find
-                   (lambda (project-type-record)
-                     (let ((project-type (car project-type-record))
-                           (marker (plist-get (cdr project-type-record) 'marker-files)))
-                       (if (functionp marker)
-                           (and (funcall marker dir) project-type)
-                         ;; An empty marker set is vacuously satisfied by
-                         ;; `projectile-verify-files' (`seq-every-p' over nil
-                         ;; is t), which would make the type match every
-                         ;; project.  Guard against it so clearing a type's
-                         ;; markers disables detection instead of inverting it.
-                         (and marker (projectile-verify-files marker dir) project-type))))
-                   projectile-project-types))
-             'generic)))
-    (puthash (or project-root (projectile-project-root dir))
-             project-type projectile-project-type-cache)
+  (let* ((root (or project-root (projectile-project-root dir)))
+         ;; List the root once and answer plain-name markers from the
+         ;; listing.  Detection walks every registered type (50+), and the
+         ;; vast majority use plain-name markers in the root, so this turns
+         ;; "one stat per marker per type" into a single `directory-files'
+         ;; call - a big win on the first detection of a remote project.
+         (entry-set (and root (projectile--directory-entry-set root)))
+         (project-type
+          (or (car (seq-find
+                    (lambda (project-type-record)
+                      (let ((project-type (car project-type-record))
+                            (marker (plist-get (cdr project-type-record) 'marker-files)))
+                        (if (functionp marker)
+                            (and (funcall marker dir) project-type)
+                          ;; An empty marker set is vacuously satisfied by
+                          ;; `projectile-verify-files' (`seq-every-p' over nil
+                          ;; is t), which would make the type match every
+                          ;; project.  Guard against it so clearing a type's
+                          ;; markers disables detection instead of inverting it.
+                          (and marker (projectile-verify-files marker dir entry-set) project-type))))
+                    projectile-project-types))
+              'generic)))
+    (puthash root project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type (&optional dir)
@@ -4449,17 +4455,27 @@ The project type is cached for improved performance."
            (projectile-project-vcs)
            (projectile-project-type)))
 
-(defun projectile-verify-files (files &optional dir)
+(defun projectile-verify-files (files &optional dir entry-set)
   "Check whether all FILES exist in the project.
 When DIR is specified it checks DIR's project, otherwise
-it acts on the current project."
-  (seq-every-p #'(lambda (file) (projectile-verify-file file dir)) files))
+it acts on the current project.  ENTRY-SET, when non-nil, is a hash set
+of the project root's immediate entries (see
+`projectile--directory-entry-set') used to answer plain-name FILES
+without a `file-exists-p' round-trip each."
+  (seq-every-p (lambda (file) (projectile-verify-file file dir entry-set)) files))
 
-(defun projectile-verify-file (file &optional dir)
+(defun projectile-verify-file (file &optional dir entry-set)
   "Check whether FILE exists in the current project.
 When DIR is specified it checks DIR's project, otherwise
-it acts on the current project."
-  (file-exists-p (projectile-expand-root file dir)))
+it acts on the current project.
+
+ENTRY-SET, when non-nil, is a hash set of the project root's immediate
+entries.  A plain-name FILE (one sitting directly in the root) is then
+answered by membership in ENTRY-SET instead of a filesystem stat; a FILE
+carrying a path separator can't be and falls back to `file-exists-p'."
+  (if (and entry-set (not (string-match-p "/" file)))
+      (and (gethash file entry-set) t)
+    (file-exists-p (projectile-expand-root file dir))))
 
 (defun projectile-verify-file-wildcard (file &optional dir)
   "Check whether FILE exists in the current project.

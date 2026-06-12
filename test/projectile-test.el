@@ -2620,7 +2620,36 @@ by `projectile-files-via-ext-command')."
       (let ((projectile-project-types '((empty marker-files nil)))
             (projectile-project-type-cache (make-hash-table :test 'equal)))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'generic))))))
+        (expect (projectile-detect-project-type) :to-equal 'generic)))))
+  (it "detects a marker that sits in a subdirectory of the root"
+    ;; `debian/control' carries a path separator, so it can't be answered
+    ;; from the root's directory listing and exercises the file-exists-p
+    ;; fallback inside detection.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/debian/"
+       "project/debian/control")
+      (let ((projectile-indexing-method 'native)
+            (projectile-project-type-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (expect (projectile-detect-project-type) :to-equal 'debian))))))
+
+(describe "projectile-verify-file"
+  (it "answers a plain-name file from the entry set without touching disk"
+    (let ((entry-set (make-hash-table :test 'equal)))
+      (puthash "Gemfile" t entry-set)
+      (spy-on 'file-exists-p :and-return-value nil)
+      (expect (projectile-verify-file "Gemfile" "/whatever/" entry-set) :to-be-truthy)
+      (expect (projectile-verify-file "absent" "/whatever/" entry-set) :not :to-be-truthy)
+      (expect 'file-exists-p :not :to-have-been-called)))
+  (it "falls back to file-exists-p for a marker with a path separator"
+    (let ((entry-set (make-hash-table :test 'equal)))
+      (puthash "debian" t entry-set)
+      (spy-on 'projectile-project-root :and-return-value "/root/")
+      (spy-on 'file-exists-p :and-return-value t)
+      (expect (projectile-verify-file "debian/control" nil entry-set) :to-be-truthy)
+      (expect 'file-exists-p :to-have-been-called-with "/root/debian/control"))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
