@@ -7273,6 +7273,39 @@ when opening new files."
 (cl-defmethod project-buffers ((project (head projectile)))
   (projectile-project-buffers (cdr project)))
 
+(cl-defmethod project-ignores ((project (head projectile)) _dir)
+  "Return a list of glob patterns to ignore in PROJECT.
+
+The patterns are derived from Projectile's ignore configuration and
+returned in the format expected by project.el (see `project-ignores'):
+globally ignored directory names and file suffixes are matched at any
+depth, while the files and directories ignored via the project's
+dirconfig (`.projectile') are rooted at the project root with a
+leading `./'."
+  ;; NOTE: Use the project root (the cdr) directly rather than
+  ;; `project-root', which doesn't exist on Emacs 27 (project.el provided
+  ;; `project-roots' there instead).
+  (let ((default-directory (cdr project)))
+    (append
+     ;; globally ignored directory names, matched at any depth
+     (mapcar (lambda (name)
+               (concat (directory-file-name name) "/"))
+             (projectile-globally-ignored-directory-names))
+     ;; globally ignored files, matched at any depth
+     (copy-sequence projectile-globally-ignored-files)
+     ;; globally ignored file suffixes as globs, e.g. "*.elc"
+     (projectile--globally-ignored-file-suffixes-glob)
+     ;; dirconfig patterns, matched by base name at any depth
+     (projectile-patterns-to-ignore)
+     ;; dirconfig ignored directories, rooted at the project root
+     (mapcar (lambda (dir)
+               (concat "./" (file-relative-name (directory-file-name dir)) "/"))
+             (projectile-project-ignored-directories))
+     ;; dirconfig ignored files, rooted at the project root
+     (mapcar (lambda (file)
+               (concat "./" (file-relative-name file)))
+             (projectile-project-ignored-files)))))
+
 ;;;###autoload
 (defun project-projectile (dir)
   "Return Projectile project of form ('projectile . root-dir) for DIR."
