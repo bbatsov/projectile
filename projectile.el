@@ -159,13 +159,40 @@ When the kill-all option is selected, kills each buffer.
 When the kill-only-files option is selected, kill only the buffer
 associated to a file.
 
+It can also be a list of conditions, in which case a buffer is killed
+when it satisfies any of them.  This is a composable DSL modeled on
+project.el's `project-kill-buffer-conditions'.  Each condition is either:
+- a regular expression, matched against the buffer name,
+- a predicate function that takes the buffer as its argument and returns
+  non-nil if it should be killed,
+- a cons cell whose car says how to interpret the cdr:
+  * `major-mode' - kill if the buffer's major mode is `eq' to the cdr,
+  * `derived-mode' - kill if the buffer's major mode is derived from it,
+  * `not' - the cdr is a single negated condition,
+  * `and' - the cdr is a list of conditions that must all match,
+  * `or' - the cdr is a list of conditions, any of which match.
+
+An empty list (or nil) matches no buffers, so nothing is killed.
+
+For example, to kill only file-visiting buffers and dired buffers:
+
+  (setq projectile-kill-buffers-filter
+        \\='(buffer-file-name (derived-mode . dired-mode)))
+
 Otherwise, it should be a predicate that takes one argument: the buffer to
 be killed."
   :group 'projectile
-  :type '(radio
+  :type '(choice
           (const :tag "All project buffers" kill-all)
           (const :tag "Project file buffers" kill-only-files)
-          (function :tag "Predicate")))
+          (function :tag "Predicate")
+          (repeat :tag "Conditions"
+                  (choice regexp function symbol
+                          (cons :tag "Major mode" (const major-mode) symbol)
+                          (cons :tag "Derived mode" (const derived-mode) symbol)
+                          (cons :tag "Negation" (const not) sexp)
+                          (cons :tag "Conjunction" (const and) sexp)
+                          (cons :tag "Disjunction" (const or) sexp)))))
 
 (defcustom projectile-file-exists-local-cache-expire nil
   "Number of seconds before the local file existence cache expires.
@@ -5655,6 +5682,48 @@ to run the replacement."
     (fileloop-initialize-replace old-text new-text files 'default)
     (fileloop-continue)))
 
+(defun projectile--buffer-matches-conditions (buffer conditions)
+  "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
+
+CONDITIONS is a list using the DSL documented in
+`projectile-kill-buffers-filter'.  Modeled on project.el's
+`project--buffer-check'."
+  (catch 'match
+    (dolist (c conditions)
+      (when (cond
+             ((stringp c)
+              (string-match-p c (buffer-name buffer)))
+             ((functionp c)
+              (funcall c buffer))
+             ((eq (car-safe c) 'major-mode)
+              (eq (buffer-local-value 'major-mode buffer) (cdr c)))
+             ((eq (car-safe c) 'derived-mode)
+              (provided-mode-derived-p
+               (buffer-local-value 'major-mode buffer) (cdr c)))
+             ((eq (car-safe c) 'not)
+              (not (projectile--buffer-matches-conditions buffer (cdr c))))
+             ((eq (car-safe c) 'or)
+              (projectile--buffer-matches-conditions buffer (cdr c)))
+             ((eq (car-safe c) 'and)
+              (seq-every-p
+               (apply-partially #'projectile--buffer-matches-conditions buffer)
+               (mapcar #'list (cdr c)))))
+        (throw 'match t)))))
+
+(defun projectile-buffer-killed-p (buffer)
+  "Return non-nil if BUFFER should be killed by `projectile-kill-buffers'.
+The decision follows `projectile-kill-buffers-filter'."
+  (cond
+   ((functionp projectile-kill-buffers-filter)
+    (funcall projectile-kill-buffers-filter buffer))
+   ((eq projectile-kill-buffers-filter 'kill-all) t)
+   ((eq projectile-kill-buffers-filter 'kill-only-files)
+    (buffer-file-name buffer))
+   ((listp projectile-kill-buffers-filter)
+    (projectile--buffer-matches-conditions buffer projectile-kill-buffers-filter))
+   (t (user-error "Invalid projectile-kill-buffers-filter value: %S"
+                  projectile-kill-buffers-filter))))
+
 ;;;###autoload
 (defun projectile-kill-buffers ()
   "Kill project buffers.
@@ -5673,12 +5742,7 @@ The buffers are killed according to the value of
                ;; we take care not to kill indirect buffers directly
                ;; as we might encounter them after their base buffers are killed
                (not (buffer-base-buffer buffer))
-               (if (functionp projectile-kill-buffers-filter)
-                   (funcall projectile-kill-buffers-filter buffer)
-                 (pcase projectile-kill-buffers-filter
-                   ('kill-all t)
-                   ('kill-only-files (buffer-file-name buffer))
-                   (_ (user-error "Invalid projectile-kill-buffers-filter value: %S" projectile-kill-buffers-filter)))))
+               (projectile-buffer-killed-p buffer))
           (kill-buffer buffer))))))
 
 ;;;###autoload

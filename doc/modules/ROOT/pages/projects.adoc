@@ -1200,6 +1200,22 @@ When you run `projectile-kill-buffers` (kbd:[s-p k]), the variable
 You can also set it to a custom predicate function that receives a buffer and
 returns non-nil if the buffer should be killed.
 
+For finer control there's a small composable condition DSL (modeled on
+`project.el`'s `project-kill-buffer-conditions`). Set the filter to a list of
+conditions and a buffer is killed when it matches any of them:
+
+[source,elisp]
+----
+;; Kill file-visiting buffers and dired buffers, but leave everything else alone
+(setq projectile-kill-buffers-filter
+      '(buffer-file-name (derived-mode . dired-mode)))
+----
+
+Each condition is a buffer-name regexp, a predicate function, or a cons cell:
+`(major-mode . MODE)`, `(derived-mode . MODE)`, `(not COND)`, `(and COND...)`,
+or `(or COND...)`. The last three nest, so you can build arbitrarily specific
+rules. See the docstring of `projectile-kill-buffers-filter` for the details.
+
 === Uniquifying buffer names by project
 
 When you open same-named files from different projects (say two `README.md`

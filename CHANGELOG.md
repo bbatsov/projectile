@@ -31,6 +31,7 @@
 * Implement the `project-ignores` method for the `project.el` integration, translating Projectile's global ignores, ignored file suffixes, and dirconfig (`.projectile`) ignore entries into the glob format `project.el` expects. This makes Projectile a more complete `project.el` backend for tools that rely on the protocol (e.g. `project-find-regexp`).
 * Add `projectile-forget-projects-under` to drop all known projects located under a directory (with a prefix argument it recurses into nested projects). Mirrors `project.el`'s `project-forget-projects-under`.
 * Add `projectile-forget-zombie-projects` as an alias for `projectile-cleanup-known-projects`, for discoverability and parity with `project.el`'s `project-forget-zombie-projects`.
+* `projectile-kill-buffers-filter` now also accepts a composable list of conditions (buffer-name regexps, predicates, and `major-mode`/`derived-mode`/`not`/`and`/`or` forms), modeled on `project.el`'s `project-kill-buffer-conditions`. The existing `kill-all`, `kill-only-files`, and predicate-function values keep working unchanged.
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
 * Add keybinding `A` (in the projectile command map) and a menu entry for `projectile-add-known-project`.
 
