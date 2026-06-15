@@ -3294,6 +3294,88 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                 (with-current-buffer (find-file-noselect "foo" t))
                 (expect (length (projectile-project-buffers)) :to-equal 1)))))
 
+(describe "projectile-buffer-killed-p"
+  (it "kills every buffer with the kill-all filter"
+    (let ((projectile-kill-buffers-filter 'kill-all))
+      (with-temp-buffer
+        (expect (projectile-buffer-killed-p (current-buffer)) :to-be-truthy))))
+
+  (it "kills only file-visiting buffers with the kill-only-files filter"
+    (let ((projectile-kill-buffers-filter 'kill-only-files))
+      (with-temp-buffer
+        (expect (projectile-buffer-killed-p (current-buffer)) :not :to-be-truthy)
+        (setq buffer-file-name "/tmp/projectile-killtest")
+        (expect (projectile-buffer-killed-p (current-buffer)) :to-be-truthy))))
+
+  (it "honors a predicate function filter"
+    (let ((projectile-kill-buffers-filter
+           (lambda (buf) (string-match-p "keep" (buffer-name buf)))))
+      (with-current-buffer (get-buffer-create "keep-me")
+        (expect (projectile-buffer-killed-p (current-buffer)) :to-be-truthy))
+      (with-current-buffer (get-buffer-create "drop-me")
+        (expect (projectile-buffer-killed-p (current-buffer)) :not :to-be-truthy))
+      (kill-buffer "keep-me")
+      (kill-buffer "drop-me")))
+
+  (it "signals a user-error for an invalid filter value"
+    (let ((projectile-kill-buffers-filter 42))
+      (with-temp-buffer
+        (expect (projectile-buffer-killed-p (current-buffer)) :to-throw 'user-error)))))
+
+(describe "projectile--buffer-matches-conditions"
+  (it "matches a buffer-name regexp condition"
+    (with-current-buffer (get-buffer-create "*scratch-test*")
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '("\\`\\*scratch-test\\*\\'"))
+              :to-be-truthy)
+      (kill-buffer)))
+
+  (it "matches a predicate-function condition"
+    (with-temp-buffer
+      (setq buffer-file-name "/tmp/projectile-cond")
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '(buffer-file-name))
+              :to-be-truthy)))
+
+  (it "matches major-mode and derived-mode conditions"
+    (with-temp-buffer
+      (lisp-mode)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((major-mode . lisp-mode)))
+              :to-be-truthy)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((major-mode . text-mode)))
+              :not :to-be-truthy)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((derived-mode . prog-mode)))
+              :to-be-truthy)))
+
+  (it "composes conditions with and/or/not"
+    (with-temp-buffer
+      (text-mode)
+      (setq buffer-file-name "/tmp/projectile-compose")
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((and buffer-file-name (derived-mode . text-mode))))
+              :to-be-truthy)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((and buffer-file-name (derived-mode . prog-mode))))
+              :not :to-be-truthy)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((or (derived-mode . prog-mode) (derived-mode . text-mode))))
+              :to-be-truthy)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((not (derived-mode . prog-mode))))
+              :to-be-truthy)))
+
+  (it "returns nil when no condition matches and for an empty list"
+    (with-temp-buffer
+      (fundamental-mode)
+      (expect (projectile--buffer-matches-conditions
+               (current-buffer) '((derived-mode . prog-mode)))
+              :not :to-be-truthy)
+      (expect (projectile--buffer-matches-conditions (current-buffer) nil)
+              :not :to-be-truthy))))
+
 (describe "project-ignores"
   (it "returns ignore globs in the format expected by project.el"
     (let ((root (file-truename (expand-file-name "/my/root/")))
