@@ -93,6 +93,14 @@ around. (e.g. they were removed or renamed) You can either trigger the command
 TIP: If you're a heavy TRAMP user it's probably not a good idea to auto-discover
 and cleanup projects, as the file operations are slower there.
 
+`projectile-cleanup-known-projects` is also available under the alias
+`projectile-forget-zombie-projects`, if you're used to that name from `project.el`.
+
+To drop a whole group of known projects at once (e.g. after deleting a directory
+that held several checkouts) use `projectile-forget-projects-under`. It prompts
+for a directory and removes the known projects that live directly under it; with
+a prefix argument it also removes projects nested deeper in the tree.
+
 === Minibuffer Completion
 
 While Projectile works fine with Emacs's default minibuffer completion system you're highly encouraged to use some

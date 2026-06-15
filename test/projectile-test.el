@@ -1565,6 +1565,81 @@ by `projectile-files-via-ext-command')."
         (mapc (lambda (d) (ignore-errors (delete-directory d))) directories)
         (delete-file projectile-known-projects-file nil)))))
 
+(describe "projectile-forget-zombie-projects"
+  (it "is an alias for projectile-cleanup-known-projects"
+    (expect (symbol-function 'projectile-forget-zombie-projects)
+            :to-be 'projectile-cleanup-known-projects)))
+
+(describe "projectile-forget-projects-under"
+  (it "removes only immediate child projects by default"
+    (let* ((projectile-known-projects-file (projectile-test-tmp-file-path))
+           (projectile-known-projects-on-file nil)
+           (parent (file-name-as-directory (make-temp-file "projectile-forget" t)))
+           (child-a (file-name-as-directory (concat parent "a")))
+           (child-b (file-name-as-directory (concat parent "b")))
+           (nested (file-name-as-directory (concat child-a "nested")))
+           (outside (file-name-as-directory (make-temp-file "projectile-forget-out" t)))
+           (projectile-known-projects (list child-a child-b nested outside)))
+      (unwind-protect
+          (progn
+            (mkdir child-a t) (mkdir child-b t) (mkdir nested t)
+            (let ((removed (projectile-forget-projects-under parent)))
+              (expect removed :to-equal 2)
+              (expect projectile-known-projects :to-equal (list nested outside))))
+        (ignore-errors (delete-directory parent t))
+        (ignore-errors (delete-directory outside t))
+        (delete-file projectile-known-projects-file nil))))
+
+  (it "removes nested projects too when recursive"
+    (let* ((projectile-known-projects-file (projectile-test-tmp-file-path))
+           (projectile-known-projects-on-file nil)
+           (parent (file-name-as-directory (make-temp-file "projectile-forget" t)))
+           (child-a (file-name-as-directory (concat parent "a")))
+           (nested (file-name-as-directory (concat child-a "nested")))
+           (outside (file-name-as-directory (make-temp-file "projectile-forget-out" t)))
+           (projectile-known-projects (list child-a nested outside)))
+      (unwind-protect
+          (progn
+            (mkdir child-a t) (mkdir nested t)
+            (let ((removed (projectile-forget-projects-under parent t)))
+              (expect removed :to-equal 2)
+              (expect projectile-known-projects :to-equal (list outside))))
+        (ignore-errors (delete-directory parent t))
+        (ignore-errors (delete-directory outside t))
+        (delete-file projectile-known-projects-file nil))))
+
+  (it "removes projects even when the directory has been deleted"
+    (let* ((projectile-known-projects-file (projectile-test-tmp-file-path))
+           (projectile-known-projects-on-file nil)
+           (parent (file-name-as-directory (make-temp-file "projectile-forget" t)))
+           (child-a (file-name-as-directory (concat parent "a")))
+           (nested (file-name-as-directory (concat child-a "nested")))
+           (outside (file-name-as-directory (make-temp-file "projectile-forget-out" t)))
+           (projectile-known-projects (list child-a nested outside)))
+      (unwind-protect
+          (progn
+            (mkdir child-a t) (mkdir nested t)
+            (delete-directory parent t)
+            (let ((removed (projectile-forget-projects-under parent t)))
+              (expect removed :to-equal 2)
+              (expect projectile-known-projects :to-equal (list outside))))
+        (ignore-errors (delete-directory parent t))
+        (ignore-errors (delete-directory outside t))
+        (delete-file projectile-known-projects-file nil))))
+
+  (it "returns 0 and keeps the list when nothing matches"
+    (let* ((projectile-known-projects-file (projectile-test-tmp-file-path))
+           (projectile-known-projects-on-file nil)
+           (parent (file-name-as-directory (make-temp-file "projectile-forget" t)))
+           (outside (file-name-as-directory (make-temp-file "projectile-forget-out" t)))
+           (projectile-known-projects (list outside)))
+      (unwind-protect
+          (expect (projectile-forget-projects-under parent) :to-equal 0)
+        (expect projectile-known-projects :to-equal (list outside))
+        (ignore-errors (delete-directory parent t))
+        (ignore-errors (delete-directory outside t))
+        (delete-file projectile-known-projects-file nil)))))
+
 (describe "projectile-project-root"
   (it "returns the absolute root directory of a project"
     (let* ((root-directory (make-temp-file "projectile-absolute" t))

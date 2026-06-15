@@ -6522,6 +6522,50 @@ Return a list of projects removed."
     (message "No projects needed to be removed.")))
 
 ;;;###autoload
+(defalias 'projectile-forget-zombie-projects #'projectile-cleanup-known-projects
+  "Forget known projects that don't exist any more.
+An alias for `projectile-cleanup-known-projects', provided for
+discoverability and parity with project.el's
+`project-forget-zombie-projects'.")
+
+;;;###autoload
+(defun projectile-forget-projects-under (directory &optional recursive)
+  "Remove known projects located under DIRECTORY.
+
+Interactively, prompt for DIRECTORY.  With optional argument
+RECURSIVE non-nil (interactively, the prefix argument), remove
+projects nested at any depth under DIRECTORY; otherwise only remove
+projects that are immediate children of DIRECTORY.
+
+Matching is lexical (after `file-truename' expansion for local paths,
+which is skipped for remote ones to avoid a round-trip), so projects
+are removed even when DIRECTORY has already been deleted.  Mirrors
+project.el's `project-forget-projects-under'.  Return the number of
+projects removed."
+  (interactive "DForget projects under directory: \nP")
+  (let* ((expand (lambda (path)
+                   (file-name-as-directory
+                    (if (file-remote-p path) path (file-truename path)))))
+         (directory (funcall expand directory))
+         (projects-removed
+          (seq-filter
+           (lambda (project)
+             (let ((project (funcall expand project)))
+               (if recursive
+                   (string-prefix-p directory project)
+                 (string= (file-name-directory (directory-file-name project))
+                          directory))))
+           projectile-known-projects)))
+    (setq projectile-known-projects
+          (seq-difference projectile-known-projects projects-removed))
+    (projectile-merge-known-projects)
+    (if projects-removed
+        (message "Projects removed: %s"
+                 (mapconcat #'identity projects-removed ", "))
+      (message "No projects found under %s." (abbreviate-file-name directory)))
+    (length projects-removed)))
+
+;;;###autoload
 (defun projectile-clear-known-projects ()
   "Clear both `projectile-known-projects' and `projectile-known-projects-file'."
   (interactive)
