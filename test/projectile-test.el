@@ -3219,6 +3219,35 @@ projectile-process-current-project-buffers-current to have similar behaviour"
                 (with-current-buffer (find-file-noselect "foo" t))
                 (expect (length (projectile-project-buffers)) :to-equal 1)))))
 
+(describe "project-ignores"
+  (it "returns ignore globs in the format expected by project.el"
+    (let ((root (file-truename (expand-file-name "/my/root/")))
+          (projectile-globally-ignored-files '("TAGS" ".#foo"))
+          (projectile-globally-ignored-file-suffixes '(".elc" ".o")))
+      (spy-on 'projectile-globally-ignored-directory-names
+              :and-return-value '(".git" ".svn/"))
+      (spy-on 'projectile-patterns-to-ignore :and-return-value '("*.log"))
+      (spy-on 'projectile-project-ignored-directories
+              :and-return-value (list (concat root "build/")
+                                      (concat root "dist/")))
+      (spy-on 'projectile-project-ignored-files
+              :and-return-value (list (concat root "TODO")))
+      (let ((ignores (project-ignores (cons 'projectile root) root)))
+        ;; globally ignored directory names match at any depth
+        (expect (member ".git/" ignores) :to-be-truthy)
+        (expect (member ".svn/" ignores) :to-be-truthy)
+        ;; globally ignored files match at any depth
+        (expect (member "TAGS" ignores) :to-be-truthy)
+        ;; suffixes become globs
+        (expect (member "*.elc" ignores) :to-be-truthy)
+        ;; dirconfig patterns are passed through
+        (expect (member "*.log" ignores) :to-be-truthy)
+        ;; dirconfig ignored directories are rooted and end with a slash
+        (expect (member "./build/" ignores) :to-be-truthy)
+        (expect (member "./dist/" ignores) :to-be-truthy)
+        ;; dirconfig ignored files are rooted
+        (expect (member "./TODO" ignores) :to-be-truthy)))))
+
 (describe "projectile--impl-name-for-test-name"
   :var ((mock-projectile-project-types
          '((foo test-suffix "Test")

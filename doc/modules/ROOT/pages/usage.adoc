@@ -504,6 +504,11 @@ is enabled. You can also enable the integration manually like this:
 (add-hook 'project-find-functions #'project-projectile)
 ----
 
+Beyond root and file lookup, Projectile implements several of `project.el`'s
+backend methods (`project-root`, `project-files`, `project-name`,
+`project-buffers`, and `project-ignores`), so commands built on the protocol
+(e.g. `project-find-regexp`) behave correctly for Projectile-managed projects.
+
 TIP: You can read more about the implementation details of the integration https://github.com/bbatsov/projectile/issues/1591[here].
 
 That's useful as some packages (e.g. `eglot`) support natively only
