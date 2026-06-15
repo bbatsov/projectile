@@ -29,6 +29,8 @@
 * Warn when a `+' keep entry in `.projectile' contains glob metacharacters. The `+' prefix is for subdirectory paths only and globs are silently coerced into a non-matching directory name; the warning surfaces the misuse rather than letting it fail silently.
 * [#1964](https://github.com/bbatsov/projectile/issues/1964): Implement `project-name` and `project-buffers` methods for the `project.el` integration, so that code using `project.el` APIs returns correct results for Projectile-managed projects.
 * Implement the `project-ignores` method for the `project.el` integration, translating Projectile's global ignores, ignored file suffixes, and dirconfig (`.projectile`) ignore entries into the glob format `project.el` expects. This makes Projectile a more complete `project.el` backend for tools that rely on the protocol (e.g. `project-find-regexp`).
+* Add `projectile-forget-projects-under` to drop all known projects located under a directory (with a prefix argument it recurses into nested projects). Mirrors `project.el`'s `project-forget-projects-under`.
+* Add `projectile-forget-zombie-projects` as an alias for `projectile-cleanup-known-projects`, for discoverability and parity with `project.el`'s `project-forget-zombie-projects`.
 * [#1837](https://github.com/bbatsov/projectile/issues/1837): Add `eat` project terminal commands with keybindings `x x` and `x 4 x`.
 * Add keybinding `A` (in the projectile command map) and a menu entry for `projectile-add-known-project`.
 

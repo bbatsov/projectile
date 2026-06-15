@@ -358,6 +358,10 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | `projectile-remove-current-project-from-known-projects`
 | —
 
+| Forget projects under dir
+| `projectile-forget-projects-under`
+| `project-forget-projects-under`
+
 | Remember project
 | `projectile-add-known-project`
 | `project-remember-project`
@@ -367,7 +371,7 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | —
 
 | Clean up zombies (manual)
-| `projectile-cleanup-known-projects`
+| `projectile-cleanup-known-projects` (aliased as `projectile-forget-zombie-projects`)
 | `project-forget-zombie-projects`
 
 | Auto-clean zombies
