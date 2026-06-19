@@ -3645,6 +3645,36 @@ projectile-process-current-project-buffers-current to have similar behaviour"
       (funcall-interactively 'projectile-run-async-shell-command-in-root "cmd")
       (expect 'async-shell-command :to-have-been-called-with "cmd" nil nil))))
 
+(describe "projectile-discard-command-cache"
+  (it "removes cached commands for the current project across all maps"
+    (let ((projectile-configure-cmd-map (make-hash-table :test 'equal))
+          (projectile-compilation-cmd-map (make-hash-table :test 'equal))
+          (projectile-install-cmd-map (make-hash-table :test 'equal))
+          (projectile-package-cmd-map (make-hash-table :test 'equal))
+          (projectile-test-cmd-map (make-hash-table :test 'equal))
+          (projectile-run-cmd-map (make-hash-table :test 'equal)))
+      (spy-on 'projectile-acquire-root :and-return-value "/proj/a/")
+      ;; one entry per map, plus a subdir compile dir
+      (puthash "/proj/a/" "configure" projectile-configure-cmd-map)
+      (puthash "/proj/a/build/" "make" projectile-compilation-cmd-map)
+      (puthash "/proj/a/" "make install" projectile-install-cmd-map)
+      (puthash "/proj/a/" "make package" projectile-package-cmd-map)
+      (puthash "/proj/a/" "make test" projectile-test-cmd-map)
+      (puthash "/proj/a/" "./run" projectile-run-cmd-map)
+      ;; a different project and a prefix-sharing sibling must survive
+      (puthash "/proj/b/" "other" projectile-compilation-cmd-map)
+      (puthash "/proj/a-extra/" "sibling" projectile-compilation-cmd-map)
+      (projectile-discard-command-cache)
+      (expect (gethash "/proj/a/" projectile-configure-cmd-map) :to-be nil)
+      (expect (gethash "/proj/a/build/" projectile-compilation-cmd-map) :to-be nil)
+      (expect (gethash "/proj/a/" projectile-install-cmd-map) :to-be nil)
+      (expect (gethash "/proj/a/" projectile-package-cmd-map) :to-be nil)
+      (expect (gethash "/proj/a/" projectile-test-cmd-map) :to-be nil)
+      (expect (gethash "/proj/a/" projectile-run-cmd-map) :to-be nil)
+      ;; unrelated project and prefix-sharing sibling are left untouched
+      (expect (gethash "/proj/b/" projectile-compilation-cmd-map) :to-equal "other")
+      (expect (gethash "/proj/a-extra/" projectile-compilation-cmd-map) :to-equal "sibling"))))
+
 (describe "projectile--run-project-cmd"
 
   (before-each

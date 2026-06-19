@@ -5894,6 +5894,34 @@ Acts on the current project if not specified explicitly."
   (make-hash-table :test 'equal)
   "A mapping between projects and the last run command used on them.")
 
+;;;###autoload
+(defun projectile-discard-command-cache ()
+  "Discard the cached lifecycle commands for the current project.
+
+Projectile caches the last command used for each of the configure,
+compile, test, install, package, and run actions and prefers it over the
+value from `.dir-locals.el' or the project type's default.  After
+editing those, run this command so the next invocation re-reads them.
+Handy on `after-save-hook' for `.dir-locals.el' buffers.
+
+This only clears the cached commands, not the command history offered at
+the prompt.  See also `projectile-discard-root-cache'."
+  (interactive)
+  (let ((root (projectile-acquire-root)))
+    (dolist (command-map (list projectile-configure-cmd-map
+                               projectile-compilation-cmd-map
+                               projectile-install-cmd-map
+                               projectile-package-cmd-map
+                               projectile-test-cmd-map
+                               projectile-run-cmd-map))
+      (dolist (dir (hash-table-keys command-map))
+        (when (string-prefix-p root dir)
+          (remhash dir command-map))))
+    ;; Give feedback when invoked interactively; stay quiet when used
+    ;; programmatically (e.g. from `after-save-hook') unless verbose.
+    (when (or projectile-verbose (called-interactively-p 'interactive))
+      (message "Discarded Projectile command cache for %s" root))))
+
 (defvar projectile-project-enable-cmd-caching t
   "Enables command caching for the project.  Set to nil to disable.
 Should be set via .dir-locals.el.")
