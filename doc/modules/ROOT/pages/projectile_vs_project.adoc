@@ -328,6 +328,10 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | `projectile-run-eat`
 | —
 
+| Ghostel
+| `projectile-run-ghostel`
+| —
+
 | IELM
 | `projectile-run-ielm`
 | —
