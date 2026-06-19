@@ -3598,7 +3598,7 @@ projectile-process-current-project-buffers-current to have similar behaviour"
   (before-each
     (spy-on 'projectile-run-compilation)
     (spy-on 'projectile-maybe-read-command :and-call-fake
-            (lambda (arg default-cmd prompt) default-cmd))
+            (lambda (arg default-cmd prompt &optional command-type) default-cmd))
     ;; Stops projectile--run-project-cmd from creating a new directory for
     ;; the compilation dir
     (spy-on 'file-directory-p :and-return-value t))
@@ -3630,7 +3630,41 @@ projectile-process-current-project-buffers-current to have similar behaviour"
       (expect 'projectile-run-compilation :to-have-been-called-times 4)
       (expect (ring-elements
                (projectile--get-command-history projectile-project-root))
-              :to-equal '("foo" "bar")))))
+              :to-equal '("foo" "bar"))))
+
+  (it "keeps a separate history per command type without bleeding"
+    (let ((command-map (make-hash-table :test 'equal))
+          (projectile-cmd-hist-ignoredups t)
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-project-root "/a/random/path"))
+      (projectile--run-project-cmd "make" command-map :command-type 'compile)
+      (projectile--run-project-cmd "make test" command-map :command-type 'test)
+      (projectile--run-project-cmd "make check" command-map :command-type 'test)
+      ;; per-type histories stay distinct
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root 'compile))
+              :to-equal '("make"))
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root 'test))
+              :to-equal '("make check" "make test"))
+      ;; the combined history still records every command, so
+      ;; projectile-repeat-last-command keeps working across types
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root))
+              :to-equal '("make check" "make test" "make"))))
+
+  (it "does not record a per-type history when command-type is nil"
+    (let ((command-map (make-hash-table :test 'equal))
+          (projectile-cmd-hist-ignoredups t)
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-project-root "/a/random/path"))
+      (projectile--run-project-cmd "foo" command-map)
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root))
+              :to-equal '("foo"))
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root 'compile))
+              :to-equal '()))))
 
 (describe "projectile-test-prefix"
   :var ((mock-projectile-project-types

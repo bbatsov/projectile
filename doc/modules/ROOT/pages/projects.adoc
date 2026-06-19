@@ -1266,3 +1266,9 @@ command history.  To alter this behaviour you can use `projectile-cmd-hist-ignor
   The default value of `t` means consecutive duplicates are ignored, a value
 of `nil` means nothing is ignored, and a value of `'erase'` means only
 the last duplicate is kept in the command history.
+
+Each command type (configure, compile, test, install, package, run) keeps its
+own command history, so when you press kbd:[M-p] at, say, the test prompt you
+only cycle through previous *test* commands instead of a mix of every command
+you've run in the project. `projectile-repeat-last-command` still re-runs the
+most recent command of any type.

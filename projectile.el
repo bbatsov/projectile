@@ -6098,11 +6098,15 @@ project of that type"
       projectile-project-run-cmd
       (projectile-default-run-command (projectile-project-type))))
 
-(defun projectile-read-command (prompt command)
-  "Adapted from the function `compilation-read-command'."
+(defun projectile-read-command (prompt command &optional command-type)
+  "Adapted from the function `compilation-read-command'.
+
+COMMAND-TYPE, when non-nil, selects the per-type command history
+\(see `projectile--get-command-history') as the minibuffer history."
   (let ((compile-history
          ;; fetch the command history for the current project
-         (ring-elements (projectile--get-command-history (projectile-acquire-root)))))
+         (ring-elements (projectile--get-command-history (projectile-acquire-root)
+                                                         command-type))))
     (read-shell-command prompt command
                         (if (equal (car compile-history) command)
                             '(compile-history . 1)
@@ -6118,11 +6122,13 @@ project of that type"
         (expand-file-name (file-name-as-directory comp-dir) project-root)
       project-root)))
 
-(defun projectile-maybe-read-command (arg default-cmd prompt)
-  "Prompt user for command unless DEFAULT-CMD is an Elisp function."
+(defun projectile-maybe-read-command (arg default-cmd prompt &optional command-type)
+  "Prompt user for command unless DEFAULT-CMD is an Elisp function.
+COMMAND-TYPE is forwarded to `projectile-read-command' to pick the
+per-type command history."
   (if (and (or (stringp default-cmd) (null default-cmd))
            (or compilation-read-command arg))
-      (projectile-read-command prompt default-cmd)
+      (projectile-read-command prompt default-cmd command-type)
     default-cmd))
 
 (defun projectile-run-compilation (cmd &optional use-comint-mode)
@@ -6136,17 +6142,45 @@ project of that type"
 
 Projects are indexed by their project-root value.")
 
-(defun projectile--get-command-history (project-root)
-  (or (gethash project-root projectile-project-command-history)
-      (puthash project-root
-               (make-ring 16)
-               projectile-project-command-history)))
+(defun projectile--get-command-history (project-root &optional command-type)
+  "Return the command history ring for PROJECT-ROOT.
+
+With COMMAND-TYPE non-nil (one of the lifecycle command type
+symbols, e.g. `compile' or `test') return the history specific to
+that command type, so histories of different types don't bleed into
+each other's prompts.  With COMMAND-TYPE nil return the combined
+per-project history, which is what `projectile-repeat-last-command'
+reads."
+  (let ((key (if command-type (cons project-root command-type) project-root)))
+    (or (gethash key projectile-project-command-history)
+        (puthash key
+                 (make-ring 16)
+                 projectile-project-command-history))))
+
+(defun projectile--command-history-insert (history command)
+  "Insert COMMAND into the ring HISTORY.
+Duplicates are handled according to `projectile-cmd-hist-ignoredups'."
+  (cond
+   ((eq projectile-cmd-hist-ignoredups t)
+    (unless (string= (car-safe (ring-elements history)) command)
+      (ring-insert history command)))
+   ((eq projectile-cmd-hist-ignoredups 'erase)
+    (let ((idx (ring-member history command)))
+      (while idx
+        (ring-remove history idx)
+        (setq idx (ring-member history command))))
+    (ring-insert history command))
+   (t (ring-insert history command))))
 
 (cl-defun projectile--run-project-cmd
-    (command command-map &key show-prompt prompt-prefix save-buffers use-comint-mode)
+    (command command-map &key command-type show-prompt prompt-prefix save-buffers use-comint-mode)
   "Run a project COMMAND, typically a test- or compile command.
 
 Cache the COMMAND for later use inside the hash-table COMMAND-MAP.
+
+COMMAND-TYPE, when non-nil, is the lifecycle command type symbol
+\(e.g. `compile' or `test') and is used to keep a per-type command
+history for the prompt, in addition to the combined per-project one.
 
 Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
@@ -6160,23 +6194,20 @@ The command actually run is returned."
          (default-directory (projectile-compilation-dir))
          (command (projectile-maybe-read-command show-prompt
                                                  command
-                                                 prompt-prefix))
+                                                 prompt-prefix
+                                                 command-type))
          (compilation-buffer-name-function compilation-buffer-name-function)
          (compilation-save-buffers-predicate compilation-save-buffers-predicate))
     (when command-map
       (puthash default-directory command command-map)
-      (let ((hist (projectile--get-command-history project-root)))
-        (cond
-         ((eq projectile-cmd-hist-ignoredups t)
-          (unless (string= (car-safe (ring-elements hist)) command)
-            (ring-insert hist command)))
-         ((eq projectile-cmd-hist-ignoredups 'erase)
-          (let ((idx (ring-member hist command)))
-            (while idx
-              (ring-remove hist idx)
-              (setq idx (ring-member hist command))))
-          (ring-insert hist command))
-         (t (ring-insert hist command)))))
+      ;; Record into the combined per-project history (read by
+      ;; `projectile-repeat-last-command') and, when known, into the
+      ;; per-type history used for this command's prompt.
+      (projectile--command-history-insert
+       (projectile--get-command-history project-root) command)
+      (when command-type
+        (projectile--command-history-insert
+         (projectile--get-command-history project-root command-type) command)))
     (when save-buffers
       (save-some-buffers (not compilation-ask-about-save)
                          (lambda ()
@@ -6240,6 +6271,7 @@ with a prefix ARG."
   (let ((command (projectile-configure-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-configure-cmd-map)))
     (projectile--run-project-cmd command command-map
+                                 :command-type 'configure
                                  :show-prompt arg
                                  :prompt-prefix "Configure command: "
                                  :save-buffers t
@@ -6257,6 +6289,7 @@ with a prefix ARG.  Per project default command can be set through
   (let ((command (projectile-compilation-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
     (projectile--run-project-cmd command command-map
+                                 :command-type 'compile
                                  :show-prompt arg
                                  :prompt-prefix "Compile command: "
                                  :save-buffers t
@@ -6273,6 +6306,7 @@ with a prefix ARG."
   (let ((command (projectile-test-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
     (projectile--run-project-cmd command command-map
+                                 :command-type 'test
                                  :show-prompt arg
                                  :prompt-prefix "Test command: "
                                  :save-buffers t
@@ -6289,6 +6323,7 @@ with a prefix ARG."
   (let ((command (projectile-install-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-install-cmd-map)))
     (projectile--run-project-cmd command command-map
+                                 :command-type 'install
                                  :show-prompt arg
                                  :prompt-prefix "Install command: "
                                  :save-buffers t
@@ -6305,6 +6340,7 @@ with a prefix ARG."
   (let ((command (projectile-package-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-package-cmd-map)))
     (projectile--run-project-cmd command command-map
+                                 :command-type 'package
                                  :show-prompt arg
                                  :prompt-prefix "Package command: "
                                  :save-buffers t
@@ -6321,6 +6357,7 @@ with a prefix ARG."
   (let ((command (projectile-run-command (projectile-compilation-dir)))
         (command-map (if (projectile--cache-project-commands-p) projectile-run-cmd-map)))
     (projectile--run-project-cmd command command-map
+                                 :command-type 'run
                                  :show-prompt arg
                                  :prompt-prefix "Run command: "
                                  :use-comint-mode projectile-run-use-comint-mode)))
@@ -6348,6 +6385,10 @@ If the prefix argument SHOW-PROMPT is non nil, the command can be edited."
                                        nil
                                        :save-buffers t
                                        :prompt-prefix "Execute command: "))
+    ;; `command-map' is nil above, so `projectile--run-project-cmd' doesn't
+    ;; record anything; we record here instead.  This command is
+    ;; type-agnostic (it repeats the last command of any type), so it only
+    ;; updates the combined history, not the per-type ones.
     (unless (string= command executed-command)
       (ring-insert command-history executed-command))))
 
