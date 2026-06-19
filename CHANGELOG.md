@@ -4,6 +4,7 @@
 
 ### Changes
 
+* Keep a separate command history per lifecycle command type (configure, compile, test, install, package, run), so the prompt's `M-p` history no longer mixes, say, test commands with compile commands. `projectile-repeat-last-command` still uses the combined per-project history and is unaffected.
 * Remove the unused private `projectile--init-known-projects` alias (a leftover compatibility shim for the old known-projects API; nothing in the codebase referenced it).
 * `projectile-get-immediate-sub-projects` skips the `git submodule foreach` shell-out for git projects with no `.gitmodules` file anywhere up the parent chain. Hot path for monorepos that index the project root often.
 * `projectile-discover-projects-in-directory` now uses `directory-files-no-dot-files-regexp` to skip `.` and `..` at the C level instead of doing the post-filter in Elisp - matches the indexing walker.
