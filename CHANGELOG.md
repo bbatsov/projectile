@@ -22,6 +22,7 @@
 
 ### New features
 
+* [#1809](https://github.com/bbatsov/projectile/issues/1809): Track the project switched away from in `projectile-most-recent-project` and add `projectile-switch-to-most-recent-project` to jump back to it (repeated calls toggle between the two). Only switches made through Projectile's switch-project commands are tracked.
 * Add `projectile-uniquify-dirname-transform`, a project-aware value for `uniquify-dirname-transform` that disambiguates same-named buffers using the project name. Mirrors `project.el`'s `project-uniquify-dirname-transform`.
 * Add `projectile-dispatch`, a `transient` menu mirroring `projectile-command-map` for more discoverable command access. `transient` is an optional dependency (it requires Emacs 28+); the menu is only available when it's installed and is not bound to a key by default.
 * [#2008](https://github.com/bbatsov/projectile/issues/2008): Add `projectile-remove-project-type` to unregister a project type. This is the supported way to stop Projectile auto-detecting a type; clearing its `marker-files` does not work (see the related bug fix below).

@@ -156,7 +156,7 @@ NOTE: The extent of the support for every VCS differs and Git is the best suppor
 You need to know only a handful of Projectile commands to start benefiting from it.
 
 * Find file in current project (kbd:[s-p f])
-* Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q])
+* Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q], or jump back to the previously active project with `projectile-switch-to-most-recent-project`)
 * Grep (search for text/regexp) in project (kbd:[s-p s g])
 * Replace in project (kbd:[s-p r])
 * Find references in project (kbd:[s-p ?] or kbd:[s-p s x])

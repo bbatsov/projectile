@@ -6495,6 +6495,14 @@ It factors the value of `projectile-current-project-on-switch'."
       ('move-to-end (projectile--move-current-project-to-end open-projects))
       ('keep open-projects))))
 
+(defvar projectile-most-recent-project nil
+  "Root of the project that was current before the most recent project switch.
+
+Updated by `projectile-switch-project-by-name', so it only tracks
+switches made through Projectile's switch-project commands (not project
+changes that happen merely by visiting a file or buffer in another
+project).  Use `projectile-switch-to-most-recent-project' to jump to it.")
+
 ;;;###autoload
 (defun projectile-switch-project (&optional arg)
   "Switch to a project we have visited before.
@@ -6527,6 +6535,18 @@ With a prefix ARG invokes `projectile-commander' instead of
          :caller 'projectile-read-project)
       (user-error "There are no open projects"))))
 
+;;;###autoload
+(defun projectile-switch-to-most-recent-project (&optional arg)
+  "Switch to the project recorded in `projectile-most-recent-project'.
+That's the project that was current before the most recent project
+switch, so calling this from a buffer in the switched-to project takes
+you back where you came from.  With a prefix ARG invokes
+`projectile-commander' instead of `projectile-switch-project-action'."
+  (interactive "P")
+  (if projectile-most-recent-project
+      (projectile-switch-project-by-name projectile-most-recent-project arg)
+    (user-error "No most recent project recorded yet")))
+
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
@@ -6537,7 +6557,11 @@ With a prefix ARG invokes `projectile-commander' instead of
   (unless (or (file-remote-p project-to-switch) (projectile-project-p project-to-switch))
     (projectile-remove-known-project project-to-switch)
     (error "Directory %s is not a project" project-to-switch))
-  (let ((switch-project-action (if arg
+  ;; Record the project we're leaving so `projectile-most-recent-project'
+  ;; points at it after the switch (captured before `default-directory' is
+  ;; rebound below).
+  (let ((previous-project (projectile-project-root))
+        (switch-project-action (if arg
                                    'projectile-commander
                                  projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
@@ -6562,6 +6586,19 @@ With a prefix ARG invokes `projectile-commander' instead of
       ;; have lost that change, so switch back to the correct buffer.
       (when (buffer-live-p switched-buffer)
         (switch-to-buffer switched-buffer)))
+    ;; Don't record the project we just came from if it's the same one we
+    ;; switched to.  Compare with `file-equal-p' for local paths (handles
+    ;; symlinks/abbreviation), but fall back to a plain string compare when
+    ;; either side is remote, so we don't trigger a TRAMP round-trip (and
+    ;; possible hang) for an unconnected remote project - the very thing the
+    ;; remote skip above guards against.
+    (when (and previous-project
+               (not (if (or (file-remote-p previous-project)
+                            (file-remote-p project-to-switch))
+                        (string-equal (file-name-as-directory previous-project)
+                                      (file-name-as-directory project-to-switch))
+                      (file-equal-p previous-project project-to-switch))))
+      (setq projectile-most-recent-project previous-project))
     (run-hooks 'projectile-after-switch-project-hook)))
 
 ;;;###autoload
