@@ -2385,6 +2385,46 @@ by `projectile-files-via-ext-command')."
                 (let ((default-directory "/"))
                   (expect (projectile-delete-dir-local-variable nil 'fooo 1) :to-throw 'error)) )))
 
+(describe "projectile-most-recent-project"
+  (it "records the project switched away from"
+    (let ((projectile-most-recent-project nil)
+          (projectile-switch-project-action #'ignore))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("project-a/" "project-a/.projectile"
+             "project-b/" "project-b/.projectile")
+          (let ((a (file-name-as-directory (expand-file-name "project-a")))
+                (b (file-name-as-directory (expand-file-name "project-b"))))
+            (projectile-add-known-project a)
+            (projectile-add-known-project b)
+            (let ((default-directory a))
+              (projectile-switch-project-by-name b))
+            (expect (file-equal-p projectile-most-recent-project a) :to-be-truthy))))))
+
+  (it "does not clobber the recent project when re-switching to the same one"
+    (let ((projectile-most-recent-project "/sentinel/")
+          (projectile-switch-project-action #'ignore))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files
+            ("project-a/" "project-a/.projectile")
+          (let ((a (file-name-as-directory (expand-file-name "project-a"))))
+            (projectile-add-known-project a)
+            (let ((default-directory a))
+              (projectile-switch-project-by-name a))
+            (expect projectile-most-recent-project :to-equal "/sentinel/")))))))
+
+(describe "projectile-switch-to-most-recent-project"
+  (it "errors when no recent project is recorded"
+    (let ((projectile-most-recent-project nil))
+      (expect (projectile-switch-to-most-recent-project) :to-throw 'user-error)))
+
+  (it "switches to the recorded project"
+    (let ((projectile-most-recent-project "/proj/a/"))
+      (spy-on 'projectile-switch-project-by-name)
+      (projectile-switch-to-most-recent-project)
+      (expect 'projectile-switch-project-by-name
+              :to-have-been-called-with "/proj/a/" nil))))
+
 (describe "projectile-switch-project-by-name"
   (it "calls the switch project action with project-to-switch's dir-locals loaded"
     (defvar switch-project-foo)
