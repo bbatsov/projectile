@@ -1261,6 +1261,13 @@ In addition caching of commands can be disabled by setting the variable
 `projectile-project-enable-cmd-caching` to `nil`. This is useful for
 preset-based CMake projects.
 
+Because the cached command takes precedence over the value from
+`.dir-locals.el` (and the project type default), editing those won't take
+effect until the cache is refreshed. Run `projectile-discard-command-cache`
+to drop the cached commands for the current project so they're re-read on the
+next run. You can also wire it into an `after-save-hook` for `.dir-locals.el`
+buffers if you edit them often.
+
 By default, Projectile will not add consecutive duplicate commands to its
 command history.  To alter this behaviour you can use `projectile-cmd-hist-ignoredups`.
   The default value of `t` means consecutive duplicates are ignored, a value
