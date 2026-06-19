@@ -64,6 +64,7 @@
 (defvar grep-find-ignored-directories)
 (defvar grep-find-ignored-files)
 (defvar eat-buffer-name)
+(defvar ghostel-buffer-name)
 
 (declare-function tags-completion-table "etags")
 (declare-function make-term "term")
@@ -88,6 +89,7 @@
 (declare-function vterm-send-string "ext:vterm")
 (declare-function eat "ext:eat")
 (declare-function eat-other-window "ext:eat")
+(declare-function ghostel "ext:ghostel")
 
 
 ;;; Customization
@@ -5477,6 +5479,24 @@ Switch to the project specific eat buffer if it already exists."
           (eat-other-window nil new-process)
         (eat nil new-process)))))
 
+(defun projectile--ghostel (&optional new-process other-window)
+  "Invoke `ghostel' in the project's root.
+
+Use argument NEW-PROCESS to indicate creation of a new process instead.
+Use argument OTHER-WINDOW to indicate whether the buffer should
+be displayed in a different window.
+
+Switch to the project specific ghostel buffer if it already exists."
+  (unless (require 'ghostel nil 'noerror)
+    (error "Package 'ghostel' is not available"))
+  (let* ((project (projectile-acquire-root))
+         (ghostel-buffer-name
+          (projectile-generate-process-name "ghostel" new-process project))
+         (display-buffer-overriding-action
+          (and other-window '((display-buffer-pop-up-window)))))
+    (projectile-with-default-dir project
+      (ghostel))))
+
 ;;;###autoload
 (defun projectile-run-vterm (&optional arg)
   "Invoke `vterm' in the project's root.
@@ -5516,6 +5536,26 @@ Switch to the project specific eat buffer if it already exists.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--eat arg 'other-window))
+
+;;;###autoload
+(defun projectile-run-ghostel (&optional arg)
+  "Invoke `ghostel' in the project's root.
+
+Switch to the project specific ghostel buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--ghostel arg))
+
+;;;###autoload
+(defun projectile-run-ghostel-other-window (&optional arg)
+  "Invoke `ghostel' in the project's root.
+
+Switch to the project specific ghostel buffer if it already exists.
+
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--ghostel arg 'other-window))
 
 (defun projectile-files-from-cmd (cmd directory)
   "Use a grep-like CMD to search for files within DIRECTORY.
@@ -7262,6 +7302,8 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "x 4 v") #'projectile-run-vterm-other-window)
     (define-key map (kbd "x x") #'projectile-run-eat)
     (define-key map (kbd "x 4 x") #'projectile-run-eat-other-window)
+    (define-key map (kbd "x G") #'projectile-run-ghostel)
+    (define-key map (kbd "x 4 G") #'projectile-run-ghostel-other-window)
     ;; misc
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
@@ -7330,6 +7372,7 @@ Magit that don't trigger `find-file-hook'."
       ("xg" "gdb" projectile-run-gdb)
       ("xv" "vterm" projectile-run-vterm)
       ("xx" "eat" projectile-run-eat)
+      ("xG" "ghostel" projectile-run-ghostel)
       ("!" "shell command" projectile-run-shell-command-in-root)
       ("&" "async shell command" projectile-run-async-shell-command-in-root)]
      ["Cache"
@@ -7414,6 +7457,7 @@ Magit that don't trigger `find-file-hook'."
          ["Run term" projectile-run-term]
          ["Run vterm" projectile-run-vterm]
          ["Run eat" projectile-run-eat]
+         ["Run ghostel" projectile-run-ghostel]
          "--"
          ["Run GDB" projectile-run-gdb])
         ("Build"
