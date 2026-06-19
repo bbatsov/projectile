@@ -2208,6 +2208,13 @@ by `projectile-files-via-ext-command')."
          projectile-project-root-cache)
         (expect (projectile-project-root) :to-equal correct-project-root))))))
 
+(describe "projectile--ripgrep-ignore-globs"
+  (it "builds unquoted --glob=! exclusions that also work on Windows (#1946)"
+    (let ((projectile-globally-ignored-files '("TAGS" "GTAGS"))
+          (projectile-globally-ignored-directories '(".git" ".svn")))
+      (expect (projectile--ripgrep-ignore-globs)
+              :to-equal '("--glob=!TAGS" "--glob=!GTAGS" "--glob=!.git" "--glob=!.svn")))))
+
 (describe "projectile-grep"
   (describe "multi-root grep"
     (after-each
