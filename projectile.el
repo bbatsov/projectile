@@ -5206,6 +5206,17 @@ regular expression."
         (funcall ag-command search-term (projectile-acquire-root)))
     (error "Package 'ag' is not available")))
 
+(defun projectile--ripgrep-ignore-globs ()
+  "Return ripgrep `--glob' exclusions for the globally ignored files and dirs.
+
+Uses the `--glob=!PATTERN' form rather than `--glob \\='!PATTERN\\='', whose
+surrounding single quotes are only stripped by POSIX shells - on Windows
+`cmd' they become part of the pattern and the exclusion silently fails
+\(see #1946)."
+  (mapcar (lambda (val) (concat "--glob=!" val))
+          (append projectile-globally-ignored-files
+                  projectile-globally-ignored-directories)))
+
 ;;;###autoload
 (defun projectile-ripgrep (search-term &optional arg)
   "Run a ripgrep (rg) search with `SEARCH-TERM' at current project root.
@@ -5219,9 +5230,7 @@ installed to work."
    (list (projectile--read-search-string-with-default
           (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
          current-prefix-arg))
-  (let ((args (mapcar (lambda (val) (concat "--glob '!" val "'"))
-                      (append projectile-globally-ignored-files
-                              projectile-globally-ignored-directories))))
+  (let ((args (projectile--ripgrep-ignore-globs)))
     ;; we rely on the external packages ripgrep and rg for the actual search
     ;;
     ;; first we check if we can load ripgrep
