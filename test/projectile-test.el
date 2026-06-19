@@ -1653,7 +1653,12 @@ by `projectile-files-via-ext-command')."
             (with-temp-file project-file)
             (with-current-buffer (find-file-noselect project-file t)
               (expect (file-name-absolute-p (projectile-project-root)) :to-be-truthy)))
-        (ignore-errors (delete-directory root-directory t))))))
+        (ignore-errors (delete-directory root-directory t)))))
+
+  (it "returns nil instead of erroring when default-directory is nil (#1829)"
+    (let ((default-directory nil)
+          (projectile-project-root-cache (make-hash-table :test 'equal)))
+      (expect (projectile-project-root) :to-be nil))))
 
 (describe "projectile-tags-exclude-patterns"
   (it "returns a string with exclude patterns for ctags"

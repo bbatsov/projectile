@@ -1603,7 +1603,10 @@ Special cases:
 - Remote files reached via TRAMP whose host is not currently connected
   return nil without caching, so reconnecting works without manual cache
   invalidation."
-  (let ((dir (or dir default-directory)))
+  ;; `default-directory' can be nil in some buffers; short-circuit to nil so
+  ;; callers get "no project" instead of a `(wrong-type-argument stringp nil)'
+  ;; from `file-remote-p' and friends below (#1829).
+  (when-let* ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
     (when (and (fboundp 'tramp-archive-file-name-p)
