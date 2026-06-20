@@ -4,6 +4,7 @@
 
 ### Changes
 
+* [#1935](https://github.com/bbatsov/projectile/issues/1935): The `emacs-eask` project type now has a `test` command (`eask test`), so `projectile-test-project` works out of the box for Eask projects. Eask auto-detects the test framework (buttercup, ERT, ...), so no framework-specific type is needed.
 * [#1638](https://github.com/bbatsov/projectile/issues/1638): Document in `projectile-svn-command` that it runs non-interactively and therefore needs SVN credentials to be cached up front for authenticated remotes.
 * Keep a separate command history per lifecycle command type (configure, compile, test, install, package, run), so the prompt's `M-p` history no longer mixes, say, test commands with compile commands. `projectile-repeat-last-command` still uses the combined per-project history and is unaffected.
 * Remove the unused private `projectile--init-known-projects` alias (a leftover compatibility shim for the old known-projects API; nothing in the codebase referenced it).
