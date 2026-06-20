@@ -2752,7 +2752,21 @@ by `projectile-files-via-ext-command')."
       (let ((projectile-project-types '((empty marker-files nil)))
             (projectile-project-type-cache (make-hash-table :test 'equal)))
         (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
-        (expect (projectile-detect-project-type) :to-equal 'generic))))))
+        (expect (projectile-detect-project-type) :to-equal 'generic)))))
+  (it "passes the project root to a function marker (#1909)"
+    (let ((projectile-project-types
+           (list (list 'custom 'marker-files
+                       (lambda (root) (and root (string-match-p "subproject/src/foo/?\\'" root))))))
+          (projectile-project-type-cache (make-hash-table :test 'equal)))
+      (spy-on 'projectile-project-root :and-return-value "/repo/subproject/src/foo/")
+      (expect (projectile-detect-project-type) :to-equal 'custom)))
+  (it "does not match a function marker when the root doesn't satisfy it (#1909)"
+    (let ((projectile-project-types
+           (list (list 'custom 'marker-files
+                       (lambda (root) (and root (string-match-p "subproject/src/foo/?\\'" root))))))
+          (projectile-project-type-cache (make-hash-table :test 'equal)))
+      (spy-on 'projectile-project-root :and-return-value "/repo/elsewhere/")
+      (expect (projectile-detect-project-type) :to-equal 'generic))))
 
 (describe "projectile-dirname-matching-count"
   (it "counts matching dirnames ascending file paths"
