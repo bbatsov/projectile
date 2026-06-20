@@ -40,6 +40,7 @@
 
 ### Bugs fixed
 
+* [#1909](https://github.com/bbatsov/projectile/issues/1909): A project type registered with a predicate `marker-files` function now receives the project root as its argument when detecting the current project's type. Previously it was passed `nil`, so such a function could never match the current project.
 * [#1829](https://github.com/bbatsov/projectile/issues/1829): `projectile-project-root` no longer errors with `(wrong-type-argument stringp nil)` when `default-directory` is nil (which can happen in some non-file buffers); it returns nil instead.
 * [#1946](https://github.com/bbatsov/projectile/issues/1946): `projectile-ripgrep` now builds its ignore exclusions as `--glob=!PATTERN` instead of `--glob '!PATTERN'`. The surrounding single quotes were only stripped by POSIX shells, so on Windows `cmd` they became part of the pattern and the exclusions silently failed.
 * [#2008](https://github.com/bbatsov/projectile/issues/2008): A project type with an empty `marker-files` list no longer matches every project. `projectile-verify-files` is vacuously true for an empty list, so a type whose markers were cleared (e.g. via `projectile-update-project-type ... :marker-files nil`) would be detected everywhere instead of nowhere. `projectile-detect-project-type` now treats an empty marker set as a non-match.

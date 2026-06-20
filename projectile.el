@@ -3624,7 +3624,14 @@ ones and overrule settings in the other lists."
   "Return a project type plist with the provided arguments.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-and optional keyword arguments:
+and optional keyword arguments.
+
+MARKER-FILES is either a list of files that must all be present in the
+project root, or a predicate function.  The predicate is called with the
+project root as its single argument and should return non-nil when the
+project is of this type.
+
+The optional keyword arguments are:
 PROJECT-FILE the main project file in the root project directory.  It may be a
              single file or a list of possible files.  When omitted it
              defaults to the first marker file.  Pass the symbol `none'
@@ -3694,7 +3701,14 @@ files such as test/impl/other files as below:
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-and optional keyword arguments:
+and optional keyword arguments.
+
+MARKER-FILES is either a list of files that must all be present in the
+project root, or a predicate function.  The predicate is called with the
+project root as its single argument and should return non-nil when the
+project is of this type.
+
+The optional keyword arguments are:
 PROJECT-FILE the main project file in the root project directory.  It may be a
              single file or a list of possible files.  When omitted it
              defaults to the first marker file.  Pass the symbol `none'
@@ -3768,7 +3782,14 @@ types by default.  Otherwise, the arguments to this function are as for
 `projectile-register-project-type':
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-and optional keyword arguments:
+and optional keyword arguments.
+
+MARKER-FILES is either a list of files that must all be present in the
+project root, or a predicate function.  The predicate is called with the
+project root as its single argument and should return non-nil when the
+project is of this type.
+
+The optional keyword arguments are:
 MARKER-FILES a set of indicator files for PROJECT-TYPE.
 PROJECT-FILE the main project file in the root project directory.
 COMPILATION-DIR the directory to run the tests- and compilations in,
@@ -4432,23 +4453,26 @@ on the current project.  PROJECT-ROOT, if provided, is used for caching
 instead of re-resolving via `projectile-project-root'.
 
 Fallback to a generic project type when the type can't be determined."
-  (let ((project-type
-         (or (car (seq-find
-                   (lambda (project-type-record)
-                     (let ((project-type (car project-type-record))
-                           (marker (plist-get (cdr project-type-record) 'marker-files)))
-                       (if (functionp marker)
-                           (and (funcall marker dir) project-type)
-                         ;; An empty marker set is vacuously satisfied by
-                         ;; `projectile-verify-files' (`seq-every-p' over nil
-                         ;; is t), which would make the type match every
-                         ;; project.  Guard against it so clearing a type's
-                         ;; markers disables detection instead of inverting it.
-                         (and marker (projectile-verify-files marker dir) project-type))))
-                   projectile-project-types))
-             'generic)))
-    (puthash (or project-root (projectile-project-root dir))
-             project-type projectile-project-type-cache)
+  ;; Resolve the root up front so function markers receive it (they used to
+  ;; get DIR, which is nil when detecting the current project's type - see
+  ;; #1909) and so the cache key below reuses the same value.
+  (let* ((project-root (or project-root (projectile-project-root dir)))
+         (project-type
+          (or (car (seq-find
+                    (lambda (project-type-record)
+                      (let ((project-type (car project-type-record))
+                            (marker (plist-get (cdr project-type-record) 'marker-files)))
+                        (if (functionp marker)
+                            (and (funcall marker project-root) project-type)
+                          ;; An empty marker set is vacuously satisfied by
+                          ;; `projectile-verify-files' (`seq-every-p' over nil
+                          ;; is t), which would make the type match every
+                          ;; project.  Guard against it so clearing a type's
+                          ;; markers disables detection instead of inverting it.
+                          (and marker (projectile-verify-files marker dir) project-type))))
+                    projectile-project-types))
+              'generic)))
+    (puthash project-root project-type projectile-project-type-cache)
     project-type))
 
 (defun projectile-project-type (&optional dir)
