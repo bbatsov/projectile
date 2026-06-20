@@ -603,6 +603,24 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'function)
 
+(defcustom projectile-switch-project-other-window-action 'projectile-find-file-other-window
+  "Action run by `projectile-switch-project-other-window' after switching.
+Like `projectile-switch-project-action', but for the other-window variant.
+
+Any function that does not take arguments will do."
+  :group 'projectile
+  :type 'function
+  :package-version '(projectile . "2.10.0"))
+
+(defcustom projectile-switch-project-other-frame-action 'projectile-find-file-other-frame
+  "Action run by `projectile-switch-project-other-frame' after switching.
+Like `projectile-switch-project-action', but for the other-frame variant.
+
+Any function that does not take arguments will do."
+  :group 'projectile
+  :type 'function
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-find-dir-includes-top-level nil
   "If true, add top-level dir to options offered by `projectile-find-dir'."
   :group 'projectile
@@ -6652,6 +6670,37 @@ With a prefix ARG invokes `projectile-commander' instead of
          :caller 'projectile-read-project)
       (user-error "There are no open projects"))))
 
+;; The other-window/-frame switch commands reuse `projectile-switch-project'
+;; wholesale (so the dir-locals dance, prefix-arg commander, and most-recent
+;; tracking all stay in one place) and just rebind the post-switch action
+;; around it.  This relies on the completion framework invoking its action
+;; synchronously, which the supported ones (default, vertico, ivy, helm) do.
+;;;###autoload
+(defun projectile-switch-project-other-window (&optional arg)
+  "Switch to a project we have visited before and display it in another window.
+
+Like `projectile-switch-project', but runs
+`projectile-switch-project-other-window-action' (by default
+`projectile-find-file-other-window') after switching, so the project is
+shown in another window.  With a prefix ARG invokes `projectile-commander'
+instead."
+  (interactive "P")
+  (let ((projectile-switch-project-action projectile-switch-project-other-window-action))
+    (projectile-switch-project arg)))
+
+;;;###autoload
+(defun projectile-switch-project-other-frame (&optional arg)
+  "Switch to a project we have visited before and display it in another frame.
+
+Like `projectile-switch-project', but runs
+`projectile-switch-project-other-frame-action' (by default
+`projectile-find-file-other-frame') after switching, so the project is
+shown in another frame.  With a prefix ARG invokes `projectile-commander'
+instead."
+  (interactive "P")
+  (let ((projectile-switch-project-action projectile-switch-project-other-frame-action))
+    (projectile-switch-project arg)))
+
 ;;;###autoload
 (defun projectile-switch-to-most-recent-project (&optional arg)
   "Switch to the project recorded in `projectile-most-recent-project'.
@@ -7284,6 +7333,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "4 D") #'projectile-dired-other-window)
     (define-key map (kbd "4 f") #'projectile-find-file-other-window)
     (define-key map (kbd "4 g") #'projectile-find-file-dwim-other-window)
+    (define-key map (kbd "4 p") #'projectile-switch-project-other-window)
     (define-key map (kbd "4 t") #'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "5 a") #'projectile-find-other-file-other-frame)
     (define-key map (kbd "5 b") #'projectile-switch-to-buffer-other-frame)
@@ -7291,6 +7341,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "5 D") #'projectile-dired-other-frame)
     (define-key map (kbd "5 f") #'projectile-find-file-other-frame)
     (define-key map (kbd "5 g") #'projectile-find-file-dwim-other-frame)
+    (define-key map (kbd "5 p") #'projectile-switch-project-other-frame)
     (define-key map (kbd "5 t") #'projectile-find-implementation-or-test-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
     (define-key map (kbd "&") #'projectile-run-async-shell-command-in-root)
@@ -7434,6 +7485,7 @@ Magit that don't trigger `find-file-hook'."
       ("4d" "dir" projectile-find-dir-other-window)
       ("4D" "dired" projectile-dired-other-window)
       ("4b" "buffer" projectile-switch-to-buffer-other-window)
+      ("4p" "switch project" projectile-switch-project-other-window)
       ("4t" "impl/test" projectile-find-implementation-or-test-other-window)
       ("4o" "display buffer" projectile-display-buffer)]
      ["Other frame"
@@ -7443,6 +7495,7 @@ Magit that don't trigger `find-file-hook'."
       ("5d" "dir" projectile-find-dir-other-frame)
       ("5D" "dired" projectile-dired-other-frame)
       ("5b" "buffer" projectile-switch-to-buffer-other-frame)
+      ("5p" "switch project" projectile-switch-project-other-frame)
       ("5t" "impl/test" projectile-find-implementation-or-test-other-frame)]])
    t))
 

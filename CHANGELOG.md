@@ -25,6 +25,7 @@
 
 ### New features
 
+* [#1956](https://github.com/bbatsov/projectile/issues/1956): Add `projectile-switch-project-other-window` and `projectile-switch-project-other-frame` (bound to `4 p` and `5 p`), which switch to a project and display it in another window/frame. The action they run is configurable via `projectile-switch-project-other-window-action` / `projectile-switch-project-other-frame-action` (find-file in the other window/frame by default).
 * [#1809](https://github.com/bbatsov/projectile/issues/1809): Track the project switched away from in `projectile-most-recent-project` and add `projectile-switch-to-most-recent-project` to jump back to it (repeated calls toggle between the two). Only switches made through Projectile's switch-project commands are tracked.
 * [#1861](https://github.com/bbatsov/projectile/issues/1861): Add `projectile-discard-command-cache` to drop the cached configure/compile/test/install/package/run commands for the current project, so a freshly edited `.dir-locals.el` (or project-type default) is picked up on the next run. Can be called manually or added to `after-save-hook`.
 * Add `projectile-uniquify-dirname-transform`, a project-aware value for `uniquify-dirname-transform` that disambiguates same-named buffers using the project name. Mirrors `project.el`'s `project-uniquify-dirname-transform`.

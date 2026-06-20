@@ -2432,6 +2432,33 @@ by `projectile-files-via-ext-command')."
               (projectile-switch-project-by-name a))
             (expect projectile-most-recent-project :to-equal "/sentinel/")))))))
 
+(describe "projectile-switch-project-other-window/-frame"
+  (it "runs switch-project with the other-window action bound (#1956)"
+    (defvar projectile-test--captured-action)
+    (let ((projectile-test--captured-action nil)
+          (projectile-switch-project-other-window-action 'my-ow-action))
+      (spy-on 'projectile-switch-project :and-call-fake
+              (lambda (&optional _arg)
+                (setq projectile-test--captured-action projectile-switch-project-action)))
+      (projectile-switch-project-other-window)
+      (expect projectile-test--captured-action :to-equal 'my-ow-action)))
+
+  (it "runs switch-project with the other-frame action bound (#1956)"
+    (defvar projectile-test--captured-action)
+    (let ((projectile-test--captured-action nil)
+          (projectile-switch-project-other-frame-action 'my-of-action))
+      (spy-on 'projectile-switch-project :and-call-fake
+              (lambda (&optional _arg)
+                (setq projectile-test--captured-action projectile-switch-project-action)))
+      (projectile-switch-project-other-frame)
+      (expect projectile-test--captured-action :to-equal 'my-of-action)))
+
+  (it "is bound to 4 p / 5 p in projectile-command-map (#1956)"
+    (expect (lookup-key projectile-command-map (kbd "4 p"))
+            :to-equal 'projectile-switch-project-other-window)
+    (expect (lookup-key projectile-command-map (kbd "5 p"))
+            :to-equal 'projectile-switch-project-other-frame)))
+
 (describe "projectile-switch-to-most-recent-project"
   (it "errors when no recent project is recorded"
     (let ((projectile-most-recent-project nil))

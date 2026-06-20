@@ -335,6 +335,12 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p p]
 | Display a list of known projects you can switch to.
 
+| kbd:[s-p 4 p]
+| Switch to a known project and show it in another window (runs `projectile-switch-project-other-window-action`, by default find-file in the other window).
+
+| kbd:[s-p 5 p]
+| Switch to a known project and show it in another frame (runs `projectile-switch-project-other-frame-action`).
+
 | kbd:[s-p q]
 | Display a list of open projects you can switch to.
 
