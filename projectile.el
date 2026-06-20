@@ -938,7 +938,14 @@ Set to nil to disable listing submodules contents."
    :type 'string)
 
 (defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
-  "Command used by projectile to get the files in a svn project."
+  "Command used by projectile to get the files in a svn project.
+
+The command runs non-interactively (its output is piped), so `svn'
+can't prompt for credentials.  For projects on an authenticated remote
+you need to have your credentials cached first (e.g. by running `svn'
+once interactively and letting it store them), otherwise the command
+fails with an authentication error.  See URL
+`https://github.com/bbatsov/projectile/issues/1638'."
   :group 'projectile
   :type 'string)
 
