@@ -4382,6 +4382,7 @@ a manual COMMAND-TYPE command is created with
 
 (projectile-register-project-type 'emacs-eask '("Eask")
                                   :compile "eask install"
+                                  :test "eask test"
                                   :test-prefix "test-"
                                   :test-suffix "-test")
 

@@ -408,6 +408,10 @@ by `projectile-files-via-ext-command')."
     (let ((projectile-project-types '((foo marker-files ("foo")))))
       (expect (projectile-remove-project-type 'bar) :to-throw))))
 
+(describe "emacs-eask project type"
+  (it "uses `eask test' as its test command (#1935)"
+    (expect (projectile-default-test-command 'emacs-eask) :to-equal "eask test")))
+
 (describe "projectile-project-type"
   :var ((dir default-directory))
   (it "detects the type of Projectile's project"
