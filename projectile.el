@@ -6572,8 +6572,16 @@ enabled."
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects.
 
+Projects matched by `projectile-ignored-projects' or
+`projectile-ignored-project-function' are excluded, even if they were
+added to the known projects before being ignored (see #1663).
+
 It factors the value of `projectile-current-project-on-switch'."
   (let ((known-projects (projectile-known-projects)))
+    ;; Only filter when there's actually some ignore configuration, so the
+    ;; common case doesn't pay for a `file-truename' per known project.
+    (when (or projectile-ignored-projects projectile-ignored-project-function)
+      (setq known-projects (seq-remove #'projectile-ignored-project-p known-projects)))
     (pcase projectile-current-project-on-switch
       ('remove (projectile--remove-current-project known-projects))
       ('move-to-end (projectile--move-current-project-to-end known-projects))
