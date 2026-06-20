@@ -1548,7 +1548,22 @@ by `projectile-files-via-ext-command')."
   (it "returns a list of known projects"
     (let ((projectile-known-projects '("/path/to/project1" "/path/to/project2")))
       (spy-on 'projectile-project-root :and-return-value "/path/to/project1")
-      (expect (projectile-relevant-known-projects) :to-equal '("/path/to/project2")))))
+      (expect (projectile-relevant-known-projects) :to-equal '("/path/to/project2"))))
+
+  (it "excludes projects matched by projectile-ignored-projects (#1663)"
+    (let ((projectile-known-projects '("/projects/a/" "/projects/b/"))
+          (projectile-ignored-projects '("/projects/b/"))
+          (projectile-current-project-on-switch 'keep))
+      (expect (projectile-relevant-known-projects) :to-equal '("/projects/a/"))))
+
+  (it "does not filter (or call the ignore check) without any ignore config (#1663)"
+    (let ((projectile-known-projects '("/projects/a/" "/projects/b/"))
+          (projectile-ignored-projects nil)
+          (projectile-ignored-project-function nil)
+          (projectile-current-project-on-switch 'keep))
+      (spy-on 'projectile-ignored-project-p)
+      (expect (projectile-relevant-known-projects) :to-equal '("/projects/a/" "/projects/b/"))
+      (expect 'projectile-ignored-project-p :not :to-have-been-called))))
 
 (describe "projectile--cleanup-known-projects"
   (it "removes known projects that don't exist anymore"
