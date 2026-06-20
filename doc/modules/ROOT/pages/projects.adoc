@@ -297,7 +297,7 @@ initialization code
 What this does is:
 
 . add your own type of project, in this case `npm` package.
-. add a list of files and/or folders in a root of the project that helps to identify the type, in this case it is only `package.json`. This can also be a function which takes a project root as argument and verifies whether that directory has the correct project structure for the type.
+. add a list of files and/or folders in a root of the project that helps to identify the type, in this case it is only `package.json`. When you list several markers, *all* of them must be present for the type to match (logical AND). This can also be a function which takes a project root as argument and returns non-nil when that directory has the correct project structure for the type - use that if you instead want to match when *any* one of several files is present.
 . add _project-file_, which is typically the primary project configuration file. In this case that's `package.json`. When omitted it defaults to the first marker file (so the explicit `:project-file` above is optional here); supply it explicitly when the marker is a function or when the primary file differs from the first marker. The value can contain wildcards and/or be a list containing multiple project files to look for. Pass the symbol `none` for a type that should be detected but never anchor a project root (e.g. its marker also shows up outside real projects).
 . add _compile-command_, in this case it is `npm install`.
 . add _test-command_, in this case it is `npm test`.

@@ -3635,10 +3635,13 @@ ones and overrule settings in the other lists."
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments.
 
-MARKER-FILES is either a list of files that must all be present in the
-project root, or a predicate function.  The predicate is called with the
-project root as its single argument and should return non-nil when the
-project is of this type.
+MARKER-FILES is either a list of files or a predicate function.  When it
+is a list, ALL of the listed files must be present in the project root for
+the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
+is the common case.  To match when ANY one of several files is present,
+don't pass a list; use a predicate function instead.  The predicate is
+called with the project root as its single argument and should return
+non-nil when the project is of this type.
 
 The optional keyword arguments are:
 PROJECT-FILE the main project file in the root project directory.  It may be a
@@ -3712,10 +3715,13 @@ files such as test/impl/other files as below:
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments.
 
-MARKER-FILES is either a list of files that must all be present in the
-project root, or a predicate function.  The predicate is called with the
-project root as its single argument and should return non-nil when the
-project is of this type.
+MARKER-FILES is either a list of files or a predicate function.  When it
+is a list, ALL of the listed files must be present in the project root for
+the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
+is the common case.  To match when ANY one of several files is present,
+don't pass a list; use a predicate function instead.  The predicate is
+called with the project root as its single argument and should return
+non-nil when the project is of this type.
 
 The optional keyword arguments are:
 PROJECT-FILE the main project file in the root project directory.  It may be a
@@ -3793,10 +3799,13 @@ types by default.  Otherwise, the arguments to this function are as for
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
 and optional keyword arguments.
 
-MARKER-FILES is either a list of files that must all be present in the
-project root, or a predicate function.  The predicate is called with the
-project root as its single argument and should return non-nil when the
-project is of this type.
+MARKER-FILES is either a list of files or a predicate function.  When it
+is a list, ALL of the listed files must be present in the project root for
+the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
+is the common case.  To match when ANY one of several files is present,
+don't pass a list; use a predicate function instead.  The predicate is
+called with the project root as its single argument and should return
+non-nil when the project is of this type.
 
 The optional keyword arguments are:
 MARKER-FILES a set of indicator files for PROJECT-TYPE.
