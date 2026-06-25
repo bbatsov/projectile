@@ -199,4 +199,37 @@
     (expect (projectile-sort-by-modification-time '("gone.el" "also-gone.el"))
             :not :to-throw)))
 
+(describe "projectile-parent"
+  (it "returns the parent directory of a file path"
+    (expect (projectile-parent "/a/b/c.el") :to-equal "/a/b"))
+  (it "returns the parent directory of a directory path with a trailing slash"
+    (expect (projectile-parent "/a/b/") :to-equal "/a"))
+  (it "treats a slash-less directory the same as one with a trailing slash"
+    (expect (projectile-parent "/a/b") :to-equal "/a")))
+
+(describe "projectile--directory-ancestors"
+  (it "returns the file's directory and every ancestor, outermost first"
+    (expect (projectile--directory-ancestors "src/foo/bar.el")
+            :to-equal '("src/" "src/foo/")))
+  (it "walks an absolute path up to the root"
+    (expect (projectile--directory-ancestors "/a/b/c")
+            :to-equal '("/" "/a/" "/a/b/")))
+  (it "returns nil for a bare file name with no directory part"
+    (expect (projectile--directory-ancestors "foo.el") :to-equal nil)))
+
+(describe "projectile-default-project-name"
+  (it "uses the last path segment as the project name"
+    (expect (projectile-default-project-name "/home/me/projects/projectile/")
+            :to-equal "projectile"))
+  (it "does not care whether the root has a trailing slash"
+    (expect (projectile-default-project-name "/home/me/projects/projectile")
+            :to-equal "projectile")))
+
+(describe "projectile-make-relative-to-root"
+  (it "rewrites absolute project files as paths relative to the root"
+    (spy-on 'projectile-project-root :and-return-value "/home/me/project/")
+    (expect (projectile-make-relative-to-root
+             '("/home/me/project/src/foo.el" "/home/me/project/README.md"))
+            :to-equal '("src/foo.el" "README.md"))))
+
 ;;; projectile-core-test.el ends here

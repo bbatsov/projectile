@@ -543,4 +543,23 @@
         (setq projectile-globally-ignored-directories '(".ignoreme"))
         (expect (projectile-dir-files-native "project") :to-equal '("config.conf"))))))
 
+(describe "projectile--vcs-from-directory-listing"
+  (it "detects the VCS from a marker directly inside the directory"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("repo/.git/" "repo/src/")
+      (expect (projectile--vcs-from-directory-listing (expand-file-name "repo/"))
+              :to-equal 'git))))
+  (it "returns nil when no VCS marker is present"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("plain/src/" "plain/README")
+      (expect (projectile--vcs-from-directory-listing (expand-file-name "plain/"))
+              :to-equal nil))))
+  (it "returns nil for a directory that does not exist"
+    (projectile-test-with-sandbox
+     (expect (projectile--vcs-from-directory-listing
+              (expand-file-name "does-not-exist/"))
+             :to-equal nil))))
+
 ;;; projectile-indexing-test.el ends here
