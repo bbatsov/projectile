@@ -648,6 +648,11 @@
            (fn2 (lambda (_path) (list :foo (list "file2" "file3"))))
            (merged (projectile--merge-related-files-fns (list fn1 fn2))))
       (expect (funcall merged "something") :to-equal '(:foo ("file1" "file2" "file3")))))
+  (it "wraps a scalar value when the keys don't overlap"
+    (let* ((fn1 (lambda (_path) (list :foo "file1")))
+           (fn2 (lambda (_path) (list :bar "file4")))
+           (merged (projectile--merge-related-files-fns (list fn1 fn2))))
+      (expect (funcall merged "something") :to-equal '(:foo ("file1") :bar ("file4")))))
   (it "does not mutate original function return values"
     (let* ((shared-list '("test.el"))
            (fn1 (lambda (_path) (list :test shared-list)))
@@ -676,8 +681,9 @@
 
 (describe "projectile-associated-file-name-extensions"
   (it "looks up the associated extensions for a known extension"
-    (expect (projectile-associated-file-name-extensions "foo.cpp")
-            :to-equal '("h" "hpp" "ipp")))
+    (let ((projectile-other-file-alist '(("cpp" "h" "hpp" "ipp"))))
+      (expect (projectile-associated-file-name-extensions "foo.cpp")
+              :to-equal '("h" "hpp" "ipp"))))
   (it "falls back to a sub-extension when the full one has no mapping"
     (let ((projectile-other-file-alist '(("gz" "zip"))))
       (expect (projectile-associated-file-name-extensions "archive.tar.gz")
