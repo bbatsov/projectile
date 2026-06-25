@@ -2954,7 +2954,7 @@ is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
 
 (defun projectile--directory-ancestors (path)
   "Return a list of the directory of PATH and all its ancestor directories.
-For example, \"src/foo/bar.el\" returns (\"src/foo/\" \"src/\")."
+For example, \"src/foo/bar.el\" returns (\"src/\" \"src/foo/\")."
   (let ((dir (file-name-directory path))
         result)
     (while (and dir (not (equal dir "")))
