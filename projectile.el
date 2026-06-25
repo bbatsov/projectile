@@ -728,6 +728,12 @@ project."
 (defvar projectile-projects-cache-time (make-hash-table :test 'equal)
   "A hashmap used to record when we populated `projectile-projects-cache'.")
 
+(defvar projectile--async-index-processes (make-hash-table :test 'equal)
+  "Map of project root -> in-flight async indexing process.
+Used to avoid running more than one background index for the same
+project at a time, and to discard a stale background result whose
+project cache was invalidated while it was still running.")
+
 (defvar projectile-project-root-cache (make-hash-table :test 'equal)
   "Cached value of function `projectile-project-root`.")
 
@@ -1298,6 +1304,12 @@ argument)."
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
     (remhash project-root projectile--dirconfig-cache)
+    ;; Cancel any in-flight background index for this project so its
+    ;; now-stale result can't repopulate the cache we just cleared.
+    (when-let* ((proc (gethash project-root projectile--async-index-processes)))
+      (when (process-live-p proc)
+        (delete-process proc))
+      (remhash project-root projectile--async-index-processes))
     ;; reset the project's cache file
     (when (projectile-persistent-cache-p)
       (let ((cache-file (projectile-project-cache-file project-root)))
@@ -2124,6 +2136,25 @@ VCS is the VCS of the project."
     (when cmd
       (projectile-files-via-ext-command project (concat cmd " " dir)))))
 
+(defun projectile--ext-command-line (command pathspecs)
+  "Return COMMAND with PATHSPECS appended as shell-quoted positional arguments.
+PATHSPECS may be nil, in which case COMMAND is returned unchanged.
+Shared by the synchronous and asynchronous indexing-command runners."
+  (if pathspecs
+      (concat command " "
+              (mapconcat #'shell-quote-argument pathspecs " "))
+    command))
+
+(defun projectile--ext-command-output-files ()
+  "Parse an indexing command's stdout in the current buffer into a file list.
+Splits the output on NUL, drops empty records, and strips a leading
+\"./\" from each path.  Shared by `projectile-files-via-ext-command' and
+its asynchronous counterpart so both produce identical results."
+  (let ((shell-output (buffer-substring (point-min) (point-max))))
+    (mapcar (lambda (f)
+              (string-remove-prefix "./" f))
+            (split-string (string-trim shell-output) "\0" t))))
+
 (defun projectile-files-via-ext-command (root command &optional pathspecs)
   "Get a list of relative file names in the project ROOT by executing COMMAND.
 
@@ -2148,11 +2179,7 @@ mistaken for an empty project.  Stderr is captured into the
 Only text sent to standard output is taken into account."
   (when (and (stringp command) (not (string-empty-p command)))
     (let ((default-directory root)
-          (full-command (if pathspecs
-                            (concat command " "
-                                    (mapconcat #'shell-quote-argument
-                                               pathspecs " "))
-                          command))
+          (full-command (projectile--ext-command-line command pathspecs))
           (errors-buffer (get-buffer-create "*projectile-files-errors*"))
           (errors-file (make-temp-file "projectile-files-errors")))
       (unwind-protect
@@ -2174,12 +2201,177 @@ Only text sent to standard output is taken into account."
                  "Projectile indexing command failed with exit code %d: %s\n\
 See the *projectile-files-errors* buffer for details"
                  exit-code full-command))
-              (let ((shell-output (buffer-substring (point-min) (point-max))))
-                (mapcar (lambda (f)
-                          (string-remove-prefix "./" f))
-                        (split-string (string-trim shell-output) "\0" t)))))
+              (projectile--ext-command-output-files)))
         (when (file-exists-p errors-file)
           (delete-file errors-file))))))
+
+(defun projectile-files-via-ext-command-async (root command callback &optional pathspecs)
+  "Asynchronously list relative file names in project ROOT by running COMMAND.
+
+Like `projectile-files-via-ext-command', but spawns COMMAND with
+`make-process' so Emacs is not blocked while it runs.  The output is
+parsed with the very same logic, so the result is identical to the
+synchronous command.
+
+CALLBACK is funcalled with two arguments when COMMAND finishes: the list
+of files (nil on failure) and an error description string (nil on
+success).  On a non-zero exit the command's stderr is copied into the
+`*projectile-files-errors*' buffer, matching the synchronous runner.
+
+PATHSPECS is handled exactly as in `projectile-files-via-ext-command'.
+
+Returns the process object, or nil when COMMAND is nil or empty (CALLBACK
+is then invoked with an empty list and no error, so callers don't have to
+special-case disabled commands) or when a remote file-name handler
+declines to start the process (CALLBACK is invoked with an error).
+
+Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
+`:file-handler', which requires Emacs 27.1+)."
+  (if (not (and (stringp command) (not (string-empty-p command))))
+      (progn (funcall callback nil nil) nil)
+    (let* ((default-directory root)
+           ;; Capture stderr in a temp file on the *same host* as the
+           ;; command (local file locally, remote file over TRAMP) and
+           ;; redirect the whole command group into it, mirroring the
+           ;; synchronous runner's stderr handling without relying on
+           ;; `make-process' :stderr support over TRAMP.
+           (errors-file (make-nearby-temp-file "projectile-files-errors"))
+           (errors-localname (or (file-remote-p errors-file 'localname) errors-file))
+           (full-command (concat "{ " (projectile--ext-command-line command pathspecs)
+                                 "; } 2>" (shell-quote-argument errors-localname)))
+           (stdout-buffer (generate-new-buffer " *projectile-async-index*"))
+           (proc
+            (make-process
+             :name "projectile-index"
+             :buffer stdout-buffer
+             :command (list shell-file-name shell-command-switch full-command)
+             :connection-type 'pipe
+             :noquery t
+             :file-handler t
+             :sentinel
+             (lambda (proc _event)
+               (when (memq (process-status proc) '(exit signal))
+                 (unwind-protect
+                     (let ((exit-code (process-exit-status proc)))
+                       (if (and (numberp exit-code) (zerop exit-code))
+                           (funcall callback
+                                    (with-current-buffer stdout-buffer
+                                      (projectile--ext-command-output-files))
+                                    nil)
+                         (with-current-buffer (get-buffer-create "*projectile-files-errors*")
+                           (let ((inhibit-read-only t))
+                             (erase-buffer)
+                             (ignore-errors (insert-file-contents errors-file))))
+                         (funcall callback
+                                  nil
+                                  (format "indexing command failed with exit code %s: %s"
+                                          exit-code command))))
+                   (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
+                   (when (file-exists-p errors-file)
+                     (ignore-errors (delete-file errors-file)))))))))
+      ;; A file-name handler may decline to create a process (e.g. a remote
+      ;; host that doesn't support `make-process'), returning nil and never
+      ;; firing the sentinel.  Honour the callback contract and clean up.
+      (unless proc
+        (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
+        (when (file-exists-p errors-file) (ignore-errors (delete-file errors-file)))
+        (funcall callback nil "could not start the indexing process"))
+      proc)))
+
+(defun projectile-dir-files-alien-async (directory callback &optional vcs subdirs)
+  "Asynchronous counterpart of `projectile-dir-files-alien'.
+Runs the project's main indexing command for DIRECTORY without blocking
+and funcalls CALLBACK with (FILES ERROR) - the same convention as
+`projectile-files-via-ext-command-async'.
+
+VCS and SUBDIRS are interpreted exactly as in
+`projectile-dir-files-alien'.  For git projects the cheap auxiliary
+steps (collecting submodule files and removing deleted-but-unstaged
+files) run synchronously once the main command finishes, inside the
+sentinel - off the caller's critical path - so the assembled result
+matches the synchronous function.  Returns the main command's process."
+  (let* ((vcs (or vcs (projectile-project-vcs directory)))
+         (command (projectile-get-ext-command vcs directory)))
+    (if (eq vcs 'git)
+        (let ((fd (and projectile-git-use-fd
+                       (projectile-fd-executable-for directory))))
+          (projectile-files-via-ext-command-async
+           directory command
+           (lambda (files err)
+             (if err
+                 (funcall callback nil err)
+               (let* ((all (nconc files
+                                  (projectile--restricted-sub-projects-files
+                                   directory vcs subdirs)))
+                      (deleted (unless fd (projectile-git-deleted-files directory))))
+                 (funcall callback
+                          (if deleted
+                              (let ((deleted-set (make-hash-table :test 'equal :size (length deleted))))
+                                (dolist (f deleted) (puthash f t deleted-set))
+                                (seq-remove (lambda (f) (gethash f deleted-set)) all))
+                            all)
+                          nil))))
+           subdirs))
+      (projectile-files-via-ext-command-async directory command callback subdirs))))
+
+;;;###autoload
+(defun projectile-index-project-async (&optional project-root)
+  "Index PROJECT-ROOT in the background and populate the files cache.
+
+This warms `projectile-projects-cache' without blocking Emacs, so a
+later `projectile-find-file' (or any command that lists project files)
+finds the cache already populated instead of indexing synchronously.
+
+Only the external-command indexing methods (`alien' and `hybrid') can be
+warmed this way; under `native' indexing this is a no-op with a message,
+since the Elisp directory walk cannot run off the main thread.  Warming
+also requires caching to be enabled.
+
+When PROJECT-ROOT is omitted the current project is used.  Returns the
+indexing process, or nil when nothing was started."
+  (interactive)
+  (let ((root (or project-root (projectile-acquire-root))))
+    (cond
+     ((eq projectile-indexing-method 'native)
+      (message "Projectile: async indexing needs the `alien'/`hybrid' method; `native' cannot be warmed")
+      nil)
+     ((not projectile-enable-caching)
+      (message "Projectile: async indexing has no effect while caching is disabled")
+      nil)
+     ((let ((proc (gethash root projectile--async-index-processes)))
+        (and proc (process-live-p proc)))
+      (message "Projectile: already indexing %s" root)
+      nil)
+     (t
+      (message "Projectile: indexing %s in the background..." root)
+      ;; The callback needs to know which process it belongs to so it can
+      ;; tell whether it is still the active index for ROOT when it
+      ;; finishes (a re-trigger or `projectile-invalidate-cache' replaces
+      ;; or clears the registry entry).  But the process object is the
+      ;; return value of the very call the callback is passed to, so we
+      ;; thread it through a mutable cell that is filled in below, before
+      ;; the (asynchronous) sentinel can ever run.
+      (let* ((proc-cell (list nil))
+             (proc
+              (projectile-dir-files-alien-async
+               root
+               (lambda (files err)
+                 ;; Ignore a stale result whose registry entry was
+                 ;; replaced (re-trigger) or removed (invalidation) while
+                 ;; we were running, so it can't resurrect a cache that
+                 ;; has since moved on.
+                 (when (eq (gethash root projectile--async-index-processes)
+                           (car proc-cell))
+                   (remhash root projectile--async-index-processes)
+                   (if err
+                       (message "Projectile: background indexing of %s failed: %s" root err)
+                     (projectile-cache-project root files)
+                     (message "Projectile: finished indexing %s (%d files)"
+                              root (length files))))))))
+        (setcar proc-cell proc)
+        (when (processp proc)
+          (puthash root proc projectile--async-index-processes))
+        proc)))))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."

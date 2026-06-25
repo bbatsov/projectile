@@ -156,6 +156,18 @@ macro-expansion time and must therefore be literals, not variables."
           "/tmp/temporary-file-" (format "%d" (random))
           ".eld"))
 
+(defun projectile-test-wait-for (predicate &optional timeout)
+  "Block until PREDICATE returns non-nil or TIMEOUT seconds elapse.
+Pumps the event loop with `accept-process-output' so asynchronous
+process filters and sentinels get a chance to run.  TIMEOUT defaults to
+10 seconds.  Returns the predicate's last value (nil on timeout)."
+  (let ((deadline (+ (float-time) (or timeout 10)))
+        result)
+    (while (and (not (setq result (funcall predicate)))
+                (< (float-time) deadline))
+      (accept-process-output nil 0.05))
+    result))
+
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
 Just delegates OPERATION and ARGS for all operations except for
