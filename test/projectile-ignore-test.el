@@ -675,4 +675,19 @@
         ;; dirconfig ignored files are rooted
         (expect (member "./TODO" ignores) :to-be-truthy)))))
 
+(describe "projectile-normalise-patterns"
+  (it "drops absolute (path) patterns and keeps relative globs"
+    (expect (projectile-normalise-patterns '("/abs/path" "rel" "/x" "glob*"))
+            :to-equal '("rel" "glob*")))
+  (it "returns an empty list when every pattern is a path"
+    (expect (projectile-normalise-patterns '("/a" "/b")) :to-equal nil)))
+
+(describe "projectile-check-pattern-p"
+  (it "matches when the file equals the pattern"
+    (expect (projectile-check-pattern-p "src/foo.el" "src/foo.el") :to-be-truthy))
+  (it "matches when the pattern is a suffix of the file"
+    (expect (projectile-check-pattern-p "a/b/c.el" "c.el") :to-be-truthy))
+  (it "does not match an unrelated pattern"
+    (expect (projectile-check-pattern-p "a/b/c.el" "nomatch.zzz") :to-be nil)))
+
 ;;; projectile-ignore-test.el ends here

@@ -656,4 +656,44 @@
       (funcall merged "src.el")
       (expect shared-list :to-equal '("test.el")))))
 
+(describe "projectile--file-name-extensions"
+  (it "returns the single extension of a plain file"
+    (expect (projectile--file-name-extensions "foo.el") :to-equal "el"))
+  (it "returns the full nested extension"
+    (expect (projectile--file-name-extensions "dir/bar.tar.gz") :to-equal "tar.gz"))
+  (it "ignores a leading dot so dotfiles count as extension-less"
+    (expect (projectile--file-name-extensions ".emacs") :to-equal ""))
+  (it "returns an empty string when there is no extension"
+    (expect (projectile--file-name-extensions "Makefile") :to-equal "")))
+
+(describe "projectile--file-name-sans-extensions"
+  (it "drops the extension of a plain file"
+    (expect (projectile--file-name-sans-extensions "foo.el") :to-equal "foo"))
+  (it "drops every nested extension"
+    (expect (projectile--file-name-sans-extensions "dir/bar.tar.gz") :to-equal "bar"))
+  (it "keeps a dotfile intact since its leading dot is not an extension"
+    (expect (projectile--file-name-sans-extensions ".emacs") :to-equal ".emacs")))
+
+(describe "projectile-associated-file-name-extensions"
+  (it "looks up the associated extensions for a known extension"
+    (expect (projectile-associated-file-name-extensions "foo.cpp")
+            :to-equal '("h" "hpp" "ipp")))
+  (it "falls back to a sub-extension when the full one has no mapping"
+    (let ((projectile-other-file-alist '(("gz" "zip"))))
+      (expect (projectile-associated-file-name-extensions "archive.tar.gz")
+              :to-equal '("zip"))))
+  (it "returns nil when no extension matches"
+    (expect (projectile-associated-file-name-extensions "foo.unknown")
+            :to-equal nil)))
+
+(describe "projectile-group-file-candidates"
+  (it "groups candidates by the number of shared leading path segments, best first"
+    (expect (projectile-group-file-candidates
+             "src/foo/test.el"
+             '("src/foo/impl.el" "other/x.el" "src/bar.el"))
+            :to-equal '((2 "src/foo/impl.el") (0 "other/x.el" "src/bar.el"))))
+  (it "returns an empty list when there are no candidates"
+    (expect (projectile-group-file-candidates "src/foo/test.el" nil)
+            :to-equal nil)))
+
 ;;; projectile-relation-test.el ends here
