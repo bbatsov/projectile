@@ -104,6 +104,26 @@ You'd normally combine this with `projectile-test-with-sandbox'."
      (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
      ,@body))
 
+(defmacro projectile-test-with-stub-root (root files &rest body)
+  "Evaluate BODY in a sandbox project rooted at ROOT containing FILES.
+
+ROOT is a directory name relative to the sandbox.  FILES are created
+relative to ROOT (so you don't have to repeat the root prefix).
+`projectile-project-root' is stubbed to return ROOT's absolute name for
+the duration of BODY.
+
+This bundles the very common sandbox + files + `projectile-project-root'
+spy dance into a single form."
+  (declare (indent 2) (debug (sexp sexp &rest form)))
+  (let* ((root-dir (file-name-as-directory root))
+         (rooted (cons root-dir
+                       (mapcar (lambda (f) (concat root-dir f)) files))))
+    `(projectile-test-with-sandbox
+       (projectile-test-with-files ,rooted
+         (spy-on 'projectile-project-root
+                 :and-return-value (expand-file-name ,root-dir))
+         ,@body))))
+
 (defmacro assert-friendly-error-when-no-project (fn)
   "Write a test that ensures FN throws a friendly error when called without a project."
   (let ((description (concat "when calling " (symbol-name fn) " without a project")))

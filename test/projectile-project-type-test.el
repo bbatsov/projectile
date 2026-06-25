@@ -339,42 +339,24 @@
 
 (describe "projectile-cabal-project-p"
   (it "is true for a project with a .cabal file and no stack.yaml"
-    (projectile-test-with-sandbox
-     (projectile-test-with-files
-      ("proj/" "proj/foo.cabal")
-      (spy-on 'projectile-project-root :and-return-value (expand-file-name "proj/"))
-      (expect (projectile-cabal-project-p) :to-be-truthy))))
+    (projectile-test-with-stub-root "proj" ("foo.cabal")
+      (expect (projectile-cabal-project-p) :to-be-truthy)))
   (it "is false once a stack.yaml is present (it's a Stack project then)"
-    (projectile-test-with-sandbox
-     (projectile-test-with-files
-      ("proj/" "proj/foo.cabal" "proj/stack.yaml")
-      (spy-on 'projectile-project-root :and-return-value (expand-file-name "proj/"))
-      (expect (projectile-cabal-project-p) :to-be nil))))
+    (projectile-test-with-stub-root "proj" ("foo.cabal" "stack.yaml")
+      (expect (projectile-cabal-project-p) :to-be nil)))
   (it "is false for a project without a .cabal file"
-    (projectile-test-with-sandbox
-     (projectile-test-with-files
-      ("proj/" "proj/README")
-      (spy-on 'projectile-project-root :and-return-value (expand-file-name "proj/"))
-      (expect (projectile-cabal-project-p) :to-be nil)))))
+    (projectile-test-with-stub-root "proj" ("README")
+      (expect (projectile-cabal-project-p) :to-be nil))))
 
 (describe "projectile-go-project-p"
   (it "is true for a project with a go.mod file"
-    (projectile-test-with-sandbox
-     (projectile-test-with-files
-      ("proj/" "proj/go.mod")
-      (spy-on 'projectile-project-root :and-return-value (expand-file-name "proj/"))
-      (expect (projectile-go-project-p) :to-be-truthy))))
+    (projectile-test-with-stub-root "proj" ("go.mod")
+      (expect (projectile-go-project-p) :to-be-truthy)))
   (it "is true for a project that merely contains .go sources"
-    (projectile-test-with-sandbox
-     (projectile-test-with-files
-      ("proj/" "proj/main.go")
-      (spy-on 'projectile-project-root :and-return-value (expand-file-name "proj/"))
-      (expect (projectile-go-project-p) :to-be-truthy))))
+    (projectile-test-with-stub-root "proj" ("main.go")
+      (expect (projectile-go-project-p) :to-be-truthy)))
   (it "is false for a project with neither go.mod nor .go files"
-    (projectile-test-with-sandbox
-     (projectile-test-with-files
-      ("proj/" "proj/README")
-      (spy-on 'projectile-project-root :and-return-value (expand-file-name "proj/"))
-      (expect (projectile-go-project-p) :to-be nil)))))
+    (projectile-test-with-stub-root "proj" ("README")
+      (expect (projectile-go-project-p) :to-be nil))))
 
 ;;; projectile-project-type-test.el ends here
