@@ -168,17 +168,6 @@
            (files (mapcar 'projectile-expand-root file-names)))
       (expect (projectile-project-ignored) :to-equal files))))
 
-(describe "projectile-remove-ignored"
-  (it "removes ignored folders and files"
-    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
-    (spy-on 'projectile-project-name :and-return-value "project")
-    (spy-on 'projectile-ignored-files-rel)
-    (spy-on 'projectile-ignored-directories-rel)
-    (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
-           (files (mapcar 'projectile-expand-root file-names)))
-      (let ((projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
-        (expect (projectile-remove-ignored files) :to-equal (mapcar 'projectile-expand-root '("foo.c" "foo.o.gz")))))))
-
 (describe "projectile-add-unignored"
   (it "requires explicitly unignoring files inside ignored paths"
     (spy-on 'projectile-get-repo-ignored-files :and-return-value '("unignored-file" "path/unignored-file2"))
@@ -579,6 +568,15 @@
               :not :to-be-truthy))))
 
 (describe "projectile-remove-ignored"
+  (it "removes files whose suffix matches projectile-globally-ignored-file-suffixes"
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
+    (spy-on 'projectile-project-name :and-return-value "project")
+    (spy-on 'projectile-ignored-files-rel)
+    (spy-on 'projectile-ignored-directories-rel)
+    (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
+           (files (mapcar 'projectile-expand-root file-names)))
+      (let ((projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
+        (expect (projectile-remove-ignored files) :to-equal (mapcar 'projectile-expand-root '("foo.c" "foo.o.gz"))))))
   (it "drops files whose basename matches an ignored entry"
     (spy-on 'projectile-ignored-files-rel :and-return-value '("TAGS"))
     (spy-on 'projectile-ignored-directories-rel :and-return-value nil)

@@ -32,57 +32,54 @@
     (spy-on 'projectile-relevant-known-projects :and-return-value nil)
     (expect (projectile-switch-project) :to-throw)))
 
-(describe "projectile-delete-dir-local-variable"
-          (it "Deletes existing dir-local variables"
-              (projectile-test-with-sandbox
-               (projectile-test-with-files
-                ("project/"
-                 "project/.dir-locals.el"
-                 "project/.projectile")
-                (append-to-file
-                 "((nil . ((foo . bar))))" nil "project/.dir-locals.el")
-                (let ((enable-local-variables :all))
-                  (with-current-buffer (find-file-noselect "project/.projectile" t)
-                    ;; Reload the file to ensure that this file wasn't already
-                    ;; opened from a previous test
-                    (revert-buffer :ignore-auto :noconfirm)
-                    ;; Heck that the variable is bound
-                    (expect (boundp 'foo) :to-be 't)
-                    ;; Remove the variable
-                    (projectile-delete-dir-local-variable nil 'foo)
-                    ;; Reload the file
-                    (revert-buffer :ignore-auto :noconfirm)
-                    ;; Check that the variable is unbound
-                    (expect (boundp 'foo) :to-be nil)))))))
-
 (describe "projectile-add-dir-local-variable"
-          (it "Adds new dir-local variables"
-              (projectile-test-with-sandbox
-               (projectile-test-with-files
-                ("project/"
-                 "project/.dir-locals.el"
-                 "project/.projectile")
-                (append-to-file "()" nil "project/.dir-locals.el")
-                (with-current-buffer (find-file-noselect "project/.projectile" t)
-                  (let ((enable-local-variables :all))
-                    (expect (boundp 'fooo) :to-be nil)
+  (it "adds new dir-local variables"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.dir-locals.el"
+       "project/.projectile")
+      (append-to-file "()" nil "project/.dir-locals.el")
+      (with-current-buffer (find-file-noselect "project/.projectile" t)
+        (let ((enable-local-variables :all))
+          (expect (boundp 'fooo) :to-be nil)
+          (projectile-add-dir-local-variable nil 'fooo 1)
+          (hack-dir-local-variables-non-file-buffer)
+          (expect (boundp 'fooo) :to-be 't)
+          (expect fooo :to-be 1))))))
 
-                    (projectile-add-dir-local-variable nil 'fooo 1)
-                    (hack-dir-local-variables-non-file-buffer)
-                    (expect (boundp 'fooo) :to-be 't)
-                    (expect fooo :to-be 1) ))))))
-
-(describe "projectile-add-dir-local-variable"
-          (it "Fails when there is no projectile project"
-              (projectile-test-with-sandbox
-                (let ((default-directory "/"))
-                  (expect (projectile-add-dir-local-variable nil 'fooo 1) :to-throw 'error)) )))
+  (it "fails when there is no projectile project"
+    (projectile-test-with-sandbox
+     (let ((default-directory "/"))
+       (expect (projectile-add-dir-local-variable nil 'fooo 1) :to-throw 'error)))))
 
 (describe "projectile-delete-dir-local-variable"
-          (it "Fails when there is no projectile project"
-              (projectile-test-with-sandbox
-                (let ((default-directory "/"))
-                  (expect (projectile-delete-dir-local-variable nil 'fooo 1) :to-throw 'error)) )))
+  (it "deletes existing dir-local variables"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/.dir-locals.el"
+       "project/.projectile")
+      (append-to-file
+       "((nil . ((foo . bar))))" nil "project/.dir-locals.el")
+      (let ((enable-local-variables :all))
+        (with-current-buffer (find-file-noselect "project/.projectile" t)
+          ;; Reload the file to ensure that this file wasn't already
+          ;; opened from a previous test
+          (revert-buffer :ignore-auto :noconfirm)
+          ;; Check that the variable is bound
+          (expect (boundp 'foo) :to-be 't)
+          ;; Remove the variable
+          (projectile-delete-dir-local-variable nil 'foo)
+          ;; Reload the file
+          (revert-buffer :ignore-auto :noconfirm)
+          ;; Check that the variable is unbound
+          (expect (boundp 'foo) :to-be nil))))))
+
+  (it "fails when there is no projectile project"
+    (projectile-test-with-sandbox
+     (let ((default-directory "/"))
+       (expect (projectile-delete-dir-local-variable nil 'fooo 1) :to-throw 'error)))))
 
 (describe "projectile-most-recent-project"
   (it "records the project switched away from"
