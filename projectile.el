@@ -153,6 +153,25 @@ using the native indexing method."
           (const :tag "Transient" t)
           (const :tag "Persistent" persistent)))
 
+(defcustom projectile-async-indexing t
+  "Whether to index projects without freezing Emacs.
+
+When non-nil, the external-command indexing methods (`alien' and
+`hybrid') run their indexing command asynchronously and wait for it in a
+way that keeps Emacs responsive to redisplay and `keyboard-quit' (\\[keyboard-quit]),
+instead of blocking until the command finishes.  This matters most on
+large projects and on remote (TRAMP) hosts, where a cold
+`projectile-find-file' could otherwise freeze Emacs for seconds.
+
+The resulting file list is identical to the synchronous path; only the
+responsiveness during indexing differs.  Has no effect under `native'
+indexing (the Emacs Lisp directory walk cannot run off the main thread),
+in batch mode, or while a keyboard macro is executing - those fall back
+to synchronous indexing."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-kill-buffers-filter 'kill-all
   "Determine which buffers are killed by `projectile-kill-buffers'.
 
@@ -2252,20 +2271,26 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
              (lambda (proc _event)
                (when (memq (process-status proc) '(exit signal))
                  (unwind-protect
-                     (let ((exit-code (process-exit-status proc)))
-                       (if (and (numberp exit-code) (zerop exit-code))
+                     ;; A consumer that gives up on the wait (e.g. a C-g during
+                     ;; `projectile--dir-files-alien-await') marks the process
+                     ;; aborted and kills it.  Killing fires this sentinel with a
+                     ;; `signal' status, but we must not then report a bogus
+                     ;; failure or clobber the errors buffer - just clean up.
+                     (unless (process-get proc 'projectile-aborted)
+                       (let ((exit-code (process-exit-status proc)))
+                         (if (and (numberp exit-code) (zerop exit-code))
+                             (funcall callback
+                                      (with-current-buffer stdout-buffer
+                                        (projectile--ext-command-output-files))
+                                      nil)
+                           (with-current-buffer (get-buffer-create "*projectile-files-errors*")
+                             (let ((inhibit-read-only t))
+                               (erase-buffer)
+                               (ignore-errors (insert-file-contents errors-file))))
                            (funcall callback
-                                    (with-current-buffer stdout-buffer
-                                      (projectile--ext-command-output-files))
-                                    nil)
-                         (with-current-buffer (get-buffer-create "*projectile-files-errors*")
-                           (let ((inhibit-read-only t))
-                             (erase-buffer)
-                             (ignore-errors (insert-file-contents errors-file))))
-                         (funcall callback
-                                  nil
-                                  (format "indexing command failed with exit code %s: %s"
-                                          exit-code command))))
+                                    nil
+                                    (format "exit code %s: %s"
+                                            exit-code command)))))
                    (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
                    (when (file-exists-p errors-file)
                      (ignore-errors (delete-file errors-file)))))))))
@@ -2372,6 +2397,72 @@ indexing process, or nil when nothing was started."
         (when (processp proc)
           (puthash root proc projectile--async-index-processes))
         proc)))))
+
+(defun projectile--dir-files-alien-await (directory &optional vcs subdirs)
+  "Like `projectile-dir-files-alien' for DIRECTORY but without freezing Emacs.
+Runs the asynchronous indexer and waits for it with `accept-process-output'
+so redisplay keeps happening and `keyboard-quit' (\\[keyboard-quit]) stays live; on a
+quit the indexing process is killed and the quit is re-signalled.  The
+returned list is the same one `projectile-dir-files-alien' would produce.
+
+VCS and SUBDIRS are interpreted exactly as in `projectile-dir-files-alien'.
+Falls back to the synchronous function when the asynchronous process
+can't be started (e.g. a remote host whose handler doesn't support
+`make-process').
+
+Note that waiting pumps the event loop, so process filters, sentinels
+and timers (but not interactive commands) may run while we wait."
+  (let* (done files err
+         (proc (projectile-dir-files-alien-async
+                directory
+                (lambda (fs e) (setq done t files fs err e))
+                vcs subdirs)))
+    (cond
+     ;; The async indexer didn't spawn a process.  Either the command was
+     ;; empty - in which case the callback already ran synchronously and we
+     ;; just return its (empty) result - or a remote handler declined
+     ;; make-process, in which case we fall back to the synchronous,
+     ;; TRAMP-safe path.
+     ((null proc)
+      (if (and done (null err))
+          files
+        (projectile-dir-files-alien directory vcs subdirs)))
+     ;; A genuine process is running: wait for it without freezing.
+     (t
+      (let ((reporter (make-progress-reporter
+                       (format "Projectile is indexing %s"
+                               (propertize (abbreviate-file-name directory)
+                                           'face 'font-lock-keyword-face)))))
+        (unwind-protect
+            (while (not done)
+              (accept-process-output proc 0.1)
+              (progress-reporter-update reporter))
+          ;; Runs on normal completion and on `keyboard-quit': make sure we
+          ;; never leave the indexing process running behind us.  Mark it
+          ;; aborted first so its sentinel skips the failure path (killing
+          ;; it fires the sentinel with a `signal' status) and just cleans
+          ;; up - a quit must stay a clean quit.
+          (when (process-live-p proc)
+            (process-put proc 'projectile-aborted t)
+            (delete-process proc)))
+        (progress-reporter-done reporter))
+      (if err
+          (user-error "Projectile indexing failed: %s.  \
+See the *projectile-files-errors* buffer for details" err)
+        files)))))
+
+(defun projectile--dir-files-alien-maybe-async (directory &optional vcs subdirs)
+  "Return alien-indexed files for DIRECTORY, without freezing when possible.
+Dispatches to the responsive asynchronous indexer
+\(`projectile--dir-files-alien-await') when `projectile-async-indexing' is
+enabled and we're in an interactive context, and to the synchronous
+`projectile-dir-files-alien' otherwise (batch mode, keyboard macros, or
+when the option is disabled).  Both return the same list."
+  (if (and projectile-async-indexing
+           (not noninteractive)
+           (not executing-kbd-macro))
+      (projectile--dir-files-alien-await directory vcs subdirs)
+    (projectile-dir-files-alien directory vcs subdirs)))
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
@@ -3098,7 +3189,7 @@ is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
                 ;; .projectile and find all files in the root dir.
                 (progn
                   (projectile--maybe-warn-dirconfig-ignored project-root)
-                  (projectile-dir-files-alien project-root))
+                  (projectile--dir-files-alien-maybe-async project-root))
               (let ((dirs (projectile-get-project-directories project-root)))
                 (cond
                  ((and (eq projectile-indexing-method 'hybrid) (cdr dirs))
@@ -3113,7 +3204,7 @@ is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
                                    dirs)))
                     (projectile-adjust-files
                      project-root vcs
-                     (projectile-dir-files-alien project-root vcs subdirs))))
+                     (projectile--dir-files-alien-maybe-async project-root vcs subdirs))))
                  (t
                   ;; Native, or hybrid without keep entries: walk each
                   ;; project directory.  For native this is the only

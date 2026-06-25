@@ -357,9 +357,27 @@ which the cache file was last updated.
 
 === Background indexing
 
-The first "find file" in a large or remote project has to index it, and
-that indexing runs synchronously - Emacs is blocked until it finishes. You
-can warm the cache ahead of time, without blocking, using kbd:[M-x]
+The first "find file" in a large or remote project has to index it. With the
+`alien` and `hybrid` indexing methods Projectile does this without freezing
+Emacs: the indexing command runs asynchronously and is awaited in a way that
+keeps redisplay going and leaves kbd:[C-g] live, so you can abort a slow
+index (for instance one stuck on an unresponsive remote host) instead of
+staring at a frozen editor. The resulting file list is exactly what the
+synchronous indexer would produce.
+
+This is on by default and controlled by `projectile-async-indexing`:
+
+[source,elisp]
+----
+;; index synchronously, as in older Projectile versions
+(setq projectile-async-indexing nil)
+----
+
+NOTE: It has no effect under `native` indexing (the Emacs Lisp directory walk
+can't run off the main thread), in batch mode, or while a keyboard macro is
+executing - those index synchronously.
+
+You can also warm the cache ahead of time, without blocking, using kbd:[M-x]
 `projectile-index-project-async`:
 
 [source,elisp]

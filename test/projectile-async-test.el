@@ -94,6 +94,22 @@ that stores into it as the async callback."
       (expect (nth 1 result) :to-be nil)
       (expect (nth 2 result) :to-be nil)))
 
+  (it "does not report failure for a process aborted mid-flight"
+    ;; When a consumer (e.g. the responsive await on C-g) marks the process
+    ;; aborted and kills it, the sentinel must clean up silently rather than
+    ;; invoke the callback with a spurious failure.
+    (let ((called nil))
+      (let ((proc (projectile-files-via-ext-command-async
+                   temporary-file-directory "echo boom >&2; exit 1"
+                   (lambda (&rest _) (setq called t)))))
+        ;; `process-put' happens before any sentinel can run (sentinels fire
+        ;; from the event loop, not synchronously from make-process).
+        (process-put proc 'projectile-aborted t)
+        (projectile-test-wait-for
+         (lambda () (memq (process-status proc) '(exit signal))))
+        (accept-process-output nil 0.05)
+        (expect called :to-be nil))))
+
   (it "reports an error when the process cannot be started (e.g. remote unsupported)"
     ;; A file-name handler may decline make-process and return nil; we must
     ;; still honour the callback contract instead of going silent.
@@ -244,5 +260,73 @@ that stores into it as the async callback."
       (projectile-invalidate-cache nil)
       (expect 'delete-process :to-have-been-called-with 'fake-proc)
       (expect (gethash "/proj/" projectile--async-index-processes) :to-be nil))))
+
+(describe "projectile--dir-files-alien-await"
+  (it "returns the same files as the synchronous indexer (real git repo)"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/src/" "project/a.el" "project/src/b.el")
+      (let ((default-directory (file-truename (expand-file-name "project/")))
+            (projectile-git-use-fd nil))
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (let ((sync (sort (projectile-dir-files-alien default-directory) #'string<))
+              (async (sort (copy-sequence
+                            (projectile--dir-files-alien-await default-directory))
+                           #'string<)))
+          (expect async :to-equal sync)
+          (expect async :to-contain "a.el")
+          (expect async :to-contain "src/b.el"))))))
+
+  (it "falls back to the synchronous indexer when no process can be started"
+    ;; e.g. a remote handler that declines make-process: the async runner
+    ;; returns nil and calls back with an error; we must still produce files.
+    (spy-on 'projectile-dir-files-alien-async :and-call-fake
+            (lambda (_dir callback &rest _)
+              (funcall callback nil "could not start the indexing process")
+              nil))
+    (spy-on 'projectile-dir-files-alien :and-return-value '("fallback.el"))
+    (expect (projectile--dir-files-alien-await "/proj/") :to-equal '("fallback.el"))
+    (expect 'projectile-dir-files-alien :to-have-been-called))
+
+  (it "signals a user-error, and kills the process, when indexing fails"
+    (let ((proc (start-process "projectile-test-sleep" nil "sleep" "30")))
+      ;; Hand back a live process (so the await path, not the can't-start
+      ;; fallback, runs) but report failure straight away - deterministic,
+      ;; no timer race.
+      (spy-on 'projectile-dir-files-alien-async :and-call-fake
+              (lambda (_dir callback &rest _)
+                (funcall callback nil "exit code 1: cmd")
+                proc))
+      (expect (projectile--dir-files-alien-await "/proj/") :to-throw 'user-error)
+      ;; the await must not leave its process running
+      (expect (process-live-p proc) :to-be nil))))
+
+(describe "projectile--dir-files-alien-maybe-async"
+  (it "uses the synchronous indexer when async indexing is disabled"
+    (spy-on 'projectile--dir-files-alien-await)
+    (spy-on 'projectile-dir-files-alien :and-return-value '("x"))
+    (let ((projectile-async-indexing nil))
+      (expect (projectile--dir-files-alien-maybe-async "/proj/") :to-equal '("x")))
+    (expect 'projectile--dir-files-alien-await :not :to-have-been-called))
+
+  (it "uses the synchronous indexer in batch / macro contexts even when enabled"
+    ;; The test process itself runs with `noninteractive' non-nil, which is
+    ;; exactly the batch guard we want to exercise.
+    (spy-on 'projectile--dir-files-alien-await)
+    (spy-on 'projectile-dir-files-alien :and-return-value '("x"))
+    (let ((projectile-async-indexing t))
+      (expect (projectile--dir-files-alien-maybe-async "/proj/") :to-equal '("x")))
+    (expect 'projectile--dir-files-alien-await :not :to-have-been-called))
+
+  (it "uses the responsive async indexer when enabled and interactive"
+    (spy-on 'projectile--dir-files-alien-await :and-return-value '("async"))
+    (spy-on 'projectile-dir-files-alien :and-return-value '("sync"))
+    ;; Pretend we're interactive by clearing the batch flag for the call.
+    (let ((projectile-async-indexing t)
+          (noninteractive nil)
+          (executing-kbd-macro nil))
+      (expect (projectile--dir-files-alien-maybe-async "/proj/") :to-equal '("async")))
+    (expect 'projectile-dir-files-alien :not :to-have-been-called)))
 
 ;;; projectile-async-test.el ends here
