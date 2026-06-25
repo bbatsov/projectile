@@ -1902,8 +1902,14 @@ whose car accumulates discovered file paths in reverse order."
   ;; aborting the entire indexing operation.
   ;; `directory-files-no-dot-files-regexp' filters out . and .. at the
   ;; C level so we don't have to do it again in the loop.
+  ;; `directory-files-and-attributes' (rather than plain `directory-files')
+  ;; gives us each entry's type in the same listing call, so we can tell
+  ;; files from directories without a `file-directory-p' stat per entry -
+  ;; that stat is a separate filesystem round-trip each, which dominates the
+  ;; walk on large or remote (TRAMP) trees.
   (let ((entries (ignore-errors
-                   (directory-files directory t directory-files-no-dot-files-regexp))))
+                   (directory-files-and-attributes
+                    directory t directory-files-no-dot-files-regexp nil 'integer))))
     (let* ((default-directory (file-name-as-directory directory))
            (ignore-pats (car patterns))
            (ensure-pats (cdr patterns))
@@ -1913,14 +1919,22 @@ whose car accumulates discovered file paths in reverse order."
            ;; it used to.
            (ignore-glob-set (and ignore-pats (projectile--expand-glob-set ignore-pats)))
            (ensure-glob-set (and ensure-pats (projectile--expand-glob-set ensure-pats))))
-      (dolist (f entries)
-        (let ((local-f (file-name-nondirectory (directory-file-name f))))
+      (dolist (entry entries)
+        (let* ((f (car entry))
+               ;; The type field is t for a directory, a string (the link
+               ;; target) for a symlink, and nil for a regular file.  For a
+               ;; symlink we still defer to `file-directory-p' so that a link
+               ;; pointing at a directory is traversed, matching the previous
+               ;; follow-symlink behaviour; that extra stat only happens for
+               ;; the rare symlink entry, not for every file.
+               (type (file-attribute-type (cdr entry)))
+               (local-f (file-name-nondirectory (directory-file-name f))))
           (unless (and patterns
                        (projectile--matches-pattern-set-p f ignore-pats ignore-glob-set)
                        (not (projectile--matches-pattern-set-p f ensure-pats ensure-glob-set)))
             (progress-reporter-update progress-reporter)
             (cond
-             ((file-directory-p f)
+             ((if (stringp type) (file-directory-p f) (eq type t))
               (unless (projectile--ignored-directory-fast-p
                        (file-name-as-directory f) local-f rules)
                 (projectile--index-directory-walk f patterns progress-reporter

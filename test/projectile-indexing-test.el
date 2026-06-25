@@ -305,7 +305,39 @@
           (expect (cl-some (lambda (f) (string-match-p "/keep\\.elc\\'" f)) files)
                   :to-be-truthy)
           (expect (cl-some (lambda (f) (string-match-p "skip\\.elc\\'" f)) files)
-                  :not :to-be-truthy)))))))
+                  :not :to-be-truthy))))))
+  (it "follows a symlink that points at a directory"
+    (unless (eq system-type 'windows-nt)
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/"
+         "project/.projectile"
+         "project/real/"
+         "project/real/inside.el")
+        (let* ((project-dir (file-name-as-directory (expand-file-name "project")))
+               (progress-reporter (make-progress-reporter "Indexing...")))
+          (make-symbolic-link "real" (expand-file-name "link" project-dir))
+          (let ((files (projectile-index-directory project-dir nil progress-reporter)))
+            ;; The real directory is walked...
+            (expect (cl-some (lambda (f) (string-match-p "/real/inside\\.el\\'" f)) files)
+                    :to-be-truthy)
+            ;; ...and so is the symlink pointing at it, matching the previous
+            ;; `file-directory-p' follow-symlink behaviour.
+            (expect (cl-some (lambda (f) (string-match-p "/link/inside\\.el\\'" f)) files)
+                    :to-be-truthy)))))))
+  (it "treats a symlink to a regular file as a file, not a directory"
+    (unless (eq system-type 'windows-nt)
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/"
+         "project/.projectile"
+         "project/target.el")
+        (let* ((project-dir (file-name-as-directory (expand-file-name "project")))
+               (progress-reporter (make-progress-reporter "Indexing...")))
+          (make-symbolic-link "target.el" (expand-file-name "alias.el" project-dir))
+          (let ((files (projectile-index-directory project-dir nil progress-reporter)))
+            (expect (cl-some (lambda (f) (string-match-p "/alias\\.el\\'" f)) files)
+                    :to-be-truthy))))))))
 
 (describe "projectile--list->set"
   (it "puts all elements as keys with value t and tests with equal"

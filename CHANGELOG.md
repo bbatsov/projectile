@@ -4,6 +4,7 @@
 
 ### Changes
 
+* Speed up native indexing further: `projectile-index-directory` now reads each directory with `directory-files-and-attributes`, so an entry's type comes from the listing call instead of a `file-directory-p` stat per file. That stat was a separate filesystem round-trip each, which dominated the walk on large and remote (TRAMP) trees - it's now one round-trip per directory instead of one per file. Symlinks pointing at directories are still followed, matching the previous behaviour. Roughly 40% faster on a local 12k-file tree; the win is far larger over TRAMP.
 * [#1872](https://github.com/bbatsov/projectile/issues/1872): Clarify in the `projectile-register-project-type` docstring and the manual that a list of `marker-files` must *all* be present for a type to match (logical AND), and that a predicate function should be used to match when any one of several files is present.
 * [#1935](https://github.com/bbatsov/projectile/issues/1935): The `emacs-eask` project type now has a `test` command (`eask test`), so `projectile-test-project` works out of the box for Eask projects. Eask auto-detects the test framework (buttercup, ERT, ...), so no framework-specific type is needed.
 * [#1638](https://github.com/bbatsov/projectile/issues/1638): Document in `projectile-svn-command` that it runs non-interactively and therefore needs SVN credentials to be cached up front for authenticated remotes.
