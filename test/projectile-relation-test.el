@@ -314,19 +314,6 @@
         (expect (projectile--related-files-kinds (concat (projectile-project-root) "src/Foo.c")) :to-equal '(:test :doc))
         (expect (projectile--related-files (concat (projectile-project-root) "src/Foo.c") :doc) :to-equal '("doc/Foo.txt"))))))
 
-(describe "projectile--merge-related-files-fns"
-  (it "returns a new function which returns the merged plist from each fn"
-    (defun -first-fn(file)
-      (list :foo "file1"))
-    (defun -second-fn(file)
-      (list :foo (list "file2" "file3")))
-    (defun -third-fn(file)
-      (list :bar "file4"))
-    (let ((fn (projectile--merge-related-files-fns '(-first-fn -second-fn))))
-      (expect (funcall fn "something") :to-equal '(:foo ("file1" "file2" "file3"))))
-    (let ((fn (projectile--merge-related-files-fns '(-first-fn -third-fn))))
-      (expect (funcall fn "something") :to-equal '(:foo ("file1") :bar ("file4"))))))
-
 (describe "projectile-related-files-fn-groups"
   (it "generate related files fn which relates members of each group as a specified kind"
     (let ((fn (projectile-related-files-fn-groups :foo '(("a.cpp" "req/a.txt" "doc/a.uml")
@@ -656,6 +643,11 @@
       (let ((result (funcall merged "src.el")))
         (expect (plist-get result :test) :to-equal '("test.el"))
         (expect (plist-get result :impl) :to-equal '("impl.el")))))
+  (it "flattens a scalar value and a list value under the same key"
+    (let* ((fn1 (lambda (_path) (list :foo "file1")))
+           (fn2 (lambda (_path) (list :foo (list "file2" "file3"))))
+           (merged (projectile--merge-related-files-fns (list fn1 fn2))))
+      (expect (funcall merged "something") :to-equal '(:foo ("file1" "file2" "file3")))))
   (it "does not mutate original function return values"
     (let* ((shared-list '("test.el"))
            (fn1 (lambda (_path) (list :test shared-list)))

@@ -27,7 +27,7 @@
 
 (require 'projectile-test-helpers)
 
-(describe "projectile-project-root"
+(describe "projectile-project-root return contract"
   (it "returns the absolute root directory of a project"
     (let* ((root-directory (make-temp-file "projectile-absolute" t))
            (root-file (concat root-directory "/.projectile"))
@@ -516,7 +516,7 @@
         (projectile-file-exists-cache-cleanup)
         (expect projectile-file-exists-cache-timer :not :to-be-truthy))))))
 
-(describe "projectile-project-root"
+(describe "projectile-project-root caching"
   (it "caches the current file"
     (projectile-test-with-sandbox
      (projectile-test-with-files
