@@ -685,8 +685,14 @@
 (describe "projectile-check-pattern-p"
   (it "matches when the file equals the pattern"
     (expect (projectile-check-pattern-p "src/foo.el" "src/foo.el") :to-be-truthy))
-  (it "matches when the pattern is a suffix of the file"
+  (it "matches when the pattern is a path suffix of the file"
     (expect (projectile-check-pattern-p "a/b/c.el" "c.el") :to-be-truthy))
+  (it "matches on a plain string suffix, not just a path-segment boundary"
+    ;; The check is `string-suffix-p', so a pattern can match across a
+    ;; segment boundary - "bar" matches "foobar".  Locking this in so the
+    ;; loose behaviour isn't changed by accident.
+    (expect (projectile-check-pattern-p "foobar" "bar") :to-be-truthy)
+    (expect (projectile-check-pattern-p "src/abc.el" "c.el") :to-be-truthy))
   (it "does not match an unrelated pattern"
     (expect (projectile-check-pattern-p "a/b/c.el" "nomatch.zzz") :to-be nil)))
 

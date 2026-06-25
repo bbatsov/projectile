@@ -109,19 +109,24 @@ You'd normally combine this with `projectile-test-with-sandbox'."
 
 ROOT is a directory name relative to the sandbox.  FILES are created
 relative to ROOT (so you don't have to repeat the root prefix).
-`projectile-project-root' is stubbed to return ROOT's absolute name for
-the duration of BODY.
+`projectile-project-root' is stubbed to return ROOT's resolved absolute
+name for the duration of BODY.
 
 This bundles the very common sandbox + files + `projectile-project-root'
-spy dance into a single form."
+spy dance into a single form.
+
+Like `projectile-test-with-files', ROOT and FILES are inspected at
+macro-expansion time and must therefore be literals, not variables."
   (declare (indent 2) (debug (sexp sexp &rest form)))
   (let* ((root-dir (file-name-as-directory root))
          (rooted (cons root-dir
                        (mapcar (lambda (f) (concat root-dir f)) files))))
     `(projectile-test-with-sandbox
        (projectile-test-with-files ,rooted
+         ;; `file-truename' so the stubbed root matches what callers get
+         ;; when they resolve paths under the (symlinked, on macOS) sandbox.
          (spy-on 'projectile-project-root
-                 :and-return-value (expand-file-name ,root-dir))
+                 :and-return-value (file-truename (expand-file-name ,root-dir)))
          ,@body))))
 
 (defmacro assert-friendly-error-when-no-project (fn)
