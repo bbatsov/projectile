@@ -2464,6 +2464,34 @@ when the option is disabled).  Both return the same list."
       (projectile--dir-files-alien-await directory vcs subdirs)
     (projectile-dir-files-alien directory vcs subdirs)))
 
+(defun projectile-project-files-producer (&optional project-root)
+  "Describe how to list PROJECT-ROOT's files with an external command.
+
+Return a plist exposing the pieces an external file finder (for example
+an asynchronous, streaming one built on `consult' or `affe') needs to
+run Projectile's own indexing command itself:
+
+  :directory  the directory the command should run in (the project root)
+  :vcs        the detected version-control system, a symbol (or `none')
+  :command    the shell command that lists the files, NUL-separated, or
+              nil when external-command indexing is disabled
+  :separator  the string that separates records in the command's output
+
+The command's output is exactly what `projectile-files-via-ext-command'
+parses.  Note that for git projects Projectile additionally folds in
+submodule files and drops deleted-but-unstaged ones (see
+`projectile-dir-files-alien'); a finder that wants byte-for-byte the same
+set as `projectile-find-file' should drive `projectile-dir-files-alien-async'
+rather than running :command directly.
+
+PROJECT-ROOT defaults to the current project."
+  (let* ((root (or project-root (projectile-acquire-root)))
+         (vcs (projectile-project-vcs root)))
+    (list :directory root
+          :vcs vcs
+          :command (projectile-get-ext-command vcs root)
+          :separator "\0")))
+
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
   (projectile-add-unignored project vcs (projectile-remove-ignored files)))
