@@ -449,6 +449,26 @@ byte-for-byte the same set as `projectile-find-file` (submodule files folded
 in, deleted-but-unstaged files removed) drive `projectile-dir-files-alien-async`
 instead.
 
+==== Bundled Consult integration
+
+Projectile ships such a finder for https://github.com/minad/consult[Consult]
+in `projectile-consult.el`. It's an optional module with a soft dependency on
+`consult` (Projectile core never loads it), so you opt in by requiring it:
+
+[source,elisp]
+----
+(require 'projectile-consult)
+(define-key projectile-command-map (kbd "f") #'projectile-consult-find-file)
+----
+
+`projectile-consult-find-file` lists the project with Projectile's own
+indexing command and streams the candidates into Consult as they arrive, so
+there's no wait for the whole project to be indexed before you can start
+typing. Because it goes through `projectile-project-files-producer`, it stays
+VCS-aware and honours the project's indexing configuration. The module
+requires Emacs 29.1+ (Consult's floor) and may be split into a standalone
+package in the future.
+
 === File exists cache
 
 Projectile does many file existence checks since that is how it identifies a
