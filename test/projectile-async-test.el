@@ -329,4 +329,34 @@ that stores into it as the async callback."
       (expect (projectile--dir-files-alien-maybe-async "/proj/") :to-equal '("async")))
     (expect 'projectile-dir-files-alien :not :to-have-been-called)))
 
+(describe "projectile-project-files-producer"
+  (it "describes the external indexing command for the project"
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -zco")
+    (let ((producer (projectile-project-files-producer "/proj/")))
+      (expect (plist-get producer :directory) :to-equal "/proj/")
+      (expect (plist-get producer :vcs) :to-equal 'git)
+      (expect (plist-get producer :command) :to-equal "git ls-files -zco")
+      (expect (plist-get producer :separator) :to-equal "\0")))
+
+  (it "passes the resolved VCS to the command builder"
+    (spy-on 'projectile-project-vcs :and-return-value 'hg)
+    (spy-on 'projectile-get-ext-command :and-return-value "hg locate -0")
+    (projectile-project-files-producer "/proj/")
+    (expect 'projectile-get-ext-command
+            :to-have-been-called-with 'hg "/proj/"))
+
+  (it "reports a nil command when external indexing is disabled"
+    (spy-on 'projectile-project-vcs :and-return-value 'none)
+    (spy-on 'projectile-get-ext-command :and-return-value nil)
+    (expect (plist-get (projectile-project-files-producer "/proj/") :command)
+            :to-be nil))
+
+  (it "defaults to the current project when no root is given"
+    (spy-on 'projectile-acquire-root :and-return-value "/current/")
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -z")
+    (expect (plist-get (projectile-project-files-producer) :directory)
+            :to-equal "/current/")))
+
 ;;; projectile-async-test.el ends here

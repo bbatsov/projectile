@@ -406,7 +406,48 @@ The asynchronous building blocks it's made of -
 `projectile-files-via-ext-command-async` and
 `projectile-dir-files-alien-async` - are public, so a streaming file finder
 (for example one built on top of `consult`) can drive Projectile's indexing
-command asynchronously and feed results into its own UI.
+command asynchronously and feed results into its own UI. See the next
+section.
+
+=== Integrating a streaming file finder
+
+If you'd rather have your own asynchronous/streaming UI (à la `fzf`,
+`consult` or `affe`) list a project's files instead of `projectile-find-file`,
+`projectile-project-files-producer` hands you everything you need to run
+Projectile's own indexing command yourself:
+
+[source,elisp]
+----
+(projectile-project-files-producer)
+;; => (:directory "/path/to/project/"
+;;     :vcs git
+;;     :command "git ls-files -zco --exclude-standard"
+;;     :separator "\0")
+----
+
+Run `:command` in `:directory` and split its output on `:separator`. A
+minimal (non-streaming) example built on the public asynchronous runner:
+
+[source,elisp]
+----
+(defun my/project-find-file ()
+  "Pick a file from the current project, indexing without blocking."
+  (interactive)
+  (let* ((producer (projectile-project-files-producer))
+         (default-directory (plist-get producer :directory)))
+    (projectile-files-via-ext-command-async
+     default-directory (plist-get producer :command)
+     (lambda (files _err)
+       (find-file (expand-file-name (completing-read "File: " files)
+                                    default-directory))))))
+----
+
+A real streaming finder would instead consume the process output
+incrementally (filtering as you type) rather than collecting it. For git
+projects, note that `:command` lists the main worktree only; if you want
+byte-for-byte the same set as `projectile-find-file` (submodule files folded
+in, deleted-but-unstaged files removed) drive `projectile-dir-files-alien-async`
+instead.
 
 === File exists cache
 
