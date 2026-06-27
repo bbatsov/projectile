@@ -214,6 +214,30 @@
     (expect 'projectile-dir-files-alien
             :to-have-been-called-with "/my/root/src/" 'git)))
 
+(describe "projectile-project-files single-directory relativization"
+  (it "returns the directory listing as-is when the only dir is the project root"
+    ;; Native (and hybrid without keep entries) walk a single directory
+    ;; that *is* the project root, so the paths come back already relative
+    ;; to it - re-relativising them against the root must be a no-op.
+    (spy-on 'projectile-dir-files :and-return-value '("src/a.el" "b.el"))
+    (spy-on 'file-relative-name)
+    (let ((projectile-indexing-method 'native)
+          (projectile-enable-caching nil)
+          (projectile-files-cache-expire nil))
+      (expect (projectile-project-files "/my/root/")
+              :to-equal '("src/a.el" "b.el"))
+      ;; The redundant per-file re-relativisation is skipped entirely.
+      (expect 'file-relative-name :not :to-have-been-called)))
+  (it "relativises against the root when the dir differs from it"
+    (spy-on 'projectile-get-project-directories
+            :and-return-value '("/my/root/src/"))
+    (spy-on 'projectile-dir-files :and-return-value '("a.el" "nested/b.el"))
+    (let ((projectile-indexing-method 'native)
+          (projectile-enable-caching nil)
+          (projectile-files-cache-expire nil))
+      (expect (projectile-project-files "/my/root/")
+              :to-equal '("src/a.el" "src/nested/b.el")))))
+
 (describe "projectile--restricted-sub-projects-files"
   (it "returns all submodule files when no subdirs are supplied"
     (spy-on 'projectile-get-sub-projects-files :and-return-value
