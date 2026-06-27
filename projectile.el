@@ -1833,9 +1833,16 @@ Files are returned as relative paths to DIRECTORY."
   (let ((progress-reporter
          (make-progress-reporter
           (format "Projectile is indexing %s"
-                  (propertize directory 'face 'font-lock-keyword-face)))))
+                  (propertize directory 'face 'font-lock-keyword-face))))
+        ;; The walker returns absolute paths that all share DIRECTORY as a
+        ;; literal prefix - `directory-files-and-attributes' expands each
+        ;; entry against the expanded directory.  Stripping that prefix with
+        ;; a single `substring' is equivalent to `file-relative-name' here
+        ;; but avoids its per-file `expand-file-name'/`abbreviate-file-name'
+        ;; cost, which otherwise dominates the post-walk step on large trees.
+        (prefix-len (length (file-name-as-directory (expand-file-name directory)))))
     ;; we need the files with paths relative to the project root
-    (mapcar (lambda (file) (file-relative-name file directory))
+    (mapcar (lambda (file) (substring file prefix-len))
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
@@ -3240,10 +3247,19 @@ is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
                   ;; equivalent to the batched call above.
                   (mapcan
                    (lambda (dir)
-                     (mapcar (lambda (f)
-                               (file-relative-name (concat dir f)
-                                                   project-root))
-                             (projectile-dir-files dir)))
+                     (let ((files (projectile-dir-files dir)))
+                       ;; `projectile-dir-files' already returns paths
+                       ;; relative to DIR, so when DIR is the project root
+                       ;; itself (the single-directory case - native, or
+                       ;; hybrid without keep entries) re-relativising every
+                       ;; path against PROJECT-ROOT is a no-op.  Skip it
+                       ;; rather than pay a `file-relative-name' per file.
+                       (if (string= dir project-root)
+                           files
+                         (mapcar (lambda (f)
+                                   (file-relative-name (concat dir f)
+                                                       project-root))
+                                 files))))
                    dirs))))))
 
       ;; Save the cached list.
