@@ -348,7 +348,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | Save all project buffers.
 
 | kbd:[s-p m]
-| Run the commander (an interface to run commands with a single key).
+| Open the Projectile dispatch menu (a `transient` interface to Projectile's commands).
 
 | kbd:[s-p x e]
 | Start or visit an `eshell` for the project.
@@ -416,78 +416,19 @@ NOTE: The `Super` keybindings are not usable in Windows, as Windows
  makes heavy use of such keybindings itself. Emacs Prelude already adds those
  extra keybindings.
 
-== Projectile Commander
+== Dispatch Menu
 
-Projectile's Commander (`projectile-commander`) is a nifty utility for those of you who are struggling to remember a lot of keybindings. It provides a simple
-interface to most of Projectile's commands via 1-character shortcuts that you
-need to press after invoking the commander (e.g. via kbd:[s-p m]).
+Projectile ships `projectile-dispatch`, a `transient` menu that mirrors
+`projectile-command-map`, for those of you who'd rather pick a command from a
+menu than memorize a lot of keybindings. Invoke it with kbd:[s-p m].
 
-The commander was created with the idea to provide a powerful project switching command (it will be triggered if you press kbd:[C-u s-p p]), but it's very useful on its own as well.
+It's also wired into project switching: press kbd:[C-u s-p p] and Projectile
+opens the dispatch menu after you select a project, so you can run any command
+in the project you just switched to.
 
-|===
-| Keybinding | Description
-| kbd:[?]
-| Commander help buffer.
-
-| kbd:[D]
-| Open project root in dired.
-
-| kbd:[R]
-| Regenerate the project's etags/gtags.
-
-| kbd:[T]
-| Find test file in project.
-
-| kbd:[V]
-| Browse dirty projects
-
-| kbd:[a]
-| Run ag on project.
-
-| kbd:[b]
-| Switch to project buffer.
-
-| kbd:[d]
-| Find directory in project.
-
-| kbd:[e]
-| Find recently visited file in project.
-
-| kbd:[f]
-| Find file in project.
-
-| kbd:[g]
-| Run grep on project.
-
-| kbd:[j]
-| Find tag in project.
-
-| kbd:[k]
-| Kill all project buffers.
-
-| kbd:[o]
-| Run multi-occur on project buffers.
-
-| kbd:[r]
-| Replace a string in the project.
-
-| kbd:[s]
-| Switch project.
-
-| kbd:[v]
-| Open project root in vc-dir or magit.
-|===
-
-You can add additional commands to the commander like this:
-
-[source,elisp]
-----
-(def-projectile-commander-method ?f
-  "Find file in project."
-  (projectile-find-file))
-----
-
-Place such snippets after ``projectile-mode``'s init code.
+NOTE: `transient` is an optional dependency (it requires Emacs 28.1+), so
+`projectile-dispatch` is only available when `transient` is installed. Without
+it kbd:[C-u s-p p] simply falls back to `projectile-switch-project-action`.
 
 == Transient Dispatch Menu
 
