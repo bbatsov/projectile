@@ -67,6 +67,9 @@
 (defvar ghostel-buffer-name)
 
 (declare-function tags-completion-table "etags")
+;; `projectile-dispatch' is defined later in this file, but only when the
+;; optional `transient' dependency is available, so forward-declare it.
+(declare-function projectile-dispatch "projectile")
 (declare-function make-term "term")
 (declare-function term-mode "term")
 (declare-function term-char-mode "term")
@@ -6983,8 +6986,8 @@ project).  Use `projectile-switch-to-most-recent-project' to jump to it.")
 (defun projectile-switch-project (&optional arg)
   "Switch to a project we have visited before.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
-With a prefix ARG invokes `projectile-commander' instead of
-`projectile-switch-project-action.'"
+With a prefix ARG invokes `projectile-dispatch' (when available) instead
+of `projectile-switch-project-action'."
   (interactive "P")
   (let ((projects (projectile-relevant-known-projects)))
     (if projects
@@ -6999,8 +7002,8 @@ With a prefix ARG invokes `projectile-commander' instead of
 (defun projectile-switch-open-project (&optional arg)
   "Switch to a project we have currently opened.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
-With a prefix ARG invokes `projectile-commander' instead of
-`projectile-switch-project-action.'"
+With a prefix ARG invokes `projectile-dispatch' (when available) instead
+of `projectile-switch-project-action'."
   (interactive "P")
   (let ((projects (projectile-relevant-open-projects)))
     (if projects
@@ -7012,7 +7015,7 @@ With a prefix ARG invokes `projectile-commander' instead of
       (user-error "There are no open projects"))))
 
 ;; The other-window/-frame switch commands reuse `projectile-switch-project'
-;; wholesale (so the dir-locals dance, prefix-arg commander, and most-recent
+;; wholesale (so the dir-locals dance, prefix-arg dispatch, and most-recent
 ;; tracking all stay in one place) and just rebind the post-switch action
 ;; around it.  This relies on the completion framework invoking its action
 ;; synchronously, which the supported ones (default, vertico, ivy, helm) do.
@@ -7023,8 +7026,8 @@ With a prefix ARG invokes `projectile-commander' instead of
 Like `projectile-switch-project', but runs
 `projectile-switch-project-other-window-action' (by default
 `projectile-find-file-other-window') after switching, so the project is
-shown in another window.  With a prefix ARG invokes `projectile-commander'
-instead."
+shown in another window.  With a prefix ARG invokes `projectile-dispatch'
+(when available) instead."
   (interactive "P")
   (let ((projectile-switch-project-action projectile-switch-project-other-window-action))
     (projectile-switch-project arg)))
@@ -7036,8 +7039,8 @@ instead."
 Like `projectile-switch-project', but runs
 `projectile-switch-project-other-frame-action' (by default
 `projectile-find-file-other-frame') after switching, so the project is
-shown in another frame.  With a prefix ARG invokes `projectile-commander'
-instead."
+shown in another frame.  With a prefix ARG invokes `projectile-dispatch'
+(when available) instead."
   (interactive "P")
   (let ((projectile-switch-project-action projectile-switch-project-other-frame-action))
     (projectile-switch-project arg)))
@@ -7048,7 +7051,8 @@ instead."
 That's the project that was current before the most recent project
 switch, so calling this from a buffer in the switched-to project takes
 you back where you came from.  With a prefix ARG invokes
-`projectile-commander' instead of `projectile-switch-project-action'."
+`projectile-dispatch' (when available) instead of
+`projectile-switch-project-action'."
   (interactive "P")
   (if projectile-most-recent-project
       (projectile-switch-project-by-name projectile-most-recent-project arg)
@@ -7057,8 +7061,8 @@ you back where you came from.  With a prefix ARG invokes
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
-With a prefix ARG invokes `projectile-commander' instead of
-`projectile-switch-project-action.'"
+With a prefix ARG invokes `projectile-dispatch' (when available) instead
+of `projectile-switch-project-action'."
   ;; let's make sure that the target directory exists and is actually a project
   ;; we ignore remote folders, as the check breaks for TRAMP unless already connected
   (unless (or (file-remote-p project-to-switch) (projectile-project-p project-to-switch))
@@ -7068,8 +7072,8 @@ With a prefix ARG invokes `projectile-commander' instead of
   ;; points at it after the switch (captured before `default-directory' is
   ;; rebound below).
   (let ((previous-project (projectile-project-root))
-        (switch-project-action (if arg
-                                   'projectile-commander
+        (switch-project-action (if (and arg (fboundp 'projectile-dispatch))
+                                   'projectile-dispatch
                                  projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
     (let* ((default-directory project-to-switch)
@@ -7367,128 +7371,6 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
     (projectile-ibuffer-by-project project-root)))
 
 
-;;;; projectile-commander
-
-(defconst projectile-commander-help-buffer "*Projectile Commander Help*")
-
-(defvar projectile-commander-methods nil
-  "List of file-selection methods for the `projectile-commander' command.
-Each element is a list (KEY DESCRIPTION FUNCTION).
-DESCRIPTION is a one-line description of what the key selects.")
-
-;;;###autoload
-(defun projectile-commander ()
-  "Execute a Projectile command with a single letter.
-The user is prompted for a single character indicating the action to invoke.
-The `?' character describes the
-available actions.
-
-See `def-projectile-commander-method' for defining new methods."
-  (interactive)
-  (let* ((choices (mapcar #'car projectile-commander-methods))
-         (prompt (concat "Select Projectile command [" choices "]: "))
-         (ch (read-char-choice prompt choices))
-         (fn (caddr (assq ch projectile-commander-methods))))
-    (funcall fn)))
-
-(defmacro def-projectile-commander-method (key description &rest body)
-  "Define a new `projectile-commander' method.
-
-KEY is the key the user will enter to choose this method.
-
-DESCRIPTION is a one-line sentence describing the method.
-
-BODY is a series of forms which are evaluated when the method
-is chosen."
-  (let ((method `(lambda ()
-                   ,@body)))
-    `(setq projectile-commander-methods
-           (seq-sort (lambda (a b) (< (car a) (car b)))
-                     (cons (list ,key ,description ,method)
-                           (assq-delete-all ,key projectile-commander-methods))))))
-
-(def-projectile-commander-method ?? "Commander help buffer."
-  (ignore-errors (kill-buffer projectile-commander-help-buffer))
-  (with-current-buffer (get-buffer-create projectile-commander-help-buffer)
-    (insert "Projectile Commander Methods:\n\n")
-    (dolist (met projectile-commander-methods)
-      (insert (format "%c:\t%s\n" (car met) (cadr met))))
-    (goto-char (point-min))
-    (help-mode)
-    (display-buffer (current-buffer) t))
-  (projectile-commander))
-
-(defun projectile-commander-bindings ()
-  "Setup the keybindings for the Projectile Commander."
-  (def-projectile-commander-method ?f
-    "Find file in project."
-    (projectile-find-file))
-
-  (def-projectile-commander-method ?T
-    "Find test file in project."
-    (projectile-find-test-file))
-
-  (def-projectile-commander-method ?b
-    "Switch to project buffer."
-    (projectile-switch-to-buffer))
-
-  (def-projectile-commander-method ?d
-    "Find directory in project."
-    (projectile-find-dir))
-
-  (def-projectile-commander-method ?D
-    "Open project root in dired."
-    (projectile-dired))
-
-  (def-projectile-commander-method ?v
-    "Open project root in vc-dir or magit."
-    (projectile-vc))
-
-  (def-projectile-commander-method ?V
-    "Browse dirty projects"
-    (projectile-browse-dirty-projects))
-
-  (def-projectile-commander-method ?r
-    "Replace a string in the project."
-    (projectile-replace))
-
-  (def-projectile-commander-method ?R
-    "Regenerate the project's [e|g]tags."
-    (projectile-regenerate-tags))
-
-  (def-projectile-commander-method ?g
-    "Run grep on project."
-    (projectile-grep))
-
-  (def-projectile-commander-method ?p
-    "Run ripgrep on project."
-    (call-interactively #'projectile-ripgrep))
-
-  (def-projectile-commander-method ?a
-    "Run ag on project."
-    (call-interactively #'projectile-ag))
-
-  (def-projectile-commander-method ?s
-    "Switch project."
-    (projectile-switch-project))
-
-  (def-projectile-commander-method ?o
-    "Run multi-occur on project buffers."
-    (projectile-multi-occur))
-
-  (def-projectile-commander-method ?j
-    "Find tag in project."
-    (projectile-find-tag))
-
-  (def-projectile-commander-method ?k
-    "Kill all project buffers."
-    (projectile-kill-buffers))
-
-  (def-projectile-commander-method ?e
-    "Find recently visited file in project."
-    (projectile-recentf)))
-
-
 ;;; Dirty (modified) project check related functionality
 (defun projectile-check-vcs-status (&optional project-path)
   "Check the status of the current project.
@@ -7705,7 +7587,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "j") #'projectile-find-tag)
     (define-key map (kbd "k") #'projectile-kill-buffers)
     (define-key map (kbd "l") #'projectile-find-file-in-directory)
-    (define-key map (kbd "m") #'projectile-commander)
+    (define-key map (kbd "m") #'projectile-dispatch)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
@@ -7795,7 +7677,6 @@ Magit that don't trigger `find-file-hook'."
       ("p" "switch project" projectile-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
       ("A" "add known project" projectile-add-known-project)
-      ("m" "commander" projectile-commander)
       ("V" "browse dirty projects" projectile-browse-dirty-projects)
       ("v" "vc" projectile-vc)]
      ["Lifecycle"
@@ -8046,8 +7927,6 @@ Otherwise behave as if called interactively.
   :global t
   (cond
    (projectile-mode
-    ;; setup the commander bindings
-    (projectile-commander-bindings)
     (add-hook 'project-find-functions #'project-projectile)
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
