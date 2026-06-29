@@ -835,29 +835,6 @@ count.
 Note that special project buffers (e.g. compilation, `dired`, etc) are not
 affected by this setting.
 
-== Tags
-
-To be able to regenerate a project's tags via `projectile-tags-command`, you
-should install and add to the PATH
-http://ctags.sourceforge.net/[Exuberant Ctags] instead of a plain ctags, which
-ships with Emacs distribution.
-
-You can customize the tags filename and the backend used for tag navigation:
-
-[source,elisp]
-----
-;; The name of the tags file (default: "TAGS")
-(setq projectile-tags-file-name "TAGS")
-
-;; Tag backend for projectile-find-tag
-;; Options: 'auto, 'xref, 'ggtags, 'etags-select, 'find-tag
-(setq projectile-tags-backend 'auto)
-----
-
-When set to `auto` (the default), `projectile-find-tag` will choose a backend
-automatically with the following preference order: ggtags -> xref ->
-etags-select -> `find-tag`.
-
 == Mode line indicator
 
 By default the minor mode indicator of Projectile appears in the form

@@ -38,7 +38,6 @@
 (assert-friendly-error-when-no-project projectile-grep)
 (assert-friendly-error-when-no-project projectile-ibuffer)
 (assert-friendly-error-when-no-project projectile-project-buffers-other-buffer)
-(assert-friendly-error-when-no-project projectile-regenerate-tags)
 (assert-friendly-error-when-no-project projectile-remove-current-project-from-known-projects)
 (assert-friendly-error-when-no-project projectile-switch-to-buffer)
 (assert-friendly-error-when-no-project projectile-switch-to-buffer-other-frame)

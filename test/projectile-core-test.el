@@ -87,17 +87,6 @@
     (expect (projectile-expand-file-name-wildcard "*" "/path/to/project-b")
             :to-equal "/path/to/project-b/*")))
 
-(describe "projectile-determine-find-tag-fn"
-  (it "falls back to xref-find-definitions when ggtags backend is unavailable"
-    (let ((projectile-tags-backend 'ggtags))
-      (expect (projectile-determine-find-tag-fn) :to-equal 'xref-find-definitions)))
-  (it "falls back to xref-find-definitions when etags-select backend is unavailable"
-    (let ((projectile-tags-backend 'etags-select))
-      (expect (projectile-determine-find-tag-fn) :to-equal 'xref-find-definitions)))
-  (it "returns xref-find-definitions for auto backend without ggtags"
-    (let ((projectile-tags-backend 'auto))
-      (expect (projectile-determine-find-tag-fn) :to-equal 'xref-find-definitions))))
-
 (describe "projectile-mode"
   (before-each
     (spy-on 'projectile--cleanup-known-projects)
@@ -107,11 +96,6 @@
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
     (projectile-mode -1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
-
-(describe "projectile-tags-exclude-patterns"
-  (it "returns a string with exclude patterns for ctags"
-    (spy-on 'projectile-ignored-directories-rel :and-return-value (list ".git/" ".hg/"))
-    (expect (projectile-tags-exclude-patterns) :to-equal "--exclude=\".git\" --exclude=\".hg\"")))
 
 (describe "projectile-default-mode-line"
   (it "includes the project name and type when in a project"

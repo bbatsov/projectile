@@ -266,12 +266,6 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p i]
 | Invalidates the project cache (if existing).
 
-| kbd:[s-p R]
-| Regenerates the projects `TAGS` file.
-
-| kbd:[s-p j]
-| Find tag in project's `TAGS` file.
-
 | kbd:[s-p k]
 | Kills all project buffers.
 
