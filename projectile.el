@@ -978,16 +978,6 @@ fails with an authentication error.  See URL
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-vcs-dirty-state '("edited" "unregistered" "needs-update" "needs-merge" "unlocked-changes" "conflict")
-  "List of states checked by `projectile-browse-dirty-projects'.
-Possible checked states are:
-\"edited\", \"unregistered\", \"needs-update\", \"needs-merge\",
-\"unlocked-changes\" and \"conflict\",
-as defined in `vc.el'."
-  :group 'projectile
-  :type '(repeat (string))
-  :package-version '(projectile . "1.0.0"))
-
 (defcustom projectile-other-file-alist
   '( ;; handle C/C++ extensions
     ("cpp" . ("h" "hpp" "ipp"))
@@ -7335,67 +7325,6 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
     (projectile-ibuffer-by-project project-root)))
 
 
-;;; Dirty (modified) project check related functionality
-(defun projectile-check-vcs-status (&optional project-path)
-  "Check the status of the current project.
-If PROJECT-PATH is a project, check this one instead."
-  (let ((project-path (or project-path (projectile-acquire-root)))
-        (project-status nil))
-    (save-excursion
-      (vc-dir project-path)
-      ;; wait until vc-dir is done (with a 30s timeout to avoid freezing)
-      (let ((deadline (time-add (current-time) 30)))
-        (while (and (vc-dir-busy) (time-less-p (current-time) deadline))
-          (sleep-for 0.1)))
-      ;; check for status
-      (save-excursion
-        (save-match-data
-          (dolist (check projectile-vcs-dirty-state)
-            (goto-char (point-min))
-            (when (search-forward check nil t)
-              (setq project-status (cons check project-status))))))
-      (kill-buffer)
-      project-status)))
-
-(defvar projectile-cached-dirty-projects-status nil
-  "Cache of the last dirty projects check.")
-
-(defun projectile-check-vcs-status-of-known-projects ()
-  "Return the list of dirty projects.
-The list is composed of sublists~: (project-path, project-status).
-Raise an error if there is no dirty project."
-  (save-window-excursion
-    (message "Checking for modifications in known projects...")
-    (let ((projects projectile-known-projects)
-          (status ()))
-      (dolist (project projects)
-        (when (and (projectile-keep-project-p project) (not (eq 'none (projectile-project-vcs project))))
-          (let ((tmp-status (projectile-check-vcs-status project)))
-            (when tmp-status
-              (setq status (cons (list project tmp-status) status))))))
-      (when (= (length status) 0)
-        (message "No dirty projects have been found"))
-      (setq projectile-cached-dirty-projects-status status)
-      status)))
-
-;;;###autoload
-(defun projectile-browse-dirty-projects (&optional cached)
-  "Browse dirty version controlled projects.
-
-With a prefix argument, or if CACHED is non-nil, try to use the cached
-dirty project list."
-  (interactive "P")
-  (let ((status (if (and cached projectile-cached-dirty-projects-status)
-                    projectile-cached-dirty-projects-status
-                  (projectile-check-vcs-status-of-known-projects)))
-        (mod-proj nil))
-    (while (not (= (length status) 0))
-      (setq mod-proj (cons (car (pop status)) mod-proj)))
-    (projectile-completing-read "Select project: " mod-proj
-                                :action 'projectile-vc
-                                :caller 'projectile-read-project)))
-
-
 ;;; Find next/previous project buffer
 (defun projectile--repeat-until-project-buffer (orig-fun &rest args)
   "Repeat ORIG-FUN with ARGS until the current buffer is a project buffer."
@@ -7565,7 +7494,6 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
     (define-key map (kbd "T") #'projectile-find-test-file)
     (define-key map (kbd "v") #'projectile-vc)
-    (define-key map (kbd "V") #'projectile-browse-dirty-projects)
     ;; project lifecycle external commands
     (define-key map (kbd "c o") #'projectile-configure-project)
     (define-key map (kbd "c c") #'projectile-compile-project)
@@ -7641,7 +7569,6 @@ Magit that don't trigger `find-file-hook'."
       ("p" "switch project" projectile-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
       ("A" "add known project" projectile-add-known-project)
-      ("V" "browse dirty projects" projectile-browse-dirty-projects)
       ("v" "vc" projectile-vc)]
      ["Lifecycle"
       ("cc" "compile" projectile-compile-project)
@@ -7721,7 +7648,6 @@ Magit that don't trigger `find-file-hook'."
          "--"
          ["Open project in dired" projectile-dired]
          "--"
-         ["Browse dirty projects" projectile-browse-dirty-projects]
          "--"
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
