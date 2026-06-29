@@ -9,6 +9,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Run inside the prebuilt silex/emacs images (Eldev baked in) instead of
+    # installing Emacs via Nix.  The Nix-based setup resolves nix-emacs-ci
+    # through unauthenticated GitHub API calls, which get throttled (HTTP 429)
+    # on busy shared runners; the images are pulled from Docker Hub instead.
+    # The matrix labels stay as-is (so the check names don't change); only the
+    # `snapshot' label maps to the image's `master' tag.
+    container: silex/emacs:${{ matrix.emacs_version == 'snapshot' && 'master' || matrix.emacs_version }}-ci-eldev
     continue-on-error: ${{matrix.emacs_version == 'snapshot'}}
 
     strategy:
@@ -17,14 +24,6 @@ jobs:
         emacs_version: ['27.2', '28.2', '29.4', '30.2', 'snapshot']
 
     steps:
-    - name: Set up Emacs
-      uses: purcell/setup-emacs@master
-      with:
-        version: ${{matrix.emacs_version}}
-
-    - name: Install Eldev
-      run: curl -fsSL https://raw.github.com/doublep/eldev/master/webinstall/github-eldev | sh
-
     - name: Check out the source code
       uses: actions/checkout@v6
 
