@@ -60,7 +60,14 @@ answer from a previous test would otherwise still be live."
   `(let ((sandbox (expand-file-name
                    (convert-standard-filename "test/sandbox/")
                    (file-name-directory (locate-library "projectile.el" t))))
-         (projectile-project-vcs-cache (make-hash-table :test 'equal)))
+         (projectile-project-vcs-cache (make-hash-table :test 'equal))
+         ;; The sandbox path is reused across tests, so repeatedly writing
+         ;; the same files (e.g. `.projectile') can trip Emacs's file-lock
+         ;; supersession machinery on some builds - it calls
+         ;; `expand-file-name' on the non-file-visiting temp buffer's nil
+         ;; `buffer-file-name' and errors out.  We never want lock files in
+         ;; the throwaway sandbox anyway.
+         (create-lockfiles nil))
      (when (file-directory-p sandbox)
        (delete-directory sandbox t))
      (make-directory sandbox t)
