@@ -35,6 +35,17 @@
 (require 'projectile)
 (require 'buttercup)
 
+;; The sandbox rewrites the same paths (e.g. `.projectile') repeatedly.  On
+;; some Emacs builds `write-region' then decides the file changed on disk and
+;; raises a supersession threat, which in batch mode can't be answered and
+;; aborts the test with "Cannot resolve conflict in batch mode".  Neutralise
+;; the prompt for the test run; the function name differs across Emacs
+;; versions, so override whichever is bound.
+(dolist (fn '(ask-user-about-supersession-threat
+              userlock--ask-user-about-supersession-threat))
+  (when (fboundp fn)
+    (advice-add fn :override #'ignore)))
+
 ;; Useful debug information
 (message "Running tests on Emacs %s" emacs-version)
 
