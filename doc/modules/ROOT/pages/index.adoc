@@ -47,7 +47,6 @@ Here are some of Projectile's features in no particular order:
 * multi-occur in project buffers
 * grep (search) in project (this supports multiple back-ends like `ag`, `rg`, etc)
 * find references in project (using `xref` internally)
-* regenerate project etags or gtags (requires https://github.com/leoliu/ggtags[ggtags]).
 * visit project in `dired`
 * run `make` in a project with a single key chord
 * support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)

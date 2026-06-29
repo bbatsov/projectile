@@ -56,8 +56,6 @@
 (defvar ivy-mode)
 (defvar helm-mode)
 (defvar ag-ignore-list)
-(defvar ggtags-completion-table)
-(defvar tags-completion-table)
 (defvar eshell-buffer-name)
 (defvar explicit-shell-file-name)
 (defvar grep-files-aliases)
@@ -66,7 +64,6 @@
 (defvar eat-buffer-name)
 (defvar ghostel-buffer-name)
 
-(declare-function tags-completion-table "etags")
 ;; `projectile-dispatch' is defined later in this file, but only when the
 ;; optional `transient' dependency is available, so forward-declare it.
 (declare-function projectile-dispatch "projectile")
@@ -82,8 +79,6 @@
 (declare-function tramp-archive-file-name-archive "tramp-archive")
 (declare-function helm-grep-get-file-extensions "helm-grep")
 
-(declare-function ggtags-ensure-project "ext:ggtags")
-(declare-function ggtags-update-tags "ext:ggtags")
 (declare-function ripgrep-regexp "ext:ripgrep")
 (declare-function rg-run "ext:rg")
 (declare-function vterm "ext:vterm")
@@ -301,36 +296,11 @@ It's relative to the project root."
   :type 'string)
 
 (defcustom projectile-tags-file-name "TAGS"
-  "The tags filename Projectile's going to use."
+  "The name of the tags file Projectile excludes from indexing.
+Listed in `projectile-globally-ignored-files' so a generated tags
+file doesn't show up among the project files."
   :group 'projectile
   :type 'string)
-
-(defcustom projectile-tags-command "ctags -Re -f \"%s\" %s \"%s\""
-  "The command Projectile's going to use to generate a TAGS file."
-  :group 'projectile
-  :type 'string)
-
-(defcustom projectile-tags-backend 'auto
-  "The tag backend that Projectile should use.
-
-If set to `auto', `projectile-find-tag' will automatically choose
-which backend to use.  Preference order is ggtags -> xref
--> etags-select -> `find-tag'.  Variable can also be set to specify which
-backend to use.  If selected backend is unavailable, fall back to
-`find-tag'.
-
-If this variable is set to `auto' and ggtags is available, or if
-set to `ggtags', then ggtags will be used for
-`projectile-regenerate-tags'.  For all other settings
-`projectile-tags-command' will be used."
-  :group 'projectile
-  :type '(radio
-          (const :tag "auto" auto)
-          (const :tag "xref" xref)
-          (const :tag "ggtags" ggtags)
-          (const :tag "etags" etags-select)
-          (const :tag "standard" find-tag))
-  :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files.
@@ -5625,80 +5595,6 @@ project root."
       (xref--show-xrefs fetcher nil))
      (t (error "No suitable xref display function available")))))
 
-(defun projectile-tags-exclude-patterns ()
-  "Return a string with exclude patterns for ctags."
-  (mapconcat (lambda (pattern) (format "--exclude=\"%s\""
-                                       (directory-file-name pattern)))
-             (append
-              (projectile-ignored-directories-rel)
-              (projectile-patterns-to-ignore)) " "))
-
-;;;###autoload
-(defun projectile-regenerate-tags ()
-  "Regenerate the project's [e|g]tags."
-  (interactive)
-  (if (and (boundp 'ggtags-mode)
-           (memq projectile-tags-backend '(auto ggtags)))
-      (progn
-        (let* ((ggtags-project-root (projectile-acquire-root))
-               (default-directory ggtags-project-root))
-          (ggtags-ensure-project)
-          (ggtags-update-tags t)))
-    (let* ((project-root (projectile-acquire-root))
-           (tags-exclude (projectile-tags-exclude-patterns))
-           (default-directory project-root)
-           (tags-file (expand-file-name projectile-tags-file-name))
-           (command (format projectile-tags-command
-                            (or (file-remote-p tags-file 'localname) tags-file)
-                            tags-exclude
-                            "."))
-           shell-output exit-code)
-      (with-temp-buffer
-        (setq exit-code
-              (process-file-shell-command command nil (current-buffer))
-              shell-output (string-trim
-                            (buffer-substring (point-min) (point-max)))))
-      (unless (zerop exit-code)
-        (error shell-output))
-      (visit-tags-table tags-file)
-      (message "Regenerated %s" tags-file))))
-
-(defun projectile-visit-project-tags-table ()
-  "Visit the current project's tags table."
-  (when (projectile-project-p)
-    (let ((tags-file (projectile-expand-root projectile-tags-file-name)))
-      (when (file-exists-p tags-file)
-        (with-demoted-errors "Error loading tags-file: %s"
-          (visit-tags-table tags-file t))))))
-
-(defun projectile-determine-find-tag-fn ()
-  "Determine which function to use for a call to `projectile-find-tag'."
-  (or
-   (cond
-    ((eq projectile-tags-backend 'auto)
-     (cond
-      ((fboundp 'ggtags-find-tag-dwim)
-       'ggtags-find-tag-dwim)
-      (t 'xref-find-definitions)))
-    ((eq projectile-tags-backend 'xref)
-     'xref-find-definitions)
-    ((eq projectile-tags-backend 'ggtags)
-     (when (fboundp 'ggtags-find-tag-dwim)
-       'ggtags-find-tag-dwim))
-    ((eq projectile-tags-backend 'etags-select)
-     (when (fboundp 'etags-select-find-tag)
-       'etags-select-find-tag)))
-   'xref-find-definitions))
-
-;;;###autoload
-(defun projectile-find-tag ()
-  "Find tag in project."
-  (interactive)
-  (projectile-visit-project-tags-table)
-  ;; Auto-discover the user's preference for tags
-  (let ((find-tag-fn (projectile-determine-find-tag-fn)))
-    (call-interactively find-tag-fn)))
-
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
   (declare (debug t) (indent 1))
@@ -6029,7 +5925,7 @@ files in the project."
 
 ;;;###autoload
 (defun projectile-replace (&optional arg)
-  "Replace literal string in project using non-regexp `tags-query-replace'.
+  "Replace a literal string in the project's files.
 
 With a prefix argument ARG prompts you for a directory and file name patterns
 on which to run the replacement."
@@ -6062,7 +5958,7 @@ on which to run the replacement."
 
 ;;;###autoload
 (defun projectile-replace-regexp (&optional arg)
-  "Replace a regexp in the project using `tags-query-replace'.
+  "Replace a regexp in the project's files.
 
 With a prefix argument ARG prompts you for a directory on which
 to run the replacement."
@@ -7477,7 +7373,6 @@ Magit that don't trigger `find-file-hook'."
     ;; (define-key projectile-command-map (kbd "h") #'helm-projectile)
     (define-key map (kbd "i") #'projectile-invalidate-cache)
     (define-key map (kbd "I") #'projectile-ibuffer)
-    (define-key map (kbd "j") #'projectile-find-tag)
     (define-key map (kbd "k") #'projectile-kill-buffers)
     (define-key map (kbd "l") #'projectile-find-file-in-directory)
     (define-key map (kbd "m") #'projectile-dispatch)
@@ -7485,7 +7380,6 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
     (define-key map (kbd "r") #'projectile-replace)
-    (define-key map (kbd "R") #'projectile-regenerate-tags)
     (define-key map (kbd "s g") #'projectile-grep)
     (define-key map (kbd "s r") #'projectile-ripgrep)
     (define-key map (kbd "s s") #'projectile-ag)
@@ -7562,9 +7456,7 @@ Magit that don't trigger `find-file-hook'."
       ("sr" "ripgrep" projectile-ripgrep)
       ("sx" "references" projectile-find-references)
       ("o" "multi-occur" projectile-multi-occur)
-      ("r" "replace" projectile-replace)
-      ("j" "find tag" projectile-find-tag)
-      ("R" "regenerate tags" projectile-regenerate-tags)]]
+      ("r" "replace" projectile-replace)]]
     [["Project"
       ("p" "switch project" projectile-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
@@ -7652,7 +7544,6 @@ Magit that don't trigger `find-file-hook'."
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
          ["Discard project root cache" projectile-discard-root-cache]
-         ["Regenerate [e|g]tags" projectile-regenerate-tags]
          "--"
          ["Toggle project wide read-only" projectile-toggle-project-read-only]
          ["Edit .dir-locals.el" projectile-edit-dir-locals]
@@ -7692,12 +7583,11 @@ Magit that don't trigger `find-file-hook'."
   "Called by `find-file-hook' when `projectile-mode' is on.
 
 For remote (TRAMP) buffers the slow operations are skipped: the
-mode-line update probes many project-type markers on cold cache, and
-visiting the tags table stats (and possibly loads) a remote file on
-every visit.  The cheap operations - caching the visited file,
-registering the project as a known project, and the open-buffer-count
-cap - run regardless of remoteness; they were previously skipped only
-because the original blanket guard was overly broad."
+mode-line update probes many project-type markers on cold cache.  The
+cheap operations - caching the visited file, registering the project as
+a known project, and the open-buffer-count cap - run regardless of
+remoteness; they were previously skipped only because the original
+blanket guard was overly broad."
   (let ((remote (file-remote-p default-directory)))
     (projectile-maybe-limit-project-file-buffers)
     (when projectile-auto-update-cache
@@ -7705,8 +7595,7 @@ because the original blanket guard was overly broad."
     (projectile-track-known-projects-find-file-hook)
     (unless remote
       (when projectile-dynamic-mode-line
-        (projectile-update-mode-line))
-      (projectile-visit-project-tags-table))))
+        (projectile-update-mode-line)))))
 
 (defun projectile-maybe-limit-project-file-buffers ()
   "Limit the opened file buffers for a project.
