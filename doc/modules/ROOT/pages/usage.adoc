@@ -236,9 +236,6 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
 
-| kbd:[s-p V]
-| Browse dirty version controlled projects.
-
 | kbd:[s-p b]
 | Display a list of all project buffers currently open.
 

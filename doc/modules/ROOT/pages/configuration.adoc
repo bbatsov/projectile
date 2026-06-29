@@ -900,25 +900,6 @@ uses the project root directory name, but you can provide your own:
 NOTE: If the variable `projectile-project-name` is set (e.g. via
 `.dir-locals.el`), it takes precedence over the function.
 
-== Dirty projects
-
-`projectile-browse-dirty-projects` (kbd:[s-p V]) shows projects with
-uncommitted VCS changes.  The variable `projectile-vcs-dirty-state` controls
-which VC states are considered dirty:
-
-[source,elisp]
-----
-;; Default value — all states
-(setq projectile-vcs-dirty-state
-  '("edited" "unregistered" "needs-update" "needs-merge"
-    "unlocked-changes" "conflict"))
-
-;; Only consider edited and unregistered files as dirty
-(setq projectile-vcs-dirty-state '("edited" "unregistered"))
-----
-
-The possible states are those defined in `vc.el`.
-
 == Hooks
 
 Projectile provides several hooks for integrating with your workflow:
