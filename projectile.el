@@ -708,42 +708,6 @@ type when `projectile-toggle-between-implementation-and-test' is used."
   :group 'projectile
   :type 'string)
 
-
-;;; Idle Timer
-(defvar projectile-idle-timer nil
-  "The timer object created when `projectile-enable-idle-timer' is non-nil.")
-
-(defcustom projectile-idle-timer-seconds 30
-  "The idle period to use when `projectile-enable-idle-timer' is non-nil."
-  :group 'projectile
-  :type 'number)
-
-(defcustom projectile-idle-timer-hook '(projectile-regenerate-tags)
-  "The hook run when `projectile-enable-idle-timer' is non-nil."
-  :group 'projectile
-  :type '(repeat symbol))
-
-(defcustom projectile-enable-idle-timer nil
-  "Enables idle timer hook `projectile-idle-timer-functions'.
-
-When `projectile-enable-idle-timer' is non-nil, the hook
-`projectile-idle-timer-hook' is run each time Emacs has been idle
-for `projectile-idle-timer-seconds' seconds and we're in a
-project."
-  :group 'projectile
-  :set (lambda (symbol value)
-         (set symbol value)
-         (when projectile-idle-timer
-           (cancel-timer projectile-idle-timer))
-         (setq projectile-idle-timer nil)
-         (when projectile-enable-idle-timer
-           (setq projectile-idle-timer (run-with-idle-timer
-                                        projectile-idle-timer-seconds t
-                                        (lambda ()
-                                          (when (projectile-project-p)
-                                            (run-hooks 'projectile-idle-timer-hook)))))))
-  :type 'boolean)
-
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
 
