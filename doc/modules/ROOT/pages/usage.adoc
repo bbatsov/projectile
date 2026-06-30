@@ -470,7 +470,13 @@ helpful commands like `xref-find-references` (kbd:[M-?]), so it's useful to teac
 it about Projectile's project discovery logic.
 
 TIP: Projectile provides its own alternative to `xref-find-references` that's named
-`projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s-x]) and is using `xref` internally.
+`projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s-x]). It's a backend-agnostic
+*textual* search: it greps the project for the symbol, scoped to the project root and
+honouring Projectile's ignore configuration (`.projectile' and the globally-ignored
+files/directories), just like `projectile-grep` and friends. Use it when you don't have
+a language server or tags table set up; otherwise `xref-find-references` gives you
+semantic results (and is scoped to the Projectile project too, thanks to the
+`project.el' integration above).
 
 You can disable the `project.el` integration like this:
 

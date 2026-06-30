@@ -88,6 +88,8 @@
 (declare-function eat "ext:eat")
 (declare-function eat-other-window "ext:eat")
 (declare-function ghostel "ext:ghostel")
+(declare-function xref-show-xrefs "xref")
+(declare-function xref-matches-in-directory "xref")
 
 
 ;;; Customization
@@ -5611,21 +5613,62 @@ installed to work."
                    args))
           (t (error "Packages `ripgrep' and `rg' are not available")))))
 
-(defun projectile-find-references (&optional symbol)
-  "Find all references to SYMBOL in the current project.
+(defun projectile--project-ignore-globs (root)
+  "Return ROOT's ignore patterns as globs in `project-ignores' format.
+Derived from Projectile's ignore configuration: globally ignored
+directory names and file suffixes match at any depth, while the
+files and directories ignored via the project's dirconfig
+\(`.projectile') are rooted at ROOT with a leading `./'."
+  (let ((default-directory root))
+    (append
+     ;; globally ignored directory names, matched at any depth
+     (mapcar (lambda (name)
+               (concat (directory-file-name name) "/"))
+             (projectile-globally-ignored-directory-names))
+     ;; globally ignored files, matched at any depth
+     (copy-sequence projectile-globally-ignored-files)
+     ;; globally ignored file suffixes as globs, e.g. "*.elc"
+     (projectile--globally-ignored-file-suffixes-glob)
+     ;; dirconfig patterns, matched by base name at any depth
+     (projectile-patterns-to-ignore)
+     ;; dirconfig ignored directories, rooted at the project root
+     (mapcar (lambda (dir)
+               (concat "./" (file-relative-name (directory-file-name dir)) "/"))
+             (projectile-project-ignored-directories))
+     ;; dirconfig ignored files, rooted at the project root
+     (mapcar (lambda (file)
+               (concat "./" (file-relative-name file)))
+             (projectile-project-ignored-files)))))
 
-A thin wrapper around `xref-references-in-directory' scoped to the
-project root."
+(defun projectile-find-references (&optional symbol)
+  "Find textual references to SYMBOL across the current project.
+
+SYMBOL defaults to the active region or the symbol at point.  The search
+is scoped to the project root and honours Projectile's ignore
+configuration (`.projectile' and the globally-ignored files and
+directories), like Projectile's other search commands.
+
+This is a backend-agnostic textual search (it greps the project for
+SYMBOL).  For semantic references from a language server or tags table,
+use the built-in `xref-find-references', which is scoped to the
+Projectile project too when `projectile-mode' is enabled."
   (interactive)
+  (require 'xref)
   (let* ((project-root (projectile-acquire-root))
-         (symbol (or symbol (read-from-minibuffer "Lookup in project: " (projectile-symbol-at-point))))
-         (fetcher (lambda () (xref-references-in-directory symbol project-root))))
-    (cond
-     ((fboundp 'xref-show-xrefs)
-      (xref-show-xrefs fetcher nil))
-     ((fboundp 'xref--show-xrefs)
-      (xref--show-xrefs fetcher nil))
-     (t (error "No suitable xref display function available")))))
+         (symbol (or symbol
+                     (read-string
+                      (projectile-prepend-project-name "Find references to: ")
+                      (projectile-symbol-or-selection-at-point))))
+         (ignores (projectile--project-ignore-globs project-root))
+         ;; `xref-matches-in-directory' greps for the pattern (honouring
+         ;; IGNORES) and re-matches it in-buffer to pin down columns, so a
+         ;; plain quoted symbol is the portable choice: symbol/word-boundary
+         ;; constructs (`\\_<', `\\b') don't survive the translation to the
+         ;; platform grep.
+         (regexp (regexp-quote symbol))
+         (fetcher (lambda ()
+                    (xref-matches-in-directory regexp "*" project-root ignores))))
+    (xref-show-xrefs fetcher nil)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
@@ -7690,26 +7733,7 @@ leading `./'."
   ;; NOTE: Use the project root (the cdr) directly rather than
   ;; `project-root', which doesn't exist on Emacs 27 (project.el provided
   ;; `project-roots' there instead).
-  (let ((default-directory (cdr project)))
-    (append
-     ;; globally ignored directory names, matched at any depth
-     (mapcar (lambda (name)
-               (concat (directory-file-name name) "/"))
-             (projectile-globally-ignored-directory-names))
-     ;; globally ignored files, matched at any depth
-     (copy-sequence projectile-globally-ignored-files)
-     ;; globally ignored file suffixes as globs, e.g. "*.elc"
-     (projectile--globally-ignored-file-suffixes-glob)
-     ;; dirconfig patterns, matched by base name at any depth
-     (projectile-patterns-to-ignore)
-     ;; dirconfig ignored directories, rooted at the project root
-     (mapcar (lambda (dir)
-               (concat "./" (file-relative-name (directory-file-name dir)) "/"))
-             (projectile-project-ignored-directories))
-     ;; dirconfig ignored files, rooted at the project root
-     (mapcar (lambda (file)
-               (concat "./" (file-relative-name file)))
-             (projectile-project-ignored-files)))))
+  (projectile--project-ignore-globs (cdr project)))
 
 ;;;###autoload
 (defun project-projectile (dir)
