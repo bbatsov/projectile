@@ -6991,15 +6991,27 @@ you back where you came from.  With a prefix ARG invokes
       (projectile-switch-project-by-name projectile-most-recent-project arg)
     (user-error "No most recent project recorded yet")))
 
-(defun projectile--dispatch-in-directory (directory)
-  "Open `projectile-dispatch' with DIRECTORY as the project context.
-`projectile-dispatch' is a transient, so its suffix commands run after
-this function returns; a dynamic `default-directory' binding would be
-unwound by then.  Instead set the current buffer's `default-directory'
-to DIRECTORY (the buffer that is current now is the one the suffix
-commands run in) for the lifetime of the transient, restoring it once
-the menu exits.  This makes commands picked from the menu - like
-`projectile-find-file' - target the switched-to project."
+(defun projectile--transient-command-p (command)
+  "Return non-nil if COMMAND is a transient prefix.
+Such commands (e.g. `projectile-dispatch') pop a menu and run the chosen
+suffix command asynchronously, after the caller has already returned.
+Detected via the `transient--prefix' symbol property that
+`transient-define-prefix' sets, which is also how `transient' itself
+recognises its prefixes."
+  (and (symbolp command)
+       (fboundp command)
+       (get command 'transient--prefix)))
+
+(defun projectile--dispatch-in-directory (directory action)
+  "Run transient ACTION with DIRECTORY as the project context.
+ACTION (e.g. `projectile-dispatch') is a transient prefix, so its suffix
+commands run after this function returns; a dynamic `default-directory'
+binding (or a temporary buffer) would be unwound by then.  Instead set
+the current buffer's `default-directory' to DIRECTORY (the buffer that
+is current now is the one the suffix commands run in) for the lifetime
+of the transient, restoring it once the menu exits.  This makes commands
+picked from the menu - like `projectile-find-file' - target the
+switched-to project."
   (let ((buffer (current-buffer))
         (original-directory default-directory))
     (setq default-directory directory)
@@ -7010,9 +7022,9 @@ the menu exits.  This makes commands picked from the menu - like
                     (setq default-directory original-directory)))
                 (remove-hook 'transient-exit-hook restore))))
       (add-hook 'transient-exit-hook restore))
-    ;; `projectile-dispatch' is a transient prefix (an interactive-only
-    ;; command), so invoke it via `call-interactively'.
-    (call-interactively #'projectile-dispatch)))
+    ;; A transient prefix is an interactive-only command, so invoke it via
+    ;; `call-interactively'.
+    (call-interactively action)))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
@@ -7027,15 +7039,20 @@ of `projectile-switch-project-action'."
   ;; Record the project we're leaving so `projectile-most-recent-project'
   ;; points at it after the switch (captured before `default-directory' is
   ;; rebound below).
-  (let ((previous-project (projectile-project-root)))
+  (let ((previous-project (projectile-project-root))
+        (action (if (and arg (fboundp 'projectile-dispatch))
+                    'projectile-dispatch
+                  projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
-    (if (and arg (fboundp 'projectile-dispatch))
-        ;; `projectile-dispatch' is a transient: its suffix commands run
-        ;; *after* this function returns, so a dynamic `default-directory'
-        ;; binding (or the temporary buffer below) would be gone by the time
-        ;; the chosen command runs.  Hand off to a helper that keeps
-        ;; PROJECT-TO-SWITCH current for the lifetime of the menu instead.
-        (projectile--dispatch-in-directory project-to-switch)
+    (if (projectile--transient-command-p action)
+        ;; A transient action (e.g. `projectile-dispatch', whether reached
+        ;; via the prefix argument or set as `projectile-switch-project-action'
+        ;; directly) runs its suffix commands *after* this function returns,
+        ;; so a dynamic `default-directory' binding (or the temporary buffer
+        ;; below) would be gone by the time the chosen command runs.  Hand off
+        ;; to a helper that keeps PROJECT-TO-SWITCH current for the lifetime of
+        ;; the menu instead.
+        (projectile--dispatch-in-directory project-to-switch action)
       (let* ((default-directory project-to-switch)
              (switched-buffer
               ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals
@@ -7051,7 +7068,7 @@ of `projectile-switch-project-action'."
                 ;; value of the `projectile-project-name' variable.
                 (let ((projectile-project-name (funcall projectile-project-name-function
                                                         project-to-switch)))
-                  (funcall projectile-switch-project-action)
+                  (funcall action)
                   (current-buffer)))))
         ;; If the action switched buffers then with-temp-buffer will
         ;; have lost that change, so switch back to the correct buffer.
