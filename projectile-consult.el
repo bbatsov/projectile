@@ -49,7 +49,19 @@
 ;;; Code:
 
 (require 'projectile)
-(require 'consult)
+
+;; `consult' is a hard runtime dependency (see Package-Requires), but
+;; Projectile core deliberately does not load this file, and external build
+;; systems byte-compile it as part of the Projectile package without `consult'
+;; on the load path.  Load it softly here (the real `require' happens in the
+;; command below) and forward-declare the functions we use, so the file still
+;; byte-compiles cleanly when `consult' is absent.  See
+;; https://github.com/bbatsov/projectile/issues/2037.
+(require 'consult nil t)
+
+(declare-function consult--read "consult")
+(declare-function consult--process-collection "consult")
+(declare-function consult--async-map "consult")
 
 (defvar projectile-consult-find-file-history nil
   "Minibuffer history for `projectile-consult-find-file'.")
@@ -82,6 +94,7 @@ The candidate list is produced by Projectile's own indexing command (see
 indexing configuration, and it streams into the minibuffer as the command
 runs instead of blocking until the whole project is indexed."
   (interactive)
+  (require 'consult)
   (let* ((producer (projectile-project-files-producer))
          (root (plist-get producer :directory))
          (command (plist-get producer :command)))
