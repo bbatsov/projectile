@@ -56,6 +56,8 @@
 (defvar ivy-mode)
 (defvar helm-mode)
 (defvar ag-ignore-list)
+;; Defined by the optional `transient' dependency (see `projectile-dispatch').
+(defvar transient-exit-hook)
 (defvar eshell-buffer-name)
 (defvar explicit-shell-file-name)
 (defvar grep-files-aliases)
@@ -6983,6 +6985,29 @@ you back where you came from.  With a prefix ARG invokes
       (projectile-switch-project-by-name projectile-most-recent-project arg)
     (user-error "No most recent project recorded yet")))
 
+(defun projectile--dispatch-in-directory (directory)
+  "Open `projectile-dispatch' with DIRECTORY as the project context.
+`projectile-dispatch' is a transient, so its suffix commands run after
+this function returns; a dynamic `default-directory' binding would be
+unwound by then.  Instead set the current buffer's `default-directory'
+to DIRECTORY (the buffer that is current now is the one the suffix
+commands run in) for the lifetime of the transient, restoring it once
+the menu exits.  This makes commands picked from the menu - like
+`projectile-find-file' - target the switched-to project."
+  (let ((buffer (current-buffer))
+        (original-directory default-directory))
+    (setq default-directory directory)
+    (letrec ((restore
+              (lambda ()
+                (when (buffer-live-p buffer)
+                  (with-current-buffer buffer
+                    (setq default-directory original-directory)))
+                (remove-hook 'transient-exit-hook restore))))
+      (add-hook 'transient-exit-hook restore))
+    ;; `projectile-dispatch' is a transient prefix (an interactive-only
+    ;; command), so invoke it via `call-interactively'.
+    (call-interactively #'projectile-dispatch)))
+
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
@@ -6996,32 +7021,36 @@ of `projectile-switch-project-action'."
   ;; Record the project we're leaving so `projectile-most-recent-project'
   ;; points at it after the switch (captured before `default-directory' is
   ;; rebound below).
-  (let ((previous-project (projectile-project-root))
-        (switch-project-action (if (and arg (fboundp 'projectile-dispatch))
-                                   'projectile-dispatch
-                                 projectile-switch-project-action)))
+  (let ((previous-project (projectile-project-root)))
     (run-hooks 'projectile-before-switch-project-hook)
-    (let* ((default-directory project-to-switch)
-           (switched-buffer
-            ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals
-            ;; before calling SWITCH-PROJECT-ACTION
-            (with-temp-buffer
-              (hack-dir-local-variables-non-file-buffer)
-              ;; Normally the project name is determined from the current
-              ;; buffer. However, when we're switching projects, we want to
-              ;; show the name of the project being switched to, rather than
-              ;; the current project, in the minibuffer. This is a simple hack
-              ;; to tell the `projectile-project-name' function to ignore the
-              ;; current buffer and the caching mechanism, and just return the
-              ;; value of the `projectile-project-name' variable.
-              (let ((projectile-project-name (funcall projectile-project-name-function
-                                                      project-to-switch)))
-                (funcall switch-project-action)
-                (current-buffer)))))
-      ;; If switch-project-action switched buffers then with-temp-buffer will
-      ;; have lost that change, so switch back to the correct buffer.
-      (when (buffer-live-p switched-buffer)
-        (switch-to-buffer switched-buffer)))
+    (if (and arg (fboundp 'projectile-dispatch))
+        ;; `projectile-dispatch' is a transient: its suffix commands run
+        ;; *after* this function returns, so a dynamic `default-directory'
+        ;; binding (or the temporary buffer below) would be gone by the time
+        ;; the chosen command runs.  Hand off to a helper that keeps
+        ;; PROJECT-TO-SWITCH current for the lifetime of the menu instead.
+        (projectile--dispatch-in-directory project-to-switch)
+      (let* ((default-directory project-to-switch)
+             (switched-buffer
+              ;; use a temporary buffer to load PROJECT-TO-SWITCH's dir-locals
+              ;; before calling the switch-project action
+              (with-temp-buffer
+                (hack-dir-local-variables-non-file-buffer)
+                ;; Normally the project name is determined from the current
+                ;; buffer. However, when we're switching projects, we want to
+                ;; show the name of the project being switched to, rather than
+                ;; the current project, in the minibuffer. This is a simple hack
+                ;; to tell the `projectile-project-name' function to ignore the
+                ;; current buffer and the caching mechanism, and just return the
+                ;; value of the `projectile-project-name' variable.
+                (let ((projectile-project-name (funcall projectile-project-name-function
+                                                        project-to-switch)))
+                  (funcall projectile-switch-project-action)
+                  (current-buffer)))))
+        ;; If the action switched buffers then with-temp-buffer will
+        ;; have lost that change, so switch back to the correct buffer.
+        (when (buffer-live-p switched-buffer)
+          (switch-to-buffer switched-buffer))))
     ;; Don't record the project we just came from if it's the same one we
     ;; switched to.  Compare with `file-equal-p' for local paths (handles
     ;; symlinks/abbreviation), but fall back to a plain string compare when
