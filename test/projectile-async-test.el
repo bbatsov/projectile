@@ -82,6 +82,18 @@ that stores into it as the async callback."
       (expect (with-current-buffer "*projectile-files-errors*" (buffer-string))
               :to-match "boom")))
 
+  (it "uses the output when the command exits non-zero but still produced some"
+    ;; A non-zero exit with output (e.g. fd hitting an unreadable dir) must be
+    ;; treated as success, not a failure - see #2042.
+    (projectile-test-with-async-result result
+      (projectile-files-via-ext-command-async
+       temporary-file-directory "printf 'foo\\0bar\\0'; exit 1"
+       (lambda (files err)
+         (setf (nth 1 result) files (nth 2 result) err (nth 0 result) t)))
+      (expect (projectile-test-wait-for (lambda () (nth 0 result))) :to-be-truthy)
+      (expect (nth 1 result) :to-equal '("foo" "bar"))
+      (expect (nth 2 result) :to-be nil)))
+
   (it "invokes the callback with an empty list for a disabled (nil/empty) command"
     (projectile-test-with-async-result result
       (expect (projectile-files-via-ext-command-async
