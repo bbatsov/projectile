@@ -59,6 +59,21 @@ that stores into it as the async callback."
       (expect (projectile-test-wait-for (lambda () (nth 0 result))) :to-be-truthy)
       (expect (nth 1 result) :to-equal '("x" "y/z"))))
 
+  (it "runs under a POSIX shell, not the user's `shell-file-name'"
+    ;; Regression for #2042: the `{ ...; } 2>file' wrapper is POSIX-sh syntax
+    ;; and broke under a csh/tcsh/fish `shell-file-name'.  We force /bin/sh, so
+    ;; even a bogus `shell-file-name' must not affect indexing.
+    (projectile-test-with-async-result result
+      (let ((shell-file-name "/no/such/shell")
+            (shell-command-switch "-c"))
+        (projectile-files-via-ext-command-async
+         temporary-file-directory "printf 'x\\0y\\0'"
+         (lambda (files err)
+           (setf (nth 1 result) files (nth 2 result) err (nth 0 result) t))))
+      (expect (projectile-test-wait-for (lambda () (nth 0 result))) :to-be-truthy)
+      (expect (nth 1 result) :to-equal '("x" "y"))
+      (expect (nth 2 result) :to-be nil)))
+
   (it "appends shell-quoted pathspecs to the command"
     (projectile-test-with-async-result result
       (projectile-files-via-ext-command-async
