@@ -27,6 +27,19 @@
 
 (require 'projectile-test-helpers)
 
+(describe "projectile-find-references"
+  (it "greps the project for the (regexp-quoted) symbol, scoped and honouring ignores"
+    (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
+    (spy-on 'projectile--project-ignore-globs
+            :and-return-value '("*.elc" "./build/"))
+    (spy-on 'xref-matches-in-directory :and-return-value nil)
+    ;; `xref-show-xrefs' would try to display; run the fetcher and stop.
+    (spy-on 'xref-show-xrefs :and-call-fake
+            (lambda (fetcher &rest _) (funcall fetcher)))
+    (projectile-find-references "foo.bar")
+    (expect 'xref-matches-in-directory :to-have-been-called-with
+            "foo\\.bar" "*" "/my/root/" '("*.elc" "./build/"))))
+
 (describe "projectile--ripgrep-ignore-globs"
   (it "builds unquoted --glob=! exclusions that also work on Windows (#1946)"
     (let ((projectile-globally-ignored-files '("TAGS" "GTAGS"))
