@@ -496,12 +496,21 @@
               (expect (projectile-files-via-ext-command temporary-file-directory "echo filename")
                       :to-equal '("filename")))
 
-          (it "signals a user-error when the command exits non-zero"
+          (it "signals a user-error when the command exits non-zero with no output"
               ;; `false' is a portable way to force a non-zero exit; the previous
               ;; behavior was to silently return nil, which made fd-on-remote
               ;; failures look like empty projects.
               (expect (projectile-files-via-ext-command temporary-file-directory "false")
                       :to-throw 'user-error))
+
+          (it "uses the output when the command exits non-zero but still produced some"
+              ;; External listers such as `fd' routinely exit non-zero on benign
+              ;; conditions (e.g. an unreadable directory) while having listed
+              ;; everything else, so a non-zero exit with output must not abort
+              ;; (see #2042).
+              (expect (projectile-files-via-ext-command
+                       temporary-file-directory "printf 'foo\\0bar\\0'; exit 1")
+                      :to-equal '("foo" "bar")))
 
           (it "supports magic file handlers"
               (expect (projectile-files-via-ext-command "#magic#" "echo filename") :to-equal '("magic")))

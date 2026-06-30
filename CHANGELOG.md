@@ -55,6 +55,7 @@
 
 ### Bugs fixed
 
+* [#2042](https://github.com/bbatsov/projectile/issues/2042): A non-zero exit from the indexing command (`fd`, `git ls-files`, `find`, ...) no longer aborts `projectile-find-file` when the command still produced a file listing. External listers like `fd` routinely exit non-zero on benign conditions (e.g. an unreadable directory hit mid-traversal); that output is now used. A `user-error` is still raised when a non-zero exit produced no output at all, so a genuinely broken/missing command is still surfaced rather than mistaken for an empty project.
 * [#1663](https://github.com/bbatsov/projectile/issues/1663): Projects matched by `projectile-ignored-projects` (or `projectile-ignored-project-function`) are now excluded from `projectile-relevant-known-projects`, so they no longer show up in `projectile-switch-project` even when they were added to the known projects before being ignored. Previously the ignore list was only consulted when adding a project.
 * [#1909](https://github.com/bbatsov/projectile/issues/1909): A project type registered with a predicate `marker-files` function now receives the project root as its argument when detecting the current project's type. Previously it was passed `nil`, so such a function could never match the current project.
 * [#1829](https://github.com/bbatsov/projectile/issues/1829): `projectile-project-root` no longer errors with `(wrong-type-argument stringp nil)` when `default-directory` is nil (which can happen in some non-file buffers); it returns nil instead.

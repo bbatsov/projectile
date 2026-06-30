@@ -2108,6 +2108,17 @@ its asynchronous counterpart so both produce identical results."
               (string-remove-prefix "./" f))
             (split-string (string-trim shell-output) "\0" t))))
 
+(defun projectile--surface-ext-command-errors (errors-file)
+  "Copy ERRORS-FILE's contents into the `*projectile-files-errors*' buffer.
+Return non-nil when ERRORS-FILE held any text.  Shared by the synchronous
+and asynchronous indexing-command runners so a failing command's stderr is
+available for inspection."
+  (with-current-buffer (get-buffer-create "*projectile-files-errors*")
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (ignore-errors (insert-file-contents errors-file))
+      (> (buffer-size) 0))))
+
 (defun projectile-files-via-ext-command (root command &optional pathspecs)
   "Get a list of relative file names in the project ROOT by executing COMMAND.
 
@@ -2123,17 +2134,20 @@ their command to accept positional paths.
 If `command' is nil or an empty string, return nil.
 This allows commands to be disabled.
 
-Signals a `user-error' when COMMAND exits non-zero so that failures
-on the indexing path (most commonly a binary like `fd' or `git'
-missing on a remote host) surface immediately instead of being
-mistaken for an empty project.  Stderr is captured into the
+When COMMAND exits non-zero but still produced output, that output is
+used: external listers such as `fd' routinely exit non-zero on benign
+conditions (e.g. an unreadable directory encountered mid-traversal)
+while having listed everything else.  A `user-error' is signalled only
+when a non-zero exit produced no output at all, so a genuinely broken
+command (most commonly a binary like `fd' or `git' missing on a remote
+host) surfaces immediately instead of being mistaken for an empty
+project.  Either way COMMAND's stderr is captured into the
 `*projectile-files-errors*' buffer.
 
 Only text sent to standard output is taken into account."
   (when (and (stringp command) (not (string-empty-p command)))
     (let ((default-directory root)
           (full-command (projectile--ext-command-line command pathspecs))
-          (errors-buffer (get-buffer-create "*projectile-files-errors*"))
           (errors-file (make-temp-file "projectile-files-errors")))
       (unwind-protect
           (with-temp-buffer
@@ -2144,17 +2158,24 @@ Only text sent to standard output is taken into account."
             ;; on the happy path.
             (let ((exit-code
                    (process-file-shell-command full-command nil
-                                               (list t errors-file))))
+                                               (list t errors-file)))
+                  (files (projectile--ext-command-output-files)))
               (when (and (numberp exit-code) (not (zerop exit-code)))
-                (with-current-buffer errors-buffer
-                  (let ((inhibit-read-only t))
-                    (erase-buffer)
-                    (insert-file-contents errors-file)))
-                (user-error
-                 "Projectile indexing command failed with exit code %d: %s\n\
+                (let ((had-stderr (projectile--surface-ext-command-errors errors-file)))
+                  (cond
+                   ;; Non-zero exit but we still got a listing: trust it.  Only
+                   ;; mention it (quietly) when there was stderr worth seeing.
+                   (files
+                    (when had-stderr
+                      (message "Projectile: `%s' exited with code %d but produced output; using it (see *projectile-files-errors*)"
+                               full-command exit-code)))
+                   ;; Non-zero exit and nothing on stdout: a real failure.
+                   (t
+                    (user-error
+                     "Projectile indexing command failed with exit code %d: %s\n\
 See the *projectile-files-errors* buffer for details"
-                 exit-code full-command))
-              (projectile--ext-command-output-files)))
+                     exit-code full-command)))))
+              files))
         (when (file-exists-p errors-file)
           (delete-file errors-file))))))
 
@@ -2168,8 +2189,11 @@ synchronous command.
 
 CALLBACK is funcalled with two arguments when COMMAND finishes: the list
 of files (nil on failure) and an error description string (nil on
-success).  On a non-zero exit the command's stderr is copied into the
-`*projectile-files-errors*' buffer, matching the synchronous runner.
+success).  As in `projectile-files-via-ext-command', a non-zero exit
+that still produced output is treated as success (the output is passed
+to CALLBACK); only a non-zero exit with no output is reported as an
+error.  Either way the command's stderr is copied into the
+`*projectile-files-errors*' buffer.
 
 PATHSPECS is handled exactly as in `projectile-files-via-ext-command'.
 
@@ -2211,20 +2235,28 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
                      ;; `signal' status, but we must not then report a bogus
                      ;; failure or clobber the errors buffer - just clean up.
                      (unless (process-get proc 'projectile-aborted)
-                       (let ((exit-code (process-exit-status proc)))
-                         (if (and (numberp exit-code) (zerop exit-code))
-                             (funcall callback
-                                      (with-current-buffer stdout-buffer
-                                        (projectile--ext-command-output-files))
-                                      nil)
-                           (with-current-buffer (get-buffer-create "*projectile-files-errors*")
-                             (let ((inhibit-read-only t))
-                               (erase-buffer)
-                               (ignore-errors (insert-file-contents errors-file))))
+                       (let ((exit-code (process-exit-status proc))
+                             (files (with-current-buffer stdout-buffer
+                                      (projectile--ext-command-output-files))))
+                         (cond
+                          ;; Clean exit: pass the listing through.
+                          ((and (numberp exit-code) (zerop exit-code))
+                           (funcall callback files nil))
+                          ;; Non-zero exit but we still got a listing: trust it,
+                          ;; mirroring the synchronous runner.  Surface stderr
+                          ;; and mention it quietly when there's anything to see.
+                          (files
+                           (when (projectile--surface-ext-command-errors errors-file)
+                             (message "Projectile: `%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
+                                      command exit-code))
+                           (funcall callback files nil))
+                          ;; Non-zero exit and nothing on stdout: a real failure.
+                          (t
+                           (projectile--surface-ext-command-errors errors-file)
                            (funcall callback
                                     nil
                                     (format "exit code %s: %s"
-                                            exit-code command)))))
+                                            exit-code command))))))
                    (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
                    (when (file-exists-p errors-file)
                      (ignore-errors (delete-file errors-file)))))))))
