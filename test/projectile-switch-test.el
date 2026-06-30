@@ -149,17 +149,17 @@
               :to-have-been-called-with "/proj/a/" nil))))
 
 (describe "projectile--dispatch-in-directory"
-  (it "runs dispatch with the project current and restores the directory on exit"
-    ;; Regression guard for #2046: the dispatch transient's suffix commands
-    ;; run after the switch unwinds, so the project's directory must persist
-    ;; for the lifetime of the menu (and be restored afterwards).
+  (it "runs the transient action with the project current and restores it on exit"
+    ;; Regression guard for #2046: a transient action's suffix commands run
+    ;; after the switch unwinds, so the project's directory must persist for
+    ;; the lifetime of the menu (and be restored afterwards).
     (with-temp-buffer
       (setq default-directory "/old/")
       (let ((transient-exit-hook nil)
             seen-dir)
-        (cl-letf (((symbol-function 'projectile-dispatch)
+        (cl-letf (((symbol-function 'projectile-test-fake-prefix)
                    (lambda () (interactive) (setq seen-dir default-directory))))
-          (projectile--dispatch-in-directory "/proj/"))
+          (projectile--dispatch-in-directory "/proj/" 'projectile-test-fake-prefix))
         ;; the menu (hence its suffixes) sees the switched-to project ...
         (expect seen-dir :to-equal "/proj/")
         ;; ... and it stays current while the transient is live ...
@@ -168,15 +168,37 @@
         (run-hooks 'transient-exit-hook)
         (expect default-directory :to-equal "/old/")))))
 
-(describe "projectile-switch-project-by-name with a prefix argument"
-  (it "opens the dispatch menu scoped to the target project"
+(describe "projectile-switch-project-by-name with a transient action"
+  ;; A transient (e.g. `projectile-dispatch') must be detected and routed
+  ;; through `projectile--dispatch-in-directory' whether it's reached via the
+  ;; prefix argument or set as `projectile-switch-project-action' (#2046).
+  (before-each
     (spy-on 'projectile-project-p :and-return-value t)
     (spy-on 'projectile-project-root :and-return-value "/old/")
     (spy-on 'projectile--dispatch-in-directory)
-    (cl-letf (((symbol-function 'projectile-dispatch) #'ignore))
-      (projectile-switch-project-by-name "/proj/" t))
+    ;; A stand-in transient prefix: the routing keys off the
+    ;; `transient--prefix' property, not on transient being installed.
+    (fset 'projectile-test-fake-prefix #'ignore)
+    (put 'projectile-test-fake-prefix 'transient--prefix t))
+  (after-each
+    (fmakunbound 'projectile-test-fake-prefix))
+
+  (it "routes a transient `projectile-switch-project-action' (no prefix arg)"
+    (let ((projectile-switch-project-action 'projectile-test-fake-prefix))
+      (projectile-switch-project-by-name "/proj/"))
     (expect 'projectile--dispatch-in-directory
-            :to-have-been-called-with "/proj/")))
+            :to-have-been-called-with "/proj/" 'projectile-test-fake-prefix))
+
+  (it "routes the prefix-argument dispatch to the target project"
+    (let ((orig (get 'projectile-dispatch 'transient--prefix)))
+      (cl-letf (((symbol-function 'projectile-dispatch) #'ignore))
+        (unwind-protect
+            (progn
+              (put 'projectile-dispatch 'transient--prefix t)
+              (projectile-switch-project-by-name "/proj/" t))
+          (put 'projectile-dispatch 'transient--prefix orig))))
+    (expect 'projectile--dispatch-in-directory
+            :to-have-been-called-with "/proj/" 'projectile-dispatch)))
 
 (describe "projectile-switch-project-by-name"
   (it "calls the switch project action with project-to-switch's dir-locals loaded"
