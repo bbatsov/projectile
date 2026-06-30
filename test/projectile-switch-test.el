@@ -148,6 +148,36 @@
       (expect 'projectile-switch-project-by-name
               :to-have-been-called-with "/proj/a/" nil))))
 
+(describe "projectile--dispatch-in-directory"
+  (it "runs dispatch with the project current and restores the directory on exit"
+    ;; Regression guard for #2046: the dispatch transient's suffix commands
+    ;; run after the switch unwinds, so the project's directory must persist
+    ;; for the lifetime of the menu (and be restored afterwards).
+    (with-temp-buffer
+      (setq default-directory "/old/")
+      (let ((transient-exit-hook nil)
+            seen-dir)
+        (cl-letf (((symbol-function 'projectile-dispatch)
+                   (lambda () (interactive) (setq seen-dir default-directory))))
+          (projectile--dispatch-in-directory "/proj/"))
+        ;; the menu (hence its suffixes) sees the switched-to project ...
+        (expect seen-dir :to-equal "/proj/")
+        ;; ... and it stays current while the transient is live ...
+        (expect default-directory :to-equal "/proj/")
+        ;; ... until the transient exits, which restores the directory.
+        (run-hooks 'transient-exit-hook)
+        (expect default-directory :to-equal "/old/")))))
+
+(describe "projectile-switch-project-by-name with a prefix argument"
+  (it "opens the dispatch menu scoped to the target project"
+    (spy-on 'projectile-project-p :and-return-value t)
+    (spy-on 'projectile-project-root :and-return-value "/old/")
+    (spy-on 'projectile--dispatch-in-directory)
+    (cl-letf (((symbol-function 'projectile-dispatch) #'ignore))
+      (projectile-switch-project-by-name "/proj/" t))
+    (expect 'projectile--dispatch-in-directory
+            :to-have-been-called-with "/proj/")))
+
 (describe "projectile-switch-project-by-name"
   (it "calls the switch project action with project-to-switch's dir-locals loaded"
     (defvar switch-project-foo)
