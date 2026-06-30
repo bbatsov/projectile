@@ -2225,7 +2225,13 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
             (make-process
              :name "projectile-index"
              :buffer stdout-buffer
-             :command (list shell-file-name shell-command-switch full-command)
+             ;; Run under a POSIX shell rather than the user's interactive
+             ;; `shell-file-name': the `{ ...; } 2>file' wrapper (and the
+             ;; `shell-quote-argument' quoting above) is POSIX-sh syntax, which
+             ;; breaks under csh/tcsh/fish (see #2042).  The indexing command
+             ;; itself is a plain POSIX command, so `/bin/sh' is the right
+             ;; interpreter regardless of the user's login shell.
+             :command (list "/bin/sh" "-c" full-command)
              :connection-type 'pipe
              :noquery t
              :file-handler t
