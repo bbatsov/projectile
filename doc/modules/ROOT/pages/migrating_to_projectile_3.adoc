@@ -70,12 +70,33 @@ or `auto` (which detected `ido-mode`/`ivy-mode`/`helm-mode`). The dedicated
 `ido`/`ivy`/`helm`/`auto` values were removed - it now takes `default` (Emacs's
 `completing-read`) or a custom function.
 
-This isn't a loss of functionality: Vertico, Consult, `fido-mode`, Ido's
-`ido-ubiquitous`, and friends all work through `completing-read`, and
+For most people this is a non-event: Vertico, Consult, `fido-mode` and friends
+all work through `completing-read`, and
 https://github.com/bbatsov/helm-projectile[helm-projectile] /
-https://github.com/ericdanan/counsel-projectile[counsel-projectile] provide
-their own dedicated integration. Any of the old values now simply behaves like
-`default`, so nothing breaks - you can just delete the setting.
+https://github.com/ericdanan/counsel-projectile[counsel-projectile] provide their
+own dedicated integration. Any of the old values now simply behaves like
+`default`, so nothing errors out - you can just delete the setting.
+
+==== ido users
+
+`ido` is the one case that needs a small tweak. If you relied on it - either with
+`projectile-completion-system` set to `ido`, or the default `auto` picking it up
+from `ido-mode` - Projectile now goes through `completing-read` and no longer
+routes its own prompts through `ido` by itself. The fix is to let `ido` handle
+`completing-read` everywhere, via
+https://github.com/DarwinAwardWinner/ido-completing-read-plus[ido-completing-read+]
+(the package formerly known as `ido-ubiquitous`):
+
+[source,elisp]
+----
+;; M-x package-install RET ido-completing-read+ RET
+(ido-mode 1)
+(ido-ubiquitous-mode 1)
+----
+
+With `ido-ubiquitous-mode` enabled, `ido` takes over Projectile's prompts (and
+every other `completing-read` in Emacs), so you get the same experience as before.
+You can then drop `projectile-completion-system` from your config entirely.
 
 === Legacy keybindings and aliases
 

@@ -715,9 +715,9 @@ whenever you visit a file in a project.  You can disable this:
 
 Projectile reads with Emacs's built-in `completing-read`, so it works out of the
 box with whatever minibuffer UI you use - Vertico, Consult + Marginalia,
-`fido-mode`/`icomplete`, Ido's `ido-ubiquitous`, and so on. Its candidates are
-tagged with the `project-file` completion category, which Marginalia and Embark
-use to enhance how they're presented.
+`fido-mode`/`icomplete`, and so on. Its candidates are tagged with the
+`project-file` completion category, which Marginalia and Embark use to enhance
+how they're presented.
 
 [source,elisp]
 ----
@@ -732,6 +732,13 @@ own Projectile integration packages,
 https://github.com/bbatsov/helm-projectile[helm-projectile] and
 https://github.com/ericdanan/counsel-projectile[counsel-projectile]. Any of the
 old values now simply behaves like `default`.
+
+TIP: `ido` users should enable
+https://github.com/DarwinAwardWinner/ido-completing-read-plus[ido-completing-read+]
+(the package formerly known as `ido-ubiquitous`) via `ido-ubiquitous-mode`. That
+makes `ido` handle `completing-read` everywhere, so it drives Projectile's prompts
+just like the old `ido` completion system did. See the
+xref:migrating_to_projectile_3.adoc#_ido_users[migration guide] for details.
 
 === Custom completion function
 
