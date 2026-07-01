@@ -58,6 +58,8 @@
 (defvar ag-ignore-list)
 ;; Defined by the optional `transient' dependency (see `projectile-dispatch').
 (defvar transient-exit-hook)
+(defvar transient-current-command)
+(declare-function transient-args "transient")
 (defvar eshell-buffer-name)
 (defvar explicit-shell-file-name)
 (defvar grep-files-aliases)
@@ -7574,6 +7576,112 @@ Magit that don't trigger `find-file-hook'."
   "Keymap for Projectile commands after `projectile-keymap-prefix'.")
 (fset 'projectile-command-map projectile-command-map)
 
+;;; projectile-dispatch modifiers
+;;
+;; `projectile-dispatch' (below) exposes a handful of command modifiers as
+;; transient switches: `--invalidate-cache', `--regexp', `--new-process' and a
+;; `--display' target (this window / other window / other frame).  Several
+;; Projectile commands already honour these via a prefix argument, and the
+;; other-window/-frame behaviour is provided by dedicated command variants.
+;; The switches are wired to the commands through the thin wrapper commands
+;; generated below: each reads the active switches and either dispatches to the
+;; right display variant or sets `current-prefix-arg' accordingly.
+;;
+;; These wrappers are plain commands (usable without `transient' loaded, they
+;; simply see no active switches then), so they're defined unconditionally,
+;; unlike the transient prefix itself.
+
+(defun projectile-dispatch--args ()
+  "Return the active `projectile-dispatch' switches, or nil.
+Only returns switches while a transient suffix is executing; a wrapper
+invoked outside the menu sees none."
+  (and (bound-and-true-p transient-current-command)
+       (transient-args transient-current-command)))
+
+(defmacro projectile-dispatch--define (name command &rest props)
+  "Define command NAME as a `projectile-dispatch' wrapper around COMMAND.
+PROPS is a plist of:
+  :other-window CMD, :other-frame CMD  command variants selected by the
+                                       `--display' switch;
+  :prefix-arg SWITCH                   set `current-prefix-arg' to a plain
+                                       prefix when SWITCH is active."
+  (declare (indent 2))
+  (let ((ow (plist-get props :other-window))
+        (of (plist-get props :other-frame))
+        (switch (plist-get props :prefix-arg)))
+    `(defun ,name ()
+       ,(format "A `projectile-dispatch' wrapper honouring its modifier switches.\nRuns `%s'." command)
+       (interactive)
+       (let* ((projectile-dispatch--switches (projectile-dispatch--args))
+              (current-prefix-arg
+               ,(if switch
+                    `(if (member ,switch projectile-dispatch--switches)
+                         '(4)
+                       current-prefix-arg)
+                  'current-prefix-arg))
+              (command
+               ,(if ow
+                    `(cond
+                      ((member "--display=frame" projectile-dispatch--switches) #',of)
+                      ((member "--display=window" projectile-dispatch--switches) #',ow)
+                      (t #',command))
+                  `#',command)))
+         (call-interactively command)))))
+
+;; Display + cache
+(projectile-dispatch--define projectile-dispatch-find-file projectile-find-file
+  :other-window projectile-find-file-other-window
+  :other-frame projectile-find-file-other-frame
+  :prefix-arg "--invalidate-cache")
+(projectile-dispatch--define projectile-dispatch-find-file-dwim projectile-find-file-dwim
+  :other-window projectile-find-file-dwim-other-window
+  :other-frame projectile-find-file-dwim-other-frame
+  :prefix-arg "--invalidate-cache")
+(projectile-dispatch--define projectile-dispatch-find-dir projectile-find-dir
+  :other-window projectile-find-dir-other-window
+  :other-frame projectile-find-dir-other-frame
+  :prefix-arg "--invalidate-cache")
+;; Display only
+(projectile-dispatch--define projectile-dispatch-find-other-file projectile-find-other-file
+  :other-window projectile-find-other-file-other-window
+  :other-frame projectile-find-other-file-other-frame)
+(projectile-dispatch--define projectile-dispatch-dired projectile-dired
+  :other-window projectile-dired-other-window
+  :other-frame projectile-dired-other-frame)
+(projectile-dispatch--define projectile-dispatch-switch-to-buffer projectile-switch-to-buffer
+  :other-window projectile-switch-to-buffer-other-window
+  :other-frame projectile-switch-to-buffer-other-frame)
+(projectile-dispatch--define projectile-dispatch-switch-project projectile-switch-project
+  :other-window projectile-switch-project-other-window
+  :other-frame projectile-switch-project-other-frame)
+(projectile-dispatch--define projectile-dispatch-impl-or-test
+    projectile-toggle-between-implementation-and-test
+  :other-window projectile-find-implementation-or-test-other-window
+  :other-frame projectile-find-implementation-or-test-other-frame)
+;; Cache only
+(projectile-dispatch--define projectile-dispatch-find-test-file projectile-find-test-file
+  :prefix-arg "--invalidate-cache")
+;; Regexp search
+(projectile-dispatch--define projectile-dispatch-ag projectile-ag
+  :prefix-arg "--regexp")
+(projectile-dispatch--define projectile-dispatch-ripgrep projectile-ripgrep
+  :prefix-arg "--regexp")
+;; New process
+(projectile-dispatch--define projectile-dispatch-run-eshell projectile-run-eshell
+  :prefix-arg "--new-process")
+(projectile-dispatch--define projectile-dispatch-run-shell projectile-run-shell
+  :prefix-arg "--new-process")
+(projectile-dispatch--define projectile-dispatch-run-ielm projectile-run-ielm
+  :prefix-arg "--new-process")
+(projectile-dispatch--define projectile-dispatch-run-term projectile-run-term
+  :prefix-arg "--new-process")
+(projectile-dispatch--define projectile-dispatch-run-vterm projectile-run-vterm
+  :prefix-arg "--new-process")
+(projectile-dispatch--define projectile-dispatch-run-eat projectile-run-eat
+  :prefix-arg "--new-process")
+(projectile-dispatch--define projectile-dispatch-run-ghostel projectile-run-ghostel
+  :prefix-arg "--new-process")
+
 ;; `projectile-dispatch' is a transient menu mirroring `projectile-command-map'.
 ;; `transient' is an optional dependency that requires Emacs 28.1+, so it can be
 ;; entirely absent (including on Emacs 27, which Projectile still supports and
@@ -7584,33 +7692,49 @@ Magit that don't trigger `find-file-hook'."
 (when (require 'transient nil t)
   (eval
    '(transient-define-prefix projectile-dispatch ()
-    "Dispatch menu for Projectile commands."
+    "Dispatch menu for Projectile commands.
+
+The switches in the Modifiers group tweak how the commands below run:
+`--invalidate-cache' rebuilds the file cache first (file/dir commands),
+`--regexp' searches for a regexp (ag/ripgrep), `--new-process' starts a
+fresh process (shells), and `--display' opens the result in another
+window or frame (file/buffer/project commands)."
+    ["Modifiers"
+     ("-i" "invalidate cache" "--invalidate-cache")
+     ("-r" "regexp search" "--regexp")
+     ("-n" "new process" "--new-process")
+     ("-d" "display in" "--display="
+      :class transient-switches
+      :argument-format "--display=%s"
+      :argument-regexp "\\(--display=\\(window\\|frame\\)\\)"
+      :choices ("window" "frame"))]
     [["Find"
-      ("f" "file" projectile-find-file)
-      ("g" "file dwim" projectile-find-file-dwim)
-      ("a" "other file" projectile-find-other-file)
+      ("f" "file" projectile-dispatch-find-file)
+      ("g" "file dwim" projectile-dispatch-find-file-dwim)
+      ("a" "other file" projectile-dispatch-find-other-file)
       ("l" "file in dir" projectile-find-file-in-directory)
       ("F" "file in known projects" projectile-find-file-in-known-projects)
-      ("d" "dir" projectile-find-dir)
-      ("D" "dired" projectile-dired)
+      ("d" "dir" projectile-dispatch-find-dir)
+      ("D" "dired" projectile-dispatch-dired)
       ("e" "recentf" projectile-recentf)
       ("E" "edit .dir-locals" projectile-edit-dir-locals)
-      ("T" "test file" projectile-find-test-file)
-      ("t" "toggle impl/test" projectile-toggle-between-implementation-and-test)]
+      ("T" "test file" projectile-dispatch-find-test-file)
+      ("t" "toggle impl/test" projectile-dispatch-impl-or-test)]
      ["Buffers"
-      ("b" "switch buffer" projectile-switch-to-buffer)
+      ("b" "switch buffer" projectile-dispatch-switch-to-buffer)
+      ("B" "display buffer" projectile-display-buffer)
       ("I" "ibuffer" projectile-ibuffer)
       ("k" "kill buffers" projectile-kill-buffers)
       ("S" "save buffers" projectile-save-project-buffers)]
      ["Search / Replace"
-      ("ss" "ag" projectile-ag)
+      ("ss" "ag" projectile-dispatch-ag)
       ("sg" "grep" projectile-grep)
-      ("sr" "ripgrep" projectile-ripgrep)
+      ("sr" "ripgrep" projectile-dispatch-ripgrep)
       ("sx" "references" projectile-find-references)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)]]
     [["Project"
-      ("p" "switch project" projectile-switch-project)
+      ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)]
@@ -7622,38 +7746,19 @@ Magit that don't trigger `find-file-hook'."
       ("ci" "install" projectile-install-project)
       ("cp" "package" projectile-package-project)]
      ["Shells / Run"
-      ("xe" "eshell" projectile-run-eshell)
-      ("xs" "shell" projectile-run-shell)
-      ("xt" "term" projectile-run-term)
-      ("xi" "ielm" projectile-run-ielm)
+      ("xe" "eshell" projectile-dispatch-run-eshell)
+      ("xs" "shell" projectile-dispatch-run-shell)
+      ("xt" "term" projectile-dispatch-run-term)
+      ("xi" "ielm" projectile-dispatch-run-ielm)
       ("xg" "gdb" projectile-run-gdb)
-      ("xv" "vterm" projectile-run-vterm)
-      ("xx" "eat" projectile-run-eat)
-      ("xG" "ghostel" projectile-run-ghostel)
+      ("xv" "vterm" projectile-dispatch-run-vterm)
+      ("xx" "eat" projectile-dispatch-run-eat)
+      ("xG" "ghostel" projectile-dispatch-run-ghostel)
       ("!" "shell command" projectile-run-shell-command-in-root)
       ("&" "async shell command" projectile-run-async-shell-command-in-root)]
      ["Cache"
       ("i" "invalidate cache" projectile-invalidate-cache)
-      ("z" "cache current file" projectile-cache-current-file)]]
-    [["Other window"
-      ("4f" "file" projectile-find-file-other-window)
-      ("4g" "file dwim" projectile-find-file-dwim-other-window)
-      ("4a" "other file" projectile-find-other-file-other-window)
-      ("4d" "dir" projectile-find-dir-other-window)
-      ("4D" "dired" projectile-dired-other-window)
-      ("4b" "buffer" projectile-switch-to-buffer-other-window)
-      ("4p" "switch project" projectile-switch-project-other-window)
-      ("4t" "impl/test" projectile-find-implementation-or-test-other-window)
-      ("4o" "display buffer" projectile-display-buffer)]
-     ["Other frame"
-      ("5f" "file" projectile-find-file-other-frame)
-      ("5g" "file dwim" projectile-find-file-dwim-other-frame)
-      ("5a" "other file" projectile-find-other-file-other-frame)
-      ("5d" "dir" projectile-find-dir-other-frame)
-      ("5D" "dired" projectile-dired-other-frame)
-      ("5b" "buffer" projectile-switch-to-buffer-other-frame)
-      ("5p" "switch project" projectile-switch-project-other-frame)
-      ("5t" "impl/test" projectile-find-implementation-or-test-other-frame)]])
+      ("z" "cache current file" projectile-cache-current-file)]])
    t))
 
 (defvar projectile-mode-map

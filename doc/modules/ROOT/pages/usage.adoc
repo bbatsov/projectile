@@ -411,34 +411,41 @@ NOTE: The `Super` keybindings are not usable in Windows, as Windows
 
 Projectile ships `projectile-dispatch`, a `transient` menu that mirrors
 `projectile-command-map`, for those of you who'd rather pick a command from a
-menu than memorize a lot of keybindings. Invoke it with kbd:[s-p m].
+menu than memorize a lot of keybindings. The menu keys match the command map
+(e.g. kbd:[f] to find a file, kbd:[c c] to compile, kbd:[s g] to grep). Invoke
+it with kbd:[s-p m].
 
 It's also wired into project switching: press kbd:[C-u s-p p] and Projectile
 opens the dispatch menu after you select a project, so you can run any command
-in the project you just switched to.
+in the project you just switched to. (The same happens if you set
+`projectile-switch-project-action` to `projectile-dispatch`.)
 
-NOTE: `transient` is an optional dependency (it requires Emacs 28.1+), so
-`projectile-dispatch` is only available when `transient` is installed. Without
-it kbd:[C-u s-p p] simply falls back to `projectile-switch-project-action`.
-
-== Transient Dispatch Menu
-
-If you have the `transient` library available (it's bundled with Emacs 28+;
-older Emacsen are not supported by current `transient` releases), Projectile
-provides `projectile-dispatch`, a
-transient menu that mirrors `projectile-command-map`. It's a more discoverable
-alternative to memorizing the keybindings or using the Commander: the menu keys
-match the command map (e.g. kbd:[f] to find a file, kbd:[c c] to compile,
-kbd:[s g] to grep).
-
-`transient` is an optional dependency, so `projectile-dispatch` is only defined
-when it's present. It is not bound to a key by default; bind it to whatever you
-like, for instance:
+You can bind the command to whatever you like as well:
 
 [source,elisp]
 ----
 (define-key projectile-mode-map (kbd "C-c P") #'projectile-dispatch)
 ----
+
+=== Modifiers
+
+The menu's *Modifiers* group holds switches that tweak how the commands run.
+Toggle one (or more), then trigger a command:
+
+* kbd:[-i] *invalidate cache* - rebuild the file cache first (the find file/dir commands)
+* kbd:[-r] *regexp search* - treat the search term as a regexp (`ag`, `ripgrep`)
+* kbd:[-n] *new process* - start a fresh process instead of reusing one (the shells / REPLs)
+* kbd:[-d] *display in* - cycle the display target through this window / other window / other frame (the file, buffer and project commands)
+
+For example, toggle kbd:[-d] until it shows `frame` and then press kbd:[f] to
+find a file and show it in a new frame; or press kbd:[-i] then kbd:[f] to
+invalidate the cache and find a file. This replaces the old dedicated "other
+window" and "other frame" menu columns.
+
+NOTE: `transient` is an optional dependency (it requires Emacs 28.1+), so
+`projectile-dispatch` is only defined when `transient` is installed. It is not
+bound to a key by default; without it kbd:[C-u s-p p] simply falls back to
+`projectile-switch-project-action`.
 
 == Using Projectile with project.el
 
