@@ -6,6 +6,14 @@
 ;; directory on the load path when running tests.
 (eldev-add-loading-roots 'test "test")
 
+;; `transient' is an optional dependency (it powers `projectile-dispatch',
+;; which is only defined when transient is present).  Pull it in for building
+;; and testing so the transient menu definition is actually loaded and
+;; validated.  transient needs Emacs 28.1+.
+(when (version<= "28.1" emacs-version)
+  (eldev-add-extra-dependencies 'build 'transient)
+  (eldev-add-extra-dependencies 'test 'transient))
+
 ;; `projectile-consult.el' is an optional Consult integration that ships with
 ;; Projectile but is loaded only on demand (Consult is a soft dependency, not
 ;; part of Projectile's `Package-Requires').  Pull Consult in just for building
