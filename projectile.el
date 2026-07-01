@@ -5,8 +5,8 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience
-;; Version: 2.10.0-snapshot
-;; Package-Requires: ((emacs "27.1") (compat "30"))
+;; Version: 3.0.0-snapshot
+;; Package-Requires: ((emacs "28.1") (compat "30"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -44,6 +44,9 @@
 (require 'compile)
 (require 'grep)
 (require 'fileloop)
+;; `transient' is bundled with Emacs 28.1+ (Projectile's minimum), so it's a
+;; hard dependency, used by `projectile-dispatch'.
+(require 'transient)
 (eval-when-compile
   (require 'find-dired)
   (require 'subr-x))
@@ -53,10 +56,6 @@
 ;; A bunch of variable and function declarations
 ;; needed to appease the byte-compiler.
 (defvar ag-ignore-list)
-;; Defined by the optional `transient' dependency (see `projectile-dispatch').
-(defvar transient-exit-hook)
-(defvar transient-current-command)
-(declare-function transient-args "transient")
 (defvar eshell-buffer-name)
 (defvar explicit-shell-file-name)
 (defvar grep-files-aliases)
@@ -65,9 +64,6 @@
 (defvar eat-buffer-name)
 (defvar ghostel-buffer-name)
 
-;; `projectile-dispatch' is defined later in this file, but only when the
-;; optional `transient' dependency is available, so forward-declare it.
-(declare-function projectile-dispatch "projectile")
 (declare-function make-term "term")
 (declare-function term-mode "term")
 (declare-function term-char-mode "term")
@@ -171,7 +167,7 @@ in batch mode, or while a keyboard macro is executing - those fall back
 to synchronous indexing."
   :group 'projectile
   :type 'boolean
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-kill-buffers-filter 'kill-all
   "Determine which buffers are killed by `projectile-kill-buffers'.
@@ -289,7 +285,7 @@ of those legacy values now behaves like `default'."
   :group 'projectile
   :type '(choice (const :tag "Default (completing-read)" default)
                  (function :tag "Custom function"))
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-keymap-prefix nil
   "Projectile keymap prefix."
@@ -408,8 +404,6 @@ containing a root file."
   :group 'projectile
   :type '(repeat string))
 
-(define-obsolete-variable-alias 'projectile-project-root-files-functions 'projectile-project-root-functions "2.4")
-
 (defcustom projectile-project-root-functions
   '(projectile-root-local
     projectile-root-marked
@@ -457,7 +451,7 @@ non-empty dirconfig is present alongside alien indexing, since the
 silent bypass is a frequent source of confusion."
   :group 'projectile
   :type 'boolean
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-warn-on-prefixless-dirconfig-lines t
   "Whether to warn about deprecated prefix-less ignore entries.
@@ -468,7 +462,7 @@ non-nil, a one-time warning is shown per project that uses any
 such line, listing the offending entries."
   :group 'projectile
   :type 'boolean
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name projectile-cache-file)
@@ -609,7 +603,7 @@ Like `projectile-switch-project-action', but for the other-window variant.
 Any function that does not take arguments will do."
   :group 'projectile
   :type 'function
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-switch-project-other-frame-action 'projectile-find-file-other-frame
   "Action run by `projectile-switch-project-other-frame' after switching.
@@ -618,7 +612,7 @@ Like `projectile-switch-project-action', but for the other-frame variant.
 Any function that does not take arguments will do."
   :group 'projectile
   :type 'function
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-find-dir-includes-top-level nil
   "If true, add top-level dir to options offered by `projectile-find-dir'."
@@ -644,7 +638,7 @@ asked which backend to use each time."
                  (const :tag "ripgrep" ripgrep)
                  (const :tag "ag" ag)
                  (symbol :tag "Other registered backend"))
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-shell-backend 'eshell
   "The backend `projectile-run' uses to open a shell/REPL/terminal.
@@ -663,7 +657,7 @@ to pick the first available backend, or `prompt' to be asked each time."
                  (const :tag "Automatic" auto)
                  (const :tag "Prompt each time" prompt)
                  (symbol :tag "Other registered backend"))
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-grep-finished-hook nil
   "Hooks run when `projectile-grep' finishes."
@@ -922,7 +916,7 @@ Set to nil to disable listing submodules contents."
   "Command used by projectile to get the ignored files in a hg project."
   :group 'projectile
   :type 'string
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-jj-command "jj file list -T 'path ++ \"\\0\"' --no-pager ."
   "Command used by projectile to get the files in a Jujutsu project."
@@ -975,7 +969,7 @@ fails with an authentication error.  See URL
   "Command used by projectile to get the ignored files in a svn project."
   :group 'projectile
   :type 'string
-  :package-version '(projectile . "2.10.0"))
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-generic-command
   (cond
@@ -1116,7 +1110,7 @@ Should be set via .dir-locals.el.")
 
 ;;; Version information
 
-(defconst projectile-version "2.10.0-snapshot"
+(defconst projectile-version "3.0.0-snapshot"
   "The current version of Projectile.")
 
 (defun projectile--pkg-version ()
@@ -2270,7 +2264,7 @@ special-case disabled commands) or when a remote file-name handler
 declines to start the process (CALLBACK is invoked with an error).
 
 Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
-`:file-handler', which requires Emacs 27.1+)."
+`:file-handler')."
   (if (not (and (stringp command) (not (string-empty-p command))))
       (progn (funcall callback nil nil) nil)
     (let* ((default-directory root)
@@ -5610,10 +5604,9 @@ search.  Honours Projectile's ignore configuration and runs
                projectile-use-git-grep)
           (vc-git-grep search-regexp (or files "") root-dir)
         ;; paths for find-grep should relative and without trailing /
-        ;; TODO: Replace seq-uniq+append with seq-union when Emacs 28.1 is the minimum version
         (let ((grep-find-ignored-files
-               (seq-uniq (append (projectile--globally-ignored-file-suffixes-glob)
-                                 grep-find-ignored-files)))
+               (seq-union (projectile--globally-ignored-file-suffixes-glob)
+                          grep-find-ignored-files))
               (projectile-grep-find-ignored-paths
                (append (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
                                (projectile-ignored-directories))
@@ -7178,7 +7171,7 @@ project).  Use `projectile-switch-to-most-recent-project' to jump to it.")
 (defun projectile-switch-project (&optional arg)
   "Switch to a project we have visited before.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
-With a prefix ARG invokes `projectile-dispatch' (when available) instead
+With a prefix ARG invokes `projectile-dispatch' instead
 of `projectile-switch-project-action'."
   (interactive "P")
   (let ((projects (projectile-relevant-known-projects)))
@@ -7194,7 +7187,7 @@ of `projectile-switch-project-action'."
 (defun projectile-switch-open-project (&optional arg)
   "Switch to a project we have currently opened.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
-With a prefix ARG invokes `projectile-dispatch' (when available) instead
+With a prefix ARG invokes `projectile-dispatch' instead
 of `projectile-switch-project-action'."
   (interactive "P")
   (let ((projects (projectile-relevant-open-projects)))
@@ -7219,7 +7212,7 @@ Like `projectile-switch-project', but runs
 `projectile-switch-project-other-window-action' (by default
 `projectile-find-file-other-window') after switching, so the project is
 shown in another window.  With a prefix ARG invokes `projectile-dispatch'
-(when available) instead."
+instead."
   (interactive "P")
   (let ((projectile-switch-project-action projectile-switch-project-other-window-action))
     (projectile-switch-project arg)))
@@ -7232,7 +7225,7 @@ Like `projectile-switch-project', but runs
 `projectile-switch-project-other-frame-action' (by default
 `projectile-find-file-other-frame') after switching, so the project is
 shown in another frame.  With a prefix ARG invokes `projectile-dispatch'
-(when available) instead."
+instead."
   (interactive "P")
   (let ((projectile-switch-project-action projectile-switch-project-other-frame-action))
     (projectile-switch-project arg)))
@@ -7243,7 +7236,7 @@ shown in another frame.  With a prefix ARG invokes `projectile-dispatch'
 That's the project that was current before the most recent project
 switch, so calling this from a buffer in the switched-to project takes
 you back where you came from.  With a prefix ARG invokes
-`projectile-dispatch' (when available) instead of
+`projectile-dispatch' instead of
 `projectile-switch-project-action'."
   (interactive "P")
   (if projectile-most-recent-project
@@ -7288,7 +7281,7 @@ switched-to project."
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
 Invokes the command referenced by `projectile-switch-project-action' on switch.
-With a prefix ARG invokes `projectile-dispatch' (when available) instead
+With a prefix ARG invokes `projectile-dispatch' instead
 of `projectile-switch-project-action'."
   ;; let's make sure that the target directory exists and is actually a project
   ;; we ignore remote folders, as the check breaks for TRAMP unless already connected
@@ -7299,7 +7292,7 @@ of `projectile-switch-project-action'."
   ;; points at it after the switch (captured before `default-directory' is
   ;; rebound below).
   (let ((previous-project (projectile-project-root))
-        (action (if (and arg (fboundp 'projectile-dispatch))
+        (action (if arg
                     'projectile-dispatch
                   projectile-switch-project-action)))
     (run-hooks 'projectile-before-switch-project-hook)
@@ -7782,12 +7775,6 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c i") #'projectile-install-project)
     (define-key map (kbd "c t") #'projectile-test-project)
     (define-key map (kbd "c r") #'projectile-run-project)
-    ;; TODO: Legacy keybindings that will be removed in Projectile 3
-    (define-key map (kbd "C") #'projectile-configure-project)
-    (define-key map (kbd "K") #'projectile-package-project)
-    (define-key map (kbd "L") #'projectile-install-project)
-    (define-key map (kbd "P") #'projectile-test-project)
-    (define-key map (kbd "u") #'projectile-run-project)
     ;; integration with utilities
     (define-key map (kbd "x r") #'projectile-run)
     (define-key map (kbd "x e") #'projectile-run-eshell)
@@ -7921,15 +7908,8 @@ PROPS is a plist of:
   :prefix-arg "--new-process")
 
 ;; `projectile-dispatch' is a transient menu mirroring `projectile-command-map'.
-;; `transient' is an optional dependency that requires Emacs 28.1+, so it can be
-;; entirely absent (including on Emacs 27, which Projectile still supports and
-;; where transient cannot even be installed).  The prefix is therefore defined
-;; at load time only when transient is present, and via `eval' so the
-;; `transient-define-prefix' macro is not needed at byte-compile time.  The menu
-;; keys deliberately match the `projectile-command-map' bindings.
-(when (require 'transient nil t)
-  (eval
-   '(transient-define-prefix projectile-dispatch ()
+;; The menu keys deliberately match the `projectile-command-map' bindings.
+(transient-define-prefix projectile-dispatch ()
     "Dispatch menu for Projectile commands.
 
 The switches in the Modifiers group tweak how the commands below run:
@@ -7999,7 +7979,6 @@ window or frame (file/buffer/project commands)."
      ["Cache"
       ("i" "invalidate cache" projectile-invalidate-cache)
       ("z" "cache current file" projectile-cache-current-file)]])
-   t))
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
@@ -8155,9 +8134,8 @@ globally ignored directory names and file suffixes are matched at any
 depth, while the files and directories ignored via the project's
 dirconfig (`.projectile') are rooted at the project root with a
 leading `./'."
-  ;; NOTE: Use the project root (the cdr) directly rather than
-  ;; `project-root', which doesn't exist on Emacs 27 (project.el provided
-  ;; `project-roots' there instead).
+  ;; PROJECT is Projectile's own `(projectile . root)' representation, so read
+  ;; the root straight from the cdr rather than going through `project-root'.
   (projectile--project-ignore-globs (cdr project)))
 
 ;;;###autoload
@@ -8212,9 +8190,6 @@ Otherwise behave as if called interactively.
   (add-hook 'savehist-mode-hook
             (lambda()
               (add-to-list 'savehist-additional-variables 'projectile-project-command-history))))
-
-;;;###autoload
-(define-obsolete-function-alias 'projectile-global-mode 'projectile-mode "1.0")
 
 (provide 'projectile)
 
