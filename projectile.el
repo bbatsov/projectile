@@ -645,6 +645,25 @@ asked which backend to use each time."
                  (symbol :tag "Other registered backend"))
   :package-version '(projectile . "2.10.0"))
 
+(defcustom projectile-shell-backend 'eshell
+  "The backend `projectile-run' uses to open a shell/REPL/terminal.
+Either a backend name registered in `projectile-shell-backends'
+\(`shell', `eshell', `ielm', `term', `vterm', `eat', `ghostel', or one
+you registered yourself with `projectile-register-shell-backend'), `auto'
+to pick the first available backend, or `prompt' to be asked each time."
+  :group 'projectile
+  :type '(choice (const :tag "shell" shell)
+                 (const :tag "eshell" eshell)
+                 (const :tag "ielm" ielm)
+                 (const :tag "term" term)
+                 (const :tag "vterm" vterm)
+                 (const :tag "eat" eat)
+                 (const :tag "ghostel" ghostel)
+                 (const :tag "Automatic" auto)
+                 (const :tag "Prompt each time" prompt)
+                 (symbol :tag "Other registered backend"))
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-grep-finished-hook nil
   "Hooks run when `projectile-grep' finishes."
   :group 'projectile
@@ -5894,41 +5913,38 @@ Projectile project too when `projectile-mode' is enabled."
   (projectile-with-default-dir (projectile-acquire-root)
     (call-interactively 'gdb)))
 
-;;;###autoload
-(defun projectile-run-shell (&optional arg)
+;;; Shells, REPLs and terminals
+;;
+;; `projectile-run' launches a shell, REPL or terminal in the project root
+;; using a pluggable backend (built on the generic registry defined for
+;; `projectile-search').  Register your own with
+;; `projectile-register-shell-backend'.
+
+;;;; Engines for the built-in shells (always available)
+
+(defun projectile--run-shell (new-process &optional _other-window)
   "Invoke `shell' in the project's root.
-
-Switch to the project specific shell buffer if it already exists.
-
-Use a prefix argument ARG to indicate creation of a new process instead."
-  (interactive "P")
+NEW-PROCESS forces creation of a new process instead of reusing an
+existing buffer."
   (let ((project (projectile-acquire-root)))
     (projectile-with-default-dir project
-      (shell (projectile-generate-process-name "shell" arg project)))))
+      (shell (projectile-generate-process-name "shell" new-process project)))))
 
-;;;###autoload
-(defun projectile-run-eshell (&optional arg)
+(defun projectile--run-eshell (new-process &optional _other-window)
   "Invoke `eshell' in the project's root.
-
-Switch to the project specific eshell buffer if it already exists.
-
-Use a prefix argument ARG to indicate creation of a new process instead."
-  (interactive "P")
+NEW-PROCESS forces creation of a new process instead of reusing an
+existing buffer."
   (let ((project (projectile-acquire-root)))
     (projectile-with-default-dir project
-      (let ((eshell-buffer-name (projectile-generate-process-name "eshell" arg project)))
+      (let ((eshell-buffer-name (projectile-generate-process-name "eshell" new-process project)))
         (eshell)))))
 
-;;;###autoload
-(defun projectile-run-ielm (&optional arg)
+(defun projectile--run-ielm (new-process &optional _other-window)
   "Invoke `ielm' in the project's root.
-
-Switch to the project specific ielm buffer if it already exists.
-
-Use a prefix argument ARG to indicate creation of a new process instead."
-  (interactive "P")
+NEW-PROCESS forces creation of a new process instead of reusing an
+existing buffer."
   (let* ((project (projectile-acquire-root))
-         (ielm-buffer-name (projectile-generate-process-name "ielm" arg project)))
+         (ielm-buffer-name (projectile-generate-process-name "ielm" new-process project)))
     (if (get-buffer ielm-buffer-name)
         (switch-to-buffer ielm-buffer-name)
       (projectile-with-default-dir project
@@ -5936,16 +5952,12 @@ Use a prefix argument ARG to indicate creation of a new process instead."
       ;; ielm's buffer name is hardcoded, so we have to rename it after creation
       (rename-buffer ielm-buffer-name))))
 
-;;;###autoload
-(defun projectile-run-term (&optional arg)
+(defun projectile--run-term (new-process &optional _other-window)
   "Invoke `term' in the project's root.
-
-Switch to the project specific term buffer if it already exists.
-
-Use a prefix argument ARG to indicate creation of a new process instead."
-  (interactive "P")
+NEW-PROCESS forces creation of a new process instead of reusing an
+existing buffer."
   (let* ((project (projectile-acquire-root))
-         (buffer-name (projectile-generate-process-name "term" arg project))
+         (buffer-name (projectile-generate-process-name "term" new-process project))
          (default-program (or explicit-shell-file-name
                               (getenv "ESHELL")
                               (getenv "SHELL")
@@ -5958,6 +5970,8 @@ Use a prefix argument ARG to indicate creation of a new process instead."
           (term-mode)
           (term-char-mode))))
     (switch-to-buffer buffer-name)))
+
+;;;; Engines for the package-backed terminals
 
 (defun projectile--vterm (&optional new-process other-window)
   "Invoke `vterm' in the project's root.
@@ -6015,65 +6029,145 @@ Switch to the project specific ghostel buffer if it already exists."
     (projectile-with-default-dir project
       (ghostel))))
 
+;;;; Shell backend registry
+
+(defvar projectile-shell-backends nil
+  "Alist of registered `projectile-run' shell/REPL/terminal backends.
+Each entry is (NAME . PLIST); see `projectile-register-shell-backend'.")
+
+(defun projectile-register-shell-backend (name &rest plist)
+  "Register NAME as a `projectile-run' backend with PLIST properties.
+Recognised PLIST keys:
+  :description  a human-readable string shown in prompts;
+  :available    a zero-argument predicate returning non-nil when the
+                backend can be used (omit for an always-available one);
+  :run          a function called as (NEW-PROCESS OTHER-WINDOW) that
+                launches the shell/REPL/terminal in the project root.
+NEW-PROCESS is the command's prefix argument (start a fresh process);
+OTHER-WINDOW requests display in another window (honoured by the
+terminals that support it).
+
+Use this to plug in your own terminal, e.g.:
+
+  (projectile-register-shell-backend \\='mistty
+    :description \"mistty\"
+    :available (lambda () (require \\='mistty nil t))
+    :run (lambda (_new-process _other-window)
+           (mistty-in-project)))"
+  (apply #'projectile-register-backend 'projectile-shell-backends name plist))
+
+(projectile-register-shell-backend 'shell
+  :description "shell" :run #'projectile--run-shell)
+(projectile-register-shell-backend 'eshell
+  :description "eshell" :run #'projectile--run-eshell)
+(projectile-register-shell-backend 'ielm
+  :description "ielm (Emacs Lisp REPL)" :run #'projectile--run-ielm)
+(projectile-register-shell-backend 'term
+  :description "term" :run #'projectile--run-term)
+(projectile-register-shell-backend 'vterm
+  :description "vterm"
+  :available (lambda () (require 'vterm nil 'noerror))
+  :run #'projectile--vterm)
+(projectile-register-shell-backend 'eat
+  :description "eat"
+  :available (lambda () (require 'eat nil 'noerror))
+  :run #'projectile--eat)
+(projectile-register-shell-backend 'ghostel
+  :description "ghostel"
+  :available (lambda () (require 'ghostel nil 'noerror))
+  :run #'projectile--ghostel)
+
+(defun projectile--run (preference new-process other-window)
+  "Launch the shell backend PREFERENCE, passing NEW-PROCESS and OTHER-WINDOW.
+PREFERENCE is resolved against `projectile-shell-backends' the same way
+`projectile-search-backend' is (a name, `auto', or `prompt')."
+  (funcall (plist-get (cdr (projectile--resolve-backend
+                            projectile-shell-backends preference "shell"))
+                      :run)
+           new-process other-window))
+
 ;;;###autoload
-(defun projectile-run-vterm (&optional arg)
-  "Invoke `vterm' in the project's root.
+(defun projectile-run (&optional arg)
+  "Run a shell, REPL or terminal in the project root.
 
-Switch to the project specific term buffer if it already exists.
+The backend is chosen from `projectile-shell-backends' according to
+`projectile-shell-backend'; register new ones with
+`projectile-register-shell-backend'.
 
+With a prefix ARG, start a fresh process instead of reusing an existing
+one."
+  (interactive "P")
+  (projectile--run projectile-shell-backend arg nil))
+
+;;;###autoload
+(defun projectile-run-shell (&optional arg)
+  "Invoke `shell' in the project's root (the shell `projectile-run' backend).
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile--vterm arg))
+  (projectile--run 'shell arg nil))
+
+;;;###autoload
+(defun projectile-run-eshell (&optional arg)
+  "Invoke `eshell' in the project's root (the eshell `projectile-run' backend).
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--run 'eshell arg nil))
+
+;;;###autoload
+(defun projectile-run-ielm (&optional arg)
+  "Invoke `ielm' in the project's root (the ielm `projectile-run' backend).
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--run 'ielm arg nil))
+
+;;;###autoload
+(defun projectile-run-term (&optional arg)
+  "Invoke `term' in the project's root (the term `projectile-run' backend).
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--run 'term arg nil))
+
+;;;###autoload
+(defun projectile-run-vterm (&optional arg)
+  "Invoke `vterm' in the project's root (the vterm `projectile-run' backend).
+Use a prefix argument ARG to indicate creation of a new process instead."
+  (interactive "P")
+  (projectile--run 'vterm arg nil))
 
 ;;;###autoload
 (defun projectile-run-vterm-other-window (&optional arg)
-  "Invoke `vterm' in the project's root.
-
-Switch to the project specific term buffer if it already exists.
-
+  "Invoke `vterm' in the project's root, displayed in another window.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile--vterm arg 'other-window))
+  (projectile--run 'vterm arg t))
 
 ;;;###autoload
 (defun projectile-run-eat (&optional arg)
-  "Invoke `eat' in the project's root.
-
-Switch to the project specific eat buffer if it already exists.
-
+  "Invoke `eat' in the project's root (the eat `projectile-run' backend).
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile--eat arg))
+  (projectile--run 'eat arg nil))
 
 ;;;###autoload
 (defun projectile-run-eat-other-window (&optional arg)
-  "Invoke `eat' in the project's root.
-
-Switch to the project specific eat buffer if it already exists.
-
+  "Invoke `eat' in the project's root, displayed in another window.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile--eat arg 'other-window))
+  (projectile--run 'eat arg t))
 
 ;;;###autoload
 (defun projectile-run-ghostel (&optional arg)
-  "Invoke `ghostel' in the project's root.
-
-Switch to the project specific ghostel buffer if it already exists.
-
+  "Invoke `ghostel' in the project's root (the ghostel `projectile-run' backend).
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile--ghostel arg))
+  (projectile--run 'ghostel arg nil))
 
 ;;;###autoload
 (defun projectile-run-ghostel-other-window (&optional arg)
-  "Invoke `ghostel' in the project's root.
-
-Switch to the project specific ghostel buffer if it already exists.
-
+  "Invoke `ghostel' in the project's root, displayed in another window.
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
-  (projectile--ghostel arg 'other-window))
+  (projectile--run 'ghostel arg t))
 
 (defun projectile-files-from-cmd (cmd directory)
   "Use a grep-like CMD to search for files within DIRECTORY.
@@ -7712,6 +7806,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "P") #'projectile-test-project)
     (define-key map (kbd "u") #'projectile-run-project)
     ;; integration with utilities
+    (define-key map (kbd "x r") #'projectile-run)
     (define-key map (kbd "x e") #'projectile-run-eshell)
     (define-key map (kbd "x i") #'projectile-run-ielm)
     (define-key map (kbd "x t") #'projectile-run-term)
@@ -7825,6 +7920,8 @@ PROPS is a plist of:
 (projectile-dispatch--define projectile-dispatch-ripgrep projectile-ripgrep
   :prefix-arg "--regexp")
 ;; New process
+(projectile-dispatch--define projectile-dispatch-run projectile-run
+  :prefix-arg "--new-process")
 (projectile-dispatch--define projectile-dispatch-run-eshell projectile-run-eshell
   :prefix-arg "--new-process")
 (projectile-dispatch--define projectile-dispatch-run-shell projectile-run-shell
@@ -7905,6 +8002,7 @@ window or frame (file/buffer/project commands)."
       ("ci" "install" projectile-install-project)
       ("cp" "package" projectile-package-project)]
      ["Shells / Run"
+      ("xr" "run" projectile-dispatch-run)
       ("xe" "eshell" projectile-dispatch-run-eshell)
       ("xs" "shell" projectile-dispatch-run-shell)
       ("xt" "term" projectile-dispatch-run-term)
@@ -7973,6 +8071,8 @@ window or frame (file/buffer/project commands)."
          ["Multi-occur in project" projectile-multi-occur]
          ["Find references in project" projectile-find-references])
         ("Run..."
+         ["Run (default backend)" projectile-run]
+         "--"
          ["Run shell" projectile-run-shell]
          ["Run eshell" projectile-run-eshell]
          ["Run ielm" projectile-run-ielm]
