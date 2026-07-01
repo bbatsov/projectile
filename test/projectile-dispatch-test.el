@@ -75,10 +75,10 @@
     (expect captured :to-equal (cons 'projectile-switch-project nil))))
 
 (describe "projectile-dispatch prefix"
-  (it "is a transient prefix exactly when transient is available"
-    (if (featurep 'transient)
-        (expect (get 'projectile-dispatch 'transient--prefix) :to-be-truthy)
-      (expect (fboundp 'projectile-dispatch) :to-be nil))))
+  (it "is defined as a transient prefix"
+    ;; transient is bundled with Emacs 28.1+ (Projectile's minimum), so the
+    ;; dispatch menu is always available.
+    (expect (get 'projectile-dispatch 'transient--prefix) :to-be-truthy)))
 
 (provide 'projectile-dispatch-test)
 
