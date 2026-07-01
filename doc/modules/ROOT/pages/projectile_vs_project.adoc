@@ -24,7 +24,7 @@ NOTE: As of early 2026. (Projectile 2.10 and `project.el` in Emacs 31)
 | 2014 footnote:[It was introduced in Emacs 25.1.]
 
 | Supported Emacs versions
-| 27.1+
+| 28.1+
 | 26+ footnote:[Note that the versions bundled with older Emacsen will miss some of its modern features. `project.el` is distributed as a package as well, so you can still get some of the newer functionality on older Emacsen.]
 
 | Built-in
@@ -431,11 +431,11 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 
 == Projectile's Pros
 
-* Projectile targets Emacs 27.1, so you can get all the features even with older Emacs releases
+* Projectile targets Emacs 28.1+
 * Projectile has different project indexing strategies, which offer you a lot of flexibility in different situations
 * Projectile supports a lot of project types out-of-the-box (e.g. `ruby`, `Rails`, `cabal` and `dune`), with per-type hooks for compile/test/run/install/package/configure
 * Projectile has a lot more features, although one can argue that some of them are rarely needed
-  ** Projectile's Commander is pretty cool for project switching!
+  ** Projectile's dispatch menu (`projectile-dispatch`, a `transient` interface) is pretty cool for driving a project!
   ** Test/implementation toggling, a related-files framework, persistent on-disk caching, integrations with most Emacs shells out of the box
 * It's easier to contribute to Projectile
   ** Projectile is hosted in GitHub

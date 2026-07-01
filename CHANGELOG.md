@@ -31,6 +31,26 @@
 * `projectile-project-root-cache` now keys entries on cons cells (`(FUNC . DIR)` for per-function results, `('none . DIR)` for the overall failure marker) instead of formatted strings. This is internal state, but third-party code that reaches into the cache directly will need to update.
 * `projectile-parse-dirconfig-file' now returns a `projectile-dirconfig' struct (with `keep', `ignore', `ensure', and `prefixless-ignore' slots) instead of a positional 3-tuple. External callers should use the accessors (`projectile-dirconfig-keep' etc.) rather than `car'/`cadr'/`caddr'.
 * Soft-deprecate prefix-less ignore entries in `.projectile'. Lines without a `+'/`-'/`!' prefix are still treated as ignore patterns for backward compatibility, but a one-time warning is now shown for each project that uses them. Set `projectile-warn-on-prefixless-dirconfig-lines' to nil to silence.
+* **[Breaking]** Remove the legacy single-letter lifecycle keybindings `C`/`K`/`L`/`P`/`u` (configure/package/install/test/run project). Use the `c` prefix instead (`c o`, `c p`, `c i`, `c t`, `c r`).
+* Remove two long-obsolete aliases: `projectile-global-mode` (use `projectile-mode`) and `projectile-project-root-files-functions` (use `projectile-project-root-functions`).
+* Pre-compute file timestamps in `projectile-sort-by-modification-time` and `projectile-sort-by-access-time` to reduce stat calls from O(n log n) to O(n).
+* Cache `projectile-parse-dirconfig-file` results per project root (invalidated by file modification time), avoiding redundant file reads during indexing.
+* Cache `file-truename` results in `projectile-project-buffer-p` when checking multiple buffers, reducing redundant symlink resolution.
+* Use a hash set for deleted file removal in `projectile-dir-files-alien`, improving performance from O(n*m) to O(n+m) when filtering deleted-but-unstaged files.
+* Avoid redundant `projectile-project-root` call in `projectile-detect-project-type` by passing through the already-resolved root.
+* Share `file-truename` cache across buffers in `projectile-open-projects`, matching the optimization already in `projectile-project-buffers`.
+* Remove unnecessary temp buffer creation in `projectile--cache-project-commands-p` (was creating a buffer and re-reading `.dir-locals.el` on every compile/test/run invocation).
+* **[Breaking]** Bump the minimum required Emacs version to 28.1 (from 26.1). This removes ~30 lines of compatibility code (fileloop fallback, `time-convert` fallback, `projectile-flatten` shim), makes `transient` (and therefore `projectile-dispatch`) an unconditional dependency, and fixes the `tags-query-replace` FIXME in `projectile-replace-regexp`.
+* Add `compat` as a dependency, enabling the use of modern Emacs APIs (e.g. `string-replace`) on older Emacs versions.
+* Replace most `cl-lib` sequence functions with `seq.el` equivalents (`seq-filter`, `seq-remove`, `seq-some`, `seq-find`, `seq-sort`, `seq-every-p`, `seq-difference`) and convert `cl-case` to `pcase`.
+* [#1971](https://github.com/bbatsov/projectile/pull/1971): Support `slnx` files for dotnet project types.
+* [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.
+* [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe.
+* Set `projectile-auto-discover` to `nil` by default (to avoid startup slowdowns in some situations).
+* [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values.
+* [#1936](https://github.com/bbatsov/projectile/issues/1936): Do not require selecting a project when using `M-x projectile-invalidate-cache`, since there is a global cache that is also cleared by that command, even when not operating on any specific project.
+* Add `build.mill` as an alternative project marker for the Mill project type, matching Mill's current recommended file extension.
+* Replace obsolete `when-let` and `cl-gensym` with `when-let*` and `gensym` for compatibility with Emacs 31+.
 
 ### New features
 
@@ -137,28 +157,6 @@
 * Fix `dired-before-readin-hook` being added as buffer-local instead of global in `projectile-mode`, so it now correctly fires in all dired buffers.
 * Fix `projectile-find-dir-hook` not being cleaned up when disabling `projectile-mode`.
 * Use `display-warning` instead of `message` when cache serialization fails, making the failure visible in the `*Warnings*` buffer.
-
-### Changes
-
-* Pre-compute file timestamps in `projectile-sort-by-modification-time` and `projectile-sort-by-access-time` to reduce stat calls from O(n log n) to O(n).
-* Cache `projectile-parse-dirconfig-file` results per project root (invalidated by file modification time), avoiding redundant file reads during indexing.
-* Cache `file-truename` results in `projectile-project-buffer-p` when checking multiple buffers, reducing redundant symlink resolution.
-* Use a hash set for deleted file removal in `projectile-dir-files-alien`, improving performance from O(n*m) to O(n+m) when filtering deleted-but-unstaged files.
-* Avoid redundant `projectile-project-root` call in `projectile-detect-project-type` by passing through the already-resolved root.
-* Share `file-truename` cache across buffers in `projectile-open-projects`, matching the optimization already in `projectile-project-buffers`.
-* Remove unnecessary temp buffer creation in `projectile--cache-project-commands-p` (was creating a buffer and re-reading `.dir-locals.el` on every compile/test/run invocation).
-* **[Breaking]** Bump minimum required Emacs version from 26.1 to 27.1. This removes ~30 lines of compatibility code (fileloop fallback, `time-convert` fallback, `projectile-flatten` shim) and fixes the `tags-query-replace` FIXME in `projectile-replace-regexp`.
-* Add `compat` as a dependency, enabling the use of modern Emacs APIs (e.g. `string-replace`) on older Emacs versions.
-* Replace most `cl-lib` sequence functions with `seq.el` equivalents (`seq-filter`, `seq-remove`, `seq-some`, `seq-find`, `seq-sort`, `seq-every-p`, `seq-difference`) and convert `cl-case` to `pcase`.
-* [#1971](https://github.com/bbatsov/projectile/pull/1971): Support `slnx` files for dotnet project types.
-* [#1958](https://github.com/bbatsov/projectile/issues/1958): Exclude `.projectile-cache.eld` from search results (ripgrep/ag/grep) by default.
-* [#1957](https://github.com/bbatsov/projectile/pull/1957): Add `:caller` information to calls to `ivy-read` (used by packages like `ivy-rich`).
-* [#1947](https://github.com/bbatsov/projectile/issues/1947): `projectile-project-name` should be marked as safe.
-* Set `projectile-auto-discover` to `nil` by default (to avoid startup slowdowns in some situations).
-* [#1943](https://github.com/bbatsov/projectile/pull/1943): Consider `projectile-indexing-method` to be safe as a dir-local variable if it is one of the preset values.
-* [#1936](https://github.com/bbatsov/projectile/issues/1936): Do not require selecting a project when using `M-x projectile-invalidate-cache`, since there is a global cache that is also cleared by that command, even when not operating on any specific project.
-* Add `build.mill` as an alternative project marker for the Mill project type, matching Mill's current recommended file extension.
-* Replace obsolete `when-let` and `cl-gensym` with `when-let*` and `gensym` for compatibility with Emacs 31+.
 
 ## 2.9.1 (2025-02-13)
 
