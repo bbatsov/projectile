@@ -159,7 +159,7 @@ You need to know only a handful of Projectile commands to start benefiting from 
 * Grep (search for text/regexp) in project (kbd:[s-p s g])
 * Replace in project (kbd:[s-p r])
 * Find references in project (kbd:[s-p ?] or kbd:[s-p s x])
-* Invoke any Projectile command via the Projectile Commander (kbd:[s-p m])
+* Invoke any Projectile command via the Projectile dispatch menu (kbd:[s-p m])
 * Toggle between implementation and test (kbd:[s-p t])
 * Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`) (kbd:[s-p a])
 * Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
@@ -447,10 +447,9 @@ find a file and show it in a new frame; or press kbd:[-i] then kbd:[f] to
 invalidate the cache and find a file. This replaces the old dedicated "other
 window" and "other frame" menu columns.
 
-NOTE: `transient` is an optional dependency (it requires Emacs 28.1+), so
-`projectile-dispatch` is only defined when `transient` is installed. It is not
-bound to a key by default; without it kbd:[C-u s-p p] simply falls back to
-`projectile-switch-project-action`.
+NOTE: `projectile-dispatch` is powered by `transient`, which is bundled with
+Emacs 28.1+ (Projectile's minimum), so the menu is always available. It's bound
+to kbd:[s-p m], and kbd:[C-u s-p p] opens it when switching projects.
 
 == Using Projectile with project.el
 

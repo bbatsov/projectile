@@ -1,0 +1,170 @@
+= Migrating to Projectile 3.0
+
+Projectile 3.0 is a cleanup and modernization release. There are no big new
+concepts to learn - the focus was on removing long-deprecated or low-value
+features and consolidating a few families of near-duplicate commands. Most
+setups will keep working untouched; this page walks through the changes that
+_can_ affect an older configuration and how to adapt.
+
+TIP: If you just want the short version, jump to the <<cheat-sheet,configuration
+cheat sheet>> at the end.
+
+== Requirements
+
+Projectile 3.0 requires *Emacs 28.1 or newer* (2.x supported 27.1, and older
+2.x releases went back further). If you're on an older Emacs, stay on Projectile
+2.x. The bump lets Projectile rely on `transient` unconditionally, so
+`projectile-dispatch` (kbd:[s-p m]) is now always available rather than an
+optional extra.
+
+== Removed features
+
+=== Projectile Commander -> the dispatch menu
+
+The single-key "Commander" (`projectile-commander` and
+`def-projectile-commander-method`) is gone. Its replacement is
+`projectile-dispatch`, a `transient` menu bound to kbd:[s-p m]. A prefix
+argument on project switch (kbd:[C-u s-p p]) also opens it.
+
+If you defined your own commander methods, add them to the dispatch transient
+instead (see `transient-append-suffix` and the `projectile-dispatch` definition).
+
+=== The idle timer
+
+`projectile-enable-idle-timer`, `projectile-idle-timer-seconds` and
+`projectile-idle-timer-hook` were removed. If you relied on running something
+periodically, wire it up yourself:
+
+[source,elisp]
+----
+(run-with-idle-timer 60 t (lambda ()
+                            (when (projectile-project-p)
+                              ;; ...
+                              )))
+----
+
+=== projectile-browse-dirty-projects
+
+Removed. For an overview of repositories with uncommitted changes use
+`magit-list-repositories` or `vc-dir`, which do this far better than Projectile
+ever did.
+
+=== Built-in tags support
+
+All of the built-in `ctags`/`etags`/`gtags` glue is gone:
+`projectile-find-tag`, `projectile-regenerate-tags`,
+`projectile-visit-project-tags-table`, and the `projectile-tags-command` /
+`projectile-tags-backend` options.
+
+Modern code navigation is better served by `xref` (kbd:[M-.]) backed by a
+language server (Eglot/LSP) or `etags`/`ggtags` directly, plus
+`projectile-find-references` (kbd:[s-p s x]) for textual references.
+
+NOTE: `projectile-tags-file-name` is kept, but only so that a project's `TAGS`
+file can be excluded from the index. It no longer drives any command.
+
+=== The ido / ivy / helm completion systems
+
+`projectile-completion-system` used to accept `ido`, `ivy`, `helm`, `default`,
+or `auto` (which detected `ido-mode`/`ivy-mode`/`helm-mode`). The dedicated
+`ido`/`ivy`/`helm`/`auto` values were removed - it now takes `default` (Emacs's
+`completing-read`) or a custom function.
+
+This isn't a loss of functionality: Vertico, Consult, `fido-mode`, Ido's
+`ido-ubiquitous`, and friends all work through `completing-read`, and
+https://github.com/bbatsov/helm-projectile[helm-projectile] /
+https://github.com/ericdanan/counsel-projectile[counsel-projectile] provide
+their own dedicated integration. Any of the old values now simply behaves like
+`default`, so nothing breaks - you can just delete the setting.
+
+=== Legacy keybindings and aliases
+
+The single-letter lifecycle bindings kbd:[s-p C] / kbd:[s-p K] / kbd:[s-p L] /
+kbd:[s-p P] / kbd:[s-p u] (configure / package / install / test / run project)
+were removed. Use the `c` prefix instead: kbd:[s-p c o], kbd:[s-p c p],
+kbd:[s-p c i], kbd:[s-p c t], kbd:[s-p c r].
+
+Two long-obsolete aliases were also deleted: `projectile-global-mode` (use
+`projectile-mode`) and `projectile-project-root-files-functions` (use
+`projectile-project-root-functions`).
+
+== Consolidated commands
+
+=== Search
+
+The search commands now share one entry point, `projectile-search`
+(kbd:[s-p s s]), backed by a pluggable backend. `projectile-search-backend`
+picks the backend (`auto` by default, favouring `ripgrep` then `grep`); you can
+also register your own with `projectile-register-search-backend`. See the
+xref:configuration.adoc#_searching[Searching] section for details.
+
+`projectile-grep`, `projectile-ripgrep` and `projectile-ag` still exist as thin
+wrappers that force a specific backend.
+
+IMPORTANT: One keybinding changed. kbd:[s-p s s] now runs `projectile-search`
+(it used to run `projectile-ag`), and `projectile-ag` moved to kbd:[s-p s a].
+kbd:[s-p s g] (grep) and kbd:[s-p s r] (ripgrep) are unchanged.
+
+=== Shells, REPLs and terminals
+
+Similarly, `projectile-run` (kbd:[s-p x r]) is a single command that opens a
+shell/REPL/terminal in the project root using a backend chosen by
+`projectile-shell-backend` (default `eshell`). The individual commands
+(`projectile-run-eshell`, `projectile-run-vterm`, ..., and their
+`-other-window` variants) are unchanged, and you can add your own terminal with
+`projectile-register-shell-backend`.
+
+=== Dispatch modifiers instead of "other window / other frame" columns
+
+The `projectile-dispatch` menu gained modifier switches - kbd:[-d] (`--display`:
+cycle this window / other window / other frame), kbd:[-r] (`--regexp`),
+kbd:[-n] (`--new-process`) and kbd:[-i] (`--invalidate-cache`) - which replace
+the old dedicated "Other window" and "Other frame" menu columns. The
+`projectile-command-map` kbd:[4 <key>] / kbd:[5 <key>] bindings and the
+individual `*-other-window` / `*-other-frame` commands are untouched.
+
+== Behavior changes
+
+=== projectile-find-references
+
+`projectile-find-references` now honours Projectile's ignore configuration
+(`.projectile` and the globally-ignored files/directories) and searches only the
+project's file set. It previously went through the semantic-symref API, which
+scanned the whole tree and ignored that configuration. For semantic (not
+textual) references, use the built-in `xref-find-references` - it is also scoped
+to the Projectile project now.
+
+[[cheat-sheet]]
+== Configuration cheat sheet
+
+[cols="1,1",options="header"]
+|===
+| Before (2.x) | After (3.0)
+
+| `(setq projectile-completion-system 'ido)` (or `ivy`/`helm`/`auto`)
+| Delete it, or `(setq projectile-completion-system 'default)`; use Vertico/Consult/helm-projectile/counsel-projectile as usual
+
+| `projectile-commander`, `def-projectile-commander-method`
+| `projectile-dispatch` (kbd:[s-p m]) + `transient-append-suffix`
+
+| `projectile-enable-idle-timer`, `projectile-idle-timer-seconds`, `projectile-idle-timer-hook`
+| Roll your own with `run-with-idle-timer`
+
+| `projectile-browse-dirty-projects`
+| `magit-list-repositories` / `vc-dir`
+
+| `projectile-find-tag`, `projectile-regenerate-tags`, `projectile-tags-command`, `projectile-tags-backend`
+| `xref` (kbd:[M-.]) + a language server, and `projectile-find-references`
+
+| kbd:[s-p s s] (was `projectile-ag`)
+| `projectile-search`; `projectile-ag` is now kbd:[s-p s a]
+
+| kbd:[s-p C] / kbd:[s-p K] / kbd:[s-p L] / kbd:[s-p P] / kbd:[s-p u]
+| kbd:[s-p c o] / kbd:[s-p c p] / kbd:[s-p c i] / kbd:[s-p c t] / kbd:[s-p c r]
+
+| `projectile-global-mode`, `projectile-project-root-files-functions`
+| `projectile-mode`, `projectile-project-root-functions`
+
+| Emacs 27.1+
+| Emacs 28.1+
+|===

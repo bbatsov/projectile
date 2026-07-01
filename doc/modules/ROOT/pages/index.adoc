@@ -49,7 +49,7 @@ Here are some of Projectile's features in no particular order:
 * find references in project (using `xref` internally)
 * visit project in `dired`
 * run `make` in a project with a single key chord
-* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm` and the default completion system)
+* works with any `completing-read`-based minibuffer completion UI (Vertico, Consult, `fido-mode`, etc.)
 * automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
 
