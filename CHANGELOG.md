@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 3.0.0 (2026-07-01)
+
 ### Changes
 
 * Remove the dedicated `ido`/`ivy`/`helm` completion systems (and the `auto` mode that detected `ido-mode`/`ivy-mode`/`helm-mode`). `projectile-completing-read` now uses Emacs's `completing-read` (the former `default`), which works with Vertico, Consult, Fido, Ido's `ido-ubiquitous`, etc., and still tags candidates with the `project-file` category. `projectile-completion-system` now takes `default` or a custom function; the removed values degrade to `default`, so nothing breaks. `helm-projectile` and `counsel-projectile` are unaffected (they don't go through this path).

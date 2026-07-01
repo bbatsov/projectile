@@ -5,8 +5,8 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience, matching
-;; Version: 0.1.0-snapshot
-;; Package-Requires: ((emacs "29.1") (projectile "2.10.0") (consult "2.0"))
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "29.1") (projectile "3.0.0") (consult "2.0"))
 
 ;; This file is NOT part of GNU Emacs.
 
