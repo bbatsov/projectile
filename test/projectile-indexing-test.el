@@ -489,6 +489,30 @@
          (expect (projectile-project-vcs dir) :to-equal 'git)
          (expect 'directory-files :not :to-have-been-called))))))
 
+(describe "projectile--ext-command-line"
+  (it "returns the command unchanged when there are no pathspecs"
+    (expect (projectile--ext-command-line "git ls-files -zco" nil)
+            :to-equal "git ls-files -zco"))
+  (it "appends shell-quoted pathspecs for tools that take trailing paths"
+    (expect (projectile--ext-command-line "git ls-files -zco --exclude-standard"
+                                          '("src/" "test dir/"))
+            :to-equal "git ls-files -zco --exclude-standard src/ test\\ dir/"))
+  (it "passes fd dirs via --search-path and drops --strip-cwd-prefix (#2005)"
+    ;; fd rejects --strip-cwd-prefix alongside explicit paths, and its
+    ;; `[pattern] [path...]' grammar would misread a trailing path as the
+    ;; search pattern; --search-path sidesteps both.
+    (expect (projectile--ext-command-line
+             "fd -H -0 -E .git -tf --strip-cwd-prefix -c never" '("src/" "tests/"))
+            :to-equal
+            "fd -H -0 -E .git -tf -c never --search-path src/ --search-path tests/"))
+  (it "keeps an existing fd search pattern while rewriting the paths"
+    (expect (projectile--ext-command-line
+             "fd . -0 --type f --color=never --strip-cwd-prefix" '("src/"))
+            :to-equal "fd . -0 --type f --color=never --search-path src/"))
+  (it "handles fd's --strip-cwd-prefix=<when> value form"
+    (expect (projectile--ext-command-line "fd . --strip-cwd-prefix=always" '("src/"))
+            :to-equal "fd . --search-path src/")))
+
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty"
               (expect (projectile-files-via-ext-command "/" "") :not :to-be-truthy)
