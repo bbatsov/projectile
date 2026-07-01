@@ -257,4 +257,32 @@
     (let ((projectile-project-types '((test-type))))
       (expect (projectile-default-generic-command 'test-type 'compile-command) :to-equal nil))))
 
+(describe "display-variant commands"
+  ;; The other-window/-frame variants share a helper and differ only in the
+  ;; display function they hand off to.
+  (it "projectile-dired opens the project root with dired"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'dired)
+    (projectile-dired)
+    (expect 'dired :to-have-been-called-with "/proj/"))
+
+  (it "projectile-dired-other-window uses dired-other-window"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'dired-other-window)
+    (projectile-dired-other-window)
+    (expect 'dired-other-window :to-have-been-called-with "/proj/"))
+
+  (it "projectile-switch-to-buffer-other-frame uses switch-to-buffer-other-frame"
+    (spy-on 'projectile-read-buffer-to-switch :and-return-value "buf")
+    (spy-on 'switch-to-buffer-other-frame)
+    (projectile-switch-to-buffer-other-frame)
+    (expect 'switch-to-buffer-other-frame :to-have-been-called-with "buf"))
+
+  (it "projectile-find-implementation-or-test-other-window uses find-file-other-window"
+    (spy-on 'buffer-file-name :and-return-value "/proj/x_test.el")
+    (spy-on 'projectile-find-implementation-or-test :and-return-value "/proj/x.el")
+    (spy-on 'find-file-other-window)
+    (projectile-find-implementation-or-test-other-window)
+    (expect 'find-file-other-window :to-have-been-called-with "/proj/x.el")))
+
 ;;; projectile-commands-test.el ends here
