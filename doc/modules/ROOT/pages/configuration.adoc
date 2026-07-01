@@ -713,74 +713,30 @@ whenever you visit a file in a project.  You can disable this:
 
 == Completion Options
 
-Projectile supports all major minibuffer completion packages that
-exist today. Normally it will just detect what you're using (e.g. `ivy`),
-but you can force a particular completion system via the variable
-`projectile-completion-system`.
-
-NOTE: Historically `projectile-completion-system` defaulted to `ido`,
-but this was changed in version 2.3. You may need to enable `ido-mode`
-in your Emacs configuration if updating from an older version of Projectile.
-
-=== Auto (default)
-
-By default Projectile detects the completion system in use, based
-on the mode variables `ido-mode`, `ivy-mode` and `helm-mode`.
-If none of those is activated, the `default` completion system is used.
-
-Unless for some reason you want to use a different completion system for
-Projectile than for the rest of Emacs (e.g. you normally use `icomplete-mode`,
-but want to use `ido-mode` with Projectile), you'll probably don't want to
-select a particular completion system manually.
-
-=== Basic (Emacs's default)
-
-Select this option if you want to use Emacs's standard completion (based on `completing-read`):
+Projectile reads with Emacs's built-in `completing-read`, so it works out of the
+box with whatever minibuffer UI you use - Vertico, Consult + Marginalia,
+`fido-mode`/`icomplete`, Ido's `ido-ubiquitous`, and so on. Its candidates are
+tagged with the `project-file` completion category, which Marginalia and Embark
+use to enhance how they're presented.
 
 [source,elisp]
 ----
+;; the default; nothing to configure for the common case
 (setq projectile-completion-system 'default)
 ----
 
-TIP: You might want to combine default completion with `icomplete-mode` for optimum results.
-Emacs 27 added `fido-mode` to `icomplete`.
+NOTE: Earlier versions had dedicated `ido`, `ivy` and `helm` values (and an
+`auto` mode that detected `ido-mode`/`ivy-mode`/`helm-mode`). These were removed
+- those frameworks are used through `completing-read` nowadays, or through their
+own Projectile integration packages,
+https://github.com/bbatsov/helm-projectile[helm-projectile] and
+https://github.com/ericdanan/counsel-projectile[counsel-projectile]. Any of the
+old values now simply behaves like `default`.
 
-If you are using `fido-mode`, Projectile will
-use the `default` completion system. The same holds for `vertico` which also rely
-on the `default` completion system.
+=== Custom completion function
 
-=== Ido
-
-The `ido` completion system is extremely popular and it is built into Emacs.
-
-[source,elisp]
-----
-(setq projectile-completion-system 'ido)
-----
-
-As noted above, Projectile will auto-detect `ido-mode` if enabled, so the
-above configuration is not needed most of the time.
-
-TIP: As already noted above if you're going to use the `ido` completion it's
- **extremely highly** recommended that you install the optional
- https://github.com/lewang/flx[flx-ido package], which provides a much
- more powerful alternative to ``ido``'s built-in `flex` matching.
-
-=== Ivy (recommended)
-
-Another completion option is https://github.com/abo-abo/swiper[ivy]:
-
-[source,elisp]
-----
-(setq projectile-completion-system 'ivy)
-----
-
-As noted above, Projectile will auto-detect `ivy-mode` if enabled, so the
-above configuration is not needed most of the time.
-
-=== Custom Completion Function
-
-You can also set `projectile-completion-system` to a function:
+You can also set `projectile-completion-system` to a function that accepts a
+prompt and a list of choices:
 
 [source,elisp]
 ----
@@ -792,10 +748,9 @@ You can also set `projectile-completion-system` to a function:
 ----
 
 An example of a custom completion function is
-https://gist.github.com/rejeep/5933343[this one], which only show
-the file name (not including path) and if the file selected is not
-unique, another completion with names relative to project root
-appears.
+https://gist.github.com/rejeep/5933343[this one], which only shows the file name
+(not including path) and, if the selected file is not unique, follows up with a
+completion over names relative to the project root.
 
 == Project-specific Compilation Buffers
 

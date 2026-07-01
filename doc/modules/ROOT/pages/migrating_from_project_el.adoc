@@ -45,7 +45,7 @@ Most knob-for-knob mappings are in the concordance table in xref:projectile_vs_p
 | `projectile-project-root-files-bottom-up` (and its sibling defcustoms)
 
 | `project-prompter`
-| `projectile-completion-system` (an enum: `auto`, `default`, `ido`, `ivy`, `helm`, or a custom function)
+| `projectile-completion-system` (`default`, i.e. `completing-read`, or a custom function)
 
 | `project-vc-name`
 | `projectile-project-name` set via `.dir-locals.el`

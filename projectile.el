@@ -52,9 +52,6 @@
 ;;
 ;; A bunch of variable and function declarations
 ;; needed to appease the byte-compiler.
-(defvar ido-mode)
-(defvar ivy-mode)
-(defvar helm-mode)
 (defvar ag-ignore-list)
 ;; Defined by the optional `transient' dependency (see `projectile-dispatch').
 (defvar transient-exit-hook)
@@ -279,16 +276,20 @@ When nil Projectile will consider the current directory the project root."
                  (const :tag "Yes" t)
                  (const :tag "Prompt for project" prompt)))
 
-(defcustom projectile-completion-system 'auto
-  "The completion system to be used by Projectile."
+(defcustom projectile-completion-system 'default
+  "The completion system to be used by Projectile.
+Either `default' (Emacs's built-in `completing-read', which works with
+Vertico, Consult, Fido, Ido's `ido-ubiquitous', etc.) or a custom
+function accepting a prompt and a list of choices.
+
+Note: the dedicated `ido', `helm' and `ivy' options were removed - those
+frameworks are used through `completing-read' (or their own Projectile
+integration packages, `helm-projectile' / `counsel-projectile'), so any
+of those legacy values now behaves like `default'."
   :group 'projectile
-  :type '(radio
-          (const :tag "Auto-detect" auto)
-          (const :tag "Ido" ido)
-          (const :tag "Helm" helm)
-          (const :tag "Ivy" ivy)
-          (const :tag "Default" default)
-          (function :tag "Custom function")))
+  :type '(choice (const :tag "Default (completing-read)" default)
+                 (function :tag "Custom function"))
+  :package-version '(projectile . "2.10.0"))
 
 (defcustom projectile-keymap-prefix nil
   "Projectile keymap prefix."
@@ -3153,56 +3154,29 @@ project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
 (cl-defun projectile-completing-read (prompt choices &key initial-input action caller)
-  "Present a project tailored PROMPT with CHOICES."
-  (let ((prompt (projectile-prepend-project-name prompt))
-        (caller (or caller 'projectile-completing-read))
-        res)
-    (setq res
-          (pcase (if (eq projectile-completion-system 'auto)
-                     (cond
-                      ((bound-and-true-p ido-mode)  'ido)
-                      ((bound-and-true-p helm-mode) 'helm)
-                      ((bound-and-true-p ivy-mode)  'ivy)
-                      (t 'default))
-                   projectile-completion-system)
-            ('default (completing-read prompt (lambda (string pred action)
-                                                (cond
-                                                 ;; this metadata is used by
-                                                 ;; packages like marginalia and
-                                                 ;; embark to enhance how they
-                                                 ;; present candidates
-                                                 ((eq action 'metadata)
-                                                  '(metadata . ((category . project-file))))
-                                                 (t
-                                                  (complete-with-action action choices string pred))))
-                                       nil nil initial-input))
-            ('ido (ido-completing-read prompt choices nil nil initial-input))
-            ('helm
-             (if (and (fboundp 'helm)
-                      (fboundp 'helm-make-source))
-                 (helm :sources
-                       (helm-make-source "Projectile" 'helm-source-sync
-                                         :candidates choices
-                                         :action (if action
-                                                     (prog1 action
-                                                       (setq action nil))
-                                                   #'identity))
-                       :prompt prompt
-                       :input initial-input
-                       :buffer "*helm-projectile*")
-               (user-error "Please install helm")))
-            ('ivy
-             (if (fboundp 'ivy-read)
-                 (ivy-read prompt choices
-                           :initial-input initial-input
-                           :action (prog1 action
-                                     (setq action nil))
-                           :caller caller)
-               (user-error "Please install ivy")))
-            (_ (funcall projectile-completion-system prompt choices))))
-    (if action
-        (funcall action res)
-      res)))
+  "Present a project tailored PROMPT with CHOICES.
+
+Reads with `completing-read', unless `projectile-completion-system' is a
+function, in which case that function is called with PROMPT and CHOICES.
+
+INITIAL-INPUT is passed to `completing-read'.  ACTION, when non-nil, is
+called on the selected candidate and its result returned.  CALLER is
+accepted for backward compatibility but no longer used."
+  (ignore caller)
+  (let* ((prompt (projectile-prepend-project-name prompt))
+         (res (if (functionp projectile-completion-system)
+                  (funcall projectile-completion-system prompt choices)
+                (completing-read
+                 prompt
+                 (lambda (string pred action)
+                   ;; The `project-file' category lets packages like
+                   ;; marginalia and embark enhance how candidates are
+                   ;; presented.
+                   (if (eq action 'metadata)
+                       '(metadata . ((category . project-file)))
+                     (complete-with-action action choices string pred)))
+                 nil nil initial-input))))
+    (if action (funcall action res) res)))
 
 (defun projectile--dirconfig-non-empty-p ()
   "Return non-nil if the current project's dirconfig file has any content."
