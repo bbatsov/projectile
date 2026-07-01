@@ -629,6 +629,22 @@ Any function that does not take arguments will do."
   :group 'projectile
   :type 'boolean)
 
+(defcustom projectile-search-backend 'auto
+  "The backend `projectile-search' uses to search the project.
+Either a backend name registered in `projectile-search-backends'
+\(`grep', `ripgrep', `ag', or one you registered yourself with
+`projectile-register-search-backend'), `auto' to pick the first
+available backend (favouring ripgrep, then grep), or `prompt' to be
+asked which backend to use each time."
+  :group 'projectile
+  :type '(choice (const :tag "Automatic" auto)
+                 (const :tag "Prompt each time" prompt)
+                 (const :tag "grep" grep)
+                 (const :tag "ripgrep" ripgrep)
+                 (const :tag "ag" ag)
+                 (symbol :tag "Other registered backend"))
+  :package-version '(projectile . "2.10.0"))
+
 (defcustom projectile-grep-finished-hook nil
   "Hooks run when `projectile-grep' finishes."
   :group 'projectile
@@ -5521,24 +5537,70 @@ which it shares its arglist."
                  (shell-quote-argument ")")
                  " -prune -o ")))))
 
-;;;###autoload
-(defun projectile-grep (&optional regexp arg)
-  "Perform rgrep in the project.
+;;; Project search
+;;
+;; `projectile-search' runs a text search over the project using a pluggable
+;; backend.  Backends live in `projectile-search-backends' and are selected via
+;; `projectile-search-backend'; register your own (deadgrep, consult-ripgrep,
+;; ...) with `projectile-register-search-backend'.  The registry helpers below
+;; are deliberately family-agnostic so the same mechanism can drive other
+;; command families later on.
 
-With a prefix ARG asks for files (globbing-aware) which to grep in.
-With prefix ARG of `-' (such as `M--'), default the files (without prompt),
-to `projectile-grep-default-files'.
+;;;; Generic backend registry
 
-With REGEXP given, don't query the user for a regexp."
-  (interactive "i\nP")
+(defun projectile-register-backend (registry-symbol name &rest plist)
+  "Register backend NAME (a symbol) into REGISTRY-SYMBOL's alist.
+REGISTRY-SYMBOL names a variable holding an alist of (NAME . PLIST)
+descriptors; an existing entry for NAME is replaced.  PLIST properties
+are family-specific, but `:description' (a string) and `:available' (a
+zero-argument predicate, or nil for \"always available\") are understood
+by the resolution helpers below."
+  (set registry-symbol
+       (cons (cons name plist)
+             (assq-delete-all name (symbol-value registry-symbol)))))
+
+(defun projectile--backend-available-p (backend)
+  "Return non-nil when BACKEND, a (NAME . PLIST) descriptor, is usable."
+  (let ((predicate (plist-get (cdr backend) :available)))
+    (or (null predicate) (funcall predicate))))
+
+(defun projectile--resolve-backend (backends preference family)
+  "Return a usable backend from BACKENDS, honouring PREFERENCE.
+BACKENDS is an alist of (NAME . PLIST).  PREFERENCE is a backend name, or
+`auto' to pick the first available backend, or `prompt' to ask.  FAMILY
+is a noun used in prompts and errors, e.g. \"search\".  Signals a
+`user-error' when no suitable backend is available."
+  (let ((available (seq-filter #'projectile--backend-available-p backends)))
+    (cond
+     ((null available)
+      (user-error "No %s backend is available" family))
+     ((eq preference 'auto)
+      (car available))
+     ((eq preference 'prompt)
+      (assq (intern (completing-read
+                     (format "%s backend: " (capitalize family))
+                     (mapcar (lambda (b) (symbol-name (car b))) available)
+                     nil t))
+            backends))
+     (t
+      (let ((backend (assq preference backends)))
+        (cond
+         ((null backend)
+          (user-error "Unknown %s backend: %s" family preference))
+         ((projectile--backend-available-p backend)
+          backend)
+         (t
+          (user-error "The %s backend `%s' is not available" family preference))))))))
+
+;;;; Search engines
+
+(defun projectile--grep (search-regexp &optional files)
+  "Run rgrep (or `vc-git-grep') for SEARCH-REGEXP across the project.
+FILES, when non-nil, is an rgrep files specification restricting the
+search.  Honours Projectile's ignore configuration and runs
+`projectile-grep-finished-hook' when done."
   (require 'grep) ;; for `rgrep'
-  (let* ((roots (projectile-get-project-directories (projectile-acquire-root)))
-         (search-regexp (or regexp
-                            (projectile--read-search-string-with-default "Grep for")))
-         (files (and arg (or (and (equal current-prefix-arg '-)
-                                  (projectile-grep-default-files))
-                             (read-string (projectile-prepend-project-name "Grep in: ")
-                                          (projectile-grep-default-files))))))
+  (let ((roots (projectile-get-project-directories (projectile-acquire-root))))
     (dolist (root-dir roots)
       (require 'vc-git) ;; for `vc-git-grep'
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
@@ -5575,34 +5637,28 @@ With REGEXP given, don't query the user for a regexp."
                 (rename-buffer (concat "*grep <" root-dir ">*") t)))))))
     (run-hooks 'projectile-grep-finished-hook)))
 
-;;;###autoload
-(defun projectile-ag (search-term &optional arg)
-  "Run an ag search with SEARCH-TERM in the project.
-
-With an optional prefix argument ARG SEARCH-TERM is interpreted as a
-regular expression."
-  (interactive
-   (list (projectile--read-search-string-with-default
-          (format "Ag %ssearch for" (if current-prefix-arg "regexp " "")))
-         current-prefix-arg))
-  (if (require 'ag nil 'noerror)
-      (let ((ag-command (if arg 'ag-regexp 'ag))
-            (ag-ignore-list (delq nil
-                                  (seq-uniq
-                                   (append
-                                    ag-ignore-list
-                                    (projectile-ignored-files-rel)
-                                    (projectile-ignored-directories-rel)
-                                    (projectile--globally-ignored-file-suffixes-glob)
-                                    ;; ag supports git ignore files directly
-                                    (unless (eq (projectile-project-vcs) 'git)
-                                      (append grep-find-ignored-files
-                                              grep-find-ignored-directories
-                                              '()))))))
-            ;; reset the prefix arg, otherwise it will affect the ag-command
-            (current-prefix-arg nil))
-        (funcall ag-command search-term (projectile-acquire-root)))
-    (error "Package 'ag' is not available")))
+(defun projectile--ag (search-term &optional regexp)
+  "Run an `ag' search for SEARCH-TERM in the project.
+When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
+Requires the `ag' Emacs package."
+  (unless (require 'ag nil 'noerror)
+    (error "Package `ag' is not available"))
+  (let ((ag-command (if regexp 'ag-regexp 'ag))
+        (ag-ignore-list (delq nil
+                              (seq-uniq
+                               (append
+                                ag-ignore-list
+                                (projectile-ignored-files-rel)
+                                (projectile-ignored-directories-rel)
+                                (projectile--globally-ignored-file-suffixes-glob)
+                                ;; ag supports git ignore files directly
+                                (unless (eq (projectile-project-vcs) 'git)
+                                  (append grep-find-ignored-files
+                                          grep-find-ignored-directories
+                                          '()))))))
+        ;; reset the prefix arg, otherwise it will affect the ag-command
+        (current-prefix-arg nil))
+    (funcall ag-command search-term (projectile-acquire-root))))
 
 (defun projectile--ripgrep-ignore-globs ()
   "Return ripgrep `--glob' exclusions for the globally ignored files and dirs.
@@ -5615,9 +5671,125 @@ surrounding single quotes are only stripped by POSIX shells - on Windows
           (append projectile-globally-ignored-files
                   projectile-globally-ignored-directories)))
 
+(defun projectile--ripgrep (search-term &optional regexp)
+  "Run a ripgrep (rg) search for SEARCH-TERM in the project.
+When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
+Requires the `ripgrep' or `rg' Emacs package."
+  (let ((args (projectile--ripgrep-ignore-globs)))
+    ;; we rely on the external packages ripgrep and rg for the actual search
+    (cond ((require 'ripgrep nil 'noerror)
+           (ripgrep-regexp search-term
+                           (projectile-acquire-root)
+                           (if regexp
+                               args
+                             (cons "--fixed-strings --hidden" args))))
+          ((require 'rg nil 'noerror)
+           (rg-run search-term
+                   "*"                       ;; all files
+                   (projectile-acquire-root)
+                   (not regexp)              ;; literal search?
+                   nil                       ;; no need to confirm
+                   args))
+          (t (error "Packages `ripgrep' and `rg' are not available")))))
+
+;;;; Search backends registry
+
+(defvar projectile-search-backends nil
+  "Alist of registered `projectile-search' backends.
+Each entry is (NAME . PLIST); see `projectile-register-search-backend'.")
+
+(defun projectile-register-search-backend (name &rest plist)
+  "Register NAME as a `projectile-search' backend with PLIST properties.
+Recognised PLIST keys:
+  :description  a human-readable string shown in prompts;
+  :available    a zero-argument predicate returning non-nil when the
+                backend can be used (omit for an always-available one);
+  :search       a function called as (SEARCH-TERM REGEXP) to run the
+                search, REGEXP being non-nil when the term is a regular
+                expression.
+Use this to plug in your own search tool, e.g.:
+
+  (projectile-register-search-backend \\='deadgrep
+    :description \"deadgrep\"
+    :available (lambda () (require \\='deadgrep nil t))
+    :search (lambda (term _regexp) (deadgrep term (projectile-acquire-root))))"
+  (apply #'projectile-register-backend 'projectile-search-backends name plist))
+
+;; Built-ins.  Registered so the `auto' preference favours ripgrep, then grep
+;; (which is always available); ag is only used when explicitly selected.
+(projectile-register-search-backend 'ag
+  :description "the Silver Searcher (ag)"
+  :available (lambda () (require 'ag nil 'noerror))
+  :search #'projectile--ag)
+(projectile-register-search-backend 'grep
+  :description "grep (rgrep / git-grep)"
+  :search (lambda (term _regexp) (projectile--grep term)))
+(projectile-register-search-backend 'ripgrep
+  :description "ripgrep (rg)"
+  :available (lambda () (or (require 'ripgrep nil 'noerror)
+                            (require 'rg nil 'noerror)))
+  :search #'projectile--ripgrep)
+
+;;;###autoload
+(defun projectile-search (&optional search-term regexp)
+  "Search the project for SEARCH-TERM using `projectile-search-backend'.
+
+With a prefix argument treat SEARCH-TERM as a regular expression (for the
+backends that distinguish literal from regexp searches).
+
+The backend is chosen from `projectile-search-backends' according to
+`projectile-search-backend'; register new ones with
+`projectile-register-search-backend'."
+  (interactive (list nil current-prefix-arg))
+  ;; Fail fast (with a friendly error) before prompting when not in a project.
+  (projectile-acquire-root)
+  (let* ((backend (projectile--resolve-backend projectile-search-backends
+                                                projectile-search-backend
+                                                "search"))
+         (term (or search-term
+                   (projectile--read-search-string-with-default
+                    (format "Search [%s]%s for"
+                            (car backend) (if regexp " regexp" ""))))))
+    (funcall (plist-get (cdr backend) :search) term regexp)))
+
+;;;###autoload
+(defun projectile-grep (&optional regexp arg)
+  "Perform rgrep in the project (the grep `projectile-search' backend).
+
+With a prefix ARG asks for files (globbing-aware) which to grep in.
+With prefix ARG of `-' (such as `M--'), default the files (without prompt),
+to `projectile-grep-default-files'.
+
+With REGEXP given, don't query the user for a regexp."
+  (interactive "i\nP")
+  ;; Fail fast (with a friendly error) before prompting when not in a project.
+  (projectile-acquire-root)
+  (let ((search-regexp (or regexp
+                           (projectile--read-search-string-with-default "Grep for")))
+        (files (and arg (or (and (equal current-prefix-arg '-)
+                                 (projectile-grep-default-files))
+                            (read-string (projectile-prepend-project-name "Grep in: ")
+                                         (projectile-grep-default-files))))))
+    (projectile--grep search-regexp files)))
+
+;;;###autoload
+(defun projectile-ag (search-term &optional arg)
+  "Run an ag search with SEARCH-TERM in the project.
+This is `projectile-search' with the ag backend.
+
+With an optional prefix argument ARG SEARCH-TERM is interpreted as a
+regular expression."
+  (interactive
+   (list (projectile--read-search-string-with-default
+          (format "Ag %ssearch for" (if current-prefix-arg "regexp " "")))
+         current-prefix-arg))
+  (let ((projectile-search-backend 'ag))
+    (projectile-search search-term arg)))
+
 ;;;###autoload
 (defun projectile-ripgrep (search-term &optional arg)
-  "Run a ripgrep (rg) search with `SEARCH-TERM' at current project root.
+  "Run a ripgrep (rg) search with SEARCH-TERM in the project.
+This is `projectile-search' with the ripgrep backend.
 
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression.
@@ -5628,25 +5800,8 @@ installed to work."
    (list (projectile--read-search-string-with-default
           (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
          current-prefix-arg))
-  (let ((args (projectile--ripgrep-ignore-globs)))
-    ;; we rely on the external packages ripgrep and rg for the actual search
-    ;;
-    ;; first we check if we can load ripgrep
-    (cond ((require 'ripgrep nil 'noerror)
-           (ripgrep-regexp search-term
-                           (projectile-acquire-root)
-                           (if arg
-                               args
-                             (cons "--fixed-strings --hidden" args))))
-          ;; and then we try rg
-          ((require 'rg nil 'noerror)
-           (rg-run search-term
-                   "*"                       ;; all files
-                   (projectile-acquire-root)
-                   (not arg)                 ;; literal search?
-                   nil                       ;; no need to confirm
-                   args))
-          (t (error "Packages `ripgrep' and `rg' are not available")))))
+  (let ((projectile-search-backend 'ripgrep))
+    (projectile-search search-term arg)))
 
 (defun projectile--project-ignore-globs (root)
   "Return ROOT's ignore patterns as globs in `project-ignores' format.
@@ -7534,9 +7689,10 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
     (define-key map (kbd "r") #'projectile-replace)
+    (define-key map (kbd "s s") #'projectile-search)
     (define-key map (kbd "s g") #'projectile-grep)
     (define-key map (kbd "s r") #'projectile-ripgrep)
-    (define-key map (kbd "s s") #'projectile-ag)
+    (define-key map (kbd "s a") #'projectile-ag)
     (define-key map (kbd "s x") #'projectile-find-references)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
@@ -7662,6 +7818,8 @@ PROPS is a plist of:
 (projectile-dispatch--define projectile-dispatch-find-test-file projectile-find-test-file
   :prefix-arg "--invalidate-cache")
 ;; Regexp search
+(projectile-dispatch--define projectile-dispatch-search projectile-search
+  :prefix-arg "--regexp")
 (projectile-dispatch--define projectile-dispatch-ag projectile-ag
   :prefix-arg "--regexp")
 (projectile-dispatch--define projectile-dispatch-ripgrep projectile-ripgrep
@@ -7727,9 +7885,10 @@ window or frame (file/buffer/project commands)."
       ("k" "kill buffers" projectile-kill-buffers)
       ("S" "save buffers" projectile-save-project-buffers)]
      ["Search / Replace"
-      ("ss" "ag" projectile-dispatch-ag)
+      ("ss" "search" projectile-dispatch-search)
       ("sg" "grep" projectile-grep)
       ("sr" "ripgrep" projectile-dispatch-ripgrep)
+      ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)]]
@@ -7806,9 +7965,10 @@ window or frame (file/buffer/project commands)."
          ["Edit .dir-locals.el" projectile-edit-dir-locals]
          ["Project info" projectile-project-info])
         ("Search"
+         ["Search (default backend)" projectile-search]
          ["Search with grep" projectile-grep]
-         ["Search with ag" projectile-ag]
          ["Search with ripgrep" projectile-ripgrep]
+         ["Search with ag" projectile-ag]
          ["Replace in project" projectile-replace]
          ["Multi-occur in project" projectile-multi-occur]
          ["Find references in project" projectile-find-references])
