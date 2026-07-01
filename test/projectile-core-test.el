@@ -216,4 +216,27 @@
              '("/home/me/project/src/foo.el" "/home/me/project/README.md"))
             :to-equal '("src/foo.el" "README.md"))))
 
+(describe "projectile-completing-read"
+  (before-each
+    ;; avoid resolving a real project name for the prompt
+    (spy-on 'projectile-prepend-project-name :and-call-fake #'identity))
+
+  (it "reads with completing-read by default and applies the action"
+    (let ((projectile-completion-system 'default))
+      (spy-on 'completing-read :and-return-value "picked")
+      (expect (projectile-completing-read "Prompt" '("a" "b") :action #'upcase)
+              :to-equal "PICKED")
+      (expect 'completing-read :to-have-been-called)))
+
+  (it "calls a custom function when `projectile-completion-system' is one"
+    (let ((projectile-completion-system (lambda (_prompt choices) (car choices))))
+      (expect (projectile-completing-read "Prompt" '("first" "second"))
+              :to-equal "first")))
+
+  (it "falls back to completing-read for removed legacy values like `ido'"
+    (let ((projectile-completion-system 'ido))
+      (spy-on 'completing-read :and-return-value "x")
+      (expect (projectile-completing-read "Prompt" '("x")) :to-equal "x")
+      (expect 'completing-read :to-have-been-called))))
+
 ;;; projectile-core-test.el ends here

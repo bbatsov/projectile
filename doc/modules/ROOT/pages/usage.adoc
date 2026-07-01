@@ -103,13 +103,12 @@ a prefix argument it also removes projects nested deeper in the tree.
 
 === Minibuffer Completion
 
-While Projectile works fine with Emacs's default minibuffer completion system you're highly encouraged to use some
-powerful alternative like `ido`, `ivy`, `vertico`.
-
-TIP: If you're going to use the `ido` completion it's **highly** recommended that you install the optional
-https://github.com/lewang/flx[flx-ido package], which provides a much more powerful
-alternative to ``ido``'s built-in `flex` matching. Similarly, for `ivy` and `vertico` it's
-a good idea to enable `prescient` (a package similar to `flx`).
+Projectile reads through Emacs's built-in `completing-read`, so it works with
+whatever minibuffer UI you use. It works fine with the stock completion, but
+you're encouraged to pair it with a modern package like `vertico` (+ `consult`,
+`marginalia`, `orderless`) or `fido-mode`/`fido-vertical-mode`. See the
+xref:configuration.adoc#_completion_options[Completion Options] section for
+details, including how to plug in a custom completion function.
 
 === Installing External Tools
 
