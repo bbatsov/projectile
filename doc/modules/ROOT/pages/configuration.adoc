@@ -893,8 +893,41 @@ example, to add https://github.com/Wilfred/deadgrep[deadgrep]:
 (setq projectile-search-backend 'deadgrep)
 ----
 
-The same registry machinery (`projectile-register-backend`) is intended to be
-reused for other pluggable command families in the future.
+== Shells, REPLs and terminals
+
+`projectile-run` (kbd:[s-p x r]) opens a shell, REPL or terminal in the project
+root using a *pluggable backend*, the same way `projectile-search` works.
+Projectile ships `shell`, `eshell`, `ielm`, `term`, `vterm`, `eat` and
+`ghostel` backends; `projectile-shell-backend` selects which one is used
+(default `eshell`):
+
+[source,elisp]
+----
+(setq projectile-shell-backend 'vterm)
+----
+
+The dedicated commands (`projectile-run-eshell`, `projectile-run-vterm`, ...,
+plus the `-other-window` variants) are kept; they're just `projectile-run`
+with a forced backend.
+
+Register your own terminal with `projectile-register-shell-backend` - it takes
+a name, a `:description`, an optional `:available` predicate, and a `:run`
+function called with a new-process flag (the prefix argument) and an
+other-window flag:
+
+[source,elisp]
+----
+(projectile-register-shell-backend 'mistty
+  :description "mistty"
+  :available (lambda () (require 'mistty nil t))
+  :run (lambda (_new-process _other-window)
+         (let ((default-directory (projectile-acquire-root)))
+           (mistty))))
+----
+
+The generic registry machinery behind both `projectile-search` and
+`projectile-run` (`projectile-register-backend`) is intended to be reused for
+other pluggable command families in the future.
 
 == Project name
 

@@ -109,6 +109,33 @@
     (projectile-grep "pat")
     (expect 'projectile--grep :to-have-been-called-with "pat" nil)))
 
+(describe "projectile shell backend registry"
+  (it "ships the built-in and package-backed shell backends"
+    (dolist (name '(shell eshell ielm term vterm eat ghostel))
+      (expect (assq name projectile-shell-backends) :to-be-truthy)))
+
+  (it "projectile-run dispatches new-process/other-window to the backend"
+    (let* (captured
+           (projectile-shell-backends
+            (list (cons 'test (list :run (lambda (np ow) (setq captured (list np ow)))))))
+           (projectile-shell-backend 'test))
+      (projectile-run t)
+      (expect captured :to-equal '(t nil))))
+
+  (it "the -other-window wrappers force the backend and request another window"
+    (let (captured)
+      (spy-on 'projectile--run :and-call-fake
+              (lambda (pref np ow) (setq captured (list pref np ow))))
+      (projectile-run-vterm-other-window t)
+      (expect captured :to-equal '(vterm t t))))
+
+  (it "the plain run wrappers force their backend in the current window"
+    (let (captured)
+      (spy-on 'projectile--run :and-call-fake
+              (lambda (pref np ow) (setq captured (list pref np ow))))
+      (projectile-run-eshell nil)
+      (expect captured :to-equal '(eshell nil nil)))))
+
 (provide 'projectile-search-test)
 
 ;;; projectile-search-test.el ends here
