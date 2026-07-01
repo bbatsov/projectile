@@ -275,7 +275,7 @@ When nil Projectile will consider the current directory the project root."
 (defcustom projectile-completion-system 'default
   "The completion system to be used by Projectile.
 Either `default' (Emacs's built-in `completing-read', which works with
-Vertico, Consult, Fido, Ido's `ido-ubiquitous', etc.) or a custom
+Vertico, Consult, Fido, `ido-completing-read+', etc.) or a custom
 function accepting a prompt and a list of choices.
 
 Note: the dedicated `ido', `helm' and `ivy' options were removed - those
