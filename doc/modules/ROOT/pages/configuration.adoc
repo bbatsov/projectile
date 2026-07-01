@@ -851,14 +851,50 @@ NOTE: The project name & type will not appear when editing remote files
 
 == Searching
 
-By default, Projectile uses Emacs's built-in `grep` for searching.  In Git
-projects you can use `vc-git-grep` instead, which tends to be faster as it
-respects `.gitignore`:
+`projectile-search` (kbd:[s-p s s]) searches the project using a *pluggable
+backend*.  Projectile ships three backends - `grep`, `ripgrep` and `ag` - and
+you pick which one `projectile-search` uses via `projectile-search-backend`:
+
+[source,elisp]
+----
+;; `auto' (the default) picks the first available backend, favouring ripgrep,
+;; then grep (which is always available).  You can also name a specific backend
+;; or use `prompt' to be asked each time.
+(setq projectile-search-backend 'ripgrep)
+----
+
+The dedicated commands `projectile-grep` (kbd:[s-p s g]), `projectile-ripgrep`
+(kbd:[s-p s r]) and `projectile-ag` (kbd:[s-p s a]) still exist; they're just
+`projectile-search` with a forced backend.
+
+For the `grep` backend, in Git projects you can use `vc-git-grep` instead of
+`rgrep`, which tends to be faster as it respects `.gitignore`:
 
 [source,elisp]
 ----
 (setq projectile-use-git-grep t)
 ----
+
+=== Adding your own search backend
+
+Register a backend with `projectile-register-search-backend`.  It takes a name,
+a `:description`, an optional `:available` predicate, and a `:search` function
+called with the search term and a flag indicating whether it's a regexp.  For
+example, to add https://github.com/Wilfred/deadgrep[deadgrep]:
+
+[source,elisp]
+----
+(projectile-register-search-backend 'deadgrep
+  :description "deadgrep"
+  :available (lambda () (require 'deadgrep nil t))
+  :search (lambda (term _regexp)
+            (deadgrep term (projectile-acquire-root))))
+
+(setq projectile-search-backend 'deadgrep)
+----
+
+The same registry machinery (`projectile-register-backend`) is intended to be
+reused for other pluggable command families in the future.
 
 == Project name
 

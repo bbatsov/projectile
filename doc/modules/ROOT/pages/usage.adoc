@@ -218,17 +218,20 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p l]
 | Display a list of all files in a directory (that's not necessarily a project)
 
+| kbd:[s-p s s]
+| Search the project with the configured backend (`projectile-search`, see below). With a prefix argument it performs a regexp search.
+
 | kbd:[s-p s g]
 | Run grep on the files in the project.
 
 | kbd:[M-- s-p s g]
 | Run grep on `projectile-grep-default-files` in the project.
 
-| kbd:[s-p s s]
-| Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
-
 | kbd:[s-p s r]
 | Runs `rg` (`ripgrep`) on the project, performing a literal search. Requires the presence of `rg.el` or `ripgrep.el`. With a prefix argument it will perform a regex search.
+
+| kbd:[s-p s a]
+| Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
 
 | kbd:[s-p s x]
 | Find references to the symbol at point within the project. Uses internally the `xref` library.
@@ -433,7 +436,7 @@ The menu's *Modifiers* group holds switches that tweak how the commands run.
 Toggle one (or more), then trigger a command:
 
 * kbd:[-i] *invalidate cache* - rebuild the file cache first (the find file/dir commands)
-* kbd:[-r] *regexp search* - treat the search term as a regexp (`ag`, `ripgrep`)
+* kbd:[-r] *regexp search* - treat the search term as a regexp (the `search`, `ripgrep` and `ag` commands)
 * kbd:[-n] *new process* - start a fresh process instead of reusing one (the shells / REPLs)
 * kbd:[-d] *display in* - cycle the display target through this window / other window / other frame (the file, buffer and project commands)
 
