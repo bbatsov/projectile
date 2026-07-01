@@ -2096,11 +2096,36 @@ VCS is the VCS of the project."
 (defun projectile--ext-command-line (command pathspecs)
   "Return COMMAND with PATHSPECS appended as shell-quoted positional arguments.
 PATHSPECS may be nil, in which case COMMAND is returned unchanged.
-Shared by the synchronous and asynchronous indexing-command runners."
-  (if pathspecs
+Shared by the synchronous and asynchronous indexing-command runners.
+
+Most indexing tools (`git ls-files', `find', `hg locate', ...) accept
+trailing path arguments to restrict the listing.  `fd' is the exception:
+its positional grammar is `[pattern] [path...]', so a trailing path
+would be taken as the search pattern, and `fd' 9+ additionally rejects
+`--strip-cwd-prefix' whenever an explicit path is given (see #2005).  So
+for `fd' commands we drop `--strip-cwd-prefix' (Projectile strips the
+`./' prefix from the output anyway) and pass the directories via
+`--search-path', which is unambiguous regardless of whether the command
+already carries a search pattern.  `fd' commands are recognised by the
+`--strip-cwd-prefix' flag Projectile puts in its default `fd' recipes."
+  (if (not pathspecs)
+      command
+    (if (string-match-p "--strip-cwd-prefix\\b" command)
+        (concat (projectile--strip-fd-cwd-prefix-flag command) " "
+                (mapconcat (lambda (path)
+                             (concat "--search-path " (shell-quote-argument path)))
+                           pathspecs " "))
       (concat command " "
-              (mapconcat #'shell-quote-argument pathspecs " "))
-    command))
+              (mapconcat #'shell-quote-argument pathspecs " ")))))
+
+(defun projectile--strip-fd-cwd-prefix-flag (command)
+  "Remove fd's `--strip-cwd-prefix' flag (with any `=<when>' value) from COMMAND.
+Also drops the space that preceded it, so the remaining command stays
+tidy."
+  (replace-regexp-in-string
+   " ?--strip-cwd-prefix\\(=[^ ]*\\)?"
+   ""
+   command t t))
 
 (defun projectile--ext-command-output-files ()
   "Parse an indexing command's stdout in the current buffer into a file list.
