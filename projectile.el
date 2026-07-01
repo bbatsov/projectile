@@ -2728,26 +2728,30 @@ choices."
            (projectile-project-buffer-names))
    :caller 'projectile-read-buffer))
 
+(defun projectile--switch-to-buffer (switch-fn)
+  "Read a project buffer and display it with SWITCH-FN.
+SWITCH-FN is a `switch-to-buffer'-like command; passing
+`switch-to-buffer-other-window' or `switch-to-buffer-other-frame'
+yields the other-window/-frame variants."
+  (funcall switch-fn (projectile-read-buffer-to-switch "Switch to buffer: ")))
+
 ;;;###autoload
 (defun projectile-switch-to-buffer ()
   "Switch to a project buffer."
   (interactive)
-  (switch-to-buffer
-   (projectile-read-buffer-to-switch "Switch to buffer: ")))
+  (projectile--switch-to-buffer #'switch-to-buffer))
 
 ;;;###autoload
 (defun projectile-switch-to-buffer-other-window ()
   "Switch to a project buffer and show it in another window."
   (interactive)
-  (switch-to-buffer-other-window
-   (projectile-read-buffer-to-switch "Switch to buffer: ")))
+  (projectile--switch-to-buffer #'switch-to-buffer-other-window))
 
 ;;;###autoload
 (defun projectile-switch-to-buffer-other-frame ()
   "Switch to a project buffer and show it in another frame."
   (interactive)
-  (switch-to-buffer-other-frame
-   (projectile-read-buffer-to-switch "Switch to buffer: ")))
+  (projectile--switch-to-buffer #'switch-to-buffer-other-frame))
 
 ;;;###autoload
 (defun projectile-display-buffer ()
@@ -5131,6 +5135,13 @@ test file."
             (t (error "Determined test file to be \"%s\", which does not exist.  Set `projectile-create-missing-test-files' to allow `projectile-find-implementation-or-test' to create new files" test-file))))))
 
 ;;;###autoload
+(defun projectile--find-implementation-or-test-in (ff-variant)
+  "Open the matching implementation or test file using FF-VARIANT.
+FF-VARIANT is a `find-file'-like command; passing
+`find-file-other-window' or `find-file-other-frame' yields the
+corresponding display variants."
+  (funcall ff-variant (projectile-find-implementation-or-test (buffer-file-name))))
+
 (defun projectile-find-implementation-or-test-other-window ()
   "Open matching implementation or test file in other window.
 
@@ -5138,8 +5149,7 @@ See the documentation of `projectile--find-matching-file' and
 `projectile--find-matching-test' for how implementation and test files
 are determined."
   (interactive)
-  (find-file-other-window
-   (projectile-find-implementation-or-test (buffer-file-name))))
+  (projectile--find-implementation-or-test-in #'find-file-other-window))
 
 ;;;###autoload
 (defun projectile-find-implementation-or-test-other-frame ()
@@ -5149,8 +5159,7 @@ See the documentation of `projectile--find-matching-file' and
 `projectile--find-matching-test' for how implementation and test files
 are determined."
   (interactive)
-  (find-file-other-frame
-   (projectile-find-implementation-or-test (buffer-file-name))))
+  (projectile--find-implementation-or-test-in #'find-file-other-frame))
 
 ;;;###autoload
 (defun projectile-toggle-between-implementation-and-test ()
@@ -6426,38 +6435,38 @@ The buffers are killed according to the value of
           (save-buffer)))
       (message "[%s] Saved %d buffers" project-name (length modified-buffers)))))
 
+(defun projectile--dired (dired-fn &optional arg)
+  "Open the project root in dired using DIRED-FN.
+DIRED-FN is a `dired'-like command; passing `dired-other-window' or
+`dired-other-frame' yields the other-window/-frame variants.  With ARG,
+prompt for a known project to open instead of the current one."
+  (funcall dired-fn
+           (if arg
+               (projectile-completing-read
+                "Dired in project: " (projectile-relevant-known-projects)
+                :caller 'projectile-read-project)
+             (projectile-acquire-root))))
+
 ;;;###autoload
 (defun projectile-dired (&optional arg)
   "Open `dired' at the root of the project.
 With a prefix argument ARG, prompt for a known project to open in dired."
   (interactive "P")
-  (dired (if arg
-             (projectile-completing-read
-              "Dired in project: " (projectile-relevant-known-projects)
-              :caller 'projectile-read-project)
-           (projectile-acquire-root))))
+  (projectile--dired #'dired arg))
 
 ;;;###autoload
 (defun projectile-dired-other-window (&optional arg)
   "Open `dired' at the root of the project in another window.
 With a prefix argument ARG, prompt for a known project to open in dired."
   (interactive "P")
-  (dired-other-window (if arg
-                           (projectile-completing-read
-                            "Dired in project: " (projectile-relevant-known-projects)
-                            :caller 'projectile-read-project)
-                         (projectile-acquire-root))))
+  (projectile--dired #'dired-other-window arg))
 
 ;;;###autoload
 (defun projectile-dired-other-frame (&optional arg)
   "Open `dired' at the root of the project in another frame.
 With a prefix argument ARG, prompt for a known project to open in dired."
   (interactive "P")
-  (dired-other-frame (if arg
-                          (projectile-completing-read
-                           "Dired in project: " (projectile-relevant-known-projects)
-                           :caller 'projectile-read-project)
-                        (projectile-acquire-root))))
+  (projectile--dired #'dired-other-frame arg))
 
 ;;;###autoload
 (defun projectile-vc (&optional project-root)
