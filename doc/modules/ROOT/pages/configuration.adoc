@@ -277,6 +277,17 @@ To sort files by https://en.wikipedia.org/wiki/MAC_times#Access_time_(atime)[acc
 (setq projectile-sort-order 'access-time)
 ----
 
+Finally, `projectile-sort-order` can be set to a function that receives
+the list of project files (as relative paths) and returns them in the
+desired order (added in Projectile 3.1). For example, to list files
+with shorter paths first:
+
+[source,elisp]
+----
+(setq projectile-sort-order
+      (lambda (files) (seq-sort-by #'length #'< files)))
+----
+
 == Caching
 
 === Project files

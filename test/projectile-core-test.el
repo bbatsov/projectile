@@ -239,4 +239,20 @@
       (expect (projectile-completing-read "Prompt" '("x")) :to-equal "x")
       (expect 'completing-read :to-have-been-called))))
 
+(describe "projectile-sort-files"
+  (it "returns the files unchanged for the default sort order"
+    (let ((projectile-sort-order 'default))
+      (expect (projectile-sort-files '("b" "a")) :to-equal '("b" "a"))))
+
+  (it "supports a custom sort function"
+    (let ((projectile-sort-order
+           (lambda (files) (seq-sort-by #'length #'< files))))
+      (expect (projectile-sort-files '("dir/long.el" "a.el" "med.el"))
+              :to-equal '("a.el" "med.el" "dir/long.el"))))
+
+  (it "leaves the files unsorted for an unrecognized value"
+    ;; A typo'd sort order must not present the project as empty.
+    (let ((projectile-sort-order 'no-such-order))
+      (expect (projectile-sort-files '("b" "a")) :to-equal '("b" "a")))))
+
 ;;; projectile-core-test.el ends here

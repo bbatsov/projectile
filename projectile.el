@@ -329,16 +329,21 @@ file doesn't show up among the project files."
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files.
 
+It can also be set to a function that takes the list of project
+files (as relative paths) and returns them in the desired order.
+
 Note that files aren't sorted if `projectile-indexing-method'
 is set to `alien'."
   :group 'projectile
-  :type '(radio
-          (const :tag "Default (no sorting)" default)
-          (const :tag "Recently opened files" recentf)
-          (const :tag "Recently active buffers, then recently opened files" recently-active)
-          (const :tag "Access time (atime)" access-time)
-          (const :tag "Modification time (mtime)" modification-time))
-  :package-version '(projectile . "0.11.0"))
+  :type '(choice
+          (radio
+           (const :tag "Default (no sorting)" default)
+           (const :tag "Recently opened files" recentf)
+           (const :tag "Recently active buffers, then recently opened files" recently-active)
+           (const :tag "Access time (atime)" access-time)
+           (const :tag "Modification time (mtime)" modification-time))
+          (function :tag "Custom sort function"))
+  :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-verbose t
   "Echo messages that are not errors."
@@ -3875,7 +3880,11 @@ Parameters MODE VARIABLE VALUE are passed directly to
     ('recentf (projectile-sort-by-recentf-first files))
     ('recently-active (projectile-sort-by-recently-active-first files))
     ('modification-time (projectile-sort-by-modification-time files))
-    ('access-time (projectile-sort-by-access-time files))))
+    ('access-time (projectile-sort-by-access-time files))
+    ((pred functionp) (funcall projectile-sort-order files))
+    ;; An unrecognized value must not return nil - that would present
+    ;; the project as empty.
+    (_ files)))
 
 (defun projectile--sort-prioritized-first (prioritized files)
   "Return FILES with the members of PRIORITIZED first, in order.
