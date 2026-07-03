@@ -6206,24 +6206,33 @@ equivalently to grep -HlI (only unique matching filenames).
 Returns a list of expanded filenames."
   (let ((default-directory directory))
     (mapcar (lambda (str)
-              (concat directory
-                      (string-remove-prefix "./" str)))
+              ;; `expand-file-name' (rather than `concat') so the results
+              ;; are in canonical form even when DIRECTORY is abbreviated
+              ;; (e.g. "~/project/"), and thus comparable with other
+              ;; expanded file names (#1115).
+              (expand-file-name str directory))
             (split-string
              (string-trim (shell-command-to-string cmd))
              "\n+"
              t))))
 
+;; The listing is case-insensitive on purpose: it's only used to narrow
+;; down the files to visit, and the actual (case-sensitive or smart-case)
+;; matching happens in Emacs afterwards.  A case-sensitive listing would
+;; silently drop files that a case-insensitive replacement should have
+;; touched (#1115).
 (defvar projectile-files-with-string-commands
-  '((rg . "rg -lF --no-heading --color never ")
-    (ag . "ag --literal --nocolor --noheading -l ")
-    (ack . "ack --literal --nocolor -l ")
-    (git . "git grep -HlIF ")
+  '((rg . "rg -liF --no-heading --color never ")
+    (ag . "ag --literal --ignore-case --nocolor --noheading -l ")
+    (ack . "ack --literal --ignore-case --nocolor -l ")
+    (git . "git grep -HlIiF ")
     ;; -r: recursive
     ;; -H: show filename for each match
     ;; -l: show only file names with matches
     ;; -I: no binary files
+    ;; -i: ignore case
     ;; -F: interpret pattern as fixed string, not regexp
-    (grep . "grep -rHlIF %s .")))
+    (grep . "grep -rHlIiF %s .")))
 
 (defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."
@@ -6311,6 +6320,20 @@ files in the project."
      (mapcar #'(lambda (file) (expand-file-name file directory))
              (projectile-dir-files directory)))))
 
+(defun projectile--replace-in-files (from to files)
+  "Query-replace matches of the regexp FROM with TO in FILES.
+
+Buffers that are already visiting one of FILES are scanned from the
+beginning of the buffer; older Emacsen (< 28.1) would otherwise resume
+the scan from point in such buffers and silently skip any matches
+before it (#1677)."
+  (dolist (file files)
+    (when-let* ((buffer (get-file-buffer file)))
+      (with-current-buffer buffer
+        (goto-char (point-min)))))
+  (fileloop-initialize-replace from to files 'default)
+  (fileloop-continue))
+
 ;;;###autoload
 (defun projectile-replace (&optional arg)
   "Replace a literal string in the project's files.
@@ -6341,8 +6364,7 @@ on which to run the replacement."
          (project-files (mapcar (lambda (file) (expand-file-name file directory))
                                 (projectile-dir-files directory)))
          (filtered-files (seq-filter (lambda (f) (member f project-files)) files)))
-    (fileloop-initialize-replace (regexp-quote old-text) new-text filtered-files 'default)
-    (fileloop-continue)))
+    (projectile--replace-in-files (regexp-quote old-text) new-text filtered-files)))
 
 ;;;###autoload
 (defun projectile-replace-regexp (&optional arg)
@@ -6372,8 +6394,7 @@ to run the replacement."
            (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
            (mapcar #'(lambda (file) (expand-file-name file directory))
                    (projectile-dir-files directory)))))
-    (fileloop-initialize-replace old-text new-text files 'default)
-    (fileloop-continue)))
+    (projectile--replace-in-files old-text new-text files)))
 
 (defun projectile--buffer-matches-conditions (buffer conditions)
   "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
