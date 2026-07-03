@@ -60,6 +60,10 @@
 (declare-function transient-prefix "transient")
 (declare-function transient--default-infix-command "transient")
 (declare-function transient--suffix-only "transient")
+;; Newer transient versions emit different internals from the
+;; `transient-define-prefix' expansion; declare them as they appear so
+;; byte-compiling against Emacs snapshots stays warning-free.
+(declare-function transient--set-layout "transient")
 
 ;;; Declarations
 ;;
