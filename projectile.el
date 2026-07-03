@@ -4290,47 +4290,17 @@ at execution time."
     "Update an existing projectile project type.
 
 Passed items will override existing values for the project type given
-by PROJECT-TYPE.  nil can be used to remove a project type attribute.  Raise
-an error if PROJECT-TYPE is not already registered with projectile.  This
-function may also take the keyword argument PRECEDENCE which when set to ‘high’
-will make projectile prioritise this project type over other clashing project
-types, and a value of ‘low’ will make projectile prefer (all) other project
-types by default.  Otherwise, the arguments to this function are as for
-`projectile-register-project-type':
+by PROJECT-TYPE.  nil can be used to remove a project type attribute.
+Raise an error if PROJECT-TYPE is not already registered with
+projectile.  This function may also take the keyword argument
+PRECEDENCE which when set to `high' will make projectile prioritise
+this project type over other clashing project types, and a value of
+`low' will make projectile prefer (all) other project types by
+default.
 
-A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-and optional keyword arguments.
-
-MARKER-FILES is either a list of files or a predicate function.  When it
-is a list, ALL of the listed files must be present in the project root for
-the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
-is the common case.  To match when ANY one of several files is present,
-don't pass a list; use a predicate function instead.  The predicate is
-called with the project root as its single argument and should return
-non-nil when the project is of this type.
-
-The optional keyword arguments are:
-MARKER-FILES a set of indicator files for PROJECT-TYPE.
-PROJECT-FILE the main project file in the root project directory.
-COMPILATION-DIR the directory to run the tests- and compilations in,
-CONFIGURE which specifies a command that configures the project
-          `%s' in the command will be substituted with (projectile-project-root)
-          before the command is run,
-COMPILE which specifies a command that builds the project,
-INSTALL which specifies a command to install the project.
-PACKAGE which specifies a command to package the project.
-TEST which specifies a command that tests the project,
-RUN which specifies a command that runs the project,
-TEST-SUFFIX which specifies test file suffix, and
-TEST-PREFIX which specifies test file prefix.
-SRC-DIR which specifies the path to the source relative to the project root.
-TEST-DIR which specifies the path to the tests relative to the project root.
-RELATED-FILES-FN which specifies a custom function to find the related
-files such as test/impl/other files as below:
-    CUSTOM-FUNCTION accepts FILE as relative path from the project root and
-    returns a plist containing :test, :impl or :other as key and the
-    relative path/paths or predicate as value.  PREDICATE accepts a
-    relative path as the input."
+The remaining arguments - MARKER-FILES and the optional keyword
+arguments - have the same meaning as for
+`projectile-register-project-type', which see."
     (let* ((existing-project-plist
             (or (seq-find
                  (lambda (p) (eq project-type (car p))) projectile-project-types)
