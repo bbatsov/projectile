@@ -288,6 +288,37 @@ with shorter paths first:
       (lambda (files) (seq-sort-by #'length #'< files)))
 ----
 
+== File ranking (frecency)
+
+Since Projectile 3.1, `projectile-find-file` (and its dwim variant)
+rank the files you actually work with first: Projectile records file
+visits per project and orders completion candidates by "frecency", a
+combination of visit frequency and recency (frequent visits decay with
+a half-life of two weeks). Files you've never visited keep their
+original order after the ranked ones.
+
+Unlike `projectile-sort-order`, the ranking is applied through
+completion metadata (`display-sort-function`), so it works with any
+completion UI that honors it (the default completion UI, Vertico,
+Icomplete, ...) and under *every* indexing method, including `alien`.
+
+The feature is enabled by default. To turn it off:
+
+[source,elisp]
+----
+(setq projectile-enable-frecency nil)
+----
+
+The visit history is persisted across sessions in
+`projectile-frecency-file` and capped per project by
+`projectile-frecency-max-files` (200 by default). Concurrent Emacs
+sessions merge their histories on save rather than overwriting each
+other. Remote (TRAMP) projects are not tracked.
+
+NOTE: For tracked files the frecency order takes precedence over
+`projectile-sort-order`, since completion UIs apply the metadata sort
+to whatever candidate order they receive.
+
 == Caching
 
 === Project files

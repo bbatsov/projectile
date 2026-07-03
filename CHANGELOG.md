@@ -4,6 +4,7 @@
 
 ### New features
 
+* `projectile-find-file` and `projectile-find-file-dwim` now rank the files you work with first: visits are recorded per project and candidates are ordered by frequency and recency (with decay), applied via completion metadata so it works with any completion UI and under every indexing method, including `alien`. Controlled by `projectile-enable-frecency` (default on); the history is persisted in `projectile-frecency-file` and capped by `projectile-frecency-max-files`.
 * [#978](https://github.com/bbatsov/projectile/issues/978): Add `projectile-project-changed-functions`, run whenever the current project changes - including implicitly via visiting a file or directory of another project - with the new and previous project root as arguments.
 * [#1442](https://github.com/bbatsov/projectile/pull/1442): `projectile-sort-order` can now be set to a function that receives the list of project files and returns them in the desired order.
 * [#1984](https://github.com/bbatsov/projectile/pull/1984): The VCS markers are now customizable via `projectile-vcs-markers`, whose order breaks ties between markers in the same directory - so colocated `jj`+`git` repositories can be detected as `jj` by moving `.jj` first.
