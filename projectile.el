@@ -1420,10 +1420,11 @@ and the write always uses the latest in-memory contents."
            projectile--pending-cache-flush-timers))
 
 ;;;###autoload
-(defun projectile-cache-current-file ()
-  "Add the currently visited file to the cache."
+(defun projectile-cache-current-file (&optional project-root)
+  "Add the currently visited file to the cache.
+PROJECT-ROOT defaults to the current project."
   (interactive)
-  (let ((current-project (projectile-project-root)))
+  (let ((current-project (or project-root (projectile-project-root))))
     (when (and (buffer-file-name)
                (file-exists-p (buffer-file-name))
                (gethash current-project projectile-projects-cache))
@@ -1443,18 +1444,21 @@ and the write always uses the latest in-memory contents."
                    (propertize current-project 'face 'font-lock-keyword-face)))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
-(defun projectile-cache-files-find-file-hook ()
-  "Function for caching files with `find-file-hook'."
-  (let ((project-root (projectile-project-p)))
+(defun projectile-cache-files-find-file-hook (&optional project-root)
+  "Function for caching files with `find-file-hook'.
+PROJECT-ROOT defaults to the current project."
+  (let ((project-root (or project-root (projectile-project-p))))
     (when (and projectile-enable-caching
                project-root
                (not (projectile-ignored-project-p project-root)))
-      (projectile-cache-current-file))))
+      (projectile-cache-current-file project-root))))
 
-(defun projectile-track-known-projects-find-file-hook ()
-  "Function for caching projects with `find-file-hook'."
-  (when (and projectile-track-known-projects-automatically (projectile-project-p))
-    (projectile-add-known-project (projectile-project-root))))
+(defun projectile-track-known-projects-find-file-hook (&optional project-root)
+  "Function for caching projects with `find-file-hook'.
+PROJECT-ROOT defaults to the current project."
+  (when projectile-track-known-projects-automatically
+    (when-let* ((project-root (or project-root (projectile-project-p))))
+      (projectile-add-known-project project-root))))
 
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
@@ -8179,22 +8183,25 @@ cheap operations - caching the visited file, registering the project as
 a known project, and the open-buffer-count cap - run regardless of
 remoteness; they were previously skipped only because the original
 blanket guard was overly broad."
-  (let ((remote (file-remote-p default-directory)))
-    (projectile-maybe-limit-project-file-buffers)
+  (let ((remote (file-remote-p default-directory))
+        ;; Resolve the project root once and thread it through the
+        ;; sub-hooks, so a single `find-file' doesn't repeat the lookup.
+        (project-root (projectile-project-p)))
+    (projectile-maybe-limit-project-file-buffers project-root)
     (when projectile-auto-update-cache
-      (projectile-cache-files-find-file-hook))
-    (projectile-track-known-projects-find-file-hook)
+      (projectile-cache-files-find-file-hook project-root))
+    (projectile-track-known-projects-find-file-hook project-root)
     (unless remote
       (when projectile-dynamic-mode-line
         (projectile-update-mode-line)))))
 
-(defun projectile-maybe-limit-project-file-buffers ()
+(defun projectile-maybe-limit-project-file-buffers (&optional project-root)
   "Limit the opened file buffers for a project.
 
 The function simply kills the last buffer, as it's normally called
-when opening new files."
+when opening new files.  PROJECT-ROOT defaults to the current project."
   (when projectile-max-file-buffer-count
-    (let ((project-buffers (projectile-project-buffer-files)))
+    (let ((project-buffers (projectile-project-buffer-files project-root)))
       (when (length> project-buffers projectile-max-file-buffer-count)
         (kill-buffer (car (last project-buffers)))))))
 
