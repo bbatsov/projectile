@@ -4421,14 +4421,19 @@ it acts on the current project."
 
 (defun projectile--cmake-command-presets (filename command-type)
   "Get CMake COMMAND-TYPE presets from FILENAME.  Follows included files."
-  (when-let* ((preset (projectile--cmake-read-preset (projectile-expand-root filename))))
-    (append
-     (projectile--cmake-command-presets-shallow filename command-type)
-     (mapcan
-      (lambda (included-file) (projectile--cmake-command-presets
-                               (expand-file-name included-file (file-name-directory filename))
-                               command-type))
-      (gethash "include" preset)))))
+  ;; Anchor FILENAME to the project root before taking its directory:
+  ;; the top-level call passes a relative name, whose `file-name-directory'
+  ;; is nil, and included files must resolve relative to the file that
+  ;; includes them - not to `default-directory'.
+  (let ((filename (projectile-expand-root filename)))
+    (when-let* ((preset (projectile--cmake-read-preset filename)))
+      (append
+       (projectile--cmake-command-presets-shallow filename command-type)
+       (mapcan
+        (lambda (included-file) (projectile--cmake-command-presets
+                                 (expand-file-name included-file (file-name-directory filename))
+                                 command-type))
+        (gethash "include" preset))))))
 
 (defun projectile--cmake-all-command-presets (command-type)
   "Get CMake user and system COMMAND-TYPE presets."

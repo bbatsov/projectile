@@ -151,20 +151,22 @@ returned."
               :to-be nil))))
 
 (describe "projectile--cmake-command-presets"
-  (it "follows included preset files"
+  (it "follows included preset files relative to the including file"
     (projectile-test-with-sandbox
-      (let ((root (projectile-cmake-test--setup-project
-                   '("CMakePresets.json" .
-                     "{ \"version\": 4, \"include\": [ \"extra/more-presets.json\" ], \"configurePresets\": [ { \"name\": \"top\" } ] }")
-                   '("extra/more-presets.json" .
-                     "{ \"version\": 4, \"configurePresets\": [ { \"name\": \"included\" } ] }"))))
-        ;; includes are resolved relative to the including file, which
-        ;; is passed around relative to the project root
-        (let ((default-directory root))
-          (expect (mapcar (lambda (preset) (gethash "name" preset))
-                          (projectile--cmake-command-presets
-                           "CMakePresets.json" :configure-command))
-                  :to-equal '("top" "included")))))))
+      (projectile-cmake-test--setup-project
+       '("CMakePresets.json" .
+         "{ \"version\": 4, \"include\": [ \"extra/more-presets.json\" ], \"configurePresets\": [ { \"name\": \"top\" } ] }")
+       '("extra/more-presets.json" .
+         "{ \"version\": 4, \"include\": [ \"nested.json\" ], \"configurePresets\": [ { \"name\": \"included\" } ] }")
+       '("extra/nested.json" .
+         "{ \"version\": 4, \"configurePresets\": [ { \"name\": \"nested\" } ] }"))
+      ;; `default-directory' is the sandbox here, not the project root, so
+      ;; this also covers anchoring the top-level relative filename to the
+      ;; project root rather than `default-directory'.
+      (expect (mapcar (lambda (preset) (gethash "name" preset))
+                      (projectile--cmake-command-presets
+                       "CMakePresets.json" :configure-command))
+              :to-equal '("top" "included" "nested")))))
 
 (describe "projectile--cmake-command-preset-names"
   (it "merges user presets before system presets"
