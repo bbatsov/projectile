@@ -1410,7 +1410,7 @@ The cache is created both in memory and on the hard drive."
             (projectile-serialize new-cache (projectile-project-cache-file project-root)))
           (when projectile-verbose
             (message "%s removed from cache" file)))
-      (error "%s is not in the cache" file))))
+      (user-error "%s is not in the cache" file))))
 
 ;;;###autoload
 (defun projectile-purge-dir-from-cache (dir)
@@ -1764,7 +1764,7 @@ See also `projectile-acquire-root'."
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
                                                     "Switch to project: " projectile-known-projects
                                                     :caller 'projectile-read-project))
-     (projectile-require-project-root (error "Projectile cannot find a project definition in %s" default-directory))
+     (projectile-require-project-root (user-error "Projectile cannot find a project definition in %s" default-directory))
      (t default-directory))))
 
 (defun projectile-acquire-root (&optional dir)
@@ -1832,7 +1832,7 @@ element list with PROJECT-DIR itself."
   "List the files in DIRECTORY and in its sub-directories.
 Files are returned as relative paths to DIRECTORY."
   (unless (projectile--directory-p directory)
-    (error "Directory %S does not exist" directory))
+    (user-error "Directory %S does not exist" directory))
   ;; check for a cache hit first if caching is enabled
   (let ((files-list (and projectile-enable-caching
                          (gethash directory projectile-projects-cache))))
@@ -3465,7 +3465,7 @@ instead of `find-file'.   A typical example of such a defun would be
         (let ((file-name (projectile--choose-from-candidates other-files :caller 'projectile-read-file)))
           (funcall ff (expand-file-name file-name
                                         (projectile-project-root))))
-      (error "No other file found"))))
+      (user-error "No other file found"))))
 
 
 ;;; Interactive commands
@@ -4004,7 +4004,7 @@ If KIND is not provided, a list of possible kinds can be chosen."
                        (car available-kinds)
                      (intern (projectile-completing-read "Kind :" available-kinds
                                                          :caller 'projectile-read-file))))
-      (error "No related files found")))
+      (user-error "No related files found")))
 
   (if-let* ((candidates (projectile--related-files file kind)))
       (projectile-expand-root (projectile--choose-from-candidates candidates :caller 'projectile-read-file))
@@ -5111,7 +5111,7 @@ IMPL-FILE-PATH may be an absolute path, relative path or a file name."
     (cond
      (test-prefix (concat test-prefix impl-file-name "." impl-file-ext))
      (test-suffix (concat impl-file-name test-suffix "." impl-file-ext))
-     (t (error "Cannot determine a test file name, one of \"test-suffix\" or \"test-prefix\" must be set for project type `%s'" project-type)))))
+     (t (user-error "Cannot determine a test file name, one of \"test-suffix\" or \"test-prefix\" must be set for project type `%s'" project-type)))))
 
 (defun projectile--impl-name-for-test-name (test-file-path)
   "Determine the name of the implementation file for TEST-FILE-PATH.
@@ -5127,7 +5127,7 @@ TEST-FILE-PATH may be an absolute path, relative path or a file name."
       (concat (string-remove-prefix test-prefix test-file-name) "." test-file-ext))
      (test-suffix
       (concat (string-remove-suffix test-suffix test-file-name) "." test-file-ext))
-     (t (error "Cannot determine an implementation file name, one of \"test-suffix\" or \"test-prefix\" must be set for project type `%s'" project-type)))))
+     (t (user-error "Cannot determine an implementation file name, one of \"test-suffix\" or \"test-prefix\" must be set for project type `%s'" project-type)))))
 
 (defun projectile--test-to-impl-dir (test-dir-path)
   "Return the directory path of an impl file with test file in TEST-DIR-PATH.
@@ -5142,7 +5142,7 @@ Nil is returned if either the src-dir or test-dir properties are not strings."
          (impl-dir (projectile-src-directory project-type)))
     (when (and (stringp test-dir) (stringp impl-dir))
       (if (not (string-match-p test-dir (file-name-directory test-dir-path)))
-          (error "Attempted to find a implementation file by switching this project type's (%s) test-dir property \"%s\" with this project type's src-dir property \"%s\", but %s does not contain \"%s\""
+          (user-error "Attempted to find a implementation file by switching this project type's (%s) test-dir property \"%s\" with this project type's src-dir property \"%s\", but %s does not contain \"%s\""
                  project-type test-dir impl-dir test-dir-path test-dir)
         (projectile-complementary-dir test-dir-path test-dir impl-dir)))))
 
@@ -5199,7 +5199,7 @@ Nil is returned if either the src-dir or test-dir properties are not strings."
          (impl-dir (projectile-src-directory project-type)))
     (when (and (stringp test-dir) (stringp impl-dir))
       (if (not (string-match-p impl-dir (file-name-directory impl-dir-path)))
-          (error "Attempted to find a test file by switching this project type's (%s) src-dir property \"%s\" with this project type's test-dir property \"%s\", but %s does not contain \"%s\""
+          (user-error "Attempted to find a test file by switching this project type's (%s) src-dir property \"%s\" with this project type's test-dir property \"%s\", but %s does not contain \"%s\""
                  project-type impl-dir test-dir impl-dir-path impl-dir)
         (projectile-complementary-dir impl-dir-path impl-dir test-dir)))))
 
@@ -5224,7 +5224,7 @@ Replace STRING in DIR-PATH with REPLACEMENT."
 
 If `projectile-create-missing-test-files' is non-nil, create the missing
 test file."
-  (unless file-name (error "The current buffer is not visiting a file"))
+  (unless file-name (user-error "The current buffer is not visiting a file"))
   (unless (projectile-project-type) (projectile-ensure-project nil))
   (if (projectile-test-file-p file-name)
       ;; find the matching impl file
@@ -5245,7 +5245,7 @@ test file."
             (projectile-create-missing-test-files
              (projectile--create-directories-for expanded-test-file)
              expanded-test-file)
-            (t (error "Determined test file to be \"%s\", which does not exist.  Set `projectile-create-missing-test-files' to allow `projectile-find-implementation-or-test' to create new files" test-file))))))
+            (t (user-error "Determined test file to be \"%s\", which does not exist.  Set `projectile-create-missing-test-files' to allow `projectile-find-implementation-or-test' to create new files" test-file))))))
 
 ;;;###autoload
 (defun projectile--find-implementation-or-test-in (ff-variant)
@@ -5782,7 +5782,7 @@ search.  Honours Projectile's ignore configuration and runs
 When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
 Requires the `ag' Emacs package."
   (unless (require 'ag nil 'noerror)
-    (error "Package `ag' is not available"))
+    (user-error "Package `ag' is not available"))
   (let ((ag-command (if regexp 'ag-regexp 'ag))
         (ag-ignore-list (delq nil
                               (seq-uniq
@@ -5830,7 +5830,7 @@ Requires the `ripgrep' or `rg' Emacs package."
                    (not regexp)              ;; literal search?
                    nil                       ;; no need to confirm
                    args))
-          (t (error "Packages `ripgrep' and `rg' are not available")))))
+          (t (user-error "Packages `ripgrep' and `rg' are not available")))))
 
 ;;;; Search backends registry
 
@@ -6105,7 +6105,7 @@ Switch to the project specific term buffer if it already exists."
   (let* ((project (projectile-acquire-root))
          (buffer (projectile-generate-process-name "vterm" new-process project)))
     (unless (require 'vterm nil 'noerror)
-      (error "Package 'vterm' is not available"))
+      (user-error "Package 'vterm' is not available"))
     (if (buffer-live-p (get-buffer buffer))
         (if other-window
             (switch-to-buffer-other-window buffer)
@@ -6126,7 +6126,7 @@ Switch to the project specific eat buffer if it already exists."
   (let* ((project (projectile-acquire-root))
          (eat-buffer-name (projectile-generate-process-name "eat" new-process project)))
     (unless (require 'eat nil 'noerror)
-      (error "Package 'eat' is not available"))
+      (user-error "Package 'eat' is not available"))
     (projectile-with-default-dir project
       (if other-window
           (eat-other-window nil new-process)
@@ -6141,7 +6141,7 @@ be displayed in a different window.
 
 Switch to the project specific ghostel buffer if it already exists."
   (unless (require 'ghostel nil 'noerror)
-    (error "Package 'ghostel' is not available"))
+    (user-error "Package 'ghostel' is not available"))
   (let* ((project (projectile-acquire-root))
          (ghostel-buffer-name
           (projectile-generate-process-name "ghostel" new-process project))
@@ -7533,7 +7533,7 @@ of `projectile-switch-project-action'."
   ;; we ignore remote folders, as the check breaks for TRAMP unless already connected
   (unless (or (file-remote-p project-to-switch) (projectile-project-p project-to-switch))
     (projectile-remove-known-project project-to-switch)
-    (error "Directory %s is not a project" project-to-switch))
+    (user-error "Directory %s is not a project" project-to-switch))
   ;; Record the project we're leaving so `projectile-most-recent-project'
   ;; points at it after the switch (captured before `default-directory' is
   ;; rebound below).

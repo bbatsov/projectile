@@ -15,6 +15,7 @@
 * The mode-line updater is only added to `window-configuration-change-hook` when `projectile-dynamic-mode-line` is enabled; change the option via Customize or `setopt` for it to apply immediately.
 * The `recentf` and `recently-active` sort orders no longer rescan the full project file list once per recent file, making them usable on very large projects.
 * [#1953](https://github.com/bbatsov/projectile/issues/1953): Cache the git submodule listing instead of shelling out to `git submodule foreach` on every alien/hybrid file listing; the cache invalidates automatically when `.gitmodules` changes and is also cleared by `projectile-invalidate-cache`.
+* User-facing conditions (no project found, missing optional package, nothing to toggle to, etc.) now signal `user-error` instead of `error`, so they no longer trigger the debugger under `debug-on-error`.
 
 ### Bugs fixed
 
