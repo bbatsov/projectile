@@ -577,6 +577,61 @@
         (expect (projectile-get-all-sub-projects project) :to-equal
                 (list (expand-file-name "vendor/client-submodule/" project))))))))
 
+(describe "projectile--git-submodules"
+  (it "shells out only once for repeated listings"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/.gitmodules")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-files-via-ext-command
+                :and-return-value '("vendor/sub"))
+        (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
+        (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
+        (expect 'projectile-files-via-ext-command :to-have-been-called-times 1)))))
+  (it "recomputes the listing when .gitmodules changes"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/.gitmodules")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-files-via-ext-command
+                :and-return-value '("vendor/sub"))
+        (projectile--git-submodules root)
+        ;; Force a distinct mtime — file-attribute-modification-time has
+        ;; second-level resolution on some filesystems.
+        (set-file-times (expand-file-name ".gitmodules" root)
+                        (time-add (current-time) 5))
+        (projectile--git-submodules root)
+        (expect 'projectile-files-via-ext-command :to-have-been-called-times 2)))))
+  (it "is cleared for the project by projectile-invalidate-cache"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/.gitmodules")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-files-via-ext-command
+                :and-return-value '("vendor/sub"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        ;; Avoid touching the on-disk cache file or recentf during the test.
+        (spy-on 'projectile-persistent-cache-p :and-return-value nil)
+        (spy-on 'recentf-cleanup)
+        (projectile--git-submodules root)
+        (expect (gethash root projectile--git-submodules-cache) :not :to-be nil)
+        (projectile-invalidate-cache nil)
+        (expect (gethash root projectile--git-submodules-cache) :to-be nil)
+        (projectile--git-submodules root)
+        (expect 'projectile-files-via-ext-command :to-have-been-called-times 2)))))
+  (it "skips the shell-out entirely when there is no .gitmodules"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile-files-via-ext-command)
+        (expect (projectile--git-submodules root) :to-be nil)
+        (expect (gethash root projectile--git-submodules-cache) :to-be nil)
+        (expect 'projectile-files-via-ext-command :not :to-have-been-called))))))
+
 (describe "projectile-get-all-sub-projects-files"
   (it "returns relative paths to submodule files"
     (spy-on 'projectile-get-all-sub-projects :and-return-value '("/a/b/x/"))

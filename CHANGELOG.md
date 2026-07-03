@@ -14,6 +14,7 @@
 * `projectile-verify-file` now goes through `projectile-file-exists-p`, so cold project-type detection benefits from the remote file-exists cache instead of issuing a TRAMP round-trip for every marker file probed.
 * The mode-line updater is only added to `window-configuration-change-hook` when `projectile-dynamic-mode-line` is enabled; change the option via Customize or `setopt` for it to apply immediately.
 * The `recentf` and `recently-active` sort orders no longer rescan the full project file list once per recent file, making them usable on very large projects.
+* [#1953](https://github.com/bbatsov/projectile/issues/1953): Cache the git submodule listing instead of shelling out to `git submodule foreach` on every alien/hybrid file listing; the cache invalidates automatically when `.gitmodules` changes and is also cleared by `projectile-invalidate-cache`.
 
 ### Bugs fixed
 

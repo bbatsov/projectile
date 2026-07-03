@@ -72,6 +72,7 @@ answer from a previous test would otherwise still be live."
                    (convert-standard-filename "test/sandbox/")
                    (file-name-directory (locate-library "projectile.el" t))))
          (projectile-project-vcs-cache (make-hash-table :test 'equal))
+         (projectile--git-submodules-cache (make-hash-table :test 'equal))
          ;; The sandbox path is reused across tests, so repeatedly writing
          ;; the same files (e.g. `.projectile') can trip Emacs's file-lock
          ;; supersession machinery on some builds - it calls

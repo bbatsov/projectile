@@ -755,6 +755,17 @@ cache hit requires both DIRCONFIG-PATH and MTIME to match the
 current file, so changing `projectile-dirconfig-file' mid-session
 naturally invalidates the entry.")
 
+(defvar projectile--git-submodules-cache (make-hash-table :test 'equal)
+  "Cache of raw git submodule listings, keyed by directory.
+Each value is a list of (GITMODULES-PATH MTIME COMMAND SUBMODULES); a
+cache hit requires the `.gitmodules' path, its modification time and
+`projectile-git-submodule-command' to all match, so editing
+`.gitmodules' (or changing the command mid-session) naturally
+invalidates the entry.  Alien/hybrid indexing lists submodules on
+every file listing and the `git submodule foreach' shell-out dominates
+its runtime (see issue #1953); a stat of `.gitmodules' is practically
+free in comparison.")
+
 (defvar projectile--pending-cache-flush-timers (make-hash-table :test 'equal)
   "Map of project root to a pending idle-timer that will serialize its cache.
 Used by `projectile-cache-current-file' to coalesce rapid file additions
@@ -1310,6 +1321,11 @@ argument)."
     (remhash project-root projectile-projects-cache)
     (remhash project-root projectile-projects-cache-time)
     (remhash project-root projectile--dirconfig-cache)
+    ;; Submodule listings are cached per directory - nested submodules
+    ;; get entries of their own - so drop every entry under the project.
+    (dolist (key (hash-table-keys projectile--git-submodules-cache))
+      (when (string-prefix-p project-root key)
+        (remhash key projectile--git-submodules-cache)))
     ;; Cancel any in-flight background index for this project so its
     ;; now-stale result can't repopulate the cache we just cleared.
     (when-let* ((proc (gethash project-root projectile--async-index-processes)))
@@ -2162,31 +2178,57 @@ searching, and should end with an appropriate path delimiter, such as
 
 If the vcs get-sub-projects query returns results outside of path,
 they are excluded from the results of this function."
-  (let ((vcs (projectile-project-vcs path)))
-    ;; For Git projects without a `.gitmodules' file there is nothing
-    ;; for `git submodule foreach' to find, so we can skip the
-    ;; shell-out altogether.  PATH may be inside a Git repo without
-    ;; being its toplevel (e.g. a subproject of an outer repo) so look
-    ;; for `.gitmodules' along the parent chain rather than just at
-    ;; PATH itself.  This is hot for monorepos that index the project
-    ;; root often.
-    (unless (and (eq vcs 'git)
-                 (not (locate-dominating-file path ".gitmodules")))
-      (let* ((submodules (mapcar
-                          (lambda (s)
-                            (file-name-as-directory (expand-file-name s path)))
-                          (projectile-files-via-ext-command
-                           path (projectile-get-sub-projects-command vcs))))
-             (project-child-folder-regex
-              (concat "\\`" (regexp-quote path))))
-        ;; If project root is inside of an VCS folder, but not
-        ;; actually an VCS root itself, submodules external to the
-        ;; project will be included in the VCS get sub-projects
-        ;; result.  Let's remove them.
-        (seq-filter
-         (lambda (submodule)
-           (string-match-p project-child-folder-regex submodule))
-         submodules)))))
+  (let* ((vcs (projectile-project-vcs path))
+         (listing (if (eq vcs 'git)
+                      (projectile--git-submodules path)
+                    (projectile-files-via-ext-command
+                     path (projectile-get-sub-projects-command vcs))))
+         (submodules (mapcar
+                      (lambda (s)
+                        (file-name-as-directory (expand-file-name s path)))
+                      listing))
+         (project-child-folder-regex
+          (concat "\\`" (regexp-quote path))))
+    ;; If project root is inside of an VCS folder, but not
+    ;; actually an VCS root itself, submodules external to the
+    ;; project will be included in the VCS get sub-projects
+    ;; result.  Let's remove them.
+    (seq-filter
+     (lambda (submodule)
+       (string-match-p project-child-folder-regex submodule))
+     submodules)))
+
+(defun projectile--git-submodules (path)
+  "Return the raw submodule listing for the Git repo containing PATH.
+The result is a list of submodule paths relative to PATH, as
+reported by `projectile-git-submodule-command'.
+
+For Git projects without a `.gitmodules' file there is nothing for
+`git submodule foreach' to find, so the shell-out is skipped
+altogether.  PATH may be inside a Git repo without being its toplevel
+\(e.g. a subproject of an outer repo) so `.gitmodules' is looked up
+along the parent chain rather than just at PATH itself.
+
+Alien/hybrid indexing calls this on every file listing, so the result
+is cached in `projectile--git-submodules-cache' and recomputed only
+when `.gitmodules' changes on disk - a stat is far cheaper than the
+shell-out (see issue #1953).  `projectile-invalidate-cache' also
+drops the cached listing."
+  (when-let* ((gitmodules-dir (locate-dominating-file path ".gitmodules")))
+    (let* ((gitmodules (expand-file-name ".gitmodules" gitmodules-dir))
+           (mtime (file-attribute-modification-time
+                   (file-attributes gitmodules)))
+           (command (projectile-get-sub-projects-command 'git))
+           (cached (gethash path projectile--git-submodules-cache)))
+      (if (and cached
+               (equal (nth 0 cached) gitmodules)
+               (equal (nth 1 cached) mtime)
+               (equal (nth 2 cached) command))
+          (nth 3 cached)
+        (let ((submodules (projectile-files-via-ext-command path command)))
+          (puthash path (list gitmodules mtime command submodules)
+                   projectile--git-submodules-cache)
+          submodules)))))
 
 (defun projectile-get-sub-projects-files (project-root vcs)
   "Get files from sub-projects for PROJECT-ROOT recursively.
