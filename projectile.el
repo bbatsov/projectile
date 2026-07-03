@@ -2465,7 +2465,9 @@ listing (see issue #1953).  `projectile-invalidate-cache' also
 drops the cached listing."
   (when-let* ((gitmodules-dir (locate-dominating-file path ".git"))
               (gitmodules (expand-file-name ".gitmodules" gitmodules-dir))
-              (_ (file-exists-p gitmodules)))
+              ;; A plain `_' binding trips "variable `_' not left unused"
+              ;; in the Emacs 28/29 byte-compilers.
+              (gitmodules-exists (file-exists-p gitmodules)))
     (let* ((mtime (file-attribute-modification-time
                    (file-attributes gitmodules)))
            (command (projectile-get-sub-projects-command 'git))
