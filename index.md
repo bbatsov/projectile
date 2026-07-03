@@ -48,7 +48,7 @@ it. Some of Projectile's features:
 
 Here's a glimpse of Projectile in action:
 
-![Projectile Screenshot](doc/screenshots/projectile.png)
+![Projectile Demo](images/projectile-demo.gif)
 
 You can support my work on Projectile via
  [PayPal](https://www.paypal.me/bbatsov),
