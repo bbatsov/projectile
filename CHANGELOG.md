@@ -12,6 +12,7 @@
 * [#1890](https://github.com/bbatsov/projectile/pull/1890): Recognize osc (openSUSE Build Service) checkouts: `.osc` is now a VCS marker, a top-down-recurring root marker, and globally ignored; file listing uses the generic indexing command.
 * [#1694](https://github.com/bbatsov/projectile/issues/1694): Add `projectile-invalidate-cache-all`, which invalidates the caches of all known projects at once (handy when commands like `projectile-find-file-in-known-projects` serve stale results).
 * [#1075](https://github.com/bbatsov/projectile/issues/1075): Add experimental opt-in automatic cache updates via filesystem notifications: enable `projectile-auto-update-cache-with-watches` and cached local projects are watched with one `file-notify` watch per directory (bounded by `projectile-watch-directory-limit`), so files created, deleted or renamed outside Emacs update the cache without a manual `projectile-invalidate-cache`.
+* Add `projectile-other-window-command` (kbd:[s-p 4 4]) and `projectile-other-frame-command` (kbd:[s-p 5 5]), modeled after Emacs's `other-window-prefix`/`other-frame-prefix` (kbd:[C-x 4 4]/kbd:[C-x 5 5]): they display the buffer of the next command in another window or frame, keeping the Projectile keymap active for the next key. This works with any command, including ones without a dedicated `-other-window`/`-other-frame` variant, e.g. kbd:[s-p 4 4 x s] starts a project shell in another window.
 
 ### Changes
 
