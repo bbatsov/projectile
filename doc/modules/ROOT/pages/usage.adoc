@@ -190,6 +190,12 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p g]
 | Display a list of all files at point in the project. With a prefix argument it will clear the cache first.
 
+| kbd:[s-p 4 4]
+| Display the buffer of the next command in another window (see the note on prefix commands below).
+
+| kbd:[s-p 5 5]
+| Display the buffer of the next command in another frame (see the note on prefix commands below).
+
 | kbd:[s-p 4 f]
 | Jump to a project's file using completion and show it in another window.
 
@@ -379,6 +385,17 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p ESC]
 | Switch to the most recently selected Projectile buffer.
 |===
+
+TIP: `projectile-other-window-command` (kbd:[s-p 4 4]) and
+`projectile-other-frame-command` (kbd:[s-p 5 5]) are modeled after the
+built-in `other-window-prefix` (kbd:[C-x 4 4]) and `other-frame-prefix`
+(kbd:[C-x 5 5]) commands: they make the *next* command display its buffer in
+another window or frame, and keep the Projectile keymap active for the next
+key, so you don't have to type the Projectile prefix again. For instance,
+kbd:[s-p 4 4 f] opens a project file in another window, and the same works
+for commands without a dedicated other-window variant, e.g. kbd:[s-p 4 4 x s]
+starts a project `shell` in another window, or kbd:[s-p 5 5 v] shows the
+project's version control status in another frame.
 
 If you ever forget any of Projectile's keybindings just do a:
 
