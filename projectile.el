@@ -5058,7 +5058,7 @@ ones and overrule settings in the other lists."
     rtn))
 
 (cl-defun projectile--build-project-plist
-    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn tasks)
   "Return a project type plist with the provided arguments.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -5097,7 +5097,9 @@ files such as test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and
     returns a plist containing :test, :impl or :other as key and the
     relative path/paths or predicate as value.  PREDICATE accepts a
-    relative path as the input."
+    relative path as the input.
+TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
+    `projectile-tasks' for the exact shape."
   ;; When PROJECT-FILE isn't given explicitly, derive it from the first
   ;; marker file - that's the project's primary manifest in every
   ;; file-based registration, so callers needn't repeat it.  Function
@@ -5135,10 +5137,12 @@ files such as test/impl/other files as below:
       (plist-put project-plist 'test-dir test-dir))
     (when related-files-fn
       (plist-put project-plist 'related-files-fn related-files-fn))
+    (when tasks
+      (plist-put project-plist 'tasks tasks))
     project-plist))
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn)
+    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn tasks)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -5178,10 +5182,12 @@ files such as test/impl/other files as below:
     returns a plist containing :test, :impl or :other as key and the
     relative path/paths or predicate as value.  PREDICATE accepts a
     relative path as the input.
+TASKS an alist of named tasks of the form (TASK-NAME . COMMAND) run via
+    `projectile-run-task'; see `projectile-tasks' for the exact shape.
 
-All command strings (CONFIGURE, COMPILE, INSTALL, PACKAGE, TEST, RUN)
-support `%p' as a placeholder that will be replaced with the project name
-at execution time."
+All command strings (CONFIGURE, COMPILE, INSTALL, PACKAGE, TEST, RUN,
+and TASKS commands) support `%p' as a placeholder that will be replaced
+with the project name at execution time."
   (setq projectile-project-types
         (cons `(,project-type .
                               ,(projectile--build-project-plist
@@ -5198,7 +5204,8 @@ at execution time."
                                 :test-prefix test-prefix
                                 :src-dir src-dir
                                 :test-dir test-dir
-                                :related-files-fn related-files-fn))
+                                :related-files-fn related-files-fn
+                                :tasks tasks))
               projectile-project-types)))
 
 (cl-defun projectile-update-project-type
@@ -5217,7 +5224,8 @@ at execution time."
      (test-prefix nil test-prefix-specified)
      (src-dir nil src-dir-specified)
      (test-dir nil test-dir-specified)
-     (related-files-fn nil related-files-fn-specified))
+     (related-files-fn nil related-files-fn-specified)
+     (tasks nil tasks-specified))
     "Update an existing projectile project type.
 
 Passed items will override existing values for the project type given
@@ -5252,7 +5260,8 @@ arguments - have the same meaning as for
              (when src-dir-specified `(src-dir ,src-dir))
              (when test-dir-specified `(test-dir ,test-dir))
              (when related-files-fn-specified
-               `(related-files-fn ,related-files-fn))))
+               `(related-files-fn ,related-files-fn))
+             (when tasks-specified `(tasks ,tasks))))
            (merged-plist
             (projectile--combine-plists
              (cdr existing-project-plist) new-plist))
@@ -7766,6 +7775,61 @@ It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
 (put 'projectile-project-run-cmd 'safe-local-variable #'stringp)
 
+(defun projectile-tasks-safe-p (value)
+  "Return non-nil if VALUE is a safe directory-local `projectile-tasks'.
+Only an alist mapping task-name strings to command strings is
+considered safe.  Function commands are rejected: a .dir-locals.el
+travels with the project, so a function value could execute arbitrary
+code the moment a task is run."
+  (let ((safe t))
+    (while (and safe (consp value))
+      (let ((entry (car value)))
+        (setq safe (and (consp entry)
+                        (stringp (car entry))
+                        (stringp (cdr entry)))))
+      (setq value (cdr value)))
+    (and safe (null value))))
+
+(defcustom projectile-tasks nil
+  "An alist of named tasks that can be run with `projectile-run-task'.
+
+Each entry has the form (TASK-NAME . COMMAND), where TASK-NAME is a
+string and COMMAND is either a shell command string or a function
+called with no arguments (and `default-directory' set to the project
+root) that returns such a string.
+
+Command strings support the same `%p' placeholder as the lifecycle
+commands; it's replaced with the project name at execution time.
+
+The variable can be set globally, per project type (see the `:tasks'
+keyword of `projectile-register-project-type'), or per project via
+.dir-locals.el, which makes the tasks shareable through your VCS.
+Entries here override same-named tasks defined by the project type
+\(see `projectile-project-tasks').
+
+Note that only string commands are safe as a directory-local value;
+tasks with function commands have to be defined globally or via a
+project type."
+  :group 'projectile
+  :type '(alist :key-type (string :tag "Task name")
+                :value-type (choice (string :tag "Shell command")
+                                    (function :tag "Function returning a shell command")))
+  :safe #'projectile-tasks-safe-p
+  :package-version '(projectile . "3.1.0"))
+
+(defun projectile-project-tasks (&optional project-type)
+  "Return the effective tasks alist for the current project.
+
+That's the PROJECT-TYPE's `:tasks' table (PROJECT-TYPE defaults to the
+current project's type) merged with `projectile-tasks', whose entries -
+set globally or per project via .dir-locals.el - override same-named
+project-type tasks."
+  (let ((type-tasks (projectile-project-type-attribute
+                     (or project-type (projectile-project-type)) 'tasks)))
+    (append projectile-tasks
+            (seq-remove (lambda (task) (assoc (car task) projectile-tasks))
+                        type-tasks))))
+
 (defun projectile-default-generic-command (project-type command-type)
   "Generic retrieval of COMMAND-TYPEs default cmd-value for PROJECT-TYPE.
 
@@ -7964,9 +8028,10 @@ Projects are indexed by their project-root value.")
   "Return the command history ring for PROJECT-ROOT.
 
 With COMMAND-TYPE non-nil (one of the lifecycle command type
-symbols, e.g. `compile' or `test') return the history specific to
-that command type, so histories of different types don't bleed into
-each other's prompts.  With COMMAND-TYPE nil return the combined
+symbols, e.g. `compile' or `test', or a (task . TASK-NAME) cons
+for named tasks) return the history specific to that command
+type, so histories of different types don't bleed into each
+other's prompts.  With COMMAND-TYPE nil return the combined
 per-project history, which is what `projectile-repeat-last-command'
 reads."
   (let ((key (if command-type (cons project-root command-type) project-root)))
@@ -7991,7 +8056,7 @@ Duplicates are handled according to `projectile-cmd-hist-ignoredups'."
    (t (ring-insert history command))))
 
 (cl-defun projectile--run-project-cmd
-    (command command-map &key command-type show-prompt prompt-prefix save-buffers use-comint-mode)
+    (command command-map &key command-type show-prompt prompt-prefix save-buffers use-comint-mode buffer-name-function)
   "Run a project COMMAND, typically a test- or compile command.
 
 Cache the COMMAND for later use inside the hash-table COMMAND-MAP.
@@ -8006,6 +8071,11 @@ by setting SHOW-PROMPT.  The prompt will be prefixed with PROMPT-PREFIX.
 
 If SAVE-BUFFERS is non-nil save all projectile buffers before
 running the command.
+
+BUFFER-NAME-FUNCTION, when non-nil, is used as the
+`compilation-buffer-name-function' for the compilation, taking
+precedence over the `projectile-per-project-compilation-buffer'
+naming.
 
 The placeholder `%p' in COMMAND is replaced with the project name.
 
@@ -8036,6 +8106,8 @@ The command actually run is returned."
     (when projectile-per-project-compilation-buffer
       (setq compilation-buffer-name-function #'projectile-compilation-buffer-name)
       (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
+    (when buffer-name-function
+      (setq compilation-buffer-name-function buffer-name-function))
     (unless command
       (user-error "No %scommand configured for project type `%s'"
                   (or prompt-prefix "") (projectile-project-type)))
@@ -8216,7 +8288,9 @@ with a prefix ARG."
 External commands are: `projectile-configure-project',
 `projectile-compile-project', `projectile-test-project',
 `projectile-install-project', `projectile-package-project',
-and `projectile-run-project'.
+`projectile-run-project' and the named tasks run via
+`projectile-run-task' (which also feed the combined history this
+command reads).
 
 If the prefix argument SHOW-PROMPT is non nil, the command can be edited."
   (interactive "P")
@@ -8238,6 +8312,112 @@ If the prefix argument SHOW-PROMPT is non nil, the command can be edited."
     ;; updates the combined history, not the per-type ones.
     (unless (string= command executed-command)
       (ring-insert command-history executed-command))))
+
+(defvar projectile-last-task-map (make-hash-table :test 'equal)
+  "The last task run per project, indexed by project root.
+Each value is a cons of the task name and the command that was run,
+which is what `projectile-repeat-last-task' re-runs.")
+
+(defun projectile--run-task (task-name command show-prompt &optional confirmed)
+  "Run TASK-NAME's COMMAND for the current project.
+
+COMMAND is a shell command string, or a function returning one, called
+with `default-directory' set to the project root.  With SHOW-PROMPT
+non-nil the command can always be edited before it's run; otherwise
+the command is offered for confirmation when `compilation-read-command'
+is non-nil (the default), like the other lifecycle commands, unless
+CONFIRMED says the user already confirmed this exact command (the
+repeat case).
+
+Task commands can come from a checked-out project's `.dir-locals.el',
+whose `projectile-tasks' entries are accepted without the
+risky-local-variable prompt - that is only acceptable because this
+run-time confirmation is guaranteed, the same trade-off Emacs's
+`compile-command' makes.
+
+The command is executed like the other lifecycle commands (see
+`projectile--run-project-cmd'), except that the output goes to a
+per-task compilation buffer.  Return the command that was run, with
+the `%p' placeholder still intact."
+  (let* ((project-root (projectile-acquire-root))
+         (command (if (functionp command)
+                      (let ((default-directory project-root))
+                        (funcall command))
+                    command))
+         ;; keyed like the per-type lifecycle histories, but per task
+         (history-key (cons 'task task-name)))
+    (unless (stringp command)
+      (user-error "The command of task `%s' must be a string or a function returning one"
+                  task-name))
+    (when (or show-prompt
+              (and compilation-read-command (not confirmed)))
+      (setq command (projectile-read-command
+                     (format "Task [%s] command: " task-name)
+                     command
+                     history-key)))
+    ;; Any prompting already happened above, so bind
+    ;; `compilation-read-command' to nil to stop
+    ;; `projectile--run-project-cmd' from prompting a second time.
+    (let ((compilation-read-command nil)
+          (buffer-name (concat "*projectile-task: " task-name "*"
+                               (when projectile-per-project-compilation-buffer
+                                 (concat "<" (projectile-project-name project-root) ">")))))
+      (projectile--run-project-cmd command nil
+                                   :save-buffers t
+                                   :buffer-name-function (lambda (_mode) buffer-name)))
+    ;; `command-map' is nil above, so `projectile--run-project-cmd' records
+    ;; nothing; record the command - before `%p' expansion, like the other
+    ;; lifecycle commands - into the combined per-project history (which
+    ;; `projectile-repeat-last-command' reads) and the per-task one here.
+    (projectile--command-history-insert
+     (projectile--get-command-history project-root) command)
+    (projectile--command-history-insert
+     (projectile--get-command-history project-root history-key) command)
+    (puthash project-root (cons task-name command) projectile-last-task-map)
+    command))
+
+;;;###autoload
+(defun projectile-run-task (arg)
+  "Run one of the current project's named tasks.
+
+The task is picked with completion among the tasks of the project's
+type and those in `projectile-tasks', which win for same-named tasks
+\(see `projectile-project-tasks').  With a prefix ARG the task's
+command can be edited before it's run, e.g. to pass it ad-hoc
+arguments.
+
+The command runs through the same machinery as
+`projectile-compile-project' - in `projectile-compilation-dir', with
+`%p' expanded to the project name - but its output goes to a per-task
+compilation buffer named after the task."
+  (interactive "P")
+  ;; Establish we're in a project before prompting, so the task menu
+  ;; doesn't pop up (with globally-defined tasks) outside one.
+  (projectile-acquire-root)
+  (let ((tasks (projectile-project-tasks)))
+    (unless tasks
+      (user-error "No tasks defined for the current project"))
+    (let* ((task-name (projectile-completing-read "Run task: " (mapcar #'car tasks)))
+           (task (assoc task-name tasks)))
+      (unless task
+        (user-error "No task named `%s' in the current project" task-name))
+      (projectile--run-task task-name (cdr task) arg))))
+
+;;;###autoload
+(defun projectile-repeat-last-task (arg)
+  "Re-run the last task executed in the current project.
+
+This re-runs the exact command the task ran last time, including any
+ad-hoc edits made then.  With a prefix ARG the command can be edited
+again before it's run."
+  (interactive "P")
+  (let* ((project-root (projectile-acquire-root))
+         (last-task (gethash project-root projectile-last-task-map)))
+    (unless last-task
+      (user-error "No task has been run yet for this project"))
+    ;; The stored command was confirmed when it first ran, so re-running
+    ;; doesn't prompt again (like `projectile-repeat-last-command').
+    (projectile--run-task (car last-task) (cdr last-task) arg 'confirmed)))
 
 (defun compilation-find-file-projectile-find-compilation-buffer (orig-fun marker filename directory &rest formats)
   "Advice around compilation-find-file.
@@ -8978,6 +9158,8 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c r") #'projectile-run-project)
     (define-key map (kbd "c m c") #'projectile-compile-subproject)
     (define-key map (kbd "c m t") #'projectile-test-subproject)
+    (define-key map (kbd "c x") #'projectile-run-task)
+    (define-key map (kbd "c X") #'projectile-repeat-last-task)
     ;; integration with utilities
     (define-key map (kbd "x r") #'projectile-run)
     (define-key map (kbd "x e") #'projectile-run-eshell)
@@ -9174,7 +9356,9 @@ window or frame (file/buffer/project commands)."
       ("cr" "run" projectile-run-project)
       ("co" "configure" projectile-configure-project)
       ("ci" "install" projectile-install-project)
-      ("cp" "package" projectile-package-project)]
+      ("cp" "package" projectile-package-project)
+      ("cx" "run task" projectile-run-task)
+      ("cX" "repeat last task" projectile-repeat-last-task)]
      ["Shells / Run"
       ("xr" "run" projectile-dispatch-run)
       ("xe" "eshell" projectile-dispatch-run-eshell)
@@ -9284,6 +9468,9 @@ window or frame (file/buffer/project commands)."
          ["Install project" projectile-install-project]
          ["Package project" projectile-package-project]
          ["Run project" projectile-run-project]
+         "--"
+         ["Run task" projectile-run-task]
+         ["Repeat last task" projectile-repeat-last-task]
          "--"
          ["Repeat last build command" projectile-repeat-last-command])
         "--"
@@ -9435,11 +9622,16 @@ Otherwise behave as if called interactively.
 ;; See https://github.com/bbatsov/projectile/issues/1637 for more details
 (defvar savehist-additional-variables nil)
 
+(defun projectile--register-savehist-variables ()
+  "Add Projectile's persistable history variables to savehist."
+  (add-to-list 'savehist-additional-variables 'projectile-project-command-history)
+  ;; So `projectile-repeat-last-task' survives restarts, like
+  ;; `projectile-repeat-last-command' does via the command history.
+  (add-to-list 'savehist-additional-variables 'projectile-last-task-map))
+
 (if (bound-and-true-p savehist-loaded)
-    (add-to-list 'savehist-additional-variables 'projectile-project-command-history)
-  (add-hook 'savehist-mode-hook
-            (lambda()
-              (add-to-list 'savehist-additional-variables 'projectile-project-command-history))))
+    (projectile--register-savehist-variables)
+  (add-hook 'savehist-mode-hook #'projectile--register-savehist-variables))
 
 (provide 'projectile)
 
