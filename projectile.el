@@ -44,6 +44,7 @@
 (require 'compile)
 (require 'grep)
 (require 'fileloop)
+(require 'filenotify)
 (eval-when-compile
   ;; `transient' is bundled with Emacs 28.1+ (Projectile's minimum), but
   ;; it's only needed once `projectile-dispatch' is invoked, so it's
@@ -281,6 +282,56 @@ See also `projectile-cleanup-known-projects'."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.0.0"))
+
+(defcustom projectile-auto-update-cache-with-watches nil
+  "When non-nil, watch project directories to keep the files cache fresh.
+
+Experimental.  When enabled (and `projectile-enable-caching' is
+non-nil), Projectile registers filesystem notification watches (via
+`file-notify-add-watch') for the directories of a project whenever the
+project's file list is cached.  Files created, deleted or renamed
+outside Emacs then update the cached file list automatically, largely
+removing the need for manual `projectile-invalidate-cache' calls.
+
+Emacs file notifications are not recursive, so this costs one watch per
+directory; projects spanning more directories than
+`projectile-watch-directory-limit' are not watched.  Remote (TRAMP)
+projects are never watched.  When an event cannot be applied
+incrementally the project's cache is invalidated instead and rebuilt
+lazily on the next file listing, which also re-arms the watches.
+
+Change this via Customize (or `setopt'): disabling it then drops all
+active watches immediately, and enabling it arms watches for the
+projects that are already cached.  With plain `setq' the new value only
+takes effect the next time a project's file list is cached."
+  :group 'projectile
+  :type 'boolean
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         ;; The watch machinery is defined further down in this file, so
+         ;; guard against the initial `defcustom' evaluation at load time.
+         (if value
+             (when (fboundp 'projectile--watch-all-cached-projects)
+               (projectile--watch-all-cached-projects))
+           (when (fboundp 'projectile--teardown-all-watches)
+             (projectile--teardown-all-watches))))
+  :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-watch-directory-limit 512
+  "Maximum number of file-notify watches to register per project.
+
+File notifications are not recursive, so watching a project costs one
+watch (and, on most backends, one file descriptor) per directory.
+Projects whose cached file list spans more directories than this are
+not watched at all; when `projectile-verbose' is non-nil a message is
+emitted once per project.  Directories created inside a watched project
+count against the same limit.
+
+Only relevant when `projectile-auto-update-cache-with-watches' is
+enabled."
+  :group 'projectile
+  :type 'integer
+  :package-version '(projectile . "3.2.0"))
 
 (defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
@@ -894,6 +945,45 @@ into a single delayed disk write per project.")
      (cancel-timer timer)
      (remhash project-root projectile--pending-cache-flush-timers))))
 
+;; Deliberately a plain defvar rather than a `projectile-define-project-cache':
+;; the descriptors in this table are live OS resources, so the test sandbox
+;; must not rebind it to a fresh table (that would orphan active watches).
+;; Invalidation goes through `projectile--unwatch-project' instead, which
+;; removes the watches before dropping the registry entries.
+(defvar projectile--project-watches (make-hash-table :test 'equal)
+  "Map of project root to its registered file-notify watches.
+Each value is a list of (DESCRIPTOR . DIRECTORY) conses, DIRECTORY
+being the watched directory as an absolute name with a trailing slash.
+Only populated when `projectile-auto-update-cache-with-watches' is
+enabled; see `projectile--watch-project'.")
+
+;; Drop an invalidated project's file-notify watches along with their
+;; queued events; they re-arm the next time the cache is filled (see
+;; `projectile-cache-project').
+(projectile--register-project-cache-cleanup
+ 'projectile--project-watches
+ (lambda (project-root)
+   (projectile--unwatch-project project-root)))
+
+(defvar projectile--watch-pending-events (make-hash-table :test 'equal)
+  "Map of project root to its queued (not yet processed) file-notify events.
+Events are pushed by `projectile--handle-watch-event' (so the list is in
+reverse arrival order) and drained by `projectile--process-watch-events'
+once the debounce timer fires.")
+
+(defvar projectile--watch-debounce-timers (make-hash-table :test 'equal)
+  "Map of project root to the pending debounce timer for its watch events.")
+
+(defvar projectile--watch-debounce-delay 0.5
+  "Seconds to wait after a file-notify event before processing the batch.
+Coalesces event bursts (e.g. a `git checkout' touching many files) into
+a single pass over the project's cached file list.")
+
+(defvar projectile--watch-skipped-projects (make-hash-table :test 'equal)
+  "Set of project roots already reported as too big (or unable) to watch.
+Used to emit the `projectile-watch-directory-limit' message only once
+per project and session.")
+
 (defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about alien indexing skipping the dirconfig.")
 
@@ -1460,7 +1550,8 @@ A wrapper around `file-exists-p' with additional caching support."
 Runs every cleanup in `projectile--project-cache-cleanups': the
 tables defined via `projectile-define-project-cache' plus the ad-hoc
 cleanups (cancelling in-flight background indexing and pending cache
-flushes, deleting the on-disk cache file)."
+flushes, removing file-notify watches, deleting the on-disk cache
+file)."
   (dolist (entry projectile--project-cache-cleanups)
     (funcall (cdr entry) project-root)))
 
@@ -1554,7 +1645,8 @@ The cache is created both in memory and on the hard drive."
   (puthash project files projectile-projects-cache)
   (puthash project (projectile-time-seconds) projectile-projects-cache-time)
   (when (projectile-persistent-cache-p)
-    (projectile-serialize files (projectile-project-cache-file project))))
+    (projectile-serialize files (projectile-project-cache-file project)))
+  (projectile--maybe-watch-project project files))
 
 (defun projectile-load-project-cache (project-root)
   "Load the cache file for PROJECT-ROOT in memory."
@@ -1572,6 +1664,9 @@ The cache is created both in memory and on the hard drive."
                    (file-attributes cache-file))
                   'integer)
                  projectile-projects-cache-time)
+        ;; Loading the persistent cache fills the in-memory file list just
+        ;; like a fresh index does, so arm the watches here too.
+        (projectile--maybe-watch-project project-root data)
         data))))
 
 ;;;###autoload
@@ -1629,6 +1724,360 @@ and the write always uses the latest in-memory contents."
                (gethash project projectile-projects-cache)
                (projectile-project-cache-file project))))
            projectile--pending-cache-flush-timers))
+
+
+;;; Automatic cache updates via file-notify watches
+;;
+;; Opt-in machinery (see `projectile-auto-update-cache-with-watches') that
+;; keeps `projectile-projects-cache' in sync with the filesystem.  Emacs
+;; file notifications are not recursive, so a watched project gets one
+;; watch per directory, derived from the cached file list and bounded by
+;; `projectile-watch-directory-limit'.  Events are debounced per project
+;; and applied incrementally; anything that can't be applied safely falls
+;; back to invalidating the project's cache, which rebuilds lazily and
+;; re-arms the watches on the next cache fill.
+
+(defun projectile--maybe-watch-project (project files)
+  "Arm file-notify watches for PROJECT, whose cached file list is FILES.
+No-op unless both `projectile-auto-update-cache-with-watches' and
+`projectile-enable-caching' are non-nil.  Remote (TRAMP) projects are
+never watched: registering one watch per directory would mean a remote
+round-trip each, and most remote handlers don't support file
+notifications anyway."
+  (when (and projectile-auto-update-cache-with-watches
+             projectile-enable-caching
+             (not (file-remote-p project)))
+    (projectile--watch-project project files)))
+
+(defun projectile--watch-directories (project files)
+  "Return the directories of PROJECT to watch, derived from cached FILES.
+The result contains the project root and the directory chain of every
+cached file, as absolute names with trailing slashes.  Directories with
+no cached files below them (e.g. empty directories) are not included,
+so files that later appear in them go unnoticed until the next full
+re-index."
+  (let ((dirs (make-hash-table :test 'equal)))
+    (puthash (file-name-as-directory (expand-file-name project)) t dirs)
+    (dolist (file files)
+      (dolist (dir (projectile--directory-ancestors file))
+        (puthash (expand-file-name dir project) t dirs)))
+    (hash-table-keys dirs)))
+
+(defun projectile--watch-make-callback (project)
+  "Return a file-notify callback that queues events for PROJECT."
+  (lambda (event) (projectile--handle-watch-event project event)))
+
+(defun projectile--watch-skipped-once (project format-string &rest args)
+  "Report (via FORMAT-STRING and ARGS) that PROJECT won't be watched.
+The message is only emitted when `projectile-verbose' is non-nil, and
+only once per project and session."
+  (unless (gethash project projectile--watch-skipped-projects)
+    (puthash project t projectile--watch-skipped-projects)
+    (when projectile-verbose
+      (apply #'message format-string args))))
+
+(defun projectile--watch-project (project files)
+  "Register file-notify watches for PROJECT, whose cached files are FILES.
+One watch per directory, into `projectile--project-watches'.  Any
+watches already registered for PROJECT are replaced.  Does nothing
+beyond a one-time message when the project spans more directories than
+`projectile-watch-directory-limit' or when the platform provides no
+usable file notification backend."
+  (projectile--unwatch-project project)
+  (let ((dirs (projectile--watch-directories project files)))
+    (if (> (length dirs) projectile-watch-directory-limit)
+        (projectile--watch-skipped-once
+         project
+         "Projectile: not watching %s: %d directories exceed `projectile-watch-directory-limit' (%d)"
+         project (length dirs) projectile-watch-directory-limit)
+      (let ((callback (projectile--watch-make-callback project))
+            (failed nil)
+            watches)
+        (dolist (dir dirs)
+          (unless failed
+            (condition-case nil
+                (when (file-directory-p dir)
+                  (push (cons (file-notify-add-watch dir '(change) callback)
+                              dir)
+                        watches))
+              (error (setq failed t)))))
+        (if (not failed)
+            (puthash project watches projectile--project-watches)
+          ;; No usable backend, or the OS ran out of watches: roll back the
+          ;; partial registration and don't retry noisily on every cache fill.
+          (dolist (entry watches)
+            (ignore-errors (file-notify-rm-watch (car entry))))
+          (projectile--watch-skipped-once
+           project
+           "Projectile: cannot watch %s (no file notification backend, or watch registration failed)"
+           project))))))
+
+(defun projectile--unwatch-project (project)
+  "Remove all file-notify watches registered for PROJECT.
+Queued events and the pending debounce timer are discarded too."
+  (dolist (entry (gethash project projectile--project-watches))
+    (ignore-errors (file-notify-rm-watch (car entry))))
+  ;; Unconditional: a nil registry value (no watches left) must still be
+  ;; removed, or it would survive `projectile--teardown-all-watches'.
+  (remhash project projectile--project-watches)
+  (when-let* ((timer (gethash project projectile--watch-debounce-timers)))
+    (cancel-timer timer)
+    (remhash project projectile--watch-debounce-timers))
+  (remhash project projectile--watch-pending-events))
+
+(defun projectile--teardown-all-watches ()
+  "Drop the file-notify watches of every watched project.
+Runs when `projectile-mode' is disabled, when
+`projectile-auto-update-cache-with-watches' is customized to nil, and
+on `kill-emacs'."
+  (dolist (project (hash-table-keys projectile--project-watches))
+    (projectile--unwatch-project project)))
+
+(defun projectile--watch-all-cached-projects ()
+  "Arm watches for every project that already has a cached file list.
+Used when `projectile-auto-update-cache-with-watches' is enabled
+mid-session, so already-cached projects don't have to wait for their
+next cache fill."
+  (maphash #'projectile--maybe-watch-project projectile-projects-cache))
+
+(defun projectile--handle-watch-event (project event)
+  "Queue file-notify EVENT for PROJECT and start the debounce timer.
+Events from descriptors no longer in `projectile--project-watches' are
+dropped; in particular the `stopped' event that `file-notify-rm-watch'
+itself generates on some backends can't re-trigger processing after the
+project was unwatched."
+  (when (assoc (car event) (gethash project projectile--project-watches))
+    (push event (gethash project projectile--watch-pending-events))
+    (unless (gethash project projectile--watch-debounce-timers)
+      (puthash project
+               (run-with-timer projectile--watch-debounce-delay nil
+                               #'projectile--process-watch-events project)
+               projectile--watch-debounce-timers))))
+
+(defun projectile--process-watch-events (project)
+  "Apply PROJECT's queued file-notify events to its cached file list.
+Runs from the debounce timer.  If any event can't be applied
+incrementally the whole batch falls back to
+`projectile--invalidate-project-cache' - correctness beats cleverness;
+the cache rebuilds lazily on the next file listing, re-arming the
+watches.  After successful mutations the persistent cache flush is
+scheduled via `projectile--schedule-cache-flush'."
+  (remhash project projectile--watch-debounce-timers)
+  (let ((events (nreverse (gethash project projectile--watch-pending-events))))
+    (remhash project projectile--watch-pending-events)
+    (when (and events (gethash project projectile--project-watches))
+      ;; The cache entry can vanish without an invalidation (e.g. the
+      ;; `projectile-files-cache-expire' TTL drops it directly), leaving the
+      ;; watches orphaned.  Mutating an absent cache would fabricate a bogus
+      ;; one-file project, so just drop the watches; they re-arm when the
+      ;; cache is next filled.  A present-but-empty file list is different:
+      ;; that project is still watched and its events still apply.
+      (if (eq (gethash project projectile-projects-cache 'projectile--none)
+              'projectile--none)
+          (projectile--unwatch-project project)
+        (let* ((mutated nil)
+               (fallback
+                (catch 'projectile--watch-fallback
+                  (dolist (event events)
+                    (when (projectile--watch-apply-event project event)
+                      (setq mutated t)))
+                  nil)))
+          (cond
+           (fallback
+            (when projectile-verbose
+              (message "Projectile: invalidating the cache of %s (%s)"
+                       project fallback))
+            ;; Also drops the watches (and any events queued meanwhile).
+            (projectile--invalidate-project-cache project))
+           ((and mutated (projectile-persistent-cache-p))
+            (projectile--schedule-cache-flush project))))))))
+
+(defun projectile--watch-apply-event (project event)
+  "Apply one file-notify EVENT to PROJECT's cached file list.
+Returns non-nil when the cached list was mutated.  Throws
+`projectile--watch-fallback' (with a reason string) when the event
+cannot be applied incrementally."
+  (pcase-let ((`(,descriptor ,action ,file . ,rest) event))
+    (pcase action
+      ('created (projectile--watch-handle-created project file))
+      ('deleted (projectile--watch-handle-deleted project file))
+      ;; A rename is a deletion at the old name plus a creation at the new
+      ;; one.  `or' would short-circuit the second handler, so evaluate both.
+      ('renamed
+       (let ((removed (projectile--watch-handle-deleted project file))
+             (added (and (car rest)
+                         (projectile--watch-handle-created project (car rest)))))
+         (or removed added)))
+      ('stopped (projectile--watch-handle-stopped project descriptor))
+      ;; `changed' / `attribute-changed' don't affect the file list.
+      (_ nil))))
+
+(defun projectile--watch-transient-file-p (file)
+  "Return non-nil when FILE is an editor artifact that shouldn't be cached.
+Matches lockfiles (.#foo), auto-save files (#foo#), backup files (foo~)
+and the project's own persistent cache file - all of them appear and
+vanish as a side effect of editing and would otherwise churn the cache
+(the cache file would even schedule a flush that touches itself)."
+  (let ((name (file-name-nondirectory (directory-file-name file))))
+    (or (string-prefix-p ".#" name)
+        (and (string-prefix-p "#" name) (string-suffix-p "#" name))
+        (string-suffix-p "~" name)
+        (string= name projectile-cache-file))))
+
+(defun projectile--watch-keep-file-p (project file)
+  "Return non-nil when FILE (relative to PROJECT) belongs in the file list.
+Runs FILE through the same dirconfig and globally-ignored filtering the
+native and hybrid indexers use, and respects dirconfig `+' keep
+entries.  VCS-level ignores (e.g. `.gitignore') are not consulted, so
+under alien indexing a watched project can temporarily gain entries the
+VCS would have excluded, until the next full re-index."
+  (let ((default-directory project))
+    (and (projectile-remove-ignored (list file))
+         (let ((dirs (projectile-get-project-directories project)))
+           (or (member project dirs)
+               (let ((absolute (expand-file-name file project)))
+                 (seq-some (lambda (dir) (string-prefix-p dir absolute))
+                           dirs)))))))
+
+(defun projectile--watch-handle-created (project file)
+  "Handle the creation of FILE (absolute) inside PROJECT.
+Regular files go through the ignore filter into the cached file list;
+directories are adopted via `projectile--watch-adopt-directory'.
+Returns non-nil when the cached list was mutated."
+  (cond
+   ;; A `renamed' event can carry a destination outside the project (the
+   ;; file was moved away, not renamed in place); caching it would insert
+   ;; a bogus ../ entry into the file list.
+   ((not (string-prefix-p (file-name-as-directory (expand-file-name project))
+                          (expand-file-name file)))
+    nil)
+   ((projectile--watch-transient-file-p file) nil)
+   ((file-directory-p file)
+    (projectile--watch-adopt-directory project file))
+   ((file-regular-p file)
+    (let ((relative (file-relative-name file project)))
+      (when (and (not (member relative
+                              (gethash project projectile-projects-cache)))
+                 (projectile--watch-keep-file-p project relative))
+        (puthash project
+                 (cons relative (gethash project projectile-projects-cache))
+                 projectile-projects-cache)
+        t)))
+   ;; The path is already gone (created and deleted within one debounce
+   ;; window), or something exotic like a socket: nothing to cache.
+   (t nil)))
+
+(defun projectile--watch-adopt-directory (project dir)
+  "Watch DIR, a directory newly created inside PROJECT, and cache its files.
+DIR may already have contents - e.g. a populated directory moved into
+the project generates a single `created' event - so its entries are
+enumerated: regular files are handed to
+`projectile--watch-handle-created' and subdirectories are adopted
+recursively.  Ignored directories are skipped entirely.  Returns
+non-nil when the cached file list was mutated.  Throws
+`projectile--watch-fallback' when DIR can't be watched (the watch limit
+was reached, or the backend refused)."
+  (let* ((dir (file-name-as-directory (expand-file-name dir)))
+         (relative (file-relative-name dir project))
+         (watches (gethash project projectile--project-watches)))
+    (cond
+     ;; Already watched (duplicate or overlapping events): nothing to do.
+     ((rassoc dir watches) nil)
+     ;; Don't descend into ignored directories.
+     ((let ((default-directory project))
+        (null (projectile-remove-ignored (list relative))))
+      nil)
+     ((>= (length watches) projectile-watch-directory-limit)
+      (throw 'projectile--watch-fallback
+             (format "new directory %s would exceed `projectile-watch-directory-limit'"
+                     relative)))
+     (t
+      (let ((descriptor
+             (condition-case err
+                 (file-notify-add-watch
+                  dir '(change) (projectile--watch-make-callback project))
+               (error (throw 'projectile--watch-fallback
+                             (error-message-string err))))))
+        (puthash project (cons (cons descriptor dir) watches)
+                 projectile--project-watches))
+      (let ((mutated nil))
+        ;; Enumerating the new directory races against whatever is still
+        ;; populating (or already removing) it; an IO error here must not
+        ;; leave the batch half-applied, so convert it into the fallback.
+        ;; A nested `projectile--watch-fallback' throw is not an error
+        ;; condition and passes through untouched.
+        (condition-case err
+            (dolist (entry (directory-files
+                            dir t directory-files-no-dot-files-regexp t))
+              (when (projectile--watch-handle-created project entry)
+                (setq mutated t)))
+          (error (throw 'projectile--watch-fallback
+                        (error-message-string err))))
+        mutated)))))
+
+(defun projectile--watch-handle-deleted (project file)
+  "Handle the deletion of FILE (absolute) inside PROJECT.
+FILE no longer exists, so whether it was a file or a directory can't be
+queried; cached entries at the path and below it are removed, and so
+are the watches of any directories below it.  Returns non-nil when the
+cached list was mutated.  Throws `projectile--watch-fallback' when FILE
+is the project root itself - there is nothing left to watch, so the
+whole cache is invalidated instead."
+  (let* ((relative (file-relative-name file project))
+         (dir-absolute (file-name-as-directory (expand-file-name file)))
+         (dir-relative (file-name-as-directory relative))
+         (files (gethash project projectile-projects-cache)))
+    (when (string= dir-absolute
+                   (file-name-as-directory (expand-file-name project)))
+      (throw 'projectile--watch-fallback "the project root itself was deleted"))
+    ;; Drop the watches under the deleted path.  Their backends may emit a
+    ;; `stopped' event on removal; by then the descriptors are no longer
+    ;; registered, so `projectile--handle-watch-event' discards it.
+    (let ((watches (gethash project projectile--project-watches))
+          (remaining nil))
+      (dolist (entry watches)
+        (if (string-prefix-p dir-absolute (cdr entry))
+            (ignore-errors (file-notify-rm-watch (car entry)))
+          (push entry remaining)))
+      ;; `remaining' always contains at least the root watch here (only a
+      ;; root deletion prunes everything, and that threw above), but never
+      ;; store nil: a nil registry value would read as "not watched".
+      (if remaining
+          (puthash project (nreverse remaining) projectile--project-watches)
+        (remhash project projectile--project-watches)))
+    (let ((new-files (seq-remove
+                      (lambda (f)
+                        (or (string= f relative)
+                            (string-prefix-p dir-relative f)))
+                      files)))
+      (unless (= (length new-files) (length files))
+        (puthash project new-files projectile-projects-cache)
+        t))))
+
+(defun projectile--watch-handle-stopped (project descriptor)
+  "Handle DESCRIPTOR's watch stopping in PROJECT.
+When the watched directory is gone this is just the tail end of a
+deletion that the parent directory's watch already reported, so only
+the bookkeeping entry is dropped.  When the directory still exists the
+watch died under us (backend hiccup, event queue overflow) and the
+cache can no longer be trusted, so throw to trigger invalidation.
+Always returns nil - the cached file list itself is not touched."
+  (let* ((watches (gethash project projectile--project-watches))
+         (entry (assoc descriptor watches)))
+    (when entry
+      (let ((remaining (delq entry watches)))
+        (if remaining
+            (puthash project remaining projectile--project-watches)
+          ;; Never store nil - it would read as "not watched".
+          (remhash project projectile--project-watches)))
+      ;; The root has no watched parent to report its deletion, so a stopped
+      ;; root watch always invalidates, whether the directory survived or not.
+      (when (or (file-directory-p (cdr entry))
+                (string= (cdr entry)
+                         (file-name-as-directory (expand-file-name project))))
+        (throw 'projectile--watch-fallback
+               (format "the watch on %s stopped unexpectedly" (cdr entry))))))
+  nil)
 
 ;;;###autoload
 (defun projectile-cache-current-file (&optional project-root)
@@ -8019,6 +8468,11 @@ projects removed."
           (seq-remove
            (lambda (proj) (string= project proj))
            projectile-known-projects))
+    ;; Known projects are stored abbreviated while the watch registry is
+    ;; keyed by the cache key (usually expanded), so try both forms.
+    (when project
+      (projectile--unwatch-project project)
+      (projectile--unwatch-project (expand-file-name project)))
     (projectile-merge-known-projects)
     (when projectile-verbose
       (message "Project %s removed from the list of known projects." project))))
@@ -8752,6 +9206,10 @@ Otherwise behave as if called interactively.
     (add-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions t)
     (when projectile-dynamic-mode-line
       (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change))
+    (add-hook 'kill-emacs-hook #'projectile--teardown-all-watches)
+    ;; Disabling the mode tears the watches down, so re-enabling it has to
+    ;; re-arm them - a warm cache would otherwise never trigger a cache fill.
+    (projectile--watch-all-cached-projects)
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
    (t
@@ -8761,6 +9219,8 @@ Otherwise behave as if called interactively.
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook)
     (remove-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions)
     (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
+    (remove-hook 'kill-emacs-hook #'projectile--teardown-all-watches)
+    (projectile--teardown-all-watches)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
 
