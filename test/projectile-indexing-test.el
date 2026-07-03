@@ -721,6 +721,54 @@
         (expect 'projectile--git-submodule-paths :not :to-have-been-called)
         (expect 'projectile-files-via-ext-command :not :to-have-been-called))))))
 
+(describe "projectile-define-project-cache"
+  ;; Shadow the registry so the caches defined here don't leak into
+  ;; the global lists after the specs.
+  :var (projectile--project-cache-vars projectile--project-cache-cleanups)
+  (before-each
+    (setq projectile--project-cache-vars
+          (default-value 'projectile--project-cache-vars))
+    (setq projectile--project-cache-cleanups
+          (copy-alist (default-value 'projectile--project-cache-cleanups))))
+
+  (it "wires a new cache into invalidation automatically"
+    (eval '(projectile-define-project-cache projectile-test--registry-cache
+             "A throwaway cache for the registry spec.")
+          t)
+    (puthash "/proj/" 'value projectile-test--registry-cache)
+    (puthash "/other/" 'value projectile-test--registry-cache)
+    (projectile--invalidate-project-cache "/proj/")
+    (expect (gethash "/proj/" projectile-test--registry-cache) :to-be nil)
+    (expect (gethash "/other/" projectile-test--registry-cache) :to-be 'value)
+    (expect (memq 'projectile-test--registry-cache
+                  projectile--project-cache-vars)
+            :to-be-truthy))
+
+  (it "drops all entries under the root for prefix-keyed caches"
+    (eval '(projectile-define-project-cache projectile-test--prefix-cache
+             "A throwaway prefix-keyed cache for the registry spec."
+             :prefix-keyed t)
+          t)
+    (puthash "/proj/sub/" 'value projectile-test--prefix-cache)
+    (puthash "/proj/other/" 'value projectile-test--prefix-cache)
+    (puthash "/elsewhere/" 'value projectile-test--prefix-cache)
+    (projectile--invalidate-project-cache "/proj/")
+    (expect (hash-table-count projectile-test--prefix-cache) :to-equal 1)
+    (expect (gethash "/elsewhere/" projectile-test--prefix-cache)
+            :to-be 'value))
+
+  (it "cancels a pending cache flush on invalidation"
+    (let ((projectile--pending-cache-flush-timers
+           (make-hash-table :test 'equal))
+          (timer (timer-create)))
+      (puthash "/proj/" timer projectile--pending-cache-flush-timers)
+      (spy-on 'cancel-timer)
+      (spy-on 'projectile-persistent-cache-p :and-return-value nil)
+      (projectile--invalidate-project-cache "/proj/")
+      (expect 'cancel-timer :to-have-been-called-with timer)
+      (expect (gethash "/proj/" projectile--pending-cache-flush-timers)
+              :to-be nil))))
+
 (describe "projectile-invalidate-cache-all"
   (it "clears the per-project caches of every known project"
     (projectile-test-with-sandbox

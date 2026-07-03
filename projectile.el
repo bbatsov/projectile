@@ -773,10 +773,58 @@ type when `projectile-toggle-between-implementation-and-test' is used."
   :type 'string
   :package-version '(projectile . "2.6.0"))
 
-(defvar projectile-projects-cache (make-hash-table :test 'equal)
+;;; Per-project cache registry
+;;
+;; Projectile keeps a growing set of per-project caches.  Every one of
+;; them has to be dropped when a project is invalidated and isolated in
+;; the test sandbox; forgetting either wiring is a silent bug.  Caches
+;; defined through `projectile-define-project-cache' get both for free,
+;; and cleanups that aren't a simple table entry (killing a process,
+;; deleting a file) can be attached with
+;; `projectile--register-project-cache-cleanup'.
+
+(defvar projectile--project-cache-vars nil
+  "Hash-table variables holding per-project caches.
+Collected by `projectile-define-project-cache'.  The test sandbox
+rebinds each of these to a fresh table for isolation.")
+
+(defvar projectile--project-cache-cleanups nil
+  "Alist of NAME to cleanup function, run when a project is invalidated.
+Each function is called with the project root being invalidated.
+Keyed by name so that reloading projectile doesn't accumulate
+duplicate cleanups.")
+
+(defun projectile--register-project-cache-cleanup (name function)
+  "Register FUNCTION under NAME to run when a project is invalidated.
+FUNCTION is called with the project root.  Registering under an
+existing NAME replaces the previous cleanup."
+  (setf (alist-get name projectile--project-cache-cleanups) function))
+
+(defmacro projectile-define-project-cache (name docstring &rest props)
+  "Define NAME as a per-project cache table documented by DOCSTRING.
+The table is keyed by project root (with test `equal') and is wired
+into `projectile--invalidate-project-cache' and the test sandbox
+automatically.  PROPS may contain `:prefix-keyed t' for tables whose
+keys are directories under a project rather than the root itself;
+invalidation then drops every entry under the invalidated root."
+  (declare (indent 1) (doc-string 2))
+  `(progn
+     (defvar ,name (make-hash-table :test 'equal) ,docstring)
+     (add-to-list 'projectile--project-cache-vars ',name)
+     (projectile--register-project-cache-cleanup
+      ',name
+      ,(if (plist-get props :prefix-keyed)
+           `(lambda (project-root)
+              (dolist (key (hash-table-keys ,name))
+                (when (string-prefix-p project-root key)
+                  (remhash key ,name))))
+         `(lambda (project-root) (remhash project-root ,name))))
+     ',name))
+
+(projectile-define-project-cache projectile-projects-cache
   "A hashmap used to cache project file names to speed up related operations.")
 
-(defvar projectile-projects-cache-time (make-hash-table :test 'equal)
+(projectile-define-project-cache projectile-projects-cache-time
   "A hashmap used to record when we populated `projectile-projects-cache'.")
 
 (defvar projectile--async-index-processes (make-hash-table :test 'equal)
@@ -785,26 +833,36 @@ Used to avoid running more than one background index for the same
 project at a time, and to discard a stale background result whose
 project cache was invalidated while it was still running.")
 
+;; Cancel any in-flight background index for an invalidated project so
+;; its now-stale result can't repopulate the cache we just cleared.
+(projectile--register-project-cache-cleanup
+ 'projectile--async-index-processes
+ (lambda (project-root)
+   (when-let* ((proc (gethash project-root projectile--async-index-processes)))
+     (when (process-live-p proc)
+       (delete-process proc))
+     (remhash project-root projectile--async-index-processes))))
+
 (defvar projectile-project-root-cache (make-hash-table :test 'equal)
   "Cached value of function `projectile-project-root`.")
 
-(defvar projectile-project-type-cache (make-hash-table :test 'equal)
+(projectile-define-project-cache projectile-project-type-cache
   "A hashmap used to cache project type to speed up related operations.")
 
-(defvar projectile-project-vcs-cache (make-hash-table :test 'equal)
+(projectile-define-project-cache projectile-project-vcs-cache
   "Cache of `projectile-project-vcs' results keyed by directory.
 Cleared by `projectile-invalidate-cache' and
 `projectile-discard-root-cache'.  Entries are VCS symbols (or `none'
 for projects with no detected VCS).")
 
-(defvar projectile--dirconfig-cache (make-hash-table :test 'equal)
+(projectile-define-project-cache projectile--dirconfig-cache
   "Cache for parsed dirconfig files, keyed by project root.
 Each value is a list of (DIRCONFIG-PATH MTIME PARSED-RESULT); a
 cache hit requires both DIRCONFIG-PATH and MTIME to match the
 current file, so changing `projectile-dirconfig-file' mid-session
 naturally invalidates the entry.")
 
-(defvar projectile--git-submodules-cache (make-hash-table :test 'equal)
+(projectile-define-project-cache projectile--git-submodules-cache
   "Cache of raw git submodule listings, keyed by directory.
 Each value is a list of (GITMODULES-PATH MTIME COMMAND SUBMODULES); a
 cache hit requires the `.gitmodules' path, its modification time and
@@ -813,12 +871,24 @@ cache hit requires the `.gitmodules' path, its modification time and
 invalidates the entry.  Alien/hybrid indexing lists submodules on
 every file listing and the `git submodule foreach' shell-out dominates
 its runtime (see issue #1953); a stat of `.gitmodules' is practically
-free in comparison.")
+free in comparison."
+  :prefix-keyed t)
 
 (defvar projectile--pending-cache-flush-timers (make-hash-table :test 'equal)
   "Map of project root to a pending idle-timer that will serialize its cache.
 Used by `projectile-cache-current-file' to coalesce rapid file additions
 into a single delayed disk write per project.")
+
+;; Cancel a pending flush for an invalidated project - if it fired
+;; after invalidation it would serialize the now-empty in-memory state,
+;; recreating the cache file we just deleted with nil contents.
+(projectile--register-project-cache-cleanup
+ 'projectile--pending-cache-flush-timers
+ (lambda (project-root)
+   (when-let* ((timer (gethash project-root
+                               projectile--pending-cache-flush-timers)))
+     (cancel-timer timer)
+     (remhash project-root projectile--pending-cache-flush-timers))))
 
 (defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about alien indexing skipping the dirconfig.")
@@ -1370,35 +1440,25 @@ A wrapper around `file-exists-p' with additional caching support."
 (defsubst projectile-persistent-cache-p ()
   (eq projectile-enable-caching 'persistent))
 
+;; Delete the invalidated project's on-disk cache file, when
+;; persistent caching is enabled.
+(projectile--register-project-cache-cleanup
+ 'projectile-project-cache-file
+ (lambda (project-root)
+   (when (projectile-persistent-cache-p)
+     (let ((cache-file (projectile-project-cache-file project-root)))
+       (when (file-exists-p cache-file)
+         (delete-file cache-file))))))
+
 (defun projectile--invalidate-project-cache (project-root)
   "Drop all of Projectile's per-project caches for PROJECT-ROOT.
 
-Clears the project's entries in the file list, project type, VCS,
-dirconfig and git submodule caches, cancels any in-flight background
-index for the project, and, when persistent caching is enabled,
-deletes the project's on-disk cache file."
-  ;; reset the in-memory cache
-  (remhash project-root projectile-project-type-cache)
-  (remhash project-root projectile-project-vcs-cache)
-  (remhash project-root projectile-projects-cache)
-  (remhash project-root projectile-projects-cache-time)
-  (remhash project-root projectile--dirconfig-cache)
-  ;; Submodule listings are cached per directory - nested submodules
-  ;; get entries of their own - so drop every entry under the project.
-  (dolist (key (hash-table-keys projectile--git-submodules-cache))
-    (when (string-prefix-p project-root key)
-      (remhash key projectile--git-submodules-cache)))
-  ;; Cancel any in-flight background index for this project so its
-  ;; now-stale result can't repopulate the cache we just cleared.
-  (when-let* ((proc (gethash project-root projectile--async-index-processes)))
-    (when (process-live-p proc)
-      (delete-process proc))
-    (remhash project-root projectile--async-index-processes))
-  ;; reset the project's cache file
-  (when (projectile-persistent-cache-p)
-    (let ((cache-file (projectile-project-cache-file project-root)))
-      (when (file-exists-p cache-file)
-        (delete-file cache-file)))))
+Runs every cleanup in `projectile--project-cache-cleanups': the
+tables defined via `projectile-define-project-cache' plus the ad-hoc
+cleanups (cancelling in-flight background indexing and pending cache
+flushes, deleting the on-disk cache file)."
+  (dolist (entry projectile--project-cache-cleanups)
+    (funcall (cdr entry) project-root)))
 
 ;;;###autoload
 (defun projectile-invalidate-cache (prompt)

@@ -68,23 +68,26 @@ the sandbox doesn't leak into the next via the cache - the sandbox
 directory is reused across tests, so a cached VCS or project-type
 answer from a previous test would otherwise still be live."
   (declare (indent 0) (debug (&rest form)))
-  `(let ((sandbox (expand-file-name
-                   (convert-standard-filename "test/sandbox/")
-                   (file-name-directory (locate-library "projectile.el" t))))
-         (projectile-project-vcs-cache (make-hash-table :test 'equal))
-         (projectile--git-submodules-cache (make-hash-table :test 'equal))
-         ;; The sandbox path is reused across tests, so repeatedly writing
-         ;; the same files (e.g. `.projectile') can trip Emacs's file-lock
-         ;; supersession machinery on some builds - it calls
-         ;; `expand-file-name' on the non-file-visiting temp buffer's nil
-         ;; `buffer-file-name' and errors out.  We never want lock files in
-         ;; the throwaway sandbox anyway.
-         (create-lockfiles nil))
-     (when (file-directory-p sandbox)
-       (delete-directory sandbox t))
-     (make-directory sandbox t)
-     (let ((default-directory sandbox))
-       ,@body)))
+  `(cl-progv projectile--project-cache-vars
+       ;; Rebind every registered per-project cache to a fresh table so
+       ;; one test's view of the sandbox doesn't leak into the next.
+       (mapcar (lambda (_) (make-hash-table :test 'equal))
+               projectile--project-cache-vars)
+     (let ((sandbox (expand-file-name
+                     (convert-standard-filename "test/sandbox/")
+                     (file-name-directory (locate-library "projectile.el" t))))
+           ;; The sandbox path is reused across tests, so repeatedly writing
+           ;; the same files (e.g. `.projectile') can trip Emacs's file-lock
+           ;; supersession machinery on some builds - it calls
+           ;; `expand-file-name' on the non-file-visiting temp buffer's nil
+           ;; `buffer-file-name' and errors out.  We never want lock files in
+           ;; the throwaway sandbox anyway.
+           (create-lockfiles nil))
+       (when (file-directory-p sandbox)
+         (delete-directory sandbox t))
+       (make-directory sandbox t)
+       (let ((default-directory sandbox))
+         ,@body))))
 
 (defmacro projectile-test-with-files (files &rest body)
   "Evaluate BODY in the presence of FILES.
