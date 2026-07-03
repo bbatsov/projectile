@@ -103,6 +103,17 @@
 (declare-function xref-show-xrefs "xref")
 (declare-function xref-matches-in-directory "xref")
 
+;; Only available on Emacs 29+ built with tree-sitter support; every call
+;; site is guarded at runtime (see `projectile-run-test-at-point').
+(declare-function treesit-available-p "treesit.c")
+(declare-function treesit-parser-list "treesit.c")
+(declare-function treesit-node-at "treesit")
+(declare-function treesit-node-parent "treesit.c")
+(declare-function treesit-node-type "treesit.c")
+(declare-function treesit-node-child "treesit.c")
+(declare-function treesit-node-child-by-field-name "treesit.c")
+(declare-function treesit-node-text "treesit")
+
 
 ;;; Customization
 (defgroup projectile nil
@@ -8203,6 +8214,188 @@ with a prefix ARG."
                                  :save-buffers t
                                  :use-comint-mode projectile-test-use-comint-mode)))
 
+(defun projectile-test-at-point-python-name (node)
+  "Return the test name for the Python `function_definition' NODE.
+Return nil unless the function's name starts with \"test_\"."
+  (when-let* ((name-node (treesit-node-child-by-field-name node "name"))
+              (name (treesit-node-text name-node t)))
+    (when (string-prefix-p "test_" name)
+      name)))
+
+(defun projectile-test-at-point-python-command (test-name file-name)
+  "Return a pytest command running TEST-NAME in FILE-NAME.
+TEST-NAME and FILE-NAME are shell-quoted: a test name comes from the
+buffer's own source and a file name from the repository, so an
+unquoted interpolation would let a hostile project inject shell code."
+  (format "python -m pytest %s::%s"
+          (shell-quote-argument file-name)
+          (shell-quote-argument test-name)))
+
+(defun projectile-test-at-point-go-name (node)
+  "Return the test name for the Go `function_declaration' NODE.
+Return nil unless the function's name is one `go test' would run:
+\"Test\" followed by a non-lowercase character (or nothing)."
+  (when-let* ((name-node (treesit-node-child-by-field-name node "name"))
+              (name (treesit-node-text name-node t)))
+    (let ((case-fold-search nil))
+      (when (string-match-p "\\`Test\\([^[:lower:]]\\|\\'\\)" name)
+        name))))
+
+(defun projectile-test-at-point-go-command (test-name file-name)
+  "Return a `go test' command running TEST-NAME from FILE-NAME's package.
+The command targets exactly the package containing FILE-NAME (e.g.
+`./pkg/foo' for `pkg/foo/foo_test.go'); the recursive `./pkg/foo/...'
+form would also build every nested package and run any same-named
+tests they contain."
+  (let ((dir (file-name-directory file-name)))
+    ;; TEST-NAME and the package directory are shell-quoted to keep a
+    ;; hostile repository from injecting shell code.  The `^...$'
+    ;; regexp anchors stay inside the quoting so `-run' still gets one
+    ;; anchored pattern.
+    (format "go test -run %s %s"
+            (shell-quote-argument (concat "^" test-name "$"))
+            (shell-quote-argument
+             (if dir (concat "./" (directory-file-name dir)) ".")))))
+
+(defun projectile-test-at-point-jest-name (node)
+  "Return the test name for the JS/TS `call_expression' NODE.
+Matches `it'/`test'/`describe' calls (including member calls like
+`it.only' or `test.each') whose first argument is a string literal,
+returning that string without the surrounding quotes.  Return nil
+otherwise."
+  (let* ((fn (treesit-node-child-by-field-name node "function"))
+         (fn-name (when fn
+                    (pcase (treesit-node-type fn)
+                      ("identifier" (treesit-node-text fn t))
+                      ("member_expression"
+                       (when-let* ((object (treesit-node-child-by-field-name
+                                            fn "object")))
+                         (when (equal (treesit-node-type object) "identifier")
+                           (treesit-node-text object t))))))))
+    (when (member fn-name '("it" "test" "describe"))
+      (when-let* ((args (treesit-node-child-by-field-name node "arguments"))
+                  (arg (treesit-node-child args 0 t)))
+        (when (member (treesit-node-type arg) '("string" "template_string"))
+          ;; Strip the surrounding quotes/backticks.
+          (substring (treesit-node-text arg t) 1 -1))))))
+
+(defun projectile-test-at-point-jest-command (test-name file-name)
+  "Return a jest command running TEST-NAME in FILE-NAME.
+TEST-NAME and FILE-NAME are shell-quoted: the test name is arbitrary
+source text (JS strings can contain any character), so an unquoted
+interpolation would let a hostile project inject shell code."
+  (format "npx jest %s -t %s"
+          (shell-quote-argument file-name)
+          (shell-quote-argument test-name)))
+
+(defcustom projectile-test-at-point-rules
+  (let ((jest-rule '(:node-types ("call_expression")
+                     :name-fn projectile-test-at-point-jest-name
+                     :command-fn projectile-test-at-point-jest-command)))
+    `((python-ts-mode
+       :node-types ("function_definition")
+       :name-fn projectile-test-at-point-python-name
+       :command-fn projectile-test-at-point-python-command)
+      (go-ts-mode
+       :node-types ("function_declaration")
+       :name-fn projectile-test-at-point-go-name
+       :command-fn projectile-test-at-point-go-command)
+      (js-ts-mode ,@jest-rule)
+      (typescript-ts-mode ,@jest-rule)
+      (tsx-ts-mode ,@jest-rule)))
+  "Rules telling `projectile-run-test-at-point' how to run a single test.
+
+An alist keyed by major mode symbol.  The current buffer's mode is
+matched against the keys with `derived-mode-p', so a rule keyed on a
+mode also applies to modes derived from it.  Each value is a plist
+with the following keys:
+
+`:node-types' - a list of tree-sitter node type strings; walking up
+the parse tree from point, only nodes of these types are considered.
+
+`:name-fn' - a function called with a matching tree-sitter node that
+returns the test name string, or nil if the node isn't a test (in
+which case the walk continues upward).
+
+`:command-fn' - a function called with the test name and the file
+name (relative to the directory the command runs in, normally the
+project root) that returns the shell command to run."
+  :group 'projectile
+  :type '(alist :key-type (symbol :tag "Major mode")
+                :value-type (plist :tag "Rule"))
+  :package-version '(projectile . "3.1.0"))
+
+(defun projectile--test-at-point-rule ()
+  "Return the `projectile-test-at-point-rules' rule for the current buffer.
+The buffer's major mode is matched against the rule keys with
+`derived-mode-p'.  Return nil when no rule matches."
+  (cdr (seq-find (lambda (rule) (derived-mode-p (car rule)))
+                 projectile-test-at-point-rules)))
+
+(defun projectile--test-at-point-name (rule)
+  "Return the name of the test around point according to RULE, or nil.
+Walk up the tree-sitter parse tree from the node at point; for every
+enclosing node whose type is in RULE's `:node-types', call the rule's
+`:name-fn' with the node and return its first non-nil result."
+  (let ((node-types (plist-get rule :node-types))
+        (name-fn (plist-get rule :name-fn))
+        (node (treesit-node-at (point)))
+        name)
+    (while (and node (null name))
+      (when (member (treesit-node-type node) node-types)
+        (setq name (funcall name-fn node)))
+      (setq node (treesit-node-parent node)))
+    name))
+
+;;;###autoload
+(defun projectile-run-test-at-point (arg)
+  "Run the test around point, if any.
+
+The test is located by walking up the buffer's tree-sitter parse
+tree according to the rule for the buffer's major mode in
+`projectile-test-at-point-rules', which also determines the command
+used to run it.  Requires Emacs 29+ built with tree-sitter support
+and a tree-sitter major mode (e.g. `python-ts-mode').
+
+The command runs like `projectile-test-project' does (same working
+directory and buffer-saving behavior), but it is not recorded as the
+project's test command and doesn't touch the command history.  With
+a prefix ARG you can edit the command before it's run."
+  (interactive "P")
+  (unless (and (fboundp 'treesit-available-p) (treesit-available-p))
+    (user-error "This command requires Emacs 29+ built with tree-sitter support"))
+  (unless (treesit-parser-list)
+    (user-error "No tree-sitter parser in this buffer; use a tree-sitter major mode (e.g. `python-ts-mode')"))
+  (unless buffer-file-name
+    (user-error "The current buffer is not visiting a file"))
+  (let ((rule (projectile--test-at-point-rule)))
+    (unless rule
+      (user-error "No test-at-point rule for `%s'; see `projectile-test-at-point-rules'"
+                  major-mode))
+    (let ((test-name (projectile--test-at-point-name rule)))
+      (unless test-name
+        (user-error "No test found at point"))
+      ;; The command runs in the compilation directory, so the file
+      ;; name is made relative to it as spelled - not through
+      ;; `file-truename', which would escape the project for a file
+      ;; under a symlinked subdirectory and yield a useless `../..' path.
+      (let ((command (funcall (plist-get rule :command-fn)
+                              test-name
+                              (file-relative-name
+                               buffer-file-name
+                               (projectile-compilation-dir))))
+            ;; The command was derived from the test at point, so the
+            ;; usual `compilation-read-command' prompt doesn't apply;
+            ;; prompt only when explicitly asked to with a prefix arg.
+            (compilation-read-command nil))
+        ;; A nil command-map keeps the project's cached test command and
+        ;; command history untouched.
+        (projectile--run-project-cmd command nil
+                                     :show-prompt arg
+                                     :prompt-prefix "Test at point command: "
+                                     :save-buffers t
+                                     :use-comint-mode projectile-test-use-comint-mode)))))
+
 ;;;###autoload
 (defun projectile-install-project (arg)
   "Run project install command.
@@ -9096,6 +9289,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c p") #'projectile-package-project)
     (define-key map (kbd "c i") #'projectile-install-project)
     (define-key map (kbd "c t") #'projectile-test-project)
+    (define-key map (kbd "c .") #'projectile-run-test-at-point)
     (define-key map (kbd "c r") #'projectile-run-project)
     (define-key map (kbd "c m c") #'projectile-compile-subproject)
     (define-key map (kbd "c m t") #'projectile-test-subproject)
@@ -9364,6 +9558,7 @@ window or frame (file/buffer/project commands)."
      ["Lifecycle"
       ("cc" "compile" projectile-compile-project)
       ("ct" "test" projectile-test-project)
+      ("c." "test at point" projectile-run-test-at-point)
       ("cr" "run" projectile-run-project)
       ("co" "configure" projectile-configure-project)
       ("ci" "install" projectile-install-project)
@@ -9476,6 +9671,7 @@ window or frame (file/buffer/project commands)."
          ["Configure project" projectile-configure-project]
          ["Compile project" projectile-compile-project]
          ["Test project" projectile-test-project]
+         ["Run test at point" projectile-run-test-at-point]
          ["Install project" projectile-install-project]
          ["Package project" projectile-package-project]
          ["Run project" projectile-run-project]

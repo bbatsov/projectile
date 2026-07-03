@@ -1388,3 +1388,64 @@ arguments. Each task keeps its own command history at that prompt.
 in the current project, including any ad-hoc edits you made to its command,
 without asking again (you confirmed it the first time). It survives Emacs
 restarts when `savehist-mode` is enabled.
+== Running the test at point
+
+While `projectile-test-project` runs a project's whole test suite,
+`projectile-run-test-at-point` (kbd:[s-p c .]) runs just the test your
+cursor is on. It uses the buffer's tree-sitter parse tree to find the
+test enclosing point, so it requires Emacs 29+ built with tree-sitter
+support and a tree-sitter major mode (e.g. `python-ts-mode`).
+
+Out of the box the following languages are supported:
+
+|===
+| Major mode | Test | Command
+
+| `python-ts-mode`
+| `test_`-prefixed functions
+| `python -m pytest FILE::NAME`
+
+| `go-ts-mode`
+| `TestXxx` functions
+| `go test -run '^NAME$' ./DIR`
+
+| `js-ts-mode`, `typescript-ts-mode`, `tsx-ts-mode`
+| `it`/`test`/`describe` blocks (jest-style)
+| `npx jest FILE -t 'NAME'`
+|===
+
+The command runs from the same directory as `projectile-test-project`
+(normally the project root), with the same buffer-saving behavior, but
+it doesn't overwrite the project's remembered test command or command
+history. With a prefix argument you can edit the command before it's
+run, e.g. to add extra flags.
+
+Support for more languages can be added via
+`projectile-test-at-point-rules`, an alist keyed by major mode (matched
+with `derived-mode-p`). Each rule lists the tree-sitter node types that
+can represent a test (`:node-types`), a function extracting the test
+name from such a node, or returning `nil` to keep looking further up
+the tree (`:name-fn`), and a function building the shell command from
+the test name and the file name (`:command-fn`). For example, a rule
+for Rust's `+#[test]+` functions:
+
+[source,elisp]
+----
+(add-to-list 'projectile-test-at-point-rules
+             '(rust-ts-mode
+               :node-types ("function_item")
+               :name-fn (lambda (node)
+                          ;; Any function will do; cargo test matches by name.
+                          (treesit-node-text
+                           (treesit-node-child-by-field-name node "name") t))
+               :command-fn (lambda (test-name _file-name)
+                             (format "cargo test %s -- --exact"
+                                     (shell-quote-argument test-name)))))
+----
+
+WARNING: The test name and file name a `:command-fn` receives come from
+the buffer's source and the repository, so pass them through
+`shell-quote-argument` (as the built-in rules and the example above do)
+rather than interpolating them into the command as-is. Otherwise a
+crafted test name or file name in a checked-out project could inject
+shell code.
