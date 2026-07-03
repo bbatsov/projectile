@@ -832,6 +832,30 @@ Similarly, you can leverage the built-in `project.el` like this:
 (setq projectile-project-root-functions '(projectile-project-current))
 ----
 
+=== Customizing VCS detection
+
+The markers used to detect a project's version-control system live in
+`projectile-vcs-markers`, an ordered alist of marker names and VCS
+symbols (customizable since Projectile 3.1). During the upward search
+the nearest marker directory always wins; the order of the alist only
+breaks ties between markers sitting in the same directory. The main
+use for that is colocated repositories: `jj git init` creates both
+`.jj` and `.git`, and by default such projects are detected as `git`.
+To prefer `jj` instead:
+
+[source,elisp]
+----
+(setq projectile-vcs-markers
+      (cons '(".jj" . jj)
+            (assoc-delete-all ".jj" projectile-vcs-markers)))
+----
+
+You can also add markers for VCSes Projectile doesn't know about;
+file listing then falls back to the generic indexing command and
+`projectile-vc` to `vc-dir`. Note that VCS detection is cached per
+project, so run `projectile-invalidate-cache` after changing the
+variable.
+
 === Project root cache
 
 To keep `projectile-project-root` cheap (it's called from the mode-line and

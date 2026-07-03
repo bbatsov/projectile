@@ -426,6 +426,7 @@ the marked subproject takes precedence over the outer VC root."
 (defcustom projectile-project-root-files-top-down-recurring
   '(".svn" ; Svn VCS root dir
     "CVS"  ; CVS VCS root dir
+    ".osc" ; osc (openSUSE Build Service) checkout dir
     "Makefile")
   "A list of files considered to mark the root of a project.
 The search starts at the top and descends down till a directory
@@ -434,7 +435,7 @@ bottommost match in the topmost sequence of directories
 containing a root file."
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile . "0.11.0"))
+  :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-project-root-functions
   '(projectile-root-local
@@ -544,7 +545,8 @@ is set to `alien'."
     ".cache"
     ".clangd"
     ".sl"
-    ".jj")
+    ".jj"
+    "*.osc")
   "A list of directories globally ignored by projectile.
 
 Strings that don't start with * are only ignored at the top level
@@ -564,7 +566,7 @@ See also `projectile-global-ignore-file-patterns'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile . "2.9.0"))
+  :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-globally-unignored-directories nil
   "A list of directories globally unignored by projectile.
@@ -5080,7 +5082,10 @@ it acts on the current project.
 Expands wildcards using `file-expand-wildcards' before checking."
   (file-expand-wildcards (projectile-expand-root file dir)))
 
-(defconst projectile--vcs-markers
+(define-obsolete-variable-alias 'projectile--vcs-markers
+  'projectile-vcs-markers "3.1.0")
+
+(defcustom projectile-vcs-markers
   '((".git" . git)
     (".hg" . hg)
     (".fslckout" . fossil)
@@ -5090,10 +5095,25 @@ Expands wildcards using `file-expand-wildcards' before checking."
     (".pijul" . pijul)
     (".svn" . svn)
     (".sl" . sapling)
-    (".jj" . jj))
+    (".jj" . jj)
+    (".osc" . osc))
   "Alist of (MARKER . VCS) pairs probed by `projectile-project-vcs'.
-Order matches the historic `cond' chain: the first matching marker
-wins, so changes here are visible to all VCS detection.")
+
+The order only breaks ties between markers in the same directory -
+during the upward walk the nearest marker directory always wins.
+The main reason to customize this is colocated repositories: a
+repository created with `jj git init' contains both `.jj' and
+`.git', and moving `.jj' first makes such projects detect as `jj'.
+
+Unknown VCS symbols are fine - file listing falls back to the
+generic command and `projectile-vc' to `vc-dir' - so new markers
+can be added here without any other configuration.
+
+VCS detection is cached per project; run `projectile-invalidate-cache'
+after changing this for it to affect already-visited projects."
+  :group 'projectile
+  :type '(alist :key-type (string :tag "Marker") :value-type (symbol :tag "VCS"))
+  :package-version '(projectile . "3.1.0"))
 
 (defun projectile--vcs-from-directory-listing (directory)
   "Return the VCS symbol matching a marker directly inside DIRECTORY.
@@ -5106,7 +5126,7 @@ remote round-trips into one."
       (dolist (e entries) (puthash e t entry-set))
       (cl-some (lambda (cell)
                  (and (gethash (car cell) entry-set) (cdr cell)))
-               projectile--vcs-markers))))
+               projectile-vcs-markers))))
 
 (defun projectile-project-vcs (&optional project-root)
   "Determine the VCS used by the project if any.

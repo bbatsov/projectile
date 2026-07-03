@@ -487,7 +487,38 @@
          (expect (projectile-project-vcs dir) :to-equal 'git)
          (spy-on 'directory-files :and-call-through)
          (expect (projectile-project-vcs dir) :to-equal 'git)
-         (expect 'directory-files :not :to-have-been-called))))))
+         (expect 'directory-files :not :to-have-been-called)))))
+
+  (it "recognizes osc checkouts"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("pkg/.osc/" "pkg/pkg.spec")
+       (let ((dir (file-name-as-directory (expand-file-name "pkg"))))
+         (expect (projectile-project-vcs dir) :to-equal 'osc)))))
+
+  (it "breaks colocated-marker ties by projectile-vcs-markers order"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("colocated/.git/" "colocated/.jj/")
+       (let ((dir (file-name-as-directory (expand-file-name "colocated"))))
+         ;; Default order prefers git...
+         (expect (projectile-project-vcs dir) :to-equal 'git)
+         ;; ... and moving .jj to the front prefers jj.
+         (let ((projectile-vcs-markers
+                (cons '(".jj" . jj)
+                      (assoc-delete-all ".jj" (copy-alist projectile-vcs-markers))))
+               (projectile-project-vcs-cache (make-hash-table :test 'equal)))
+           (expect (projectile-project-vcs dir) :to-equal 'jj))))))
+
+  (it "returns none when no marker exists anywhere up the tree"
+    ;; The test sandbox lives inside Projectile's own git checkout, so
+    ;; the upward walk would find its .git; use a temp dir instead.
+    (let* ((dir (file-name-as-directory
+                 (make-temp-file "projectile-no-vcs" t)))
+           (projectile-project-vcs-cache (make-hash-table :test 'equal)))
+      (unwind-protect
+          (expect (projectile-project-vcs dir) :to-equal 'none)
+        (delete-directory dir t)))))
 
 (describe "projectile--ext-command-line"
   (it "returns the command unchanged when there are no pathspecs"
