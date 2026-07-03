@@ -265,4 +265,53 @@
             (expect switch-project-vcs :to-equal 'hg)
             (expect switch-project-root :not :to-equal (file-name-as-directory (expand-file-name "~")))))))))
 
+(describe "projectile-project-changed-functions"
+  :var (calls)
+  (before-each
+    (setq calls nil)
+    (setq projectile--current-project nil))
+  (after-each
+    (setq projectile--current-project nil))
+
+  (it "runs with the new and previous project on a change"
+    (let ((projectile-project-changed-functions
+           (list (lambda (new previous) (push (list new previous) calls)))))
+      (projectile--maybe-run-project-changed-functions "/tmp/project-a/")
+      (projectile--maybe-run-project-changed-functions "/tmp/project-b/")
+      (expect (nreverse calls) :to-equal
+              '(("/tmp/project-a/" nil)
+                ("/tmp/project-b/" "/tmp/project-a/")))))
+
+  (it "does not run when the project is unchanged"
+    (let ((projectile-project-changed-functions
+           (list (lambda (&rest args) (push args calls)))))
+      (projectile--maybe-run-project-changed-functions "/tmp/project-a/")
+      (projectile--maybe-run-project-changed-functions "/tmp/project-a/")
+      (expect (length calls) :to-equal 1)))
+
+  (it "ignores buffers outside any project"
+    (let ((projectile-project-changed-functions
+           (list (lambda (&rest args) (push args calls)))))
+      (spy-on 'projectile-project-p :and-return-value nil)
+      (projectile--maybe-run-project-changed-functions)
+      (expect calls :to-equal nil)))
+
+  (it "does not resolve the project when no functions are registered"
+    (let ((projectile-project-changed-functions nil))
+      (spy-on 'projectile-project-p)
+      (projectile--maybe-run-project-changed-functions)
+      (expect 'projectile-project-p :not :to-have-been-called)))
+
+  (it "runs on projectile-switch-project-by-name"
+    (let ((projectile-project-changed-functions
+           (list (lambda (new previous) (push (list new previous) calls))))
+          (projectile-switch-project-action #'ignore))
+      (projectile-test-with-sandbox
+       (projectile-test-with-files
+        ("project/.git/" "project/file")
+        (let ((project-dir (file-name-as-directory (expand-file-name "project"))))
+          (projectile-add-known-project project-dir)
+          (projectile-switch-project-by-name project-dir)
+          (expect calls :to-equal (list (list project-dir nil)))))))))
+
 ;;; projectile-switch-test.el ends here

@@ -924,6 +924,23 @@ Projectile provides several hooks for integrating with your workflow:
 (add-hook 'projectile-before-switch-project-hook #'my-before-switch-setup)
 ----
 
+If you want to react to *any* change of the current project, not just
+explicit invocations of `projectile-switch-project`, use
+`projectile-project-changed-functions` (added in Projectile 3.1). Its
+functions are also run when you enter another project implicitly, e.g. by
+visiting one of its files or directories. Each function is called with the
+new project root and the previous one (`nil` when there was none):
+
+[source,elisp]
+----
+(add-to-list 'projectile-project-changed-functions
+             (lambda (new previous)
+               (message "Moved from project %s to %s" previous new)))
+----
+
+NOTE: Moving to a buffer outside any project doesn't count as a change; the
+functions run again only when another project is entered.
+
 == Miscellaneous
 
 === Verbose messages

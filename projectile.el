@@ -1056,6 +1056,20 @@ It assumes the test/ folder is at the same level as src/."
   :group 'projectile
   :type 'hook)
 
+(defcustom projectile-project-changed-functions nil
+  "Functions to run when the current project changes.
+
+Each function is called with two arguments - the new project root and
+the project root it changed from (nil when there was none).  Unlike
+`projectile-after-switch-project-hook', which only runs on
+`projectile-switch-project', these functions also run when the project
+changes implicitly, e.g. by visiting a file or directory of another
+project.  Moving to a buffer outside any project is not a change;
+the functions run again only when another project is entered."
+  :group 'projectile
+  :type 'hook
+  :package-version '(projectile . "3.1.0"))
+
 (defcustom projectile-current-project-on-switch 'remove
   "Determines whether to display current project when switching projects.
 
@@ -1459,6 +1473,21 @@ PROJECT-ROOT defaults to the current project."
   (when projectile-track-known-projects-automatically
     (when-let* ((project-root (or project-root (projectile-project-p))))
       (projectile-add-known-project project-root))))
+
+(defvar projectile--current-project nil
+  "The project root `projectile-project-changed-functions' last saw.")
+
+(defun projectile--maybe-run-project-changed-functions (&optional project-root)
+  "Run `projectile-project-changed-functions' when the project changed.
+PROJECT-ROOT defaults to the current project.  The last seen project
+is tracked in `projectile--current-project'."
+  (when projectile-project-changed-functions
+    (when-let* ((project-root (or project-root (projectile-project-p))))
+      (unless (equal project-root projectile--current-project)
+        (let ((previous projectile--current-project))
+          (setq projectile--current-project project-root)
+          (run-hook-with-args 'projectile-project-changed-functions
+                              project-root previous))))))
 
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
@@ -7443,6 +7472,13 @@ of `projectile-switch-project-action'."
                                       (file-name-as-directory project-to-switch))
                       (file-equal-p previous-project project-to-switch))))
       (setq projectile-most-recent-project previous-project))
+    ;; The switch action usually visits a file or directory, which already
+    ;; runs the project-changed functions; this covers actions that don't.
+    ;; Resolving the root of an unconnected remote project would trigger a
+    ;; TRAMP connection, so leave remote detection to the next file visit.
+    (unless (file-remote-p project-to-switch)
+      (projectile--maybe-run-project-changed-functions
+       (projectile-project-root project-to-switch)))
     (run-hooks 'projectile-after-switch-project-hook)))
 
 ;;;###autoload
@@ -8192,6 +8228,7 @@ blanket guard was overly broad."
     (when projectile-auto-update-cache
       (projectile-cache-files-find-file-hook project-root))
     (projectile-track-known-projects-find-file-hook project-root)
+    (projectile--maybe-run-project-changed-functions project-root)
     (unless remote
       (when projectile-dynamic-mode-line
         (projectile-update-mode-line)))))
@@ -8289,6 +8326,7 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
+    (add-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions t)
     (when projectile-dynamic-mode-line
       (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change))
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
@@ -8298,6 +8336,7 @@ Otherwise behave as if called interactively.
     (remove-hook 'find-file-hook #'projectile-find-file-hook-function)
     (remove-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook)
+    (remove-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions)
     (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))

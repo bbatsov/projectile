@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### New features
+
+* [#978](https://github.com/bbatsov/projectile/issues/978): Add `projectile-project-changed-functions`, run whenever the current project changes - including implicitly via visiting a file or directory of another project - with the new and previous project root as arguments.
+
 ### Changes
 
 * `projectile-verify-file` now goes through `projectile-file-exists-p`, so cold project-type detection benefits from the remote file-exists cache instead of issuing a TRAMP round-trip for every marker file probed.
