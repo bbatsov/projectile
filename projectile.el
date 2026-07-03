@@ -685,9 +685,19 @@ to pick the first available backend, or `prompt' to be asked each time."
 The mode-line is updated when files are opened via `find-file-hook'
 and when the window configuration changes.
 
+Change the value via Customize or `setopt' so it takes effect
+immediately; a plain `setq' only takes effect before
+`projectile-mode' is enabled.
+
 See also `projectile-mode-line-function' and `projectile-update-mode-line'."
   :group 'projectile
   :type 'boolean
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         (when (bound-and-true-p projectile-mode)
+           (if value
+               (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
+             (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change))))
   :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-mode-line-function 'projectile-default-mode-line
@@ -8265,7 +8275,8 @@ Otherwise behave as if called interactively.
     (add-hook 'find-file-hook 'projectile-find-file-hook-function)
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
-    (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
+    (when projectile-dynamic-mode-line
+      (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change))
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-add 'delete-file :before #'delete-file-projectile-remove-from-cache))
    (t

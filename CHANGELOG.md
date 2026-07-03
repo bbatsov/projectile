@@ -5,6 +5,7 @@
 ### Changes
 
 * `projectile-verify-file` now goes through `projectile-file-exists-p`, so cold project-type detection benefits from the remote file-exists cache instead of issuing a TRAMP round-trip for every marker file probed.
+* The mode-line updater is only added to `window-configuration-change-hook` when `projectile-dynamic-mode-line` is enabled; change the option via Customize or `setopt` for it to apply immediately.
 
 ## 3.0.0 (2026-07-01)
 
