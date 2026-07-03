@@ -1692,6 +1692,198 @@ is tracked in `projectile--current-project'."
                                           (projectile-project-cache-file)))
     (projectile-invalidate-cache nil)))
 
+
+;;; File frecency
+;;
+;; Tracks which project files are visited and how often, so that
+;; `projectile-find-file' (and friends) can rank the files you actually
+;; work with first.  The ranking is applied through completion metadata
+;; (`display-sort-function'), so it works with any completion UI that
+;; honors it (the default completion UI, Vertico, Icomplete, ...) and
+;; under every indexing method, including `alien'.
+
+(defcustom projectile-enable-frecency t
+  "When non-nil, rank project files by frecency in completion.
+Projectile records file visits per project and sorts completion
+candidates by a combination of visit frequency and recency, so the
+files you work with the most show up first in `projectile-find-file'
+and related commands.
+
+The history is persisted in `projectile-frecency-file'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.1.0"))
+
+(defcustom projectile-frecency-file
+  (expand-file-name "projectile-frecency.eld" user-emacs-directory)
+  "File where Projectile persists the per-project file visit history."
+  :group 'projectile
+  :type 'file
+  :package-version '(projectile . "3.1.0"))
+
+(defcustom projectile-frecency-max-files 200
+  "Maximum number of files tracked per project.
+When the limit is exceeded, the lowest-ranking entries are dropped."
+  :group 'projectile
+  :type 'natnum
+  :package-version '(projectile . "3.1.0"))
+
+(defvar projectile--frecency-table nil
+  "Hash of project root to a hash of relative file name to (COUNT . TIME).
+TIME is the last visit in seconds since the epoch.  nil until loaded
+from `projectile-frecency-file' by `projectile--frecency-data'.")
+
+(defvar projectile--frecency-dirty nil
+  "Non-nil when the frecency data changed since it was last saved.")
+
+(defun projectile--frecency-data ()
+  "Return the frecency table, loading it from disk on first use.
+A malformed history file yields an empty table with a warning; it
+must never break `find-file' (the recording hook would re-signal on
+every file visit otherwise)."
+  (or projectile--frecency-table
+      (setq projectile--frecency-table
+            (condition-case err
+                (let ((table (make-hash-table :test 'equal)))
+                  (dolist (project (projectile-unserialize
+                                    projectile-frecency-file))
+                    (let ((files (make-hash-table :test 'equal)))
+                      (dolist (entry (cdr project))
+                        (puthash (nth 0 entry)
+                                 (cons (nth 1 entry) (nth 2 entry))
+                                 files))
+                      (puthash (car project) files table)))
+                  table)
+              (error
+               (display-warning
+                'projectile
+                (format "Malformed frecency file '%s' ignored (%s)"
+                        projectile-frecency-file (error-message-string err))
+                :warning)
+               (make-hash-table :test 'equal))))))
+
+(defun projectile--frecency-score (entry now)
+  "Compute the frecency score of ENTRY (COUNT . TIME) at time NOW.
+The visit count decays with a half-life of two weeks, so a file
+visited often long ago eventually ranks below one visited recently."
+  (let ((age-days (/ (max 0 (- now (cdr entry))) 86400.0)))
+    (* (car entry) (expt 0.5 (/ age-days 14.0)))))
+
+(defun projectile--frecency-prune (files)
+  "Drop the lowest-scoring entries of FILES down to the configured limit."
+  (let ((now (projectile-time-seconds))
+        (entries nil))
+    (maphash (lambda (file entry)
+               (push (cons file (projectile--frecency-score entry now)) entries))
+             files)
+    (dolist (victim (nthcdr projectile-frecency-max-files
+                            (seq-sort-by #'cdr #'> entries)))
+      (remhash (car victim) files))))
+
+(defun projectile--frecency-record (project-root)
+  "Record a visit to the current buffer's file under PROJECT-ROOT.
+Remote projects are not tracked, to keep the visit hook free of
+TRAMP round-trips."
+  (when (and projectile-enable-frecency
+             project-root
+             buffer-file-name
+             (not (file-remote-p project-root)))
+    (let ((file (file-relative-name buffer-file-name project-root)))
+      ;; Skip files that don't sit under the root as spelled - either
+      ;; genuinely outside the project, or reached through a
+      ;; differently-spelled root (e.g. a symlinked path).  Tracking a
+      ;; ../-relative name would never match a completion candidate.
+      (unless (string-prefix-p ".." file)
+        (let* ((table (projectile--frecency-data))
+               (files (or (gethash project-root table)
+                          (puthash project-root
+                                   (make-hash-table :test 'equal) table)))
+               (entry (gethash file files)))
+          (puthash file (cons (1+ (or (car entry) 0))
+                              (projectile-time-seconds))
+                   files)
+          (setq projectile--frecency-dirty t)
+          (when (> (hash-table-count files) (* 2 projectile-frecency-max-files))
+            (projectile--frecency-prune files)))))))
+
+(defun projectile--frecency-sort-function (project-root)
+  "Return a completion sort function ranking PROJECT-ROOT's files, or nil.
+The returned function puts tracked files first, ordered by
+`projectile--frecency-score', and preserves the order of the rest.
+Return nil when frecency is disabled or nothing is tracked yet."
+  (when (and projectile-enable-frecency project-root)
+    (when-let* ((files (gethash project-root (projectile--frecency-data))))
+      (when (> (hash-table-count files) 0)
+        (let ((scores (make-hash-table :test 'equal
+                                       :size (hash-table-count files)))
+              (now (projectile-time-seconds)))
+          (maphash (lambda (file entry)
+                     (puthash file (projectile--frecency-score entry now)
+                              scores))
+                   files)
+          (lambda (candidates)
+            (let (frecent rest)
+              (dolist (cand candidates)
+                (if (gethash cand scores)
+                    (push cand frecent)
+                  (push cand rest)))
+              (nconc (sort (nreverse frecent)
+                           (lambda (a b)
+                             (> (gethash a scores) (gethash b scores))))
+                     (nreverse rest)))))))))
+
+(defun projectile--frecency-merge-from-disk ()
+  "Merge newer on-disk frecency entries into the in-memory table.
+Another Emacs session may have saved since we loaded, so a plain
+overwrite would discard its data (the same reason
+`projectile-merge-known-projects' exists).  For each file present in
+both, the higher visit count and the later timestamp win."
+  (let ((disk-table (let ((projectile--frecency-table nil))
+                      (projectile--frecency-data)))
+        (table projectile--frecency-table))
+    (maphash
+     (lambda (root disk-files)
+       (let ((files (or (gethash root table)
+                        (puthash root (make-hash-table :test 'equal) table))))
+         (maphash
+          (lambda (file disk-entry)
+            (let ((entry (gethash file files)))
+              (puthash file
+                       (if entry
+                           (cons (max (car entry) (car disk-entry))
+                                 (max (cdr entry) (cdr disk-entry)))
+                         disk-entry)
+                       files)))
+          disk-files)))
+     disk-table)))
+
+(defun projectile--frecency-save ()
+  "Persist the frecency data to `projectile-frecency-file'.
+Merges with the data on disk first, so concurrent Emacs sessions
+don't wipe out each other's history.  The dirty flag is kept when
+the file isn't writable, so a later save can retry."
+  (when (and projectile--frecency-dirty projectile--frecency-table)
+    (if (not (file-writable-p projectile-frecency-file))
+        (display-warning
+         'projectile
+         (format "Frecency file '%s' is not writable" projectile-frecency-file)
+         :warning)
+      (projectile--frecency-merge-from-disk)
+      (let (data)
+        (maphash
+         (lambda (root files)
+           (projectile--frecency-prune files)
+           (when (> (hash-table-count files) 0)
+             (let (file-entries)
+               (maphash (lambda (file entry)
+                          (push (list file (car entry) (cdr entry))
+                                file-entries))
+                        files)
+               (push (cons root file-entries) data))))
+         projectile--frecency-table)
+        (projectile-serialize data projectile-frecency-file))
+      (setq projectile--frecency-dirty nil))))
+
 ;;;###autoload
 (defun projectile-discover-projects-in-directory (directory &optional depth)
   "Discover any projects in DIRECTORY and add them to the projectile cache.
@@ -3552,14 +3744,17 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
-(cl-defun projectile-completing-read (prompt choices &key initial-input action caller)
+(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function)
   "Present a project tailored PROMPT with CHOICES.
 
 Reads with `completing-read', unless `projectile-completion-system' is a
 function, in which case that function is called with PROMPT and CHOICES.
 
 INITIAL-INPUT is passed to `completing-read'.  ACTION, when non-nil, is
-called on the selected candidate and its result returned.  CALLER is
+called on the selected candidate and its result returned.  SORT-FUNCTION,
+when non-nil, is exposed as the completion metadata's
+`display-sort-function' and `cycle-sort-function', so completion UIs
+that honor metadata present the candidates in that order.  CALLER is
 accepted for backward compatibility but no longer used."
   (ignore caller)
   (let* ((prompt (projectile-prepend-project-name prompt))
@@ -3572,7 +3767,10 @@ accepted for backward compatibility but no longer used."
                    ;; marginalia and embark enhance how candidates are
                    ;; presented.
                    (if (eq action 'metadata)
-                       '(metadata . ((category . project-file)))
+                       `(metadata (category . project-file)
+                                  ,@(when sort-function
+                                      `((display-sort-function . ,sort-function)
+                                        (cycle-sort-function . ,sort-function))))
                      (complete-with-action action choices string pred)))
                  nil nil initial-input))))
     (if action (funcall action res) res)))
@@ -3885,14 +4083,17 @@ Subroutine for `projectile-find-file-dwim' and
   (let* ((project-root (projectile-acquire-root))
          (project-files (projectile-project-files project-root))
          (files (projectile-select-files project-files invalidate-cache))
+         (sort-function (projectile--frecency-sort-function project-root))
          (file (cond ((= (length files) 1)
                       (car files))
                      ((length> files 1)
                       (projectile-completing-read "Switch to: " files
-                                                  :caller 'projectile-read-file))
+                                                  :caller 'projectile-read-file
+                                                  :sort-function sort-function))
                      (t
                       (projectile-completing-read "Switch to: " project-files
-                                                  :caller 'projectile-read-file))))
+                                                  :caller 'projectile-read-file
+                                                  :sort-function sort-function))))
          (ff (or ff-variant #'find-file)))
     (funcall ff (expand-file-name file project-root))
     (run-hooks 'projectile-find-file-hook)))
@@ -3996,7 +4197,9 @@ would be `find-file-other-window' or `find-file-other-frame'"
   (let* ((project-root (projectile-acquire-root))
          (file (projectile-completing-read "Find file: "
                                            (projectile-project-files project-root)
-                                           :caller 'projectile-read-file))
+                                           :caller 'projectile-read-file
+                                           :sort-function
+                                           (projectile--frecency-sort-function project-root)))
          (ff (or ff-variant #'find-file)))
     (when file
       (funcall ff (expand-file-name file project-root))
@@ -8652,6 +8855,7 @@ blanket guard was overly broad."
       (projectile-cache-files-find-file-hook project-root))
     (projectile-track-known-projects-find-file-hook project-root)
     (projectile--maybe-run-project-changed-functions project-root)
+    (projectile--frecency-record project-root)
     (unless remote
       (when projectile-dynamic-mode-line
         (projectile-update-mode-line)))))
@@ -8750,6 +8954,7 @@ Otherwise behave as if called interactively.
     (add-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions t)
+    (add-hook 'kill-emacs-hook #'projectile--frecency-save)
     (when projectile-dynamic-mode-line
       (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change))
     (advice-add 'compilation-find-file :around #'compilation-find-file-projectile-find-compilation-buffer)
@@ -8760,6 +8965,8 @@ Otherwise behave as if called interactively.
     (remove-hook 'projectile-find-dir-hook #'projectile-track-known-projects-find-file-hook)
     (remove-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook)
     (remove-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions)
+    (projectile--frecency-save)
+    (remove-hook 'kill-emacs-hook #'projectile--frecency-save)
     (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
