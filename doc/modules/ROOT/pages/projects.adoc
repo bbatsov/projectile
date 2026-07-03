@@ -401,6 +401,9 @@ Below is a listing of all the available options for `projectile-register-project
 
 | :related-files-fn
 | A function to specify test/impl/other files in a more flexible way.
+
+| :tasks
+| An alist of named tasks of the form `(TASK-NAME . COMMAND)`, run via `projectile-run-task`. See <<project-tasks,Project Tasks>>.
 |===
 
 [discrete]
@@ -1316,3 +1319,72 @@ own command history, so when you press kbd:[M-p] at, say, the test prompt you
 only cycle through previous *test* commands instead of a mix of every command
 you've run in the project. `projectile-repeat-last-command` still re-runs the
 most recent command of any type.
+
+[#project-tasks]
+== Project Tasks
+
+Besides the standard lifecycle commands (compile, test, run, etc.), Projectile
+supports an arbitrary number of *named tasks* per project via
+`projectile-tasks`, an alist mapping task names to commands. Tasks are run
+with `projectile-run-task` (kbd:[s-p c x]), which prompts for a task with
+completion and executes its command exactly like the lifecycle commands (in
+`projectile-compilation-dir`, with `%p` expanded to the project name). Each
+task gets its own compilation buffer, named `+*projectile-task: NAME*+` (with
+the project name appended when `projectile-per-project-compilation-buffer` is
+non-nil), so several tasks can run side by side.
+
+A task's command is either a shell command string or a function called with no
+arguments (with `default-directory` at the project root) that returns one.
+
+Tasks can be defined in three places:
+
+* globally, by customizing `projectile-tasks`
+* per project type, via the `:tasks` keyword of
+  `projectile-register-project-type` and `projectile-update-project-type`
+* per project, by setting `projectile-tasks` in `.dir-locals.el`, which makes
+  the tasks shareable with your team through your VCS
+
+The effective tasks for a project are the project type's tasks merged with
+`projectile-tasks`; when both define a task with the same name, the
+`projectile-tasks` entry wins. Use `projectile-project-tasks` if you need the
+merged alist programmatically.
+
+Here's a `.dir-locals.el` example:
+
+[source,elisp]
+----
+((nil . ((projectile-tasks . (("lint" . "make lint")
+                              ("docs" . "make docs")
+                              ("release" . "make release VERSION=%p"))))))
+----
+
+NOTE: Only tasks whose commands are strings are treated as safe
+directory-local values; tasks with function commands have to be defined
+globally or via a project type.
+
+And a project-type example:
+
+[source,elisp]
+----
+(projectile-update-project-type
+ 'npm
+ :tasks '(("lint" . "npm run lint")
+          ("outdated" . "npm outdated")))
+----
+
+Like the other lifecycle commands, `projectile-run-task` offers the command
+for confirmation before running it (controlled by the standard
+`compilation-read-command`). Since tasks defined in a project's committed
+`.dir-locals.el` are accepted without the usual risky-local-variable prompt,
+that confirmation is also what stands between you and a task defined by a
+repository you've just checked out - the same trade-off Emacs's
+`compile-command` makes.
+
+Invoking `projectile-run-task` with a prefix argument (kbd:[C-u s-p c x]) lets
+you edit the task's command before it's run, which is handy for passing ad-hoc
+arguments. Each task keeps its own command history at that prompt.
+
+`projectile-repeat-last-task` (kbd:[s-p c X]) re-runs the last task executed
+in the current project, including any ad-hoc edits you made to its command,
+without asking again (you confirmed it the first time). It survives Emacs
+restarts when `savehist-mode` is enabled.
