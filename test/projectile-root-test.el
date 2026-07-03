@@ -163,6 +163,44 @@
       (expect (projectile-root-bottom-up "worktree/src/" '(".git"))
               :to-equal
               (expand-file-name "worktree/")))))
+  (it "matches a marker containing a path separator via fallback"
+    ;; Plain markers are answered from a single directory listing per
+    ;; level; a marker carrying a `/' can't be, so it falls back to
+    ;; `projectile-file-exists-p' on the expanded path.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("repo/build/marker"
+       "repo/sub/file.txt")
+      (expect (projectile-root-bottom-up "repo/sub/" '("build/marker"))
+              :to-equal
+              (expand-file-name "repo/")))))
+  (it "answers plain markers from one listing instead of per-marker stats"
+    ;; The whole point of the batched walk: with several plain-name
+    ;; markers each level costs one `directory-files' listing, not one
+    ;; stat per marker.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectB/.git/"
+       "projectB/src/lib/code.txt")
+      (spy-on 'projectile-file-exists-p :and-call-through)
+      (expect (projectile-root-bottom-up "projectB/src/lib/"
+                                         '(".git" ".hg" ".bzr" "_darcs"))
+              :to-equal
+              (expand-file-name "projectB/"))
+      (expect 'projectile-file-exists-p :not :to-have-been-called))))
+  (it "walks past a directory it cannot list without erroring"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("top/marker-a"
+       "top/blocked/")
+      (set-file-modes "top/blocked/" 0)
+      (unwind-protect
+          (expect (projectile-root-bottom-up "top/blocked/"
+                                             '("marker-a" "marker-b"))
+                  :to-equal
+                  (expand-file-name "top/"))
+        ;; Restore the permissions so the sandbox can be cleaned up.
+        (set-file-modes "top/blocked/" #o755)))))
   (it "lets an outer VC root win over a nearer manifest by default"
     ;; The default bottom-up list is VCS markers only, so in a monorepo
     ;; layout (`.git' at the top, a language manifest deeper down) the
