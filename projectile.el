@@ -44,12 +44,22 @@
 (require 'compile)
 (require 'grep)
 (require 'fileloop)
-;; `transient' is bundled with Emacs 28.1+ (Projectile's minimum), so it's a
-;; hard dependency, used by `projectile-dispatch'.
-(require 'transient)
 (eval-when-compile
+  ;; `transient' is bundled with Emacs 28.1+ (Projectile's minimum), but
+  ;; it's only needed once `projectile-dispatch' is invoked, so it's
+  ;; loaded lazily at run time (see `projectile-dispatch') and required
+  ;; here only for macro expansion during byte-compilation.
+  (require 'transient)
   (require 'find-dired)
   (require 'subr-x))
+
+;; All calls run after the lazy `(require 'transient)' in
+;; `projectile-dispatch' (or are otherwise guarded).
+(declare-function transient-args "transient" (prefix))
+(declare-function transient-setup "transient" (&optional name layout edit &rest params))
+(declare-function transient-prefix "transient")
+(declare-function transient--default-infix-command "transient")
+(declare-function transient--suffix-only "transient")
 
 ;;; Declarations
 ;;
@@ -8144,7 +8154,15 @@ PROPS is a plist of:
 
 ;; `projectile-dispatch' is a transient menu mirroring `projectile-command-map'.
 ;; The menu keys deliberately match the `projectile-command-map' bindings.
-(transient-define-prefix projectile-dispatch ()
+;; The transient prefix is defined lazily: loading `transient' costs a few
+;; milliseconds and some memory for every session, while the menu is only
+;; needed once invoked.  `projectile-dispatch' below is a stub that loads
+;; `transient', evaluates the real definition (replacing itself), and
+;; re-invokes it; `transient' is required at compile time (see the top of
+;; the file) so the macro still expands during byte-compilation.
+(defun projectile--dispatch-define ()
+  "Define the `projectile-dispatch' transient prefix, replacing the stub."
+  (transient-define-prefix projectile-dispatch ()
     "Dispatch menu for Projectile commands.
 
 The switches in the Modifiers group tweak how the commands below run:
@@ -8213,7 +8231,27 @@ window or frame (file/buffer/project commands)."
       ("&" "async shell command" projectile-run-async-shell-command-in-root)]
      ["Cache"
       ("i" "invalidate cache" projectile-invalidate-cache)
-      ("z" "cache current file" projectile-cache-current-file)]])
+      ("z" "cache current file" projectile-cache-current-file)]]))
+
+(defun projectile-dispatch ()
+  "Dispatch menu for Projectile commands.
+
+The switches in the Modifiers group tweak how the commands below run:
+`--invalidate-cache' rebuilds the file cache first (file/dir commands),
+`--regexp' searches for a regexp (ag/ripgrep), `--new-process' starts a
+fresh process (shells), and `--display' opens the result in another
+window or frame (file/buffer/project commands)."
+  (interactive)
+  ;; Loading `transient' is deferred until the menu is first used; this
+  ;; stub is replaced by the real transient prefix on that first call.
+  (require 'transient)
+  (projectile--dispatch-define)
+  (call-interactively 'projectile-dispatch))
+
+;; Mark the stub as a transient prefix so `projectile--transient-command-p'
+;; recognizes it before the first invocation replaces the stub (and this
+;; property) with the real definition.
+(put 'projectile-dispatch 'transient--prefix t)
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
