@@ -404,6 +404,54 @@ One last thing - the project cache will be auto-invalidated if you're using
 `.projectile` and it's last modification time is more recent than the time at
 which the cache file was last updated.
 
+=== Automatic cache updates
+
+NOTE: This feature is experimental and was added in Projectile 3.2.
+
+The file hooks described above only see what happens inside Emacs. Files
+created, deleted or renamed by external tools (a `git pull`, a code
+generator, another editor) still leave the cache stale until you run
+`projectile-invalidate-cache` by hand. If you'd rather have Projectile
+notice such changes itself, it can watch the directories of your cached
+projects using filesystem notifications:
+
+[source,elisp]
+----
+(setq projectile-auto-update-cache-with-watches t)
+----
+
+Whenever a project's file list is cached, Projectile then registers a
+`file-notify` watch for each of the project's directories and applies the
+resulting events to the cached list: new files are run through the usual
+ignore filtering before being added, deleted files (and directories) are
+removed, renames are handled as both. Events are debounced, so bursts
+(say, a branch switch touching hundreds of files) are folded into a single
+update. Anything that can't be applied incrementally with confidence falls
+back to invalidating the project's cache, which simply gets rebuilt on the
+next file listing.
+
+Be aware of the trade-offs before enabling it:
+
+* Emacs file notifications are not recursive, so a watched project costs
+  one watch, and typically one file descriptor, per directory. Projects
+  spanning more directories than `projectile-watch-directory-limit`
+  (512 by default) are not watched at all; set `projectile-verbose` to be
+  told when that happens.
+* Remote (TRAMP) projects are never watched.
+* Watched directories are derived from the cached file list, so a
+  directory that contains no cached files (e.g. an empty directory) isn't
+  watched until the next full re-index.
+* VCS-level ignores (e.g. `.gitignore`) are not consulted when adding
+  newly created files, only Projectile's own ignore settings and your
+  `.projectile` file. Under `alien` indexing a watched project may thus
+  temporarily pick up files your VCS would have excluded.
+
+Watches are dropped automatically when a project's cache is invalidated
+(and re-armed when it's next filled), when the option is disabled via
+Customize or `setopt`, when `projectile-mode` is turned off (turning the
+mode back on re-arms them for all cached projects), when a project is
+removed from the known projects and on Emacs shutdown.
+
 === Background indexing
 
 The first "find file" in a large or remote project has to index it. With the
