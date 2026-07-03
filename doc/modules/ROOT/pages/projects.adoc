@@ -946,17 +946,27 @@ The two ignore examples above look similar but go through different
 matchers. An entry that begins with a slash (e.g. `-/log`,
 `+/src/foo`, `!/src/foo`) is treated as a *path* relative to the
 project root and is expanded literally. An entry without a leading
-slash (e.g. `-tmp`, `-*.rb`) is treated as a *glob pattern* applied
-to every file's path. As a consequence:
+slash (e.g. `-tmp`, `-*.rb`) is treated as a *glob pattern* matched
+against every file's root-relative path, with rules modeled on
+`.gitignore` (since Projectile 3.1; the rules are identical under the
+`native` and `hybrid` indexing methods):
 
-* `-/log` ignores only the top-level `log` directory.
-* `-log` ignores anything called `log` at any depth, but only matches
-  full path components — it will not match `xlog` or `log.txt`.
-* `-*.rb` ignores any file whose path matches the glob `*.rb`.
+* A pattern without a slash matches the file name or any directory
+  segment at any depth: `-log` ignores a file or directory called
+  `log` anywhere in the tree, but won't match `xlog` or `log.txt`.
+* A pattern containing a slash is anchored at the project root:
+  `-src/gen` ignores only `src/gen`, not `lib/src/gen`. Prefix the
+  pattern with `**/` to match at any depth.
+* A trailing slash restricts the pattern to directories: `-vendor/`
+  ignores `vendor` directories, but not files named `vendor`.
+* A matched directory covers its entire subtree.
+* `*` matches within a single path segment, while `**` also crosses
+  `/`; `?` matches a single character, and `[...]`/`[!...]`
+  character classes are supported.
 
-If a glob pattern doesn't behave the way you'd expect — particularly
-across nested directories — try the explicit path form first to
-confirm whether the file is being indexed at all.
+If a glob pattern doesn't behave the way you'd expect, try the
+explicit path form first to confirm whether the file is being indexed
+at all.
 
 ==== Comments
 

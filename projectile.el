@@ -1886,28 +1886,61 @@ LOCAL-NAME is the basename of DIRECTORY."
                 projectile-global-ignore-file-patterns)
       (gethash local-name (plist-get rules :globally-ignored-dir-names-set))))
 
-(defun projectile--expand-glob-set (patterns)
-  "Expand glob PATTERNS in the current `default-directory'.
-Return a hash-set of absolute file paths matched by any pattern.
-Patterns that don't contain wildcard metacharacters expand to the
-file itself if it exists, so a single hash lookup later catches
-both glob and literal matches without revisiting the filesystem."
-  (let ((set (make-hash-table :test 'equal)))
-    (dolist (p patterns set)
-      (dolist (f (file-expand-wildcards p t))
-        (puthash f t set)))))
+(defun projectile--glob-to-regexp (glob)
+  "Translate the dirconfig GLOB into a regexp fragment.
+`*' matches within a path segment, `**' spans segments, `?' matches
+a single non-slash character and `[...]'/`[!...]' character classes
+pass through (with `!' translated to `^')."
+  (let ((i 0) (n (length glob)) (fragments nil))
+    (while (< i n)
+      (let ((c (aref glob i)))
+        (cond
+         ((eq c ?*)
+          (if (and (< (1+ i) n) (eq (aref glob (1+ i)) ?*))
+              (progn (push ".*" fragments) (setq i (1+ i)))
+            (push "[^/]*" fragments)))
+         ((eq c ??) (push "[^/]" fragments))
+         ((eq c ?\[)
+          ;; Copy a character class through, translating glob's [!...]
+          ;; negation; an unterminated class is treated literally.
+          (if-let* ((end (string-search "]" glob (+ i 2))))
+              (progn
+                (push (if (and (< (1+ i) n) (eq (aref glob (1+ i)) ?!))
+                          (concat "[^" (substring glob (+ i 2) (1+ end)))
+                        (substring glob i (1+ end)))
+                      fragments)
+                (setq i end))
+            (push "\\[" fragments)))
+         (t (push (regexp-quote (char-to-string c)) fragments))))
+      (setq i (1+ i)))
+    (apply #'concat (nreverse fragments))))
 
-(defun projectile--matches-pattern-set-p (file pats glob-set)
-  "Return non-nil when FILE matches any of PATS or is in GLOB-SET.
-PATS is the original pattern list (for the literal-suffix fallback
-that `projectile-check-pattern-p' uses); GLOB-SET is a hash-set
-returned by `projectile--expand-glob-set' for the same patterns,
-or nil when PATS is empty."
-  (or (and glob-set (gethash file glob-set))
-      (seq-some (lambda (p)
-                  (string-suffix-p (directory-file-name p)
-                                   (directory-file-name file)))
-                pats)))
+(defun projectile--dirconfig-pattern-to-regexp (pattern)
+  "Translate a dirconfig ignore/ensure PATTERN into a regexp.
+The regexp matches root-relative paths using gitignore-like rules:
+a pattern without a slash matches the file name or any directory
+segment anywhere in the tree, while a pattern containing a slash is
+anchored at the project root.  A trailing slash restricts the match
+to directories (and thus everything below them).  Directories must
+be matched with a trailing slash appended."
+  (let* ((dir-only (string-suffix-p "/" pattern))
+         (pattern (string-remove-suffix "/" pattern))
+         (floating (string-prefix-p "**/" pattern))
+         (pattern (if floating (substring pattern 3) pattern))
+         (anchored (string-search "/" pattern)))
+    (concat (cond (floating "\\`\\(?:.*/\\)?")
+                  (anchored "\\`")
+                  (t "\\(?:\\`\\|/\\)"))
+            (projectile--glob-to-regexp pattern)
+            (if dir-only "/" "\\(?:/\\|\\'\\)"))))
+
+(defun projectile--compile-dirconfig-patterns (patterns)
+  "Compile dirconfig PATTERNS into a single regexp.
+Return nil when PATTERNS is empty.  The regexp matches a
+root-relative path when any of PATTERNS does; pass directory paths
+with a trailing slash so directory-only patterns can match them."
+  (when patterns
+    (mapconcat #'projectile--dirconfig-pattern-to-regexp patterns "\\|")))
 
 (defun projectile-index-directory (directory patterns progress-reporter &optional ignored-files ignored-directories globally-ignored-directories)
   "Index DIRECTORY taking into account PATTERNS.
@@ -1922,28 +1955,42 @@ state across calls."
          (ignored-directories (or ignored-directories (projectile-ignored-directories)))
          (globally-ignored-directories (or globally-ignored-directories
                                            (projectile-globally-ignored-directory-names)))
-         (rules (projectile--make-walk-rules ignored-files ignored-directories
-                                             globally-ignored-directories))
+         ;; Dirconfig patterns match root-relative paths, so when DIRECTORY
+         ;; is a subdirectory of the project (a dirconfig `+' keep entry)
+         ;; the paths matched must stay relative to the project root, not
+         ;; to the walked directory.  Fall back to DIRECTORY when it isn't
+         ;; under the current project.
+         (walk-base (file-name-as-directory (expand-file-name directory)))
+         (project-root (projectile-project-p directory))
+         (match-base (if (and project-root
+                              (string-prefix-p (file-name-as-directory
+                                                (expand-file-name project-root))
+                                               walk-base))
+                         (file-name-as-directory (expand-file-name project-root))
+                       walk-base))
+         (rules (append (projectile--make-walk-rules ignored-files ignored-directories
+                                                     globally-ignored-directories)
+                        (list :dirconfig-ignore-re
+                              (projectile--compile-dirconfig-patterns (car patterns))
+                              :dirconfig-ensure-re
+                              (projectile--compile-dirconfig-patterns (cdr patterns))
+                              :match-base-len (length match-base))))
          ;; A 1-element list whose car is the accumulator.  Using a
          ;; mutable cell lets the recursive walker push results onto a
          ;; single shared list (O(N) total) instead of `apply append'-ing
          ;; per-level results (O(N*depth)).
          (acc-cell (list nil)))
-    (projectile--index-directory-walk directory patterns progress-reporter
-                                      rules acc-cell)
+    (projectile--index-directory-walk directory progress-reporter rules acc-cell)
     (nreverse (car acc-cell))))
 
-(defun projectile--index-directory-walk (directory patterns progress-reporter rules acc-cell)
+(defun projectile--index-directory-walk (directory progress-reporter rules acc-cell)
   "Recursive walker for `projectile-index-directory'.
-DIRECTORY, PATTERNS, PROGRESS-REPORTER and RULES carry the same
-state as the public entry point.  ACC-CELL is a 1-element list
-whose car accumulates discovered file paths in reverse order."
-  ;; Resolve the directory listing first.  We rebind `default-directory'
-  ;; below for `file-expand-wildcards', so the relative `directory'
-  ;; argument has to be resolved against the caller's `default-directory'
-  ;; before that rebind takes effect.  Use ignore-errors to skip
-  ;; unreadable directories (e.g.  .Spotlight-V100 on macOS) instead of
-  ;; aborting the entire indexing operation.
+DIRECTORY, PROGRESS-REPORTER and RULES carry the same state as the
+public entry point.  ACC-CELL is a 1-element list whose car
+accumulates discovered file paths in reverse order."
+  ;; Use ignore-errors to skip unreadable directories (e.g.
+  ;; .Spotlight-V100 on macOS) instead of aborting the entire indexing
+  ;; operation.
   ;; `directory-files-no-dot-files-regexp' filters out . and .. at the
   ;; C level so we don't have to do it again in the loop.
   ;; `directory-files-and-attributes' (rather than plain `directory-files')
@@ -1953,39 +2000,40 @@ whose car accumulates discovered file paths in reverse order."
   ;; walk on large or remote (TRAMP) trees.
   (let ((entries (ignore-errors
                    (directory-files-and-attributes
-                    directory t directory-files-no-dot-files-regexp nil 'integer))))
-    (let* ((default-directory (file-name-as-directory directory))
-           (ignore-pats (car patterns))
-           (ensure-pats (cdr patterns))
-           ;; Glob expansion is sensitive to `default-directory' so it
-           ;; has to happen at every recursion level - but only once
-           ;; per level rather than once per (file, pattern) pair as
-           ;; it used to.
-           (ignore-glob-set (and ignore-pats (projectile--expand-glob-set ignore-pats)))
-           (ensure-glob-set (and ensure-pats (projectile--expand-glob-set ensure-pats))))
-      (dolist (entry entries)
-        (let* ((f (car entry))
-               ;; The type field is t for a directory, a string (the link
-               ;; target) for a symlink, and nil for a regular file.  For a
-               ;; symlink we still defer to `file-directory-p' so that a link
-               ;; pointing at a directory is traversed, matching the previous
-               ;; follow-symlink behaviour; that extra stat only happens for
-               ;; the rare symlink entry, not for every file.
-               (type (file-attribute-type (cdr entry)))
-               (local-f (file-name-nondirectory (directory-file-name f))))
-          (unless (and patterns
-                       (projectile--matches-pattern-set-p f ignore-pats ignore-glob-set)
-                       (not (projectile--matches-pattern-set-p f ensure-pats ensure-glob-set)))
-            (progress-reporter-update progress-reporter)
-            (cond
-             ((if (stringp type) (file-directory-p f) (eq type t))
-              (unless (projectile--ignored-directory-fast-p
-                       (file-name-as-directory f) local-f rules)
-                (projectile--index-directory-walk f patterns progress-reporter
-                                                  rules acc-cell)))
-             (t
-              (unless (projectile--ignored-file-fast-p f rules)
-                (setcar acc-cell (cons f (car acc-cell))))))))))))
+                    directory t directory-files-no-dot-files-regexp nil 'integer)))
+        (ignore-re (plist-get rules :dirconfig-ignore-re))
+        (ensure-re (plist-get rules :dirconfig-ensure-re))
+        (match-base-len (plist-get rules :match-base-len)))
+    (dolist (entry entries)
+      (let* ((f (car entry))
+             ;; The type field is t for a directory, a string (the link
+             ;; target) for a symlink, and nil for a regular file.  For a
+             ;; symlink we still defer to `file-directory-p' so that a link
+             ;; pointing at a directory is traversed, matching the previous
+             ;; follow-symlink behaviour; that extra stat only happens for
+             ;; the rare symlink entry, not for every file.
+             (type (file-attribute-type (cdr entry)))
+             (local-f (file-name-nondirectory (directory-file-name f)))
+             (directory-p (if (stringp type) (file-directory-p f) (eq type t)))
+             ;; Dirconfig patterns match against the root-relative path,
+             ;; with a trailing slash appended for directories so that
+             ;; directory-only patterns (trailing `/') can match.
+             (match-name (and ignore-re
+                              (concat (substring f match-base-len)
+                                      (and directory-p "/")))))
+        (unless (and match-name
+                     (string-match-p ignore-re match-name)
+                     (not (and ensure-re (string-match-p ensure-re match-name))))
+          (progress-reporter-update progress-reporter)
+          (cond
+           (directory-p
+            (unless (projectile--ignored-directory-fast-p
+                     (file-name-as-directory f) local-f rules)
+              (projectile--index-directory-walk f progress-reporter
+                                                rules acc-cell)))
+           (t
+            (unless (projectile--ignored-file-fast-p f rules)
+              (setcar acc-cell (cons f (car acc-cell)))))))))))
 
 ;;; Alien Project Indexing
 ;;
@@ -2577,8 +2625,18 @@ PROJECT-ROOT defaults to the current project."
 
 If ignored directory prefixed with `*', then ignore all
 directories/subdirectories with matching filename,
-otherwise operates relative to project root."
-  (let* ((ignored-files (projectile-ignored-files-rel))
+otherwise operates relative to project root.
+
+Dirconfig ignore patterns (the non-slash-prefixed `-' entries of the
+`.projectile' file) are also applied, compiled via
+`projectile--compile-dirconfig-patterns'; `!' ensure patterns rescue
+files from them."
+  (let* ((filtering-patterns (projectile-filtering-patterns))
+         (dirconfig-ignore-re (projectile--compile-dirconfig-patterns
+                               (car filtering-patterns)))
+         (dirconfig-ensure-re (projectile--compile-dirconfig-patterns
+                               (cdr filtering-patterns)))
+         (ignored-files (projectile-ignored-files-rel))
          (ignored-dirs (projectile-ignored-directories-rel))
          ;; Hash basenames of ignored files for O(1) lookup per project
          ;; file (the original `seq-some'/`string=' over the list was
@@ -2607,7 +2665,11 @@ otherwise operates relative to project root."
                    (delete "" (split-string
                                (or (file-name-directory file) "") "/"))))
              (seq-some (lambda (dir) (string-prefix-p dir file)) prefix-dirs)
-             (seq-some (lambda (suf) (string-suffix-p suf file t)) suffixes)))
+             (seq-some (lambda (suf) (string-suffix-p suf file t)) suffixes)
+             (and dirconfig-ignore-re
+                  (string-match-p dirconfig-ignore-re file)
+                  (not (and dirconfig-ensure-re
+                            (string-match-p dirconfig-ensure-re file))))))
        files))))
 
 (defun projectile-keep-ignored-files (project vcs files)
@@ -2885,23 +2947,6 @@ A pre-computed list of IGNORED-FILES may optionally be provided."
     (lambda (suffix)
       (string-suffix-p suffix file t))
     projectile-globally-ignored-file-suffixes)))
-
-(defun projectile-check-pattern-p (file pattern)
-  "Check if FILE matches globbing PATTERN."
-  (or (string-suffix-p (directory-file-name pattern)
-                       (directory-file-name file))
-      (member file (file-expand-wildcards pattern t))))
-
-(defun projectile-ignored-rel-p (file directory patterns)
-  "Check if FILE should be ignored relative to DIRECTORY.
-PATTERNS should have the form: (ignored . unignored)"
-  (let ((default-directory directory))
-    (and (seq-some
-          (lambda (pat) (projectile-check-pattern-p file pat))
-          (car patterns))
-         (not (seq-some
-               (lambda (pat) (projectile-check-pattern-p file pat))
-               (cdr patterns))))))
 
 (defun projectile-ignored-files ()
   "Return list of ignored files.

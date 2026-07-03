@@ -651,4 +651,53 @@
               (expand-file-name "does-not-exist/"))
              :to-equal nil))))
 
+(describe "native/hybrid dirconfig parity"
+  ;; The acceptance test for the unified dirconfig matcher (#1941): the
+  ;; same .projectile must produce the same file set under native and
+  ;; hybrid indexing.
+  (it "produces the same file set for the same .projectile"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/src/"
+       "project/src/main.c"
+       "project/src/gen/"
+       "project/src/gen/out.c"
+       "project/vendor/"
+       "project/vendor/lib.js"
+       "project/docs/"
+       "project/docs/a.text"
+       "project/keep.text"
+       "project/README.md")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-*.text\n!keep.text\n-vendor/\n-src/gen/\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        ;; The external tool lists everything; hybrid's post-filtering
+        ;; must reduce it to what the native walker produces.
+        (spy-on 'projectile-files-via-ext-command :and-return-value
+                '(".projectile" "src/main.c" "src/gen/out.c" "vendor/lib.js"
+                  "docs/a.text" "keep.text" "README.md"))
+        (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
+        (spy-on 'projectile-git-deleted-files :and-return-value nil)
+        ;; The sandbox is not a real git repo, so the VCS-ignored file
+        ;; listings behind projectile-add-unignored must be stubbed too.
+        (spy-on 'projectile-get-repo-ignored-files :and-return-value nil)
+        (spy-on 'projectile-get-repo-ignored-directory :and-return-value nil)
+        (let* ((projectile-enable-caching nil)
+               (projectile-git-use-fd nil)
+               (projectile-fd-executable nil)
+               (native (let ((projectile-indexing-method 'native))
+                         (projectile-dir-files root)))
+               (hybrid (let ((projectile-indexing-method 'hybrid))
+                         (projectile-dir-files root))))
+          (expect (sort native #'string<) :to-equal (sort hybrid #'string<))
+          (expect native :to-contain "src/main.c")
+          (expect native :to-contain "README.md")
+          (expect native :to-contain "keep.text")
+          (expect native :not :to-contain "docs/a.text")
+          (expect native :not :to-contain "vendor/lib.js")
+          (expect native :not :to-contain "src/gen/out.c")))))))
+
 ;;; projectile-indexing-test.el ends here

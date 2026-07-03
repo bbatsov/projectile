@@ -682,18 +682,62 @@
   (it "returns an empty list when every pattern is a path"
     (expect (projectile-normalise-patterns '("/a" "/b")) :to-equal nil)))
 
-(describe "projectile-check-pattern-p"
-  (it "matches when the file equals the pattern"
-    (expect (projectile-check-pattern-p "src/foo.el" "src/foo.el") :to-be-truthy))
-  (it "matches when the pattern is a path suffix of the file"
-    (expect (projectile-check-pattern-p "a/b/c.el" "c.el") :to-be-truthy))
-  (it "matches on a plain string suffix, not just a path-segment boundary"
-    ;; The check is `string-suffix-p', so a pattern can match across a
-    ;; segment boundary - "bar" matches "foobar".  Locking this in so the
-    ;; loose behaviour isn't changed by accident.
-    (expect (projectile-check-pattern-p "foobar" "bar") :to-be-truthy)
-    (expect (projectile-check-pattern-p "src/abc.el" "c.el") :to-be-truthy))
-  (it "does not match an unrelated pattern"
-    (expect (projectile-check-pattern-p "a/b/c.el" "nomatch.zzz") :to-be nil)))
+(describe "projectile--dirconfig-pattern-to-regexp"
+  (cl-flet ((matches (pattern path)
+              (string-match-p (projectile--compile-dirconfig-patterns
+                               (list pattern))
+                              path)))
+    (it "matches a slashless glob against the file name anywhere"
+      (expect (matches "*.text" "foo.text") :to-be-truthy)
+      (expect (matches "*.text" "mysubdir/y.text") :to-be-truthy)
+      (expect (matches "*.text" "foo.text.bak") :not :to-be-truthy))
+    (it "matches a slashless name against any directory segment"
+      (expect (matches "vendor" "vendor/foo.js") :to-be-truthy)
+      (expect (matches "vendor" "a/vendor/foo.js") :to-be-truthy)
+      (expect (matches "vendor" "vendor") :to-be-truthy)
+      (expect (matches "vendor" "myvendor/foo.js") :not :to-be-truthy)
+      (expect (matches "vendor" "vendored/foo.js") :not :to-be-truthy))
+    (it "restricts trailing-slash patterns to directories"
+      (expect (matches "vendor/" "vendor/foo.js") :to-be-truthy)
+      (expect (matches "vendor/" "a/vendor/foo.js") :to-be-truthy)
+      (expect (matches "vendor/" "vendor") :not :to-be-truthy)
+      (expect (matches "lib/" "lib/foo.c") :to-be-truthy))
+    (it "anchors patterns containing a slash at the project root"
+      (expect (matches "src/*.c" "src/a.c") :to-be-truthy)
+      (expect (matches "src/*.c" "src/a/b.c") :not :to-be-truthy)
+      (expect (matches "src/*.c" "x/src/a.c") :not :to-be-truthy)
+      (expect (matches "build/output/" "build/output/x.o") :to-be-truthy)
+      (expect (matches "build/output/" "x/build/output/x.o") :not :to-be-truthy))
+    (it "treats a matched anchored name as a subtree"
+      (expect (matches "src/gen" "src/gen") :to-be-truthy)
+      (expect (matches "src/gen" "src/gen/deep/file.c") :to-be-truthy)
+      (expect (matches "src/gen" "src/gen.c") :not :to-be-truthy))
+    (it "stops `*' at slashes and lets `**' span them"
+      (expect (matches "src/*" "src/a.c") :to-be-truthy)
+      ;; `src/*' matches the directory src/a, and a matched directory
+      ;; covers its subtree - same as .gitignore.
+      (expect (matches "src/*" "src/a/b.c") :to-be-truthy)
+      (expect (matches "src/*.c" "src/a/b.c") :not :to-be-truthy)
+      (expect (matches "src/**" "src/a/b.c") :to-be-truthy)
+      (expect (matches "**/gen/*.c" "a/b/gen/x.c") :to-be-truthy)
+      (expect (matches "**/gen/*.c" "gen/x.c") :to-be-truthy))
+    (it "supports `?' and character classes"
+      (expect (matches "file?.c" "file1.c") :to-be-truthy)
+      (expect (matches "file?.c" "file10.c") :not :to-be-truthy)
+      (expect (matches "file[0-9].c" "file7.c") :to-be-truthy)
+      (expect (matches "file[!0-9].c" "filex.c") :to-be-truthy)
+      (expect (matches "file[!0-9].c" "file7.c") :not :to-be-truthy))
+    (it "quotes regexp metacharacters in literal parts"
+      (expect (matches "a+b.c" "a+b.c") :to-be-truthy)
+      (expect (matches "a+b.c" "aab.c") :not :to-be-truthy))))
+
+(describe "projectile--compile-dirconfig-patterns"
+  (it "returns nil for no patterns"
+    (expect (projectile--compile-dirconfig-patterns nil) :to-be nil))
+  (it "matches when any of several patterns matches"
+    (let ((re (projectile--compile-dirconfig-patterns '("*.o" "vendor/"))))
+      (expect (string-match-p re "x/y.o") :to-be-truthy)
+      (expect (string-match-p re "vendor/z.js") :to-be-truthy)
+      (expect (string-match-p re "src/main.c") :not :to-be-truthy))))
 
 ;;; projectile-ignore-test.el ends here

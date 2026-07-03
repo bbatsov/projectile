@@ -8,6 +8,9 @@
 
 ### Changes
 
+* [#1771](https://github.com/bbatsov/projectile/issues/1771), [#740](https://github.com/bbatsov/projectile/issues/740): Hybrid indexing now applies the dirconfig glob patterns (`-`/`!` entries without a leading slash); previously they were silently ignored under `hybrid` and only `/`-prefixed path entries took effect.
+* [#1941](https://github.com/bbatsov/projectile/issues/1941): Dirconfig glob patterns now follow `.gitignore`-like rules, identical under `native` and `hybrid` indexing: a slashless pattern matches the file name or any directory segment at any depth, a pattern containing a slash is anchored at the project root (prefix with `**/` to match anywhere), a trailing slash matches directories only, a matched directory covers its subtree, and `*` stops at `/` while `**` crosses it. Previously `native` matching was based on loose string suffixes (`-build` would also ignore `mybuild`) and per-directory glob expansion, which behaved differently from level to level.
+* Remove `projectile-check-pattern-p` and `projectile-ignored-rel-p`, the old pattern matchers superseded by the compiled dirconfig matcher (nothing referenced them anymore).
 * `projectile-verify-file` now goes through `projectile-file-exists-p`, so cold project-type detection benefits from the remote file-exists cache instead of issuing a TRAMP round-trip for every marker file probed.
 * The mode-line updater is only added to `window-configuration-change-hook` when `projectile-dynamic-mode-line` is enabled; change the option via Customize or `setopt` for it to apply immediately.
 * The `recentf` and `recently-active` sort orders no longer rescan the full project file list once per recent file, making them usable on very large projects.
