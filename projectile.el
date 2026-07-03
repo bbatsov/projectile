@@ -3696,17 +3696,23 @@ Parameters MODE VARIABLE VALUE are passed directly to
     ('modification-time (projectile-sort-by-modification-time files))
     ('access-time (projectile-sort-by-access-time files))))
 
+(defun projectile--sort-prioritized-first (prioritized files)
+  "Return FILES with the members of PRIORITIZED first, in order.
+Membership is tracked in a hash set, so the cost stays linear in
+the length of FILES."
+  (let ((seen (make-hash-table :test 'equal :size (length prioritized))))
+    (dolist (file prioritized)
+      (puthash file t seen))
+    (append prioritized
+            (seq-remove (lambda (file) (gethash file seen)) files))))
+
 (defun projectile-sort-by-recentf-first (files)
   "Sort FILES by a recent first scheme."
-  (let ((project-recentf-files (projectile-recentf-files)))
-    (append project-recentf-files
-            (seq-difference files project-recentf-files))))
+  (projectile--sort-prioritized-first (projectile-recentf-files) files))
 
 (defun projectile-sort-by-recently-active-first (files)
   "Sort FILES by most recently active buffers or opened files."
-  (let ((project-recently-active-files (projectile-recently-active-files)))
-    (append project-recently-active-files
-            (seq-difference files project-recently-active-files))))
+  (projectile--sort-prioritized-first (projectile-recently-active-files) files))
 
 (defun projectile-sort-by-modification-time (files)
   "Sort FILES by modification time."
