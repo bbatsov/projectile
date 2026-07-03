@@ -286,6 +286,18 @@ that stores into it as the async callback."
       (puthash "/proj/" 'fake-proc projectile--async-index-processes)
       (projectile-invalidate-cache nil)
       (expect 'delete-process :to-have-been-called-with 'fake-proc)
+      (expect (gethash "/proj/" projectile--async-index-processes) :to-be nil)))
+
+  (it "projectile-invalidate-cache-all cancels in-flight background indexes"
+    (let ((projectile-enable-caching 'transient)
+          (projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-projects-cache-time (make-hash-table :test 'equal)))
+      (spy-on 'projectile-known-projects :and-return-value '("/proj/"))
+      (spy-on 'process-live-p :and-return-value t)
+      (spy-on 'delete-process)
+      (puthash "/proj/" 'fake-proc projectile--async-index-processes)
+      (projectile-invalidate-cache-all)
+      (expect 'delete-process :to-have-been-called-with 'fake-proc)
       (expect (gethash "/proj/" projectile--async-index-processes) :to-be nil))))
 
 (describe "projectile--dir-files-alien-await"

@@ -1358,6 +1358,36 @@ A wrapper around `file-exists-p' with additional caching support."
 (defsubst projectile-persistent-cache-p ()
   (eq projectile-enable-caching 'persistent))
 
+(defun projectile--invalidate-project-cache (project-root)
+  "Drop all of Projectile's per-project caches for PROJECT-ROOT.
+
+Clears the project's entries in the file list, project type, VCS,
+dirconfig and git submodule caches, cancels any in-flight background
+index for the project, and, when persistent caching is enabled,
+deletes the project's on-disk cache file."
+  ;; reset the in-memory cache
+  (remhash project-root projectile-project-type-cache)
+  (remhash project-root projectile-project-vcs-cache)
+  (remhash project-root projectile-projects-cache)
+  (remhash project-root projectile-projects-cache-time)
+  (remhash project-root projectile--dirconfig-cache)
+  ;; Submodule listings are cached per directory - nested submodules
+  ;; get entries of their own - so drop every entry under the project.
+  (dolist (key (hash-table-keys projectile--git-submodules-cache))
+    (when (string-prefix-p project-root key)
+      (remhash key projectile--git-submodules-cache)))
+  ;; Cancel any in-flight background index for this project so its
+  ;; now-stale result can't repopulate the cache we just cleared.
+  (when-let* ((proc (gethash project-root projectile--async-index-processes)))
+    (when (process-live-p proc)
+      (delete-process proc))
+    (remhash project-root projectile--async-index-processes))
+  ;; reset the project's cache file
+  (when (projectile-persistent-cache-p)
+    (let ((cache-file (projectile-project-cache-file project-root)))
+      (when (file-exists-p cache-file)
+        (delete-file cache-file)))))
+
 ;;;###autoload
 (defun projectile-invalidate-cache (prompt)
   "Remove the current project's files from `projectile-projects-cache'.
@@ -1383,31 +1413,38 @@ argument)."
                   (completing-read "Remove cache for: "
                                    (hash-table-keys projectile-projects-cache))
                 (projectile-project-root))))
-    ;; reset the in-memory cache
-    (remhash project-root projectile-project-type-cache)
-    (remhash project-root projectile-project-vcs-cache)
-    (remhash project-root projectile-projects-cache)
-    (remhash project-root projectile-projects-cache-time)
-    (remhash project-root projectile--dirconfig-cache)
-    ;; Submodule listings are cached per directory - nested submodules
-    ;; get entries of their own - so drop every entry under the project.
-    (dolist (key (hash-table-keys projectile--git-submodules-cache))
-      (when (string-prefix-p project-root key)
-        (remhash key projectile--git-submodules-cache)))
-    ;; Cancel any in-flight background index for this project so its
-    ;; now-stale result can't repopulate the cache we just cleared.
-    (when-let* ((proc (gethash project-root projectile--async-index-processes)))
-      (when (process-live-p proc)
-        (delete-process proc))
-      (remhash project-root projectile--async-index-processes))
-    ;; reset the project's cache file
-    (when (projectile-persistent-cache-p)
-      (let ((cache-file (projectile-project-cache-file project-root)))
-        (when (file-exists-p cache-file)
-          (delete-file cache-file))))
+    (projectile--invalidate-project-cache project-root)
     (when projectile-verbose
       (message "Invalidated Projectile cache for %s."
                (propertize project-root 'face 'font-lock-keyword-face))))
+  (when (fboundp 'recentf-cleanup)
+    (recentf-cleanup)))
+
+;;;###autoload
+(defun projectile-invalidate-cache-all ()
+  "Invalidate the caches of every known project.
+
+Runs the same per-project invalidation as `projectile-invalidate-cache'
+over all projects in `projectile-known-projects' (plus any project that
+only has an entry in `projectile-projects-cache'), and also clears the
+global project root and file-existence caches.  When persistent caching
+is enabled the projects' on-disk cache files are deleted too.
+
+Remote (TRAMP) projects are skipped, as touching each one could mean a
+slow connection round-trip per project; invalidate those individually
+with `projectile-invalidate-cache'."
+  (interactive)
+  (setq projectile-project-root-cache (make-hash-table :test 'equal))
+  (clrhash projectile-file-exists-cache)
+  (let ((roots (seq-remove #'file-remote-p
+                           (delete-dups
+                            (append (projectile-known-projects)
+                                    (hash-table-keys projectile-projects-cache))))))
+    (dolist (project-root roots)
+      (projectile--invalidate-project-cache project-root))
+    (when projectile-verbose
+      (message "Invalidated the Projectile caches of %d project(s)."
+               (length roots))))
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
@@ -8373,6 +8410,7 @@ window or frame (file/buffer/project commands)."
          "--"
          ["Cache current file" projectile-cache-current-file]
          ["Invalidate cache" projectile-invalidate-cache]
+         ["Invalidate all project caches" projectile-invalidate-cache-all]
          ["Discard project root cache" projectile-discard-root-cache]
          "--"
          ["Toggle project wide read-only" projectile-toggle-project-read-only]

@@ -8,6 +8,7 @@
 * [#1442](https://github.com/bbatsov/projectile/pull/1442): `projectile-sort-order` can now be set to a function that receives the list of project files and returns them in the desired order.
 * [#1984](https://github.com/bbatsov/projectile/pull/1984): The VCS markers are now customizable via `projectile-vcs-markers`, whose order breaks ties between markers in the same directory - so colocated `jj`+`git` repositories can be detected as `jj` by moving `.jj` first.
 * [#1890](https://github.com/bbatsov/projectile/pull/1890): Recognize osc (openSUSE Build Service) checkouts: `.osc` is now a VCS marker, a top-down-recurring root marker, and globally ignored; file listing uses the generic indexing command.
+* [#1694](https://github.com/bbatsov/projectile/issues/1694): Add `projectile-invalidate-cache-all`, which invalidates the caches of all known projects at once (handy when commands like `projectile-find-file-in-known-projects` serve stale results).
 
 ### Changes
 

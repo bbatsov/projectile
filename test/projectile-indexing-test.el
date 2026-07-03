@@ -663,6 +663,77 @@
         (expect (gethash root projectile--git-submodules-cache) :to-be nil)
         (expect 'projectile-files-via-ext-command :not :to-have-been-called))))))
 
+(describe "projectile-invalidate-cache-all"
+  (it "clears the per-project caches of every known project"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.git/"
+       "projectB/.git/")
+      (let* ((root-a (file-truename (expand-file-name "projectA/")))
+             (root-b (file-truename (expand-file-name "projectB/")))
+             (roots (list root-a root-b))
+             (projectile-enable-caching 'transient)
+             (projectile-projects-cache (make-hash-table :test 'equal))
+             (projectile-projects-cache-time (make-hash-table :test 'equal))
+             (projectile-project-type-cache (make-hash-table :test 'equal))
+             (projectile--dirconfig-cache (make-hash-table :test 'equal))
+             (projectile-file-exists-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile-known-projects :and-return-value roots)
+        (spy-on 'recentf-cleanup)
+        (dolist (root roots)
+          (puthash root '("a.el") projectile-projects-cache)
+          (puthash root 0 projectile-projects-cache-time)
+          (puthash root 'generic projectile-project-type-cache)
+          (puthash root 'git projectile-project-vcs-cache)
+          (puthash root 'dirconfig projectile--dirconfig-cache)
+          ;; submodule entries are keyed per directory under the root
+          (puthash (expand-file-name "sub/" root) '("vendor/sub")
+                   projectile--git-submodules-cache))
+        (puthash "/some/file" (cons 'found (current-time))
+                 projectile-file-exists-cache)
+        (projectile-invalidate-cache-all)
+        (dolist (root roots)
+          (expect (gethash root projectile-projects-cache) :to-be nil)
+          (expect (gethash root projectile-projects-cache-time) :to-be nil)
+          (expect (gethash root projectile-project-type-cache) :to-be nil)
+          (expect (gethash root projectile-project-vcs-cache) :to-be nil)
+          (expect (gethash root projectile--dirconfig-cache) :to-be nil))
+        (expect (hash-table-count projectile--git-submodules-cache) :to-equal 0)
+        (expect (hash-table-count projectile-file-exists-cache) :to-equal 0)
+        (expect (hash-table-count projectile-project-root-cache) :to-equal 0)))))
+
+  (it "deletes existing on-disk cache files but doesn't create missing ones"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("projectA/.git/"
+       "projectB/.git/")
+      (let* ((root-a (file-truename (expand-file-name "projectA/")))
+             (root-b (file-truename (expand-file-name "projectB/")))
+             (projectile-enable-caching 'persistent)
+             (projectile-projects-cache (make-hash-table :test 'equal))
+             (projectile-projects-cache-time (make-hash-table :test 'equal))
+             (cache-a (projectile-project-cache-file root-a))
+             (cache-b (projectile-project-cache-file root-b)))
+        (spy-on 'projectile-known-projects
+                :and-return-value (list root-a root-b))
+        (spy-on 'recentf-cleanup)
+        (with-temp-file cache-a (insert "(\"a.el\")"))
+        (projectile-invalidate-cache-all)
+        (expect (file-exists-p cache-a) :to-be nil)
+        (expect (file-exists-p cache-b) :to-be nil)))))
+
+  (it "skips remote projects"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching 'persistent))
+      (spy-on 'projectile-known-projects
+              :and-return-value '("/ssh:example.com:/proj/" "/local/proj/"))
+      (spy-on 'projectile--invalidate-project-cache)
+      (spy-on 'recentf-cleanup)
+      (projectile-invalidate-cache-all)
+      (expect 'projectile--invalidate-project-cache :to-have-been-called-times 1)
+      (expect 'projectile--invalidate-project-cache
+              :to-have-been-called-with "/local/proj/"))))
+
 (describe "projectile-get-all-sub-projects-files"
   (it "returns relative paths to submodule files"
     (spy-on 'projectile-get-all-sub-projects :and-return-value '("/a/b/x/"))
