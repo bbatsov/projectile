@@ -6976,6 +6976,60 @@ Acts on the current project if not specified explicitly."
   (make-hash-table :test 'equal)
   "A mapping between projects and the last run command used on them.")
 
+(defconst projectile--lifecycle-phases
+  '((:name configure :prompt "Configure command: " :save-buffers t
+     :cmd-map projectile-configure-cmd-map
+     :dir-local-var projectile-project-configure-cmd
+     :default-fn projectile--expand-configure-command
+     :command-fn projectile-configure-command
+     :use-comint-var projectile-configure-use-comint-mode)
+    (:name compile :prompt "Compile command: " :save-buffers t
+     :cmd-map projectile-compilation-cmd-map
+     :dir-local-var projectile-project-compilation-cmd
+     :default-fn projectile-default-compilation-command
+     :command-fn projectile-compilation-command
+     :use-comint-var projectile-compile-use-comint-mode)
+    (:name test :prompt "Test command: " :save-buffers t
+     :cmd-map projectile-test-cmd-map
+     :dir-local-var projectile-project-test-cmd
+     :default-fn projectile-default-test-command
+     :command-fn projectile-test-command
+     :use-comint-var projectile-test-use-comint-mode)
+    (:name install :prompt "Install command: " :save-buffers t
+     :cmd-map projectile-install-cmd-map
+     :dir-local-var projectile-project-install-cmd
+     :default-fn projectile-default-install-command
+     :command-fn projectile-install-command
+     :use-comint-var projectile-install-use-comint-mode)
+    (:name package :prompt "Package command: " :save-buffers t
+     :cmd-map projectile-package-cmd-map
+     :dir-local-var projectile-project-package-cmd
+     :default-fn projectile-default-package-command
+     :command-fn projectile-package-command
+     :use-comint-var projectile-package-use-comint-mode)
+    (:name run :prompt "Run command: " :save-buffers nil
+     :cmd-map projectile-run-cmd-map
+     :dir-local-var projectile-project-run-cmd
+     :default-fn projectile-default-run-command
+     :command-fn projectile-run-command
+     :use-comint-var projectile-run-use-comint-mode))
+  "Descriptors for the project lifecycle phases.
+
+Each entry is a plist with the phase symbol (`:name', also used as the
+command type for the per-type command history), the variable caching
+the last command per project (`:cmd-map'), the .dir-locals.el override
+variable (`:dir-local-var'), a function of the project type returning
+the default command (`:default-fn'), the public command resolver
+\(`:command-fn'), the option making the output buffer interactive
+\(`:use-comint-var'), the prompt prefix (`:prompt') and whether to save
+the project's buffers before running the command (`:save-buffers').")
+
+(defun projectile--phase-descriptor (phase)
+  "Return the lifecycle descriptor for PHASE (a symbol like `compile')."
+  (or (seq-find (lambda (descriptor) (eq (plist-get descriptor :name) phase))
+                projectile--lifecycle-phases)
+      (error "Unknown project lifecycle phase `%s'" phase)))
+
 ;;;###autoload
 (defun projectile-discard-command-cache ()
   "Discard the cached lifecycle commands for the current project.
@@ -6990,15 +7044,11 @@ This only clears the cached commands, not the command history offered at
 the prompt.  See also `projectile-discard-root-cache'."
   (interactive)
   (let ((root (projectile-acquire-root)))
-    (dolist (command-map (list projectile-configure-cmd-map
-                               projectile-compilation-cmd-map
-                               projectile-install-cmd-map
-                               projectile-package-cmd-map
-                               projectile-test-cmd-map
-                               projectile-run-cmd-map))
-      (dolist (dir (hash-table-keys command-map))
-        (when (string-prefix-p root dir)
-          (remhash dir command-map))))
+    (dolist (descriptor projectile--lifecycle-phases)
+      (let ((command-map (symbol-value (plist-get descriptor :cmd-map))))
+        (dolist (dir (hash-table-keys command-map))
+          (when (string-prefix-p root dir)
+            (remhash dir command-map)))))
     ;; Give feedback when invoked interactively; stay quiet when used
     ;; programmatically (e.g. from `after-save-hook') unless verbose.
     (when (or projectile-verbose (called-interactively-p 'interactive))
@@ -7101,24 +7151,30 @@ be string to be executed as command."
   "Retrieve default run command for PROJECT-TYPE."
   (projectile-default-generic-command project-type 'run-command))
 
+(defun projectile--expand-configure-command (project-type)
+  "Default configure command for PROJECT-TYPE with the project root filled in.
+The command may contain a `%s' placeholder which is replaced with
+the project root."
+  (when-let* ((cmd-format-string (projectile-default-configure-command project-type)))
+    (format cmd-format-string (projectile-project-root))))
+
+(defun projectile--phase-command (phase compile-dir)
+  "Resolve the command to run for lifecycle PHASE in COMPILE-DIR.
+Checks the phase's command cache first, then its .dir-locals.el
+override variable and finally the default command for the current
+project type."
+  (let ((descriptor (projectile--phase-descriptor phase)))
+    (or (gethash compile-dir (symbol-value (plist-get descriptor :cmd-map)))
+        (symbol-value (plist-get descriptor :dir-local-var))
+        (funcall (plist-get descriptor :default-fn) (projectile-project-type)))))
+
 (defun projectile-configure-command (compile-dir)
   "Retrieve the configure command for COMPILE-DIR.
-
-The command is determined like this:
-
-- first we check `projectile-configure-cmd-map' for the last
-configure command that was invoked on the project
-
-- then we check for `projectile-project-configure-cmd' supplied
-via .dir-locals.el
-
-- finally we check for the default configure command for a
-project of that type"
-  (or (gethash compile-dir projectile-configure-cmd-map)
-      projectile-project-configure-cmd
-      (let ((cmd-format-string (projectile-default-configure-command (projectile-project-type))))
-        (when cmd-format-string
-          (format cmd-format-string (projectile-project-root))))))
+Checks `projectile-configure-cmd-map' for the last configure command
+that was invoked on the project, then `projectile-project-configure-cmd'
+supplied via .dir-locals.el and finally the default configure command
+for a project of that type."
+  (projectile--phase-command 'configure compile-dir))
 
 (defun projectile-compilation-buffer-name (compilation-mode)
   "Meant to be used for `compilation-buffer-name-function`.
@@ -7137,88 +7193,43 @@ window (including returning true if neither is in a project)."
 
 (defun projectile-compilation-command (compile-dir)
   "Retrieve the compilation command for COMPILE-DIR.
-
-The command is determined like this:
-
-- first we check `projectile-compilation-cmd-map' for the last
-compile command that was invoked on the project
-
-- then we check for `projectile-project-compilation-cmd' supplied
-via .dir-locals.el
-
-- finally we check for the default compilation command for a
-project of that type"
-  (or (gethash compile-dir projectile-compilation-cmd-map)
-      projectile-project-compilation-cmd
-      (projectile-default-compilation-command (projectile-project-type))))
+Checks `projectile-compilation-cmd-map' for the last compile command
+that was invoked on the project, then `projectile-project-compilation-cmd'
+supplied via .dir-locals.el and finally the default compilation command
+for a project of that type."
+  (projectile--phase-command 'compile compile-dir))
 
 (defun projectile-test-command (compile-dir)
   "Retrieve the test command for COMPILE-DIR.
-
-The command is determined like this:
-
-- first we check `projectile-test-cmd-map' for the last
-test command that was invoked on the project
-
-- then we check for `projectile-project-test-cmd' supplied
-via .dir-locals.el
-
-- finally we check for the default test command for a
-project of that type"
-  (or (gethash compile-dir projectile-test-cmd-map)
-      projectile-project-test-cmd
-      (projectile-default-test-command (projectile-project-type))))
+Checks `projectile-test-cmd-map' for the last test command that was
+invoked on the project, then `projectile-project-test-cmd' supplied
+via .dir-locals.el and finally the default test command for a project
+of that type."
+  (projectile--phase-command 'test compile-dir))
 
 (defun projectile-install-command (compile-dir)
   "Retrieve the install command for COMPILE-DIR.
-
-The command is determined like this:
-
-- first we check `projectile-install-cmd-map' for the last
-install command that was invoked on the project
-
-- then we check for `projectile-project-install-cmd' supplied
-via .dir-locals.el
-
-- finally we check for the default install command for a
-project of that type"
-  (or (gethash compile-dir projectile-install-cmd-map)
-      projectile-project-install-cmd
-      (projectile-default-install-command (projectile-project-type))))
+Checks `projectile-install-cmd-map' for the last install command that
+was invoked on the project, then `projectile-project-install-cmd'
+supplied via .dir-locals.el and finally the default install command
+for a project of that type."
+  (projectile--phase-command 'install compile-dir))
 
 (defun projectile-package-command (compile-dir)
   "Retrieve the package command for COMPILE-DIR.
-
-The command is determined like this:
-
-- first we check `projectile-package-cmd-map' for the last
-install command that was invoked on the project
-
-- then we check for `projectile-project-package-cmd' supplied
-via .dir-locals.el
-
-- finally we check for the default package command for a
-project of that type"
-  (or (gethash compile-dir projectile-package-cmd-map)
-      projectile-project-package-cmd
-      (projectile-default-package-command (projectile-project-type))))
+Checks `projectile-package-cmd-map' for the last package command that
+was invoked on the project, then `projectile-project-package-cmd'
+supplied via .dir-locals.el and finally the default package command
+for a project of that type."
+  (projectile--phase-command 'package compile-dir))
 
 (defun projectile-run-command (compile-dir)
   "Retrieve the run command for COMPILE-DIR.
-
-The command is determined like this:
-
-- first we check `projectile-run-cmd-map' for the last
-run command that was invoked on the project
-
-- then we check for `projectile-project-run-cmd' supplied
-via .dir-locals.el
-
-- finally we check for the default run command for a
-project of that type"
-  (or (gethash compile-dir projectile-run-cmd-map)
-      projectile-project-run-cmd
-      (projectile-default-run-command (projectile-project-type))))
+Checks `projectile-run-cmd-map' for the last run command that was
+invoked on the project, then `projectile-project-run-cmd' supplied
+via .dir-locals.el and finally the default run command for a project
+of that type."
+  (projectile--phase-command 'run compile-dir))
 
 (defun projectile-read-command (prompt command &optional command-type)
   "Adapted from the function `compilation-read-command'.
@@ -7414,6 +7425,23 @@ The command actually run is returned."
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
+(defun projectile--run-lifecycle-phase (phase show-prompt)
+  "Run the current project's command for lifecycle PHASE.
+PHASE is a symbol naming an entry of `projectile--lifecycle-phases'.
+With SHOW-PROMPT non-nil force prompting for the command, as in
+`projectile--run-project-cmd'."
+  (let* ((descriptor (projectile--phase-descriptor phase))
+         (command (funcall (plist-get descriptor :command-fn)
+                           (projectile-compilation-dir)))
+         (command-map (if (projectile--cache-project-commands-p)
+                          (symbol-value (plist-get descriptor :cmd-map)))))
+    (projectile--run-project-cmd command command-map
+                                 :command-type phase
+                                 :show-prompt show-prompt
+                                 :prompt-prefix (plist-get descriptor :prompt)
+                                 :save-buffers (plist-get descriptor :save-buffers)
+                                 :use-comint-mode (symbol-value (plist-get descriptor :use-comint-var)))))
+
 ;;;###autoload
 (defun projectile-configure-project (arg)
   "Run project configure command.
@@ -7422,14 +7450,7 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-configure-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-configure-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :command-type 'configure
-                                 :show-prompt arg
-                                 :prompt-prefix "Configure command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-configure-use-comint-mode)))
+  (projectile--run-lifecycle-phase 'configure arg))
 
 ;;;###autoload
 (defun projectile-compile-project (arg)
@@ -7440,14 +7461,7 @@ variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG.  Per project default command can be set through
 `projectile-project-compilation-cmd'."
   (interactive "P")
-  (let ((command (projectile-compilation-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :command-type 'compile
-                                 :show-prompt arg
-                                 :prompt-prefix "Compile command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-compile-use-comint-mode)))
+  (projectile--run-lifecycle-phase 'compile arg))
 
 ;;;###autoload
 (defun projectile-test-project (arg)
@@ -7457,14 +7471,7 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-test-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :command-type 'test
-                                 :show-prompt arg
-                                 :prompt-prefix "Test command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-test-use-comint-mode)))
+  (projectile--run-lifecycle-phase 'test arg))
 
 ;;;###autoload
 (defun projectile-compile-subproject (arg)
@@ -7522,14 +7529,7 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-install-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-install-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :command-type 'install
-                                 :show-prompt arg
-                                 :prompt-prefix "Install command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-install-use-comint-mode)))
+  (projectile--run-lifecycle-phase 'install arg))
 
 ;;;###autoload
 (defun projectile-package-project (arg)
@@ -7539,14 +7539,7 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-package-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-package-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :command-type 'package
-                                 :show-prompt arg
-                                 :prompt-prefix "Package command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-package-use-comint-mode)))
+  (projectile--run-lifecycle-phase 'package arg))
 
 ;;;###autoload
 (defun projectile-run-project (arg)
@@ -7556,13 +7549,7 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let ((command (projectile-run-command (projectile-compilation-dir)))
-        (command-map (if (projectile--cache-project-commands-p) projectile-run-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :command-type 'run
-                                 :show-prompt arg
-                                 :prompt-prefix "Run command: "
-                                 :use-comint-mode projectile-run-use-comint-mode)))
+  (projectile--run-lifecycle-phase 'run arg))
 
 ;;;###autoload
 (defun projectile-repeat-last-command (show-prompt)
