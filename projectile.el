@@ -969,9 +969,21 @@ is non-nil."
   :type 'string
   :package-version '(projectile . "2.8.0"))
 
-(defcustom projectile-git-submodule-command "git submodule --quiet foreach 'echo $displaypath' | tr '\\n' '\\0'"
+(defconst projectile--default-git-submodule-command
+  "git submodule --quiet foreach 'echo $displaypath' | tr '\\n' '\\0'"
+  "Default value of `projectile-git-submodule-command'.
+When the variable still has this value the command is never actually
+run; the submodules are listed by invoking git directly instead (see
+`projectile--git-submodule-paths').")
+
+(defcustom projectile-git-submodule-command projectile--default-git-submodule-command
   "Command used by projectile to list submodules of a given git repository.
-Set to nil to disable listing submodules contents."
+Set to nil to disable listing submodules contents.
+
+The default listing no longer shells out: when this variable has its
+default value the submodules are listed by running git directly, with
+no shell involved (see issue #1600).  Customizing the variable switches
+back to running it as a shell command."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.12.0"))
@@ -2303,25 +2315,60 @@ they are excluded from the results of this function."
        (string-match-p project-child-folder-regex submodule))
      submodules)))
 
+(defun projectile--git-submodule-paths (gitmodules-dir)
+  "List the populated submodule paths of the Git repo at GITMODULES-DIR.
+Reads `.gitmodules' with `git config' run via `process-file' - no shell
+is involved, so the listing works regardless of the local shell (the
+old shell-out relied on Unix single quotes and `tr', which broke on
+Windows - see issue #1600) and still goes through TRAMP for remote
+projects.  Submodules that are registered but not checked out (no
+`.git' in their directory) are omitted, matching what `git submodule
+foreach' used to report.  The returned paths are relative to
+GITMODULES-DIR."
+  (let ((default-directory gitmodules-dir)
+        paths)
+    (with-temp-buffer
+      (process-file "git" nil '(t nil) nil
+                    "config" "-z" "--file" ".gitmodules"
+                    "--get-regexp" "\\.path$")
+      ;; Each NUL-separated record is "submodule.<name>.path\n<value>";
+      ;; git has already unquoted the value for us.
+      (dolist (record (split-string (buffer-string) "\0" t))
+        (when-let* ((separator (string-search "\n" record)))
+          (let ((path (substring record (1+ separator))))
+            (when (file-exists-p
+                   (expand-file-name ".git"
+                                     (expand-file-name path gitmodules-dir)))
+              (push path paths))))))
+    (nreverse paths)))
+
 (defun projectile--git-submodules (path)
   "Return the raw submodule listing for the Git repo containing PATH.
-The result is a list of submodule paths relative to PATH, as
-reported by `projectile-git-submodule-command'.
+The result is a list of submodule paths relative to PATH.
 
-For Git projects without a `.gitmodules' file there is nothing for
-`git submodule foreach' to find, so the shell-out is skipped
-altogether.  PATH may be inside a Git repo without being its toplevel
-\(e.g. a subproject of an outer repo) so `.gitmodules' is looked up
-along the parent chain rather than just at PATH itself.
+With `projectile-git-submodule-command' at its default value the
+listing is produced without a shell by `projectile--git-submodule-paths'
+\(see issue #1600); when the variable is customized it is honored as a
+shell command, and when nil submodules are disabled.
+
+For Git projects without a `.gitmodules' file there are no submodules
+to find, so the listing is skipped altogether.  PATH may be inside a
+Git repo without being its toplevel \(e.g. a subproject of an outer
+repo) so `.gitmodules' is looked up at the toplevel of the repo
+containing PATH - the nearest parent with a `.git' entry - which is
+where git itself resolves it.  Stopping at the repo boundary also
+means a populated submodule doesn't pick up its superproject's
+`.gitmodules'.
 
 Alien/hybrid indexing calls this on every file listing, so the result
 is cached in `projectile--git-submodules-cache' and recomputed only
 when `.gitmodules' changes on disk - a stat is far cheaper than the
-shell-out (see issue #1953).  `projectile-invalidate-cache' also
+listing (see issue #1953).  `projectile-invalidate-cache' also
 drops the cached listing."
-  (when-let* ((gitmodules-dir (locate-dominating-file path ".gitmodules")))
-    (let* ((gitmodules (expand-file-name ".gitmodules" gitmodules-dir))
-           (mtime (file-attribute-modification-time
+  (when-let* ((gitmodules-dir (locate-dominating-file path ".git"))
+              (gitmodules (expand-file-name ".gitmodules" gitmodules-dir))
+              (_ (file-exists-p gitmodules)))
+    (let* ((mtime (file-attribute-modification-time
                    (file-attributes gitmodules)))
            (command (projectile-get-sub-projects-command 'git))
            (cached (gethash path projectile--git-submodules-cache)))
@@ -2330,7 +2377,26 @@ drops the cached listing."
                (equal (nth 1 cached) mtime)
                (equal (nth 2 cached) command))
           (nth 3 cached)
-        (let ((submodules (projectile-files-via-ext-command path command)))
+        (let ((submodules
+               (cond
+                ;; nil disables submodule listing altogether.
+                ((null command) nil)
+                ;; The stock command is never actually run: list the
+                ;; submodules shell-free instead (issue #1600).
+                ((equal command projectile--default-git-submodule-command)
+                 (let ((dir (file-name-as-directory
+                             (expand-file-name gitmodules-dir)))
+                       (paths (projectile--git-submodule-paths gitmodules-dir)))
+                   (if (equal dir (file-name-as-directory (expand-file-name path)))
+                       paths
+                     ;; PATH is below the `.gitmodules' dir: rebase the
+                     ;; listing so it stays relative to PATH.
+                     (mapcar (lambda (submodule)
+                               (file-relative-name
+                                (expand-file-name submodule dir) path))
+                             paths))))
+                ;; A customized command is still run through the shell.
+                (t (projectile-files-via-ext-command path command)))))
           (puthash path (list gitmodules mtime command submodules)
                    projectile--git-submodules-cache)
           submodules)))))

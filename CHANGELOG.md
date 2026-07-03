@@ -27,6 +27,7 @@
 * [#1677](https://github.com/bbatsov/projectile/issues/1677): `projectile-replace` and `projectile-replace-regexp` now scan buffers that already visit a project file from the beginning, so matches before point in those buffers are no longer missed.
 * [#1849](https://github.com/bbatsov/projectile/issues/1849): `projectile-skel-dir-locals` now exits its variable-entry loop on an empty variable name, keeping the entries made so far, instead of trapping the user in the prompt and discarding input on `C-g`.
 * CMake preset files referenced via `include` are now resolved relative to the file that includes them; previously the top-level `CMakePresets.json`'s includes resolved against `default-directory`, silently dropping the included presets when the current buffer was outside the project root.
+* [#1600](https://github.com/bbatsov/projectile/issues/1600): The default git submodule listing no longer depends on a Unix shell (single quotes, `tr`), fixing alien/hybrid indexing of projects with submodules on Windows.
 
 ## 3.0.0 (2026-07-01)
 

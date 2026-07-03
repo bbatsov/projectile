@@ -598,9 +598,9 @@
        "project/web-ui/vendor/client-submodule/"
        "project/server/vendor/server-submodule/")
       (let ((project (file-truename (expand-file-name "project/web-ui"))))
-        (spy-on 'projectile-files-via-ext-command :and-call-fake
-                (lambda (dir vcs)
-                  (when (string= dir project)
+        (spy-on 'projectile--git-submodules :and-call-fake
+                (lambda (path)
+                  (when (string= path project)
                     '("vendor/client-submodule"
                       "../server/vendor/server-submodule"))))
         (spy-on 'projectile-project-root :and-return-value project)
@@ -609,24 +609,24 @@
                 (list (expand-file-name "vendor/client-submodule/" project))))))))
 
 (describe "projectile--git-submodules"
-  (it "shells out only once for repeated listings"
+  (it "computes the listing only once for repeated calls"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
       (let ((root (file-truename (expand-file-name "project/"))))
-        (spy-on 'projectile-files-via-ext-command
+        (spy-on 'projectile--git-submodule-paths
                 :and-return-value '("vendor/sub"))
         (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
         (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
-        (expect 'projectile-files-via-ext-command :to-have-been-called-times 1)))))
+        (expect 'projectile--git-submodule-paths :to-have-been-called-times 1)))))
   (it "recomputes the listing when .gitmodules changes"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
       (let ((root (file-truename (expand-file-name "project/"))))
-        (spy-on 'projectile-files-via-ext-command
+        (spy-on 'projectile--git-submodule-paths
                 :and-return-value '("vendor/sub"))
         (projectile--git-submodules root)
         ;; Force a distinct mtime — file-attribute-modification-time has
@@ -634,14 +634,14 @@
         (set-file-times (expand-file-name ".gitmodules" root)
                         (time-add (current-time) 5))
         (projectile--git-submodules root)
-        (expect 'projectile-files-via-ext-command :to-have-been-called-times 2)))))
+        (expect 'projectile--git-submodule-paths :to-have-been-called-times 2)))))
   (it "is cleared for the project by projectile-invalidate-cache"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
       (let ((root (file-truename (expand-file-name "project/"))))
-        (spy-on 'projectile-files-via-ext-command
+        (spy-on 'projectile--git-submodule-paths
                 :and-return-value '("vendor/sub"))
         (spy-on 'projectile-project-root :and-return-value root)
         ;; Avoid touching the on-disk cache file or recentf during the test.
@@ -652,15 +652,73 @@
         (projectile-invalidate-cache nil)
         (expect (gethash root projectile--git-submodules-cache) :to-be nil)
         (projectile--git-submodules root)
-        (expect 'projectile-files-via-ext-command :to-have-been-called-times 2)))))
-  (it "skips the shell-out entirely when there is no .gitmodules"
+        (expect 'projectile--git-submodule-paths :to-have-been-called-times 2)))))
+  (it "skips the listing entirely when there is no .gitmodules"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.git/")
       (let ((root (file-truename (expand-file-name "project/"))))
+        (spy-on 'projectile--git-submodule-paths)
         (spy-on 'projectile-files-via-ext-command)
         (expect (projectile--git-submodules root) :to-be nil)
         (expect (gethash root projectile--git-submodules-cache) :to-be nil)
+        (expect 'projectile--git-submodule-paths :not :to-have-been-called)
+        (expect 'projectile-files-via-ext-command :not :to-have-been-called)))))
+  (it "lists submodules with the default command without shelling out"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/vendor/sub/.git")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".gitmodules" root)
+          (insert "[submodule \"sub\"]\n"
+                  "\tpath = vendor/sub\n"
+                  "\turl = https://example.com/sub.git\n"))
+        (spy-on 'projectile-files-via-ext-command)
+        (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
+        (expect 'projectile-files-via-ext-command :not :to-have-been-called)))))
+  (it "rebases the listing when PATH is below the .gitmodules dir"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/web-ui/"
+       "project/web-ui/vendor/sub/.git"
+       "project/server/vendor/other/.git")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".gitmodules" root)
+          (insert "[submodule \"sub\"]\n"
+                  "\tpath = web-ui/vendor/sub\n"
+                  "\turl = https://example.com/sub.git\n"
+                  "[submodule \"other\"]\n"
+                  "\tpath = server/vendor/other\n"
+                  "\turl = https://example.com/other.git\n"))
+        (expect (projectile--git-submodules (expand-file-name "web-ui" root))
+                :to-equal '("vendor/sub" "../server/vendor/other"))))))
+  (it "honors a customized command as a shell command"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/.gitmodules")
+      (let ((root (file-truename (expand-file-name "project/")))
+            (projectile-git-submodule-command "git my-submodule-lister"))
+        (spy-on 'projectile-files-via-ext-command
+                :and-return-value '("vendor/sub"))
+        (spy-on 'projectile--git-submodule-paths)
+        (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
+        (expect 'projectile-files-via-ext-command
+                :to-have-been-called-with root "git my-submodule-lister")
+        (expect 'projectile--git-submodule-paths :not :to-have-been-called)))))
+  (it "returns nil when projectile-git-submodule-command is nil"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/.gitmodules")
+      (let ((root (file-truename (expand-file-name "project/")))
+            (projectile-git-submodule-command nil))
+        (spy-on 'projectile--git-submodule-paths)
+        (spy-on 'projectile-files-via-ext-command)
+        (expect (projectile--git-submodules root) :to-be nil)
+        (expect 'projectile--git-submodule-paths :not :to-have-been-called)
         (expect 'projectile-files-via-ext-command :not :to-have-been-called))))))
 
 (describe "projectile-invalidate-cache-all"
@@ -733,6 +791,38 @@
       (expect 'projectile--invalidate-project-cache :to-have-been-called-times 1)
       (expect 'projectile--invalidate-project-cache
               :to-have-been-called-with "/local/proj/"))))
+
+(describe "projectile--git-submodule-paths"
+  (it "parses .gitmodules with git and keeps only populated submodules"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       ;; Populated submodules have a .git entry (a gitfile in practice).
+       "project/vendor/first/.git"
+       "project/dir with spaces/.git"
+       ;; Registered but never initialized: no .git inside.
+       "project/vendor/uninitialized/")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (with-temp-file (expand-file-name ".gitmodules" root)
+          (insert "# top-level comment\n"
+                  "[submodule \"first\"]\n"
+                  "\tpath = vendor/first\n"
+                  "\turl = https://example.com/first.git\n"
+                  "[submodule \"spaced\"]\n"
+                  "\tpath = \"dir with spaces\"\n"
+                  "\turl = https://example.com/spaced.git\n"
+                  "[submodule \"uninitialized\"]\n"
+                  "\tpath = vendor/uninitialized\n"
+                  "\turl = https://example.com/uninit.git\n"))
+        (expect (projectile--git-submodule-paths root)
+                :to-equal '("vendor/first" "dir with spaces"))))))
+  (it "returns nil for a .gitmodules without path entries"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/.git/"
+       "project/.gitmodules")
+      (let ((root (file-truename (expand-file-name "project/"))))
+        (expect (projectile--git-submodule-paths root) :to-be nil))))))
 
 (describe "projectile-get-all-sub-projects-files"
   (it "returns relative paths to submodule files"
