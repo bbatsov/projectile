@@ -4890,7 +4890,7 @@ it acts on the current project."
   "Check whether FILE exists in the current project.
 When DIR is specified it checks DIR's project, otherwise
 it acts on the current project."
-  (file-exists-p (projectile-expand-root file dir)))
+  (projectile-file-exists-p (projectile-expand-root file dir)))
 
 (defun projectile-verify-file-wildcard (file &optional dir)
   "Check whether FILE exists in the current project.

@@ -2,6 +2,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+* `projectile-verify-file` now goes through `projectile-file-exists-p`, so cold project-type detection benefits from the remote file-exists cache instead of issuing a TRAMP round-trip for every marker file probed.
+
 ## 3.0.0 (2026-07-01)
 
 ### Changes
