@@ -143,7 +143,8 @@ default on all operating systems, except Windows."
   :type '(radio
           (const :tag "Native" native)
           (const :tag "Hybrid" hybrid)
-          (const :tag "Alien" alien)))
+          (const :tag "Alien" alien))
+  :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
   "When t enables project files caching.
@@ -158,7 +159,8 @@ using the native indexing method."
   :type '(radio
           (const :tag "Disabled" nil)
           (const :tag "Transient" t)
-          (const :tag "Persistent" persistent)))
+          (const :tag "Persistent" persistent))
+  :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-async-indexing t
   "Whether to index projects without freezing Emacs.
@@ -220,7 +222,8 @@ be killed."
                           (cons :tag "Derived mode" (const derived-mode) symbol)
                           (cons :tag "Negation" (const not) sexp)
                           (cons :tag "Conjunction" (const and) sexp)
-                          (cons :tag "Disjunction" (const or) sexp)))))
+                          (cons :tag "Disjunction" (const or) sexp))))
+  :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-file-exists-local-cache-expire nil
   "Number of seconds before the local file existence cache expires.
@@ -230,7 +233,8 @@ A value of nil disables this cache.
 See `projectile-file-exists-p' for details."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds")))
+                 (integer :tag "Seconds"))
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-file-exists-remote-cache-expire (* 5 60)
   "Number of seconds before the remote file existence cache expires.
@@ -240,7 +244,8 @@ A value of nil disables this cache.
 See `projectile-file-exists-p' for details."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds")))
+                 (integer :tag "Seconds"))
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-files-cache-expire nil
   "Number of seconds before project files list cache expires.
@@ -248,7 +253,8 @@ See `projectile-file-exists-p' for details."
 A value of nil means the cache never expires."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds")))
+                 (integer :tag "Seconds"))
+  :package-version '(projectile . "1.0.0"))
 
 (defcustom projectile-auto-discover nil
   "Whether to discover projects when project switching commands are invoked.
@@ -269,7 +275,8 @@ See also `projectile-cleanup-known-projects'."
 (defcustom projectile-auto-update-cache t
   "Whether cache is automatically updated when files are opened or deleted."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
@@ -280,7 +287,8 @@ When nil Projectile will consider the current directory the project root."
   :group 'projectile
   :type '(choice (const :tag "No" nil)
                  (const :tag "Yes" t)
-                 (const :tag "Prompt for project" prompt)))
+                 (const :tag "Prompt for project" prompt))
+  :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-completion-system 'default
   "The completion system to be used by Projectile.
@@ -300,20 +308,23 @@ of those legacy values now behaves like `default'."
 (defcustom projectile-keymap-prefix nil
   "Projectile keymap prefix."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.7"))
 
 (defcustom projectile-cache-file  ".projectile-cache.eld"
   "The name of Projectile's cache.
 It's relative to the project root."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-tags-file-name "TAGS"
   "The name of the tags file Projectile excludes from indexing.
 Listed in `projectile-globally-ignored-files' so a generated tags
 file doesn't show up among the project files."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files.
@@ -326,12 +337,14 @@ is set to `alien'."
           (const :tag "Recently opened files" recentf)
           (const :tag "Recently active buffers, then recently opened files" recently-active)
           (const :tag "Access time (atime)" access-time)
-          (const :tag "Modification time (mtime)" modification-time)))
+          (const :tag "Modification time (mtime)" modification-time))
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-verbose t
   "Echo messages that are not errors."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-buffers-filter-function nil
   "A function used to filter the buffers in `projectile-project-buffers'.
@@ -341,7 +354,8 @@ Two example filter functions are shipped by default -
 `projectile-buffers-with-file' and
 `projectile-buffers-with-file-or-process'."
   :group 'projectile
-  :type 'function)
+  :type 'function
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-project-name nil
   "If this value is non-nil, it will be used as project name.
@@ -375,7 +389,8 @@ used."
 The topmost match has precedence.
 See `projectile-register-project-type'."
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-project-root-files-bottom-up
   '(".git"        ; Git VCS root dir
@@ -400,7 +415,8 @@ subproject to win instead, drop a `.projectile' file in it;
 `projectile-root-marked' runs before `projectile-root-bottom-up', so
 the marked subproject takes precedence over the outer VC root."
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-project-root-files-top-down-recurring
   '(".svn" ; Svn VCS root dir
@@ -412,7 +428,8 @@ that contains a match file but its parent does not.  Thus, it's a
 bottommost match in the topmost sequence of directories
 containing a root file."
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-project-root-functions
   '(projectile-root-local
@@ -425,7 +442,8 @@ The functions will be run until one of them returns a project folder.
 Reordering the default functions will alter the project discovery
 algorithm."
   :group 'projectile
-  :type '(repeat function))
+  :type '(repeat function)
+  :package-version '(projectile . "2.4.0"))
 
 (defcustom projectile-dirconfig-file
   ".projectile"
@@ -481,7 +499,8 @@ Note that files aren't filtered if `projectile-indexing-method'
 is set to `alien'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-globally-unignored-files nil
   "A list of files globally unignored by projectile.
@@ -498,7 +517,8 @@ is set to `alien'."
 Note that files aren't filtered if `projectile-indexing-method'
 is set to `alien'."
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-globally-ignored-directories
   '(".idea"
@@ -538,7 +558,8 @@ is set to `alien'.
 See also `projectile-global-ignore-file-patterns'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-globally-unignored-directories nil
   "A list of directories globally unignored by projectile.
@@ -575,7 +596,8 @@ is set to `alien'."
 If a buffer is using a given major mode, projectile will ignore
 it for functions working with buffers."
   :group 'projectile
-  :type '(repeat string))
+  :type '(repeat string)
+  :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-globally-ignored-buffers
   '("*scratch*"
@@ -592,19 +614,22 @@ functions working with buffers."
 (defcustom projectile-find-file-hook nil
   "Hooks run when a file is opened with `projectile-find-file'."
   :group 'projectile
-  :type 'hook)
+  :type 'hook
+  :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-find-dir-hook nil
   "Hooks run when a directory is opened with `projectile-find-dir'."
   :group 'projectile
-  :type 'hook)
+  :type 'hook
+  :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-switch-project-action 'projectile-find-file
   "Action invoked after switching projects with `projectile-switch-project'.
 
 Any function that does not take arguments will do."
   :group 'projectile
-  :type 'function)
+  :type 'function
+  :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-switch-project-other-window-action 'projectile-find-file-other-window
   "Action run by `projectile-switch-project-other-window' after switching.
@@ -627,12 +652,14 @@ Any function that does not take arguments will do."
 (defcustom projectile-find-dir-includes-top-level nil
   "If true, add top-level dir to options offered by `projectile-find-dir'."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-use-git-grep nil
   "If true, use `vc-git-grep' in git projects."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-search-backend 'auto
   "The backend `projectile-search' uses to search the project.
@@ -678,17 +705,20 @@ to pick the first available backend, or `prompt' to be asked each time."
 (defcustom projectile-test-prefix-function 'projectile-test-prefix
   "Function to find test files prefix based on PROJECT-TYPE."
   :group 'projectile
-  :type 'function)
+  :type 'function
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-test-suffix-function 'projectile-test-suffix
   "Function to find test files suffix based on PROJECT-TYPE."
   :group 'projectile
-  :type 'function)
+  :type 'function
+  :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-related-files-fn-function 'projectile-related-files-fn
   "Function to find related files based on PROJECT-TYPE."
   :group 'projectile
-  :type 'function)
+  :type 'function
+  :package-version '(projectile . "2.1.0"))
 
 (defcustom projectile-dynamic-mode-line t
   "If true, update the mode-line dynamically.
@@ -724,7 +754,8 @@ See also `projectile-update-mode-line'."
 It's used as a fallback in the case the property is not set for a project
 type when `projectile-toggle-between-implementation-and-test' is used."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.6.0"))
 
 (defcustom projectile-default-test-directory "test/"
   "The default value of a project's test-dir property.
@@ -732,7 +763,8 @@ type when `projectile-toggle-between-implementation-and-test' is used."
 It's used as a fallback in the case the property is not set for a project
 type when `projectile-toggle-between-implementation-and-test' is used."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.6.0"))
 
 (defvar projectile-projects-cache (make-hash-table :test 'equal)
   "A hashmap used to cache project file names to speed up related operations.")
@@ -808,7 +840,8 @@ synchronized with `projectile-known-projects-file'.")
                     user-emacs-directory)
   "Name and location of the Projectile's known projects file."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-ignored-projects nil
   "A list of projects not to be added to `projectile-known-projects'."
@@ -868,6 +901,7 @@ Note: this variable holds the locally-detected executable.  For
 projects on a TRAMP host fd is detected separately on the remote (and
 cached per host), since whatever is on the local box may not exist on
 the remote.  See `projectile-fd-executable-for'."
+  :group 'projectile
   :type 'string
   :package-version '(projectile . "2.8.0"))
 
@@ -910,13 +944,15 @@ This may change Projectile's performance in large Git repositories
 depending on your system, but it will also work around the Git behavior
 that causes deleted files to still be shown in Projectile listings until
 their deletions are staged."
+  :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.8.0"))
 
 (defcustom projectile-git-command "git ls-files -zco --exclude-standard"
   "Command used by projectile to get the files in a git project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-git-fd-args "-H -0 -E .git -tf --strip-cwd-prefix -c never"
   "Arguments to fd used to re-implement `git ls-files'.
@@ -930,7 +966,8 @@ is non-nil."
   "Command used by projectile to list submodules of a given git repository.
 Set to nil to disable listing submodules contents."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-git-ignored-command "git ls-files -zcoi --exclude-standard"
   "Command used by projectile to get the ignored files in a git project."
@@ -941,7 +978,8 @@ Set to nil to disable listing submodules contents."
 (defcustom projectile-hg-command "hg locate -f -0 -I ."
   "Command used by projectile to get the files in a hg project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-hg-ignored-command "hg status -in0 ."
   "Command used by projectile to get the ignored files in a hg project."
@@ -967,22 +1005,26 @@ Set to nil to disable listing submodules contents."
                                              "tr '\\n' '\\0'")
   "Command used by projectile to get the files in a fossil project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.2"))
 
 (defcustom projectile-bzr-command "bzr ls -R --versioned -0"
   "Command used by projectile to get the files in a bazaar project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-darcs-command "darcs show files -0 . "
   "Command used by projectile to get the files in a darcs project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-pijul-command "pijul list | tr '\\n' '\\0'"
    "Command used by projectile to get the files in a pijul project."
    :group 'projectile
-   :type 'string)
+   :type 'string
+  :package-version '(projectile . "2.6.0"))
 
 (defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
   "Command used by projectile to get the files in a svn project.
@@ -994,7 +1036,8 @@ once interactively and letting it store them), otherwise the command
 fails with an authentication error.  See URL
 `https://github.com/bbatsov/projectile/issues/1638'."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-svn-ignored-command "svn status --no-ignore | grep '^I' | cut -c9- | tr '\\n' '\\0'"
   "Command used by projectile to get the ignored files in a svn project."
@@ -1013,7 +1056,8 @@ fails with an authentication error.  See URL
    (t "find . -type f | cut -c3- | tr '\\n' '\\0'"))
   "Command used by projectile to get the files in a generic project."
   :group 'projectile
-  :type 'string)
+  :type 'string
+  :package-version '(projectile . "2.8.0"))
 
 (defcustom projectile-other-file-alist
   '( ;; handle C/C++ extensions
@@ -1050,7 +1094,9 @@ fails with an authentication error.  See URL
   "Alist of extensions for switching to file with the same name,
   using other extensions based on the extension of current
   file."
-  :type 'alist)
+  :group 'projectile
+  :type 'alist
+  :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-create-missing-test-files nil
   "During toggling, if non-nil enables creating test files if not found.
@@ -1059,7 +1105,8 @@ When not-nil, every call to projectile-find-implementation-or-test-*
 creates test files if not found on the file system.  Defaults to nil.
 It assumes the test/ folder is at the same level as src/."
   :group 'projectile
-  :type 'boolean)
+  :type 'boolean
+  :package-version '(projectile . "0.13.0"))
 
 (defcustom projectile-per-project-compilation-buffer nil
   "When non-nil, the compilation command makes the per-project compilation buffer."
@@ -1070,12 +1117,14 @@ It assumes the test/ folder is at the same level as src/."
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
   :group 'projectile
-  :type 'hook)
+  :type 'hook
+  :package-version '(projectile . "0.13.0"))
 
 (defcustom projectile-before-switch-project-hook nil
   "Hooks run right before project is switched."
   :group 'projectile
-  :type 'hook)
+  :type 'hook
+  :package-version '(projectile . "0.13.0"))
 
 (defcustom projectile-project-changed-functions nil
   "Functions to run when the current project changes.
@@ -1102,7 +1151,8 @@ position."
   :type '(radio
           (const :tag "Remove" remove)
           (const :tag "Move to end" move-to-end)
-          (const :tag "Keep" keep)))
+          (const :tag "Keep" keep))
+  :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-max-file-buffer-count nil
   "Maximum number of file buffers per project that are kept open.
@@ -1118,6 +1168,7 @@ If the value is nil, there is no limit to the opened buffers count."
 A value of t means consecutive duplicates are ignored.
 A value of `erase' means only the last duplicate is kept.
 A value of nil means nothing is ignored."
+  :group 'projectile
   :type '(choice (const :tag "Don't ignore anything" nil)
                  (const :tag "Ignore consecutive duplicates" t)
                  (const :tag "Only keep last duplicate" erase))
