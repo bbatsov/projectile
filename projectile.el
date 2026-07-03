@@ -7748,27 +7748,28 @@ If the current buffer does not belong to a project, call `previous-buffer'."
 
 ;;; Editing a project's .dir-locals
 (defun projectile-read-variable ()
-  "Prompt for a variable and return its name."
-  (completing-read "Variable: "
-                   obarray
-                   (lambda (v)
-                     (and (boundp v) (not (keywordp v))))
-                   t))
+  "Prompt for a variable and return its name as a string.
+Return nil on empty input, which ends the variable-entry loop of
+`projectile-skel-dir-locals' while keeping the entries made so far."
+  (let ((var (completing-read "Variable (RET when done): "
+                              obarray
+                              (lambda (v)
+                                (and (boundp v) (not (keywordp v))))
+                              t)))
+    (unless (string-empty-p var) var)))
 
 (define-skeleton projectile-skel-variable-cons
   "Insert a variable-name and a value in a cons-cell."
-  "Value: "
-  "("
   (projectile-read-variable)
-  " . "
-  str
-  ")")
+  "(" str " . " (skeleton-read "Value: " nil t) ")")
 
 (define-skeleton projectile-skel-dir-locals
-  "Insert a .dir-locals.el template."
+  "Insert a .dir-locals.el template.
+The variable-entry loop ends when an empty variable name is
+entered, keeping the entries made so far."
   nil
   "((nil . ("
-  ("" '(projectile-skel-variable-cons) \n)
+  ((projectile-read-variable) "(" str " . " (skeleton-read "Value: " nil t) ")" \n)
   resume:
   ")))")
 

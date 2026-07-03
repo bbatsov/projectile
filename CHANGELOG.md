@@ -8,6 +8,10 @@
 * The mode-line updater is only added to `window-configuration-change-hook` when `projectile-dynamic-mode-line` is enabled; change the option via Customize or `setopt` for it to apply immediately.
 * The `recentf` and `recently-active` sort orders no longer rescan the full project file list once per recent file, making them usable on very large projects.
 
+### Bugs fixed
+
+* [#1849](https://github.com/bbatsov/projectile/issues/1849): `projectile-skel-dir-locals` now exits its variable-entry loop on an empty variable name, keeping the entries made so far, instead of trapping the user in the prompt and discarding input on `C-g`.
+
 ## 3.0.0 (2026-07-01)
 
 ### Changes
