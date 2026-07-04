@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 3.1.0 (2026-07-04)
+
 ### New features
 
 * Add declarative "file kinds", letting a project type describe categories of files (e.g. Rails models, controllers and views) via the new `:file-kinds` keyword of `projectile-register-project-type`.
