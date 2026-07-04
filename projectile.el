@@ -10406,9 +10406,85 @@ component."
   :type 'function
   :package-version '(projectile . "3.2.0"))
 
+(defcustom projectile-session-directory
+  (expand-file-name "projectile-sessions/" user-emacs-directory)
+  "Directory under which per-project session files are stored.
+Each project's saved layout and buffers live in a single file here, named
+after the project (see `projectile-session--file')."
+  :group 'projectile
+  :type 'directory
+  :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-session-restore-on-switch t
+  "Whether switching to a project restores its saved session.
+When non-nil and the project being switched to has no open tab but does
+have a session saved on disk, `projectile-session-switch-project-action'
+restores that session (recreating its buffers and layout) instead of
+running `projectile-session-default-action'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-session-autosave nil
+  "Whether `projectile-session-mode' saves sessions automatically.
+When non-nil, the outgoing project's session is saved when you switch
+away from it, and every open project's session is saved when Emacs exits.
+Degenerate layouts with no serializable buffer are skipped."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-session-buffer-serializers
+  '((dired-mode
+     . (projectile-session--serialize-dired
+        . projectile-session--deserialize-dired))
+    (t
+     . (projectile-session--serialize-file
+        . projectile-session--deserialize-file)))
+  "How buffers are turned into readable records and back.
+
+An alist whose entries have the shape (KEY SERIALIZE . DESERIALIZE),
+i.e. KEY mapped to a (SERIALIZE . DESERIALIZE) pair:
+
+KEY selects which buffers an entry handles.  It is one of:
+- a major-mode symbol - matches buffers whose mode is (derived from) it;
+- the symbol t - matches any buffer visiting a file (keep it last, so
+  mode-specific handlers win);
+- a predicate function of one argument (the buffer).
+
+SERIALIZE is called with the buffer current and returns a readable record
+\(any `read'-able sexp), or nil to decline the buffer.  DESERIALIZE is
+called with such a record and must recreate and return the live buffer,
+or nil when it cannot (e.g. the file is gone), in which case the buffer's
+window is dropped on restore rather than erroring.
+
+The first entry whose KEY matches and whose SERIALIZE returns non-nil wins.
+Buffers no entry handles are skipped, not saved.
+
+Handlers keyed by a major-mode symbol or by t round-trip cleanly: restore
+dispatches on that key.  A record produced by a predicate-keyed handler is
+stored under the buffer's major mode and, on restore, is handled by the
+first predicate-keyed entry that has a DESERIALIZE; so if you register
+several predicate handlers, give them distinct major-mode keys instead when
+they must restore differently.  To persist e.g. Magit or eshell buffers,
+add an entry keyed by their major mode, for instance:
+
+  (add-to-list \\='projectile-session-buffer-serializers
+               \\='(magit-status-mode
+                 . (my-serialize-magit . my-deserialize-magit)))"
+  :group 'projectile
+  :type '(alist :key-type sexp :value-type sexp)
+  :package-version '(projectile . "3.2.0"))
+
+(defconst projectile-session--format-version 1
+  "Format version stamped into session files written on disk.
+Session files whose version does not match are ignored on restore.")
+
 (defvar projectile-session--saved-switch-action nil
   "The `projectile-switch-project-action' saved when the mode was enabled.
 Restored when `projectile-session-mode' is disabled.")
+
+(declare-function dired-noselect "dired")
 
 (defun projectile-session--current-tab ()
   "Return the current tab of the selected frame."
@@ -10555,8 +10631,9 @@ rather than left unowned."
   "Tab-aware switch action installed by `projectile-session-mode'.
 When the target project already has a tab, select it and restore its
 live window layout instead of re-running the switch action.  Otherwise
-create a new tab for the project, stamp and name it, and populate it by
-calling `projectile-session-default-action'."
+create a new tab for the project and either restore its saved session (see
+`projectile-session-restore-on-switch') or populate it by calling
+`projectile-session-default-action'."
   (let* ((root (projectile-project-root))
          (tab (and root (projectile-session--project-tab root))))
     (cond
@@ -10567,7 +10644,10 @@ calling `projectile-session-default-action'."
       ;; project regardless of what buffer `tab-bar-new-tab' left current
       ;; (e.g. a non-default `tab-bar-new-tab-choice').
       (let ((default-directory root))
-        (funcall projectile-session-default-action)))
+        (unless (and projectile-session-restore-on-switch
+                     (projectile-session--saved-p root)
+                     (projectile-session-restore root))
+          (funcall projectile-session-default-action))))
      (t (funcall projectile-session-default-action)))))
 
 ;;;###autoload
@@ -10584,6 +10664,290 @@ When the current tab holds no project, fall back to the plain
           "Switch to project buffer: "
           (mapcar #'buffer-name (projectile-project-buffers root))))
       (call-interactively #'switch-to-buffer))))
+
+;;; Session persistence
+;;
+;; A project's live layout is a native tab, but tabs don't survive an Emacs
+;; restart.  To persist one we write a small readable sexp per project: the
+;; window layout as `window-state-get' with the WRITABLE flag (so it stays a
+;; plain, re-readable sexp) plus a manifest of the buffers it shows, each
+;; turned into a record by `projectile-session-buffer-serializers'.  Restoring
+;; recreates the buffers first (window-state only references them by name and
+;; won't recreate them) and then puts the layout back, replacing any buffer it
+;; couldn't recreate with a placeholder so the restore never errors.
+
+(defun projectile-session--buffer-matches-p (key buffer)
+  "Return non-nil when serializer KEY applies to BUFFER.
+KEY is a major-mode symbol, the symbol t (any file-visiting buffer), or a
+predicate function of one argument."
+  (cond
+   ((eq key t) (and (buffer-file-name buffer) t))
+   ((symbolp key) (with-current-buffer buffer (derived-mode-p key)))
+   (t (funcall key buffer))))
+
+(defun projectile-session--buffer-kind (key buffer)
+  "Return the symbol under which BUFFER's record is stored for serializer KEY.
+A symbol KEY (a mode or t) is its own kind and restore dispatches on it; a
+predicate KEY falls back to BUFFER's major mode."
+  (if (symbolp key)
+      key
+    (buffer-local-value 'major-mode buffer)))
+
+(defun projectile-session--readable-p (object)
+  "Return non-nil when OBJECT survives a `prin1'/`read' round-trip.
+Guards against a custom serializer returning a record that embeds a live
+object (buffer, marker, window) which can't be read back.  Binds
+`print-circle' so shared or circular structure prints, and reads, finitely
+rather than hanging."
+  (ignore-errors
+    (let ((print-circle t))
+      (read (prin1-to-string object))
+      t)))
+
+(defun projectile-session--serialize-buffer (buffer)
+  "Serialize BUFFER via the first matching entry of the serializer registry.
+Return a cons (KIND . RECORD), or nil when no entry handles BUFFER.
+Each registry entry is tried in isolation: a matcher or serializer that
+errors, or that yields a non-readable record, is skipped rather than
+aborting the whole session save."
+  (catch 'done
+    (dolist (entry projectile-session-buffer-serializers)
+      (ignore-errors
+        (let ((key (car entry))
+              (serialize (cadr entry)))
+          (when (projectile-session--buffer-matches-p key buffer)
+            (let ((record (with-current-buffer buffer (funcall serialize buffer))))
+              (when (and record (projectile-session--readable-p record))
+                (throw 'done
+                       (cons (projectile-session--buffer-kind key buffer)
+                             record))))))))
+    nil))
+
+(defun projectile-session--deserializer (kind)
+  "Return the deserialize function able to restore a record of KIND.
+Prefer an entry whose key is exactly KIND (a mode symbol or t).  Records
+produced by a predicate-keyed serializer are stored under the buffer's
+major mode, which no `assq' can match, so fall back to the first
+predicate-keyed entry that carries a deserializer."
+  (let ((exact (assq kind projectile-session-buffer-serializers)))
+    (if exact
+        (cddr exact)
+      (catch 'found
+        (dolist (entry projectile-session-buffer-serializers)
+          (when (and (functionp (car entry)) (cddr entry))
+            (throw 'found (cddr entry))))
+        nil))))
+
+(defun projectile-session--recreate-buffer (saved)
+  "Recreate the buffer described by SAVED, a (KIND . RECORD) cons.
+Return the live buffer, or nil when no deserializer handles KIND or the
+deserializer declines (e.g. the underlying file is gone)."
+  (let ((deserialize (projectile-session--deserializer (car saved))))
+    (when deserialize
+      (funcall deserialize (cdr saved)))))
+
+(defun projectile-session--serialize-file (buffer)
+  "Serialize file-visiting BUFFER as a (:file PATH :point N) record."
+  (when (buffer-file-name buffer)
+    (list :file (buffer-file-name buffer) :point (point))))
+
+(defun projectile-session--deserialize-file (record)
+  "Recreate the file buffer described by RECORD, or nil when the file is gone."
+  (let ((file (plist-get record :file)))
+    (when (and file (file-exists-p file))
+      (let ((buffer (find-file-noselect file)))
+        (when (buffer-live-p buffer)
+          (let ((point (plist-get record :point)))
+            (when (integerp point)
+              (with-current-buffer buffer
+                (goto-char (min point (point-max))))))
+          buffer)))))
+
+(defun projectile-session--serialize-dired (buffer)
+  "Serialize dired BUFFER as a (:dir DIRECTORY) record."
+  (with-current-buffer buffer
+    (when (derived-mode-p 'dired-mode)
+      (list :dir (expand-file-name default-directory)))))
+
+(defun projectile-session--deserialize-dired (record)
+  "Recreate the dired buffer described by RECORD, or nil when it's gone."
+  (let ((dir (plist-get record :dir)))
+    (when (and dir (file-directory-p dir))
+      (dired-noselect dir))))
+
+(defun projectile-session--placeholder-buffer ()
+  "Return a live placeholder buffer for windows whose buffer is missing."
+  (get-buffer-create " *projectile-session-placeholder*"))
+
+(defun projectile-session--sanitize-window-state (state)
+  "Return a copy of window STATE with missing buffers replaced.
+Any window referencing a buffer that isn't live is pointed at a
+placeholder buffer instead, so `window-state-put' can't error out.  This
+is the Emacs 28 substitute for `window-restore-killed-buffer-windows'
+\(added in Emacs 30)."
+  (cond
+   ((and (consp state)
+         (eq (car state) 'buffer)
+         (stringp (cadr state))
+         (not (get-buffer (cadr state))))
+    (cons 'buffer
+          (cons (buffer-name (projectile-session--placeholder-buffer))
+                (cddr state))))
+   ((consp state)
+    (cons (projectile-session--sanitize-window-state (car state))
+          (projectile-session--sanitize-window-state (cdr state))))
+   (t state)))
+
+(defun projectile-session--file (root)
+  "Return the absolute session file name for project ROOT.
+The name pairs a readable, filesystem-safe project name with a hash of
+ROOT's canonical path, so distinct roots never collide and the same root
+maps to the same file across restarts."
+  (let* ((canonical (directory-file-name
+                     ;; Canonicalize with `file-truename' so a symlinked root
+                     ;; and its target map to the same file, matching M1's
+                     ;; `projectile-session--same-root-p'.  Skip it for remote
+                     ;; roots to avoid a TRAMP round-trip.
+                     (if (file-remote-p root)
+                         (expand-file-name root)
+                       (file-truename root))))
+         (name (projectile-session--project-name root))
+         (safe (replace-regexp-in-string "[^A-Za-z0-9_.-]" "_" (or name "project")))
+         (hash (md5 canonical)))
+    (expand-file-name (concat safe "-" hash ".eld")
+                      projectile-session-directory)))
+
+(defun projectile-session--saved-p (root)
+  "Return non-nil when project ROOT has a session saved on disk."
+  (file-exists-p (projectile-session--file root)))
+
+(defun projectile-session--write (root data)
+  "Write session DATA for project ROOT, creating the session directory.
+Return non-nil only when the file was actually written, so callers don't
+report success for an unwritable session directory.  Binds `print-circle'
+so shared or circular structure in a record can't hang the write."
+  (let ((file (projectile-session--file root)))
+    (ignore-errors (make-directory (file-name-directory file) t))
+    (and (file-writable-p file)
+         (progn
+           (let ((print-circle t))
+             (projectile-serialize data file))
+           (file-exists-p file)))))
+
+(defun projectile-session--read (root)
+  "Read and return project ROOT's session data, or nil.
+Data whose format version doesn't match is ignored."
+  (let ((data (projectile-unserialize (projectile-session--file root))))
+    (and (consp data)
+         (equal (plist-get data :projectile-session-version)
+                projectile-session--format-version)
+         data)))
+
+(defun projectile-session--frame-buffers ()
+  "Return the distinct buffers shown in the selected frame's windows."
+  (delete-dups (mapcar #'window-buffer (window-list nil 'nomini))))
+
+;;;###autoload
+(defun projectile-session-save (&optional project)
+  "Save the current window layout and buffers as PROJECT's session.
+PROJECT defaults to the current project's root.  The layout is captured
+from the selected frame, so this saves whichever project's tab is
+current.  Buffers are recorded via `projectile-session-buffer-serializers';
+a layout with no serializable buffer is not saved.  Return non-nil on a
+successful save."
+  (interactive)
+  (let ((root (or project (projectile-project-root))))
+    (unless root
+      (user-error "Not in a project"))
+    (let* ((buffers (projectile-session--frame-buffers))
+           (records (delq nil (mapcar #'projectile-session--serialize-buffer
+                                      buffers))))
+      (cond
+       ((null records)
+        (when (called-interactively-p 'any)
+          (message "No serializable buffers to save for %s" root))
+        nil)
+       ((projectile-session--write
+         root
+         (list :projectile-session-version projectile-session--format-version
+               :root root
+               :buffers records
+               :window-state (window-state-get (frame-root-window) t)))
+        (when (called-interactively-p 'any)
+          (message "Saved session for %s" root))
+        t)
+       (t
+        (when (called-interactively-p 'any)
+          (message "Could not write session for %s" root))
+        nil)))))
+
+;;;###autoload
+(defun projectile-session-restore (&optional project)
+  "Restore PROJECT's saved session into the selected frame.
+PROJECT defaults to the current project's root.  Buffers are recreated
+first, then the saved window layout is put back; windows whose buffer
+can't be recreated fall back to a placeholder.  Return non-nil when a
+session was restored."
+  (interactive)
+  (let* ((root (or project (projectile-project-root)))
+         (data (and root (projectile-session--read root))))
+    (cond
+     (data
+      (let ((recreated nil))
+        (dolist (saved (plist-get data :buffers))
+          (when (ignore-errors (buffer-live-p (projectile-session--recreate-buffer saved)))
+            (setq recreated t)))
+        (cond
+         (recreated
+          (let ((state (plist-get data :window-state)))
+            (when state
+              (window-state-put (projectile-session--sanitize-window-state state)
+                                (frame-root-window) 'safe)))
+          t)
+         ;; Nothing could be recreated (every saved file is gone, say);
+         ;; return nil so `restore-on-switch' falls back to populating the
+         ;; tab instead of leaving the user in an all-placeholder frame.
+         (t
+          (when (called-interactively-p 'any)
+            (message "No buffers could be restored for %s" (or root "current project")))
+          nil))))
+     ((called-interactively-p 'any)
+      (user-error "No saved session for %s" (or root "current project"))))))
+
+;;;###autoload
+(defun projectile-session-forget (&optional project)
+  "Delete PROJECT's saved session file.
+PROJECT defaults to the current project's root."
+  (interactive)
+  (let ((root (or project (projectile-project-root))))
+    (unless root
+      (user-error "Not in a project"))
+    (let ((file (projectile-session--file root)))
+      (when (file-exists-p file)
+        (delete-file file)
+        (when (called-interactively-p 'any)
+          (message "Forgot session for %s" root))))))
+
+(defun projectile-session--maybe-autosave ()
+  "Save the current project's session when autosave is enabled.
+Wired onto `projectile-before-switch-project-hook', where the current
+project is still the one being switched away from."
+  (when projectile-session-autosave
+    (ignore-errors (projectile-session-save))))
+
+(defun projectile-session--autosave-on-kill ()
+  "Save every open project's session when autosave is enabled.
+Wired onto `kill-emacs-hook'.  Each project tab is selected in turn (the
+frame is going away anyway) so its own layout is what gets saved."
+  (when projectile-session-autosave
+    (dolist (tab (projectile-session--project-tabs))
+      ;; Guard the whole per-tab body: a tab that can't be selected (its
+      ;; root gone, say) must not abandon the remaining projects, and must
+      ;; never let an error escape a `kill-emacs-hook' function.
+      (ignore-errors
+        (let ((root (projectile-session--tab-root tab)))
+          (projectile-session--select-tab tab)
+          (projectile-session-save root))))))
 
 ;;;###autoload
 (define-minor-mode projectile-session-mode
@@ -10617,13 +10981,22 @@ existing tabs untouched."
                 #'projectile-session-switch-project-action)
       (setq projectile-session--saved-switch-action projectile-switch-project-action))
     (setq projectile-switch-project-action #'projectile-session-switch-project-action)
+    ;; Autosave wiring.  `add-hook' is idempotent for an `eq' function, so a
+    ;; double enable can't stack duplicates; the actual saving is gated on
+    ;; `projectile-session-autosave' inside the hook functions.
+    (add-hook 'projectile-before-switch-project-hook
+              #'projectile-session--maybe-autosave)
+    (add-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill)
     (projectile-session--adopt-current-tab))
    (t
     (when (eq projectile-switch-project-action
               #'projectile-session-switch-project-action)
       (setq projectile-switch-project-action
             projectile-session--saved-switch-action))
-    (setq projectile-session--saved-switch-action nil))))
+    (setq projectile-session--saved-switch-action nil)
+    (remove-hook 'projectile-before-switch-project-hook
+                 #'projectile-session--maybe-autosave)
+    (remove-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill))))
 
 (provide 'projectile)
 

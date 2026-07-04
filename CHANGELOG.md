@@ -8,7 +8,9 @@
   * Switching to a project selects its existing tab (restoring that project's window layout) when one is open, or otherwise opens a fresh tab named after the project and populated via `projectile-session-default-action`.
   * Same-named checkouts get distinct tab names (e.g. `work/foo` and `home/foo`); customize the scheme with `projectile-session-tab-name-function`.
   * `projectile-session-switch-to-buffer` completes over just the current tab's project buffers.
-  * Persisting sessions to disk and restoring them across restarts is planned for a later release.
+  * Sessions persist across Emacs restarts: `projectile-session-save`, `projectile-session-restore` and `projectile-session-forget` write a project's window layout and buffers to a file under `projectile-session-directory` and read it back.
+  * Switching to a project with a saved session restores it (gated by `projectile-session-restore-on-switch`); `projectile-session-autosave` saves sessions on switch-away and on exit.
+  * Which buffers are recorded, and how, is extensible via `projectile-session-buffer-serializers`; file-visiting and `dired-mode` buffers work out of the box.
 
 ## 3.1.0 (2026-07-04)
 
