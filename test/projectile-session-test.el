@@ -229,6 +229,11 @@
   "Create and return a fresh temporary session directory."
   (make-temp-file "projectile-session-test" t))
 
+(defun projectile-session-test--session-files (data)
+  "Return the list of :file paths recorded in session DATA."
+  (delq nil (mapcar (lambda (buf) (plist-get (cdr buf) :file))
+                    (plist-get data :buffers))))
+
 (describe "projectile-session file naming"
   (it "keys files by root, stable and collision-free"
     (let ((projectile-session-directory "/state/sessions/"))
@@ -636,13 +641,17 @@
   (it "keeps saving the other tabs when one can't be selected on kill"
     (let ((projectile-session-autosave t)
           (saved '()))
+      (spy-on 'projectile-session--current-tab-index :and-return-value 1)
+      (spy-on 'tab-bar-select-tab)
       (spy-on 'projectile-session--project-tabs
               :and-return-value (list 'tab-a 'tab-b 'tab-c))
       (spy-on 'projectile-session--tab-root
               :and-call-fake (lambda (tab) (format "/%s/" tab)))
-      (spy-on 'projectile-session--select-tab
-              :and-call-fake (lambda (tab)
-                               (when (eq tab 'tab-b) (error "cannot select tab-b"))))
+      (spy-on 'projectile-session--select-tab-by-root
+              :and-call-fake (lambda (root)
+                               (if (equal root "/tab-b/")
+                                   (error "cannot select tab-b")
+                                 t)))
       (spy-on 'projectile-session-save
               :and-call-fake (lambda (root) (push root saved) t))
       ;; tab-b throws on select, but that must not abandon tab-a and tab-c
@@ -650,6 +659,150 @@
       (expect saved :to-contain "/tab-a/")
       (expect saved :to-contain "/tab-c/")
       (expect saved :not :to-contain "/tab-b/"))))
+
+(describe "projectile-session-save-all"
+  (before-each
+    (setq projectile-session-test--dir (projectile-session-test--make-dir))
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (projectile-session-test--reset-tabs)
+    (when (and projectile-session-test--dir
+               (file-directory-p projectile-session-test--dir))
+      (delete-directory projectile-session-test--dir t)))
+
+  ;; Real-tab test: each project tab must be saved with ITS OWN layout, and
+  ;; the user restored to the tab they started on.  This is what a mocked spec
+  ;; can't catch: `tab-bar-select-tab' rebuilds cons cells as it switches, so
+  ;; selecting by a captured cons mid-loop saved the wrong tab's layout.
+  (it "saves each project tab's own layout and returns to the starting tab"
+    (let* ((projectile-session-directory projectile-session-test--dir)
+           (ta (make-temp-file "projectile-session-all-a" nil ".txt"))
+           (tb (make-temp-file "projectile-session-all-b" nil ".txt"))
+           (root-a "/proj/alpha/")
+           (root-b "/proj/beta/")
+           (ba (find-file-noselect ta))
+           (bb (find-file-noselect tb)))
+      (unwind-protect
+          (progn
+            ;; tab A shows file A, tab B shows file B; B is current
+            (projectile-session--make-project-tab root-a)
+            (delete-other-windows) (switch-to-buffer ba)
+            (projectile-session--make-project-tab root-b)
+            (delete-other-windows) (switch-to-buffer bb)
+            (expect (projectile-session-save-all) :to-equal 2)
+            (let ((files-a (projectile-session-test--session-files
+                            (projectile-session--read root-a)))
+                  (files-b (projectile-session-test--session-files
+                            (projectile-session--read root-b))))
+              (expect files-a :to-contain ta)
+              (expect files-a :not :to-contain tb)
+              (expect files-b :to-contain tb)
+              (expect files-b :not :to-contain ta))
+            ;; started save-all on tab B, must end up back on tab B
+            (expect (projectile-session--tab-root (projectile-session--current-tab))
+                    :to-equal root-b))
+        (when (buffer-live-p ba) (kill-buffer ba))
+        (when (buffer-live-p bb) (kill-buffer bb))
+        (delete-file ta)
+        (delete-file tb))))
+
+  (it "skips a tab that errors without abandoning the rest"
+    (let ((saved '()))
+      (spy-on 'projectile-session--current-tab-index :and-return-value 1)
+      (spy-on 'tab-bar-select-tab)
+      (spy-on 'projectile-session--project-tabs
+              :and-return-value (list 'tab-a 'tab-b 'tab-c))
+      (spy-on 'projectile-session--tab-root
+              :and-call-fake (lambda (tab) (format "/%s/" tab)))
+      (spy-on 'projectile-session--select-tab-by-root
+              :and-call-fake (lambda (root)
+                               (if (equal root "/tab-b/")
+                                   (error "cannot select tab-b")
+                                 t)))
+      (spy-on 'projectile-session-save
+              :and-call-fake (lambda (root) (push root saved) t))
+      ;; tab-b throws on select, but that must not abandon tab-a and tab-c
+      (expect (projectile-session-save-all) :to-equal 2)
+      (expect saved :to-contain "/tab-a/")
+      (expect saved :to-contain "/tab-c/")
+      (expect saved :not :to-contain "/tab-b/")))
+
+  (it "does not count a tab whose layout has nothing to save"
+    (spy-on 'projectile-session--current-tab-index :and-return-value 1)
+    (spy-on 'tab-bar-select-tab)
+    (spy-on 'projectile-session--project-tabs
+            :and-return-value (list 'tab-a 'tab-b))
+    (spy-on 'projectile-session--tab-root
+            :and-call-fake (lambda (tab) (format "/%s/" tab)))
+    (spy-on 'projectile-session--select-tab-by-root :and-return-value t)
+    ;; tab-b has no serializable buffer, so `projectile-session-save' returns nil
+    (spy-on 'projectile-session-save
+            :and-call-fake (lambda (root) (equal root "/tab-a/")))
+    (expect (projectile-session-save-all) :to-equal 1)))
+
+(describe "projectile-session survivor re-simplify"
+  (before-each
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (projectile-session-test--reset-tabs))
+
+  (it "reverts a survivor's name when its clashing sibling tab is closed"
+    (let ((tab-bar-tab-pre-close-functions
+           (list #'projectile-session--on-tab-close)))
+      (projectile-session--make-project-tab "/work/foo/")
+      (projectile-session--make-project-tab "/home/foo/")
+      ;; both are disambiguated while they coexist
+      (let ((names (projectile-session-test--tab-names)))
+        (expect names :to-contain "work/foo")
+        (expect names :to-contain "home/foo"))
+      ;; close the current (home/foo) tab; the pre-close hook must re-simplify
+      ;; the survivor even though the closing tab is still in the tab list
+      (tab-bar-close-tab)
+      (let ((names (projectile-session-test--tab-names)))
+        (expect names :to-contain "foo")
+        (expect names :not :to-contain "work/foo"))))
+
+  (it "adds and removes the pre-close hook with the mode"
+    (let ((projectile-switch-project-action 'projectile-find-file)
+          (tab-bar-tab-pre-close-functions nil))
+      (spy-on 'projectile-project-root :and-return-value nil)
+      (projectile-session-mode 1)
+      (expect (memq 'projectile-session--on-tab-close
+                    tab-bar-tab-pre-close-functions)
+              :to-be-truthy)
+      (projectile-session-mode -1)
+      (expect (memq 'projectile-session--on-tab-close
+                    tab-bar-tab-pre-close-functions)
+              :to-be nil)))
+
+  (it "does not block a tab from closing when name refresh errors"
+    (let ((tab-bar-tab-pre-close-functions
+           (list #'projectile-session--on-tab-close)))
+      ;; build the tabs with the normal namer first
+      (projectile-session--set-tab-root
+       (projectile-session--current-tab) "/work/foo/")
+      (projectile-session--make-project-tab "/home/foo/")
+      (let ((count (length (tab-bar-tabs)))
+            ;; now make the pre-close name refresh signal
+            (projectile-session-tab-name-function
+             (lambda (_root) (error "boom in naming"))))
+        (tab-bar-close-tab)
+        (expect (length (tab-bar-tabs)) :to-equal (1- count))))))
+
+(describe "projectile-session keybindings"
+  (it "binds the w sub-prefix to the session commands"
+    (expect (lookup-key projectile-command-map (kbd "w s"))
+            :to-equal #'projectile-session-save)
+    (expect (lookup-key projectile-command-map (kbd "w S"))
+            :to-equal #'projectile-session-save-all)
+    (expect (lookup-key projectile-command-map (kbd "w r"))
+            :to-equal #'projectile-session-restore)
+    (expect (lookup-key projectile-command-map (kbd "w f"))
+            :to-equal #'projectile-session-forget)
+    (expect (lookup-key projectile-command-map (kbd "w b"))
+            :to-equal #'projectile-session-switch-to-buffer)))
 
 (provide 'projectile-session-test)
 

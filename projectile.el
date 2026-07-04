@@ -9806,6 +9806,12 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
     (define-key map (kbd "T") #'projectile-find-test-file)
     (define-key map (kbd "v") #'projectile-vc)
+    ;; per-project sessions (see `projectile-session-mode')
+    (define-key map (kbd "w s") #'projectile-session-save)
+    (define-key map (kbd "w S") #'projectile-session-save-all)
+    (define-key map (kbd "w r") #'projectile-session-restore)
+    (define-key map (kbd "w f") #'projectile-session-forget)
+    (define-key map (kbd "w b") #'projectile-session-switch-to-buffer)
     ;; project lifecycle external commands
     (define-key map (kbd "c o") #'projectile-configure-project)
     (define-key map (kbd "c c") #'projectile-compile-project)
@@ -10105,6 +10111,12 @@ window or frame (file/buffer/project commands)."
       ("xG" "ghostel" projectile-dispatch-run-ghostel)
       ("!" "shell command" projectile-run-shell-command-in-root)
       ("&" "async shell command" projectile-run-async-shell-command-in-root)]
+     ["Session"
+      ("ws" "save session" projectile-session-save)
+      ("wS" "save all sessions" projectile-session-save-all)
+      ("wr" "restore session" projectile-session-restore)
+      ("wf" "forget session" projectile-session-forget)
+      ("wb" "switch project buffer" projectile-session-switch-to-buffer)]
      ["Cache"
       ("i" "invalidate cache" projectile-invalidate-cache)
       ("z" "cache current file" projectile-cache-current-file)]]))
@@ -10210,6 +10222,13 @@ window or frame (file/buffer/project commands)."
          ["Repeat last task" projectile-repeat-last-task]
          "--"
          ["Repeat last build command" projectile-repeat-last-command])
+        ("Session"
+         ["Save session" projectile-session-save]
+         ["Save all sessions" projectile-session-save-all]
+         ["Restore session" projectile-session-restore]
+         ["Forget session" projectile-session-forget]
+         "--"
+         ["Switch to project buffer" projectile-session-switch-to-buffer])
         "--"
         ["About" projectile-version]))
     map)
@@ -10484,6 +10503,13 @@ Session files whose version does not match are ignored on restore.")
   "The `projectile-switch-project-action' saved when the mode was enabled.
 Restored when `projectile-session-mode' is disabled.")
 
+(defvar projectile-session--closing-tab nil
+  "A project tab currently being closed, or nil.
+Bound while re-simplifying survivor names from
+`projectile-session--on-tab-close' (the pre-close hook, where the closing
+tab is still present in the tab list) so `projectile-session--project-tabs'
+omits it and its name no longer counts as a clash.")
+
 (declare-function dired-noselect "dired")
 
 (defun projectile-session--current-tab ()
@@ -10522,8 +10548,14 @@ TRAMP round-trip."
                   (file-equal-p a b))))))
 
 (defun projectile-session--project-tabs ()
-  "Return the open tabs that are bound to a project."
-  (seq-filter #'projectile-session--tab-root (tab-bar-tabs)))
+  "Return the open tabs that are bound to a project.
+The tab held in `projectile-session--closing-tab' (one being closed) is
+omitted, so survivor names recomputed from the pre-close hook don't still
+treat the closing tab as an open clash."
+  (seq-filter (lambda (tab)
+                (and (not (eq tab projectile-session--closing-tab))
+                     (projectile-session--tab-root tab)))
+              (tab-bar-tabs)))
 
 (defun projectile-session--project-tab (root)
   "Return the open tab bound to project ROOT, or nil when there is none."
@@ -10604,6 +10636,25 @@ parameter), which a manual `tab-bar-rename-tab' breaks."
                       (projectile-session--tab-root tab))))))
   (force-mode-line-update t))
 
+(defun projectile-session--on-tab-close (tab &optional _last)
+  "Re-simplify survivor tab names after project TAB is closed.
+Wired onto `tab-bar-tab-pre-close-functions', so a project tab that was
+disambiguated only because of TAB (e.g. \"work/foo\" beside TAB's
+\"home/foo\") reverts to its plain name once TAB goes away.
+
+That hook fires while TAB is still in the tab list, so TAB is bound as
+`projectile-session--closing-tab' to exclude it from the recomputation.
+It is used rather than a post-close hook because Emacs has no post-close
+tab hook at Projectile's 28.1 floor (`tab-bar-tab-pre-close-functions'
+dates to 27.1; `tab-bar-tab-post-close-functions' does not exist), which
+keeps this 28.1-safe."
+  (when (projectile-session--tab-root tab)
+    (let ((projectile-session--closing-tab tab))
+      ;; never let a naming error (e.g. a custom `projectile-session-tab-name-function'
+      ;; that signals) escape this pre-close hook and abort the tab close
+      (ignore-errors
+        (projectile-session--refresh-tab-names)))))
+
 (defun projectile-session--make-project-tab (root)
   "Create and select a fresh tab bound to project ROOT.
 The new tab is stamped with ROOT and named; populating it is left to the
@@ -10612,10 +10663,34 @@ caller."
   (projectile-session--set-tab-root (projectile-session--current-tab) root)
   (projectile-session--refresh-tab-names))
 
+(defun projectile-session--current-tab-index ()
+  "Return the 1-based index of the selected frame's current tab."
+  (1+ (or (cl-position 'current-tab (tab-bar-tabs) :key #'car :test #'eq) 0)))
+
+(defun projectile-session--select-tab-by-root (root)
+  "Select the open project tab bound to ROOT, if any.
+Returns non-nil when a tab was selected.  Resolves the tab to a 1-based
+index in a single pass and selects by index, so it is robust to
+`tab-bar-select-tab' rebuilding tab cons cells as it switches away from
+the current tab (a captured cons would go stale mid-loop)."
+  (let ((index 0) (target nil))
+    (dolist (tab (tab-bar-tabs))
+      (setq index (1+ index))
+      (when (and (not target)
+                 (projectile-session--same-root-p
+                  (projectile-session--tab-root tab) root))
+        (setq target index)))
+    (when target
+      (tab-bar-select-tab target)
+      t)))
+
 (defun projectile-session--select-tab (tab)
-  "Select TAB, restoring the project layout it holds."
-  (when-let* ((index (cl-position tab (tab-bar-tabs) :test #'eq)))
-    (tab-bar-select-tab (1+ index))))
+  "Select TAB, restoring the project layout it holds.
+Selection goes through the tab's project root, so it stays correct even
+after other tabs' cons cells have been rebuilt."
+  (let ((root (projectile-session--tab-root tab)))
+    (when root
+      (projectile-session--select-tab-by-root root))))
 
 (defun projectile-session--adopt-current-tab ()
   "Bind the current tab to the current project, when there is one.
@@ -10935,19 +11010,51 @@ project is still the one being switched away from."
   (when projectile-session-autosave
     (ignore-errors (projectile-session-save))))
 
+(defun projectile-session--save-all-tabs ()
+  "Save the session of every open project tab, selecting each in turn.
+Each project tab is selected so its own window layout is what gets saved,
+then the originally-selected tab is restored.  Tabs are re-resolved by
+root on each iteration rather than by a cons captured up front, because
+`tab-bar-select-tab' rebuilds cons cells as it switches tabs (a stale cons
+would save the wrong layout under a project's root).  The per-tab body is
+guarded so a tab that can't be selected or saved (its root gone, say)
+neither abandons the remaining projects nor lets an error escape (this
+also matters on `kill-emacs-hook').  Return the number of tabs whose
+session was actually written."
+  (let ((origin (projectile-session--current-tab-index))
+        (roots (delq nil (mapcar #'projectile-session--tab-root
+                                 (projectile-session--project-tabs))))
+        (saved 0))
+    (dolist (root roots)
+      (ignore-errors
+        (when (and (projectile-session--select-tab-by-root root)
+                   (projectile-session-save root))
+          (setq saved (1+ saved)))))
+    (ignore-errors (tab-bar-select-tab origin))
+    saved))
+
+;;;###autoload
+(defun projectile-session-save-all ()
+  "Save the session of every open project in one go.
+Every open project tab's window layout and buffers are saved (see
+`projectile-session-save'); a tab whose layout has no serializable buffer
+is skipped.  Unlike autosave, this runs regardless of
+`projectile-session-autosave'.  When called interactively, report how many
+sessions were saved."
+  (interactive)
+  ;; `--save-all-tabs' selects each project tab in turn and restores the
+  ;; originally-selected one afterwards.
+  (let ((saved (projectile-session--save-all-tabs)))
+    (when (called-interactively-p 'any)
+      (message "Saved %d project session%s" saved (if (= saved 1) "" "s")))
+    saved))
+
 (defun projectile-session--autosave-on-kill ()
   "Save every open project's session when autosave is enabled.
-Wired onto `kill-emacs-hook'.  Each project tab is selected in turn (the
-frame is going away anyway) so its own layout is what gets saved."
+Wired onto `kill-emacs-hook'; the frame is going away, so the tab left
+selected by `projectile-session--save-all-tabs' does not matter."
   (when projectile-session-autosave
-    (dolist (tab (projectile-session--project-tabs))
-      ;; Guard the whole per-tab body: a tab that can't be selected (its
-      ;; root gone, say) must not abandon the remaining projects, and must
-      ;; never let an error escape a `kill-emacs-hook' function.
-      (ignore-errors
-        (let ((root (projectile-session--tab-root tab)))
-          (projectile-session--select-tab tab)
-          (projectile-session-save root))))))
+    (projectile-session--save-all-tabs)))
 
 ;;;###autoload
 (define-minor-mode projectile-session-mode
@@ -10987,6 +11094,11 @@ existing tabs untouched."
     (add-hook 'projectile-before-switch-project-hook
               #'projectile-session--maybe-autosave)
     (add-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill)
+    ;; Re-simplify a survivor's name when its same-named sibling tab is
+    ;; closed.  `add-hook' is idempotent for an `eq' function, so a double
+    ;; enable can't stack duplicates.
+    (add-hook 'tab-bar-tab-pre-close-functions
+              #'projectile-session--on-tab-close)
     (projectile-session--adopt-current-tab))
    (t
     (when (eq projectile-switch-project-action
@@ -10996,7 +11108,9 @@ existing tabs untouched."
     (setq projectile-session--saved-switch-action nil)
     (remove-hook 'projectile-before-switch-project-hook
                  #'projectile-session--maybe-autosave)
-    (remove-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill))))
+    (remove-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill)
+    (remove-hook 'tab-bar-tab-pre-close-functions
+                 #'projectile-session--on-tab-close))))
 
 (provide 'projectile)
 
