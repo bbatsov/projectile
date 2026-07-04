@@ -919,6 +919,50 @@ project cache was invalidated while it was still running.")
 (defvar projectile-project-root-cache (make-hash-table :test 'equal)
   "Cached value of function `projectile-project-root`.")
 
+;;; Project path spelling helpers
+;;
+;; A "project root" string is spelled in exactly two canonical ways across
+;; the code base, and mixing them up is a recurring source of subtle cache
+;; bugs (a root looked up in one spelling never matching a key stored in the
+;; other).  The two spellings are:
+;;
+;; - The *cache-key* spelling: what `projectile-project-root' returns, i.e.
+;;   an absolute, symlink-resolved (its search starts from `file-truename'),
+;;   directory name ending in a slash.  This is what every per-project cache
+;;   table (`projectile-projects-cache', the frecency table, the watch
+;;   registry, ...) is keyed by.  Never re-abbreviate or re-expand such a
+;;   value before using it as a key - it is already canonical.
+;;
+;; - The *known-projects* spelling: the abbreviated form persisted in
+;;   `projectile-known-projects' and shown to the user.  Produce it only via
+;;   `projectile--known-project-root' so every entry is spelled identically
+;;   (abbreviated, trailing slash), which is what removal and membership
+;;   checks rely on.
+;;
+;; `projectile--project-relative-name' owns the third boundary: turning an
+;; absolute path into a root-relative one.
+
+(defun projectile--project-relative-name (path root)
+  "Return PATH spelled relative to project ROOT.
+ROOT must be spelled as `projectile-project-root' returns it (absolute,
+symlink-resolved, trailing slash) and PATH must share that spelling
+\(e.g. already run through `file-truename' / `expand-file-name' the same
+way).  When the two spellings diverge - PATH reached through a symlink
+or abbreviation the root wasn't - the result gains leading `../'
+segments; callers that cache the result should reject a value starting
+with \"..\" rather than store a bogus entry.
+
+This is a thin wrapper around `file-relative-name' whose sole purpose is
+to give that boundary a single, documented owner."
+  (file-relative-name path root))
+
+(defun projectile--known-project-root (root)
+  "Return ROOT in the canonical spelling used inside `projectile-known-projects'.
+Entries are stored abbreviated (via `abbreviate-file-name') and with a
+trailing slash so that membership and removal checks compare equal
+regardless of how the root was originally obtained."
+  (file-name-as-directory (abbreviate-file-name root)))
+
 (projectile-define-project-cache projectile-project-type-cache
   "A hashmap used to cache project type to speed up related operations.")
 
@@ -2384,7 +2428,7 @@ discover projects there."
                 (projectile-discover-projects-in-directory dir (1- depth))))
             (progress-reporter-done progress-reporter))
         (when (projectile-project-p directory)
-          (let ((dir (abbreviate-file-name (projectile-project-root directory))))
+          (let ((dir (projectile--known-project-root (projectile-project-root directory))))
             (unless (member dir projectile-known-projects)
               (projectile-add-known-project dir)))))
     (message "Project search path directory %s doesn't exist" directory)))
@@ -3956,7 +4000,7 @@ projectile project root."
 (defun projectile-make-relative-to-root (files)
   "Make FILES relative to the project root."
   (let ((project-root (projectile-project-root)))
-    (mapcar (lambda (f) (file-relative-name f project-root)) files)))
+    (mapcar (lambda (f) (projectile--project-relative-name f project-root)) files)))
 
 (defun projectile-ignored-directory-p
     (directory &optional ignored-directories local-directory globally-ignored-directories)
@@ -6116,7 +6160,7 @@ IMPL-DIR-PATH."
                          projectile-default-src-directory
                          projectile-default-test-directory)))
                     #'projectile--test-name-for-impl-name)))
-    (file-relative-name file (projectile-project-root))))
+    (projectile--project-relative-name file (projectile-project-root))))
 
 (defun projectile--test-to-impl-dir-fallback (test-dir-path)
   "Return the impl file for TEST-DIR-PATH by guessing a source directory.
@@ -6134,7 +6178,7 @@ TEST-DIR-PATH."
                          projectile-default-test-directory
                          projectile-default-src-directory)))
                     #'projectile--impl-name-for-test-name)))
-    (file-relative-name file (projectile-project-root))))
+    (projectile--project-relative-name file (projectile-project-root))))
 
 (defun projectile--impl-to-test-dir (impl-dir-path)
   "Return the directory path of a test whose impl file resides in IMPL-DIR-PATH.
@@ -6161,7 +6205,7 @@ Nil is returned if either the src-dir or test-dir properties are not strings."
   "Return the \"complementary\" directory of DIR-PATH.
 Replace STRING in DIR-PATH with REPLACEMENT."
   (let* ((project-root (projectile-project-root))
-         (relative-dir (file-name-directory (file-relative-name dir-path project-root))))
+         (relative-dir (file-name-directory (projectile--project-relative-name dir-path project-root))))
     (projectile-expand-root
      (string-replace string replacement relative-dir))))
 
@@ -6327,7 +6371,7 @@ should be strings, nil returned if this is not the case."
                                   file-name
                                   #'projectile--test-to-impl-dir
                                   #'projectile--impl-name-for-test-name)))
-    (file-relative-name complementary-file (projectile-project-root))))
+    (projectile--project-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--test-file-from-test-dir-str (file-name)
   "Get the relative path of the test file FILE-NAME.
@@ -6338,7 +6382,7 @@ should be strings, nil returned if this is not the case."
                                    file-name
                                    #'projectile--impl-to-test-dir
                                    #'projectile--test-name-for-impl-name)))
-    (file-relative-name complementary-file (projectile-project-root))))
+    (projectile--project-relative-name complementary-file (projectile-project-root))))
 
 (defun projectile--impl-file-from-src-dir-fn (test-file)
   "Get the relative path to the implementation file corresponding to TEST-FILE.
@@ -9017,7 +9061,7 @@ projects removed."
 (defun projectile-remove-current-project-from-known-projects ()
   "Remove the current project from the list of known projects."
   (interactive)
-  (projectile-remove-known-project (abbreviate-file-name (projectile-acquire-root))))
+  (projectile-remove-known-project (projectile--known-project-root (projectile-acquire-root))))
 
 (defun projectile-ignored-projects ()
   "A list of projects that should not be saved in `projectile-known-projects'.
@@ -9047,7 +9091,7 @@ that requiring exact paths is acceptable.  Local behavior is unchanged."
   "Add PROJECT-ROOT to the list of known projects."
   (interactive (list (read-directory-name "Add to known projects: ")))
   (unless (projectile-ignored-project-p project-root)
-    (push (file-name-as-directory (abbreviate-file-name project-root)) projectile-known-projects)
+    (push (projectile--known-project-root project-root) projectile-known-projects)
     (setq projectile-known-projects (seq-uniq projectile-known-projects))
     (projectile-merge-known-projects)))
 

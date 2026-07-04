@@ -68,6 +68,25 @@
     (expect (projectile-expand-root "foo/bar") :to-equal "/path/to/project/foo/bar")
     (expect (projectile-expand-root "./foo/bar") :to-equal "/path/to/project/foo/bar")))
 
+(describe "projectile--project-relative-name"
+  (it "spells an absolute path relative to a matching root"
+    (expect (projectile--project-relative-name
+             "/home/me/project/src/foo.el" "/home/me/project/")
+            :to-equal "src/foo.el"))
+  (it "signals a divergent spelling with a leading ../ segment"
+    (expect (string-prefix-p
+             ".." (projectile--project-relative-name
+                   "/elsewhere/foo.el" "/home/me/project/"))
+            :to-be t)))
+
+(describe "projectile--known-project-root"
+  (it "abbreviates the root and guarantees a trailing slash"
+    (spy-on 'abbreviate-file-name :and-call-fake #'identity)
+    (expect (projectile--known-project-root "/home/me/project")
+            :to-equal "/home/me/project/")
+    (expect (projectile--known-project-root "/home/me/project/")
+            :to-equal "/home/me/project/")))
+
 (describe "projectile-expand-file-name-wildcard"
   (it "expands a filename not containing wildcards"
     (expect (projectile-expand-file-name-wildcard "test" "/path/to/project/")
