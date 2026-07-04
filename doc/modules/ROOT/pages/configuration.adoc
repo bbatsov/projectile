@@ -768,6 +768,60 @@ want to set
 in order to allow for the occasions where you want to select the
 top-level directory.
 
+== Per-project sessions
+
+`projectile-session-mode` is a global minor mode that gives every project
+its own https://www.gnu.org/software/emacs/manual/html_node/emacs/Tab-Bars.html[tab-bar]
+tab, so each project keeps its own window layout and you flip between
+projects by flipping between tabs.
+
+[source,elisp]
+----
+(projectile-session-mode +1)
+----
+
+Enabling the mode turns on `tab-bar-mode` and makes project switching
+tab-aware:
+
+* Switching to a project that already has a tab *selects that tab*,
+  restoring the project's live window layout, rather than re-opening a
+  file and clobbering it.
+* Switching to a project for the first time opens a fresh tab dedicated
+  to it, names the tab after the project, and populates it by running
+  `projectile-session-default-action` (by default `projectile-find-file`).
+
+If you enable the mode while already visiting a project, the tab you're
+on is adopted for that project instead of being left unowned.
+
+Tabs are named after their project. Two checkouts that share a name
+(e.g. two `foo` directories) are disambiguated by prepending a
+parent-directory component, so you get `work/foo` and `home/foo`. You can
+override the naming entirely via `projectile-session-tab-name-function`,
+a function that receives a project root and returns the tab name.
+
+Disabling `projectile-session-mode` restores
+`projectile-switch-project-action` to whatever it was when you enabled
+the mode; it leaves `tab-bar-mode` and any existing tabs in place.
+
+=== Switching buffers within a session
+
+`projectile-session-switch-to-buffer` completes over just the buffers of
+the current tab's project (falling back to a plain `switch-to-buffer`
+when the current tab holds no project). It is deliberately kept as a
+separate, opt-in command rather than a global remapping of
+`switch-to-buffer`, so bind it yourself if you want it, e.g.:
+
+[source,elisp]
+----
+(define-key projectile-command-map (kbd "B") #'projectile-session-switch-to-buffer)
+----
+
+NOTE: This mode makes the aging
+https://github.com/bbatsov/persp-projectile[persp-projectile] unnecessary
+for tab-based project workflows. Persisting the tabs to disk and
+restoring them across Emacs restarts is not implemented yet, but is
+planned for a future release.
+
 == Known Projects
 
 Projectile stores the list of known projects in a file on disk.  You can

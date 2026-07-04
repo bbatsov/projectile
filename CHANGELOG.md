@@ -2,6 +2,14 @@
 
 ## master (unreleased)
 
+### New features
+
+* Add `projectile-session-mode`, a global minor mode that gives each project its own `tab-bar` tab.
+  * Switching to a project selects its existing tab (restoring that project's window layout) when one is open, or otherwise opens a fresh tab named after the project and populated via `projectile-session-default-action`.
+  * Same-named checkouts get distinct tab names (e.g. `work/foo` and `home/foo`); customize the scheme with `projectile-session-tab-name-function`.
+  * `projectile-session-switch-to-buffer` completes over just the current tab's project buffers.
+  * Persisting sessions to disk and restoring them across restarts is planned for a later release.
+
 ## 3.1.0 (2026-07-04)
 
 ### New features

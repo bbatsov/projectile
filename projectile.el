@@ -10370,6 +10370,261 @@ Otherwise behave as if called interactively.
     (projectile--register-savehist-variables)
   (add-hook 'savehist-mode-hook #'projectile--register-savehist-variables))
 
+;;; Per-project sessions
+;;
+;; `projectile-session-mode' gives every project its own `tab-bar' tab.
+;; Each project tab is a native tab-bar tab, so it keeps its own window
+;; layout for free, and is bound to a project by stamping the project
+;; root onto a tab parameter (`projectile-root').  Switching to a project
+;; selects its existing tab (restoring that project's layout) when one is
+;; open, or otherwise opens a fresh, project-named tab and populates it.
+;;
+;; This milestone only deals with live, in-session tabs; persisting the
+;; tabs to disk and restoring them across restarts is planned for a
+;; follow-up, hence the deliberately storage-neutral naming.
+
+;; `tab-bar' is built in since Emacs 27.1, comfortably below Projectile's
+;; floor, so it's always available.
+(require 'tab-bar)
+
+(defcustom projectile-session-default-action 'projectile-find-file
+  "Action used to populate a project's freshly created tab.
+Called with no arguments by `projectile-session-switch-project-action'
+when a project is switched to for the first time (and thus gets a new
+tab).  Any command that takes no arguments will do."
+  :group 'projectile
+  :type 'function
+  :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-session-tab-name-function 'projectile-session-default-tab-name
+  "Function computing the tab name for a project.
+It is called with the project root and must return a string.  The
+default, `projectile-session-default-tab-name', names the tab after the
+project and disambiguates same-named projects with a parent-directory
+component."
+  :group 'projectile
+  :type 'function
+  :package-version '(projectile . "3.2.0"))
+
+(defvar projectile-session--saved-switch-action nil
+  "The `projectile-switch-project-action' saved when the mode was enabled.
+Restored when `projectile-session-mode' is disabled.")
+
+(defun projectile-session--current-tab ()
+  "Return the current tab of the selected frame."
+  (assq 'current-tab (tab-bar-tabs)))
+
+(defun projectile-session--tab-root (tab)
+  "Return the project root stamped on TAB, or nil when it holds no project."
+  (alist-get 'projectile-root (cdr tab)))
+
+(defun projectile-session--set-tab-root (tab root)
+  "Stamp TAB with project ROOT."
+  (setf (alist-get 'projectile-root (cdr tab)) root))
+
+(defun projectile-session--set-tab-name (tab name)
+  "Give TAB the explicit NAME.
+`explicit-name' is set so `tab-bar' doesn't overwrite NAME with its own
+automatic naming.  NAME is also recorded in the `projectile-auto-name'
+tab parameter so `projectile-session--refresh-tab-names' can tell a name
+Projectile assigned from one the user set with `tab-bar-rename-tab'."
+  (setf (alist-get 'name (cdr tab)) name)
+  (setf (alist-get 'explicit-name (cdr tab)) t)
+  (setf (alist-get 'projectile-auto-name (cdr tab)) name))
+
+(defun projectile-session--same-root-p (a b)
+  "Return non-nil when project roots A and B denote the same directory.
+Identical paths match directly.  Otherwise local paths are compared with
+`file-equal-p' (so symlinks and abbreviations still match); remote paths
+never reach `file-equal-p', so an unconnected host doesn't trigger a
+TRAMP round-trip."
+  (and a b
+       (let ((a (file-name-as-directory a))
+             (b (file-name-as-directory b)))
+         (or (string-equal a b)
+             (and (not (or (file-remote-p a) (file-remote-p b)))
+                  (file-equal-p a b))))))
+
+(defun projectile-session--project-tabs ()
+  "Return the open tabs that are bound to a project."
+  (seq-filter #'projectile-session--tab-root (tab-bar-tabs)))
+
+(defun projectile-session--project-tab (root)
+  "Return the open tab bound to project ROOT, or nil when there is none."
+  (seq-find (lambda (tab)
+              (projectile-session--same-root-p
+               (projectile-session--tab-root tab) root))
+            (tab-bar-tabs)))
+
+(defun projectile-session--project-name (root)
+  "Return the project name for ROOT.
+Unlike `projectile-project-name', the name is always derived from ROOT
+via `projectile-project-name-function', so it stays correct while the
+dynamic `projectile-project-name' is bound during a project switch."
+  (funcall projectile-project-name-function root))
+
+(defun projectile-session--parent-components (root)
+  "Return ROOT's ancestor directory names, nearest parent first."
+  (let ((components (split-string (directory-file-name (expand-file-name root))
+                                  "/" t)))
+    ;; drop ROOT's own final component; reverse so the nearest parent leads
+    (reverse (butlast components))))
+
+(defun projectile-session--name-with-parents (root name depth)
+  "Return NAME prefixed with ROOT's DEPTH nearest parent directories.
+With DEPTH 0 the plain NAME is returned; with DEPTH 1 the immediate
+parent is prepended (e.g. \"shared/foo\"), and so on, in path order."
+  (let ((prefix (reverse (seq-take (projectile-session--parent-components root)
+                                   depth))))
+    (if prefix
+        (concat (string-join prefix "/") "/" name)
+      name)))
+
+(defun projectile-session-default-tab-name (root)
+  "Return the tab name for the project rooted at ROOT.
+Use the project's name, prepending as many parent-directory components as
+it takes to stay distinct from every other open project tab that shares
+the name, so same-named checkouts (even ones whose immediate parent also
+matches) remain distinguishable."
+  (let* ((name (projectile-session--project-name root))
+         ;; roots of the other open project tabs that share this name;
+         ;; `delq'/`mapcar' rather than `seq-keep', which is Emacs 29.1+
+         (clashers (delq nil
+                         (mapcar
+                          (lambda (tab)
+                            (let ((other (projectile-session--tab-root tab)))
+                              (and (not (projectile-session--same-root-p other root))
+                                   (equal (projectile-session--project-name other) name)
+                                   other)))
+                          (projectile-session--project-tabs)))))
+    (if (null clashers)
+        name
+      (let ((max-depth (length (projectile-session--parent-components root)))
+            (depth 1))
+        (while (and (< depth max-depth)
+                    (let ((candidate (projectile-session--name-with-parents
+                                      root name depth)))
+                      (seq-some
+                       (lambda (other)
+                         (equal candidate (projectile-session--name-with-parents
+                                           other name depth)))
+                       clashers)))
+          (setq depth (1+ depth)))
+        (projectile-session--name-with-parents root name depth)))))
+
+(defun projectile-session--refresh-tab-names ()
+  "Recompute and apply names for every open project tab.
+Naming every project tab (not just the newest) lets same-named projects
+become disambiguated the moment a clash appears.  Tabs the user renamed
+by hand are left alone: a tab is only renamed while its current name
+still matches the one Projectile last assigned it (its `projectile-auto-name'
+parameter), which a manual `tab-bar-rename-tab' breaks."
+  (dolist (tab (projectile-session--project-tabs))
+    (let ((auto (alist-get 'projectile-auto-name (cdr tab)))
+          (current (alist-get 'name (cdr tab))))
+      (when (or (null auto) (equal auto current))
+        (projectile-session--set-tab-name
+         tab (funcall projectile-session-tab-name-function
+                      (projectile-session--tab-root tab))))))
+  (force-mode-line-update t))
+
+(defun projectile-session--make-project-tab (root)
+  "Create and select a fresh tab bound to project ROOT.
+The new tab is stamped with ROOT and named; populating it is left to the
+caller."
+  (tab-bar-new-tab)
+  (projectile-session--set-tab-root (projectile-session--current-tab) root)
+  (projectile-session--refresh-tab-names))
+
+(defun projectile-session--select-tab (tab)
+  "Select TAB, restoring the project layout it holds."
+  (when-let* ((index (cl-position tab (tab-bar-tabs) :test #'eq)))
+    (tab-bar-select-tab (1+ index))))
+
+(defun projectile-session--adopt-current-tab ()
+  "Bind the current tab to the current project, when there is one.
+Called on mode enable so the tab you're already sitting on is adopted
+rather than left unowned."
+  (when-let* ((root (projectile-project-root))
+              (tab (projectile-session--current-tab)))
+    (unless (projectile-session--tab-root tab)
+      (projectile-session--set-tab-root tab root)
+      (projectile-session--refresh-tab-names))))
+
+(defun projectile-session-switch-project-action ()
+  "Tab-aware switch action installed by `projectile-session-mode'.
+When the target project already has a tab, select it and restore its
+live window layout instead of re-running the switch action.  Otherwise
+create a new tab for the project, stamp and name it, and populate it by
+calling `projectile-session-default-action'."
+  (let* ((root (projectile-project-root))
+         (tab (and root (projectile-session--project-tab root))))
+    (cond
+     (tab (projectile-session--select-tab tab))
+     (root
+      (projectile-session--make-project-tab root)
+      ;; Bind `default-directory' so the populate action lists the new
+      ;; project regardless of what buffer `tab-bar-new-tab' left current
+      ;; (e.g. a non-default `tab-bar-new-tab-choice').
+      (let ((default-directory root))
+        (funcall projectile-session-default-action)))
+     (t (funcall projectile-session-default-action)))))
+
+;;;###autoload
+(defun projectile-session-switch-to-buffer ()
+  "Switch to a buffer belonging to the current tab's project.
+Complete over just the buffers of the project bound to the current tab.
+When the current tab holds no project, fall back to the plain
+`switch-to-buffer'."
+  (interactive)
+  (let ((root (projectile-session--tab-root (projectile-session--current-tab))))
+    (if root
+        (switch-to-buffer
+         (projectile-completing-read
+          "Switch to project buffer: "
+          (mapcar #'buffer-name (projectile-project-buffers root))))
+      (call-interactively #'switch-to-buffer))))
+
+;;;###autoload
+(define-minor-mode projectile-session-mode
+  "Global minor mode giving each project its own `tab-bar' tab.
+
+When enabled, `tab-bar-mode' is turned on and project switching becomes
+tab-aware: switching to a project selects its existing tab, restoring
+that project's live window layout, when one is open; otherwise it opens
+a fresh tab dedicated to the project and populates it via
+`projectile-session-default-action'.  Each project tab is stamped with
+its root and named after the project (see
+`projectile-session-tab-name-function').
+
+If the mode is enabled from inside a project, the tab you're already on
+is adopted so it isn't left unowned.
+
+Disabling the mode restores `projectile-switch-project-action' to the
+value it had when the mode was enabled; it leaves `tab-bar-mode' and any
+existing tabs untouched."
+  :group 'projectile
+  :global t
+  :require 'projectile
+  (cond
+   (projectile-session-mode
+    (unless (bound-and-true-p tab-bar-mode)
+      (tab-bar-mode 1))
+    ;; Guard the save so re-enabling an already-on mode (config re-eval, a
+    ;; startup hook, `custom-set' plus code) can't capture our own action as
+    ;; the "saved" value and lose the user's real one on the next disable.
+    (unless (eq projectile-switch-project-action
+                #'projectile-session-switch-project-action)
+      (setq projectile-session--saved-switch-action projectile-switch-project-action))
+    (setq projectile-switch-project-action #'projectile-session-switch-project-action)
+    (projectile-session--adopt-current-tab))
+   (t
+    (when (eq projectile-switch-project-action
+              #'projectile-session-switch-project-action)
+      (setq projectile-switch-project-action
+            projectile-session--saved-switch-action))
+    (setq projectile-session--saved-switch-action nil))))
+
 (provide 'projectile)
 
 ;;; projectile.el ends here
