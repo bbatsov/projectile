@@ -611,8 +611,8 @@ memory until you invalidate it.
 
 The following knobs are most relevant for remote use:
 
-* `projectile-indexing-method` - leave at the default (`hybrid`) or set
-  to `alien`.  *Don't* use `native` over TRAMP: native indexing walks
+* `projectile-indexing-method` - leave at the default (`alien`) or set
+  to `hybrid`.  *Don't* use `native` over TRAMP: native indexing walks
   the tree with one `directory-files` call per subdirectory, which is
   one remote round-trip per subdirectory.  `hybrid` and `alien` use a
   single `git ls-files` / `fd` shell-out.
@@ -880,7 +880,7 @@ Both of these degrade properly when not inside a project.
 == Limit the number of project file buffers
 
 Projectile can be configured to keep a maximum number of file buffers of a project
-that are opened at one point. The custom variable `projectile-max-buffer-count`
+that are opened at one point. The custom variable `projectile-max-file-buffer-count`
 can be set to an integer that will be the buffer count cap. If this limit is
 reached, by opening a new file, Projectile will close the least recent buffer of
 the current project. If the variable is `nil`, there will be no cap on the buffer

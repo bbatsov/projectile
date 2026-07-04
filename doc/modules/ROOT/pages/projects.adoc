@@ -52,7 +52,7 @@ are the configuration files of various build tools. Out of the box the following
 
 | Universal
 | `meson.build`
-|  project file
+| Meson project file
 
 | Universal
 | `default.nix`
@@ -83,7 +83,7 @@ are the configuration files of various build tools. Out of the box the following
 | CMake
 
 | Go-task/Task
-| `Taskfile.yaml`
+| `Taskfile.yml`
 | Go-task/Task project file
 
 | PHP
@@ -148,7 +148,7 @@ are the configuration files of various build tools. Out of the box the following
 
 | Java & friends
 | `application.yml`
-| Gradle project file
+| Grails project file
 
 | Java & friends
 | `build.gradle`
@@ -157,10 +157,6 @@ are the configuration files of various build tools. Out of the box the following
 | Java & friends
 | `gradlew`
 | Gradle wrapper script
-
-| Java & friends
-| `application.yaml`
-| Gradle project file
 
 | Scala
 | `build.sbt`
@@ -171,12 +167,8 @@ are the configuration files of various build tools. Out of the box the following
 | Mill project file
 
 | Scala
-| `.bloop`
+| `.bloop/bloop.settings.json`
 | Bloop project file
-
-| Ensime
-| `.ensime`
-| Ensime configuration file
 
 | Clojure
 | `project.clj`
@@ -596,7 +588,8 @@ Projectile includes a couple of helpers to generate commonly used custom functio
 | Relates files with suffix and extension as :test and :impl.
 |===
 
-Each helper means `projectile-related-files-fn-helper-name` function.
+Each helper corresponds to a `projectile-related-files-fn-<name>` function
+(e.g. the `groups` row is `projectile-related-files-fn-groups`).
 
 ==== Example usage of projectile-related-files-fn-helpers
 
@@ -1272,7 +1265,7 @@ you e.g. test a command-line program with `projectile-run-project`.
 
 [source,elisp]
 ----
-(setq projectile-comint-mode t)
+(setq projectile-compile-use-comint-mode t)
 ----
 
 == Project Buffers
@@ -1397,7 +1390,7 @@ external command or an Emacs Lisp function:
 
 [source,elisp]
 ----
-(setq projectile-test-cmd #'custom-test-function)
+(setq projectile-project-test-cmd #'custom-test-function)
 ----
 
 In addition caching of commands can be disabled by setting the variable
@@ -1491,6 +1484,7 @@ arguments. Each task keeps its own command history at that prompt.
 in the current project, including any ad-hoc edits you made to its command,
 without asking again (you confirmed it the first time). It survives Emacs
 restarts when `savehist-mode` is enabled.
+
 == Running the test at point
 
 While `projectile-test-project` runs a project's whole test suite,

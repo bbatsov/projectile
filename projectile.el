@@ -333,7 +333,7 @@ takes effect the next time a project's file list is cached."
                (projectile--watch-all-cached-projects))
            (when (fboundp 'projectile--teardown-all-watches)
              (projectile--teardown-all-watches))))
-  :package-version '(projectile . "3.2.0"))
+  :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-watch-directory-limit 512
   "Maximum number of file-notify watches to register per project.
@@ -349,7 +349,7 @@ Only relevant when `projectile-auto-update-cache-with-watches' is
 enabled."
   :group 'projectile
   :type 'integer
-  :package-version '(projectile . "3.2.0"))
+  :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-require-project-root 'prompt
   "Require the presence of a project root to operate when true.
@@ -2436,7 +2436,6 @@ discover projects there."
               (projectile-add-known-project dir)))))
     (message "Project search path directory %s doesn't exist" directory)))
 
-;;;###autoload
 (defvar projectile--search-path-discovered nil
   "Non-nil once `projectile-project-search-path' has been auto-discovered.
 Used to run automatic discovery once per session instead of on every
@@ -9980,6 +9979,9 @@ PROPS is a plist of:
 (projectile-dispatch--define projectile-dispatch-find-other-file projectile-find-other-file
   :other-window projectile-find-other-file-other-window
   :other-frame projectile-find-other-file-other-frame)
+(projectile-dispatch--define projectile-dispatch-find-file-of-kind projectile-find-file-of-kind
+  :other-window projectile-find-file-of-kind-other-window
+  :other-frame projectile-find-file-of-kind-other-frame)
 (projectile-dispatch--define projectile-dispatch-dired projectile-dired
   :other-window projectile-dired-other-window
   :other-frame projectile-dired-other-frame)
@@ -10060,7 +10062,7 @@ window or frame (file/buffer/project commands)."
       ("E" "edit .dir-locals" projectile-edit-dir-locals)
       ("T" "test file" projectile-dispatch-find-test-file)
       ("t" "toggle impl/test" projectile-dispatch-impl-or-test)
-      ("j" "file of kind" projectile-find-file-of-kind)
+      ("j" "file of kind" projectile-dispatch-find-file-of-kind)
       ("J" "toggle related" projectile-toggle-related-file)]
      ["Buffers"
       ("b" "switch buffer" projectile-dispatch-switch-to-buffer)
@@ -10142,7 +10144,9 @@ window or frame (file/buffer/project commands)."
          ["Find directory" projectile-find-dir]
          ["Find file in directory" projectile-find-file-in-directory]
          ["Find other file" projectile-find-other-file]
-         ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test])
+         ["Find file of kind" projectile-find-file-of-kind]
+         ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
+         ["Toggle between related files" projectile-toggle-related-file])
         ("Buffers"
          ["Switch to buffer" projectile-switch-to-buffer]
          ["Kill project buffers" projectile-kill-buffers]

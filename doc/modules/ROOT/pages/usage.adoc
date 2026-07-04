@@ -166,12 +166,14 @@ You need to know only a handful of Projectile commands to start benefiting from 
 * Find references in project (kbd:[s-p ?] or kbd:[s-p s x])
 * Invoke any Projectile command via the Projectile dispatch menu (kbd:[s-p m])
 * Toggle between implementation and test (kbd:[s-p t])
-* Toggle between related files (e.g. `foo.h` <-> `foo.c` and `Gemfile` <-> `Gemfile.lock`) (kbd:[s-p a])
+* Find another file with the same base name but a different extension, e.g. `foo.h` <-> `foo.c` (kbd:[s-p a])
+* Find a project file of a given kind, or jump between related files of a project type (e.g. a Rails model and its controller) (kbd:[s-p j] / kbd:[s-p J])
 * Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
 * Run various pre-defined project commands like:
 ** build/compile project (kbd:[s-p c c])
 ** test project (kbd:[s-p c t])
 ** install project (kbd:[s-p c i])
+** package project (kbd:[s-p c p])
 ** run project (kbd:[s-p c r])
 
 The next section lists many more commands, but the basics can get you pretty far.
@@ -324,6 +326,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p c i]
 | Runs a standard install command for your type of project.
 
+| kbd:[s-p c p]
+| Runs a standard package command for your type of project.
+
 | kbd:[s-p c r]
 | Runs a standard run command for your type of project.
 
@@ -341,6 +346,18 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p 5 t]
 | Jump to implementation or test file in other frame.
+
+| kbd:[s-p j]
+| Find a project file of a chosen kind (e.g. a Rails model or controller), using the project type's `:file-kinds`.
+
+| kbd:[s-p 4 j]
+| Find a project file of a chosen kind and show it in another window.
+
+| kbd:[s-p 5 j]
+| Find a project file of a chosen kind and show it in another frame.
+
+| kbd:[s-p J]
+| Jump from the current file to a related file of another kind, cycling through them on repeated presses.
 
 | kbd:[s-p z]
 | Adds the currently visited file to the cache.
@@ -512,7 +529,7 @@ helpful commands like `xref-find-references` (kbd:[M-?]), so it's useful to teac
 it about Projectile's project discovery logic.
 
 TIP: Projectile provides its own alternative to `xref-find-references` that's named
-`projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s-x]). It's a backend-agnostic
+`projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s x]). It's a backend-agnostic
 *textual* search: it greps the project for the symbol, scoped to the project root and
 honouring Projectile's ignore configuration (`.projectile' and the globally-ignored
 files/directories), just like `projectile-grep` and friends. Use it when you don't have

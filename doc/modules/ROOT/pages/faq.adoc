@@ -52,7 +52,7 @@ A few things to know:
 * Switching `projectile-indexing-method` to `'native` over TRAMP is
   generally a bad idea: native indexing walks the tree with one
   remote `directory-files` call per subdirectory.  Stick with the
-  default `hybrid` (or `alien`) so a single `git ls-files` / `fd`
+  default `alien` (or `hybrid`) so a single `git ls-files` / `fd`
   shell-out lists the whole project.
 * `fd` is auto-detected per remote host (cached for the session) -
   whatever you have installed locally is irrelevant to what runs on

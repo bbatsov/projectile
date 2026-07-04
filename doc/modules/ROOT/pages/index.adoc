@@ -53,7 +53,7 @@ Here are some of Projectile's features in no particular order:
 * automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
 
-There's also a rich ecosystem of third-party xref:extensions[Projectile extensions] that add even more features.
+There's also a rich ecosystem of third-party xref:extensions.adoc[Projectile extensions] that add even more features.
 
 == Projectile in Action
 
