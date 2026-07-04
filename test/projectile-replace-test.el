@@ -234,6 +234,45 @@ no matter which of rg/ag/ack happens to be installed."
       (expect (projectile-replace-test--contents "open.txt")
               :to-equal "alpha N\nbeta N\n"))))
 
+;; These pin the exact command string each search tool's constructor
+;; emits, guarding the descriptor-driven implementation against drift.
+;; SEARCH-TERM is passed pre-quoted, matching how `projectile-files-with-string'
+;; calls these.
+(describe "projectile search-command constructors"
+  (describe "without a file-extension filter"
+    (it "builds the rg command"
+      (expect (projectile--rg-construct-command "foo")
+              :to-equal "rg -liF --no-heading --color never foo"))
+    (it "builds the ag command"
+      (expect (projectile--ag-construct-command "foo")
+              :to-equal "ag --literal --ignore-case --nocolor --noheading -l foo"))
+    (it "builds the ack command"
+      (expect (projectile--ack-construct-command "foo")
+              :to-equal "ack --literal --ignore-case --nocolor -l foo"))
+    (it "builds the git-grep command"
+      (expect (projectile--git-grep-construct-command "foo")
+              :to-equal "git grep -HlIiF foo"))
+    (it "builds the grep command"
+      (expect (projectile--grep-construct-command "foo")
+              :to-equal "grep -rHlIiF foo .")))
+
+  (describe "with a file-extension filter"
+    (it "builds the rg command with a glob"
+      (expect (projectile--rg-construct-command "foo" "*.el")
+              :to-equal "rg -liF --no-heading --color never -g '*.el' foo"))
+    (it "builds the ag command with an anchored regexp"
+      (expect (projectile--ag-construct-command "foo" "*.el")
+              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\.el$ foo"))
+    (it "builds the ack command as a piped listing"
+      (expect (projectile--ack-construct-command "foo" "*.el")
+              :to-equal "ack -g '\\.el$' | ack --literal --ignore-case --nocolor -l -x foo"))
+    (it "builds the git-grep command with a pathspec"
+      (expect (projectile--git-grep-construct-command "foo" "*.el")
+              :to-equal "git grep -HlIiF foo  -- '*.el'"))
+    (it "builds the grep command with an include"
+      (expect (projectile--grep-construct-command "foo" "*.el")
+              :to-equal "grep -rHlIiF foo . --include '*.el'"))))
+
 (describe "projectile-files-with-string"
   (it "lists files case-insensitively, leaving case handling to the replace itself (#1115)"
     (projectile-replace-test--with-project

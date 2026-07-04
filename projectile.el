@@ -7304,6 +7304,11 @@ Returns a list of expanded filenames."
 ;; matching happens in Emacs afterwards.  A case-sensitive listing would
 ;; silently drop files that a case-insensitive replacement should have
 ;; touched (#1115).
+;;
+;; This alist is the customizable source of each tool's *base* command.
+;; How the optional file-extension filter is layered on top lives in
+;; `projectile--search-tool-descriptors', and both are combined by
+;; `projectile--construct-files-with-string-command'.
 (defvar projectile-files-with-string-commands
   '((rg . "rg -liF --no-heading --color never ")
     (ag . "ag --literal --ignore-case --nocolor --noheading -l ")
@@ -7317,65 +7322,82 @@ Returns a list of expanded filenames."
     ;; -F: interpret pattern as fixed string, not regexp
     (grep . "grep -rHlIiF %s .")))
 
+;; One descriptor per search tool, capturing how the (optional) file
+;; extension filter is expressed.  Combined with the tool's base command
+;; from `projectile-files-with-string-commands', this drives
+;; `projectile--construct-files-with-string-command' so the five
+;; per-tool constructors need not repeat the same skeleton.  Keys:
+;;
+;;   :kind        how the filter attaches to the base command --
+;;                `prefix' inserts it between the base and the search term
+;;                (rg, ag); `suffix' appends it after the whole command
+;;                (git, grep); `pipe' feeds a separate file listing into
+;;                the base command (ack).
+;;   :ext-regexp  when non-nil, the extension glob is turned into an
+;;                anchored regexp via `projectile--search-glob-to-regexp'
+;;                (ag, ack) rather than passed through verbatim.
+;;   :ext-open    text emitted just before the extension.
+;;   :ext-close   text emitted just after the extension.
+;;   :term-format when non-nil, the base command is a format string whose
+;;                %s is the search term (grep) rather than a prefix the
+;;                term is concatenated onto.
+(defvar projectile--search-tool-descriptors
+  '((rg   . (:kind prefix :ext-open "-g '" :ext-close "' "))
+    (ag   . (:kind prefix :ext-regexp t :ext-open "-G " :ext-close "$ "))
+    (ack  . (:kind pipe :ext-regexp t))
+    (git  . (:kind suffix :ext-open "  -- '" :ext-close "'"))
+    (grep . (:kind suffix :term-format t :ext-open " --include '" :ext-close "'"))))
+
+(defun projectile--search-glob-to-regexp (file-ext)
+  "Turn extension glob FILE-EXT into the regexp body used by ag/ack.
+Dots are escaped and \"*\" wildcards dropped, e.g. \"*.el\" becomes
+\"\\.el\"; the caller anchors it with a trailing \"$\"."
+  (replace-regexp-in-string
+   "\\*" ""
+   (replace-regexp-in-string "\\." "\\\\." file-ext)))
+
+(defun projectile--construct-files-with-string-command (tool search-term &optional file-ext)
+  "Build TOOL's files-with-string command for SEARCH-TERM.
+The base command comes from `projectile-files-with-string-commands'
+and, when FILE-EXT is a string, the extension filter described by
+`projectile--search-tool-descriptors' is layered on top."
+  (let* ((base (alist-get tool projectile-files-with-string-commands))
+         (desc (alist-get tool projectile--search-tool-descriptors))
+         (term-format (plist-get desc :term-format))
+         ;; the plain, no-extension command, shared by every :kind
+         (core (if term-format (format base search-term)
+                 (concat base search-term))))
+    (if (not (stringp file-ext))
+        core
+      (let ((ext (if (plist-get desc :ext-regexp)
+                     (projectile--search-glob-to-regexp file-ext)
+                   file-ext))
+            (open (plist-get desc :ext-open))
+            (close (plist-get desc :ext-close)))
+        (pcase (plist-get desc :kind)
+          ('prefix (concat base open ext close search-term))
+          ('suffix (concat core open ext close))
+          ('pipe (concat "ack -g '" ext "$' | " base "-x " search-term)))))))
+
 (defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."
-  (if (stringp file-ext)
-      (concat (alist-get 'rg projectile-files-with-string-commands)
-              "-g '"
-              file-ext
-              "' "
-              search-term)
-    (concat (alist-get 'rg projectile-files-with-string-commands)
-            search-term)))
+  (projectile--construct-files-with-string-command 'rg search-term file-ext))
 
 (defun projectile--ag-construct-command (search-term &optional file-ext)
   "Construct Ag option to search files by the extension FILE-EXT."
-  (if (stringp file-ext)
-      (concat (alist-get 'ag projectile-files-with-string-commands)
-              "-G "
-              (replace-regexp-in-string
-               "\\*" ""
-               (replace-regexp-in-string "\\." "\\\\." file-ext))
-              "$ "
-              search-term)
-    (concat (alist-get 'ag projectile-files-with-string-commands)
-            search-term)))
+  (projectile--construct-files-with-string-command 'ag search-term file-ext))
 
 (defun projectile--ack-construct-command (search-term &optional file-ext)
   "Construct Ack option to search files by the extension FILE-EXT."
-  (if (stringp file-ext)
-      (concat "ack -g '"
-              (replace-regexp-in-string
-               "\\*" ""
-               (replace-regexp-in-string "\\." "\\\\." file-ext))
-              "$' | "
-              (alist-get 'ack projectile-files-with-string-commands)
-              "-x "
-              search-term)
-    (concat (alist-get 'ack projectile-files-with-string-commands)
-            search-term)))
+  (projectile--construct-files-with-string-command 'ack search-term file-ext))
 
 (defun projectile--git-grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
-  (if (stringp file-ext)
-      (concat (alist-get 'git projectile-files-with-string-commands)
-              search-term
-              "  -- '"
-              file-ext
-              "'")
-    (concat (alist-get 'git projectile-files-with-string-commands)
-            search-term)))
+  (projectile--construct-files-with-string-command 'git search-term file-ext))
 
 (defun projectile--grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
-  (if (stringp file-ext)
-      (concat (format (alist-get 'grep projectile-files-with-string-commands)
-                      search-term)
-              " --include '"
-              file-ext
-              "'")
-    (format (alist-get 'grep projectile-files-with-string-commands)
-            search-term)))
+  (projectile--construct-files-with-string-command 'grep search-term file-ext))
 
 (defun projectile-files-with-string (string directory &optional file-ext)
   "Return a list of all files containing STRING in DIRECTORY.
