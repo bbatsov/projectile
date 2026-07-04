@@ -26,3 +26,11 @@
         `(:or ,eldev-standard-excludes
               "./projectile-consult.el"
               "./test/projectile-consult-test.el")))
+
+;; Eldev regenerates `projectile-pkg.el' from the package headers on every
+;; build.  Some CI images then byte-compile the leftover copy and, under
+;; `--warnings-as-errors', fail on its missing `lexical-binding' cookie (which
+;; a generated `define-package' file doesn't carry).  It's generated metadata,
+;; not project source, so keep it out of the build/lint filesets.
+(setf eldev-standard-excludes
+      `(:or ,eldev-standard-excludes "./projectile-pkg.el"))
