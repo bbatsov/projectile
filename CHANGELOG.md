@@ -4,6 +4,10 @@
 
 ### New features
 
+* Add declarative "file kinds", letting a project type describe categories of files (e.g. Rails models, controllers and views) via the new `:file-kinds` keyword of `projectile-register-project-type`.
+  * `projectile-find-file-of-kind` (`j`) prompts for a kind and completes over just the project files of that kind.
+  * `projectile-toggle-related-file` (`J`) generalizes `projectile-toggle-between-implementation-and-test`: it jumps to related files of other kinds, jumping straight when there's one, prompting when there are several, and cycling through them on repeated presses.
+  * The `rails-test`, `rails-rspec` and `django` project types ship with ready-made `:file-kinds` tables. Related files are keyed by their namespaced path, so a top-level `UsersController` relates to the top-level `User` model rather than an `Admin::User`.
 * `projectile-find-file` and `projectile-find-file-dwim` now rank the files you work with first, ordering completion candidates by how often and how recently you've visited them (with decay).
   * The ranking is applied through completion metadata, so it works with any completion UI and under every indexing method, including `alien` (which `projectile-sort-order` never reached).
   * Controlled by `projectile-enable-frecency` (default on); the per-project history is persisted in `projectile-frecency-file` and capped by `projectile-frecency-max-files`.

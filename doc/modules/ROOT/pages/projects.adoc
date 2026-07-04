@@ -402,6 +402,9 @@ Below is a listing of all the available options for `projectile-register-project
 | :related-files-fn
 | A function to specify test/impl/other files in a more flexible way.
 
+| :file-kinds
+| An alist declaratively describing the kinds of files the project type has (e.g. Rails models, controllers and views). See <<finding-files-by-kind,Finding files by kind>>.
+
 | :tasks
 | An alist of named tasks of the form `(TASK-NAME . COMMAND)`, run via `projectile-run-task`. See <<project-tasks,Project Tasks>>.
 |===
@@ -614,6 +617,106 @@ Each helper means `projectile-related-files-fn-helper-name` function.
    ;; ...
    :related-files-fn my/related-files)
 ----
+
+[#finding-files-by-kind]
+=== Finding files by kind
+
+Many frameworks organize files into well-known _kinds_ - Rails has models,
+controllers, views and helpers; Django has models, views, urls and admin
+modules; and so on. The `:file-kinds` option lets a project type describe
+these kinds declaratively, which powers two commands:
+
+* `projectile-find-file-of-kind` (`s-p j`) - prompt for a kind and then
+  complete over just the project files of that kind.
+* `projectile-toggle-related-file` (`s-p J`) - the generalized counterpart
+  of `projectile-toggle-between-implementation-and-test`: from a file, jump
+  to the related files of _other_ kinds. When only one related kind exists
+  it jumps immediately; when several exist the first invocation prompts for
+  the kind and repeated invocations cycle through them in table order.
+
+`:file-kinds` is an alist of `(KIND . SPEC)` where `KIND` is a keyword (e.g.
+`:model`) and `SPEC` is a plist:
+
+|===
+| Key | Value
+
+| :path
+| A root-relative directory prefix the file must live under, e.g. `"app/models/"`.
+
+| :prefix
+| A basename prefix the file must have.
+
+| :suffix
+| A basename suffix the file must have, e.g. `"_controller.rb"`.
+
+| :key-fn
+| A function of the file's project-relative path returning its _resource key_ string, or nil when the file is not of this kind. When omitted, the key is the basename with `:prefix`/`:suffix` (or, lacking a suffix, the extension) stripped.
+
+| :file-fn
+| Reserved for a future inverse of `:key-fn`; currently unused.
+|===
+
+A file belongs to a kind when it lives under `:path` (if given) and its
+basename matches `:prefix`/`:suffix` (if given). Two files of different
+kinds are _related_ when their resource keys are equal.
+
+Under the hood `:file-kinds` compiles down to a `:related-files-fn`, so it
+rides on the same machinery as the related-file commands above. When a
+project type sets both `:file-kinds` and `:related-files-fn`, the two are
+combined, so declarative and hand-written relations coexist.
+
+==== Built-in examples
+
+The `rails-test`, `rails-rspec` and `django` project types ship with
+`:file-kinds` tables. Rails relates a resource's model, controller, views
+and helper by a shared singular key:
+
+[source,elisp]
+----
+;; app/models/user.rb          <-> :model  (key "user")
+;; app/controllers/users_controller.rb <-> :controller (key "user")
+;; app/views/users/*           <-> :view   (key "user")
+;; app/helpers/users_helper.rb <-> :helper (key "user")
+----
+
+Because controllers, helpers and views are named after the _plural_ resource
+while models use the _singular_, the Rails key functions singularize the
+name via `projectile--singularize`. That helper only handles the regular
+English cases (a trailing `-ies` becomes `-y`, `-ses`/`-xes`/`-zes`/`-ches`/
+`-shes` drop the `-es`, and any other trailing `-s` is dropped); irregular
+nouns (person/people, child/children) are not handled and would need a
+custom `:key-fn`.
+
+Django needs no inflection - all of an app's files live in the same
+directory, so the key is simply that directory's name:
+
+[source,elisp]
+----
+;; polls/models.py <-> polls/views.py <-> polls/urls.py  (key "polls")
+----
+
+==== Defining kinds for another framework
+
+To teach Projectile about another framework's kinds, register (or update) a
+project type with a `:file-kinds` table. For example, a hypothetical
+framework whose components live under `src/components/` as
+`foo.component.ts` with matching `foo.template.html` and `foo.style.css`:
+
+[source,elisp]
+----
+(projectile-update-project-type
+ 'my-framework
+ :file-kinds
+ '((:component . (:path "src/components/" :suffix ".component.ts"))
+   (:template  . (:path "src/components/" :suffix ".template.html"))
+   (:style     . (:path "src/components/" :suffix ".style.css"))))
+----
+
+The default `:key-fn` strips each kind's `:suffix`, so all three files
+yield the key `"foo"` and relate to one another. Supply a custom `:key-fn`
+only when the key can't be derived from a simple prefix/suffix - for
+instance when it lives in a directory name (as with Rails views and Django
+apps) or needs inflection.
 
 === Editing Existing Project Types
 
