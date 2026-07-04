@@ -75,7 +75,31 @@
      (with-temp-buffer
        (setq buffer-file-name "/elsewhere/a.el")
        (projectile--frecency-record "/proj/"))
-     (expect (gethash "/proj/" projectile--frecency-table) :to-be nil))))
+     (expect (gethash "/proj/" projectile--frecency-table) :to-be nil)))
+
+  (it "tracks files visited through a symlinked project root"
+    ;; `projectile-project-root' is symlink-resolved; a file opened via
+    ;; the symlinked path must still be recorded, and under the resolved
+    ;; relative name (matching the completion candidates).
+    (projectile-test-with-frecency
+     (let* (;; `projectile-project-root' returns the symlink-resolved root.
+            (root (file-name-as-directory (file-truename (make-temp-file "frec-real" t))))
+            (link (concat (make-temp-file "frec-link") "-l")))
+       (unwind-protect
+           (progn
+             (make-directory (expand-file-name "src" root))
+             (with-temp-file (expand-file-name "src/a.el" root))
+             (make-symbolic-link (directory-file-name root) link)
+             (with-temp-buffer
+               ;; visit via the symlink, record against the resolved root
+               (setq buffer-file-name
+                     (expand-file-name "src/a.el" (file-name-as-directory link)))
+               (projectile--frecency-record root))
+             (let ((files (gethash root projectile--frecency-table)))
+               (expect files :not :to-be nil)
+               (expect (gethash "src/a.el" files) :not :to-be nil)))
+         (delete-directory root t)
+         (when (file-symlink-p link) (delete-file link)))))))
 
 (describe "projectile--frecency-score"
   (it "ranks a recent visit above an old one with the same count"

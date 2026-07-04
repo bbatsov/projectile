@@ -2299,11 +2299,14 @@ TRAMP round-trips."
              project-root
              buffer-file-name
              (not (file-remote-p project-root)))
-    (let ((file (file-relative-name buffer-file-name project-root)))
-      ;; Skip files that don't sit under the root as spelled - either
-      ;; genuinely outside the project, or reached through a
-      ;; differently-spelled root (e.g. a symlinked path).  Tracking a
-      ;; ../-relative name would never match a completion candidate.
+    ;; `projectile-project-root' is symlink-resolved, so resolve the
+    ;; visited file the same way; otherwise a project reached through a
+    ;; symlink produces a `../'-relative name and tracking is dropped for
+    ;; the whole project.  The recorded name then also matches the
+    ;; completion candidates, which are relative to the resolved root.
+    (let ((file (projectile--project-relative-name
+                 (file-truename buffer-file-name) project-root)))
+      ;; Still skip anything genuinely outside the project.
       (unless (string-prefix-p ".." file)
         (let* ((table (projectile--frecency-data))
                (files (or (gethash project-root table)
