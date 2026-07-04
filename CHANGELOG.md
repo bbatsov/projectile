@@ -28,6 +28,8 @@
 
 * Project root detection and project-type detection now probe marker files with a single directory listing per directory level instead of one file stat per marker, collapsing dozens of sequential round-trips over TRAMP into one.
   * Marker matching is exact-case as a result, even on case-insensitive filesystems. This corrected the `gnumake` type's marker to GNU make's actual `GNUmakefile` spelling, and the `make` type now recognizes a lowercase `makefile` too.
+* `projectile-auto-discover` now defaults to `t`, so setting `projectile-project-search-path` is enough to have those projects discovered (no change for anyone without a search path).
+  * The scan now runs once per session on the first project switch, rather than on every switch, and remote (TRAMP) search-path entries are skipped.
 * [#1771](https://github.com/bbatsov/projectile/issues/1771), [#740](https://github.com/bbatsov/projectile/issues/740): Hybrid indexing now applies the dirconfig glob patterns (`-`/`!` entries without a leading slash); previously they were silently ignored under `hybrid` and only `/`-prefixed path entries took effect.
 * [#1941](https://github.com/bbatsov/projectile/issues/1941): Dirconfig glob patterns now follow `.gitignore`-like rules, identical under `native` and `hybrid` indexing (previously `native` used loose string suffixes, so `-build` also ignored `mybuild`, and expanded globs per directory level, so matching differed from level to level):
   * a slashless pattern matches the file name or any directory segment at any depth;

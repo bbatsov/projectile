@@ -272,13 +272,20 @@ A value of nil means the cache never expires."
                  (integer :tag "Seconds"))
   :package-version '(projectile . "1.0.0"))
 
-(defcustom projectile-auto-discover nil
-  "Whether to discover projects when project switching commands are invoked.
+(defcustom projectile-auto-discover t
+  "Whether to discover projects under `projectile-project-search-path'.
+When non-nil, the projects under the search path are discovered and
+remembered the first time a project-switching command runs in an Emacs
+session (see `projectile-discover-projects-in-search-path').
+
+This has no effect unless `projectile-project-search-path' is set, so
+the default is harmless out of the box; point the search path at your
+projects directory and they'll be picked up automatically.
 
 See also `projectile-project-search-path'."
   :group 'projectile
   :type 'boolean
-  :package-version '(projectile . "2.3.0"))
+  :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-auto-cleanup-known-projects nil
   "Whether to cleanup projects when project switching commands are invoked.
@@ -2370,7 +2377,10 @@ discover projects there."
             (dolist (dir (ignore-errors
                            (directory-files directory t
                                             directory-files-no-dot-files-regexp)))
-              (when (file-directory-p dir)
+              (when (and (file-directory-p dir)
+                         ;; Don't walk into remote trees during discovery -
+                         ;; that would issue a TRAMP round-trip per directory.
+                         (not (file-remote-p dir)))
                 (projectile-discover-projects-in-directory dir (1- depth))))
             (progress-reporter-done progress-reporter))
         (when (projectile-project-p directory)
@@ -2380,14 +2390,23 @@ discover projects there."
     (message "Project search path directory %s doesn't exist" directory)))
 
 ;;;###autoload
+(defvar projectile--search-path-discovered nil
+  "Non-nil once `projectile-project-search-path' has been auto-discovered.
+Used to run automatic discovery once per session instead of on every
+project-switch command.")
+
 (defun projectile-discover-projects-in-search-path ()
   "Discover projects in `projectile-project-search-path'.
-Invoked automatically when `projectile-mode' is enabled."
+When called interactively, always re-scans; the automatic scan (see
+`projectile-auto-discover') runs this once per session."
   (interactive)
+  (setq projectile--search-path-discovered t)
   (dolist (path projectile-project-search-path)
-    (if (consp path)
-        (projectile-discover-projects-in-directory (car path) (cdr path))
-      (projectile-discover-projects-in-directory path 1))))
+    ;; Skip remote entries: discovery would walk them over TRAMP.
+    (unless (file-remote-p (if (consp path) (car path) path))
+      (if (consp path)
+          (projectile-discover-projects-in-directory (car path) (cdr path))
+        (projectile-discover-projects-in-directory path 1)))))
 
 
 (defun delete-file-projectile-remove-from-cache (filename &optional _trash)
@@ -8632,7 +8651,9 @@ enabled."
     (projectile-load-known-projects))
   (when projectile-auto-cleanup-known-projects
     (projectile--cleanup-known-projects))
-  (when (and projectile-auto-discover projectile-project-search-path)
+  (when (and projectile-auto-discover
+             projectile-project-search-path
+             (not projectile--search-path-discovered))
     (projectile-discover-projects-in-search-path))
   ;; return the list of known projects
   projectile-known-projects)

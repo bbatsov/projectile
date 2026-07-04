@@ -66,17 +66,22 @@ Recursive discovery is configured by specifying the search depth in a cons cell:
 (setq projectile-project-search-path '("~/projects/" "~/work/" ("~/github" . 1)))
 ----
 
-You can manually trigger the project
-discovery using `M-x projectile-discover-projects-in-search-path` or you can
-use `projectile-auto-discover` to discover projects on the search path automatically:
+Automatic discovery is controlled by `projectile-auto-discover`, which
+is enabled by default. The search path is scanned the first time a
+project-switching command runs in an Emacs session (not on every switch),
+so pointing `projectile-project-search-path` at your projects directory
+is all you need. To turn the automatic scan off:
 
 [source,elisp]
 ----
-(setq projectile-auto-discover t)
+(setq projectile-auto-discover nil)
 ----
 
-NOTE: Keep in mind the auto-discovery will be triggered every time you switch projects,
-so it's probably not a good idea if you have many projects on your search path.
+You can always trigger a fresh scan manually with `M-x
+projectile-discover-projects-in-search-path`.
+
+NOTE: Remote (TRAMP) entries in the search path are skipped during
+discovery, so an unreachable remote host can't stall a project switch.
 
 === Removal of missing projects
 

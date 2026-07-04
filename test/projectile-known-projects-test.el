@@ -236,6 +236,41 @@
     (expect 'projectile-clear-known-projects :to-have-been-called)
     (expect 'projectile-discover-projects-in-search-path :to-have-been-called)))
 
+(describe "projectile-known-projects auto-discovery"
+  (it "auto-discovers only once per session"
+    (let ((projectile-known-projects '("/p/"))
+          (projectile-auto-discover t)
+          (projectile-auto-cleanup-known-projects nil)
+          (projectile-project-search-path '("/search/"))
+          (projectile--search-path-discovered nil))
+      (spy-on 'projectile-discover-projects-in-search-path :and-call-fake
+              (lambda () (setq projectile--search-path-discovered t)))
+      (projectile-known-projects)
+      (projectile-known-projects)
+      (expect 'projectile-discover-projects-in-search-path
+              :to-have-been-called-times 1)))
+
+  (it "does not auto-discover without a search path"
+    (let ((projectile-known-projects '("/p/"))
+          (projectile-auto-discover t)
+          (projectile-auto-cleanup-known-projects nil)
+          (projectile-project-search-path nil)
+          (projectile--search-path-discovered nil))
+      (spy-on 'projectile-discover-projects-in-search-path)
+      (projectile-known-projects)
+      (expect 'projectile-discover-projects-in-search-path
+              :not :to-have-been-called)))
+
+  (it "skips remote search-path entries"
+    (let ((projectile-project-search-path '("/ssh:host:/remote/" "/local/"))
+          (projectile--search-path-discovered nil))
+      (spy-on 'projectile-discover-projects-in-directory)
+      (projectile-discover-projects-in-search-path)
+      (expect 'projectile-discover-projects-in-directory
+              :to-have-been-called-times 1)
+      (expect 'projectile-discover-projects-in-directory
+              :to-have-been-called-with "/local/" 1))))
+
 (describe "projectile-relevant-known-projects"
   :var 'known-projects
   (before-all
