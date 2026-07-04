@@ -5070,6 +5070,406 @@ Use files with EXTENSION based on TEST-SUFFIX."
                 (and (string-suffix-p file-name-to-find other-path)
                      (equal (file-name-nondirectory other-path) file-name-to-find))))))))
 
+
+;;; File kinds
+;;
+;; A "file kind" is a declarative description of one category of files a
+;; project type has - Rails models, controllers and views; Django models,
+;; views and urls; and so on.  Kinds are declared with the `:file-kinds'
+;; keyword of `projectile-register-project-type' as an alist of (KIND-NAME
+;; . SPEC), where KIND-NAME is a keyword (e.g. `:model') and SPEC is a plist
+;; describing which files belong to the kind and how to derive a shared
+;; "resource key" from a file's path.  Two files of different kinds are
+;; *related* when their keys are equal, which is what powers
+;; `projectile-toggle-related-file'; `projectile-find-file-of-kind' uses just
+;; the membership test.  The whole thing compiles down to an ordinary
+;; related-files-fn (see `projectile--file-kinds-related-files-fn'), so it
+;; rides on the existing kind-agnostic related-files machinery.
+
+(defun projectile--singularize (word)
+  "Naively singularize the English noun WORD.
+
+Only the regular cases are handled: a trailing -ies becomes -y, a
+trailing -ses/-xes/-zes/-ches/-shes drops the -es, and any other
+trailing -s (but not -ss) is dropped.  Irregular nouns (person/people,
+child/children, ...) and uncountables are returned unchanged, so this is
+adequate for deriving resource keys from Rails-style file names but is
+not a general-purpose inflector."
+  (cond
+   ((string-suffix-p "ies" word)
+    (concat (substring word 0 -3) "y"))
+   ((string-match-p "\\(s\\|x\\|z\\|ch\\|sh\\)es\\'" word)
+    (substring word 0 -2))
+   ((and (string-suffix-p "s" word)
+         (not (string-suffix-p "ss" word)))
+    (substring word 0 -1))
+   (t word)))
+
+(defun projectile--pluralize (word)
+  "Naively pluralize the English noun WORD.
+
+The mirror of `projectile--singularize', handling only the regular
+cases: a consonant followed by -y becomes -ies, an -s/-x/-z/-ch/-sh
+ending gains -es, and everything else gains -s.  Irregular nouns are not
+handled."
+  (cond
+   ((string-match-p "[^aeiou]y\\'" word)
+    (concat (substring word 0 -1) "ies"))
+   ((string-match-p "\\(s\\|x\\|z\\|ch\\|sh\\)\\'" word)
+    (concat word "es"))
+   (t (concat word "s"))))
+
+;;;; Reference file-kinds tables (Rails, Django)
+
+(defun projectile--rails-resource-key (rel-path prefix suffix)
+  "Return the namespaced singular Rails resource key of REL-PATH.
+PREFIX is the resource root (e.g. \"app/controllers/\") and SUFFIX the
+file suffix (e.g. \"_controller.rb\").  Rails names controllers, helpers
+and views after the *plural* resource (e.g. \"users_controller.rb\"),
+while models use the singular (\"user.rb\"); singularizing the stripped
+name makes them share the model's key.  Any namespace directories under
+PREFIX are preserved, so \"app/controllers/admin/users_controller.rb\"
+keys as \"admin/user\" and does not collide with a top-level
+\"users_controller.rb\".  The singularizer is naive (see
+`projectile--singularize'), so irregular resource names will not relate
+correctly."
+  (when (and (string-prefix-p prefix rel-path)
+             (string-suffix-p suffix (file-name-nondirectory rel-path)))
+    (let* ((subpath (substring rel-path (length prefix)))
+           (dir (or (file-name-directory subpath) ""))
+           (base (file-name-nondirectory subpath))
+           (resource (substring base 0 (- (length suffix)))))
+      (concat dir (projectile--singularize resource)))))
+
+(defun projectile--rails-controller-key (rel-path)
+  "Return the namespaced singular Rails resource key of the controller REL-PATH."
+  (projectile--rails-resource-key rel-path "app/controllers/" "_controller.rb"))
+
+(defun projectile--rails-helper-key (rel-path)
+  "Return the namespaced singular Rails resource key of the helper REL-PATH."
+  (projectile--rails-resource-key rel-path "app/helpers/" "_helper.rb"))
+
+(defun projectile--rails-view-key (rel-path)
+  "Return the namespaced singular Rails resource key of the view file REL-PATH.
+Rails views live in a per-resource directory (e.g. \"app/views/users/\"),
+so the key is that directory's path with its final segment singularized;
+\"app/views/admin/users/index.html.erb\" keys as \"admin/user\"."
+  (when (string-prefix-p "app/views/" rel-path)
+    (let ((rest (substring rel-path (length "app/views/"))))
+      (when-let* (((string-match-p "/" rest))
+                  (resource-dir (directory-file-name (file-name-directory rest))))
+        (concat (or (file-name-directory resource-dir) "")
+                (projectile--singularize
+                 (file-name-nondirectory resource-dir)))))))
+
+(defun projectile--django-app-key (rel-path)
+  "Return the Django app directory of REL-PATH.
+This is REL-PATH's parent directory (without a trailing slash), so
+\"polls/models.py\" keys as \"polls\" and a nested \"apps/polls/models.py\"
+keys as \"apps/polls\" without colliding with a different \"polls\" app."
+  (when-let* ((dir (file-name-directory rel-path)))
+    (directory-file-name dir)))
+
+(defvar projectile--rails-file-kinds
+  '((:model      . (:path "app/models/"))
+    (:controller . (:path "app/controllers/"
+                    :suffix "_controller.rb"
+                    :key-fn projectile--rails-controller-key))
+    (:view       . (:path "app/views/"
+                    :key-fn projectile--rails-view-key))
+    (:helper     . (:path "app/helpers/"
+                    :suffix "_helper.rb"
+                    :key-fn projectile--rails-helper-key)))
+  "Reference `:file-kinds' table for Rails project types.
+Relates a resource's model, controller, views and helper by a shared
+singular key (e.g. app/models/user.rb, app/controllers/users_controller.rb,
+app/views/users/*, app/helpers/users_helper.rb).  Plural-to-singular
+mapping is naive; see `projectile--singularize'.")
+
+(defvar projectile--django-file-kinds
+  '((:model . (:suffix "models.py" :key-fn projectile--django-app-key))
+    (:view  . (:suffix "views.py"  :key-fn projectile--django-app-key))
+    (:urls  . (:suffix "urls.py"   :key-fn projectile--django-app-key))
+    (:admin . (:suffix "admin.py"  :key-fn projectile--django-app-key))
+    (:tests . (:suffix "tests.py"  :key-fn projectile--django-app-key)))
+  "Reference `:file-kinds' table for the Django project type.
+Relates the per-app files of a Django application by the app directory
+name (e.g. polls/models.py, polls/views.py, polls/urls.py); no
+inflection is needed.")
+
+(defun projectile--file-kind-member-p (rel-path spec)
+  "Return non-nil when REL-PATH belongs to the file kind described by SPEC.
+
+REL-PATH is a path relative to the project root.  Membership holds when
+REL-PATH lives under SPEC's `:path' prefix (if any) and its basename
+matches SPEC's `:prefix' and `:suffix' (if any)."
+  (let ((path (plist-get spec :path))
+        (prefix (plist-get spec :prefix))
+        (suffix (plist-get spec :suffix))
+        (name (file-name-nondirectory rel-path)))
+    ;; `:path' is matched as a directory prefix, so \"app/models/\" does
+    ;; not also match \"app/models_archive/x.rb\".
+    (and (or (null path)
+             (string-prefix-p (file-name-as-directory path) rel-path))
+         (or (null prefix) (string-prefix-p prefix name))
+         (or (null suffix) (string-suffix-p suffix name)))))
+
+(defun projectile--file-kind-default-key (rel-path spec)
+  "Derive the default resource key of REL-PATH for the kind SPEC.
+
+The key is REL-PATH taken relative to SPEC's `:path', with the final
+component's `:suffix' (or, lacking that, its file extension) and
+`:prefix' stripped.  Any namespace directories under `:path' are kept,
+so files that differ only by subdirectory get distinct keys.  Return nil
+for an empty result."
+  (let* ((path (plist-get spec :path))
+         (subpath (if (and path
+                           (string-prefix-p (file-name-as-directory path)
+                                            rel-path))
+                      (substring rel-path (length (file-name-as-directory path)))
+                    rel-path))
+         (dir (or (file-name-directory subpath) ""))
+         (name (file-name-nondirectory subpath))
+         (prefix (plist-get spec :prefix))
+         (suffix (plist-get spec :suffix)))
+    (when (and suffix (string-suffix-p suffix name))
+      (setq name (substring name 0 (- (length suffix)))))
+    (unless suffix
+      (setq name (file-name-sans-extension name)))
+    (when (and prefix (string-prefix-p prefix name))
+      (setq name (substring name (length prefix))))
+    (unless (string-empty-p name)
+      (concat dir name))))
+
+(defun projectile--file-kind-key (rel-path spec)
+  "Return REL-PATH's resource key for the kind SPEC, or nil.
+
+Uses SPEC's `:key-fn' when set, otherwise
+`projectile--file-kind-default-key'.  A `:key-fn' that signals an error
+is treated as no match (nil), so one misbehaving user-supplied key-fn
+can't break related-file navigation for the whole project type."
+  (if-let* ((key-fn (plist-get spec :key-fn)))
+      (condition-case nil
+          (funcall key-fn rel-path)
+        (error nil))
+    (projectile--file-kind-default-key rel-path spec)))
+
+(defun projectile--file-kind-match (rel-path spec)
+  "Return REL-PATH's resource key for the kind SPEC, or nil.
+
+REL-PATH matches the kind only when it is a member (see
+`projectile--file-kind-member-p') and its derived key is a non-empty
+string (so a `:key-fn' returning nil, an empty string or a non-string
+value simply doesn't match, rather than relating unrelated files)."
+  (when (projectile--file-kind-member-p rel-path spec)
+    (let ((key (projectile--file-kind-key rel-path spec)))
+      (and (stringp key) (not (string-empty-p key)) key))))
+
+(defun projectile--file-kinds-related-files-fn (file-kinds)
+  "Compile FILE-KINDS into a related-files-fn.
+
+FILE-KINDS is an alist of (KIND . SPEC).  KIND is a keyword and SPEC is
+a plist with the following optional properties:
+
+  :path    a root-relative directory prefix (e.g. \"app/models/\").
+  :prefix  a basename prefix the file must have.
+  :suffix  a basename suffix the file must have (e.g. \"_controller.rb\").
+  :key-fn  a function of the file's relative path returning its resource
+           key string, or nil when the file is not of this kind.  When
+           omitted the key is derived by `projectile--file-kind-default-key'.
+  :file-fn  reserved for a future inverse of :key-fn; currently unused.
+
+The returned function, given a relative path, finds the first kind the
+path belongs to and emits, for every *other* kind, an entry
+\(:KIND PREDICATE) whose PREDICATE matches files of that kind sharing the
+same resource key."
+  (lambda (rel-path)
+    (let (this-kind this-key)
+      (cl-dolist (entry file-kinds)
+        (when-let* ((key (projectile--file-kind-match rel-path (cdr entry))))
+          (setq this-kind (car entry)
+                this-key key)
+          (cl-return)))
+      (when this-kind
+        (let (result)
+          (dolist (entry file-kinds)
+            (let ((kind (car entry))
+                  (spec (cdr entry)))
+              (unless (eq kind this-kind)
+                (setq result
+                      (plist-put result kind
+                                 (lambda (other-path)
+                                   (equal this-key
+                                          (projectile--file-kind-match other-path spec))))))))
+          result)))))
+
+(defun projectile--file-kinds ()
+  "Return the current project type's `:file-kinds' alist."
+  (projectile-project-type-attribute (projectile-project-type) 'file-kinds))
+
+(defun projectile--related-file-candidates (rel-path &optional file-kinds project-files)
+  "Return an ordered alist of (KIND . FILE) related to REL-PATH.
+
+Each entry is a project file of a *different* kind than REL-PATH's own
+whose resource key equals REL-PATH's, listed in FILE-KINDS table order.
+FILE-KINDS defaults to the current project type's kinds and PROJECT-FILES
+to `projectile-current-project-files'.  Return nil when REL-PATH is not
+of any known kind or has no related files."
+  (let* ((file-kinds (or file-kinds (projectile--file-kinds)))
+         (project-files (or project-files (projectile-current-project-files)))
+         this-kind this-key candidates)
+    (cl-dolist (entry file-kinds)
+      (when-let* ((key (projectile--file-kind-match rel-path (cdr entry))))
+        (setq this-kind (car entry)
+              this-key key)
+        (cl-return)))
+    (when this-kind
+      (dolist (entry file-kinds (nreverse candidates))
+        (let ((kind (car entry))
+              (spec (cdr entry)))
+          (unless (eq kind this-kind)
+            (when-let* ((match (seq-find
+                                (lambda (f)
+                                  (and (not (equal f rel-path))
+                                       (equal this-key
+                                              (projectile--file-kind-match f spec))))
+                                project-files)))
+              (push (cons kind match) candidates))))))))
+
+(defun projectile--related-file-ring (rel-path &optional file-kinds project-files)
+  "Return the stable ring of files sharing REL-PATH's resource key.
+
+The ring holds one file per kind that has a match, in FILE-KINDS table
+order, with REL-PATH itself standing in for its own kind.  Its order does
+not depend on which file in the ring REL-PATH is, so advancing from
+REL-PATH's position cycles through the related kinds deterministically.
+FILE-KINDS defaults to the current project type's kinds and PROJECT-FILES
+to `projectile-current-project-files'.  Return nil when REL-PATH is not of
+any known kind."
+  (let* ((file-kinds (or file-kinds (projectile--file-kinds)))
+         (project-files (or project-files (projectile-current-project-files)))
+         this-kind this-key ring)
+    (cl-dolist (entry file-kinds)
+      (when-let* ((key (projectile--file-kind-match rel-path (cdr entry))))
+        (setq this-kind (car entry)
+              this-key key)
+        (cl-return)))
+    (when this-kind
+      (dolist (entry file-kinds (nreverse ring))
+        (let ((kind (car entry))
+              (spec (cdr entry)))
+          (if (eq kind this-kind)
+              (push rel-path ring)
+            (when-let* ((match (seq-find
+                                (lambda (f)
+                                  (and (not (equal f rel-path))
+                                       (equal this-key
+                                              (projectile--file-kind-match f spec))))
+                                project-files)))
+              (push match ring))))))))
+
+(defun projectile--file-kind-name (kind)
+  "Return the human-readable name of the file KIND keyword."
+  (substring (symbol-name kind) 1))
+
+(defun projectile--read-file-kind (prompt)
+  "Read one of the current project type's file kinds using PROMPT.
+Return the chosen (KIND . SPEC) entry."
+  (let ((file-kinds (projectile--file-kinds)))
+    (unless file-kinds
+      (user-error "Project type `%s' defines no file kinds"
+                  (projectile-project-type)))
+    (let* ((names (mapcar (lambda (entry)
+                            (projectile--file-kind-name (car entry)))
+                          file-kinds))
+           (choice (projectile-completing-read prompt names
+                                               :caller 'projectile-find-file-of-kind)))
+      (assq (intern (concat ":" choice)) file-kinds))))
+
+(defun projectile--find-file-of-kind (kind-entry &optional ff-variant)
+  "Complete over project files of KIND-ENTRY and open the chosen one.
+KIND-ENTRY is a (KIND . SPEC) pair.  With FF-VARIANT set to a defun, use
+that instead of `find-file' (e.g. `find-file-other-window')."
+  (let* ((project-root (projectile-acquire-root))
+         (spec (cdr kind-entry))
+         (files (seq-filter (lambda (f)
+                              (projectile--file-kind-member-p f spec))
+                            (projectile-project-files project-root)))
+         (file (projectile-completing-read
+                (format "Find %s: " (projectile--file-kind-name (car kind-entry)))
+                files
+                :caller 'projectile-find-file-of-kind
+                :sort-function (projectile--frecency-sort-function project-root)))
+         (ff (or ff-variant #'find-file)))
+    (when file
+      (funcall ff (expand-file-name file project-root))
+      (run-hooks 'projectile-find-file-hook))))
+
+;;;###autoload
+(defun projectile-find-file-of-kind (&optional invalidate-cache)
+  "Jump to a project file of a chosen file kind using completion.
+
+Prompt for one of the current project type's file kinds (see the
+`:file-kinds' keyword of `projectile-register-project-type') and then
+complete over all project files belonging to that kind.  With a prefix
+arg INVALIDATE-CACHE invalidates the cache first."
+  (interactive "P")
+  (projectile-maybe-invalidate-cache invalidate-cache)
+  (projectile--find-file-of-kind
+   (projectile--read-file-kind "Find file of kind: ")))
+
+;;;###autoload (autoload 'projectile-find-file-of-kind-other-window "projectile" nil t)
+;;;###autoload (autoload 'projectile-find-file-of-kind-other-frame "projectile" nil t)
+(projectile--define-display-variants projectile-find-file-of-kind ()
+  "Jump to a project file of a chosen file kind and show it in another %s."
+  (projectile--find-file-of-kind
+   (projectile--read-file-kind "Find file of kind: ")
+   #'find-file-other-window))
+
+(defun projectile--read-related-file-target (rel-path)
+  "Prompt for one of REL-PATH's related file kinds and return its file."
+  (let* ((candidates (projectile--related-file-candidates rel-path))
+         (names (mapcar (lambda (c) (projectile--file-kind-name (car c)))
+                        candidates))
+         (choice (projectile-completing-read
+                  "Related file kind: " names
+                  :caller 'projectile-toggle-related-file)))
+    (cdr (assq (intern (concat ":" choice)) candidates))))
+
+;;;###autoload
+(defun projectile-toggle-related-file ()
+  "Jump between the current file and its related files of other kinds.
+
+This is the file-kinds generalization of
+`projectile-toggle-between-implementation-and-test'.  The current file's
+kind and resource key are detected from the project type's `:file-kinds'
+declaration and its related files (files of other kinds sharing the same
+key) are collected in table order.  When exactly one related kind exists
+it is opened immediately; when several exist the first invocation prompts
+for the kind, and repeated invocations cycle through them in table order."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (unless file
+      (user-error "The current buffer is not visiting a file"))
+    (let* ((project-root (projectile-acquire-root))
+           (rel-path (file-relative-name file project-root))
+           (ring (projectile--related-file-ring rel-path))
+           (others (remove rel-path ring)))
+      (unless others
+        (user-error "No related files found for `%s'"
+                    (file-name-nondirectory file)))
+      (let ((target
+             (cond
+              ;; A single related kind: jump straight to it.
+              ((= (length others) 1) (car others))
+              ;; Repeated invocation: cycle to the next kind in table order.
+              ((eq last-command this-command)
+               (let ((pos (or (seq-position ring rel-path) 0)))
+                 (nth (mod (1+ pos) (length ring)) ring)))
+              ;; Several kinds, first invocation: let the user choose.
+              (t (projectile--read-related-file-target rel-path)))))
+        (find-file (expand-file-name target project-root))))))
+
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
   (let ((kinds (projectile--related-files-kinds file)))
@@ -5104,7 +5504,7 @@ ones and overrule settings in the other lists."
     rtn))
 
 (cl-defun projectile--build-project-plist
-    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn tasks)
+    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn file-kinds tasks)
   "Return a project type plist with the provided arguments.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -5183,12 +5583,14 @@ TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
       (plist-put project-plist 'test-dir test-dir))
     (when related-files-fn
       (plist-put project-plist 'related-files-fn related-files-fn))
+    (when file-kinds
+      (plist-put project-plist 'file-kinds file-kinds))
     (when tasks
       (plist-put project-plist 'tasks tasks))
     project-plist))
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn tasks)
+    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn file-kinds tasks)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -5228,6 +5630,13 @@ files such as test/impl/other files as below:
     returns a plist containing :test, :impl or :other as key and the
     relative path/paths or predicate as value.  PREDICATE accepts a
     relative path as the input.
+FILE-KINDS an alist of (KIND . SPEC) declaratively describing the kinds of
+    files the project type has (e.g. Rails models, controllers and views),
+    used by `projectile-find-file-of-kind' and
+    `projectile-toggle-related-file'.  KIND is a keyword and SPEC is a plist;
+    see `projectile--file-kinds-related-files-fn' for the supported
+    properties.  When both FILE-KINDS and RELATED-FILES-FN are set they are
+    combined, so declarative and hand-written relations coexist.
 TASKS an alist of named tasks of the form (TASK-NAME . COMMAND) run via
     `projectile-run-task'; see `projectile-tasks' for the exact shape.
 
@@ -5251,6 +5660,7 @@ with the project name at execution time."
                                 :src-dir src-dir
                                 :test-dir test-dir
                                 :related-files-fn related-files-fn
+                                :file-kinds file-kinds
                                 :tasks tasks))
               projectile-project-types)))
 
@@ -5271,6 +5681,7 @@ with the project name at execution time."
      (src-dir nil src-dir-specified)
      (test-dir nil test-dir-specified)
      (related-files-fn nil related-files-fn-specified)
+     (file-kinds nil file-kinds-specified)
      (tasks nil tasks-specified))
     "Update an existing projectile project type.
 
@@ -5307,6 +5718,7 @@ arguments - have the same meaning as for
              (when test-dir-specified `(test-dir ,test-dir))
              (when related-files-fn-specified
                `(related-files-fn ,related-files-fn))
+             (when file-kinds-specified `(file-kinds ,file-kinds))
              (when tasks-specified `(tasks ,tasks))))
            (merged-plist
             (projectile--combine-plists
@@ -5733,7 +6145,8 @@ a manual COMMAND-TYPE command is created with
                                   :compile "python manage.py runserver"
                                   :test "python manage.py test"
                                   :test-prefix "test_"
-                                  :test-suffix "_test")
+                                  :test-suffix "_test"
+                                  :file-kinds projectile--django-file-kinds)
 (projectile-register-project-type 'python-pip '("requirements.txt")
                                   :compile "python setup.py build"
                                   :test "python -m unittest discover"
@@ -5844,13 +6257,15 @@ a manual COMMAND-TYPE command is created with
                                   :compile "bundle exec rails server"
                                   :src-dir "app/"
                                   :test "bundle exec rake test"
-                                  :test-suffix "_test")
+                                  :test-suffix "_test"
+                                  :file-kinds projectile--rails-file-kinds)
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
                                   :compile "bundle exec rails server"
                                   :src-dir "app/"
                                   :test "bundle exec rspec"
                                   :test-dir "spec/"
-                                  :test-suffix "_spec")
+                                  :test-suffix "_spec"
+                                  :file-kinds projectile--rails-file-kinds)
 ;; Crystal
 (projectile-register-project-type 'crystal-spec '("shard.yml")
                                   :src-dir "src/"
@@ -6297,9 +6712,24 @@ Fallback to DEFAULT-VALUE for missing attributes."
       (projectile-project-type-attribute project-type 'test-suffix)))
 
 (defun projectile-related-files-fn (project-type)
-  "Find relative file based on PROJECT-TYPE."
-  (or projectile-project-related-files-fn
-      (projectile-project-type-attribute project-type 'related-files-fn)))
+  "Find relative file based on PROJECT-TYPE.
+
+Combines the type's hand-written `related-files-fn' (or the
+`projectile-project-related-files-fn' override) with a related-files-fn
+compiled from its `file-kinds' declaration, if any.  When both are
+present they are merged into a list of functions so declarative and
+hand-written relations coexist."
+  (let ((custom (or projectile-project-related-files-fn
+                    (projectile-project-type-attribute project-type 'related-files-fn)))
+        (file-kinds (projectile-project-type-attribute project-type 'file-kinds)))
+    (if (null file-kinds)
+        custom
+      (let ((kinds-fn (projectile--file-kinds-related-files-fn file-kinds)))
+        (cond
+         ((null custom) kinds-fn)
+         ((functionp custom) (list custom kinds-fn))
+         ((consp custom) (append custom (list kinds-fn)))
+         (t (error "Unsupported value type of :related-files-fn")))))))
 
 (defun projectile-src-directory (project-type)
   "Find default src directory based on PROJECT-TYPE."
@@ -9328,6 +9758,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "4 D") #'projectile-dired-other-window)
     (define-key map (kbd "4 f") #'projectile-find-file-other-window)
     (define-key map (kbd "4 g") #'projectile-find-file-dwim-other-window)
+    (define-key map (kbd "4 j") #'projectile-find-file-of-kind-other-window)
     (define-key map (kbd "4 p") #'projectile-switch-project-other-window)
     (define-key map (kbd "4 t") #'projectile-find-implementation-or-test-other-window)
     (define-key map (kbd "5 5") #'projectile-other-frame-command)
@@ -9337,6 +9768,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "5 D") #'projectile-dired-other-frame)
     (define-key map (kbd "5 f") #'projectile-find-file-other-frame)
     (define-key map (kbd "5 g") #'projectile-find-file-dwim-other-frame)
+    (define-key map (kbd "5 j") #'projectile-find-file-of-kind-other-frame)
     (define-key map (kbd "5 p") #'projectile-switch-project-other-frame)
     (define-key map (kbd "5 t") #'projectile-find-implementation-or-test-other-frame)
     (define-key map (kbd "!") #'projectile-run-shell-command-in-root)
@@ -9357,6 +9789,8 @@ Magit that don't trigger `find-file-hook'."
     ;; (define-key projectile-command-map (kbd "h") #'helm-projectile)
     (define-key map (kbd "i") #'projectile-invalidate-cache)
     (define-key map (kbd "I") #'projectile-ibuffer)
+    (define-key map (kbd "j") #'projectile-find-file-of-kind)
+    (define-key map (kbd "J") #'projectile-toggle-related-file)
     (define-key map (kbd "k") #'projectile-kill-buffers)
     (define-key map (kbd "l") #'projectile-find-file-in-directory)
     (define-key map (kbd "m") #'projectile-dispatch)
@@ -9625,7 +10059,9 @@ window or frame (file/buffer/project commands)."
       ("e" "recentf" projectile-recentf)
       ("E" "edit .dir-locals" projectile-edit-dir-locals)
       ("T" "test file" projectile-dispatch-find-test-file)
-      ("t" "toggle impl/test" projectile-dispatch-impl-or-test)]
+      ("t" "toggle impl/test" projectile-dispatch-impl-or-test)
+      ("j" "file of kind" projectile-find-file-of-kind)
+      ("J" "toggle related" projectile-toggle-related-file)]
      ["Buffers"
       ("b" "switch buffer" projectile-dispatch-switch-to-buffer)
       ("B" "display buffer" projectile-display-buffer)
