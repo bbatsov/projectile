@@ -4518,10 +4518,10 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
          (filename (regexp-quote (projectile--file-name-sans-extensions current-file)))
          (file-list (mapcar (lambda (ext)
                               (if flex-matching
-                                  (concat ".*" filename ".*" "\." ext "\\'")
+                                  (concat ".*" filename ".*" "\\." ext "\\'")
                                 (concat "^" filename
                                         (unless (equal ext "")
-                                          (concat "\." ext))
+                                          (concat "\\." ext))
                                         "\\'")))
                             file-ext-list))
          (candidates (seq-filter
@@ -4536,7 +4536,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
                                     (string-match file
                                                   (concat (file-name-base project-file)
                                                           (when (file-name-extension project-file)
-                                                            (concat "\." (file-name-extension project-file))))))
+                                                            (concat "." (file-name-extension project-file))))))
                                   candidates))
                                file-list)))
          (candidates
