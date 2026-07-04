@@ -1,4 +1,4 @@
-= Migrating to Projectile 3.0
+= Upgrading to Projectile 3.0
 
 Projectile 3.0 is a cleanup and modernization release. There are no big new
 concepts to learn - the focus was on removing long-deprecated or low-value

@@ -1,4 +1,4 @@
-= Migrating to Projectile 3.1
+= Upgrading to Projectile 3.1
 
 Projectile 3.1 is a feature release and, unlike 3.0, it removes nothing and
 breaks no public API - every command and option from 3.0 still works. Most

@@ -835,7 +835,7 @@ https://github.com/DarwinAwardWinner/ido-completing-read-plus[ido-completing-rea
 (the package formerly known as `ido-ubiquitous`) via `ido-ubiquitous-mode`. That
 makes `ido` handle `completing-read` everywhere, so it drives Projectile's prompts
 just like the old `ido` completion system did. See the
-xref:migrating_to_projectile_3.adoc#_ido_users[migration guide] for details.
+xref:upgrading_to_projectile_3.adoc#_ido_users[upgrade guide] for details.
 
 === Custom completion function
 
