@@ -7,6 +7,7 @@
 * xref:projectile_vs_project.adoc[Projectile vs project.el]
 * xref:migrating_from_project_el.adoc[Migrating from project.el]
 * xref:migrating_to_projectile_3.adoc[Migrating to Projectile 3.0]
+* xref:migrating_to_projectile_3_1.adoc[Migrating to Projectile 3.1]
 * xref:faq.adoc[FAQ]
 * xref:troubleshooting.adoc[Troubleshooting]
 * xref:contributing.adoc[Contributing]

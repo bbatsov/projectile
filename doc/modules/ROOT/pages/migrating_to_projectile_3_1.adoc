@@ -1,0 +1,127 @@
+= Migrating to Projectile 3.1
+
+Projectile 3.1 is a feature release and, unlike 3.0, it removes nothing and
+breaks no public API - every command and option from 3.0 still works. Most
+setups need no changes at all.
+
+What this page covers is the short list of _behavior_ changes: a few defaults
+that flipped and a couple of places where existing behavior was made more
+correct. If something in Projectile started behaving differently after the
+upgrade, you'll most likely find it (and how to restore the old behavior) here.
+
+TIP: For the full list of what's new, see the changelog. This page is only the
+"what changed under me" part.
+
+== `.projectile` glob patterns now follow gitignore rules
+
+This is the change most likely to affect an existing configuration, so it's
+first.
+
+If your `.projectile` file uses _glob_ ignore/unignore entries - the ones
+_without_ a leading slash, like `-tmp`, `-*.log` or `-build` - the way they
+match changed. Matching is now modeled on `.gitignore` and is identical under
+the `native` and `hybrid` indexing methods (previously `native` used a loose
+string-suffix match and `hybrid` ignored these patterns entirely).
+
+Concretely:
+
+* A pattern without a slash matches the file name or any directory segment at
+  any depth. `-build` now ignores a `build` directory or file anywhere, but no
+  longer matches `mybuild` (the old suffix match did).
+* A pattern with a slash is anchored at the project root. Prefix it with `**/`
+  to match at any depth.
+* A trailing slash restricts the match to directories (and their contents).
+* `*` stops at a `/`; use `**` to cross directory boundaries.
+
+Two consequences worth checking:
+
+* If you relied on the old loose suffix match (e.g. `-build` catching
+  `mybuild`), spell it out now (`-mybuild`, or a `*` glob).
+* Under `hybrid` indexing your glob patterns are now actually applied, so files
+  you thought were being ignored (but weren't) will disappear from the listing.
+  That's the fix, but it can look like files "went missing" - they're just
+  finally being ignored as intended.
+
+The `alien` method still ignores `.projectile` entirely by design and warns
+once per project when a non-empty `.projectile` is present. Switch to `hybrid`
+(or `native`) if you want the rules applied.
+
+== Project detection is now case-sensitive about marker files
+
+Root and project-type detection now match marker files exactly, even on
+case-insensitive filesystems (macOS, Windows). Previously a marker like
+`Makefile` would also match a file named `makefile` on those systems but not on
+Linux.
+
+In practice this only surfaces if a project's marker file is spelled with
+different casing than Projectile expects. Two related fixes came with it: the
+`gnumake` type now looks for GNU make's actual `GNUmakefile` (it previously had
+a typo'd `GNUMakefile`), and the `make` type recognizes a lowercase `makefile`
+in addition to `Makefile`. If a project stopped being detected, check the exact
+casing of its marker file and, if needed, register a type for it (see
+xref:projects.adoc[the Projects page]).
+
+== Automatic project discovery is on by default
+
+`projectile-auto-discover` now defaults to `t`. It has no effect unless you've
+also set `projectile-project-search-path`, so nothing changes out of the box -
+but if you _had_ set a search path and deliberately left auto-discovery off,
+you'll now get it.
+
+The historical reason it was off - discovery re-walking the search path on every
+project switch - is gone: the scan now runs once per session, on the first
+project-switch command. Remote (TRAMP) search-path entries are skipped so an
+unreachable host can't stall a switch.
+
+To keep the old behavior:
+
+[source,elisp]
+----
+(setq projectile-auto-discover nil)
+----
+
+== `projectile-find-file` orders by frecency
+
+`projectile-find-file` (and `projectile-find-file-dwim`) now put the files you
+visit most often and most recently at the top of the completion list, learning
+from your visits over time. This is on by default.
+
+The ordering is applied as completion metadata, so it composes with whatever
+completion UI you use. If you prefer the previous order (whatever your indexing
+method and `projectile-sort-order` produce):
+
+[source,elisp]
+----
+(setq projectile-enable-frecency nil)
+----
+
+== User errors no longer enter the debugger
+
+Conditions that are really user errors - no project found, an optional package
+not installed, no other file to toggle to, and so on - now signal `user-error`
+instead of `error`. With `debug-on-error` enabled they no longer pop the
+debugger for these expected situations.
+
+If you have code that wraps a Projectile command in `condition-case` and only
+handles `error`, catch `user-error` too (or use `t`):
+
+[source,elisp]
+----
+(condition-case nil
+    (projectile-find-file)
+  (user-error (message "no project"))
+  (error (message "something else went wrong")))
+----
+
+== `projectile-find-other-file` matches the extension boundary exactly
+
+`projectile-find-other-file` no longer treats the dot before a file's extension
+as a wildcard when finding the "other" files, so `foo.el` will not match an
+unrelated name like `fooXel`. If you saw spurious matches before, they're gone.
+
+== Removed internal functions
+
+`projectile-check-pattern-p` and `projectile-ignored-rel-p` were removed - they
+were the old `.projectile` pattern matchers, superseded by the compiled
+gitignore-style matcher. They were never part of the documented API; this only
+matters if some third-party code called them directly.
