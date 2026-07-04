@@ -52,6 +52,7 @@
 * [#1600](https://github.com/bbatsov/projectile/issues/1600): The default git submodule listing no longer depends on a Unix shell (single quotes, `tr`), fixing alien/hybrid indexing of projects with submodules on Windows.
 * Invalidating a project's cache now cancels its pending deferred cache flush; previously a flush scheduled before the invalidation could fire afterwards and recreate the just-deleted cache file with empty contents.
 * Frecency tracking now works for projects reached through a symlinked root; the visited file is resolved the same way as the project root, so its visits are no longer silently dropped.
+* `projectile-find-other-file` no longer treats the dot before a file's extension as a wildcard when matching, so `foo.el` won't match an unrelated `fooXel`-style name.
 
 ## 3.0.0 (2026-07-01)
 

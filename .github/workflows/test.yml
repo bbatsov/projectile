@@ -29,5 +29,30 @@ jobs:
 
     - name: Test the project
       run: |
-        eldev -p -dtT -C test --expect 100
+        eldev -p -dtT -C test --expect 680
         eldev -dtT -C compile --warnings-as-errors
+
+  lint:
+    runs-on: ubuntu-latest
+    # Linting is version-independent, so run it once on a single stable image
+    # rather than across the whole matrix.  checkdoc and package-lint output
+    # can drift between Emacs versions, so pinning one version keeps the
+    # report-only steps deterministic.
+    container: silex/emacs:30.2-ci-eldev
+
+    steps:
+    - name: Check out the source code
+      uses: actions/checkout@v6
+
+    # relint is clean on the codebase, so it is a hard gate: a bad regexp
+    # (e.g. an ineffective escape) fails the build.
+    - name: Lint regexps (relint)
+      run: eldev -dtT lint re
+
+    # checkdoc and package-lint surface a large backlog of pre-existing
+    # style/metadata warnings on the 9000-line main file.  Run them for
+    # visibility only (the step is annotated but does not fail the build) so
+    # new warnings show up in the log without blocking on legacy ones.
+    - name: Lint docstrings and package metadata (report-only)
+      continue-on-error: true
+      run: eldev -dtT lint doc package
