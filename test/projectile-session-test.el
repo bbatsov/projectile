@@ -222,6 +222,435 @@
     (expect 'projectile-project-buffers :not :to-have-been-called)
     (expect 'call-interactively :to-have-been-called-with #'switch-to-buffer)))
 
+(defvar projectile-session-test--dir nil
+  "Temporary directory holding session files during a test.")
+
+(defun projectile-session-test--make-dir ()
+  "Create and return a fresh temporary session directory."
+  (make-temp-file "projectile-session-test" t))
+
+(describe "projectile-session file naming"
+  (it "keys files by root, stable and collision-free"
+    (let ((projectile-session-directory "/state/sessions/"))
+      (spy-on 'projectile-session--project-name
+              :and-call-fake (lambda (root) (file-name-nondirectory
+                                             (directory-file-name root))))
+      (let ((foo1 (projectile-session--file "/a/foo/"))
+            (foo1-again (projectile-session--file "/a/foo/"))
+            (foo2 (projectile-session--file "/b/foo/")))
+        ;; same root -> same file
+        (expect foo1 :to-equal foo1-again)
+        ;; same project name, different root -> different file
+        (expect foo1 :not :to-equal foo2)
+        ;; readable project-name prefix and the session directory are used
+        (expect (file-name-directory foo1) :to-equal "/state/sessions/")
+        (expect (string-prefix-p "foo-" (file-name-nondirectory foo1))
+                :to-be t))))
+
+  (it "sanitizes unsafe characters in the project name"
+    (let ((projectile-session-directory "/state/sessions/"))
+      (spy-on 'projectile-session--project-name
+              :and-return-value "we ird/name")
+      (let ((file (file-name-nondirectory (projectile-session--file "/x/y/"))))
+        (expect (string-match-p "[ /]" file) :to-be nil)))))
+
+(describe "projectile-session buffer serializers"
+  (it "round-trips a file-visiting buffer with point"
+    (let ((tmp (make-temp-file "projectile-session-file" nil ".txt")))
+      (unwind-protect
+          (progn
+            (with-temp-file tmp (insert "hello world\nsecond line\n"))
+            (let* ((buf (find-file-noselect tmp)))
+              (unwind-protect
+                  (let (saved)
+                    (with-current-buffer buf (goto-char 5))
+                    (setq saved (projectile-session--serialize-buffer buf))
+                    (expect (car saved) :to-be t)
+                    (expect (plist-get (cdr saved) :file) :to-equal tmp)
+                    (expect (plist-get (cdr saved) :point) :to-equal 5)
+                    ;; round-trip must be readable and recreate the buffer
+                    (let ((round (read (prin1-to-string saved))))
+                      (kill-buffer buf)
+                      (let ((restored (projectile-session--recreate-buffer round)))
+                        (expect (buffer-live-p restored) :to-be t)
+                        (expect (buffer-file-name restored) :to-equal tmp)
+                        (with-current-buffer restored
+                          (expect (point) :to-equal 5))
+                        (kill-buffer restored))))
+                (when (buffer-live-p buf) (kill-buffer buf)))))
+        (delete-file tmp))))
+
+  (it "round-trips a dired buffer via its directory"
+    (let* ((dir (make-temp-file "projectile-session-dired" t))
+           (buf (dired-noselect dir)))
+      (unwind-protect
+          (let ((saved (projectile-session--serialize-buffer buf)))
+            (expect (car saved) :to-equal 'dired-mode)
+            (expect (plist-get (cdr saved) :dir)
+                    :to-equal (file-name-as-directory (expand-file-name dir)))
+            (kill-buffer buf)
+            (let ((restored (projectile-session--recreate-buffer
+                             (read (prin1-to-string saved)))))
+              (expect (buffer-live-p restored) :to-be t)
+              (with-current-buffer restored
+                (expect (derived-mode-p 'dired-mode) :to-be-truthy))
+              (kill-buffer restored)))
+        (when (buffer-live-p buf) (kill-buffer buf))
+        (delete-directory dir t))))
+
+  (it "recreates nothing when a saved file is gone"
+    (let ((saved (cons t (list :file "/no/such/file.txt" :point 1))))
+      (expect (projectile-session--recreate-buffer saved) :to-be nil)))
+
+  (it "honors a custom serializer for a non-file buffer"
+    (let* ((projectile-session-buffer-serializers
+            (cons '(special-mode
+                    . (projectile-session-test--ser-special
+                       . projectile-session-test--deser-special))
+                  projectile-session-buffer-serializers))
+           (buf (get-buffer-create "session-special")))
+      (unwind-protect
+          (progn
+            (with-current-buffer buf
+              (special-mode)
+              (setq-local projectile-session-test--payload "abc"))
+            (cl-letf (((symbol-function 'projectile-session-test--ser-special)
+                       (lambda (_buffer)
+                         (list :payload projectile-session-test--payload)))
+                      ((symbol-function 'projectile-session-test--deser-special)
+                       (lambda (record)
+                         (let ((b (get-buffer-create "session-special")))
+                           (with-current-buffer b
+                             (setq-local projectile-session-test--payload
+                                         (plist-get record :payload)))
+                           b))))
+              (let ((saved (projectile-session--serialize-buffer buf)))
+                (expect (car saved) :to-equal 'special-mode)
+                (expect (plist-get (cdr saved) :payload) :to-equal "abc")
+                (let ((restored (projectile-session--recreate-buffer
+                                 (read (prin1-to-string saved)))))
+                  (with-current-buffer restored
+                    (expect projectile-session-test--payload :to-equal "abc"))))))
+        (when (buffer-live-p buf) (kill-buffer buf)))))
+
+  (it "skips a buffer no serializer handles"
+    (let ((buf (get-buffer-create "session-plain")))
+      (unwind-protect
+          (progn
+            (with-current-buffer buf (fundamental-mode))
+            (expect (projectile-session--serialize-buffer buf) :to-be nil))
+        (kill-buffer buf))))
+
+  (it "isolates a throwing serializer and falls through to the next entry"
+    (let ((tmp (make-temp-file "projectile-session-throw" nil ".txt")))
+      (let* ((projectile-session-buffer-serializers
+              (cons (cons 'text-mode
+                          (cons #'projectile-session-test--ser-boom #'ignore))
+                    projectile-session-buffer-serializers))
+             (buf (find-file-noselect tmp)))
+        (unwind-protect
+            (cl-letf (((symbol-function 'projectile-session-test--ser-boom)
+                       (lambda (_b) (error "boom"))))
+              (with-current-buffer buf (text-mode))
+              ;; the text-mode entry throws; must fall through to the `t' handler
+              (let ((saved (projectile-session--serialize-buffer buf)))
+                (expect (car saved) :to-be t)
+                (expect (plist-get (cdr saved) :file) :to-equal tmp)))
+          (when (buffer-live-p buf) (kill-buffer buf))
+          (delete-file tmp)))))
+
+  (it "drops a record that can't be read back"
+    (let* ((projectile-session-buffer-serializers
+            (list (cons 'fundamental-mode
+                        (cons #'projectile-session-test--ser-live #'ignore))))
+           (buf (get-buffer-create "session-live")))
+      (unwind-protect
+          (cl-letf (((symbol-function 'projectile-session-test--ser-live)
+                     ;; embeds a live buffer object, which prin1/read can't round-trip
+                     (lambda (b) (list :live b))))
+            (with-current-buffer buf (fundamental-mode))
+            (expect (projectile-session--serialize-buffer buf) :to-be nil))
+        (kill-buffer buf))))
+
+  (it "round-trips a predicate-keyed serializer"
+    (let* ((projectile-session-buffer-serializers
+            (list (cons (lambda (b)
+                          (with-current-buffer b (derived-mode-p 'special-mode)))
+                        (cons #'projectile-session-test--ser-pred
+                              #'projectile-session-test--deser-pred))))
+           (buf (get-buffer-create "session-pred")))
+      (unwind-protect
+          (cl-letf (((symbol-function 'projectile-session-test--ser-pred)
+                     (lambda (_b) (list :tag "hi")))
+                    ((symbol-function 'projectile-session-test--deser-pred)
+                     (lambda (_record) (get-buffer-create "session-pred-restored"))))
+            (with-current-buffer buf (special-mode))
+            (let ((saved (projectile-session--serialize-buffer buf)))
+              ;; a predicate key stores the buffer's major mode as the kind
+              (expect (car saved) :to-equal 'special-mode)
+              ;; ...and restore must still resolve the predicate entry's deserializer
+              (let ((restored (projectile-session--recreate-buffer
+                               (read (prin1-to-string saved)))))
+                (expect (buffer-live-p restored) :to-be t))))
+        (when (buffer-live-p buf) (kill-buffer buf))
+        (when (get-buffer "session-pred-restored")
+          (kill-buffer "session-pred-restored"))))))
+
+(describe "projectile-session save and restore"
+  (before-each
+    (setq projectile-session-test--dir (projectile-session-test--make-dir))
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (projectile-session-test--reset-tabs)
+    (when (and projectile-session-test--dir
+               (file-directory-p projectile-session-test--dir))
+      (delete-directory projectile-session-test--dir t)))
+
+  (it "writes a readable versioned sexp and restores the layout"
+    (let ((tmp1 (make-temp-file "projectile-session-a" nil ".txt"))
+          (tmp2 (make-temp-file "projectile-session-b" nil ".txt")))
+      (unwind-protect
+          (let* ((projectile-session-directory projectile-session-test--dir)
+                 (buf1 (find-file-noselect tmp1))
+                 (buf2 (find-file-noselect tmp2)))
+            (unwind-protect
+                (progn
+                  ;; lay out two windows, one per file
+                  (delete-other-windows)
+                  (switch-to-buffer buf1)
+                  (split-window)
+                  (other-window 1)
+                  (switch-to-buffer buf2)
+                  (expect (projectile-session-save "/proj/root/") :to-be-truthy)
+                  ;; on-disk data is a readable, versioned plist
+                  (let* ((file (projectile-session--file "/proj/root/"))
+                         (data (with-temp-buffer
+                                 (insert-file-contents file)
+                                 (read (buffer-string)))))
+                    (expect (plist-get data :projectile-session-version)
+                            :to-equal projectile-session--format-version)
+                    (expect (plist-get data :root) :to-equal "/proj/root/")
+                    (expect (length (plist-get data :buffers)) :to-equal 2))
+                  ;; tear the layout down, then restore it
+                  (kill-buffer buf1)
+                  (kill-buffer buf2)
+                  (delete-other-windows)
+                  (switch-to-buffer "*scratch*")
+                  (expect (projectile-session-restore "/proj/root/") :to-be-truthy)
+                  (let ((names (mapcar (lambda (w)
+                                         (buffer-file-name (window-buffer w)))
+                                       (window-list nil 'nomini))))
+                    (expect names :to-contain tmp1)
+                    (expect names :to-contain tmp2)))
+              (dolist (b (list buf1 buf2))
+                (when (buffer-live-p b) (kill-buffer b)))
+              (dolist (n (list (file-name-nondirectory tmp1)
+                               (file-name-nondirectory tmp2)))
+                (when (get-buffer n) (kill-buffer n)))))
+        (delete-file tmp1)
+        (delete-file tmp2))))
+
+  (it "does not error restoring a layout whose file is gone"
+    (let ((tmp (make-temp-file "projectile-session-gone" nil ".txt")))
+      (let* ((projectile-session-directory projectile-session-test--dir)
+             (buf (find-file-noselect tmp)))
+        (unwind-protect
+            (progn
+              (delete-other-windows)
+              (switch-to-buffer buf)
+              (projectile-session-save "/gone/root/")
+              (kill-buffer buf)
+              (delete-file tmp)
+              (switch-to-buffer "*scratch*")
+              ;; the file the layout points at is gone; restore must not error,
+              ;; and returns nil (nothing recreated) so a caller can fall back
+              (expect (projectile-session-restore "/gone/root/") :to-be nil))
+          (when (buffer-live-p buf) (kill-buffer buf))
+          (when (get-buffer (file-name-nondirectory tmp))
+            (kill-buffer (file-name-nondirectory tmp)))
+          (when (file-exists-p tmp) (delete-file tmp))))))
+
+  (it "saves nothing for a degenerate layout"
+    (let ((projectile-session-directory projectile-session-test--dir))
+      (delete-other-windows)
+      (switch-to-buffer "*scratch*")
+      (expect (projectile-session-save "/empty/root/") :to-be nil)
+      (expect (projectile-session--saved-p "/empty/root/") :to-be nil)))
+
+  (it "reports failure when the session file cannot be written"
+    ;; point the session directory *under a regular file* so make-directory and
+    ;; the write fail; save must return nil rather than lying about success
+    (let ((blocker (make-temp-file "projectile-session-blocker"))
+          (tmp (make-temp-file "projectile-session-w" nil ".txt")))
+      (let* ((projectile-session-directory (expand-file-name "sub" blocker))
+             (buf (find-file-noselect tmp)))
+        (unwind-protect
+            (progn
+              (delete-other-windows)
+              (switch-to-buffer buf)
+              (expect (projectile-session-save "/blocked/root/") :to-be nil))
+          (when (buffer-live-p buf) (kill-buffer buf))
+          (delete-file tmp)
+          (delete-file blocker)))))
+
+  (it "placeholders a dead pane in a split layout without erroring"
+    (let* ((projectile-session-directory projectile-session-test--dir)
+           (t1 (make-temp-file "projectile-session-mix-a" nil ".txt"))
+           (t2 (make-temp-file "projectile-session-mix-b" nil ".txt"))
+           (b1 (find-file-noselect t1))
+           (b2 (find-file-noselect t2)))
+      (unwind-protect
+          (progn
+            (delete-other-windows)
+            (switch-to-buffer b1)
+            (split-window-right)
+            (other-window 1)
+            (switch-to-buffer b2)
+            (projectile-session-save "/mix/root/")
+            ;; only t2 goes away; t1 stays recreatable
+            (kill-buffer b2) (delete-file t2)
+            (kill-buffer b1)
+            (delete-other-windows)
+            (switch-to-buffer "*scratch*")
+            ;; t1 recreatable so restore proceeds; the dead t2 pane is sanitized
+            ;; to a placeholder and window-state-put must not error
+            (expect (projectile-session-restore "/mix/root/") :to-be t))
+        (when (buffer-live-p b1) (kill-buffer b1))
+        (when (buffer-live-p b2) (kill-buffer b2))
+        (when (file-exists-p t1) (delete-file t1))
+        (when (file-exists-p t2) (delete-file t2)))))
+
+  (it "forgets a saved session by deleting its file"
+    (let ((tmp (make-temp-file "projectile-session-forget" nil ".txt")))
+      (let* ((projectile-session-directory projectile-session-test--dir)
+             (buf (find-file-noselect tmp)))
+        (unwind-protect
+            (progn
+              (delete-other-windows)
+              (switch-to-buffer buf)
+              (projectile-session-save "/forget/root/")
+              (expect (projectile-session--saved-p "/forget/root/") :to-be t)
+              (projectile-session-forget "/forget/root/")
+              (expect (projectile-session--saved-p "/forget/root/") :to-be nil))
+          (when (buffer-live-p buf) (kill-buffer buf))
+          (delete-file tmp))))))
+
+(describe "projectile-session restore-on-switch"
+  (before-each
+    (setq projectile-session-test--dir (projectile-session-test--make-dir))
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (projectile-session-test--reset-tabs)
+    (when (and projectile-session-test--dir
+               (file-directory-p projectile-session-test--dir))
+      (delete-directory projectile-session-test--dir t)))
+
+  (it "restores instead of populating when a session exists on disk"
+    (let ((projectile-session-directory projectile-session-test--dir)
+          (projectile-session-restore-on-switch t)
+          (projectile-session-default-action 'projectile-session-test--populate))
+      (spy-on 'projectile-session-test--populate)
+      (spy-on 'projectile-project-root :and-return-value "/switch/proj/")
+      (spy-on 'projectile-session--saved-p :and-return-value t)
+      (spy-on 'projectile-session-restore :and-return-value t)
+      (projectile-session-switch-project-action)
+      (expect 'projectile-session-restore
+              :to-have-been-called-with "/switch/proj/")
+      (expect 'projectile-session-test--populate :not :to-have-been-called)))
+
+  (it "populates when restore-on-switch is off"
+    (let ((projectile-session-directory projectile-session-test--dir)
+          (projectile-session-restore-on-switch nil)
+          (projectile-session-default-action 'projectile-session-test--populate))
+      (spy-on 'projectile-session-test--populate)
+      (spy-on 'projectile-project-root :and-return-value "/switch/proj/")
+      (spy-on 'projectile-session--saved-p :and-return-value t)
+      (spy-on 'projectile-session-restore)
+      (projectile-session-switch-project-action)
+      (expect 'projectile-session-restore :not :to-have-been-called)
+      (expect 'projectile-session-test--populate :to-have-been-called)))
+
+  (it "populates when there is no saved session"
+    (let ((projectile-session-directory projectile-session-test--dir)
+          (projectile-session-restore-on-switch t)
+          (projectile-session-default-action 'projectile-session-test--populate))
+      (spy-on 'projectile-session-test--populate)
+      (spy-on 'projectile-project-root :and-return-value "/switch/proj/")
+      (spy-on 'projectile-session--saved-p :and-return-value nil)
+      (spy-on 'projectile-session-restore)
+      (projectile-session-switch-project-action)
+      (expect 'projectile-session-restore :not :to-have-been-called)
+      (expect 'projectile-session-test--populate :to-have-been-called))))
+
+(describe "projectile-session autosave wiring"
+  (before-each
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (when projectile-session-mode
+      (projectile-session-mode -1))
+    (projectile-session-test--reset-tabs))
+
+  (it "adds and removes the autosave hooks with the mode"
+    (let ((projectile-switch-project-action 'projectile-find-file)
+          (projectile-before-switch-project-hook nil)
+          (kill-emacs-hook nil))
+      (spy-on 'projectile-project-root :and-return-value nil)
+      (projectile-session-mode 1)
+      (expect (memq 'projectile-session--maybe-autosave
+                    projectile-before-switch-project-hook)
+              :to-be-truthy)
+      (expect (memq 'projectile-session--autosave-on-kill kill-emacs-hook)
+              :to-be-truthy)
+      (projectile-session-mode -1)
+      (expect (memq 'projectile-session--maybe-autosave
+                    projectile-before-switch-project-hook)
+              :to-be nil)
+      (expect (memq 'projectile-session--autosave-on-kill kill-emacs-hook)
+              :to-be nil)))
+
+  (it "does not stack duplicate hooks on a double enable"
+    (let ((projectile-switch-project-action 'projectile-find-file)
+          (projectile-before-switch-project-hook nil)
+          (kill-emacs-hook nil))
+      (spy-on 'projectile-project-root :and-return-value nil)
+      (projectile-session-mode 1)
+      (projectile-session-mode 1)
+      (expect (length (delq nil (mapcar
+                                 (lambda (h)
+                                   (eq h 'projectile-session--maybe-autosave))
+                                 projectile-before-switch-project-hook)))
+              :to-equal 1)))
+
+  (it "autosaves the outgoing project only when enabled"
+    (let ((projectile-session-autosave nil))
+      (spy-on 'projectile-session-save)
+      (projectile-session--maybe-autosave)
+      (expect 'projectile-session-save :not :to-have-been-called)
+      (setq projectile-session-autosave t)
+      (projectile-session--maybe-autosave)
+      (expect 'projectile-session-save :to-have-been-called)))
+
+  (it "keeps saving the other tabs when one can't be selected on kill"
+    (let ((projectile-session-autosave t)
+          (saved '()))
+      (spy-on 'projectile-session--project-tabs
+              :and-return-value (list 'tab-a 'tab-b 'tab-c))
+      (spy-on 'projectile-session--tab-root
+              :and-call-fake (lambda (tab) (format "/%s/" tab)))
+      (spy-on 'projectile-session--select-tab
+              :and-call-fake (lambda (tab)
+                               (when (eq tab 'tab-b) (error "cannot select tab-b"))))
+      (spy-on 'projectile-session-save
+              :and-call-fake (lambda (root) (push root saved) t))
+      ;; tab-b throws on select, but that must not abandon tab-a and tab-c
+      (projectile-session--autosave-on-kill)
+      (expect saved :to-contain "/tab-a/")
+      (expect saved :to-contain "/tab-c/")
+      (expect saved :not :to-contain "/tab-b/"))))
+
 (provide 'projectile-session-test)
 
 ;;; projectile-session-test.el ends here

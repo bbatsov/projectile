@@ -818,9 +818,77 @@ separate, opt-in command rather than a global remapping of
 
 NOTE: This mode makes the aging
 https://github.com/bbatsov/persp-projectile[persp-projectile] unnecessary
-for tab-based project workflows. Persisting the tabs to disk and
-restoring them across Emacs restarts is not implemented yet, but is
-planned for a future release.
+for tab-based project workflows.
+
+=== Persisting sessions across restarts
+
+A project's tab keeps its layout only while Emacs is running. You can also
+persist a project's session (its window layout plus the buffers it shows)
+to disk and restore it in a later Emacs:
+
+* `projectile-session-save` writes the current frame's layout and buffers
+  as the current project's session. Since it reads the live frame, it saves
+  whichever project's tab is selected.
+* `projectile-session-restore` recreates that project's buffers and puts
+  the saved layout back.
+* `projectile-session-forget` deletes a project's saved session file.
+
+Sessions are stored one file per project under
+`projectile-session-directory` (by default a `projectile-sessions/`
+directory under `user-emacs-directory`). Each file is named after the
+project and keyed by a hash of its root, so distinct roots never collide
+and the same root maps to the same file across restarts.
+
+With `projectile-session-restore-on-switch` (on by default), switching to a
+project that has no open tab but does have a saved session restores that
+session instead of running `projectile-session-default-action`.
+
+Set `projectile-session-autosave` to save automatically: the outgoing
+project's session is saved when you switch away from it, and every open
+project's session is saved when Emacs exits. Layouts with no serializable
+buffer are skipped.
+
+[source,elisp]
+----
+(setq projectile-session-autosave t)
+----
+
+==== Registering buffer serializers
+
+Which buffers a session records, and how, is controlled by
+`projectile-session-buffer-serializers`, an alist mapping a key to a
+`(serialize . deserialize)` pair. The key is a major-mode symbol, the
+symbol `t` (any file-visiting buffer), or a predicate function of one
+argument (the buffer). `serialize` runs with the buffer current and
+returns a `read`-able record (or nil to decline it); `deserialize` takes
+such a record and recreates the live buffer (or returns nil when it
+can't, e.g. the file is gone).
+
+Out of the box, ordinary file-visiting buffers (recording the file and
+point) and `dired-mode` buffers (recording the directory) round-trip.
+Buffers no serializer handles are simply skipped. To persist other kinds
+of buffers, e.g. Magit or eshell, add a handler keyed by their major mode:
+
+[source,elisp]
+----
+(defun my-eshell-serialize (_buffer)
+  (list :dir default-directory))
+
+(defun my-eshell-deserialize (record)
+  (let ((default-directory (plist-get record :dir)))
+    (save-window-excursion (eshell t))))
+
+(add-to-list 'projectile-session-buffer-serializers
+             '(eshell-mode . (my-eshell-serialize . my-eshell-deserialize)))
+----
+
+Handlers keyed by a major-mode symbol or by `t` round-trip fully; restore
+dispatches on that key.
+
+NOTE: On restore, a window whose buffer can't be recreated (its file was
+deleted, say) falls back to a placeholder buffer so the restore never
+errors. This is handled explicitly to keep working on Projectile's Emacs
+28.1 floor, which predates Emacs 30's `window-restore-killed-buffer-windows`.
 
 == Known Projects
 
