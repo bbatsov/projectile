@@ -112,6 +112,14 @@ REGEXP-P selects `projectile-replace-regexp-review'."
   (with-current-buffer buf
     (projectile-replace--apply)))
 
+(defun projectile-replace-review-test--header (buf)
+  "Return the two-line status header of results buffer BUF."
+  (with-current-buffer buf
+    (buffer-substring-no-properties (point-min)
+                                    (save-excursion
+                                      (goto-char (point-min))
+                                      (line-end-position 2)))))
+
 (describe "projectile-replace-review (literal)"
   (it "finds every literal match and applies them to a file on disk"
     (projectile-replace-review-test--with-project
@@ -324,5 +332,226 @@ REGEXP-P selects `projectile-replace-regexp-review'."
           (expect (buffer-modified-p) :to-be-truthy))
         (expect (projectile-replace-review-test--disk "u.txt")
                 :to-equal "foo mid\n")))))
+
+(describe "projectile-replace-review case-sensitivity toggle"
+  (it "flips which matches are found and re-renders"
+    (projectile-replace-review-test--with-project
+        (("case.txt" . "Foo foo FOO\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          ;; `case-fold-search' is t in the sandbox, so all three case
+          ;; variants match to start with
+          (expect projectile-replace--case-fold :to-be-truthy)
+          (expect (length projectile-replace--matches) :to-equal 3)
+          (projectile-replace--toggle-case)
+          (expect projectile-replace--case-fold :to-be nil)
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect (projectile-replace--match-string
+                   (car projectile-replace--matches))
+                  :to-equal "foo")
+          ;; toggling back restores the case-insensitive match set
+          (projectile-replace--toggle-case)
+          (expect (length projectile-replace--matches) :to-equal 3)))))
+
+  (it "applies only the case-sensitive survivors after a toggle"
+    (projectile-replace-review-test--with-project
+        (("s.txt" . "Foo foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (projectile-replace--toggle-case))
+        (projectile-replace-review-test--apply buf)
+        ;; only the lowercase `foo' is replaced; `Foo' is left alone
+        (expect (projectile-replace-review-test--disk "s.txt")
+                :to-equal "Foo bar\n"))))
+
+  (it "still excludes ignored files on the case-insensitive fallback path"
+    ;; the case-insensitive literal search scans the full file list rather
+    ;; than the grep narrowing, so it must still honor .projectile ignores
+    (projectile-replace-review-test--with-project
+        ((".projectile" . "-secret\n")
+         ("keep.txt" . "FOO\n")
+         ("secret/hide.txt" . "FOO\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      ;; case-insensitive (sandbox default) literal search for `foo' finds
+      ;; `FOO' in keep.txt but never in the ignored secret/ tree
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect (cl-some (lambda (m)
+                             (string-match-p
+                              "secret"
+                              (projectile-replace--match-file m)))
+                           projectile-replace--matches)
+                  :to-be nil))
+        (projectile-replace-review-test--apply buf)
+        (expect (projectile-replace-review-test--disk "keep.txt")
+                :to-equal "bar\n")
+        (expect (projectile-replace-review-test--disk "secret/hide.txt")
+                :to-equal "FOO\n"))))
+
+  (it "re-enables all matches when re-scanning (documented reset)"
+    (projectile-replace-review-test--with-project
+        (("e.txt" . "foo foo foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          ;; disable one match, then toggle case: re-scan rebuilds the list,
+          ;; so every match comes back enabled (the documented behavior)
+          (setf (projectile-replace--match-enabled
+                 (car projectile-replace--matches))
+                nil)
+          (projectile-replace--toggle-case)
+          (projectile-replace--toggle-case)
+          (expect (cl-every #'projectile-replace--match-enabled
+                            projectile-replace--matches)
+                  :to-be-truthy))))))
+
+(describe "projectile-replace-review regexp/literal toggle"
+  (it "re-scans and changes the count for a term with metacharacters"
+    (projectile-replace-review-test--with-project
+        (("meta.txt" . "a.b axb a.b\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "a.b" "Z")))
+        (with-current-buffer buf
+          (expect projectile-replace--literal :to-be-truthy)
+          ;; literal: only the two real `a.b' occurrences
+          (expect (length projectile-replace--matches) :to-equal 2)
+          (projectile-replace--toggle-regexp)
+          (expect projectile-replace--literal :to-be nil)
+          (expect projectile-replace--search :to-equal "a.b")
+          ;; regexp: the `.' now also matches the `x' in `axb'
+          (expect (length projectile-replace--matches) :to-equal 3)))))
+
+  (it "refuses an invalid regexp and stays literal without erroring"
+    (projectile-replace-review-test--with-project
+        (("br.txt" . "foo[bar\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo[" "X")))
+        (with-current-buffer buf
+          (expect projectile-replace--literal :to-be-truthy)
+          (expect (length projectile-replace--matches) :to-equal 1)
+          ;; `foo[' is not a valid regexp; the toggle must not error
+          (projectile-replace--toggle-regexp)
+          (expect projectile-replace--literal :to-be-truthy)
+          (expect (length projectile-replace--matches) :to-equal 1))))))
+
+(describe "projectile-replace-review match filtering"
+  (it "keeps only matches whose line matches and applies just those"
+    (projectile-replace-review-test--with-project
+        (("f.txt" . "keep foo here\ndrop foo there\nkeep foo again\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (expect (length projectile-replace--matches) :to-equal 3)
+          (projectile-replace--keep-matches "keep")
+          (expect (length projectile-replace--matches) :to-equal 2)
+          (expect projectile-replace--filtered :to-be-truthy))
+        (projectile-replace-review-test--apply buf)
+        (expect (projectile-replace-review-test--disk "f.txt")
+                :to-equal "keep bar here\ndrop foo there\nkeep bar again\n"))))
+
+  (it "flushes matches whose line matches and applies the survivors"
+    (projectile-replace-review-test--with-project
+        (("f.txt" . "keep foo here\ndrop foo there\nkeep foo again\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (projectile-replace--flush-matches "drop")
+          (expect (length projectile-replace--matches) :to-equal 2))
+        (projectile-replace-review-test--apply buf)
+        (expect (projectile-replace-review-test--disk "f.txt")
+                :to-equal "keep bar here\ndrop foo there\nkeep bar again\n"))))
+
+  (it "restores a filtered-away match on re-search"
+    (projectile-replace-review-test--with-project
+        (("f.txt" . "keep foo here\ndrop foo there\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (expect (length projectile-replace--matches) :to-equal 2)
+          (projectile-replace--flush-matches "drop")
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect projectile-replace--filtered :to-be-truthy)
+          ;; re-search gathers from scratch, bringing the flushed match back
+          (projectile-replace--refresh)
+          (expect (length projectile-replace--matches) :to-equal 2)
+          (expect projectile-replace--filtered :to-be nil))))))
+
+(describe "projectile-replace-review file filtering"
+  (it "keeps only matches whose file matches the regexp"
+    (projectile-replace-review-test--with-project
+        (("keep.txt" . "foo\n")
+         ("lib/skip.txt" . "foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (expect (length projectile-replace--matches) :to-equal 2)
+          (projectile-replace--keep-files "keep")
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect (file-name-nondirectory
+                   (projectile-replace--match-file
+                    (car projectile-replace--matches)))
+                  :to-equal "keep.txt"))
+        (projectile-replace-review-test--apply buf)
+        (expect (projectile-replace-review-test--disk "keep.txt")
+                :to-equal "bar\n")
+        (expect (projectile-replace-review-test--disk "lib/skip.txt")
+                :to-equal "foo\n"))))
+
+  (it "flushes matches whose project-relative path matches the regexp"
+    (projectile-replace-review-test--with-project
+        (("keep.txt" . "foo\n")
+         ("lib/skip.txt" . "foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          ;; matches the directory component of the relative path
+          (projectile-replace--flush-files "lib/")
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect (file-name-nondirectory
+                   (projectile-replace--match-file
+                    (car projectile-replace--matches)))
+                  :to-equal "keep.txt"))
+        (projectile-replace-review-test--apply buf)
+        (expect (projectile-replace-review-test--disk "lib/skip.txt")
+                :to-equal "foo\n")))))
+
+(describe "projectile-replace-review status header"
+  (it "reflects the mode flags and updates when they toggle"
+    (projectile-replace-review-test--with-project
+        (("h.txt" . "foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (let ((header (projectile-replace-review-test--header buf)))
+          (expect header :to-match "Replace \"foo\" with \"bar\"")
+          (expect header :to-match "\\[literal\\]")
+          (expect header :to-match "\\[ignore-case\\]"))
+        (with-current-buffer buf (projectile-replace--toggle-case))
+        (expect (projectile-replace-review-test--header buf)
+                :to-match "\\[case-sensitive\\]")
+        (with-current-buffer buf (projectile-replace--toggle-regexp))
+        (expect (projectile-replace-review-test--header buf)
+                :to-match "\\[regexp\\]"))))
+
+  (it "shows (none) when there is no replacement yet"
+    (projectile-replace-review-test--with-project
+        (("h.txt" . "foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "")))
+        (expect (projectile-replace-review-test--header buf)
+                :to-match "with (none)"))))
+
+  (it "notes when the list has been filtered"
+    (projectile-replace-review-test--with-project
+        (("h.txt" . "keep foo\ndrop foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (expect (projectile-replace-review-test--header buf)
+                :not :to-match "filtered")
+        (with-current-buffer buf (projectile-replace--flush-matches "drop"))
+        (expect (projectile-replace-review-test--header buf)
+                :to-match "filtered")))))
 
 ;;; projectile-replace-review-test.el ends here

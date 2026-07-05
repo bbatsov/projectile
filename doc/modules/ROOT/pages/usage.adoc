@@ -490,8 +490,20 @@ supports these keys:
 | kbd:[r]
 | Re-read the replacement string and refresh the previews.
 
+| kbd:[c]
+| Toggle case sensitivity and re-scan.
+
+| kbd:[x]
+| Toggle between literal and regexp matching and re-scan.
+
+| kbd:[k] / kbd:[d]
+| Keep / flush the matches whose line matches a regexp you type.
+
+| kbd:[K] / kbd:[D]
+| Keep / flush the matches whose file matches a regexp you type.
+
 | kbd:[g]
-| Re-run the search.
+| Re-run the search (also undoes any filtering).
 
 | kbd:[!] (or kbd:[C-c C-c])
 | Apply all enabled matches.
@@ -499,6 +511,24 @@ supports these keys:
 | kbd:[q]
 | Quit the results buffer.
 |===
+
+A status line at the top of the buffer shows the term, the replacement, the
+match and file counts, the active mode flags (`[literal]`/`[regexp]` and
+`[case-sensitive]`/`[ignore-case]`), and a `filtered` note once you've pruned
+the list.
+
+You can reshape the search without leaving the buffer. kbd:[c] toggles case
+sensitivity (seeded from `case-fold-search`) and kbd:[x] toggles literal
+versus Emacs-regexp matching, each re-scanning and re-rendering the previews
+in place; switching to regexp mode with a term that isn't a valid regexp is
+refused with a message rather than erroring. Because a toggle re-scans from
+scratch, it rebuilds the match list and every match comes back enabled, so
+any per-match include/exclude toggles you had set are reset (use the filter
+keys instead to prune while keeping the survivors' state). The filter keys
+narrow the shown matches, either by the match's line (kbd:[k] keep, kbd:[d]
+flush) or by its project-relative file name (kbd:[K] keep, kbd:[D] flush).
+Filtering only hides matches from the current list; re-running the search
+(kbd:[g]) gathers from scratch and brings them back.
 
 Applying edits a file's matches from the bottom up so earlier edits don't
 disturb later ones, edits already-open buffers in place under a single undo

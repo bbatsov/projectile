@@ -7988,6 +7988,12 @@ shown and a note is displayed."
   :group 'projectile
   :package-version '(projectile . "3.2.0"))
 
+(defface projectile-replace-header
+  '((t :inherit font-lock-keyword-face :weight bold))
+  "Face for the status header line of the replace results buffer."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
 (defvar projectile-replace-buffer-name "*projectile-replace*"
   "Name of the buffer used by `projectile-replace-review'.")
 
@@ -8019,10 +8025,17 @@ shown and a note is displayed."
   "Pending replacement string for the current results buffer.")
 (defvar-local projectile-replace--literal nil
   "Non-nil when the current results buffer is a literal (not regexp) replace.")
+(defvar-local projectile-replace--case-fold nil
+  "Non-nil when the current search ignores case.
+Initialized from `case-fold-search' at the first search and bound
+around every (re-)gather so it drives which matches are collected.")
 (defvar-local projectile-replace--matches nil
   "List of `projectile-replace--match' structs shown in the results buffer.")
 (defvar-local projectile-replace--truncated nil
   "Non-nil when the match list was capped at `projectile-replace-max-matches'.")
+(defvar-local projectile-replace--filtered nil
+  "Non-nil when the shown match list was pruned by a filter command.
+Re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]) gathers from scratch and clears this.")
 
 (defun projectile-replace--expand (replacement groups literal)
   "Expand REPLACEMENT for a match whose group strings are GROUPS.
@@ -8118,15 +8131,22 @@ A file visited in a live buffer is scanned from that buffer's current
 text (so the preview matches what will be edited, even when the buffer
 has unsaved changes); otherwise it is read from disk into a temp buffer.
 Binary-looking and unreadable files are skipped."
-  (let ((buffer (get-file-buffer file)))
+  ;; Capture the intended `case-fold-search' (bound dynamically around the
+  ;; gather) before entering a live buffer, then re-establish it there: some
+  ;; major modes make `case-fold-search' buffer-local, which would otherwise
+  ;; shadow the dynamic binding and make the case toggle a no-op for that file.
+  (let ((buffer (get-file-buffer file))
+        (fold case-fold-search))
     (if buffer
         (with-current-buffer buffer
-          (projectile-replace--scan-region file buffer regexp budget))
+          (let ((case-fold-search fold))
+            (projectile-replace--scan-region file buffer regexp budget)))
       (condition-case nil
           (with-temp-buffer
             (insert-file-contents file)
             (unless (projectile-replace--binary-p)
-              (projectile-replace--scan-region file nil regexp budget)))
+              (let ((case-fold-search fold))
+                (projectile-replace--scan-region file nil regexp budget))))
         (error nil)))))
 
 (defun projectile-replace--gather (candidates regexp)
@@ -8145,15 +8165,17 @@ and `:truncated' (non-nil when the cap was hit)."
         (setq truncated t)))
     (list :matches all :truncated truncated)))
 
-(defun projectile-replace--candidates (term literal directory)
+(defun projectile-replace--candidates (term literal case-fold directory)
   "Return the files under DIRECTORY worth scanning for TERM.
-For a LITERAL search this narrows to files containing TERM (via
-`projectile-files-with-string') intersected with the project's
-ignore-aware file list; for a regexp search it is the whole
-ignore-aware file list, since grep tools can't honor Emacs regexps."
+For a case-sensitive LITERAL search this narrows to files containing
+TERM (via `projectile-files-with-string') intersected with the
+project's ignore-aware file list.  For a regexp search, or a
+case-insensitive literal search (where the case-sensitive grep tools
+would miss case-variant occurrences), it is the whole ignore-aware file
+list, since those searches can't be narrowed by an external grep."
   (let ((project-files (mapcar (lambda (f) (expand-file-name f directory))
                                (projectile-dir-files directory))))
-    (if literal
+    (if (and literal (not case-fold))
         (seq-filter (lambda (f) (member f project-files))
                     (projectile-files-with-string term directory))
       (seq-remove (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
@@ -8201,6 +8223,37 @@ struct under the `projectile-replace-match' text property."
          (line (concat indicator locator before highlight after "\n")))
     (propertize line 'projectile-replace-match m)))
 
+(defun projectile-replace--header-string ()
+  "Return the propertized status header for the results buffer.
+Shows the term, the replacement (or \"(none)\"), the match and file
+counts, the mode flags (regexp/literal and case), and a note when the
+list has been filtered.  The header carries no `projectile-replace-match'
+property, so match navigation skips it."
+  (let* ((matches projectile-replace--matches)
+         (nmatches (length matches))
+         (seen (make-hash-table :test 'equal))
+         (repl (if (and projectile-replace--replacement
+                        (not (string-empty-p projectile-replace--replacement)))
+                   (format "%S" projectile-replace--replacement)
+                 "(none)"))
+         nfiles flags)
+    (dolist (m matches)
+      (puthash (projectile-replace--match-file m) t seen))
+    (setq nfiles (hash-table-count seen)
+          flags (concat
+                 (if projectile-replace--literal "[literal]" "[regexp]")
+                 " "
+                 (if projectile-replace--case-fold
+                     "[ignore-case]" "[case-sensitive]")
+                 (if projectile-replace--filtered "  filtered" "")))
+    (propertize
+     (format "Replace %S with %s\n%d match%s in %d file%s  %s\n"
+             projectile-replace--term repl
+             nmatches (if (= nmatches 1) "" "es")
+             nfiles (if (= nfiles 1) "" "s")
+             flags)
+     'face 'projectile-replace-header)))
+
 (defun projectile-replace--render ()
   "Redraw the current results buffer from its buffer-local state."
   (let ((inhibit-read-only t)
@@ -8213,12 +8266,7 @@ struct under the `projectile-replace-match' text property."
     (dolist (m matches)
       (cl-incf (gethash (projectile-replace--match-file m) counts 0)))
     (erase-buffer)
-    (insert (propertize
-             (format "Replace (%s) %S with %S\n"
-                     (if literal "literal" "regexp")
-                     projectile-replace--term
-                     (or replacement ""))
-             'face 'bold))
+    (insert (projectile-replace--header-string))
     (insert (substitute-command-keys
              (concat "\\<projectile-replace-mode-map>"
                      "\\[projectile-replace--toggle] toggle  "
@@ -8227,7 +8275,11 @@ struct under the `projectile-replace-match' text property."
                      "\\[projectile-replace--apply] apply  "
                      "\\[projectile-replace--refresh] re-search  "
                      "\\[projectile-replace--visit] visit  "
-                     "\\[quit-window] quit\n\n")))
+                     "\\[quit-window] quit\n"
+                     "\\[projectile-replace--toggle-case] case  "
+                     "\\[projectile-replace--toggle-regexp] regexp/literal  "
+                     "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
+                     "\\[projectile-replace--keep-files]/\\[projectile-replace--flush-files] keep/flush file\n\n")))
     (if (null matches)
         (insert "No matches.\n")
       (dolist (m matches)
@@ -8355,16 +8407,117 @@ otherwise they are all enabled."
                      projectile-replace--replacement))
   (projectile-replace--render-preserve))
 
-(defun projectile-replace--refresh ()
-  "Re-run the search and redraw the results buffer."
-  (interactive)
-  (let* ((candidates (projectile-replace--candidates
+(defun projectile-replace--regather ()
+  "Re-run the search from scratch into the buffer-local match list.
+`case-fold-search' is bound to `projectile-replace--case-fold' so the
+scan honors the current case setting, and any active filter is cleared
+because the list is rebuilt from every match in the project.  Because the
+match list is rebuilt, every match comes back enabled: re-scanning (via
+`g', the case toggle, or the regexp toggle) resets any per-match include
+or exclude toggles you had set.  Use the filter commands instead to prune
+the list while preserving the survivors' state."
+  (let* ((case-fold-search projectile-replace--case-fold)
+         (candidates (projectile-replace--candidates
                       projectile-replace--term projectile-replace--literal
-                      projectile-replace--root))
+                      projectile-replace--case-fold projectile-replace--root))
          (result (projectile-replace--gather candidates projectile-replace--search)))
     (setq projectile-replace--matches (plist-get result :matches)
-          projectile-replace--truncated (plist-get result :truncated))
-    (projectile-replace--render)))
+          projectile-replace--truncated (plist-get result :truncated)
+          projectile-replace--filtered nil)))
+
+(defun projectile-replace--refresh ()
+  "Re-run the search and redraw the results buffer.
+This gathers from scratch, so any filtering is undone and matches
+removed by a filter command reappear."
+  (interactive)
+  (projectile-replace--regather)
+  (projectile-replace--render))
+
+(defun projectile-replace--toggle-case ()
+  "Toggle case sensitivity of the search, re-scan, and re-render."
+  (interactive)
+  (setq projectile-replace--case-fold (not projectile-replace--case-fold))
+  (projectile-replace--regather)
+  (projectile-replace--render)
+  (message "%s"
+           (projectile-prepend-project-name
+            (if projectile-replace--case-fold
+                "search now ignores case" "search now case-sensitive"))))
+
+(defun projectile-replace--valid-regexp-p (regexp)
+  "Return non-nil when REGEXP is a valid Emacs regexp."
+  (condition-case nil
+      (progn (string-match-p regexp "") t)
+    (error nil)))
+
+(defun projectile-replace--toggle-regexp ()
+  "Toggle between literal and regexp search, re-scan, and re-render.
+Switching to regexp mode with a term that is not a valid regexp is
+refused with a message so the buffer stays usable rather than erroring."
+  (interactive)
+  (let ((new-literal (not projectile-replace--literal)))
+    (if (and (not new-literal)
+             (not (projectile-replace--valid-regexp-p projectile-replace--term)))
+        (message "%s"
+                 (projectile-prepend-project-name
+                  (format "%S is not a valid regexp; staying literal"
+                          projectile-replace--term)))
+      (setq projectile-replace--literal new-literal
+            projectile-replace--search (if new-literal
+                                           (regexp-quote projectile-replace--term)
+                                         projectile-replace--term))
+      (projectile-replace--regather)
+      (projectile-replace--render)
+      (message "%s"
+               (projectile-prepend-project-name
+                (if new-literal "literal search" "regexp search"))))))
+
+(defun projectile-replace--filter-by (predicate)
+  "Keep only matches satisfying PREDICATE, mark the list filtered, re-render.
+The removed matches are recoverable by re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]), which
+gathers from scratch."
+  (setq projectile-replace--matches
+        (cl-remove-if-not predicate projectile-replace--matches)
+        projectile-replace--filtered t)
+  (projectile-replace--render))
+
+(defun projectile-replace--line-matches-p (m regexp)
+  "Return non-nil when match M's context line matches REGEXP.
+Honors the buffer's case setting."
+  (let ((case-fold-search projectile-replace--case-fold))
+    (string-match-p regexp (projectile-replace--match-context m))))
+
+(defun projectile-replace--file-matches-p (m regexp)
+  "Return non-nil when match M's project-relative file matches REGEXP.
+Honors the buffer's case setting."
+  (let ((case-fold-search projectile-replace--case-fold))
+    (string-match-p regexp
+                    (file-relative-name (projectile-replace--match-file m)
+                                        projectile-replace--root))))
+
+(defun projectile-replace--keep-matches (regexp)
+  "Keep only matches whose context line matches REGEXP."
+  (interactive (list (read-regexp "Keep matches whose line matches regexp")))
+  (projectile-replace--filter-by
+   (lambda (m) (projectile-replace--line-matches-p m regexp))))
+
+(defun projectile-replace--flush-matches (regexp)
+  "Remove matches whose context line matches REGEXP."
+  (interactive (list (read-regexp "Flush matches whose line matches regexp")))
+  (projectile-replace--filter-by
+   (lambda (m) (not (projectile-replace--line-matches-p m regexp)))))
+
+(defun projectile-replace--keep-files (regexp)
+  "Keep only matches whose project-relative file matches REGEXP."
+  (interactive (list (read-regexp "Keep matches whose file matches regexp")))
+  (projectile-replace--filter-by
+   (lambda (m) (projectile-replace--file-matches-p m regexp))))
+
+(defun projectile-replace--flush-files (regexp)
+  "Remove matches whose project-relative file matches REGEXP."
+  (interactive (list (read-regexp "Flush matches whose file matches regexp")))
+  (projectile-replace--filter-by
+   (lambda (m) (not (projectile-replace--file-matches-p m regexp)))))
 
 ;;; Applying the enabled matches
 
@@ -8499,6 +8652,12 @@ unsaved changes is edited but left for the user to save."
     (define-key map (kbd "SPC") #'projectile-replace--toggle)
     (define-key map (kbd "f") #'projectile-replace--toggle-file)
     (define-key map (kbd "r") #'projectile-replace--set-replacement)
+    (define-key map (kbd "c") #'projectile-replace--toggle-case)
+    (define-key map (kbd "x") #'projectile-replace--toggle-regexp)
+    (define-key map (kbd "k") #'projectile-replace--keep-matches)
+    (define-key map (kbd "d") #'projectile-replace--flush-matches)
+    (define-key map (kbd "K") #'projectile-replace--keep-files)
+    (define-key map (kbd "D") #'projectile-replace--flush-files)
     (define-key map (kbd "!") #'projectile-replace--apply)
     (define-key map (kbd "C-c C-c") #'projectile-replace--apply)
     (define-key map (kbd "g") #'projectile-replace--refresh)
@@ -8508,6 +8667,15 @@ unsaved changes is edited but left for the user to save."
 
 (define-derived-mode projectile-replace-mode special-mode "Projectile-Replace"
   "Major mode for reviewing and applying a project-wide replacement.
+
+Each match starts enabled and can be toggled on or off; only the
+enabled matches are applied.  Besides toggling and applying, the search
+itself can be reshaped without leaving the buffer: toggle case
+sensitivity (\\<projectile-replace-mode-map>\\[projectile-replace--toggle-case]) or literal/regexp matching (\\[projectile-replace--toggle-regexp]) to re-scan, and
+narrow the shown matches by keeping or flushing them against a regexp
+matched on the context line (\\[projectile-replace--keep-matches] / \\[projectile-replace--flush-matches]) or the file name
+(\\[projectile-replace--keep-files] / \\[projectile-replace--flush-files]).  Re-searching (\\[projectile-replace--refresh]) rebuilds the list from scratch,
+undoing any filtering.
 
 \\{projectile-replace-mode-map}"
   (setq-local truncate-lines t)
@@ -8526,7 +8694,8 @@ Emacs regexp and the replacement may reference capture groups."
                        (projectile-prepend-project-name
                         (format "Replace %s with: " term))))
          (regexp (if literal (regexp-quote term) term))
-         (candidates (projectile-replace--candidates term literal root))
+         (case-fold case-fold-search)
+         (candidates (projectile-replace--candidates term literal case-fold root))
          (result (projectile-replace--gather candidates regexp))
          (matches (plist-get result :matches))
          (truncated (plist-get result :truncated)))
@@ -8541,8 +8710,10 @@ Emacs regexp and the replacement may reference capture groups."
                 projectile-replace--search regexp
                 projectile-replace--replacement replacement
                 projectile-replace--literal literal
+                projectile-replace--case-fold case-fold
                 projectile-replace--matches matches
-                projectile-replace--truncated truncated)
+                projectile-replace--truncated truncated
+                projectile-replace--filtered nil)
           (projectile-replace--render))
         (when truncated
           (message "projectile-replace: showing the first %d matches"

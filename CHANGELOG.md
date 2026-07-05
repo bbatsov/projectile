@@ -9,6 +9,11 @@
   * Matches are gathered in Emacs Lisp, so the regexp command honors full Emacs regexp syntax and the preview reflects exactly what will be edited, including unsaved changes in open buffers.
   * The `*projectile-replace*` results buffer shows a per-file, per-match preview where each match can be toggled on or off; `!` (or `C-c C-c`) applies just the enabled ones, in any order.
   * Applying edits each file from the bottom up, edits open buffers in place under a single undo step, writes closed files back preserving their coding system, and skips buffers modified since the search rather than corrupting them.
+  * The results buffer can reshape the search in place, each action re-scanning and re-rendering the previews:
+    * `c` toggles case sensitivity (seeded from `case-fold-search`).
+    * `x` toggles between literal and Emacs-regexp matching, refusing an invalid regexp rather than erroring.
+    * `k`/`d` keep or flush the matches whose line matches a regexp; `K`/`D` do the same by file name; re-searching with `g` restores anything filtered away.
+  * A status line at the top shows the term, replacement, match and file counts, the mode flags, and a note when the list has been filtered.
   * The commands are available from `projectile-dispatch` and the Projectile menu, and the match cap is customizable via `projectile-replace-max-matches`.
 * Add `projectile-session-mode`, a global minor mode that gives each project its own `tab-bar` tab.
   * Switching to a project selects its existing tab (restoring that project's window layout) when one is open, or otherwise opens a fresh tab named after the project and populated via `projectile-session-default-action`.
