@@ -554,4 +554,119 @@ REGEXP-P selects `projectile-replace-regexp-review'."
         (expect (projectile-replace-review-test--header buf)
                 :to-match "filtered")))))
 
+(defun projectile-replace-review-test--export (buf)
+  "Export results buffer BUF to a grep buffer and return that grep buffer."
+  (with-current-buffer buf
+    (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
+      (projectile-replace--export))))
+
+(describe "projectile-replace-review export to grep-mode"
+  (it "renders the shown matches as a navigable grep-mode buffer"
+    (projectile-replace-review-test--with-project
+        (("a.txt" . "foo one foo\n")
+         ("lib/b.txt" . "start foo end\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let* ((buf (projectile-replace-review-test--run "foo" "bar"))
+             (gbuf (projectile-replace-review-test--export buf)))
+        (unwind-protect
+            (with-current-buffer gbuf
+              ;; it is a real grep-mode buffer rooted at the project
+              (expect major-mode :to-equal 'grep-mode)
+              (expect (file-truename default-directory)
+                      :to-equal (file-truename
+                                 (buffer-local-value
+                                  'projectile-replace--root buf)))
+              ;; every shown match appears as a RELPATH:LINE: grep hit
+              (let ((text (buffer-string)))
+                (expect text :to-match "^a\\.txt:1:foo one foo$")
+                (expect text :to-match "^lib/b\\.txt:1:start foo end$"))
+              ;; the lines are recognized as grep hits, not inert text
+              (goto-char (point-min))
+              (compilation-next-error 1)
+              (expect (get-text-property (point) 'compilation-message)
+                      :not :to-be nil)
+              (expect (buffer-substring-no-properties
+                       (line-beginning-position) (line-end-position))
+                      :to-match "\\`a\\.txt:1:"))
+          (kill-buffer gbuf)))))
+
+  (it "exports only the filtered (shown) matches, not the removed ones"
+    (projectile-replace-review-test--with-project
+        (("keep.txt" . "keep foo\n")
+         ("drop.txt" . "drop foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf (projectile-replace--flush-files "drop"))
+        (let ((gbuf (projectile-replace-review-test--export buf)))
+          (unwind-protect
+              (with-current-buffer gbuf
+                (let ((text (buffer-string)))
+                  (expect text :to-match "^keep\\.txt:1:")
+                  (expect text :not :to-match "drop\\.txt")))
+            (kill-buffer gbuf))))))
+
+  (it "errors when there are no matches to export"
+    (projectile-replace-review-test--with-project
+        (("z.txt" . "foo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (setq projectile-replace--matches nil)
+          (expect (projectile-replace--export) :to-throw 'user-error)))))
+
+  (it "excludes matches toggled off, matching what apply would do"
+    (projectile-replace-review-test--with-project
+        (("e.txt" . "foo\nfoo\nfoo\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          ;; disable the first (line 1) match
+          (setf (projectile-replace--match-enabled
+                 (car projectile-replace--matches))
+                nil))
+        (let ((gbuf (projectile-replace-review-test--export buf)))
+          (unwind-protect
+              (with-current-buffer gbuf
+                (let ((text (buffer-string)))
+                  ;; the disabled line-1 match is gone; the enabled ones remain
+                  (expect text :not :to-match "^e\\.txt:1:")
+                  (expect text :to-match "^e\\.txt:2:")
+                  (expect text :to-match "^e\\.txt:3:")))
+            (kill-buffer gbuf))))))
+
+  (it "does not create a phantom grep hit for a numeric term like 10:30"
+    (projectile-replace-review-test--with-project
+        (("t.txt" . "before 10:30 after\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "10:30" "NOON")))
+        (let ((gbuf (projectile-replace-review-test--export buf)))
+          (unwind-protect
+              (with-current-buffer gbuf
+                ;; the header carries no colon, so the term can't parse as a
+                ;; bogus `file:line:' hit; the first real hit is t.txt
+                (expect (buffer-string) :not :to-match "Projectile replace:")
+                (goto-char (point-min))
+                (compilation-next-error 1)
+                (expect (buffer-substring-no-properties
+                         (line-beginning-position) (line-end-position))
+                        :to-match "\\`t\\.txt:1:"))
+            (kill-buffer gbuf)))))))
+
+(describe "projectile-replace export guidance"
+  (it "points at wgrep when wgrep-change-to-wgrep-mode is available"
+    (cl-letf (((symbol-function 'wgrep-change-to-wgrep-mode) #'ignore))
+      (expect (projectile-replace--export-guidance) :to-match "C-c C-p")))
+
+  (it "points at grep-edit-mode when only that is available"
+    (cl-letf (((symbol-function 'wgrep-change-to-wgrep-mode) nil)
+              ((symbol-function 'grep-edit-mode) #'ignore))
+      (expect (projectile-replace--export-guidance) :to-match "grep-edit-mode")))
+
+  (it "falls back to a read-only note pointing at MELPA otherwise"
+    (cl-letf (((symbol-function 'wgrep-change-to-wgrep-mode) nil)
+              ((symbol-function 'grep-edit-mode) nil))
+      (let ((msg (projectile-replace--export-guidance)))
+        (expect msg :to-match "read-only")
+        (expect msg :to-match "MELPA")))))
+
 ;;; projectile-replace-review-test.el ends here

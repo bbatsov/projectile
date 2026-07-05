@@ -14,6 +14,7 @@
     * `x` toggles between literal and Emacs-regexp matching, refusing an invalid regexp rather than erroring.
     * `k`/`d` keep or flush the matches whose line matches a regexp; `K`/`D` do the same by file name; re-searching with `g` restores anything filtered away.
   * A status line at the top shows the term, replacement, match and file counts, the mode flags, and a note when the list has been filtered.
+  * `e` exports the shown matches to a `grep-mode` buffer so wgrep or Emacs 31's `grep-edit-mode` can turn them editable and write back; wgrep stays an optional integration and `!` remains the no-dependency apply path.
   * The commands are available from `projectile-dispatch` and the Projectile menu, and the match cap is customizable via `projectile-replace-max-matches`.
 * Add `projectile-session-mode`, a global minor mode that gives each project its own `tab-bar` tab.
   * Switching to a project selects its existing tab (restoring that project's window layout) when one is open, or otherwise opens a fresh tab named after the project and populated via `projectile-session-default-action`.
