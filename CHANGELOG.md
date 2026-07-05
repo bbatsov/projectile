@@ -4,6 +4,12 @@
 
 ### New features
 
+* [#1924](https://github.com/bbatsov/projectile/issues/1924): Add reviewable project-wide replace commands that let you preview matches and choose which to apply, instead of the blocking, file-by-file `query-replace` walk of `projectile-replace`.
+  * `projectile-replace-review` (`R`) does a literal replace; `projectile-replace-regexp-review` does an Emacs-regexp replace whose replacement can reference capture groups.
+  * Matches are gathered in Emacs Lisp, so the regexp command honors full Emacs regexp syntax and the preview reflects exactly what will be edited, including unsaved changes in open buffers.
+  * The `*projectile-replace*` results buffer shows a per-file, per-match preview where each match can be toggled on or off; `!` (or `C-c C-c`) applies just the enabled ones, in any order.
+  * Applying edits each file from the bottom up, edits open buffers in place under a single undo step, writes closed files back preserving their coding system, and skips buffers modified since the search rather than corrupting them.
+  * The commands are available from `projectile-dispatch` and the Projectile menu, and the match cap is customizable via `projectile-replace-max-matches`.
 * Add `projectile-session-mode`, a global minor mode that gives each project its own `tab-bar` tab.
   * Switching to a project selects its existing tab (restoring that project's window layout) when one is open, or otherwise opens a fresh tab named after the project and populated via `projectile-session-default-action`.
   * Same-named checkouts get distinct tab names (e.g. `work/foo` and `home/foo`); customize the scheme with `projectile-session-tab-name-function`.
