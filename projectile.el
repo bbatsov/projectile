@@ -7930,6 +7930,647 @@ to run the replacement."
                    (projectile-dir-files directory)))))
     (projectile--replace-in-files old-text new-text files)))
 
+;;; Reviewable project-wide find-and-replace
+;;
+;; `projectile-replace' and `projectile-replace-regexp' above drive a
+;; blocking, sequential query-replace walk with no preview.  The commands
+;; below add a results-buffer flow instead: gather every match up front,
+;; render them in a read-only buffer where each match can be toggled on or
+;; off, and apply only the enabled ones (in any order).  Answers #1924.
+;;
+;; Matches are gathered in pure Emacs Lisp (not via grep) so that Emacs
+;; regexp semantics are preserved for the regexp command and so the preview
+;; reflects the exact text that will be edited, including unsaved changes in
+;; already-open buffers.
+;;
+;; The write-back and buffer-refresh structure borrows from the GPL-3
+;; packages wgrep (`wgrep-commit-file') and color-rg (`color-rg-apply-changed'):
+;; edits are applied from the highest buffer position downwards so earlier
+;; edits don't invalidate later match offsets, live buffers are edited in
+;; place under a single `atomic-change-group', and buffers modified since the
+;; scan are skipped rather than corrupted.
+
+(defcustom projectile-replace-max-matches 5000
+  "Upper bound on how many matches `projectile-replace-review' collects.
+When a search would exceed this, only the first that many matches are
+shown and a note is displayed."
+  :group 'projectile
+  :type 'integer
+  :package-version '(projectile . "3.2.0"))
+
+(defface projectile-replace-file
+  '((t :inherit font-lock-function-name-face :weight bold))
+  "Face for the per-file header lines in the replace results buffer."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defface projectile-replace-match
+  '((t :inherit match))
+  "Face for a matched span shown without a pending replacement."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defface projectile-replace-old
+  '((t :inherit diff-removed :strike-through t))
+  "Face for the old text of a match with a pending replacement."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defface projectile-replace-new
+  '((t :inherit diff-added))
+  "Face for the new text of a match with a pending replacement."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defface projectile-replace-line-number
+  '((t :inherit shadow))
+  "Face for the LINE:COL locator of each match."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defvar projectile-replace-buffer-name "*projectile-replace*"
+  "Name of the buffer used by `projectile-replace-review'.")
+
+(cl-defstruct (projectile-replace--match
+               (:constructor projectile-replace--match-create)
+               (:copier nil))
+  "A single match collected for the reviewable replace UI."
+  file        ; absolute file name
+  buffer      ; live buffer visiting FILE, or nil when scanned from disk
+  tick        ; `buffer-chars-modified-tick' of BUFFER at scan time (or nil)
+  line        ; 1-based line number of the match
+  column      ; 0-based character offset of the match within its line
+  beg         ; buffer position of the match start (in BUFFER or a disk re-read)
+  end         ; buffer position of the match end
+  string      ; the matched text
+  match-data  ; copy of `(match-data t)' for the match (positions only)
+  groups      ; list of matched-group strings, index 0 = whole match
+  context     ; the whole line the match sits on
+  enabled)    ; non-nil when the match will be applied
+
+;; Buffer-local state of a `*projectile-replace*' buffer.
+(defvar-local projectile-replace--root nil
+  "Project root the current results buffer was gathered from.")
+(defvar-local projectile-replace--term nil
+  "Raw search term the current results buffer was gathered with.")
+(defvar-local projectile-replace--search nil
+  "Emacs regexp actually searched for (the term, `regexp-quote'd if literal).")
+(defvar-local projectile-replace--replacement nil
+  "Pending replacement string for the current results buffer.")
+(defvar-local projectile-replace--literal nil
+  "Non-nil when the current results buffer is a literal (not regexp) replace.")
+(defvar-local projectile-replace--matches nil
+  "List of `projectile-replace--match' structs shown in the results buffer.")
+(defvar-local projectile-replace--truncated nil
+  "Non-nil when the match list was capped at `projectile-replace-max-matches'.")
+
+(defun projectile-replace--expand (replacement groups literal)
+  "Expand REPLACEMENT for a match whose group strings are GROUPS.
+GROUPS is a list of matched substrings, index 0 being the whole match.
+When LITERAL is non-nil REPLACEMENT is returned verbatim; otherwise
+\\N and \\& references are expanded from GROUPS (\\\\ yields a
+backslash).  The same expansion drives both the preview and the actual
+write-back so the two can never diverge."
+  (if literal
+      replacement
+    (let ((result "")
+          (i 0)
+          (len (length replacement)))
+      (while (< i len)
+        (let ((ch (aref replacement i)))
+          (if (and (eq ch ?\\) (< (1+ i) len))
+              (let ((next (aref replacement (1+ i))))
+                (cond
+                 ((eq next ?&)
+                  (setq result (concat result (or (nth 0 groups) ""))))
+                 ((and (>= next ?0) (<= next ?9))
+                  (setq result (concat result (or (nth (- next ?0) groups) ""))))
+                 ((eq next ?\\)
+                  (setq result (concat result "\\")))
+                 (t (setq result (concat result (char-to-string next)))))
+                (setq i (+ i 2)))
+            (setq result (concat result (char-to-string ch)))
+            (setq i (1+ i)))))
+      result)))
+
+(defun projectile-replace--capture-groups ()
+  "Return the matched-group strings for the last search in this buffer.
+Index 0 is the whole match; unmatched optional groups are nil."
+  (let ((n (/ (length (match-data)) 2))
+        (groups nil))
+    (dotimes (i n)
+      (push (match-string i) groups))
+    (nreverse groups)))
+
+(defun projectile-replace--binary-p ()
+  "Return non-nil when the current buffer looks like binary content.
+Only the leading portion is inspected, which is enough to skip files
+whose NUL bytes would make an in-buffer replacement meaningless."
+  (save-excursion
+    (goto-char (point-min))
+    (search-forward "\0" (min (point-max) (+ (point-min) 8000)) t)))
+
+(defun projectile-replace--scan-region (file buffer regexp budget)
+  "Collect up to BUDGET matches of REGEXP in the current buffer.
+Each match is recorded as a `projectile-replace--match' tagged with
+FILE and BUFFER (nil when scanning a disk re-read)."
+  (let ((matches nil)
+        (count 0)
+        (done nil)
+        (tick (and buffer (buffer-chars-modified-tick buffer))))
+    (save-excursion
+      (goto-char (point-min))
+      (while (and (not done)
+                  (< count budget)
+                  (re-search-forward regexp nil t))
+        (if (= (match-beginning 0) (match-end 0))
+            ;; A regexp that can match the empty string (e.g. `^', `a*')
+            ;; leaves point put; advance past it, but at end-of-buffer there
+            ;; is nowhere to advance, so stop rather than spin forever.
+            (if (eobp)
+                (setq done t)
+              (forward-char 1))
+          (let ((beg (match-beginning 0))
+                (end (match-end 0))
+                (md (match-data t))
+                (groups (projectile-replace--capture-groups))
+                line lstart col context)
+            (save-excursion
+              (goto-char beg)
+              (setq line (line-number-at-pos)
+                    lstart (line-beginning-position)
+                    col (- beg lstart)
+                    context (buffer-substring-no-properties
+                             lstart (line-end-position))))
+            (push (projectile-replace--match-create
+                   :file file :buffer buffer :tick tick
+                   :line line :column col :beg beg :end end
+                   :string (buffer-substring-no-properties beg end)
+                   :match-data md :groups groups
+                   :context context :enabled t)
+                  matches)
+            (cl-incf count)))))
+    (nreverse matches)))
+
+(defun projectile-replace--scan-file (file regexp budget)
+  "Return up to BUDGET matches of REGEXP in FILE.
+A file visited in a live buffer is scanned from that buffer's current
+text (so the preview matches what will be edited, even when the buffer
+has unsaved changes); otherwise it is read from disk into a temp buffer.
+Binary-looking and unreadable files are skipped."
+  (let ((buffer (get-file-buffer file)))
+    (if buffer
+        (with-current-buffer buffer
+          (projectile-replace--scan-region file buffer regexp budget))
+      (condition-case nil
+          (with-temp-buffer
+            (insert-file-contents file)
+            (unless (projectile-replace--binary-p)
+              (projectile-replace--scan-region file nil regexp budget)))
+        (error nil)))))
+
+(defun projectile-replace--gather (candidates regexp)
+  "Scan CANDIDATES for REGEXP, capped at `projectile-replace-max-matches'.
+Return a plist with `:matches' (the collected structs, in file order)
+and `:truncated' (non-nil when the cap was hit)."
+  (let ((all nil)
+        (budget projectile-replace-max-matches)
+        (truncated nil))
+    (dolist (file candidates)
+      (if (> budget 0)
+          (let ((ms (projectile-replace--scan-file file regexp budget)))
+            (setq all (append all ms)
+                  budget (- budget (length ms))))
+        ;; a candidate was left unscanned because the cap was already hit
+        (setq truncated t)))
+    (list :matches all :truncated truncated)))
+
+(defun projectile-replace--candidates (term literal directory)
+  "Return the files under DIRECTORY worth scanning for TERM.
+For a LITERAL search this narrows to files containing TERM (via
+`projectile-files-with-string') intersected with the project's
+ignore-aware file list; for a regexp search it is the whole
+ignore-aware file list, since grep tools can't honor Emacs regexps."
+  (let ((project-files (mapcar (lambda (f) (expand-file-name f directory))
+                               (projectile-dir-files directory))))
+    (if literal
+        (seq-filter (lambda (f) (member f project-files))
+                    (projectile-files-with-string term directory))
+      (seq-remove (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
+                  project-files))))
+
+;;; Results buffer rendering
+
+(defun projectile-replace--file-header (file root count)
+  "Return a propertized header line for FILE relative to ROOT with COUNT matches."
+  (propertize
+   (concat (propertize (file-relative-name file root)
+                       'face 'projectile-replace-file)
+           (format " (%d)\n" count))
+   'projectile-replace-file file))
+
+(defun projectile-replace--render-line (m replacement literal)
+  "Return the propertized results line for match M.
+When REPLACEMENT is non-empty and M is enabled the matched text is
+shown struck out followed by the expanded replacement; LITERAL selects
+verbatim vs. capture-group expansion.  The whole line carries the match
+struct under the `projectile-replace-match' text property."
+  (let* ((enabled (projectile-replace--match-enabled m))
+         (col (projectile-replace--match-column m))
+         (ctx (projectile-replace--match-context m))
+         (mstr (projectile-replace--match-string m))
+         (before (substring ctx 0 (min col (length ctx))))
+         (after (if (<= (+ col (length mstr)) (length ctx))
+                    (substring ctx (+ col (length mstr)))
+                  ""))
+         (has-repl (and replacement (not (string-empty-p replacement))))
+         (highlight
+          (if (and enabled has-repl)
+              (concat (propertize mstr 'face 'projectile-replace-old)
+                      (propertize (projectile-replace--expand
+                                   replacement
+                                   (projectile-replace--match-groups m)
+                                   literal)
+                                  'face 'projectile-replace-new))
+            (propertize mstr 'face 'projectile-replace-match)))
+         (indicator (if enabled "  [X] " "  [ ] "))
+         (locator (propertize (format "%d:%d: "
+                                      (projectile-replace--match-line m)
+                                      (1+ col))
+                              'face 'projectile-replace-line-number))
+         (line (concat indicator locator before highlight after "\n")))
+    (propertize line 'projectile-replace-match m)))
+
+(defun projectile-replace--render ()
+  "Redraw the current results buffer from its buffer-local state."
+  (let ((inhibit-read-only t)
+        (root projectile-replace--root)
+        (replacement projectile-replace--replacement)
+        (literal projectile-replace--literal)
+        (matches projectile-replace--matches)
+        (counts (make-hash-table :test 'equal))
+        (prev-file nil))
+    (dolist (m matches)
+      (cl-incf (gethash (projectile-replace--match-file m) counts 0)))
+    (erase-buffer)
+    (insert (propertize
+             (format "Replace (%s) %S with %S\n"
+                     (if literal "literal" "regexp")
+                     projectile-replace--term
+                     (or replacement ""))
+             'face 'bold))
+    (insert (substitute-command-keys
+             (concat "\\<projectile-replace-mode-map>"
+                     "\\[projectile-replace--toggle] toggle  "
+                     "\\[projectile-replace--toggle-file] toggle file  "
+                     "\\[projectile-replace--set-replacement] set replacement  "
+                     "\\[projectile-replace--apply] apply  "
+                     "\\[projectile-replace--refresh] re-search  "
+                     "\\[projectile-replace--visit] visit  "
+                     "\\[quit-window] quit\n\n")))
+    (if (null matches)
+        (insert "No matches.\n")
+      (dolist (m matches)
+        (let ((file (projectile-replace--match-file m)))
+          (unless (equal prev-file file)
+            (when prev-file (insert "\n"))
+            (setq prev-file file)
+            (insert (projectile-replace--file-header
+                     file root (gethash file counts))))
+          (insert (projectile-replace--render-line m replacement literal)))))
+    (when projectile-replace--truncated
+      (insert (format "\n(showing the first %d matches)\n"
+                      projectile-replace-max-matches)))
+    (goto-char (point-min))))
+
+(defun projectile-replace--render-preserve ()
+  "Redraw the results buffer, keeping point on the same line."
+  (let ((line (line-number-at-pos)))
+    (projectile-replace--render)
+    (goto-char (point-min))
+    (forward-line (1- line))))
+
+;;; Results buffer commands
+
+(defun projectile-replace--match-at-point ()
+  "Return the match struct on the current line, or nil."
+  (get-text-property (line-beginning-position) 'projectile-replace-match))
+
+(defun projectile-replace--goto-next-match ()
+  "Move point to the next match line."
+  (interactive)
+  (let ((start (point)))
+    (forward-line 1)
+    (while (and (not (eobp)) (not (projectile-replace--match-at-point)))
+      (forward-line 1))
+    (if (projectile-replace--match-at-point)
+        (beginning-of-line)
+      (goto-char start)
+      (message "No more matches"))))
+
+(defun projectile-replace--goto-prev-match ()
+  "Move point to the previous match line."
+  (interactive)
+  (let ((start (point)))
+    (forward-line -1)
+    (while (and (not (bobp)) (not (projectile-replace--match-at-point)))
+      (forward-line -1))
+    (if (projectile-replace--match-at-point)
+        (beginning-of-line)
+      (goto-char start)
+      (message "No previous matches"))))
+
+(defun projectile-replace--goto-next-file ()
+  "Move point to the next file header."
+  (interactive)
+  (let ((start (point)))
+    (forward-line 1)
+    (while (and (not (eobp))
+                (not (get-text-property (line-beginning-position)
+                                        'projectile-replace-file)))
+      (forward-line 1))
+    (if (get-text-property (line-beginning-position) 'projectile-replace-file)
+        (beginning-of-line)
+      (goto-char start)
+      (message "No more files"))))
+
+(defun projectile-replace--goto-prev-file ()
+  "Move point to the previous file header."
+  (interactive)
+  (let ((start (point)))
+    (forward-line -1)
+    (while (and (not (bobp))
+                (not (get-text-property (line-beginning-position)
+                                        'projectile-replace-file)))
+      (forward-line -1))
+    (if (get-text-property (line-beginning-position) 'projectile-replace-file)
+        (beginning-of-line)
+      (goto-char start)
+      (message "No previous files"))))
+
+(defun projectile-replace--visit ()
+  "Visit the match on the current line in another window."
+  (interactive)
+  (let ((m (projectile-replace--match-at-point)))
+    (unless m (user-error "No match on this line"))
+    (let ((buf (or (projectile-replace--match-buffer m)
+                   (find-file-noselect (projectile-replace--match-file m))))
+          (line (projectile-replace--match-line m))
+          (col (projectile-replace--match-column m)))
+      (switch-to-buffer-other-window buf)
+      (goto-char (point-min))
+      (forward-line (1- line))
+      (forward-char (min col (- (line-end-position) (point)))))))
+
+(defun projectile-replace--toggle ()
+  "Toggle whether the match on the current line will be applied."
+  (interactive)
+  (let ((m (projectile-replace--match-at-point)))
+    (unless m (user-error "No match on this line"))
+    (setf (projectile-replace--match-enabled m)
+          (not (projectile-replace--match-enabled m)))
+    (projectile-replace--render-preserve)))
+
+(defun projectile-replace--toggle-file ()
+  "Toggle all matches in the file of the match on the current line.
+If any of the file's matches are enabled they are all disabled;
+otherwise they are all enabled."
+  (interactive)
+  (let ((m (projectile-replace--match-at-point)))
+    (unless m (user-error "No match on this line"))
+    (let* ((file (projectile-replace--match-file m))
+           (fmatches (cl-remove-if-not
+                      (lambda (x) (equal (projectile-replace--match-file x) file))
+                      projectile-replace--matches))
+           (target (not (cl-every #'projectile-replace--match-enabled fmatches))))
+      (dolist (x fmatches)
+        (setf (projectile-replace--match-enabled x) target)))
+    (projectile-replace--render-preserve)))
+
+(defun projectile-replace--set-replacement ()
+  "Re-read the replacement string and re-render the previews."
+  (interactive)
+  (setq projectile-replace--replacement
+        (read-string (format "Replace %s with: " projectile-replace--term)
+                     projectile-replace--replacement))
+  (projectile-replace--render-preserve))
+
+(defun projectile-replace--refresh ()
+  "Re-run the search and redraw the results buffer."
+  (interactive)
+  (let* ((candidates (projectile-replace--candidates
+                      projectile-replace--term projectile-replace--literal
+                      projectile-replace--root))
+         (result (projectile-replace--gather candidates projectile-replace--search)))
+    (setq projectile-replace--matches (plist-get result :matches)
+          projectile-replace--truncated (plist-get result :truncated))
+    (projectile-replace--render)))
+
+;;; Applying the enabled matches
+
+(defun projectile-replace--do-one (m replacement literal)
+  "Replace match M in the current buffer with the expansion of REPLACEMENT.
+LITERAL selects verbatim vs. capture-group expansion.  M's stored
+`match-data' must still be valid for the current buffer."
+  (set-match-data (projectile-replace--match-match-data m))
+  (replace-match (projectile-replace--expand
+                  replacement (projectile-replace--match-groups m) literal)
+                 t t))
+
+(defun projectile-replace--positions-valid-p (matches)
+  "Return non-nil when every match in MATCHES still spans its recorded text.
+Checked against the current buffer.  This is the authoritative guard
+against stale positions: if the file changed on disk, or the live buffer
+was edited, since the scan, the recorded spans no longer hold the matched
+text and applying them would corrupt unrelated bytes."
+  (cl-every (lambda (m)
+              (let ((beg (projectile-replace--match-beg m))
+                    (end (projectile-replace--match-end m)))
+                (and (integerp beg) (integerp end)
+                     (<= (point-min) beg end (point-max))
+                     (string= (buffer-substring-no-properties beg end)
+                              (projectile-replace--match-string m)))))
+            matches))
+
+(defun projectile-replace--skip (name reason)
+  "Warn that NAME is skipped for REASON and return the symbol `skipped'."
+  (message "%s"
+           (projectile-prepend-project-name
+            (format "skipping %s (%s)" name reason)))
+  'skipped)
+
+(defun projectile-replace--apply-file (file matches replacement literal)
+  "Apply MATCHES in FILE and return the count, or the symbol `skipped'.
+Edits run from the highest buffer position downwards so earlier edits
+don't shift later matches.  The live buffer visiting FILE (if any) is
+re-resolved now rather than trusted from scan time, so a file opened
+since the scan is edited in its buffer instead of being clobbered on
+disk, and a scan-time buffer that has since been killed is handled.  In
+either case the recorded positions are verified to still span the matched
+text; if not (the file or buffer changed since the scan) the file is
+skipped rather than corrupted.  A clean buffer is saved; a buffer with
+unsaved changes is edited but left for the user to save."
+  (let* ((descending (sort (copy-sequence matches)
+                           (lambda (a b)
+                             (> (projectile-replace--match-beg a)
+                                (projectile-replace--match-beg b)))))
+         (buffer (get-file-buffer file)))
+    (if (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (if (not (projectile-replace--positions-valid-p descending))
+              (projectile-replace--skip (buffer-name buffer) "changed since scan")
+            (let ((was-modified (buffer-modified-p)))
+              (save-excursion
+                (save-restriction
+                  (widen)
+                  (atomic-change-group
+                    (dolist (m descending)
+                      (projectile-replace--do-one m replacement literal)))))
+              ;; don't silently save a buffer that already had unsaved edits
+              (unless was-modified
+                (let ((require-final-newline nil))
+                  (save-buffer)))
+              (length matches))))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (let ((coding last-coding-system-used))
+          (if (not (projectile-replace--positions-valid-p descending))
+              (projectile-replace--skip (file-name-nondirectory file)
+                                        "changed on disk since scan")
+            (dolist (m descending)
+              (projectile-replace--do-one m replacement literal))
+            (let ((coding-system-for-write coding))
+              (write-region (point-min) (point-max) file nil 'no-message))
+            (length matches)))))))
+
+(defun projectile-replace--apply ()
+  "Apply every enabled match, grouped by file, then re-run the search."
+  (interactive)
+  (let ((enabled (cl-remove-if-not #'projectile-replace--match-enabled
+                                   projectile-replace--matches))
+        (replacement projectile-replace--replacement)
+        (literal projectile-replace--literal)
+        (groups (make-hash-table :test 'equal))
+        (order nil)
+        (nfiles 0)
+        (nrepl 0)
+        (skipped 0))
+    (when (null enabled)
+      (user-error "No matches are enabled"))
+    ;; group the enabled matches by file, preserving first-seen order
+    (dolist (m enabled)
+      (let ((file (projectile-replace--match-file m)))
+        (unless (gethash file groups)
+          (push file order))
+        (push m (gethash file groups))))
+    (dolist (file (nreverse order))
+      ;; isolate each file: a read-only file or a write error must not abort
+      ;; the batch (leaving earlier files edited and no summary shown)
+      (let ((result (condition-case err
+                        (projectile-replace--apply-file
+                         file (gethash file groups) replacement literal)
+                      (error
+                       (projectile-replace--skip
+                        (file-name-nondirectory file)
+                        (error-message-string err))))))
+        (if (eq result 'skipped)
+            (cl-incf skipped)
+          (cl-incf nfiles)
+          (cl-incf nrepl result))))
+    (message "%s"
+             (projectile-prepend-project-name
+              (format "Replaced %d occurrence%s in %d file%s%s"
+                      nrepl (if (= nrepl 1) "" "s")
+                      nfiles (if (= nfiles 1) "" "s")
+                      (if (> skipped 0)
+                          (format " (skipped %d file%s)"
+                                  skipped (if (= skipped 1) "" "s"))
+                        ""))))
+    (projectile-replace--refresh)))
+
+(defvar projectile-replace-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") #'projectile-replace--visit)
+    (define-key map (kbd "n") #'projectile-replace--goto-next-match)
+    (define-key map (kbd "p") #'projectile-replace--goto-prev-match)
+    (define-key map (kbd "M-n") #'projectile-replace--goto-next-file)
+    (define-key map (kbd "M-p") #'projectile-replace--goto-prev-file)
+    (define-key map (kbd "t") #'projectile-replace--toggle)
+    (define-key map (kbd "SPC") #'projectile-replace--toggle)
+    (define-key map (kbd "f") #'projectile-replace--toggle-file)
+    (define-key map (kbd "r") #'projectile-replace--set-replacement)
+    (define-key map (kbd "!") #'projectile-replace--apply)
+    (define-key map (kbd "C-c C-c") #'projectile-replace--apply)
+    (define-key map (kbd "g") #'projectile-replace--refresh)
+    (define-key map (kbd "q") #'quit-window)
+    map)
+  "Keymap for `projectile-replace-mode'.")
+
+(define-derived-mode projectile-replace-mode special-mode "Projectile-Replace"
+  "Major mode for reviewing and applying a project-wide replacement.
+
+\\{projectile-replace-mode-map}"
+  (setq-local truncate-lines t)
+  (buffer-disable-undo))
+
+(defun projectile-replace--review (literal)
+  "Gather matches for a project-wide replacement and pop the results buffer.
+LITERAL non-nil runs a literal replace; otherwise the search term is an
+Emacs regexp and the replacement may reference capture groups."
+  (let* ((root (projectile-acquire-root))
+         (term (read-string
+                (projectile-prepend-project-name
+                 (if literal "Replace: " "Replace regexp: "))
+                (projectile-symbol-or-selection-at-point)))
+         (replacement (read-string
+                       (projectile-prepend-project-name
+                        (format "Replace %s with: " term))))
+         (regexp (if literal (regexp-quote term) term))
+         (candidates (projectile-replace--candidates term literal root))
+         (result (projectile-replace--gather candidates regexp))
+         (matches (plist-get result :matches))
+         (truncated (plist-get result :truncated)))
+    (if (null matches)
+        (message "%s" (projectile-prepend-project-name
+                       (format "No matches for %s" term)))
+      (let ((buf (get-buffer-create projectile-replace-buffer-name)))
+        (with-current-buffer buf
+          (projectile-replace-mode)
+          (setq projectile-replace--root root
+                projectile-replace--term term
+                projectile-replace--search regexp
+                projectile-replace--replacement replacement
+                projectile-replace--literal literal
+                projectile-replace--matches matches
+                projectile-replace--truncated truncated)
+          (projectile-replace--render))
+        (when truncated
+          (message "projectile-replace: showing the first %d matches"
+                   projectile-replace-max-matches))
+        (pop-to-buffer buf)))))
+
+;;;###autoload
+(defun projectile-replace-review ()
+  "Review and apply a literal project-wide replacement.
+
+Prompts for a literal search string and a replacement, gathers every
+match across the project into a `*projectile-replace*' buffer, and lets
+you toggle which matches to apply before committing them.  This is a
+non-blocking, previewable alternative to `projectile-replace'."
+  (interactive)
+  (projectile-replace--review t))
+
+;;;###autoload
+(defun projectile-replace-regexp-review ()
+  "Review and apply a project-wide regexp replacement.
+
+Like `projectile-replace-review', but the search term is an Emacs
+regexp and the replacement may reference capture groups (\\1, \\&).
+This is a non-blocking, previewable alternative to
+`projectile-replace-regexp'."
+  (interactive)
+  (projectile-replace--review nil))
+
 (defun projectile--buffer-matches-conditions (buffer conditions)
   "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
 
@@ -9797,6 +10438,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
     (define-key map (kbd "r") #'projectile-replace)
+    (define-key map (kbd "R") #'projectile-replace-review)
     (define-key map (kbd "s s") #'projectile-search)
     (define-key map (kbd "s g") #'projectile-grep)
     (define-key map (kbd "s r") #'projectile-ripgrep)
@@ -10084,7 +10726,8 @@ window or frame (file/buffer/project commands)."
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("o" "multi-occur" projectile-multi-occur)
-      ("r" "replace" projectile-replace)]]
+      ("r" "replace" projectile-replace)
+      ("R" "replace (review)" projectile-replace-review)]]
     [["Project"
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
@@ -10197,6 +10840,8 @@ window or frame (file/buffer/project commands)."
          ["Search with ripgrep" projectile-ripgrep]
          ["Search with ag" projectile-ag]
          ["Replace in project" projectile-replace]
+         ["Replace in project (review)" projectile-replace-review]
+         ["Replace regexp in project (review)" projectile-replace-regexp-review]
          ["Multi-occur in project" projectile-multi-occur]
          ["Find references in project" projectile-find-references])
         ("Run..."

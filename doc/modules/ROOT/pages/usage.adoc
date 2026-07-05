@@ -278,6 +278,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p r]
 | Runs interactive query-replace on all files in the projects.
 
+| kbd:[s-p R]
+| Reviewable replace: gather all matches in a results buffer where you can preview and toggle them before applying (see below).
+
 | kbd:[s-p i]
 | Invalidates the project cache (if existing).
 
@@ -443,6 +446,66 @@ project's version control status in another frame.
 If you ever forget any of Projectile's keybindings just do a:
 
 kbd:[s-p C-h]
+
+=== Reviewing and applying replacements
+
+`projectile-replace` (kbd:[s-p r]) and `projectile-replace-regexp` run a
+blocking, file-by-file `query-replace` walk with no preview. When you'd
+rather see every match up front and pick which ones to apply, use the
+reviewable replace commands instead:
+
+* `projectile-replace-review` (kbd:[s-p R]) for a literal search.
+* `projectile-replace-regexp-review` for an Emacs regexp search, where the
+  replacement can reference capture groups (`\1`, `\&`).
+
+Both prompt for the search term and the replacement, then gather all the
+matches across the project into a `+*projectile-replace*+` buffer. Matches
+are collected in Emacs Lisp rather than via an external grep, so the regexp
+command honors full Emacs regexp syntax (e.g. symbol boundaries like
+`\_<foo\_>`) and the preview reflects the exact text that will be edited,
+including any unsaved changes in already-open buffers.
+
+Every match starts enabled (shown as `[X]`); toggle the ones you don't want
+off (`[ ]`) and apply only the rest, in any order. The results buffer
+supports these keys:
+
+|===
+| Key | Action
+
+| kbd:[RET]
+| Visit the match under point in another window.
+
+| kbd:[n] / kbd:[p]
+| Move to the next / previous match.
+
+| kbd:[M-n] / kbd:[M-p]
+| Move to the next / previous file.
+
+| kbd:[t] / kbd:[SPC]
+| Toggle whether the match under point will be applied.
+
+| kbd:[f]
+| Toggle all matches in the current file at once.
+
+| kbd:[r]
+| Re-read the replacement string and refresh the previews.
+
+| kbd:[g]
+| Re-run the search.
+
+| kbd:[!] (or kbd:[C-c C-c])
+| Apply all enabled matches.
+
+| kbd:[q]
+| Quit the results buffer.
+|===
+
+Applying edits a file's matches from the bottom up so earlier edits don't
+disturb later ones, edits already-open buffers in place under a single undo
+step (and saves them), and writes closed files back to disk preserving their
+coding system. A buffer that was modified after the search is skipped rather
+than risk a bad edit; re-run the search (kbd:[g]) to pick up its current
+state. Very large searches are capped at `projectile-replace-max-matches`.
 
 == Customizing Projectile's Keybindings
 
