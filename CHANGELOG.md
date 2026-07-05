@@ -21,6 +21,10 @@
     * `k`/`d` keep or flush the matches whose line matches a regexp; `K`/`D` do the same by file name; re-searching with `g` restores anything filtered away.
   * A status line at the top shows the term, replacement, match and file counts, the mode flags, and a note when the list has been filtered.
   * `e` exports the shown matches to a `grep-mode` buffer so wgrep or Emacs 31's `grep-edit-mode` can turn them editable and write back; wgrep stays an optional integration and `!` remains the no-dependency apply path.
+  * Both reviewers scan the project asynchronously, so a large search no longer freezes Emacs.
+    * The results buffer opens right away, matches stream in as they're found (the header shows a "Searching..." progress note), and the scan is cancelable with `q`, `C-g`, or by killing the buffer.
+    * While a scan is still running, `!` (apply), `e` (export) and the filter keys (`k`/`d`/`K`/`D`) refuse until it finishes, so the write-back never runs against a partial match set and a filter can't be outrun by a later chunk; starting a new scan (`g`/`c`/`x`) cancels any in-flight one.
+    * Set `projectile-replace-async` to nil to force the old synchronous single-pass scan; batch runs always scan synchronously.
   * The commands are available from `projectile-dispatch` and the Projectile menu, and the match cap is customizable via `projectile-replace-max-matches`.
 * Add `projectile-session-mode`, a global minor mode that gives each project its own `tab-bar` tab.
   * Switching to a project selects its existing tab (restoring that project's window layout) when one is open, or otherwise opens a fresh tab named after the project and populated via `projectile-session-default-action`.

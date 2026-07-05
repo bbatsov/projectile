@@ -7958,6 +7958,33 @@ shown and a note is displayed."
   :type 'integer
   :package-version '(projectile . "3.2.0"))
 
+(defcustom projectile-replace-async t
+  "Whether the reviewable search/replace commands scan asynchronously.
+When non-nil (the default) `projectile-replace-review',
+`projectile-search-review' and their in-buffer re-scan commands (`g',
+`c', `x') scan candidate files in timer-yielded chunks: the results
+buffer is shown right away, matches stream in as they are found, Emacs
+stays responsive, and the scan can be canceled (`q', \\`C-g', or by
+killing the buffer).  While a scan is still running, applying (`!') and
+exporting (`e') refuse until it finishes so the write-back never runs
+against a partial match set.  When nil the scan runs synchronously in one
+blocking pass instead.
+
+Regardless of this setting, in batch mode (`noninteractive') the scan is
+always synchronous so scripted runs stay deterministic.  The final match
+set is identical whether scanning runs asynchronously or synchronously;
+async only changes when and how matches are delivered."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.2.0"))
+
+(defvar projectile-replace--scan-chunk-size 24
+  "Number of candidate files scanned per async chunk before yielding.
+Each chunk scans this many files, delivers the matches into the results
+buffer and re-renders, then yields to redisplay via a zero-delay timer
+before the next chunk.  Larger values scan faster but redisplay less
+often; smaller values keep Emacs more responsive.")
+
 (defface projectile-replace-file
   '((t :inherit font-lock-function-name-face :weight bold))
   "Face for the per-file header lines in the replace results buffer."
@@ -8036,6 +8063,15 @@ around every (re-)gather so it drives which matches are collected.")
 (defvar-local projectile-replace--filtered nil
   "Non-nil when the shown match list was pruned by a filter command.
 Re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]) gathers from scratch and clears this.")
+(defvar-local projectile-replace--scanning nil
+  "Non-nil while an asynchronous scan is still filling this results buffer.
+While set, matches are streaming in, the header shows a progress note,
+and applying and exporting refuse (the write-back must never run against
+a partial match set).  Cleared when the scan finishes or is canceled.")
+(defvar-local projectile-replace--scan-timer nil
+  "The in-flight async scan timer for this results buffer, or nil.
+Held so a re-scan, a quit, or killing the buffer can cancel a scan that
+is still running.")
 (defvar-local projectile-replace--render-function #'projectile-replace--render
   "Function that redraws the current results buffer from its state.
 The scanning, navigation, filter and toggle machinery is shared
@@ -8172,6 +8208,119 @@ and `:truncated' (non-nil when the cap was hit)."
         (setq truncated t)))
     (list :matches all :truncated truncated)))
 
+;;; Asynchronous, cancelable scanning
+;;
+;; The synchronous `projectile-replace--gather' above stays the primitive that
+;; batch runs and the tests drive.  The async driver below reuses the very same
+;; per-file `projectile-replace--scan-file', so the structs it produces are
+;; identical to what `--gather' would produce over the same candidate list and
+;; regexp -- only the DELIVERY changes: files are scanned in timer-yielded
+;; chunks, matches stream into the results buffer as they are found, and the
+;; scan can be canceled.  The `case-fold-search' that `--scan-file' reads is
+;; re-established from the buffer's `projectile-replace--case-fold' inside each
+;; chunk (the dynamic binding used by the sync path is gone once we run from a
+;; timer).
+
+(defun projectile-replace--async-p ()
+  "Return non-nil when scanning should run asynchronously.
+True when `projectile-replace-async' is set and we are interactive;
+batch (`noninteractive') always scans synchronously so scripted runs stay
+deterministic."
+  (and projectile-replace-async (not noninteractive)))
+
+(defun projectile-replace--cancel-scan ()
+  "Cancel any in-flight async scan in the current results buffer.
+Kills the pending chunk timer (if any) and clears the scanning flag, so
+no timer is left dangling.  Safe to call when nothing is scanning; used
+on re-scan, on quit, and from `kill-buffer-hook'."
+  (when projectile-replace--scan-timer
+    (cancel-timer projectile-replace--scan-timer))
+  (setq projectile-replace--scan-timer nil
+        projectile-replace--scanning nil))
+
+(defun projectile-replace--gather-async (candidates regexp buffer on-done)
+  "Scan CANDIDATES for REGEXP into BUFFER incrementally, then call ON-DONE.
+Resets BUFFER's match list and scanning state, then processes CANDIDATES
+in `projectile-replace--scan-chunk-size' batches, each batch delivering
+its matches and re-rendering before yielding to redisplay via a
+zero-delay timer.  Matches accumulate in file order, so the final list is
+identical to `projectile-replace--gather' over the same CANDIDATES and
+REGEXP; `projectile-replace-max-matches' and the `:truncated' note are
+honored the same way.  ON-DONE (or nil) is called in BUFFER once the scan
+finishes.  A scan already running in BUFFER should be canceled first (see
+`projectile-replace--cancel-scan')."
+  (with-current-buffer buffer
+    (setq projectile-replace--matches nil
+          projectile-replace--truncated nil
+          projectile-replace--filtered nil
+          projectile-replace--scanning t
+          projectile-replace--scan-timer nil))
+  (projectile-replace--scan-step
+   buffer candidates regexp projectile-replace-max-matches on-done))
+
+(defun projectile-replace--scan-step (buffer remaining regexp budget on-done)
+  "Scan one chunk of REMAINING candidates for REGEXP into BUFFER.
+BUDGET is the remaining match allowance.  Delivers this chunk's matches
+into BUFFER and re-renders; while candidates and budget remain it
+schedules itself for the next chunk via a zero-delay timer, otherwise it
+finishes: clears the scanning state, does a final render and calls
+ON-DONE.  Guarded against a killed BUFFER (leaving no work behind) and
+against \\`C-g' during a chunk (which cancels the scan cleanly)."
+  (when (buffer-live-p buffer)
+    (condition-case nil
+        (let ((fold (buffer-local-value 'projectile-replace--case-fold buffer))
+              (count 0)
+              (new nil)
+              (truncated nil)
+              (stop nil))
+          ;; scan up to a chunk of files, mirroring the sync `--gather' loop:
+          ;; a file is scanned while budget remains; the first file reached
+          ;; with the budget exhausted marks the list truncated and stops.
+          (while (and remaining (not stop)
+                      (< count projectile-replace--scan-chunk-size))
+            (if (> budget 0)
+                (let ((ms (let ((case-fold-search fold))
+                            (projectile-replace--scan-file
+                             (car remaining) regexp budget))))
+                  (setq new (append new ms)
+                        budget (- budget (length ms))
+                        remaining (cdr remaining)))
+              (setq truncated t stop t))
+            (cl-incf count))
+          (with-current-buffer buffer
+            (when new
+              (setq projectile-replace--matches
+                    (append projectile-replace--matches new)))
+            (when truncated
+              (setq projectile-replace--truncated t)))
+          (if (and remaining (not stop))
+              ;; more to do: show progress and yield to redisplay
+              (with-current-buffer buffer
+                ;; schedule the next chunk BEFORE rendering, so a render error
+                ;; can't strand the scan with the flag set and no pending timer
+                (setq projectile-replace--scan-timer
+                      (run-with-timer 0 nil
+                                      #'projectile-replace--scan-step
+                                      buffer remaining regexp budget on-done))
+                (funcall projectile-replace--render-function))
+            ;; finished (or budget-truncated): settle and hand off
+            (with-current-buffer buffer
+              (setq projectile-replace--scanning nil
+                    projectile-replace--scan-timer nil)
+              (funcall projectile-replace--render-function)
+              (when on-done (funcall on-done buffer)))))
+      (quit
+       (when (buffer-live-p buffer)
+         (with-current-buffer buffer
+           (projectile-replace--cancel-scan)
+           (funcall projectile-replace--render-function)))))))
+
+(defun projectile-replace--ensure-not-scanning ()
+  "Refuse with a `user-error' when the results buffer is still scanning.
+The write-back and export must never run against a partial match set."
+  (when projectile-replace--scanning
+    (user-error "Still searching; wait for the scan to finish")))
+
 (defun projectile-replace--candidates (term literal case-fold directory)
   "Return the files under DIRECTORY worth scanning for TERM.
 For a case-sensitive LITERAL search this narrows to files containing
@@ -8252,7 +8401,8 @@ property, so match navigation skips it."
                  " "
                  (if projectile-replace--case-fold
                      "[ignore-case]" "[case-sensitive]")
-                 (if projectile-replace--filtered "  filtered" "")))
+                 (if projectile-replace--filtered "  filtered" "")
+                 (projectile-replace--scanning-note nmatches)))
     (propertize
      (format "Replace %S with %s\n%d match%s in %d file%s  %s\n"
              projectile-replace--term repl
@@ -8260,6 +8410,15 @@ property, so match navigation skips it."
              nfiles (if (= nfiles 1) "" "s")
              flags)
      'face 'projectile-replace-header)))
+
+(defun projectile-replace--scanning-note (nmatches)
+  "Return a progress note for a results buffer still scanning, else \"\".
+NMATCHES is the count found so far.  Shown in the status header while an
+async scan streams matches in."
+  (if projectile-replace--scanning
+      (format "  Searching... %d match%s so far"
+              nmatches (if (= nmatches 1) "" "es"))
+    ""))
 
 (defun projectile-replace--render ()
   "Redraw the current results buffer from its buffer-local state."
@@ -8417,36 +8576,35 @@ otherwise they are all enabled."
 
 (defun projectile-replace--regather ()
   "Re-run the search from scratch into the buffer-local match list.
-`case-fold-search' is bound to `projectile-replace--case-fold' so the
-scan honors the current case setting, and any active filter is cleared
-because the list is rebuilt from every match in the project.  Because the
-match list is rebuilt, every match comes back enabled: re-scanning (via
-`g', the case toggle, or the regexp toggle) resets any per-match include
-or exclude toggles you had set.  Use the filter commands instead to prune
-the list while preserving the survivors' state."
-  (let* ((case-fold-search projectile-replace--case-fold)
-         (candidates (projectile-replace--candidates
-                      projectile-replace--term projectile-replace--literal
-                      projectile-replace--case-fold projectile-replace--root))
-         (result (projectile-replace--gather candidates projectile-replace--search)))
-    (setq projectile-replace--matches (plist-get result :matches)
-          projectile-replace--truncated (plist-get result :truncated)
-          projectile-replace--filtered nil)))
+Cancels any in-flight scan first, then re-scans (asynchronously when
+`projectile-replace--async-p' holds, else synchronously) with
+`case-fold-search' honoring `projectile-replace--case-fold', clearing any
+active filter because the list is rebuilt from every match in the
+project.  Because the match list is rebuilt, every match comes back
+enabled: re-scanning (via `g', the case toggle, or the regexp toggle)
+resets any per-match include or exclude toggles you had set.  Use the
+filter commands instead to prune the list while preserving the survivors'
+state.  The re-render happens from the (streaming) scan, so callers need
+not render again."
+  (let ((candidates (projectile-replace--candidates
+                     projectile-replace--term projectile-replace--literal
+                     projectile-replace--case-fold projectile-replace--root)))
+    (setq projectile-replace--filtered nil)
+    (projectile-replace--start (current-buffer) candidates
+                               projectile-replace--search nil)))
 
 (defun projectile-replace--refresh ()
   "Re-run the search and redraw the results buffer.
 This gathers from scratch, so any filtering is undone and matches
 removed by a filter command reappear."
   (interactive)
-  (projectile-replace--regather)
-  (funcall projectile-replace--render-function))
+  (projectile-replace--regather))
 
 (defun projectile-replace--toggle-case ()
   "Toggle case sensitivity of the search, re-scan, and re-render."
   (interactive)
   (setq projectile-replace--case-fold (not projectile-replace--case-fold))
   (projectile-replace--regather)
-  (funcall projectile-replace--render-function)
   (message "%s"
            (projectile-prepend-project-name
             (if projectile-replace--case-fold
@@ -8475,7 +8633,6 @@ refused with a message so the buffer stays usable rather than erroring."
                                            (regexp-quote projectile-replace--term)
                                          projectile-replace--term))
       (projectile-replace--regather)
-      (funcall projectile-replace--render-function)
       (message "%s"
                (projectile-prepend-project-name
                 (if new-literal "literal search" "regexp search"))))))
@@ -8483,7 +8640,9 @@ refused with a message so the buffer stays usable rather than erroring."
 (defun projectile-replace--filter-by (predicate)
   "Keep only matches satisfying PREDICATE, mark the list filtered, re-render.
 The removed matches are recoverable by re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]), which
-gathers from scratch."
+gathers from scratch.  Refused while a scan is still streaming in, since a
+later chunk would append past the filter and leave an incoherent list."
+  (projectile-replace--ensure-not-scanning)
   (setq projectile-replace--matches
         (cl-remove-if-not predicate projectile-replace--matches)
         projectile-replace--filtered t)
@@ -8607,6 +8766,7 @@ unsaved changes is edited but left for the user to save."
 (defun projectile-replace--apply ()
   "Apply every enabled match, grouped by file, then re-run the search."
   (interactive)
+  (projectile-replace--ensure-not-scanning)
   (let ((enabled (cl-remove-if-not #'projectile-replace--match-enabled
                                    projectile-replace--matches))
         (replacement projectile-replace--replacement)
@@ -8691,6 +8851,7 @@ files.  This is the bridge for people who prefer the grep/wgrep workflow;
 Projectile's own apply command
 (\\<projectile-replace-mode-map>\\[projectile-replace--apply]) is the no-dependency path and needs no external package."
   (interactive)
+  (projectile-replace--ensure-not-scanning)
   (require 'grep)
   (let ((matches (cl-remove-if-not #'projectile-replace--match-enabled
                                    projectile-replace--matches))
@@ -8745,7 +8906,7 @@ Projectile's own apply command
     (define-key map (kbd "!") #'projectile-replace--apply)
     (define-key map (kbd "C-c C-c") #'projectile-replace--apply)
     (define-key map (kbd "g") #'projectile-replace--refresh)
-    (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "q") #'projectile-replace--quit)
     map)
   "Keymap for `projectile-replace-mode'.")
 
@@ -8768,31 +8929,110 @@ write back to the files.
 
 \\{projectile-replace-mode-map}"
   (setq-local truncate-lines t)
+  ;; killing the buffer mid-scan must not leave a dangling chunk timer
+  (add-hook 'kill-buffer-hook #'projectile-replace--cancel-scan nil t)
   (buffer-disable-undo))
 
-(defun projectile-replace--display (root term regexp replacement literal
-                                         case-fold matches truncated)
-  "Populate and show the `*projectile-replace*' results buffer.
-ROOT, TERM, REGEXP, REPLACEMENT, LITERAL and CASE-FOLD seed the buffer's
-state; MATCHES are the collected structs and TRUNCATED notes whether the
-match cap was hit."
-  (let ((buf (get-buffer-create projectile-replace-buffer-name)))
-    (with-current-buffer buf
-      (projectile-replace-mode)
-      (setq projectile-replace--root root
-            projectile-replace--term term
-            projectile-replace--search regexp
-            projectile-replace--replacement replacement
-            projectile-replace--literal literal
-            projectile-replace--case-fold case-fold
-            projectile-replace--matches matches
-            projectile-replace--truncated truncated
-            projectile-replace--filtered nil)
-      (projectile-replace--render))
-    (when truncated
-      (message "projectile-replace: showing the first %d matches"
-               projectile-replace-max-matches))
-    (pop-to-buffer buf)))
+(defun projectile-replace--seed (buf mode root term regexp replacement
+                                     literal case-fold)
+  "Put BUF in MODE and seed its results-buffer state, with no matches yet.
+ROOT, TERM, REGEXP, REPLACEMENT, LITERAL and CASE-FOLD seed the search
+parameters; the match list starts empty, ready for a (sync or async)
+scan to fill it."
+  (with-current-buffer buf
+    (funcall mode)
+    (setq projectile-replace--root root
+          projectile-replace--term term
+          projectile-replace--search regexp
+          projectile-replace--replacement replacement
+          projectile-replace--literal literal
+          projectile-replace--case-fold case-fold
+          projectile-replace--matches nil
+          projectile-replace--truncated nil
+          projectile-replace--filtered nil
+          projectile-replace--scanning nil
+          projectile-replace--scan-timer nil)))
+
+(defun projectile-replace--start (buffer candidates regexp on-done)
+  "Fill BUFFER's match list by scanning CANDIDATES for REGEXP.
+Cancels any in-flight scan in BUFFER first, then scans with the async
+chunked driver when `projectile-replace--async-p' holds and otherwise
+synchronously (always in batch), so the final match list is identical
+either way -- only delivery differs.  BUFFER is re-rendered when done and
+ON-DONE (or nil) is called in it."
+  (with-current-buffer buffer
+    (projectile-replace--cancel-scan))
+  (if (projectile-replace--async-p)
+      (projectile-replace--gather-async candidates regexp buffer on-done)
+    (with-current-buffer buffer
+      (let* ((case-fold-search projectile-replace--case-fold)
+             (result (projectile-replace--gather candidates regexp)))
+        (setq projectile-replace--matches (plist-get result :matches)
+              projectile-replace--truncated (plist-get result :truncated)
+              projectile-replace--scanning nil
+              projectile-replace--scan-timer nil))
+      (funcall projectile-replace--render-function)
+      (when on-done (funcall on-done buffer)))))
+
+(defun projectile-replace--open-finish (buffer)
+  "Announce truncation once the scan filling BUFFER has finished."
+  (with-current-buffer buffer
+    (when projectile-replace--truncated
+      (message "%s"
+               (projectile-prepend-project-name
+                (format "showing the first %d matches"
+                        projectile-replace-max-matches))))))
+
+(defun projectile-replace--open (mode buf-name root term regexp replacement
+                                      literal case-fold candidates no-match-msg)
+  "Open BUF-NAME in MODE and scan CANDIDATES for REGEXP into it.
+When scanning is asynchronous the buffer is shown immediately and matches
+stream in; when synchronous (always in batch) the scan completes first
+and, to preserve the pre-async behavior, no buffer is shown when nothing
+matched -- NO-MATCH-MSG is issued instead.  Returns the results buffer,
+or nil on the synchronous no-match path.  ROOT, TERM, REGEXP,
+REPLACEMENT, LITERAL and CASE-FOLD seed the buffer state."
+  ;; re-running the command must not orphan a scan still filling an earlier
+  ;; instance of the buffer (re-seeding resets its buffer-locals)
+  (when-let* ((existing (get-buffer buf-name)))
+    (with-current-buffer existing (projectile-replace--cancel-scan)))
+  (if (projectile-replace--async-p)
+      (let ((buf (get-buffer-create buf-name)))
+        (projectile-replace--seed buf mode root term regexp replacement
+                                  literal case-fold)
+        (with-current-buffer buf
+          (setq projectile-replace--scanning t)
+          (funcall projectile-replace--render-function))
+        (pop-to-buffer buf)
+        (projectile-replace--start buf candidates regexp
+                                   #'projectile-replace--open-finish)
+        buf)
+    (let* ((case-fold-search case-fold)
+           (result (projectile-replace--gather candidates regexp))
+           (matches (plist-get result :matches))
+           (truncated (plist-get result :truncated)))
+      (if (null matches)
+          (progn (when no-match-msg (message "%s" no-match-msg)) nil)
+        (let ((buf (get-buffer-create buf-name)))
+          (projectile-replace--seed buf mode root term regexp replacement
+                                    literal case-fold)
+          (with-current-buffer buf
+            (setq projectile-replace--matches matches
+                  projectile-replace--truncated truncated)
+            (funcall projectile-replace--render-function))
+          (when truncated
+            (message "%s"
+                     (projectile-prepend-project-name
+                      (format "showing the first %d matches"
+                              projectile-replace-max-matches))))
+          (pop-to-buffer buf)
+          buf)))))
+
+(defun projectile-replace--quit ()
+  "Cancel any in-flight scan and quit the results window."
+  (interactive)
+  (projectile-replace--cancel-scan)
+  (quit-window))
 
 (defun projectile-replace--review (literal)
   "Gather matches for a project-wide replacement and pop the results buffer.
@@ -8808,15 +9048,11 @@ Emacs regexp and the replacement may reference capture groups."
                         (format "Replace %s with: " term))))
          (regexp (if literal (regexp-quote term) term))
          (case-fold case-fold-search)
-         (candidates (projectile-replace--candidates term literal case-fold root))
-         (result (projectile-replace--gather candidates regexp))
-         (matches (plist-get result :matches))
-         (truncated (plist-get result :truncated)))
-    (if (null matches)
-        (message "%s" (projectile-prepend-project-name
-                       (format "No matches for %s" term)))
-      (projectile-replace--display root term regexp replacement literal
-                                   case-fold matches truncated))))
+         (candidates (projectile-replace--candidates term literal case-fold root)))
+    (projectile-replace--open
+     #'projectile-replace-mode projectile-replace-buffer-name
+     root term regexp replacement literal case-fold candidates
+     (projectile-prepend-project-name (format "No matches for %s" term)))))
 
 ;;;###autoload
 (defun projectile-replace-review ()
@@ -8876,7 +9112,8 @@ skips it."
                  " "
                  (if projectile-replace--case-fold
                      "[ignore-case]" "[case-sensitive]")
-                 (if projectile-replace--filtered "  filtered" "")))
+                 (if projectile-replace--filtered "  filtered" "")
+                 (projectile-replace--scanning-note nmatches)))
     (propertize
      (format "Search %S\n%d match%s in %d file%s  %s\n"
              projectile-replace--term
@@ -8958,15 +9195,11 @@ any filtering is undone and every match comes back enabled), mirroring
          (replacement (read-string
                        (projectile-prepend-project-name
                         (format "Replace %s with: " term))))
-         (candidates (projectile-replace--candidates term literal case-fold root))
-         (result (projectile-replace--gather candidates regexp))
-         (matches (plist-get result :matches))
-         (truncated (plist-get result :truncated)))
-    (if (null matches)
-        (message "%s" (projectile-prepend-project-name
-                       (format "No matches for %s" term)))
-      (projectile-replace--display root term regexp replacement literal
-                                   case-fold matches truncated))))
+         (candidates (projectile-replace--candidates term literal case-fold root)))
+    (projectile-replace--open
+     #'projectile-replace-mode projectile-replace-buffer-name
+     root term regexp replacement literal case-fold candidates
+     (projectile-prepend-project-name (format "No matches for %s" term)))))
 
 (defvar projectile-search-mode-map
   (let ((map (make-sparse-keymap)))
@@ -8984,7 +9217,7 @@ any filtering is undone and every match comes back enabled), mirroring
     (define-key map (kbd "e") #'projectile-replace--export)
     (define-key map (kbd "r") #'projectile-search--to-replace)
     (define-key map (kbd "g") #'projectile-replace--refresh)
-    (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "q") #'projectile-replace--quit)
     map)
   "Keymap for `projectile-search-mode'.")
 
@@ -9007,6 +9240,8 @@ matches to a `grep-mode' buffer for wgrep or Emacs 31's `grep-edit-mode'.
 \\{projectile-search-mode-map}"
   (setq-local truncate-lines t)
   (setq-local projectile-replace--render-function #'projectile-search--render)
+  ;; killing the buffer mid-scan must not leave a dangling chunk timer
+  (add-hook 'kill-buffer-hook #'projectile-replace--cancel-scan nil t)
   (buffer-disable-undo))
 
 (defun projectile-search--review (literal)
@@ -9020,34 +9255,15 @@ Emacs regexp.  There is no replacement prompt."
                 (projectile-symbol-or-selection-at-point)))
          (regexp (if literal (regexp-quote term) term))
          (case-fold case-fold-search)
-         (candidates (projectile-replace--candidates term literal case-fold root))
-         ;; SEAM: this is the single gather site.  Everything above computes
-         ;; the candidate file list; everything below renders whatever matches
-         ;; come back.  A future async scanning engine replaces just this call
-         ;; (feeding matches in incrementally) without touching the rendering.
-         (result (projectile-replace--gather candidates regexp))
-         (matches (plist-get result :matches))
-         (truncated (plist-get result :truncated)))
-    (if (null matches)
-        (message "%s" (projectile-prepend-project-name
-                       (format "No matches for %s" term)))
-      (let ((buf (get-buffer-create projectile-search-buffer-name)))
-        (with-current-buffer buf
-          (projectile-search-mode)
-          (setq projectile-replace--root root
-                projectile-replace--term term
-                projectile-replace--search regexp
-                projectile-replace--replacement nil
-                projectile-replace--literal literal
-                projectile-replace--case-fold case-fold
-                projectile-replace--matches matches
-                projectile-replace--truncated truncated
-                projectile-replace--filtered nil)
-          (projectile-search--render))
-        (when truncated
-          (message "projectile-search: showing the first %d matches"
-                   projectile-replace-max-matches))
-        (pop-to-buffer buf)))))
+         (candidates (projectile-replace--candidates term literal case-fold root)))
+    ;; SEAM: everything above computes the candidate file list; the shared
+    ;; opener below seeds the buffer and scans -- synchronously in batch,
+    ;; asynchronously (streaming) when interactive -- then renders whatever
+    ;; matches come back.
+    (projectile-replace--open
+     #'projectile-search-mode projectile-search-buffer-name
+     root term regexp nil literal case-fold candidates
+     (projectile-prepend-project-name (format "No matches for %s" term)))))
 
 ;;;###autoload
 (defun projectile-search-review ()
