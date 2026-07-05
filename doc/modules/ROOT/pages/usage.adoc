@@ -546,6 +546,16 @@ coding system. A buffer that was modified after the search is skipped rather
 than risk a bad edit; re-run the search (kbd:[g]) to pick up its current
 state. Very large searches are capped at `projectile-replace-max-matches`.
 
+The project is scanned asynchronously: the `+*projectile-replace*+` buffer
+opens right away and matches stream in as they are found (the status line
+shows a `Searching...` note with the running count), so a large search never
+freezes Emacs. The scan is cancelable with kbd:[q], kbd:[C-g], or by killing
+the buffer. While it is still running, kbd:[!] and kbd:[e] refuse until it
+finishes, so the write-back never runs against a partial match set; starting a
+new scan (kbd:[g], kbd:[c], kbd:[x]) first cancels any in-flight one. Set
+`projectile-replace-async` to nil to force the old synchronous single-pass
+scan instead; batch (`noninteractive`) runs always scan synchronously.
+
 kbd:[!] applies the enabled matches with no external dependency. If you'd
 rather edit the results as text, kbd:[e] exports the enabled matches (the
 same set kbd:[!] would act on) to a `+*projectile-grep*+` buffer in `grep-mode`,
@@ -611,9 +621,10 @@ The results buffer supports these keys:
 | Quit the results buffer.
 |===
 
-The status line, the case/regexp toggles, the filter keys and the grep
-export behave exactly as in the replace reviewer above; only the preview,
-per-match toggle and apply are absent. kbd:[r] is the search-to-replace
+The status line, the case/regexp toggles, the filter keys, the grep export
+and the asynchronous, cancelable scanning (including `projectile-replace-async`)
+behave exactly as in the replace reviewer above; only the preview, per-match
+toggle and apply are absent. kbd:[r] is the search-to-replace
 bridge: it carries over the same term, literal-ness and case setting and
 opens the `+*projectile-replace*+` reviewer, prompting only for the
 replacement. It re-runs the search from scratch, so any filtering you did
