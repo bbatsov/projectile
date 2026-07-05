@@ -10,8 +10,9 @@
   * `projectile-session-switch-to-buffer` completes over just the current tab's project buffers.
   * Sessions persist across Emacs restarts: `projectile-session-save`, `projectile-session-restore` and `projectile-session-forget` write a project's window layout and buffers to a file under `projectile-session-directory` and read it back; `projectile-session-save-all` saves every open project at once.
   * Switching to a project with a saved session restores it (gated by `projectile-session-restore-on-switch`); `projectile-session-autosave` saves sessions on switch-away and on exit.
+  * `projectile-session-restore-all` reopens every saved project's session, each into its own tab (skipping projects already open and dropping stale sessions whose files are gone); set `projectile-session-restore-on-startup` to run it automatically at Emacs startup.
   * Which buffers are recorded, and how, is extensible via `projectile-session-buffer-serializers`; file-visiting and `dired-mode` buffers work out of the box.
-  * The session commands are bound under the `w` sub-prefix of the command map (`s-p w s`, `s-p w S`, `s-p w r`, `s-p w f`, `s-p w b`), and are also available from `projectile-dispatch` and the Projectile menu.
+  * The session commands are bound under the `w` sub-prefix of the command map (`s-p w s`, `s-p w S`, `s-p w r`, `s-p w R`, `s-p w f`, `s-p w b`), and are also available from `projectile-dispatch` and the Projectile menu.
 
 ## 3.1.0 (2026-07-04)
 

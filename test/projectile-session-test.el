@@ -791,6 +791,254 @@
         (tab-bar-close-tab)
         (expect (length (tab-bar-tabs)) :to-equal (1- count))))))
 
+(describe "projectile-session--saved-roots"
+  (before-each
+    (setq projectile-session-test--dir (projectile-session-test--make-dir)))
+
+  (after-each
+    (when (and projectile-session-test--dir
+               (file-directory-p projectile-session-test--dir))
+      (delete-directory projectile-session-test--dir t)))
+
+  (it "collects saved roots in a stable order, skipping junk files"
+    (let ((tmp (make-temp-file "projectile-session-roots" nil ".txt")))
+      (let* ((projectile-session-directory projectile-session-test--dir)
+             (buf (find-file-noselect tmp)))
+        (unwind-protect
+            (progn
+              (delete-other-windows)
+              (switch-to-buffer buf)
+              ;; two real, current-version session files
+              (projectile-session-save "/proj/zeta/")
+              (projectile-session-save "/proj/alpha/")
+              ;; a file that isn't a readable session: must be skipped
+              (with-temp-file (expand-file-name "garbage.eld"
+                                                projectile-session-test--dir)
+                (insert "not ( a valid sexp"))
+              (expect (projectile-session--saved-roots)
+                      :to-equal '("/proj/alpha/" "/proj/zeta/")))
+          (when (buffer-live-p buf) (kill-buffer buf))
+          (delete-file tmp)))))
+
+  (it "returns nil when the session directory is absent"
+    (let ((projectile-session-directory
+           (expand-file-name "does-not-exist/" projectile-session-test--dir)))
+      (expect (projectile-session--saved-roots) :to-be nil)))
+
+  (it "skips a version-current file whose root is not a string"
+    (let ((projectile-session-directory projectile-session-test--dir))
+      ;; a corrupt/hand-edited file with a non-string :root must not crash the
+      ;; sort (which would silently disable all restore-on-startup)
+      (with-temp-file (expand-file-name "corrupt.eld" projectile-session-test--dir)
+        (prin1 (list :projectile-session-version projectile-session--format-version
+                     :root 42 :buffers nil :window-state nil)
+               (current-buffer)))
+      (expect (projectile-session--saved-roots) :to-be nil))))
+
+(describe "projectile-session-restore-all"
+  (before-each
+    (setq projectile-session-test--dir (projectile-session-test--make-dir))
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (projectile-session-test--reset-tabs)
+    (when (and projectile-session-test--dir
+               (file-directory-p projectile-session-test--dir))
+      (delete-directory projectile-session-test--dir t)))
+
+  ;; Real-tab test: restore-all must reopen each saved session into its own
+  ;; tab, land the user on the first restored project, and put the right
+  ;; file back in each tab.  Building actual tabs (not mocked symbols) is
+  ;; what catches a cons-based selection going stale mid-loop.
+  (it "reopens each saved session into its own tab"
+    (let* ((projectile-session-directory projectile-session-test--dir)
+           (ta (make-temp-file "projectile-session-ra-a" nil ".txt"))
+           (tb (make-temp-file "projectile-session-ra-b" nil ".txt"))
+           (root-a "/proj/alpha/")
+           (root-b "/proj/beta/")
+           (ba (find-file-noselect ta))
+           (bb (find-file-noselect tb)))
+      (unwind-protect
+          (progn
+            ;; write a one-file session for each project
+            (delete-other-windows)
+            (switch-to-buffer ba)
+            (projectile-session-save root-a)
+            (switch-to-buffer bb)
+            (projectile-session-save root-b)
+            ;; tear everything down so restore genuinely recreates
+            (kill-buffer ba) (kill-buffer bb)
+            (projectile-session-test--reset-tabs)
+            (delete-other-windows)
+            (switch-to-buffer "*scratch*")
+            (expect (projectile-session-restore-all) :to-equal 2)
+            ;; a tab per project now exists
+            (expect (projectile-session--project-tab root-a) :to-be-truthy)
+            (expect (projectile-session--project-tab root-b) :to-be-truthy)
+            ;; landed on the first restored (sorted) project, alpha
+            (expect (projectile-session--tab-root
+                     (projectile-session--current-tab))
+                    :to-equal root-a)
+            ;; each tab holds its own file
+            (projectile-session--select-tab-by-root root-a)
+            (expect (mapcar (lambda (w) (buffer-file-name (window-buffer w)))
+                            (window-list nil 'nomini))
+                    :to-contain ta)
+            (projectile-session--select-tab-by-root root-b)
+            (expect (mapcar (lambda (w) (buffer-file-name (window-buffer w)))
+                            (window-list nil 'nomini))
+                    :to-contain tb))
+        (when (buffer-live-p ba) (kill-buffer ba))
+        (when (buffer-live-p bb) (kill-buffer bb))
+        (dolist (n (list (file-name-nondirectory ta)
+                         (file-name-nondirectory tb)))
+          (when (get-buffer n) (kill-buffer n)))
+        (delete-file ta)
+        (delete-file tb))))
+
+  (it "skips a project whose tab is already open, without duplicating it"
+    (let* ((projectile-session-directory projectile-session-test--dir)
+           (ta (make-temp-file "projectile-session-ra-open" nil ".txt"))
+           (root-a "/proj/open/")
+           (ba (find-file-noselect ta)))
+      (unwind-protect
+          (progn
+            (delete-other-windows)
+            (switch-to-buffer ba)
+            (projectile-session-save root-a)
+            (kill-buffer ba)
+            (projectile-session-test--reset-tabs)
+            ;; pre-open a tab for root-a; restore-all must leave it be
+            (projectile-session--make-project-tab root-a)
+            (expect (projectile-session-restore-all) :to-equal 0)
+            ;; exactly one tab is bound to root-a (no duplicate)
+            (expect (length (seq-filter
+                             (lambda (tab)
+                               (projectile-session--same-root-p
+                                (projectile-session--tab-root tab) root-a))
+                             (tab-bar-tabs)))
+                    :to-equal 1))
+        (when (buffer-live-p ba) (kill-buffer ba))
+        (when (get-buffer (file-name-nondirectory ta))
+          (kill-buffer (file-name-nondirectory ta)))
+        (delete-file ta))))
+
+  (it "closes the empty tab and skips a stale session whose files are gone"
+    (let* ((projectile-session-directory projectile-session-test--dir)
+           (ta (make-temp-file "projectile-session-ra-stale" nil ".txt"))
+           (root-a "/proj/stale/")
+           (ba (find-file-noselect ta)))
+      (unwind-protect
+          (progn
+            (delete-other-windows)
+            (switch-to-buffer ba)
+            (projectile-session-save root-a)
+            ;; the project's file is gone: nothing can be recreated
+            (kill-buffer ba)
+            (delete-file ta)
+            (projectile-session-test--reset-tabs)
+            (switch-to-buffer "*scratch*")
+            (let ((before (length (tab-bar-tabs))))
+              (expect (projectile-session-restore-all) :to-equal 0)
+              ;; no leftover empty tab, and none bound to the stale root
+              (expect (length (tab-bar-tabs)) :to-equal before)
+              (expect (projectile-session--project-tab root-a) :to-be nil)))
+        (when (buffer-live-p ba) (kill-buffer ba))
+        (when (get-buffer (file-name-nondirectory ta))
+          (kill-buffer (file-name-nondirectory ta)))
+        (when (file-exists-p ta) (delete-file ta)))))
+
+  (it "restores around a stale middle session and lands on the first live one"
+    (let* ((projectile-session-directory projectile-session-test--dir)
+           (ta (make-temp-file "projectile-session-ra-mid-a" nil ".txt"))
+           (tc (make-temp-file "projectile-session-ra-mid-c" nil ".txt"))
+           (tb (make-temp-file "projectile-session-ra-mid-b" nil ".txt"))
+           ;; sorted order is a < b < c; b will be the stale one in the middle
+           (root-a "/proj/aaa/")
+           (root-b "/proj/bbb/")
+           (root-c "/proj/ccc/")
+           (ba (find-file-noselect ta))
+           (bb (find-file-noselect tb))
+           (bc (find-file-noselect tc)))
+      (unwind-protect
+          (progn
+            (delete-other-windows)
+            (switch-to-buffer ba) (projectile-session-save root-a)
+            (switch-to-buffer bb) (projectile-session-save root-b)
+            (switch-to-buffer bc) (projectile-session-save root-c)
+            ;; b's file disappears; a and c stay restorable
+            (kill-buffer ba) (kill-buffer bb) (kill-buffer bc)
+            (delete-file tb)
+            (projectile-session-test--reset-tabs)
+            (switch-to-buffer "*scratch*")
+            (expect (projectile-session-restore-all) :to-equal 2)
+            ;; a and c reopened, the stale b left no tab
+            (expect (projectile-session--project-tab root-a) :to-be-truthy)
+            (expect (projectile-session--project-tab root-c) :to-be-truthy)
+            (expect (projectile-session--project-tab root-b) :to-be nil)
+            ;; landed on the first live project in sorted order, a
+            (expect (projectile-session--tab-root
+                     (projectile-session--current-tab))
+                    :to-equal root-a))
+        (dolist (b (list ba bb bc)) (when (buffer-live-p b) (kill-buffer b)))
+        (dolist (n (list (file-name-nondirectory ta)
+                         (file-name-nondirectory tc)))
+          (when (get-buffer n) (kill-buffer n)))
+        (when (file-exists-p ta) (delete-file ta))
+        (when (file-exists-p tc) (delete-file tc)))))
+
+  (it "reports the count when called interactively"
+    (spy-on 'projectile-session--saved-roots :and-return-value nil)
+    (spy-on 'message)
+    (call-interactively #'projectile-session-restore-all)
+    (expect 'message :to-have-been-called-with
+            "Restored %d project session%s" 0 "s")))
+
+(describe "projectile-session restore-on-startup"
+  (before-each
+    (projectile-session-test--reset-tabs))
+
+  (after-each
+    (when projectile-session-mode
+      (projectile-session-mode -1))
+    (projectile-session-test--reset-tabs))
+
+  (it "runs restore-all only when restore-on-startup is set"
+    (let ((projectile-session-restore-on-startup nil))
+      (spy-on 'projectile-session-restore-all)
+      (projectile-session--maybe-restore-on-startup)
+      (expect 'projectile-session-restore-all :not :to-have-been-called)
+      (setq projectile-session-restore-on-startup t)
+      (projectile-session--maybe-restore-on-startup)
+      (expect 'projectile-session-restore-all :to-have-been-called)))
+
+  (it "swallows an error out of the startup handler"
+    (let ((projectile-session-restore-on-startup t))
+      (spy-on 'projectile-session-restore-all
+              :and-call-fake (lambda () (error "boom")))
+      ;; must not propagate the error (would abort `emacs-startup-hook')
+      (expect (projectile-session--maybe-restore-on-startup) :not :to-throw)))
+
+  (it "adds and removes the startup hook with the mode"
+    (let ((projectile-switch-project-action 'projectile-find-file)
+          (emacs-startup-hook nil))
+      (spy-on 'projectile-project-root :and-return-value nil)
+      (projectile-session-mode 1)
+      (expect (memq 'projectile-session--maybe-restore-on-startup
+                    emacs-startup-hook)
+              :to-be-truthy)
+      ;; a double enable must not stack duplicates
+      (projectile-session-mode 1)
+      (expect (length (delq nil (mapcar
+                                 (lambda (h)
+                                   (eq h 'projectile-session--maybe-restore-on-startup))
+                                 emacs-startup-hook)))
+              :to-equal 1)
+      (projectile-session-mode -1)
+      (expect (memq 'projectile-session--maybe-restore-on-startup
+                    emacs-startup-hook)
+              :to-be nil))))
+
 (describe "projectile-session keybindings"
   (it "binds the w sub-prefix to the session commands"
     (expect (lookup-key projectile-command-map (kbd "w s"))
@@ -799,6 +1047,8 @@
             :to-equal #'projectile-session-save-all)
     (expect (lookup-key projectile-command-map (kbd "w r"))
             :to-equal #'projectile-session-restore)
+    (expect (lookup-key projectile-command-map (kbd "w R"))
+            :to-equal #'projectile-session-restore-all)
     (expect (lookup-key projectile-command-map (kbd "w f"))
             :to-equal #'projectile-session-forget)
     (expect (lookup-key projectile-command-map (kbd "w b"))
