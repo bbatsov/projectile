@@ -508,6 +508,9 @@ supports these keys:
 | kbd:[!] (or kbd:[C-c C-c])
 | Apply all enabled matches.
 
+| kbd:[e]
+| Export the enabled matches to a `grep-mode` buffer for wgrep / `grep-edit-mode`.
+
 | kbd:[q]
 | Quit the results buffer.
 |===
@@ -536,6 +539,16 @@ step (and saves them), and writes closed files back to disk preserving their
 coding system. A buffer that was modified after the search is skipped rather
 than risk a bad edit; re-run the search (kbd:[g]) to pick up its current
 state. Very large searches are capped at `projectile-replace-max-matches`.
+
+kbd:[!] applies the enabled matches with no external dependency. If you'd
+rather edit the results as text, kbd:[e] exports the enabled matches (the
+same set kbd:[!] would act on) to a `+*projectile-replace-grep*+` buffer in `grep-mode`,
+with standard `RELPATH:LINE:CONTEXT` lines navigable with `next-error` and
+kbd:[RET]. This is the bridge to https://github.com/mhayashi1120/Emacs-wgrep[wgrep]
+(kbd:[C-c C-p] to make it editable, then kbd:[C-c C-c] to write back) or
+Emacs 31's `grep-edit-mode`. wgrep is an optional integration, not a
+dependency; after exporting, Projectile tells you which workflow is
+available based on what you have installed.
 
 == Customizing Projectile's Keybindings
 

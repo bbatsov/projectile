@@ -8273,6 +8273,7 @@ property, so match navigation skips it."
                      "\\[projectile-replace--toggle-file] toggle file  "
                      "\\[projectile-replace--set-replacement] set replacement  "
                      "\\[projectile-replace--apply] apply  "
+                     "\\[projectile-replace--export] export  "
                      "\\[projectile-replace--refresh] re-search  "
                      "\\[projectile-replace--visit] visit  "
                      "\\[quit-window] quit\n"
@@ -8641,6 +8642,77 @@ unsaved changes is edited but left for the user to save."
                         ""))))
     (projectile-replace--refresh)))
 
+;;; Exporting to a grep-mode buffer for wgrep / grep-edit-mode
+
+(defvar projectile-replace-grep-buffer-name "*projectile-replace-grep*"
+  "Name of the `grep-mode' buffer produced by `projectile-replace--export'.")
+
+(defun projectile-replace--grep-line (m root)
+  "Format match M as a RELPATH:LINE:CONTEXT grep hit relative to ROOT."
+  (format "%s:%d:%s"
+          (file-relative-name (projectile-replace--match-file m) root)
+          (projectile-replace--match-line m)
+          (projectile-replace--match-context m)))
+
+(defun projectile-replace--export-guidance ()
+  "Message how to make the exported grep buffer editable.
+The wording adapts to what's installed: wgrep, Emacs 31's
+`grep-edit-mode', or neither.  Returns the message string."
+  (let ((msg (projectile-prepend-project-name
+              (cond
+               ((fboundp 'wgrep-change-to-wgrep-mode)
+                "exported to grep buffer; press C-c C-p to edit with wgrep, then C-c C-c to write back")
+               ((fboundp 'grep-edit-mode)
+                "exported to grep buffer; run M-x grep-edit-mode to edit, then C-c C-c to write back")
+               (t
+                "exported to a read-only grep buffer for navigation; install wgrep from MELPA to edit and write back")))))
+    (message "%s" msg)
+    msg))
+
+(defun projectile-replace--export ()
+  "Export the enabled matches to a `grep-mode' buffer for editing with wgrep.
+Renders the matches Projectile's own apply command would act on (the
+enabled matches from the reviewed and filtered list; ones toggled off are
+excluded, just as they are by apply) as standard RELPATH:LINE:CONTEXT grep
+hits in a `*projectile-replace-grep*' buffer whose `default-directory' is
+the project root, so the relative paths resolve.  The buffer is a real
+`grep-mode' buffer navigable with `next-error' and RET, so wgrep
+(`wgrep-change-to-wgrep-mode', bound to \\`C-c C-p') or Emacs 31's
+`grep-edit-mode' can turn it editable and write your edits back to the
+files.  This is the bridge for people who prefer the grep/wgrep workflow;
+Projectile's own apply command
+(\\<projectile-replace-mode-map>\\[projectile-replace--apply]) is the no-dependency path and needs no external package."
+  (interactive)
+  (require 'grep)
+  (let ((matches (cl-remove-if-not #'projectile-replace--match-enabled
+                                   projectile-replace--matches))
+        (root projectile-replace--root)
+        (buf (get-buffer-create projectile-replace-grep-buffer-name)))
+    (when (null matches)
+      (user-error "No enabled matches to export"))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (setq default-directory root)
+        (insert (format "-*- mode: grep; default-directory: %S -*-\n\n" root))
+        ;; No colon before a value here: the search term could be `10:30' and
+        ;; would otherwise parse as a phantom `file:line:' grep hit.
+        (insert (format "Projectile replace  (%d match%s)\n\n"
+                        (length matches)
+                        (if (= (length matches) 1) "" "es")))
+        (dolist (m matches)
+          (insert (projectile-replace--grep-line m root) "\n"))
+        (insert "\nProjectile replace export finished\n"))
+      (grep-mode)
+      ;; keep the root as default-directory so the relative hits resolve
+      (setq default-directory root)
+      ;; let wgrep hook up its keys if the user has it; strictly optional
+      (when (fboundp 'wgrep-setup) (wgrep-setup))
+      (goto-char (point-min)))
+    (pop-to-buffer buf)
+    (projectile-replace--export-guidance)
+    buf))
+
 (defvar projectile-replace-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") #'projectile-replace--visit)
@@ -8658,6 +8730,7 @@ unsaved changes is edited but left for the user to save."
     (define-key map (kbd "d") #'projectile-replace--flush-matches)
     (define-key map (kbd "K") #'projectile-replace--keep-files)
     (define-key map (kbd "D") #'projectile-replace--flush-files)
+    (define-key map (kbd "e") #'projectile-replace--export)
     (define-key map (kbd "!") #'projectile-replace--apply)
     (define-key map (kbd "C-c C-c") #'projectile-replace--apply)
     (define-key map (kbd "g") #'projectile-replace--refresh)
@@ -8676,6 +8749,11 @@ narrow the shown matches by keeping or flushing them against a regexp
 matched on the context line (\\[projectile-replace--keep-matches] / \\[projectile-replace--flush-matches]) or the file name
 (\\[projectile-replace--keep-files] / \\[projectile-replace--flush-files]).  Re-searching (\\[projectile-replace--refresh]) rebuilds the list from scratch,
 undoing any filtering.
+
+Applying with \\[projectile-replace--apply] needs no external package.  If you prefer the
+grep/wgrep workflow, \\[projectile-replace--export] exports the shown matches to a `grep-mode'
+buffer that wgrep or Emacs 31's `grep-edit-mode' can turn editable and
+write back to the files.
 
 \\{projectile-replace-mode-map}"
   (setq-local truncate-lines t)
