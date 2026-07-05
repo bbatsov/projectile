@@ -416,6 +416,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p w r]
 | Restore the current project's saved session.
 
+| kbd:[s-p w R]
+| Reopen every saved project's session, each into its own tab.
+
 | kbd:[s-p w f]
 | Forget (delete) the current project's saved session.
 

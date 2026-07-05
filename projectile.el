@@ -9810,6 +9810,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "w s") #'projectile-session-save)
     (define-key map (kbd "w S") #'projectile-session-save-all)
     (define-key map (kbd "w r") #'projectile-session-restore)
+    (define-key map (kbd "w R") #'projectile-session-restore-all)
     (define-key map (kbd "w f") #'projectile-session-forget)
     (define-key map (kbd "w b") #'projectile-session-switch-to-buffer)
     ;; project lifecycle external commands
@@ -10115,6 +10116,7 @@ window or frame (file/buffer/project commands)."
       ("ws" "save session" projectile-session-save)
       ("wS" "save all sessions" projectile-session-save-all)
       ("wr" "restore session" projectile-session-restore)
+      ("wR" "restore all sessions" projectile-session-restore-all)
       ("wf" "forget session" projectile-session-forget)
       ("wb" "switch project buffer" projectile-session-switch-to-buffer)]
      ["Cache"
@@ -10226,6 +10228,7 @@ window or frame (file/buffer/project commands)."
          ["Save session" projectile-session-save]
          ["Save all sessions" projectile-session-save-all]
          ["Restore session" projectile-session-restore]
+         ["Restore all sessions" projectile-session-restore-all]
          ["Forget session" projectile-session-forget]
          "--"
          ["Switch to project buffer" projectile-session-switch-to-buffer])
@@ -10440,6 +10443,18 @@ When non-nil and the project being switched to has no open tab but does
 have a session saved on disk, `projectile-session-switch-project-action'
 restores that session (recreating its buffers and layout) instead of
 running `projectile-session-default-action'."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-session-restore-on-startup nil
+  "Whether to reopen every saved project session when Emacs starts.
+When non-nil and `projectile-session-mode' is enabled, a handler added to
+`emacs-startup-hook' runs `projectile-session-restore-all' once, reopening
+each saved project into its own tab after your init files have finished
+loading.  Because that hook is installed on mode enable and
+`emacs-startup-hook' fires only once, right after startup, enabling the
+mode *after* Emacs has finished starting never triggers a restore."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
@@ -10909,14 +10924,40 @@ so shared or circular structure in a record can't hang the write."
              (projectile-serialize data file))
            (file-exists-p file)))))
 
-(defun projectile-session--read (root)
-  "Read and return project ROOT's session data, or nil.
-Data whose format version doesn't match is ignored."
-  (let ((data (projectile-unserialize (projectile-session--file root))))
+(defun projectile-session--read-file (file)
+  "Read and return the session data stored in FILE, or nil.
+Data that isn't a well-formed session plist of the current version is
+ignored, so an unreadable or stale file is skipped rather than erroring."
+  (let ((data (projectile-unserialize file)))
     (and (consp data)
          (equal (plist-get data :projectile-session-version)
                 projectile-session--format-version)
          data)))
+
+(defun projectile-session--read (root)
+  "Read and return project ROOT's session data, or nil.
+Data whose format version doesn't match is ignored."
+  (projectile-session--read-file (projectile-session--file root)))
+
+(defun projectile-session--saved-roots ()
+  "Return the roots of every project with a session saved on disk.
+Scan `projectile-session-directory' for session files, read each (skipping
+any that is unreadable or of a mismatched version, via
+`projectile-session--read-file'), and collect the `:root' it stores.  The
+result is sorted so `projectile-session-restore-all' reopens tabs in a
+stable order across calls and restarts."
+  (let ((dir projectile-session-directory)
+        (roots '()))
+    (when (file-directory-p dir)
+      (dolist (file (directory-files dir t "\\.eld\\'"))
+        (let ((data (ignore-errors (projectile-session--read-file file))))
+          ;; require a string root: a corrupt/hand-edited file with a
+          ;; non-string `:root' would otherwise crash the `sort' below and
+          ;; (via the startup handler's guard) silently disable all restore
+          (when-let* ((root (plist-get data :root))
+                      ((stringp root)))
+            (push root roots)))))
+    (sort roots #'string-lessp)))
 
 (defun projectile-session--frame-buffers ()
   "Return the distinct buffers shown in the selected frame's windows."
@@ -11049,12 +11090,61 @@ sessions were saved."
       (message "Saved %d project session%s" saved (if (= saved 1) "" "s")))
     saved))
 
+;;;###autoload
+(defun projectile-session-restore-all ()
+  "Reopen every saved project's session into its own tab.
+For each project with a session saved on disk (see
+`projectile-session--saved-roots'): when a tab for it is already open,
+leave it be rather than duplicating it; otherwise create a fresh project
+tab and restore the saved session into it.  A session whose files are all
+gone recreates nothing, so its just-created empty tab is closed again and
+it is not counted, keeping restore-all from littering the frame with empty
+tabs.  Tabs are re-resolved by root, never by a cons captured before a
+selection, since `tab-bar-select-tab' rebuilds cons cells as it switches.
+End on the first successfully restored project's tab (falling back to the
+starting tab when nothing was restored) rather than wherever the iteration
+left off.  When called interactively, report how many sessions were
+restored.  Return that count."
+  (interactive)
+  (let ((origin (projectile-session--current-tab-index))
+        (first-root nil)
+        (restored 0))
+    (dolist (root (projectile-session--saved-roots))
+      (unless (projectile-session--project-tab root)
+        (projectile-session--make-project-tab root)
+        (if (ignore-errors (projectile-session-restore root))
+            (progn
+              (setq restored (1+ restored))
+              (unless first-root (setq first-root root)))
+          ;; nothing recreated (the project's files are gone): drop the
+          ;; empty tab `--make-project-tab' just created and selected
+          (ignore-errors (tab-bar-close-tab)))))
+    ;; Land the user somewhere deterministic.  When we restored something,
+    ;; go to the first restored project; otherwise return to where we
+    ;; started (any tabs we made for stale sessions were closed again, so
+    ;; the starting index still points at the same tab).
+    (if first-root
+        (projectile-session--select-tab-by-root first-root)
+      (ignore-errors (tab-bar-select-tab origin)))
+    (when (called-interactively-p 'any)
+      (message "Restored %d project session%s" restored
+               (if (= restored 1) "" "s")))
+    restored))
+
 (defun projectile-session--autosave-on-kill ()
   "Save every open project's session when autosave is enabled.
 Wired onto `kill-emacs-hook'; the frame is going away, so the tab left
 selected by `projectile-session--save-all-tabs' does not matter."
   (when projectile-session-autosave
     (projectile-session--save-all-tabs)))
+
+(defun projectile-session--maybe-restore-on-startup ()
+  "Reopen all saved sessions at startup when configured to.
+Wired onto `emacs-startup-hook' while `projectile-session-mode' is on; the
+restore is gated on `projectile-session-restore-on-startup'.  Errors are
+swallowed so a restore problem can't abort the rest of Emacs startup."
+  (when projectile-session-restore-on-startup
+    (ignore-errors (projectile-session-restore-all))))
 
 ;;;###autoload
 (define-minor-mode projectile-session-mode
@@ -11094,6 +11184,13 @@ existing tabs untouched."
     (add-hook 'projectile-before-switch-project-hook
               #'projectile-session--maybe-autosave)
     (add-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill)
+    ;; Restore-on-startup wiring.  The handler is gated on
+    ;; `projectile-session-restore-on-startup' and `emacs-startup-hook' fires
+    ;; once, right after init, so setting the mode plus the defcustom in init
+    ;; restores after startup; enabling the mode later simply never fires it.
+    ;; `add-hook' is idempotent for an `eq' function, so a double enable can't
+    ;; stack duplicates.
+    (add-hook 'emacs-startup-hook #'projectile-session--maybe-restore-on-startup)
     ;; Re-simplify a survivor's name when its same-named sibling tab is
     ;; closed.  `add-hook' is idempotent for an `eq' function, so a double
     ;; enable can't stack duplicates.
@@ -11109,6 +11206,8 @@ existing tabs untouched."
     (remove-hook 'projectile-before-switch-project-hook
                  #'projectile-session--maybe-autosave)
     (remove-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill)
+    (remove-hook 'emacs-startup-hook
+                 #'projectile-session--maybe-restore-on-startup)
     (remove-hook 'tab-bar-tab-pre-close-functions
                  #'projectile-session--on-tab-close))))
 

@@ -814,6 +814,7 @@ menu:
 | kbd:[s-p w s] | `projectile-session-save`
 | kbd:[s-p w S] | `projectile-session-save-all`
 | kbd:[s-p w r] | `projectile-session-restore`
+| kbd:[s-p w R] | `projectile-session-restore-all`
 | kbd:[s-p w f] | `projectile-session-forget`
 | kbd:[s-p w b] | `projectile-session-switch-to-buffer`
 |===
@@ -845,6 +846,8 @@ to disk and restore it in a later Emacs:
   `projectile-session-autosave`.
 * `projectile-session-restore` recreates that project's buffers and puts
   the saved layout back.
+* `projectile-session-restore-all` reopens every saved project's session,
+  each into its own tab (see below).
 * `projectile-session-forget` deletes a project's saved session file.
 
 Sessions are stored one file per project under
@@ -866,6 +869,32 @@ buffer are skipped.
 ----
 (setq projectile-session-autosave t)
 ----
+
+==== Restoring every session at once
+
+`projectile-session-restore-all` (kbd:[s-p w R]) reopens every saved
+project's session in one go, each into its own tab. A project that already
+has an open tab is left alone rather than duplicated, so it's safe to run
+repeatedly. A session whose files are all gone (say the project was moved
+or deleted) recreates nothing; its scratch tab is closed again instead of
+being left empty, and it doesn't count toward the number restored. When
+everything is done you land on the first project that was restored.
+
+To have Emacs reopen your saved projects automatically at startup, enable
+the mode and set `projectile-session-restore-on-startup` in your init:
+
+[source,elisp]
+----
+(projectile-session-mode +1)
+(setq projectile-session-restore-on-startup t)
+----
+
+This runs `projectile-session-restore-all` once from `emacs-startup-hook`,
+after your init files have finished loading, giving you a desktop-style
+restore of all your projects. Because the handler is installed when the
+mode is enabled and `emacs-startup-hook` fires only once, enabling the mode
+after Emacs has already started never triggers a restore; set it up in your
+init for the startup behavior.
 
 ==== Registering buffer serializers
 
