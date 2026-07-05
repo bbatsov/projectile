@@ -4,6 +4,12 @@
 
 ### New features
 
+* Add reviewable read-only search commands, a search-only sibling of the reviewable replace UI.
+  * `projectile-search-review` (`s R`) searches for a literal string; `projectile-search-regexp-review` (`s X`) searches for an Emacs regexp, honoring full Emacs regexp syntax.
+  * Matches are gathered into a read-only `*projectile-search*` buffer, grouped by file, one `LINE:COL: CONTEXT` line per match with the matched span highlighted; there is no preview, no per-match toggle and no apply.
+  * The buffer reuses the replace reviewer's navigation, case/regexp toggles (`c`/`x`), line and file filters (`k`/`d`/`K`/`D`), re-search (`g`) and grep-mode export (`e`).
+  * `r` bridges the current search to the replace reviewer, carrying over the term, literal-ness and case setting and prompting only for the replacement.
+  * The commands are available from `projectile-dispatch` and the Projectile menu.
 * [#1924](https://github.com/bbatsov/projectile/issues/1924): Add reviewable project-wide replace commands that let you preview matches and choose which to apply, instead of the blocking, file-by-file `query-replace` walk of `projectile-replace`.
   * `projectile-replace-review` (`R`) does a literal replace; `projectile-replace-regexp-review` does an Emacs-regexp replace whose replacement can reference capture groups.
   * Matches are gathered in Emacs Lisp, so the regexp command honors full Emacs regexp syntax and the preview reflects exactly what will be edited, including unsaved changes in open buffers.

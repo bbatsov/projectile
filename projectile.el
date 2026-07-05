@@ -8036,6 +8036,13 @@ around every (re-)gather so it drives which matches are collected.")
 (defvar-local projectile-replace--filtered nil
   "Non-nil when the shown match list was pruned by a filter command.
 Re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]) gathers from scratch and clears this.")
+(defvar-local projectile-replace--render-function #'projectile-replace--render
+  "Function that redraws the current results buffer from its state.
+The scanning, navigation, filter and toggle machinery is shared
+between the replace reviewer and the read-only search reviewer
+(`projectile-search-mode'); this buffer-local seam lets those shared
+commands redraw with the current mode's renderer.  It defaults to the
+replace renderer and search mode rebinds it to its own.")
 
 (defun projectile-replace--expand (replacement groups literal)
   "Expand REPLACEMENT for a match whose group strings are GROUPS.
@@ -8432,14 +8439,14 @@ This gathers from scratch, so any filtering is undone and matches
 removed by a filter command reappear."
   (interactive)
   (projectile-replace--regather)
-  (projectile-replace--render))
+  (funcall projectile-replace--render-function))
 
 (defun projectile-replace--toggle-case ()
   "Toggle case sensitivity of the search, re-scan, and re-render."
   (interactive)
   (setq projectile-replace--case-fold (not projectile-replace--case-fold))
   (projectile-replace--regather)
-  (projectile-replace--render)
+  (funcall projectile-replace--render-function)
   (message "%s"
            (projectile-prepend-project-name
             (if projectile-replace--case-fold
@@ -8468,7 +8475,7 @@ refused with a message so the buffer stays usable rather than erroring."
                                            (regexp-quote projectile-replace--term)
                                          projectile-replace--term))
       (projectile-replace--regather)
-      (projectile-replace--render)
+      (funcall projectile-replace--render-function)
       (message "%s"
                (projectile-prepend-project-name
                 (if new-literal "literal search" "regexp search"))))))
@@ -8480,7 +8487,7 @@ gathers from scratch."
   (setq projectile-replace--matches
         (cl-remove-if-not predicate projectile-replace--matches)
         projectile-replace--filtered t)
-  (projectile-replace--render))
+  (funcall projectile-replace--render-function))
 
 (defun projectile-replace--line-matches-p (m regexp)
   "Return non-nil when match M's context line matches REGEXP.
@@ -8644,8 +8651,9 @@ unsaved changes is edited but left for the user to save."
 
 ;;; Exporting to a grep-mode buffer for wgrep / grep-edit-mode
 
-(defvar projectile-replace-grep-buffer-name "*projectile-replace-grep*"
-  "Name of the `grep-mode' buffer produced by `projectile-replace--export'.")
+(defvar projectile--grep-export-buffer-name "*projectile-grep*"
+  "Name of the `grep-mode' buffer produced by `projectile-replace--export'.
+Shared by the replace and search reviewers, hence the neutral name.")
 
 (defun projectile-replace--grep-line (m root)
   "Format match M as a RELPATH:LINE:CONTEXT grep hit relative to ROOT."
@@ -8674,7 +8682,7 @@ The wording adapts to what's installed: wgrep, Emacs 31's
 Renders the matches Projectile's own apply command would act on (the
 enabled matches from the reviewed and filtered list; ones toggled off are
 excluded, just as they are by apply) as standard RELPATH:LINE:CONTEXT grep
-hits in a `*projectile-replace-grep*' buffer whose `default-directory' is
+hits in a `*projectile-grep*' buffer whose `default-directory' is
 the project root, so the relative paths resolve.  The buffer is a real
 `grep-mode' buffer navigable with `next-error' and RET, so wgrep
 (`wgrep-change-to-wgrep-mode', bound to \\`C-c C-p') or Emacs 31's
@@ -8687,7 +8695,10 @@ Projectile's own apply command
   (let ((matches (cl-remove-if-not #'projectile-replace--match-enabled
                                    projectile-replace--matches))
         (root projectile-replace--root)
-        (buf (get-buffer-create projectile-replace-grep-buffer-name)))
+        ;; label the export by which reviewer it came from (read here, before
+        ;; switching to the grep buffer, so `major-mode' is the source buffer's)
+        (kind (if (derived-mode-p 'projectile-search-mode) "search" "replace"))
+        (buf (get-buffer-create projectile--grep-export-buffer-name)))
     (when (null matches)
       (user-error "No enabled matches to export"))
     (with-current-buffer buf
@@ -8697,12 +8708,12 @@ Projectile's own apply command
         (insert (format "-*- mode: grep; default-directory: %S -*-\n\n" root))
         ;; No colon before a value here: the search term could be `10:30' and
         ;; would otherwise parse as a phantom `file:line:' grep hit.
-        (insert (format "Projectile replace  (%d match%s)\n\n"
-                        (length matches)
+        (insert (format "Projectile %s  (%d match%s)\n\n"
+                        kind (length matches)
                         (if (= (length matches) 1) "" "es")))
         (dolist (m matches)
           (insert (projectile-replace--grep-line m root) "\n"))
-        (insert "\nProjectile replace export finished\n"))
+        (insert (format "\nProjectile %s export finished\n" kind)))
       (grep-mode)
       ;; keep the root as default-directory so the relative hits resolve
       (setq default-directory root)
@@ -8759,6 +8770,30 @@ write back to the files.
   (setq-local truncate-lines t)
   (buffer-disable-undo))
 
+(defun projectile-replace--display (root term regexp replacement literal
+                                         case-fold matches truncated)
+  "Populate and show the `*projectile-replace*' results buffer.
+ROOT, TERM, REGEXP, REPLACEMENT, LITERAL and CASE-FOLD seed the buffer's
+state; MATCHES are the collected structs and TRUNCATED notes whether the
+match cap was hit."
+  (let ((buf (get-buffer-create projectile-replace-buffer-name)))
+    (with-current-buffer buf
+      (projectile-replace-mode)
+      (setq projectile-replace--root root
+            projectile-replace--term term
+            projectile-replace--search regexp
+            projectile-replace--replacement replacement
+            projectile-replace--literal literal
+            projectile-replace--case-fold case-fold
+            projectile-replace--matches matches
+            projectile-replace--truncated truncated
+            projectile-replace--filtered nil)
+      (projectile-replace--render))
+    (when truncated
+      (message "projectile-replace: showing the first %d matches"
+               projectile-replace-max-matches))
+    (pop-to-buffer buf)))
+
 (defun projectile-replace--review (literal)
   "Gather matches for a project-wide replacement and pop the results buffer.
 LITERAL non-nil runs a literal replace; otherwise the search term is an
@@ -8780,23 +8815,8 @@ Emacs regexp and the replacement may reference capture groups."
     (if (null matches)
         (message "%s" (projectile-prepend-project-name
                        (format "No matches for %s" term)))
-      (let ((buf (get-buffer-create projectile-replace-buffer-name)))
-        (with-current-buffer buf
-          (projectile-replace-mode)
-          (setq projectile-replace--root root
-                projectile-replace--term term
-                projectile-replace--search regexp
-                projectile-replace--replacement replacement
-                projectile-replace--literal literal
-                projectile-replace--case-fold case-fold
-                projectile-replace--matches matches
-                projectile-replace--truncated truncated
-                projectile-replace--filtered nil)
-          (projectile-replace--render))
-        (when truncated
-          (message "projectile-replace: showing the first %d matches"
-                   projectile-replace-max-matches))
-        (pop-to-buffer buf)))))
+      (projectile-replace--display root term regexp replacement literal
+                                   case-fold matches truncated))))
 
 ;;;###autoload
 (defun projectile-replace-review ()
@@ -8819,6 +8839,238 @@ This is a non-blocking, previewable alternative to
 `projectile-replace-regexp'."
   (interactive)
   (projectile-replace--review nil))
+
+;;; Reviewable read-only project-content search
+;;
+;; A search-only sibling of the reviewable replace UI above.  It reuses the
+;; same pure "find matches" machinery (`projectile-replace--candidates',
+;; `--gather', `--scan-file', the match struct and its accessors) and the
+;; same navigation, filter, case/regexp-toggle, visit and grep-export
+;; commands, but renders the matches into a read-only `*projectile-search*'
+;; buffer with no before->after preview, no per-match enable/disable toggle,
+;; and no apply.  It is a distinct major mode (`projectile-search-mode', a
+;; sibling of `projectile-replace-mode', not a shared base) so its keymap can
+;; simply omit every write-back key rather than disable it; the shared code
+;; lives under the `projectile-replace--' prefix (where it already was) and
+;; the two modes share the results-buffer buffer-locals.  A `replace these'
+;; bridge hands the current search off to the replace reviewer.
+
+(defvar projectile-search-buffer-name "*projectile-search*"
+  "Name of the buffer used by `projectile-search-review'.")
+
+(defun projectile-search--header-string ()
+  "Return the propertized status header for the search results buffer.
+Shows the term, the match and file counts, the mode flags
+\(regexp/literal and case), and a note when the list has been filtered.
+Carries no `projectile-replace-match' property, so match navigation
+skips it."
+  (let* ((matches projectile-replace--matches)
+         (nmatches (length matches))
+         (seen (make-hash-table :test 'equal))
+         nfiles flags)
+    (dolist (m matches)
+      (puthash (projectile-replace--match-file m) t seen))
+    (setq nfiles (hash-table-count seen)
+          flags (concat
+                 (if projectile-replace--literal "[literal]" "[regexp]")
+                 " "
+                 (if projectile-replace--case-fold
+                     "[ignore-case]" "[case-sensitive]")
+                 (if projectile-replace--filtered "  filtered" "")))
+    (propertize
+     (format "Search %S\n%d match%s in %d file%s  %s\n"
+             projectile-replace--term
+             nmatches (if (= nmatches 1) "" "es")
+             nfiles (if (= nfiles 1) "" "s")
+             flags)
+     'face 'projectile-replace-header)))
+
+(defun projectile-search--render-line (m)
+  "Return the propertized results line for match M.
+The line is `LINE:COL: CONTEXT' with the matched span highlighted; there
+is no replacement preview and no enable/disable indicator.  The whole
+line carries the match struct under the `projectile-replace-match' text
+property so the shared navigation, visit and filter commands find it."
+  (let* ((col (projectile-replace--match-column m))
+         (ctx (projectile-replace--match-context m))
+         (mstr (projectile-replace--match-string m))
+         (before (substring ctx 0 (min col (length ctx))))
+         (after (if (<= (+ col (length mstr)) (length ctx))
+                    (substring ctx (+ col (length mstr)))
+                  ""))
+         (highlight (propertize mstr 'face 'projectile-replace-match))
+         (locator (propertize (format "%d:%d: "
+                                      (projectile-replace--match-line m)
+                                      (1+ col))
+                              'face 'projectile-replace-line-number))
+         (line (concat locator before highlight after "\n")))
+    (propertize line 'projectile-replace-match m)))
+
+(defun projectile-search--render ()
+  "Redraw the current search results buffer from its buffer-local state."
+  (let ((inhibit-read-only t)
+        (root projectile-replace--root)
+        (matches projectile-replace--matches)
+        (counts (make-hash-table :test 'equal))
+        (prev-file nil))
+    (dolist (m matches)
+      (cl-incf (gethash (projectile-replace--match-file m) counts 0)))
+    (erase-buffer)
+    (insert (projectile-search--header-string))
+    (insert (substitute-command-keys
+             (concat "\\<projectile-search-mode-map>"
+                     "\\[projectile-replace--visit] visit  "
+                     "\\[projectile-replace--refresh] re-search  "
+                     "\\[projectile-search--to-replace] replace these  "
+                     "\\[projectile-replace--export] export  "
+                     "\\[quit-window] quit\n"
+                     "\\[projectile-replace--toggle-case] case  "
+                     "\\[projectile-replace--toggle-regexp] regexp/literal  "
+                     "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
+                     "\\[projectile-replace--keep-files]/\\[projectile-replace--flush-files] keep/flush file\n\n")))
+    (if (null matches)
+        (insert "No matches.\n")
+      (dolist (m matches)
+        (let ((file (projectile-replace--match-file m)))
+          (unless (equal prev-file file)
+            (when prev-file (insert "\n"))
+            (setq prev-file file)
+            (insert (projectile-replace--file-header
+                     file root (gethash file counts))))
+          (insert (projectile-search--render-line m)))))
+    (when projectile-replace--truncated
+      (insert (format "\n(showing the first %d matches)\n"
+                      projectile-replace-max-matches)))
+    (goto-char (point-min))))
+
+(defun projectile-search--to-replace ()
+  "Hand the current search to the reviewable replace UI.
+Carries over the same term, literal-ness and case setting and prompts
+only for the replacement.  The project is re-scanned from scratch (so
+any filtering is undone and every match comes back enabled), mirroring
+`projectile-replace-review'."
+  (interactive)
+  (let* ((root projectile-replace--root)
+         (term projectile-replace--term)
+         (literal projectile-replace--literal)
+         (case-fold projectile-replace--case-fold)
+         (regexp projectile-replace--search)
+         (replacement (read-string
+                       (projectile-prepend-project-name
+                        (format "Replace %s with: " term))))
+         (candidates (projectile-replace--candidates term literal case-fold root))
+         (result (projectile-replace--gather candidates regexp))
+         (matches (plist-get result :matches))
+         (truncated (plist-get result :truncated)))
+    (if (null matches)
+        (message "%s" (projectile-prepend-project-name
+                       (format "No matches for %s" term)))
+      (projectile-replace--display root term regexp replacement literal
+                                   case-fold matches truncated))))
+
+(defvar projectile-search-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") #'projectile-replace--visit)
+    (define-key map (kbd "n") #'projectile-replace--goto-next-match)
+    (define-key map (kbd "p") #'projectile-replace--goto-prev-match)
+    (define-key map (kbd "M-n") #'projectile-replace--goto-next-file)
+    (define-key map (kbd "M-p") #'projectile-replace--goto-prev-file)
+    (define-key map (kbd "c") #'projectile-replace--toggle-case)
+    (define-key map (kbd "x") #'projectile-replace--toggle-regexp)
+    (define-key map (kbd "k") #'projectile-replace--keep-matches)
+    (define-key map (kbd "d") #'projectile-replace--flush-matches)
+    (define-key map (kbd "K") #'projectile-replace--keep-files)
+    (define-key map (kbd "D") #'projectile-replace--flush-files)
+    (define-key map (kbd "e") #'projectile-replace--export)
+    (define-key map (kbd "r") #'projectile-search--to-replace)
+    (define-key map (kbd "g") #'projectile-replace--refresh)
+    (define-key map (kbd "q") #'quit-window)
+    map)
+  "Keymap for `projectile-search-mode'.")
+
+(define-derived-mode projectile-search-mode special-mode "Projectile-Search"
+  "Major mode for reviewing project-wide search matches, read-only.
+
+A search-only sibling of `projectile-replace-mode': the buffer is a
+read-only listing of every match, grouped by file, with no replacement
+preview and no way to edit the files from here.  Navigate with
+\\<projectile-search-mode-map>\\[projectile-replace--goto-next-match] / \\[projectile-replace--goto-prev-match] (match) and \\[projectile-replace--goto-next-file] / \\[projectile-replace--goto-prev-file] (file), and \\[projectile-replace--visit]
+visits the match under point.  The search can be reshaped in place:
+\\[projectile-replace--toggle-case] toggles case sensitivity and \\[projectile-replace--toggle-regexp] toggles literal/regexp matching,
+each re-scanning; \\[projectile-replace--keep-matches] / \\[projectile-replace--flush-matches] keep or flush matches by line and
+\\[projectile-replace--keep-files] / \\[projectile-replace--flush-files] by file; \\[projectile-replace--refresh] re-runs the search, undoing any filtering.
+
+\\[projectile-search--to-replace] hands the current search off to the reviewable replace UI
+\(prompting only for the replacement), and \\[projectile-replace--export] exports the shown
+matches to a `grep-mode' buffer for wgrep or Emacs 31's `grep-edit-mode'.
+
+\\{projectile-search-mode-map}"
+  (setq-local truncate-lines t)
+  (setq-local projectile-replace--render-function #'projectile-search--render)
+  (buffer-disable-undo))
+
+(defun projectile-search--review (literal)
+  "Gather matches for a project-wide search and pop the read-only results buffer.
+LITERAL non-nil searches for a literal string; otherwise the term is an
+Emacs regexp.  There is no replacement prompt."
+  (let* ((root (projectile-acquire-root))
+         (term (read-string
+                (projectile-prepend-project-name
+                 (if literal "Search: " "Search regexp: "))
+                (projectile-symbol-or-selection-at-point)))
+         (regexp (if literal (regexp-quote term) term))
+         (case-fold case-fold-search)
+         (candidates (projectile-replace--candidates term literal case-fold root))
+         ;; SEAM: this is the single gather site.  Everything above computes
+         ;; the candidate file list; everything below renders whatever matches
+         ;; come back.  A future async scanning engine replaces just this call
+         ;; (feeding matches in incrementally) without touching the rendering.
+         (result (projectile-replace--gather candidates regexp))
+         (matches (plist-get result :matches))
+         (truncated (plist-get result :truncated)))
+    (if (null matches)
+        (message "%s" (projectile-prepend-project-name
+                       (format "No matches for %s" term)))
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (with-current-buffer buf
+          (projectile-search-mode)
+          (setq projectile-replace--root root
+                projectile-replace--term term
+                projectile-replace--search regexp
+                projectile-replace--replacement nil
+                projectile-replace--literal literal
+                projectile-replace--case-fold case-fold
+                projectile-replace--matches matches
+                projectile-replace--truncated truncated
+                projectile-replace--filtered nil)
+          (projectile-search--render))
+        (when truncated
+          (message "projectile-search: showing the first %d matches"
+                   projectile-replace-max-matches))
+        (pop-to-buffer buf)))))
+
+;;;###autoload
+(defun projectile-search-review ()
+  "Search the project for a literal string and review the matches read-only.
+
+Prompts for a literal search string (defaulting to the symbol or region
+at point), gathers every match across the project into a read-only
+`*projectile-search*' buffer grouped by file, and lets you navigate,
+filter and reshape the search.  Use \\<projectile-search-mode-map>\\[projectile-search--to-replace] to turn it into a
+reviewable replacement.  This is the read-only sibling of
+`projectile-replace-review'."
+  (interactive)
+  (projectile-search--review t))
+
+;;;###autoload
+(defun projectile-search-regexp-review ()
+  "Search the project for an Emacs regexp and review the matches read-only.
+
+Like `projectile-search-review', but the search term is an Emacs regexp,
+so full Emacs regexp syntax (e.g. symbol boundaries like `\\_<foo\\_>')
+is honored."
+  (interactive)
+  (projectile-search--review nil))
 
 (defun projectile--buffer-matches-conditions (buffer conditions)
   "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
@@ -10693,6 +10945,8 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "s r") #'projectile-ripgrep)
     (define-key map (kbd "s a") #'projectile-ag)
     (define-key map (kbd "s x") #'projectile-find-references)
+    (define-key map (kbd "s R") #'projectile-search-review)
+    (define-key map (kbd "s X") #'projectile-search-regexp-review)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
     (define-key map (kbd "T") #'projectile-find-test-file)
@@ -10974,6 +11228,8 @@ window or frame (file/buffer/project commands)."
       ("sr" "ripgrep" projectile-dispatch-ripgrep)
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
+      ("sR" "search (review)" projectile-search-review)
+      ("sX" "search regexp (review)" projectile-search-regexp-review)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
       ("R" "replace (review)" projectile-replace-review)]]

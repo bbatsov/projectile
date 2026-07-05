@@ -248,6 +248,12 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p s x]
 | Find references to the symbol at point within the project. Uses internally the `xref` library.
 
+| kbd:[s-p s R]
+| Reviewable search: gather all matches for a literal string into a read-only results buffer you can navigate, filter and reshape (see below).
+
+| kbd:[s-p s X]
+| Reviewable search for an Emacs regexp (the regexp sibling of kbd:[s-p s R]).
+
 | kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
 
@@ -542,13 +548,77 @@ state. Very large searches are capped at `projectile-replace-max-matches`.
 
 kbd:[!] applies the enabled matches with no external dependency. If you'd
 rather edit the results as text, kbd:[e] exports the enabled matches (the
-same set kbd:[!] would act on) to a `+*projectile-replace-grep*+` buffer in `grep-mode`,
+same set kbd:[!] would act on) to a `+*projectile-grep*+` buffer in `grep-mode`,
 with standard `RELPATH:LINE:CONTEXT` lines navigable with `next-error` and
 kbd:[RET]. This is the bridge to https://github.com/mhayashi1120/Emacs-wgrep[wgrep]
 (kbd:[C-c C-p] to make it editable, then kbd:[C-c C-c] to write back) or
 Emacs 31's `grep-edit-mode`. wgrep is an optional integration, not a
 dependency; after exporting, Projectile tells you which workflow is
 available based on what you have installed.
+
+=== Reviewing search matches
+
+When you want to look through every match for a term across the project
+without changing anything, the search reviewer is the read-only sibling of
+the replace reviewer:
+
+* `projectile-search-review` (kbd:[s-p s R]) for a literal search.
+* `projectile-search-regexp-review` (kbd:[s-p s X]) for an Emacs regexp
+  search (full Emacs regexp syntax, e.g. symbol boundaries like `\_<foo\_>`).
+
+Both prompt only for the search term (defaulting to the symbol or region at
+point) and gather every match into a read-only `+*projectile-search*+`
+buffer, grouped by file, one `LINE:COL: CONTEXT` line per match with the
+matched span highlighted. There is no replacement, no per-match toggle and
+no apply: the buffer never edits your files.
+
+The results buffer supports these keys:
+
+|===
+| Key | Action
+
+| kbd:[RET]
+| Visit the match under point in another window.
+
+| kbd:[n] / kbd:[p]
+| Move to the next / previous match.
+
+| kbd:[M-n] / kbd:[M-p]
+| Move to the next / previous file.
+
+| kbd:[c]
+| Toggle case sensitivity and re-scan.
+
+| kbd:[x]
+| Toggle between literal and regexp matching and re-scan.
+
+| kbd:[k] / kbd:[d]
+| Keep / flush the matches whose line matches a regexp you type.
+
+| kbd:[K] / kbd:[D]
+| Keep / flush the matches whose file matches a regexp you type.
+
+| kbd:[g]
+| Re-run the search (also undoes any filtering).
+
+| kbd:[r]
+| Hand the current search to the replace reviewer, prompting only for the replacement.
+
+| kbd:[e]
+| Export the shown matches to a `grep-mode` buffer for wgrep / `grep-edit-mode`.
+
+| kbd:[q]
+| Quit the results buffer.
+|===
+
+The status line, the case/regexp toggles, the filter keys and the grep
+export behave exactly as in the replace reviewer above; only the preview,
+per-match toggle and apply are absent. kbd:[r] is the search-to-replace
+bridge: it carries over the same term, literal-ness and case setting and
+opens the `+*projectile-replace*+` reviewer, prompting only for the
+replacement. It re-runs the search from scratch, so any filtering you did
+in the search buffer is not carried into the replacement. Very large
+searches are capped at `projectile-replace-max-matches`.
 
 == Customizing Projectile's Keybindings
 
