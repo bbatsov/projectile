@@ -1,0 +1,57 @@
+= Getting started
+
+This is a short tour that takes you from a fresh install to being productive with
+Projectile in a few minutes. Everything here links into the rest of the manual,
+where you'll find the full details.
+
+== Install and enable Projectile
+
+Install Projectile from MELPA (see xref:installation.adoc[Installation] for the
+other options), then add this to your Emacs configuration:
+
+[source,elisp]
+----
+(projectile-mode +1)
+;; Projectile ships no default prefix key, so bind one yourself.
+;; Popular choices are `s-p' (macOS) and `C-c p'.
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+----
+
+NOTE: The rest of this manual writes keybindings as `s-p ...`; just substitute
+whatever prefix you picked above.
+
+TIP: Pair Projectile with a modern completion UI such as
+https://github.com/minad/vertico[Vertico] for a much nicer experience at every
+prompt. See xref:configuration.adoc#completion-options[Completion options].
+
+== Open a project
+
+There's no explicit "open project" step. Just visit any file inside a
+version-controlled repository, or inside a directory Projectile recognizes as a
+project (one holding a `Gemfile`, `pom.xml`, `package.json`, and dozens more),
+and that becomes your current project.
+
+If a directory isn't detected automatically, drop an empty `.projectile` file at
+its root to mark it. See xref:projects.adoc[Projects] for how detection works.
+
+== Your first commands
+
+With a file from the project open, try these:
+
+* kbd:[s-p f] - jump to any file in the project.
+* kbd:[s-p p] - switch to another project (then pick a file in it).
+* kbd:[s-p b] - switch to another buffer belonging to the project.
+* kbd:[s-p s g] - search the project for some text.
+* kbd:[s-p t] - toggle between an implementation file and its test.
+* kbd:[s-p m] - open the dispatch menu, which lists every Projectile command.
+
+TIP: If you can't recall a binding, kbd:[s-p m] is the one to memorize - the
+dispatch menu shows everything else.
+
+== Where to go next
+
+* xref:usage.adoc[Usage] - the full command list and the dispatch menu.
+* xref:projects.adoc[Projects] - project types, detection, and jumping between related files.
+* xref:tasks.adoc[Project commands, tasks & tests] - compiling, testing and running a project.
+* xref:configuration.adoc[Configuration] - tuning Projectile to your workflow.
+* xref:indexing.adoc[Indexing & performance] - keeping Projectile fast on big or remote projects.

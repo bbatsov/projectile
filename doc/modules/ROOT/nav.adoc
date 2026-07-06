@@ -1,5 +1,6 @@
 * xref:index.adoc[Home]
 * xref:installation.adoc[Installation]
+* xref:getting_started.adoc[Getting started]
 * xref:usage.adoc[Usage]
 * xref:tasks.adoc[Project commands, tasks & tests]
 * xref:projects.adoc[Projects]
