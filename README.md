@@ -13,21 +13,24 @@
 It provides a powerful set of features operating at the project
 level, as well as simple heuristics to identify projects.
 
-Here are some of essential Projectile's features:
+Here are some of Projectile's essential features:
 
-* jump to a file in project
+* jump to a file in a project, [ranked by frecency](https://docs.projectile.mx/projectile/configuration.html#file-ranking-frecency) (how recently and often you visit it)
 * jump to a project buffer
-* jump to a test in project
-* toggle between files with same names but different extensions (e.g. `.h` <-> `.c/.cpp`, `Gemfile` <-> `Gemfile.lock`)
+* jump to a test in a project
+* [find a file of a given kind and jump between related files](https://docs.projectile.mx/projectile/projects.html#finding-files-by-kind) (e.g. a Rails model and its controller)
+* toggle between files with the same name but different extensions (e.g. `.h` <-> `.c/.cpp`, `Gemfile` <-> `Gemfile.lock`)
 * toggle between code and its test (e.g. `main.service.js` <-> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
+* [per-project sessions with tab-bar workspaces](https://docs.projectile.mx/projectile/configuration.html#per-project-sessions) (restore each project's window layout and buffers, even across restarts)
 * kill (close) all project buffers
-* grep (search) in project
-* replace in project
-* find references in project (using `xref` internally)
-* run shell commands in a project (e.g. `make`, `lein`)
-* support for multiple minibuffer completion/selection libraries (`ido`, `ivy`, `helm`, and the default completion system)
+* [search a project](https://docs.projectile.mx/projectile/usage.html#reviewing-search-matches) (grep/ripgrep, plus a native reviewable results UI)
+* [replace in a project](https://docs.projectile.mx/projectile/usage.html#reviewing-and-applying-replacements), with a reviewable before/after preview
+* find references in a project (using `xref` internally)
+* run [project commands and custom tasks](https://docs.projectile.mx/projectile/projects.html#project-tasks) (build/test/run, `make`, `lein`, and your own named tasks)
+* [run the test at point](https://docs.projectile.mx/projectile/projects.html#running-the-test-at-point) (tree-sitter, Emacs 29+)
+* works with any `completing-read`-based completion UI (Vertico, Consult, Fido, Ido, etc.)
 * automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
 
@@ -99,17 +102,20 @@ Enable `projectile-mode`, open a file in one of your projects and type a command
 
 See the [online documentation](https://docs.projectile.mx/projectile/usage.html) for more details.
 
-To get the most of Projectile you also need to enable (and potentially install)
-some minibuffer completion framework (e.g. `ido`, `ivy` or `vertico`). See
-[this
+Projectile reads through Emacs's built-in `completing-read`, so it works with
+whatever minibuffer completion UI you use. It's fine with the stock completion,
+but to get the most out of it you're encouraged to enable (and, if needed,
+install) a modern completion setup such as `vertico` (paired with `consult`,
+`marginalia`, and `orderless`) or the built-in `fido-vertical-mode`. See [this
 section](https://docs.projectile.mx/projectile/configuration.html#completion-options)
 of the documentation for more details.
 
-> [!CAUTION]
+> [!NOTE]
 >
-> Historically `projectile-completion-system` defaulted to `ido`, but this was
-> changed in version 2.3. You may need to enable `ido-mode` in your Emacs
-> configuration if updating from an older version of Projectile.
+> As of Projectile 3.0 the dedicated `ido`/`ivy`/`helm` completion systems (and
+> the old `projectile-completion-system` values) were removed in favor of
+> `completing-read`. Existing setups keep working via your completion UI;
+> `helm-projectile` and `counsel-projectile` are unaffected.
 
 ## Design Goals
 
