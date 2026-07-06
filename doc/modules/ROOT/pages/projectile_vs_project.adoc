@@ -8,7 +8,7 @@ Projectile over the built-in library. This section of the documentation will try
 
 When `project.el` was originally introduced it's feature-set was quite spartan, but it has added some new features in every Emacs release and circa 2026 it should cover the needs of most casual users. I'm guessing that Projectile inspired many features in `project.el`, and Projectile itself was inspired by tools like IntelliJ IDEA.
 
-== TLDR;
+== TL;DR
 
 If the functionality in `project.el` is good enough for you then you should probably use `project.el`.
 
@@ -88,9 +88,9 @@ NOTE: As of early 2026. (Projectile 2.10 and `project.el` in Emacs 31)
 | Somewhat complicated (standard for Emacs)
 |===
 
-== Notable Differences
+== Notable differences
 
-=== Minor Mode vs Global Keymap
+=== Minor mode vs global keymap
 
 Projectile makes heavy use of `projectile-mode`, which provides some additional features (e.g. project status in the modeline).
 You can use Projectile without it, but I guess few people do so. Most of Projectile's functionality will work fine even if the mode is not active.
@@ -98,7 +98,7 @@ You can use Projectile without it, but I guess few people do so. Most of Project
 `project.el` on the other hand, just adds its own keymap under the global keymap (using the prefix `C-x p`). You can do the same for Projectile,
 of course, if you want to.
 
-=== Project Indexing Strategies
+=== Project indexing strategies
 
 Projectile has multiple project indexing strategies to cover a wide variety of use cases. `project.el` has only one, which is more or less the same
 as Projectile's `alien` strategy. Admittedly, that's probably the most commonly used strategy.
@@ -108,7 +108,7 @@ as Projectile's `alien` strategy. Admittedly, that's probably the most commonly 
 Projectile has its own project marker/configuration file. It's a remnant of the early days of the project where I wanted to build a tool that didn't
 rely on the third-party applications and its significance today is not that big. (it will be completely ignored unless you're using `native` or `hybrid` indexing)
 
-=== Backend Protocol
+=== Backend protocol
 
 `project.el` defines a small protocol via `cl-defgeneric` (`project-root`, `project-files`, `project-buffers`, etc.) and ships two backends: a transient one for ad-hoc directories and a VC-aware one. New backends are added with `cl-defmethod`.
 
@@ -429,7 +429,7 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | —
 |===
 
-== Projectile's Pros
+== Projectile's pros
 
 * Projectile targets Emacs 28.1+
 * Projectile has different project indexing strategies, which offer you a lot of flexibility in different situations
@@ -444,7 +444,7 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 * Projectile has more extensive documentation
   ** You can compare it with https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html[project.el's documentation] and decide for yourself
 
-== Projectile's Cons
+== Projectile's cons
 
 * Third-party dependency, developed outside of Emacs. This is both a pro and con depending on one's perspective, but I know that many people prefer built-in packages, so I've put it under "cons".
   ** Built-in packages in theory should be maintained better (or at least for longer), as they have the Emacs team behind them.

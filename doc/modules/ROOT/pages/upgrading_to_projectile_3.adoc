@@ -117,7 +117,7 @@ The search commands now share one entry point, `projectile-search`
 (kbd:[s-p s s]), backed by a pluggable backend. `projectile-search-backend`
 picks the backend (`auto` by default, favouring `ripgrep` then `grep`); you can
 also register your own with `projectile-register-search-backend`. See the
-xref:configuration.adoc#_searching[Searching] section for details.
+xref:configuration.adoc#searching[Searching] section for details.
 
 `projectile-grep`, `projectile-ripgrep` and `projectile-ag` still exist as thin
 wrappers that force a specific backend.

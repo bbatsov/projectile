@@ -1,6 +1,6 @@
 = Projects
 
-== Supported Project Types
+== Supported project types
 
 One of the main goals of Projectile is to operate on a wide range of project types
 without the need for any configuration. To achieve this it contains a lot of
@@ -19,7 +19,7 @@ TIP: If you'd like to override the default project detection functions you shoul
 check out `projectile-project-root-functions`. We'll discuss how to tweak in more
 details later in the documentation.
 
-=== Version Control Systems
+=== Version control systems
 
 Projectile considers most version-controlled repos to be
 a project. Out of the box Projectile supports:
@@ -86,9 +86,9 @@ are the configuration files of various build tools. Out of the box the following
 | `Taskfile.yml`
 | Go-task/Task project file
 
-| PHP
+| PHP (Symfony)
 | `composer.json`
-| PHP project file
+| Symfony project file
 
 | Erlang & Elixir
 | `rebar.config`
@@ -254,10 +254,6 @@ are the configuration files of various build tools. Out of the box the following
 | `cscope.out`
 | cscope
 
-| Composer
-| `composer.json`
-| Composer project file
-
 | Zig
 | `build.zig.zon`
 | Zig project file
@@ -268,9 +264,9 @@ are the configuration files of various build tools. Out of the box the following
 |===
 
 There's also Projectile's own `.projectile` which serves both as a project marker
-and a configuration file. We'll talk more about later in this section.
+and a configuration file. We'll cover it in more detail later on this page.
 
-== Adding Custom Project Types
+== Adding custom project types
 
 If a project you are working on is recognized incorrectly or you want
 to add your own type of projects you can add following to your Emacs
@@ -402,7 +398,7 @@ Below is a listing of all the available options for `projectile-register-project
 |===
 
 [discrete]
-==== Returning Projectile Commands from a function
+==== Returning Projectile commands from a function
 
 You can also pass a symbolic reference to a function into your project type definition if you wish to define the compile command dynamically:
 
@@ -711,7 +707,7 @@ only when the key can't be derived from a simple prefix/suffix - for
 instance when it lives in a directory name (as with Rails views and Django
 apps) or needs inflection.
 
-=== Editing Existing Project Types
+=== Editing existing project types
 
 You can also edit specific options of already existing project types:
 
@@ -729,7 +725,7 @@ You can also edit specific options of already existing project types:
 
 This will change the value of the `related-files-fn` option, remove the `test-prefix` option and `:precedence 'high` sets the sbt project type to be chosen in preference to other potentially clashing project types (a value `'low` would do the opposite).
 
-=== Removing a Project Type
+=== Removing a project type
 
 If a built-in project type mis-detects your projects (e.g. a language
 manifest that also appears in subdirectories of a larger repo), you can
@@ -830,7 +826,7 @@ automatically:
 (setq projectile-create-missing-test-files t)
 ----
 
-== Customizing Project Detection
+== Customizing project detection
 
 Project detection is pretty simple - Projectile just runs a list of
 project detection functions
@@ -1217,9 +1213,7 @@ TIP: You can also quickly visit or create the `dir-locals-file` with
 kbd:[s-p E] (kbd:[M-x] `projectile-edit-dir-locals` kbd:[RET]). 3rd party packages may use functions `projectile-add-dir-local-variable`
 and `projectile-delete-dir-local-variable` to store their settings.
 
-Here are a few examples of how to use this feature with Projectile.
-
-== Configuring Projectile's Behavior
+== Configuring Projectile's behavior
 
 Projectile exposes many variables (via `defcustom`) which allow users
 to customize its behavior.  Directory variables can be used to set
@@ -1268,7 +1262,7 @@ you e.g. test a command-line program with `projectile-run-project`.
 (setq projectile-compile-use-comint-mode t)
 ----
 
-== Project Buffers
+== Project buffers
 
 Projectile offers a bunch of operations that are operating on the open buffers
 for some project (e.g. `projectile-kill-buffers`). One tricky part here are
@@ -1367,7 +1361,7 @@ name instead, via `projectile-uniquify-dirname-transform`:
 Outside of a project the directory is left untouched, so this is safe to set
 globally. This mirrors `project.el`'s `project-uniquify-dirname-transform`.
 
-== Configure a Project's Lifecycle Commands and Other Attributes
+== Configure a project's lifecycle commands and other attributes
 
 There are a few variables that are intended to be customized via `.dir-locals.el`.
 
@@ -1417,7 +1411,7 @@ you've run in the project. `projectile-repeat-last-command` still re-runs the
 most recent command of any type.
 
 [#project-tasks]
-== Project Tasks
+== Project tasks
 
 Besides the standard lifecycle commands (compile, test, run, etc.), Projectile
 supports an arbitrary number of *named tasks* per project via

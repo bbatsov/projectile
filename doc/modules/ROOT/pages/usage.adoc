@@ -2,6 +2,43 @@
 
 NOTE: Everything in this section assumes you've enabled `projectile-mode`.
 
+== Basic usage
+
+Just open some file in a version-controlled (e.g. `git`) or a project
+(e.g. `maven`) directory that's recognized by Projectile and you're
+ready for action. Projectile happens to recognize out of the box every common
+VCS and many popular project types for various programming languages.
+You can learn more about Projectile's notion of a project xref:projects.adoc[here].
+
+NOTE: The extent of the support for every VCS differs and Git is the best supported
+ one. Projectile supports some advanced features like working with Git submodules
+ and using `git-grep` instead of GNU grep.
+
+You need to know only a handful of Projectile commands to start benefiting from it.
+
+NOTE: The examples below (and throughout this manual) use the `s-p` prefix.
+ Projectile ships no default prefix key, so you need to bind one yourself as
+ shown in <<basic-configuration>>.
+
+* Find file in current project (kbd:[s-p f])
+* Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q], or jump back to the previously active project with `projectile-switch-to-most-recent-project`)
+* Grep (search for text/regexp) in project (kbd:[s-p s g])
+* Replace in project (kbd:[s-p r])
+* Find references in project (kbd:[s-p ?] or kbd:[s-p s x])
+* Invoke any Projectile command via the Projectile dispatch menu (kbd:[s-p m])
+* Toggle between implementation and test (kbd:[s-p t])
+* Find another file with the same base name but a different extension, e.g. `foo.h` <-> `foo.c` (kbd:[s-p a])
+* Find a project file of a given kind, or jump between related files of a project type (e.g. a Rails model and its controller) (kbd:[s-p j] / kbd:[s-p J])
+* Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
+* Run various pre-defined project commands like:
+** build/compile project (kbd:[s-p c c])
+** test project (kbd:[s-p c t])
+** install project (kbd:[s-p c i])
+** package project (kbd:[s-p c p])
+** run project (kbd:[s-p c r])
+
+There are many more commands, covered in the sections below, but the basics can get you pretty far.
+
 == Basic setup
 
 In this section we'll cover the bare minimum of setup you might want to
@@ -11,7 +48,7 @@ bit you'll get more out of it.
 Check out the xref:configuration.adoc["Configuration"] section of the manual
 for a lot more information about configuring Projectile.
 
-=== Basic Configuration
+=== Basic configuration
 
 Here's how a typical Projectile configuration would look:
 
@@ -49,7 +86,7 @@ Here's how a typical Projectile configuration would look:
 
 The example above builds upon the simpler setup demonstrated in the "Installation" section.
 
-=== Automated Project Discovery
+=== Automated project discovery
 
 To add a project to Projectile's list of known projects, open a file
 in the project. If you have a projects directory, you can tell
@@ -106,16 +143,16 @@ that held several checkouts) use `projectile-forget-projects-under`. It prompts
 for a directory and removes the known projects that live directly under it; with
 a prefix argument it also removes projects nested deeper in the tree.
 
-=== Minibuffer Completion
+=== Minibuffer completion
 
 Projectile reads through Emacs's built-in `completing-read`, so it works with
 whatever minibuffer UI you use. It works fine with the stock completion, but
 you're encouraged to pair it with a modern package like `vertico` (+ `consult`,
 `marginalia`, `orderless`) or `fido-mode`/`fido-vertical-mode`. See the
-xref:configuration.adoc#_completion_options[Completion Options] section for
+xref:configuration.adoc#completion-options[Completion Options] section for
 details, including how to plug in a custom completion function.
 
-=== Installing External Tools
+=== Installing external tools
 
 NOTE: Windows users can ignore this section unless they are using Emacs via WSL or `cygwin`.
 
@@ -145,40 +182,7 @@ https://github.com/BurntSushi/ripgrep[rg] (`ripgrep`)
 
 TIP: You should also install the Emacs packages `ag`, `ripgrep` or `rg` if you want to make use of Projectile's commands `projectile-ag` and `projectile-ripgrep`.
 
-== Basic Usage
-
-Just open some file in a version-controlled (e.g. `git`) or a project
-(e.g. `maven`) directory that's recognized by Projectile and you're
-ready for action. Projectile happens to recognize out of the box every common
-VCS and many popular project types for various programming languages.
-You can learn more about Projectile's notion of a project xref:projects.adoc[here].
-
-NOTE: The extent of the support for every VCS differs and Git is the best supported
- one. Projectile supports some advanced features like working with Git submodules
- and using `git-grep` instead of GNU grep.
-
-You need to know only a handful of Projectile commands to start benefiting from it.
-
-* Find file in current project (kbd:[s-p f])
-* Switch project (kbd:[s-p p]) (you can also switch between open projects with kbd:[s-p q], or jump back to the previously active project with `projectile-switch-to-most-recent-project`)
-* Grep (search for text/regexp) in project (kbd:[s-p s g])
-* Replace in project (kbd:[s-p r])
-* Find references in project (kbd:[s-p ?] or kbd:[s-p s x])
-* Invoke any Projectile command via the Projectile dispatch menu (kbd:[s-p m])
-* Toggle between implementation and test (kbd:[s-p t])
-* Find another file with the same base name but a different extension, e.g. `foo.h` <-> `foo.c` (kbd:[s-p a])
-* Find a project file of a given kind, or jump between related files of a project type (e.g. a Rails model and its controller) (kbd:[s-p j] / kbd:[s-p J])
-* Run a shell command in the root of the project (kbd:[s-p !] for a sync command and kbd:[s-p &] for an async command)
-* Run various pre-defined project commands like:
-** build/compile project (kbd:[s-p c c])
-** test project (kbd:[s-p c t])
-** install project (kbd:[s-p c i])
-** package project (kbd:[s-p c p])
-** run project (kbd:[s-p c r])
-
-The next section lists many more commands, but the basics can get you pretty far.
-
-== Interactive Commands
+== Interactive commands
 
 NOTE: Projectile doesn't have a default key prefix for its commands, but all the examples
  in the manual assume you've opted for kbd:[s-p] (`super`-p).
@@ -225,7 +229,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | Switch to a project directory and show it in another frame.
 
 | kbd:[s-p T]
-| Display a list of all test files(specs, features, etc) in the project.
+| Display a list of all test files (specs, features, etc.) in the project.
 
 | kbd:[s-p l]
 | Display a list of all files in a directory (that's not necessarily a project)
@@ -282,7 +286,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | Runs `multi-occur` on all project buffers currently open.
 
 | kbd:[s-p r]
-| Runs interactive query-replace on all files in the projects.
+| Runs interactive query-replace on all files in the project.
 
 | kbd:[s-p R]
 | Reviewable replace: gather all matches in a results buffer where you can preview and toggle them before applying (see below).
@@ -650,7 +654,7 @@ scan (ripgrep's regex syntax is not Emacs regexp syntax), and the whole
 replace reviewer always uses the elisp scan (its write-back needs the
 exact buffer positions the elisp scan records).
 
-== Customizing Projectile's Keybindings
+== Customizing Projectile's keybindings
 
 It is possible to add additional commands to
 `projectile-command-map` referenced by the prefix key in
@@ -684,7 +688,7 @@ NOTE: The `Super` keybindings are not usable in Windows, as Windows
  makes heavy use of such keybindings itself. Emacs Prelude already adds those
  extra keybindings.
 
-== Dispatch Menu
+== Dispatch menu
 
 Projectile ships `projectile-dispatch`, a `transient` menu that mirrors
 `projectile-command-map`, for those of you who'd rather pick a command from a
@@ -755,11 +759,11 @@ it about Projectile's project discovery logic.
 TIP: Projectile provides its own alternative to `xref-find-references` that's named
 `projectile-find-references` (kbd:[s-p ?] or kbd:[s-p s x]). It's a backend-agnostic
 *textual* search: it greps the project for the symbol, scoped to the project root and
-honouring Projectile's ignore configuration (`.projectile' and the globally-ignored
+honouring Projectile's ignore configuration (`.projectile` and the globally-ignored
 files/directories), just like `projectile-grep` and friends. Use it when you don't have
 a language server or tags table set up; otherwise `xref-find-references` gives you
 semantic results (and is scoped to the Projectile project too, thanks to the
-`project.el' integration above).
+`project.el` integration above).
 
 You can disable the `project.el` integration like this:
 
