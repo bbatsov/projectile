@@ -997,7 +997,7 @@ effect immediately even when several buffers share the same directory.
 
 Projectile can exclude files and directories from a project in several ways,
 described below. Which of them apply depends on the indexing method in use - see
-the xref:configuration.adoc#indexing-method-comparison[indexing method
+the xref:indexing.adoc#indexing-method-comparison[indexing method
 comparison] for the full matrix of what each method honors.
 
 === Ignoring files using `.projectile` (a.k.a. dirconfig)

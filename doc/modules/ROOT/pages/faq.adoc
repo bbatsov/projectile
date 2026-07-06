@@ -59,7 +59,7 @@ A few things to know:
   the remote.  If `fd` isn't available remotely, Projectile falls
   back to `git ls-files`.
 
-See xref:configuration.adoc#_tramp_performance[TRAMP performance] in
+See xref:indexing.adoc#_tramp_performance[TRAMP performance] in
 the configuration guide for the relevant tuning knobs and
 recommended settings for remote-heavy use.
 
