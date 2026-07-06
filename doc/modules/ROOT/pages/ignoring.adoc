@@ -1,0 +1,176 @@
+= Ignoring files
+
+
+Projectile can exclude files and directories from a project in several ways,
+described below. Which of them apply depends on the indexing method in use - see
+the xref:indexing.adoc#indexing-method-comparison[indexing method
+comparison] for the full matrix of what each method honors.
+
+== Ignoring files using `.projectile` (a.k.a. dirconfig)
+
+WARNING: The contents of `.projectile` are ignored when using the
+ `alien` project indexing method.
+
+If you'd like to instruct Projectile to ignore certain files in a
+project, when indexing it you can do so in the `.projectile` file by
+adding each path to ignore, where the paths all are relative to the
+root directory and start with a slash. Everything ignored should be
+preceded with a `-` sign.
+
+NOTE: Lines without any prefix at all are still accepted and treated
+as ignore patterns for backward compatibility, but the implicit form
+is being phased out and Projectile now warns about it once per
+project.  Prefer the explicit `-` prefix in new dirconfigs.
+
+Here's an example for a typical Rails application:
+
+----
+-/log
+-/tmp
+-/vendor
+-/public/uploads
+----
+
+This would ignore the folders only at the root of the project.
+Projectile also supports relative pathname ignores:
+
+----
+-tmp
+-*.rb
+-*.yml
+-models
+----
+
+You can also ignore everything except certain subdirectories. This is
+useful when selecting the directories to keep is easier than selecting
+the directories to ignore, although you can do both. To select
+directories to keep, that means everything else will be ignored.
+
+Example:
+
+----
++/src/foo
++/tests/foo
+----
+
+Keep in mind that you can only include subdirectories, not file
+patterns.
+
+If both directories to keep and ignore are specified, the directories
+to keep first apply, restricting what files are considered. The paths
+and patterns to ignore are then applied to that set.
+
+Finally, you can override ignored files. This is especially useful
+when some files ignored by your VCS should be considered as part of
+your project by projectile:
+
+----
+!/src/foo
+!*.yml
+----
+
+When a path is overridden, its contents are still subject to ignore
+patterns. To override those files as well, specify their full path
+with a bang prefix.
+
+=== Path entries vs. glob patterns
+
+The two ignore examples above look similar but go through different
+matchers. An entry that begins with a slash (e.g. `-/log`,
+`+/src/foo`, `!/src/foo`) is treated as a *path* relative to the
+project root and is expanded literally. An entry without a leading
+slash (e.g. `-tmp`, `-*.rb`) is treated as a *glob pattern* matched
+against every file's root-relative path, with rules modeled on
+`.gitignore` (since Projectile 3.1; the rules are identical under the
+`native` and `hybrid` indexing methods):
+
+* A pattern without a slash matches the file name or any directory
+  segment at any depth: `-log` ignores a file or directory called
+  `log` anywhere in the tree, but won't match `xlog` or `log.txt`.
+* A pattern containing a slash is anchored at the project root:
+  `-src/gen` ignores only `src/gen`, not `lib/src/gen`. Prefix the
+  pattern with `**/` to match at any depth.
+* A trailing slash restricts the pattern to directories: `-vendor/`
+  ignores `vendor` directories, but not files named `vendor`.
+* A matched directory covers its entire subtree.
+* `*` matches within a single path segment, while `**` also crosses
+  `/`; `?` matches a single character, and `[...]`/`[!...]`
+  character classes are supported.
+
+If a glob pattern doesn't behave the way you'd expect, try the
+explicit path form first to confirm whether the file is being indexed
+at all.
+
+=== Comments
+
+If you would like to include comment lines in your .projectile file,
+you can customize the variable `projectile-dirconfig-comment-prefix`.
+Assigning it a non-nil character value, e.g. `#`, will cause lines in
+the `.projectile` file whose first non-whitespace character matches
+that character to be treated as comments instead of patterns.
+
+The same is true of the `+`, `-`, and `!` prefixes: leading spaces
+and tabs before the prefix are skipped, so accidental indentation
+won't silently turn the entry into a literal ignore pattern.
+
+== Ignored files using the project indexing tools
+
+If you're using the `hybrid` or `alien` indexing strategies, the simplest
+way to ignore some files is just leverage the configuration of the
+tool you're using to do the project indexing.
+
+E.g. in the case of `git` you can just tweak `.gitignore`.
+
+Sometimes, however, you'd like to have some files as part of your project,
+but you don't want to see them in Projectile for whatever reasons.
+
+In those cases the project dirconfig file (`.projectile`) can be a handy
+way to further adjust what you want to see in Projectile.
+
+== Global ignore and unignore settings
+
+In addition to per-project ignores, Projectile provides several variables for
+globally ignoring files and directories.  These take effect with `native` and
+`hybrid` indexing but are **not** applied with the `alien` indexing method.
+
+[source,elisp]
+----
+;; Ignore files by suffix (e.g. compiled artifacts)
+(setq projectile-globally-ignored-file-suffixes '(".o" ".pyc" ".elc"))
+
+;; Ignore files matching regexp patterns
+(setq projectile-global-ignore-file-patterns '("\\.min\\.js$" "\\.map$"))
+----
+
+=== Anchored vs anywhere directory ignores
+
+`projectile-globally-ignored-directories` distinguishes between *anchored*
+entries (matched as a path prefix relative to the project root) and *anywhere*
+entries (matched at any depth in the tree). The leading `*` is **not** a glob
+character — it is the marker that promotes an entry from anchored to anywhere.
+
+[source,elisp]
+----
+(setq projectile-globally-ignored-directories
+      '("tmp"           ; only ignores ./tmp at the project root
+        "*node_modules" ; ignores any directory named node_modules at any depth
+        ))
+----
+
+The `*` prefix only matters for the `hybrid` post-processor; in `native`
+indexing every entry is matched by directory basename at every traversal step
+(so `tmp` and `*tmp` behave the same). `alien` ignores both forms entirely.
+
+You can also _unignore_ specific files or directories that would otherwise be
+excluded.  This is useful when your VCS ignores files that you still want
+Projectile to show:
+
+[source,elisp]
+----
+;; Unignore specific files
+(setq projectile-globally-unignored-files '("important.dat"))
+
+;; Unignore specific directories
+(setq projectile-globally-unignored-directories '("vendor"))
+----
+
