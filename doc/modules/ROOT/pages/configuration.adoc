@@ -14,17 +14,14 @@ known as the `native indexing method`) and the other two (`hybrid` and
 `alien`) rely on external commands like `find`, `git`, etc to
 obtain the list of files in a project.
 
-The `alien` indexing method maximizes the speed of the `hybrid` indexing method.
-This means that Projectile will not do any processing or sorting of the files
-returned by the external commands and you're going to get the maximum
-performance possible.  This behaviour makes a lot of sense for most people, as
+The `alien` indexing method trades features for raw speed: Projectile does no
+processing or sorting of the files returned by the external commands, so you get
+the maximum performance possible.  This behaviour makes a lot of sense for most people, as
 they'd typically be putting ignores in their VCS config (e.g. `.gitignore`) and
 won't care about any additional ignores/unignores/sorting that Projectile might
 also provide.
 
 NOTE: By default the `alien` method is used on all operating systems except Windows.
- Prior to Projectile 2.0 `hybrid` used to be the default (but to make things
- confusing `hybrid` used to be known as `alien` back then).
 
 To force the
 use of native indexing in all operating systems:
@@ -48,11 +45,9 @@ To force the use of alien indexing in all operating systems:
 (setq projectile-indexing-method 'alien)
 ----
 
-This can speed up Projectile in Windows significantly (especially on
-big projects). The disadvantage of this method is that it's not well
-supported on Windows systems, as it requires setting up some Unix
-utilities there. If there's a problem, you can always use `native`
-indexing mode.
+Alien indexing is significantly faster, especially on big projects, but it
+relies on external Unix utilities. That's why it isn't the default on Windows;
+if you run into trouble there, fall back to the `native` indexing method.
 
 === Alien indexing
 
@@ -380,7 +375,7 @@ In Projectile 2.9 this was changed and now each project has its own cache file r
 the project's root directory.
 
 When `projectile-mode` is enabled Projectile will auto-update the project cache when files
-within are added or deleted from within Emacs. (this is achieved by file hooks) This behavior
+within are added or deleted from within Emacs (via file hooks). This behavior
 can be disabled like this:
 
 [source,elisp]
@@ -401,7 +396,7 @@ By default `projectile-files-cache-expire` is `nil`, meaning the cache never
 expires automatically.
 
 One last thing - the project cache will be auto-invalidated if you're using
-`.projectile` and it's last modification time is more recent than the time at
+`.projectile` and its last modification time is more recent than the time at
 which the cache file was last updated.
 
 === Automatic cache updates
@@ -570,13 +565,13 @@ package in the future.
 
 Projectile does many file existence checks since that is how it identifies a
 project root. Normally this is fine, however in some situations the file system
-speed is much slower than usual and can make emacs "freeze" for extended
+speed is much slower than usual and can make Emacs "freeze" for extended
 periods of time when opening files and browsing directories.
 
 The most common example would be interfacing with remote systems using
-TRAMP/ssh. By default all remote file existence checks are cached
+TRAMP/ssh. By default all remote file existence checks are cached.
 
-To disable remote file exists cache that use this snippet of code:
+To disable the remote file-exists cache, use this snippet of code:
 
 [source,elisp]
 ----
@@ -645,7 +640,7 @@ A few things that don't require configuration but are worth knowing:
   unexplained empty completion lists or `stringp, nil` crashes
   downstream.
 
-== Using Projectile Commands Outside of Projects Directories
+== Using Projectile commands outside of project directories
 
 Normally, you'd be using Projectile's commands from within some project directory.
 If, however, you invoke a command outside of a project, by default you'll be prompted
@@ -933,7 +928,7 @@ deleted, say) falls back to a placeholder buffer so the restore never
 errors. This is handled explicitly to keep working on Projectile's Emacs
 28.1 floor, which predates Emacs 30's `window-restore-killed-buffer-windows`.
 
-== Known Projects
+== Known projects
 
 Projectile stores the list of known projects in a file on disk.  You can
 customize its location:
@@ -973,7 +968,7 @@ whenever you visit a file in a project.  You can disable this:
 (setq projectile-track-known-projects-automatically nil)
 ----
 
-== Completion Options
+== Completion options
 
 Projectile reads with Emacs's built-in `completing-read`, so it works out of the
 box with whatever minibuffer UI you use - Vertico, Consult + Marginalia,
@@ -987,20 +982,16 @@ how they're presented.
 (setq projectile-completion-system 'default)
 ----
 
-NOTE: Earlier versions had dedicated `ido`, `ivy` and `helm` values (and an
-`auto` mode that detected `ido-mode`/`ivy-mode`/`helm-mode`). These were removed
-- those frameworks are used through `completing-read` nowadays, or through their
-own Projectile integration packages,
+NOTE: Earlier versions had dedicated `ido`, `ivy` and `helm` completion systems;
+these were removed in Projectile 3.0, and any of the old
+`projectile-completion-system` values now simply behaves like `default`. Those
+frameworks are used through `completing-read` these days, or through their own
+integration packages,
 https://github.com/bbatsov/helm-projectile[helm-projectile] and
-https://github.com/ericdanan/counsel-projectile[counsel-projectile]. Any of the
-old values now simply behaves like `default`.
-
-TIP: `ido` users should enable
-https://github.com/DarwinAwardWinner/ido-completing-read-plus[ido-completing-read+]
-(the package formerly known as `ido-ubiquitous`) via `ido-ubiquitous-mode`. That
-makes `ido` handle `completing-read` everywhere, so it drives Projectile's prompts
-just like the old `ido` completion system did. See the
-xref:upgrading_to_projectile_3.adoc#_ido_users[upgrade guide] for details.
+https://github.com/ericdanan/counsel-projectile[counsel-projectile]. `ido` users
+in particular should read the
+xref:upgrading_to_projectile_3.adoc#ido-users[upgrade guide], which covers
+`ido-completing-read+`.
 
 === Custom completion function
 
@@ -1021,7 +1012,7 @@ https://gist.github.com/rejeep/5933343[this one], which only shows the file name
 (not including path) and, if the selected file is not unique, follows up with a
 completion over names relative to the project root.
 
-== Project-specific Compilation Buffers
+== Project-specific compilation buffers
 
 This affects all commands built on top of `projectile--run-project-cmd` like:
 
@@ -1224,7 +1215,7 @@ Projectile adds a menu to the Emacs menu bar by default.  To disable it:
 (setq projectile-show-menu nil)
 ----
 
-== Project-type-specific Configuration
+== Project-type-specific configuration
 
 === CMake
 
