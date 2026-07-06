@@ -229,6 +229,10 @@ doesn't catch you off guard.  Switch to `hybrid` (or `native`) if you
 need those rules applied; set
 `projectile-warn-when-dirconfig-is-ignored` to nil to silence.
 
+TIP: For the details of each ignore mechanism (`.projectile`, the indexing
+tools, and the global ignore/unignore variables), see
+xref:projects.adoc#ignoring-files[Ignoring files].
+
 == Sorting
 
 You can choose how Projectile sorts files by customizing `projectile-sort-order`.
