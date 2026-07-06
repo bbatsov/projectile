@@ -2260,9 +2260,8 @@ every file visit otherwise)."
                                     projectile-frecency-file))
                     (let ((files (make-hash-table :test 'equal)))
                       (dolist (entry (cdr project))
-                        (puthash (nth 0 entry)
-                                 (cons (nth 1 entry) (nth 2 entry))
-                                 files))
+                        (pcase-let ((`(,file ,count ,time) entry))
+                          (puthash file (cons count time) files)))
                       (puthash (car project) files table)))
                   table)
               (error
@@ -3193,34 +3192,36 @@ drops the cached listing."
                    (file-attributes gitmodules)))
            (command (projectile-get-sub-projects-command 'git))
            (cached (gethash path projectile--git-submodules-cache)))
-      (if (and cached
-               (equal (nth 0 cached) gitmodules)
-               (equal (nth 1 cached) mtime)
-               (equal (nth 2 cached) command))
-          (nth 3 cached)
-        (let ((submodules
-               (cond
-                ;; nil disables submodule listing altogether.
-                ((null command) nil)
-                ;; The stock command is never actually run: list the
-                ;; submodules shell-free instead (issue #1600).
-                ((equal command projectile--default-git-submodule-command)
-                 (let ((dir (file-name-as-directory
-                             (expand-file-name gitmodules-dir)))
-                       (paths (projectile--git-submodule-paths gitmodules-dir)))
-                   (if (equal dir (file-name-as-directory (expand-file-name path)))
-                       paths
-                     ;; PATH is below the `.gitmodules' dir: rebase the
-                     ;; listing so it stays relative to PATH.
-                     (mapcar (lambda (submodule)
-                               (file-relative-name
-                                (expand-file-name submodule dir) path))
-                             paths))))
-                ;; A customized command is still run through the shell.
-                (t (projectile-files-via-ext-command path command)))))
-          (puthash path (list gitmodules mtime command submodules)
-                   projectile--git-submodules-cache)
-          submodules)))))
+      (pcase-let ((`(,cached-gitmodules ,cached-mtime ,cached-command ,cached-result)
+                   cached))
+        (if (and cached
+                 (equal cached-gitmodules gitmodules)
+                 (equal cached-mtime mtime)
+                 (equal cached-command command))
+            cached-result
+          (let ((submodules
+                 (cond
+                  ;; nil disables submodule listing altogether.
+                  ((null command) nil)
+                  ;; The stock command is never actually run: list the
+                  ;; submodules shell-free instead (issue #1600).
+                  ((equal command projectile--default-git-submodule-command)
+                   (let ((dir (file-name-as-directory
+                               (expand-file-name gitmodules-dir)))
+                         (paths (projectile--git-submodule-paths gitmodules-dir)))
+                     (if (equal dir (file-name-as-directory (expand-file-name path)))
+                         paths
+                       ;; PATH is below the `.gitmodules' dir: rebase the
+                       ;; listing so it stays relative to PATH.
+                       (mapcar (lambda (submodule)
+                                 (file-relative-name
+                                  (expand-file-name submodule dir) path))
+                               paths))))
+                  ;; A customized command is still run through the shell.
+                  (t (projectile-files-via-ext-command path command)))))
+            (puthash path (list gitmodules mtime command submodules)
+                     projectile--git-submodules-cache)
+            submodules))))))
 
 (defun projectile-get-sub-projects-files (project-root vcs)
   "Get files from sub-projects for PROJECT-ROOT recursively.
@@ -4299,16 +4300,17 @@ dirconfig file's modification time changes."
          (cached (gethash project-root projectile--dirconfig-cache))
          (attrs (file-attributes dirconfig))
          (mtime (when attrs (file-attribute-modification-time attrs)))
-         (result (if (and cached mtime
-                          (equal (nth 0 cached) dirconfig)
-                          (equal (nth 1 cached) mtime))
-                     (nth 2 cached)
-                   (let ((parsed (projectile--parse-dirconfig-file-uncached)))
-                     (when mtime
-                       (puthash project-root
-                                (list dirconfig mtime parsed)
-                                projectile--dirconfig-cache))
-                     parsed))))
+         (result (pcase-let ((`(,cached-dirconfig ,cached-mtime ,cached-result) cached))
+                   (if (and cached mtime
+                            (equal cached-dirconfig dirconfig)
+                            (equal cached-mtime mtime))
+                       cached-result
+                     (let ((parsed (projectile--parse-dirconfig-file-uncached)))
+                       (when mtime
+                         (puthash project-root
+                                  (list dirconfig mtime parsed)
+                                  projectile--dirconfig-cache))
+                       parsed)))))
     (projectile--maybe-warn-prefixless-entries project-root result)
     (projectile--maybe-warn-glob-keep-entries project-root result)
     result))
@@ -5433,7 +5435,7 @@ arg INVALIDATE-CACHE invalidates the cache first."
          (choice (projectile-completing-read
                   "Related file kind: " names
                   :caller 'projectile-toggle-related-file)))
-    (cdr (assq (intern (concat ":" choice)) candidates))))
+    (alist-get (intern (concat ":" choice)) candidates)))
 
 ;;;###autoload
 (defun projectile-toggle-related-file ()
