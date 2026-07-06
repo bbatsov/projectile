@@ -1,0 +1,165 @@
+= Per-project sessions
+
+`projectile-session-mode` is a global minor mode that gives every project
+its own https://www.gnu.org/software/emacs/manual/html_node/emacs/Tab-Bars.html[tab-bar]
+tab, so each project keeps its own window layout and you flip between
+projects by flipping between tabs.
+
+[source,elisp]
+----
+(projectile-session-mode +1)
+----
+
+Enabling the mode turns on `tab-bar-mode` and makes project switching
+tab-aware:
+
+* Switching to a project that already has a tab *selects that tab*,
+  restoring the project's live window layout, rather than re-opening a
+  file and clobbering it.
+* Switching to a project for the first time opens a fresh tab dedicated
+  to it, names the tab after the project, and populates it by running
+  `projectile-session-default-action` (by default `projectile-find-file`).
+
+If you enable the mode while already visiting a project, the tab you're
+on is adopted for that project instead of being left unowned.
+
+Tabs are named after their project. Two checkouts that share a name
+(e.g. two `foo` directories) are disambiguated by prepending a
+parent-directory component, so you get `work/foo` and `home/foo`. You can
+override the naming entirely via `projectile-session-tab-name-function`,
+a function that receives a project root and returns the tab name.
+
+Disabling `projectile-session-mode` restores
+`projectile-switch-project-action` to whatever it was when you enabled
+the mode; it leaves `tab-bar-mode` and any existing tabs in place.
+
+The session commands live on the `w` sub-prefix of the Projectile command
+map, and are also reachable from `projectile-dispatch` and the Projectile
+menu:
+
+[cols="1,4"]
+|===
+| Keybinding | Command
+
+| kbd:[s-p w s] | `projectile-session-save`
+| kbd:[s-p w S] | `projectile-session-save-all`
+| kbd:[s-p w r] | `projectile-session-restore`
+| kbd:[s-p w R] | `projectile-session-restore-all`
+| kbd:[s-p w f] | `projectile-session-forget`
+| kbd:[s-p w b] | `projectile-session-switch-to-buffer`
+|===
+
+== Switching buffers within a session
+
+`projectile-session-switch-to-buffer` (kbd:[s-p w b]) completes over just
+the buffers of the current tab's project, falling back to a plain
+`switch-to-buffer` when the current tab holds no project. It is a separate
+command rather than a global remapping of `switch-to-buffer`, so plain
+`switch-to-buffer` still sees every buffer.
+
+NOTE: This mode makes the aging
+https://github.com/bbatsov/persp-projectile[persp-projectile] unnecessary
+for tab-based project workflows.
+
+== Persisting sessions across restarts
+
+A project's tab keeps its layout only while Emacs is running. You can also
+persist a project's session (its window layout plus the buffers it shows)
+to disk and restore it in a later Emacs:
+
+* `projectile-session-save` writes the current frame's layout and buffers
+  as the current project's session. Since it reads the live frame, it saves
+  whichever project's tab is selected.
+* `projectile-session-save-all` saves every open project's session in one
+  go, selecting each project tab in turn (and returning you to the tab you
+  started on). Unlike autosave below, it runs regardless of
+  `projectile-session-autosave`.
+* `projectile-session-restore` recreates that project's buffers and puts
+  the saved layout back.
+* `projectile-session-restore-all` reopens every saved project's session,
+  each into its own tab (see below).
+* `projectile-session-forget` deletes a project's saved session file.
+
+Sessions are stored one file per project under
+`projectile-session-directory` (by default a `projectile-sessions/`
+directory under `user-emacs-directory`). Each file is named after the
+project and keyed by a hash of its root, so distinct roots never collide
+and the same root maps to the same file across restarts.
+
+With `projectile-session-restore-on-switch` (on by default), switching to a
+project that has no open tab but does have a saved session restores that
+session instead of running `projectile-session-default-action`.
+
+Set `projectile-session-autosave` to save automatically: the outgoing
+project's session is saved when you switch away from it, and every open
+project's session is saved when Emacs exits. Layouts with no serializable
+buffer are skipped.
+
+[source,elisp]
+----
+(setq projectile-session-autosave t)
+----
+
+=== Restoring every session at once
+
+`projectile-session-restore-all` (kbd:[s-p w R]) reopens every saved
+project's session in one go, each into its own tab. A project that already
+has an open tab is left alone rather than duplicated, so it's safe to run
+repeatedly. A session whose files are all gone (say the project was moved
+or deleted) recreates nothing; its scratch tab is closed again instead of
+being left empty, and it doesn't count toward the number restored. When
+everything is done you land on the first project that was restored.
+
+To have Emacs reopen your saved projects automatically at startup, enable
+the mode and set `projectile-session-restore-on-startup` in your init:
+
+[source,elisp]
+----
+(projectile-session-mode +1)
+(setq projectile-session-restore-on-startup t)
+----
+
+This runs `projectile-session-restore-all` once from `emacs-startup-hook`,
+after your init files have finished loading, giving you a desktop-style
+restore of all your projects. Because the handler is installed when the
+mode is enabled and `emacs-startup-hook` fires only once, enabling the mode
+after Emacs has already started never triggers a restore; set it up in your
+init for the startup behavior.
+
+=== Registering buffer serializers
+
+Which buffers a session records, and how, is controlled by
+`projectile-session-buffer-serializers`, an alist mapping a key to a
+`(serialize . deserialize)` pair. The key is a major-mode symbol, the
+symbol `t` (any file-visiting buffer), or a predicate function of one
+argument (the buffer). `serialize` runs with the buffer current and
+returns a `read`-able record (or nil to decline it); `deserialize` takes
+such a record and recreates the live buffer (or returns nil when it
+can't, e.g. the file is gone).
+
+Out of the box, ordinary file-visiting buffers (recording the file and
+point) and `dired-mode` buffers (recording the directory) round-trip.
+Buffers no serializer handles are simply skipped. To persist other kinds
+of buffers, e.g. Magit or eshell, add a handler keyed by their major mode:
+
+[source,elisp]
+----
+(defun my-eshell-serialize (_buffer)
+  (list :dir default-directory))
+
+(defun my-eshell-deserialize (record)
+  (let ((default-directory (plist-get record :dir)))
+    (save-window-excursion (eshell t))))
+
+(add-to-list 'projectile-session-buffer-serializers
+             '(eshell-mode . (my-eshell-serialize . my-eshell-deserialize)))
+----
+
+Handlers keyed by a major-mode symbol or by `t` round-trip fully; restore
+dispatches on that key.
+
+NOTE: On restore, a window whose buffer can't be recreated (its file was
+deleted, say) falls back to a placeholder buffer so the restore never
+errors. This is handled explicitly to keep working on Projectile's Emacs
+28.1 floor, which predates Emacs 30's `window-restore-killed-buffer-windows`.
+

@@ -32,7 +32,7 @@ TIP: You can learn more about Projectile's notion of a project xref:projects.ado
 
 Here are some of Projectile's features in no particular order:
 
-* jump to a file in project, xref:configuration.adoc#file-ranking-frecency[ranked by frecency]
+* jump to a file in project, xref:indexing.adoc#file-ranking-frecency[ranked by frecency]
 * jump to files at point in project
 * jump to a directory in project
 * jump to a file in a directory
@@ -43,7 +43,7 @@ Here are some of Projectile's features in no particular order:
 * toggle between code and its test (e.g. `main.service.js` <--> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
-* xref:configuration.adoc#per-project-sessions[per-project sessions] with tab-bar workspaces (restore each project's layout and buffers, even across restarts)
+* xref:sessions.adoc[per-project sessions] with tab-bar workspaces (restore each project's layout and buffers, even across restarts)
 * kill (close) all project buffers
 * xref:usage.adoc#reviewing-and-applying-replacements[replace in project], with a reviewable before/after preview
 * multi-occur in project buffers

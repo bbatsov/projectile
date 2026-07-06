@@ -15,7 +15,7 @@ level, as well as simple heuristics to identify projects.
 
 Here are some of Projectile's essential features:
 
-* jump to a file in a project, [ranked by frecency](https://docs.projectile.mx/projectile/configuration.html#file-ranking-frecency) (how recently and often you visit it)
+* jump to a file in a project, [ranked by frecency](https://docs.projectile.mx/projectile/indexing.html#file-ranking-frecency) (how recently and often you visit it)
 * jump to a project buffer
 * jump to a test in a project
 * [find a file of a given kind and jump between related files](https://docs.projectile.mx/projectile/projects.html#finding-files-by-kind) (e.g. a Rails model and its controller)
@@ -23,7 +23,7 @@ Here are some of Projectile's essential features:
 * toggle between code and its test (e.g. `main.service.js` <-> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
-* [per-project sessions with tab-bar workspaces](https://docs.projectile.mx/projectile/configuration.html#per-project-sessions) (restore each project's window layout and buffers, even across restarts)
+* [per-project sessions with tab-bar workspaces](https://docs.projectile.mx/projectile/sessions.html) (restore each project's window layout and buffers, even across restarts)
 * kill (close) all project buffers
 * [search a project](https://docs.projectile.mx/projectile/usage.html#reviewing-search-matches) (grep/ripgrep, plus a native reviewable results UI)
 * [replace in a project](https://docs.projectile.mx/projectile/usage.html#reviewing-and-applying-replacements), with a reviewable before/after preview
