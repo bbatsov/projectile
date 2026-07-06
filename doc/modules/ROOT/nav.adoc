@@ -12,6 +12,7 @@
 ** xref:indexing.adoc[Indexing & performance]
 ** xref:projects.adoc[Projects]
 ** xref:ignoring.adoc[Ignoring files]
+** xref:configuration_index.adoc[Configuration variable index]
 * Background
 ** xref:projectile_vs_project.adoc[Projectile vs project.el]
 * Migration
