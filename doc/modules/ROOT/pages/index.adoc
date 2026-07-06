@@ -32,23 +32,26 @@ TIP: You can learn more about Projectile's notion of a project xref:projects.ado
 
 Here are some of Projectile's features in no particular order:
 
-* jump to a file in project
+* jump to a file in project, xref:configuration.adoc#file-ranking-frecency[ranked by frecency]
 * jump to files at point in project
 * jump to a directory in project
 * jump to a file in a directory
 * jump to a project buffer
 * jump to a test in project
+* xref:projects.adoc#finding-files-by-kind[find a file of a given kind] and jump between related files (e.g. a Rails model and its controller)
 * toggle between files with same names but different extensions (e.g. `.h` <--> `.c/.cpp`, `Gemfile` <--> `Gemfile.lock`)
 * toggle between code and its test (e.g. `main.service.js` <--> `main.service.spec.js`)
 * jump to recently visited files in the project
 * switch between projects you have worked on
+* xref:configuration.adoc#per-project-sessions[per-project sessions] with tab-bar workspaces (restore each project's layout and buffers, even across restarts)
 * kill (close) all project buffers
-* replace in project
+* xref:usage.adoc#reviewing-and-applying-replacements[replace in project], with a reviewable before/after preview
 * multi-occur in project buffers
-* grep (search) in project (this supports multiple back-ends like `ag`, `rg`, etc)
+* xref:usage.adoc#reviewing-search-matches[grep (search) in project] (multiple back-ends like `ag`, `rg`, and a native reviewable results UI)
 * find references in project (using `xref` internally)
 * visit project in `dired`
-* run `make` in a project with a single key chord
+* run xref:projects.adoc#project-tasks[project commands and tasks] (build/test/run, `make`, and your own named tasks)
+* xref:projects.adoc#running-the-test-at-point[run the test at point] (tree-sitter, Emacs 29+)
 * works with any `completing-read`-based minibuffer completion UI (Vertico, Consult, `fido-mode`, etc.)
 * automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
