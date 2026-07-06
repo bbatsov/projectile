@@ -227,7 +227,7 @@ need those rules applied; set
 
 TIP: For the details of each ignore mechanism (`.projectile`, the indexing
 tools, and the global ignore/unignore variables), see
-xref:projects.adoc#ignoring-files[Ignoring files].
+xref:ignoring.adoc[Ignoring files].
 
 == Sorting
 

@@ -28,8 +28,8 @@ Here are some of Projectile's essential features:
 * [search a project](https://docs.projectile.mx/projectile/usage.html#reviewing-search-matches) (grep/ripgrep, plus a native reviewable results UI)
 * [replace in a project](https://docs.projectile.mx/projectile/usage.html#reviewing-and-applying-replacements), with a reviewable before/after preview
 * find references in a project (using `xref` internally)
-* run [project commands and custom tasks](https://docs.projectile.mx/projectile/projects.html#project-tasks) (build/test/run, `make`, `lein`, and your own named tasks)
-* [run the test at point](https://docs.projectile.mx/projectile/projects.html#running-the-test-at-point) (tree-sitter, Emacs 29+)
+* run [project commands and custom tasks](https://docs.projectile.mx/projectile/tasks.html#project-tasks) (build/test/run, `make`, `lein`, and your own named tasks)
+* [run the test at point](https://docs.projectile.mx/projectile/tasks.html#running-the-test-at-point) (tree-sitter, Emacs 29+)
 * works with any `completing-read`-based completion UI (Vertico, Consult, Fido, Ido, etc.)
 * automatic project discovery (see `projectile-project-search-path`)
 * integration with the built-in `project.el` library
