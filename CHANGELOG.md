@@ -9,6 +9,9 @@
   * Matches are gathered into a read-only `*projectile-search*` buffer, grouped by file, one `LINE:COL: CONTEXT` line per match with the matched span highlighted; there is no preview, no per-match toggle and no apply.
   * The buffer reuses the replace reviewer's navigation, case/regexp toggles (`c`/`x`), line and file filters (`k`/`d`/`K`/`D`), re-search (`g`) and grep-mode export (`e`).
   * `r` bridges the current search to the replace reviewer, carrying over the term, literal-ness and case setting and prompting only for the replacement.
+  * A literal `projectile-search-review` accelerates its scan with ripgrep when `rg` is installed, streaming matches in near-instantly on large projects.
+    * Controlled by `projectile-search-use-ripgrep` (default on); set it to nil to always use the pure-elisp scan.
+    * The ripgrep fast-path follows ripgrep's ignore rules plus Projectile's ignore globs, which can differ slightly from the elisp path's file set (e.g. hidden files, symlinks); regexp search and the whole replace reviewer always use the portable elisp scan.
   * The commands are available from `projectile-dispatch` and the Projectile menu.
 * [#1924](https://github.com/bbatsov/projectile/issues/1924): Add reviewable project-wide replace commands that let you preview matches and choose which to apply, instead of the blocking, file-by-file `query-replace` walk of `projectile-replace`.
   * `projectile-replace-review` (`R`) does a literal replace; `projectile-replace-regexp-review` does an Emacs-regexp replace whose replacement can reference capture groups.

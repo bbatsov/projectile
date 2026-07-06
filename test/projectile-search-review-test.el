@@ -319,4 +319,318 @@ REGEXP-P selects `projectile-search-regexp-review'."
           (expect projectile-replace--search :to-equal "\\_<foo\\_>")
           (expect (length projectile-replace--matches) :to-equal 2))))))
 
+;;; Ripgrep fast-path
+
+(defun projectile-search-review-test--wait (buf)
+  "Pump events until BUF's ripgrep scan finishes (or a timeout elapses)."
+  (with-current-buffer buf
+    (let ((limit (+ (float-time) 10)))
+      (while (and projectile-replace--scanning (< (float-time) limit))
+        (accept-process-output projectile-replace--scan-process 0.05)))))
+
+(describe "projectile-search--rg byte->char column conversion"
+  (it "counts a multibyte prefix as characters, not bytes"
+    ;; "café " is 5 characters but 6 UTF-8 bytes (é is 2 bytes); ripgrep
+    ;; reports the match at byte 6, which must map to character column 5.
+    (expect (projectile-search--rg-byte->char-column "café foo" 6) :to-equal 5)
+    (expect (projectile-search--rg-byte->char-column "abc" 2) :to-equal 2)
+    (expect (projectile-search--rg-byte->char-column "x" 0) :to-equal 0)
+    (expect (projectile-search--rg-byte->char-column "x" nil) :to-equal 0)))
+
+(describe "projectile-search--rg-parse-line"
+  (it "builds a struct with a character column from a multibyte match line"
+    (let* ((json (concat "{\"type\":\"match\",\"data\":{"
+                         "\"path\":{\"text\":\"lib/mb.txt\"},"
+                         "\"lines\":{\"text\":\"café foo bar\\n\"},"
+                         "\"line_number\":3,\"absolute_offset\":0,"
+                         "\"submatches\":[{\"match\":{\"text\":\"foo\"},"
+                         "\"start\":6,\"end\":9}]}}"))
+           (ms (projectile-search--rg-parse-line json "/proj/"))
+           (m (car ms)))
+      (expect (length ms) :to-equal 1)
+      (expect (projectile-replace--match-file m) :to-equal "/proj/lib/mb.txt")
+      (expect (projectile-replace--match-line m) :to-equal 3)
+      ;; byte offset 6 -> character column 5
+      (expect (projectile-replace--match-column m) :to-equal 5)
+      (expect (projectile-replace--match-string m) :to-equal "foo")
+      ;; the trailing newline is stripped from the context line
+      (expect (projectile-replace--match-context m) :to-equal "café foo bar")
+      ;; write-back-only fields stay nil (search never uses them)
+      (expect (projectile-replace--match-beg m) :to-be nil)
+      (expect (projectile-replace--match-end m) :to-be nil)
+      (expect (projectile-replace--match-match-data m) :to-be nil)))
+
+  (it "yields one struct per submatch, in order"
+    (let* ((json (concat "{\"type\":\"match\",\"data\":{"
+                         "\"path\":{\"text\":\"a.txt\"},"
+                         "\"lines\":{\"text\":\"foo baz foo\\n\"},"
+                         "\"line_number\":1,"
+                         "\"submatches\":[{\"match\":{\"text\":\"foo\"},"
+                         "\"start\":0,\"end\":3},"
+                         "{\"match\":{\"text\":\"foo\"},\"start\":8,\"end\":11}]}}"))
+           (ms (projectile-search--rg-parse-line json "/proj/")))
+      (expect (length ms) :to-equal 2)
+      (expect (mapcar #'projectile-replace--match-column ms) :to-equal '(0 8))))
+
+  (it "returns nil for non-match records"
+    (expect (projectile-search--rg-parse-line
+             "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"a.txt\"}}}" "/p/")
+            :to-be nil)
+    (expect (projectile-search--rg-parse-line
+             "{\"type\":\"summary\",\"data\":{}}" "/p/")
+            :to-be nil))
+
+  (it "swallows a malformed JSON line rather than erroring"
+    (expect (projectile-search--rg-parse-line "not json at all" "/p/")
+            :to-be nil))
+
+  (it "skips a match whose line or path is non-UTF-8 (bytes, not text)"
+    ;; rg emits {\"bytes\": <base64>} instead of {\"text\": ...} for content
+    ;; that isn't valid UTF-8; the fast-path drops those cleanly (they surface
+    ;; via the portable elisp path instead)
+    (expect (projectile-search--rg-parse-line
+             (concat "{\"type\":\"match\",\"data\":{"
+                     "\"path\":{\"text\":\"a.txt\"},"
+                     "\"lines\":{\"bytes\":\"Zm9vCg==\"},"
+                     "\"line_number\":1,"
+                     "\"submatches\":[{\"match\":{\"text\":\"foo\"},"
+                     "\"start\":0,\"end\":3}]}}")
+             "/p/")
+            :to-be nil)
+    (expect (projectile-search--rg-parse-line
+             (concat "{\"type\":\"match\",\"data\":{"
+                     "\"path\":{\"bytes\":\"Zm9v\"},"
+                     "\"lines\":{\"text\":\"foo\\n\"},"
+                     "\"line_number\":1,"
+                     "\"submatches\":[{\"match\":{\"text\":\"foo\"},"
+                     "\"start\":0,\"end\":3}]}}")
+             "/p/")
+            :to-be nil)))
+
+(describe "projectile-search--rg-command"
+  (it "builds a fixed-strings, ignore-aware command with the term after --"
+    (let ((cmd (projectile-search--rg-command
+                "foo-bar" t '("node_modules/" "*.elc" "./vendor/"))))
+      (expect (member "--fixed-strings" cmd) :to-be-truthy)
+      (expect (member "--ignore-case" cmd) :to-be-truthy)
+      (expect (member "--case-sensitive" cmd) :to-be nil)
+      ;; a basename glob becomes a negated --glob verbatim
+      (expect (member "!node_modules/" cmd) :to-be-truthy)
+      (expect (member "!*.elc" cmd) :to-be-truthy)
+      ;; a root-anchored `./' glob is translated to ripgrep's `/'-anchored form
+      (expect (member "!/vendor/" cmd) :to-be-truthy)
+      (expect (member "!./vendor/" cmd) :to-be nil)
+      ;; the term is right after the -- terminator, then the relative `./' root
+      (let ((tail (cdr (member "--" cmd))))
+        (expect (car tail) :to-equal "foo-bar")
+        (expect (cadr tail) :to-equal "./"))))
+
+  (it "uses --case-sensitive when case-fold is nil"
+    (let ((cmd (projectile-search--rg-command "foo" nil nil)))
+      (expect (member "--case-sensitive" cmd) :to-be-truthy)
+      (expect (member "--ignore-case" cmd) :to-be nil))))
+
+(describe "projectile-search--rg-ingest streaming and cap"
+  (it "honors projectile-replace-max-matches and marks the list truncated"
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (line (lambda (n)
+                    (format (concat "{\"type\":\"match\",\"data\":{"
+                                    "\"path\":{\"text\":\"a.txt\"},"
+                                    "\"lines\":{\"text\":\"foo\\n\"},"
+                                    "\"line_number\":%d,"
+                                    "\"submatches\":[{\"match\":{\"text\":\"foo\"},"
+                                    "\"start\":0,\"end\":3}]}}")
+                            n))))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil t t)
+        (with-current-buffer buf (setq projectile-replace--scanning t))
+        (let ((projectile-replace-max-matches 2))
+          (let ((capped (projectile-search--rg-ingest
+                         buf (list (funcall line 1)
+                                   (funcall line 2)
+                                   (funcall line 3))
+                         default-directory)))
+            (expect capped :to-be-truthy))
+          (with-current-buffer buf
+            (expect (length projectile-replace--matches) :to-equal 2)
+            (expect projectile-replace--truncated :to-be-truthy)))))))
+
+(describe "projectile-search-review ripgrep process lifecycle"
+  (it "cancel-scan kills the running process, leaving no orphan"
+    (assume (executable-find "sleep") "needs a sleep executable")
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      ;; stub the command so we get a controllable long-running process
+      ;; without depending on ripgrep being installed
+      (cl-letf (((symbol-function 'projectile-search--rg-command)
+                 (lambda (&rest _) (list "sleep" "30"))))
+        (let ((buf (get-buffer-create projectile-search-buffer-name)))
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    default-directory "foo" "foo" nil t t)
+          (projectile-search--gather-rg buf "foo" nil)
+          (let ((proc (buffer-local-value 'projectile-replace--scan-process buf)))
+            (expect (process-live-p proc) :to-be-truthy)
+            (expect (memq proc (process-list)) :to-be-truthy)
+            (with-current-buffer buf (projectile-replace--cancel-scan))
+            (expect (process-live-p proc) :to-be nil)
+            (expect (memq proc (process-list)) :to-be nil)
+            (expect (buffer-local-value 'projectile-replace--scan-process buf)
+                    :to-be nil))))))
+
+  (it "killing the results buffer kills the running process"
+    (assume (executable-find "sleep") "needs a sleep executable")
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      (cl-letf (((symbol-function 'projectile-search--rg-command)
+                 (lambda (&rest _) (list "sleep" "30"))))
+        (let ((buf (get-buffer-create projectile-search-buffer-name)))
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    default-directory "foo" "foo" nil t t)
+          (projectile-search--gather-rg buf "foo" nil)
+          (let ((proc (buffer-local-value 'projectile-replace--scan-process buf)))
+            (expect (process-live-p proc) :to-be-truthy)
+            (kill-buffer buf)
+            (expect (process-live-p proc) :to-be nil)
+            (expect (memq proc (process-list)) :to-be nil)))))))
+
+(describe "projectile-search-review ripgrep dispatch"
+  (before-each
+    ;; make the fast-path see ripgrep as available without depending on a
+    ;; real rg in CI; the gathers are spied so nothing actually runs
+    (spy-on 'executable-find :and-call-fake
+            (lambda (command &rest _) (and (equal command "rg") "rg"))))
+
+  (it "fastpath-p holds only for literal, enabled, interactive, rg present"
+    (let ((noninteractive nil) (projectile-search-use-ripgrep t))
+      (expect (projectile-search--rg-fastpath-p t) :to-be-truthy)
+      ;; a regexp search never takes the fast-path
+      (expect (projectile-search--rg-fastpath-p nil) :to-be nil))
+    (let ((noninteractive nil) (projectile-search-use-ripgrep nil))
+      (expect (projectile-search--rg-fastpath-p t) :to-be nil))
+    ;; batch keeps the deterministic elisp scan
+    (let ((noninteractive t) (projectile-search-use-ripgrep t))
+      (expect (projectile-search--rg-fastpath-p t) :to-be nil)))
+
+  (it "routes a literal search-mode buffer to the ripgrep gather"
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil t t)
+        (spy-on 'projectile-search--gather-rg)
+        (spy-on 'projectile-replace--gather-async)
+        (let ((noninteractive nil) (projectile-search-use-ripgrep t))
+          (projectile-replace--start buf nil "foo" nil))
+        (expect 'projectile-search--gather-rg :to-have-been-called)
+        (expect 'projectile-replace--gather-async :not :to-have-been-called))))
+
+  (it "routes a regexp search-mode buffer to the elisp path (no rg)"
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil nil t)
+        (spy-on 'projectile-search--gather-rg)
+        (spy-on 'projectile-replace--gather-async)
+        (let ((noninteractive nil) (projectile-search-use-ripgrep t))
+          (projectile-replace--start buf nil "foo" nil))
+        (expect 'projectile-search--gather-rg :not :to-have-been-called)
+        (expect 'projectile-replace--gather-async :to-have-been-called))))
+
+  (it "never routes a replace-mode buffer to ripgrep, even for a literal"
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-replace-buffer-name)))
+        (projectile-replace--seed buf #'projectile-replace-mode
+                                  default-directory "foo" "foo" "" t t)
+        (spy-on 'projectile-search--gather-rg)
+        (spy-on 'projectile-replace--gather-async)
+        (let ((noninteractive nil) (projectile-search-use-ripgrep t))
+          (projectile-replace--start buf nil "foo" nil))
+        (expect 'projectile-search--gather-rg :not :to-have-been-called)
+        (expect 'projectile-replace--gather-async :to-have-been-called))))
+
+  (it "projectile-search-use-ripgrep nil forces the elisp path"
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil t t)
+        (spy-on 'projectile-search--gather-rg)
+        (spy-on 'projectile-replace--gather-async)
+        (let ((noninteractive nil) (projectile-search-use-ripgrep nil))
+          (projectile-replace--start buf nil "foo" nil))
+        (expect 'projectile-search--gather-rg :not :to-have-been-called)
+        (expect 'projectile-replace--gather-async :to-have-been-called)))))
+
+(describe "projectile-search-review ripgrep end-to-end"
+  (it "finds matches with a correct character column on a multibyte line"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-search-review-test--with-project
+        (("mb.txt" . "café foo bar\n")
+         ("plain.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (root default-directory))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  root "foo" "foo" nil t t)
+        (projectile-search--gather-rg buf "foo" nil)
+        (projectile-search-review-test--wait buf)
+        (with-current-buffer buf
+          (expect projectile-replace--scanning :to-be nil)
+          (expect (projectile-search-review-test--files buf)
+                  :to-equal '("mb.txt" "plain.txt"))
+          (let ((mb (cl-find-if
+                     (lambda (m) (string-suffix-p
+                                  "mb.txt" (projectile-replace--match-file m)))
+                     projectile-replace--matches)))
+            (expect mb :not :to-be nil)
+            (expect (projectile-replace--match-line mb) :to-equal 1)
+            ;; character column 5 ("café " is 5 chars), NOT the byte offset 6
+            (expect (projectile-replace--match-column mb) :to-equal 5)
+            (expect (projectile-replace--match-string mb) :to-equal "foo")
+            (expect (projectile-replace--match-context mb)
+                    :to-equal "café foo bar"))))))
+
+  (it "honors projectile-replace-max-matches over a real ripgrep stream"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo\nfoo\nfoo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (root default-directory)
+            (projectile-replace-max-matches 1))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  root "foo" "foo" nil t t)
+        (projectile-search--gather-rg buf "foo" nil)
+        (projectile-search-review-test--wait buf)
+        (with-current-buffer buf
+          (expect projectile-replace--scanning :to-be nil)
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect projectile-replace--truncated :to-be-truthy)))))
+
+  (it "excludes a path-rooted .projectile ignore from the ripgrep results"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-search-review-test--with-project
+        ((".projectile" . "-/vendor\n")
+         ("keep.txt" . "foo\n")
+         ("vendor/hidden.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (root default-directory))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  root "foo" "foo" nil t t)
+        (projectile-search--gather-rg buf "foo" nil)
+        (projectile-search-review-test--wait buf)
+        (with-current-buffer buf
+          ;; the `-/vendor' dirconfig ignore must be honored by the rg path,
+          ;; just as it is by the elisp path
+          (expect (projectile-search-review-test--files buf)
+                  :to-equal '("keep.txt"))
+          (expect (cl-some (lambda (m)
+                             (string-match-p
+                              "vendor"
+                              (projectile-replace--match-file m)))
+                           projectile-replace--matches)
+                  :to-be nil))))))
+
 ;;; projectile-search-review-test.el ends here

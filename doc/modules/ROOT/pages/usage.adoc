@@ -631,6 +631,25 @@ replacement. It re-runs the search from scratch, so any filtering you did
 in the search buffer is not carried into the replacement. Very large
 searches are capped at `projectile-replace-max-matches`.
 
+When `projectile-search-use-ripgrep` is non-nil (the default) and the
+`rg` (ripgrep) executable is installed, a *literal* `projectile-search-review`
+scan runs through ripgrep instead of the pure-Emacs-Lisp scan, which
+returns near-instantly even on a large project; the matches stream into
+the same read-only buffer and every reviewer command works unchanged. The
+ripgrep fast-path follows ripgrep's own ignore rules (`.gitignore`,
+`.ignore`, hidden-file handling, and so on) plus Projectile's ignore globs
+(`.projectile` and the globally-ignored files and directories, passed to
+`rg` via `--glob`), which can differ slightly from the pure-elisp path's
+file set (for example in how hidden files or symlinks are treated).
+Matches in files that aren't valid UTF-8 are also skipped by the ripgrep
+path but found by the elisp path. This
+is an accepted trade-off for speed; set `projectile-search-use-ripgrep` to
+nil to force the elisp scan, whose result set matches Projectile's ignore
+configuration exactly. The regexp search command always uses the elisp
+scan (ripgrep's regex syntax is not Emacs regexp syntax), and the whole
+replace reviewer always uses the elisp scan (its write-back needs the
+exact buffer positions the elisp scan records).
+
 == Customizing Projectile's Keybindings
 
 It is possible to add additional commands to
