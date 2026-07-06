@@ -15,7 +15,7 @@ project and happens to be part of Emacs.
 have been asking since how do the two packages compare.
 
 Internally they have a lot of differences (e.g. different approach to project discovery and indexing), but from the user standpoint they are probably quite similar
-these days (circa 2021). Historically, Projectile had a lot more features, but many
+these days. Historically, Projectile had a lot more features, but many
 of them found their way into `project.el` over the years. If all you need is
 a way to quickly jump between project files or search/replace inside a project, you can't go wrong with both.
 
@@ -32,10 +32,10 @@ NOTE: You can find a more detailed comparison xref:projectile_vs_project.adoc[he
 
 == Does Projectile provide any integration with `project.el`?
 
-Starting with Projectile 2.7, Projectile will plug automatically its
-project discovery functions in `project.el`. You can find more
-information on the subject in the xref:usage.adoc["Usage"] section of
-the documentation.
+Starting with Projectile 2.7, Projectile automatically plugs its project
+discovery functions into `project.el`. See the
+xref:usage.adoc#using-projectile-with-project-el[Using Projectile with
+project.el] section for details.
 
 == Does Projectile work with TRAMP?
 
