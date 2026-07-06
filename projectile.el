@@ -7980,6 +7980,33 @@ async only changes when and how matches are delivered."
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
 
+(defcustom projectile-search-use-ripgrep t
+  "Whether `projectile-search-review' accelerates literal search with ripgrep.
+When non-nil (the default) a literal `projectile-search-review' scan
+uses ripgrep (`rg') to find matches when the `rg' executable is
+available, which returns near-instantly even on a large project;
+otherwise, and always for the regexp search command and for every part
+of the replace reviewer, the portable pure-Emacs-Lisp scan is used.
+
+The ripgrep fast-path's result set follows ripgrep's own ignore rules
+\(`.gitignore', `.ignore', hidden-file handling, and so on) plus
+Projectile's ignore globs (`.projectile' and the globally-ignored files
+and directories, passed to `rg' via `--glob'), and skips matches in files
+that aren't valid UTF-8, so it can differ slightly from the pure-elisp
+path's `projectile-dir-files' set (for example in how
+hidden files or symlinks are treated).  This is an accepted trade-off for
+speed; set this to nil to force the elisp scan, whose result set matches
+Projectile's ignore configuration exactly.
+
+The regexp search command always uses the elisp scan (ripgrep's regex
+syntax is not Emacs regexp syntax), and the whole replace reviewer always
+uses the elisp scan (its write-back needs the exact buffer positions the
+elisp scan records).  In batch mode (`noninteractive') the elisp scan is
+used so scripted runs stay deterministic."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.2.0"))
+
 (defvar projectile-replace--scan-chunk-size 24
   "Number of candidate files scanned per async chunk before yielding.
 Each chunk scans this many files, delivers the matches into the results
@@ -8074,6 +8101,12 @@ a partial match set).  Cleared when the scan finishes or is canceled.")
   "The in-flight async scan timer for this results buffer, or nil.
 Held so a re-scan, a quit, or killing the buffer can cancel a scan that
 is still running.")
+(defvar-local projectile-replace--scan-process nil
+  "The in-flight ripgrep subprocess filling this results buffer, or nil.
+Only the read-only search reviewer's ripgrep fast-path uses this; the
+pure-elisp async scan uses `projectile-replace--scan-timer' instead.
+Held so a re-scan, a quit, or killing the buffer can kill a scan that is
+still running, leaving no orphaned process.")
 (defvar-local projectile-replace--render-function #'projectile-replace--render
   "Function that redraws the current results buffer from its state.
 The scanning, navigation, filter and toggle machinery is shared
@@ -8237,7 +8270,12 @@ no timer is left dangling.  Safe to call when nothing is scanning; used
 on re-scan, on quit, and from `kill-buffer-hook'."
   (when projectile-replace--scan-timer
     (cancel-timer projectile-replace--scan-timer))
+  (when (process-live-p projectile-replace--scan-process)
+    ;; drop our sentinel first so killing it doesn't run the finish handler
+    (set-process-sentinel projectile-replace--scan-process #'ignore)
+    (delete-process projectile-replace--scan-process))
   (setq projectile-replace--scan-timer nil
+        projectile-replace--scan-process nil
         projectile-replace--scanning nil))
 
 (defun projectile-replace--gather-async (candidates regexp buffer on-done)
@@ -8953,7 +8991,218 @@ scan to fill it."
           projectile-replace--truncated nil
           projectile-replace--filtered nil
           projectile-replace--scanning nil
-          projectile-replace--scan-timer nil)))
+          projectile-replace--scan-timer nil
+          projectile-replace--scan-process nil)))
+
+;;; Ripgrep fast-path for the read-only literal search reviewer
+;;
+;; An optional accelerator for `projectile-search-review': when the search is
+;; literal, `rg' is installed and `projectile-search-use-ripgrep' is on, the
+;; candidate scan runs `rg --json' as a subprocess and parses its NDJSON match
+;; stream into the very same `projectile-replace--match' structs the elisp scan
+;; produces, streaming them into the results buffer.  Only the fields the
+;; search reviewer renders are filled (file, line, character column, matched
+;; string, context line); the write-back-only fields (`beg'/`end'/`match-data'/
+;; `groups') stay nil because the search->replace bridge re-gathers via elisp.
+;; This path is deliberately narrow: the regexp search command keeps the elisp
+;; scan (rg's Rust regex is not Emacs regexp) and the whole replace reviewer
+;; keeps the elisp scan (its apply needs exact buffer positions).  The elisp
+;; scan stays the default and the fallback; rg is purely additive.
+
+(defun projectile-search--rg-executable ()
+  "Return the ripgrep executable name if available, else nil."
+  (and (executable-find "rg") "rg"))
+
+(defun projectile-search--rg-fastpath-p (literal)
+  "Return non-nil when the search reviewer should use the ripgrep fast-path.
+True for a LITERAL search when `projectile-search-use-ripgrep' is set,
+`rg' is available, and we are interactive; batch (`noninteractive') keeps
+the deterministic elisp scan."
+  (and projectile-search-use-ripgrep
+       literal
+       (not noninteractive)
+       (projectile-search--rg-executable)
+       t))
+
+(defun projectile-search--rg-command (term case-fold globs)
+  "Build the `rg --json' command line searching for literal TERM.
+CASE-FOLD selects case-insensitive matching; GLOBS is a list of ignore
+patterns (from `projectile--project-ignore-globs') passed as `--glob'
+exclusions so Projectile's ignores narrow ripgrep's own ignore rules.
+The search path is the relative `./', so the caller must run the process
+with `default-directory' bound to the project root."
+  (append
+   (list (projectile-search--rg-executable)
+         "--json" "--fixed-strings" "--line-number" "--column"
+         "--color" "never"
+         (if case-fold "--ignore-case" "--case-sensitive"))
+   ;; Projectile's `project-ignores' globs mark a root-anchored pattern with a
+   ;; leading `./' (e.g. a `.projectile' `-/vendor' line); ripgrep spells a
+   ;; root-anchored glob with a leading `/', so translate `./PAT' to `/PAT'.
+   ;; rg honors that only when searching a path relative to the root, which is
+   ;; why the search path below is `./' and the caller binds default-directory.
+   (mapcan (lambda (g)
+             (list "--glob"
+                   (concat "!" (if (string-prefix-p "./" g)
+                                   (substring g 1)
+                                 g))))
+           globs)
+   ;; `--' terminates options so a TERM starting with `-' is not misread.
+   (list "--" term "./")))
+
+(defun projectile-search--rg-json-get (obj &rest keys)
+  "Walk KEYS through nested hash-table OBJ, returning the leaf or nil.
+OBJ is a `json-parse-string' object (a hash-table with string keys)."
+  (dolist (k keys obj)
+    (setq obj (and (hash-table-p obj) (gethash k obj)))))
+
+(defun projectile-search--rg-byte->char-column (line byte)
+  "Return the 0-based character column for BYTE offset into LINE.
+BYTE is a UTF-8 byte offset into the line text (as ripgrep reports
+submatch offsets); LINE is the already-decoded line string.  The prefix
+is re-encoded to UTF-8 and its BYTE-long head decoded back, so multibyte
+characters before the match count as one column each, not one per byte."
+  (if (or (null byte) (<= byte 0))
+      0
+    (let* ((bytes (encode-coding-string line 'utf-8))
+           (n (min byte (length bytes))))
+      (length (decode-coding-string (substring bytes 0 n) 'utf-8)))))
+
+(defun projectile-search--rg-parse-line (line root)
+  "Parse one ripgrep NDJSON LINE into a list of match structs under ROOT.
+Returns nil for non-\"match\" records (begin/end/summary/context) and for
+records without decodable path or line text.  A line with several
+submatches yields one struct per submatch, in order."
+  (condition-case nil
+      (let ((obj (json-parse-string line)))
+        (when (equal (gethash "type" obj) "match")
+          (let* ((data (gethash "data" obj))
+                 (path (projectile-search--rg-json-get data "path" "text"))
+                 (line-no (projectile-search--rg-json-get data "line_number"))
+                 (text (projectile-search--rg-json-get data "lines" "text"))
+                 (subs (gethash "submatches" data))
+                 (context (and (stringp text)
+                               (replace-regexp-in-string "\r?\n\\'" "" text)))
+                 (result nil))
+            (when (and (stringp path) (integerp line-no) (stringp text) subs)
+              (let ((file (expand-file-name path root)))
+                (dotimes (i (length subs))
+                  (let* ((sub (aref subs i))
+                         (start (gethash "start" sub))
+                         (mstr (projectile-search--rg-json-get
+                                sub "match" "text")))
+                    (when (stringp mstr)
+                      (push (projectile-replace--match-create
+                             :file file :buffer nil :tick nil
+                             :line line-no
+                             :column (projectile-search--rg-byte->char-column
+                                      text start)
+                             :beg nil :end nil
+                             :string mstr :match-data nil :groups nil
+                             :context context :enabled t)
+                            result))))))
+            (nreverse result))))
+    (error nil)))
+
+(defun projectile-search--rg-ingest (buffer lines root)
+  "Parse rg NDJSON LINES into BUFFER's match list, render, honor the cap.
+Appends up to `projectile-replace-max-matches' matches in arrival order;
+when the cap is reached the surplus is dropped and the truncated flag is
+set.  Returns non-nil when the cap has been reached, so the caller can
+finish the scan."
+  (with-current-buffer buffer
+    (if projectile-replace--truncated
+        t
+      (let ((new nil))
+        (dolist (l lines)
+          (unless (string-empty-p l)
+            (setq new (nconc new (projectile-search--rg-parse-line l root)))))
+        (let ((room (- projectile-replace-max-matches
+                       (length projectile-replace--matches))))
+          (when (> (length new) room)
+            (setq new (take (max 0 room) new)
+                  projectile-replace--truncated t))
+          (when new
+            (setq projectile-replace--matches
+                  (append projectile-replace--matches new)))
+          (funcall projectile-replace--render-function)
+          projectile-replace--truncated)))))
+
+(defun projectile-search--rg-finish (buffer on-done)
+  "Settle BUFFER after its ripgrep scan ends and call ON-DONE.
+Kills the scan process if still live (dropping its sentinel first),
+clears the scanning state, does a final render and calls ON-DONE.  Safe
+against a killed BUFFER."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (process-live-p projectile-replace--scan-process)
+        (set-process-sentinel projectile-replace--scan-process #'ignore)
+        (delete-process projectile-replace--scan-process))
+      (setq projectile-replace--scanning nil
+            projectile-replace--scan-process nil
+            projectile-replace--scan-timer nil)
+      (funcall projectile-replace--render-function)
+      (when on-done (funcall on-done buffer)))))
+
+(defun projectile-search--gather-rg (buffer term on-done)
+  "Scan for literal TERM into BUFFER via `rg --json', then call ON-DONE.
+Resets BUFFER's match list and scanning state, launches `rg' as a
+subprocess reading ROOT, CASE-FOLD and the ignore globs from BUFFER's
+buffer-locals, and streams parsed matches into the buffer as ripgrep
+emits them, re-rendering per output chunk.  `projectile-replace-max-matches'
+is honored (the process is killed when the cap is hit) and the scan is
+cancelable and kill-safe exactly like the elisp async engine: the process
+is registered in `projectile-replace--scan-process' so
+`projectile-replace--cancel-scan' (re-search, quit, kill-buffer) can kill
+it, leaving no orphan.  ON-DONE (or nil) is called in BUFFER when the scan
+finishes."
+  (let* ((root (buffer-local-value 'projectile-replace--root buffer))
+         (case-fold (buffer-local-value 'projectile-replace--case-fold buffer))
+         (globs (projectile--project-ignore-globs root))
+         (command (projectile-search--rg-command term case-fold globs))
+         (pending ""))
+    (with-current-buffer buffer
+      (setq projectile-replace--matches nil
+            projectile-replace--truncated nil
+            projectile-replace--filtered nil
+            projectile-replace--scanning t
+            projectile-replace--scan-timer nil
+            projectile-replace--scan-process nil))
+    (let* (;; run rg IN the project root so the relative `./' search path and
+           ;; the `/'-anchored ignore globs resolve against it
+           (default-directory root)
+           (proc
+           (make-process
+            :name "projectile-search-rg"
+            :buffer nil
+            :command command
+            :connection-type 'pipe
+            :noquery t
+            :coding 'utf-8-unix
+            :filter
+            (lambda (_proc output)
+              (when (buffer-live-p buffer)
+                (with-current-buffer buffer
+                  (unless projectile-replace--truncated
+                    (setq pending (concat pending output))
+                    (let ((parts (split-string pending "\n")))
+                      ;; the last element is the (possibly empty) partial line
+                      (setq pending (car (last parts)))
+                      (when (projectile-search--rg-ingest
+                             buffer (butlast parts) root)
+                        (projectile-search--rg-finish buffer on-done)))))))
+            :sentinel
+            (lambda (proc _event)
+              (when (and (buffer-live-p buffer)
+                         (memq (process-status proc) '(exit signal)))
+                (with-current-buffer buffer
+                  (when (eq proc projectile-replace--scan-process)
+                    (unless projectile-replace--truncated
+                      (projectile-search--rg-ingest buffer (list pending) root))
+                    (projectile-search--rg-finish buffer on-done))))))))
+      (with-current-buffer buffer
+        (setq projectile-replace--scan-process proc))
+      proc)))
 
 (defun projectile-replace--start (buffer candidates regexp on-done)
   "Fill BUFFER's match list by scanning CANDIDATES for REGEXP.
@@ -8961,11 +9210,23 @@ Cancels any in-flight scan in BUFFER first, then scans with the async
 chunked driver when `projectile-replace--async-p' holds and otherwise
 synchronously (always in batch), so the final match list is identical
 either way -- only delivery differs.  BUFFER is re-rendered when done and
-ON-DONE (or nil) is called in it."
+ON-DONE (or nil) is called in it.
+
+As an optional accelerator, a read-only search-reviewer BUFFER doing a
+literal search takes the ripgrep fast-path (`projectile-search--gather-rg')
+when `projectile-search--rg-fastpath-p' holds; the replace reviewer and
+the regexp search always take the elisp path below."
   (with-current-buffer buffer
     (projectile-replace--cancel-scan))
-  (if (projectile-replace--async-p)
-      (projectile-replace--gather-async candidates regexp buffer on-done)
+  (cond
+   ((with-current-buffer buffer
+      (and (derived-mode-p 'projectile-search-mode)
+           (projectile-search--rg-fastpath-p projectile-replace--literal)))
+    (projectile-search--gather-rg
+     buffer (buffer-local-value 'projectile-replace--term buffer) on-done))
+   ((projectile-replace--async-p)
+    (projectile-replace--gather-async candidates regexp buffer on-done))
+   (t
     (with-current-buffer buffer
       (let* ((case-fold-search projectile-replace--case-fold)
              (result (projectile-replace--gather candidates regexp)))
@@ -8974,7 +9235,7 @@ ON-DONE (or nil) is called in it."
               projectile-replace--scanning nil
               projectile-replace--scan-timer nil))
       (funcall projectile-replace--render-function)
-      (when on-done (funcall on-done buffer)))))
+      (when on-done (funcall on-done buffer))))))
 
 (defun projectile-replace--open-finish (buffer)
   "Announce truncation once the scan filling BUFFER has finished."
@@ -8998,7 +9259,13 @@ REPLACEMENT, LITERAL and CASE-FOLD seed the buffer state."
   ;; instance of the buffer (re-seeding resets its buffer-locals)
   (when-let* ((existing (get-buffer buf-name)))
     (with-current-buffer existing (projectile-replace--cancel-scan)))
-  (if (projectile-replace--async-p)
+  (if (or (projectile-replace--async-p)
+          ;; the read-only search reviewer's ripgrep fast-path is inherently
+          ;; async, so it opens the streaming buffer even when the elisp async
+          ;; engine is off (`projectile-replace-async' nil); `--start' then
+          ;; dispatches it to ripgrep
+          (and (eq mode #'projectile-search-mode)
+               (projectile-search--rg-fastpath-p literal)))
       (let ((buf (get-buffer-create buf-name)))
         (projectile-replace--seed buf mode root term regexp replacement
                                   literal case-fold)
