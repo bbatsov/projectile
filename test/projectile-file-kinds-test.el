@@ -266,13 +266,12 @@
           (:file-kinds projectile--rails-file-kinds)
         (let ((root (file-truename (expand-file-name "project/"))))
           (spy-on 'find-file)
-          (cl-letf (((symbol-function 'buffer-file-name)
-                     (lambda (&optional _)
-                       (expand-file-name "app/controllers/users_controller.rb" root))))
-            (setq last-command nil this-command 'projectile-toggle-related-file)
-            (projectile-toggle-related-file)
-            (expect 'find-file :to-have-been-called-with
-                    (expand-file-name "app/models/user.rb" root)))))))
+          (spy-on 'buffer-file-name :and-return-value
+                  (expand-file-name "app/controllers/users_controller.rb" root))
+          (setq last-command nil this-command 'projectile-toggle-related-file)
+          (projectile-toggle-related-file)
+          (expect 'find-file :to-have-been-called-with
+                  (expand-file-name "app/models/user.rb" root))))))
   (it "resolves the visited file's symlinks against the project root"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
@@ -287,13 +286,12 @@
                            (file-name-as-directory (expand-file-name "linkproj")))))
           (make-symbolic-link "project" "linkproj")
           (spy-on 'find-file)
-          (cl-letf (((symbol-function 'buffer-file-name)
-                     (lambda (&optional _) link-file)))
-            (setq last-command nil this-command 'projectile-toggle-related-file)
-            ;; without truename'ing the file this raises "No related files"
-            (projectile-toggle-related-file)
-            (expect 'find-file :to-have-been-called-with
-                    (expand-file-name "app/models/user.rb" root)))))))
+          (spy-on 'buffer-file-name :and-return-value link-file)
+          (setq last-command nil this-command 'projectile-toggle-related-file)
+          ;; without truename'ing the file this raises "No related files"
+          (projectile-toggle-related-file)
+          (expect 'find-file :to-have-been-called-with
+                  (expand-file-name "app/models/user.rb" root))))))
   (it "cycles through several related kinds on repeated invocation"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
@@ -306,19 +304,19 @@
           (spy-on 'find-file :and-call-fake
                   (lambda (path)
                     (setq current (file-relative-name path root))))
-          (cl-letf (((symbol-function 'buffer-file-name)
-                     (lambda (&optional _) (expand-file-name current root))))
-            ;; simulate repeated presses of the command
-            ;; ring is (model controller view) in table order; starting on
-            ;; the controller, repeated presses advance through it and wrap
-            (setq this-command 'projectile-toggle-related-file
-                  last-command 'projectile-toggle-related-file)
-            (projectile-toggle-related-file)
-            (expect current :to-equal "app/views/users/index.html.erb")
-            (projectile-toggle-related-file)
-            (expect current :to-equal "app/models/user.rb")
-            (projectile-toggle-related-file)
-            (expect current :to-equal "app/controllers/users_controller.rb")))))))
+          (spy-on 'buffer-file-name :and-call-fake
+                  (lambda (&optional _) (expand-file-name current root)))
+          ;; simulate repeated presses of the command
+          ;; ring is (model controller view) in table order; starting on
+          ;; the controller, repeated presses advance through it and wrap
+          (setq this-command 'projectile-toggle-related-file
+                last-command 'projectile-toggle-related-file)
+          (projectile-toggle-related-file)
+          (expect current :to-equal "app/views/users/index.html.erb")
+          (projectile-toggle-related-file)
+          (expect current :to-equal "app/models/user.rb")
+          (projectile-toggle-related-file)
+          (expect current :to-equal "app/controllers/users_controller.rb"))))))
 
 (describe "projectile-related-files-fn with :file-kinds"
   (it "merges a hand-written related-files-fn with the compiled kinds fn"

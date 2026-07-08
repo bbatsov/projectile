@@ -40,14 +40,12 @@ Return the resulting buffer contents."
 
 (describe "projectile-read-variable"
   (it "returns the selected variable name"
-    (cl-letf (((symbol-function 'completing-read)
-               (lambda (&rest _) "compile-command")))
-      (expect (projectile-read-variable) :to-equal "compile-command")))
+    (spy-on 'completing-read :and-return-value "compile-command")
+    (expect (projectile-read-variable) :to-equal "compile-command"))
 
   (it "returns nil on empty input"
-    (cl-letf (((symbol-function 'completing-read)
-               (lambda (&rest _) "")))
-      (expect (projectile-read-variable) :to-be nil))))
+    (spy-on 'completing-read :and-return-value "")
+    (expect (projectile-read-variable) :to-be nil)))
 
 (describe "projectile-skel-dir-locals"
   (it "keeps entered variables when the loop ends with an empty variable name"
