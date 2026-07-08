@@ -116,7 +116,7 @@ project root.  BODY runs with `default-directory' at the root and
         (unwind-protect
             ;; a chunk larger than the candidate set finishes in one inline
             ;; pass (no timer), the simplest way to drive it to completion
-            (let ((projectile-replace--scan-chunk-size 10000))
+            (let ((projectile-replace-scan-chunk-size 10000))
               (projectile-replace--gather-async candidates "foo" buf nil)
               (with-current-buffer buf
                 (expect projectile-replace--scanning :to-be nil)
@@ -138,7 +138,7 @@ project root.  BODY runs with `default-directory' at the root and
              (sync (projectile-scan-async-test--sync-matches candidates))
              (buf (projectile-scan-async-test--seed root)))
         (unwind-protect
-            (let ((projectile-replace--scan-chunk-size 1))
+            (let ((projectile-replace-scan-chunk-size 1))
               (projectile-replace--gather-async candidates "foo" buf nil)
               ;; the first chunk ran inline; more files remain, so a scan is
               ;; in flight with a pending timer and partial matches
@@ -175,7 +175,7 @@ project root.  BODY runs with `default-directory' at the root and
         (unwind-protect
             ;; one file per chunk, so e.txt is scanned in a LATE chunk (from a
             ;; timer); the driver must re-establish case-fold there too
-            (let ((projectile-replace--scan-chunk-size 1))
+            (let ((projectile-replace-scan-chunk-size 1))
               (projectile-replace--gather-async candidates "foo" buf nil)
               (projectile-scan-async-test--pump buf)
               (with-current-buffer buf
@@ -198,7 +198,7 @@ project root.  BODY runs with `default-directory' at the root and
              (sync (projectile-scan-async-test--sync-matches candidates))
              (buf (projectile-scan-async-test--seed root)))
         (unwind-protect
-            (let ((projectile-replace--scan-chunk-size 3)) ; boundary at file 3
+            (let ((projectile-replace-scan-chunk-size 3)) ; boundary at file 3
               (projectile-replace--gather-async candidates "foo" buf nil)
               (projectile-scan-async-test--pump buf)
               (with-current-buffer buf
@@ -219,7 +219,7 @@ project root.  BODY runs with `default-directory' at the root and
              (buf (projectile-scan-async-test--seed root))
              (seen nil))
         (unwind-protect
-            (let ((projectile-replace--scan-chunk-size 1))
+            (let ((projectile-replace-scan-chunk-size 1))
               (projectile-replace--gather-async
                candidates "foo" buf
                (lambda (b) (setq seen (list b (buffer-local-value
@@ -240,7 +240,7 @@ project root.  BODY runs with `default-directory' at the root and
              (buf (projectile-scan-async-test--seed root)))
         (unwind-protect
             (let ((projectile-replace-max-matches 3)
-                  (projectile-replace--scan-chunk-size 1))
+                  (projectile-replace-scan-chunk-size 1))
               (projectile-replace--gather-async candidates "foo" buf nil)
               (projectile-scan-async-test--pump buf)
               (with-current-buffer buf
@@ -303,7 +303,7 @@ project root.  BODY runs with `default-directory' at the root and
              (candidates (projectile-scan-async-test--candidates root))
              (buf (projectile-scan-async-test--seed root)))
         (unwind-protect
-            (let ((projectile-replace--scan-chunk-size 1))
+            (let ((projectile-replace-scan-chunk-size 1))
               (projectile-replace--gather-async candidates "foo" buf nil)
               (let ((old (buffer-local-value 'projectile-replace--scan-timer buf)))
                 (expect old :not :to-be nil)
@@ -325,7 +325,7 @@ project root.  BODY runs with `default-directory' at the root and
       (let* ((root default-directory)
              (candidates (projectile-scan-async-test--candidates root))
              (buf (projectile-scan-async-test--seed root))
-             (projectile-replace--scan-chunk-size 1))
+             (projectile-replace-scan-chunk-size 1))
         (projectile-replace--gather-async candidates "foo" buf nil)
         (let ((old (buffer-local-value 'projectile-replace--scan-timer buf)))
           (expect old :not :to-be nil)

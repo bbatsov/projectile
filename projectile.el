@@ -7992,7 +7992,7 @@ to run the replacement."
 When a search would exceed this, only the first that many matches are
 shown and a note is displayed."
   :group 'projectile
-  :type 'integer
+  :type 'natnum
   :package-version '(projectile . "3.2.0"))
 
 (defcustom projectile-replace-async t
@@ -8042,12 +8042,15 @@ used so scripted runs stay deterministic."
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
 
-(defvar projectile-replace--scan-chunk-size 24
+(defcustom projectile-replace-scan-chunk-size 24
   "Number of candidate files scanned per async chunk before yielding.
 Each chunk scans this many files, delivers the matches into the results
 buffer and re-renders, then yields to redisplay via a zero-delay timer
 before the next chunk.  Larger values scan faster but redisplay less
-often; smaller values keep Emacs more responsive.")
+often; smaller values keep Emacs more responsive."
+  :group 'projectile
+  :type 'natnum
+  :package-version '(projectile . "3.2.0"))
 
 (defface projectile-replace-file
   '((t :inherit font-lock-function-name-face :weight bold))
@@ -8325,7 +8328,7 @@ on re-scan, on quit, and from `kill-buffer-hook'."
 (defun projectile-replace--gather-async (candidates regexp buffer on-done)
   "Scan CANDIDATES for REGEXP into BUFFER incrementally, then call ON-DONE.
 Resets BUFFER's match list and scanning state, then processes CANDIDATES
-in `projectile-replace--scan-chunk-size' batches, each batch delivering
+in `projectile-replace-scan-chunk-size' batches, each batch delivering
 its matches and re-rendering before yielding to redisplay via a
 zero-delay timer.  Matches accumulate in file order, so the final list is
 identical to `projectile-replace--gather' over the same CANDIDATES and
@@ -8368,7 +8371,7 @@ killed BUFFER (leaving no work behind) and against \\`C-g' during a chunk
           ;; a file is scanned while budget remains; the first file reached
           ;; with the budget exhausted marks the list truncated and stops.
           (while (and remaining (not stop)
-                      (< count projectile-replace--scan-chunk-size))
+                      (< count projectile-replace-scan-chunk-size))
             (if (> budget 0)
                 (let ((ms (let ((case-fold-search fold))
                             (projectile-replace--scan-file
@@ -8414,12 +8417,13 @@ The write-back and export must never run against a partial match set."
 
 (defun projectile-replace--candidates (term literal case-fold directory)
   "Return the files under DIRECTORY worth scanning for TERM.
-For a case-sensitive LITERAL search this narrows to files containing
-TERM (via `projectile-files-with-string') intersected with the
-project's ignore-aware file list.  For a regexp search, or a
-case-insensitive literal search (where the case-sensitive grep tools
-would miss case-variant occurrences), it is the whole ignore-aware file
-list, since those searches can't be narrowed by an external grep."
+For a case-sensitive LITERAL search this narrows to files that contain
+TERM, via `projectile-files-with-string' - which matches
+case-insensitively, so the narrowed set is a safe superset that the scan
+then filters exactly - intersected with the project's ignore-aware file
+list.  For a regexp search, or a case-insensitive literal search, it
+returns the whole ignore-aware file list, since those can't be narrowed
+by an external grep this way."
   (let ((project-files (mapcar (lambda (f) (expand-file-name f directory))
                                (projectile-dir-files directory))))
     (if (and literal (not case-fold))
@@ -9222,6 +9226,11 @@ finishes."
     (let* (;; run rg IN the project root so the relative `./' search path and
            ;; the `/'-anchored ignore globs resolve against it
            (default-directory root)
+           ;; keep rg's stderr out of the JSON stream, so a diagnostic line
+           ;; (e.g. an unreadable directory) can't split a match across filter
+           ;; chunks and get silently dropped
+           (stderr-buffer (get-buffer-create " *projectile-search-rg-stderr*"))
+           (_ (with-current-buffer stderr-buffer (erase-buffer)))
            (proc
            (make-process
             :name "projectile-search-rg"
@@ -9229,6 +9238,7 @@ finishes."
             :command command
             :connection-type 'pipe
             :noquery t
+            :stderr stderr-buffer
             :coding 'utf-8-unix
             :filter
             (lambda (_proc output)

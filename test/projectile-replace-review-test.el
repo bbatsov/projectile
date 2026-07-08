@@ -288,6 +288,22 @@ REGEXP-P selects `projectile-replace-regexp-review'."
           (expect (projectile-replace-review-test--disk "o.txt")
                   :to-equal "foo tail\n")))))
 
+  (it "skips a live buffer's match when text is inserted before it after the scan"
+    (projectile-replace-review-test--with-project
+        (("p.txt" . "keep\nfoo tail\n"))
+      (projectile-replace-review-test--use-plain-grep)
+      ;; open before the scan so the match is tagged against the live buffer
+      (find-file-noselect (expand-file-name "p.txt"))
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        ;; insert BEFORE the match, shifting the recorded position off `foo';
+        ;; `--positions-valid-p' must reject it and the match must be skipped
+        (with-current-buffer (get-file-buffer (expand-file-name "p.txt"))
+          (goto-char (point-min))
+          (insert "PREPENDED\n"))
+        (projectile-replace-review-test--apply buf)
+        (with-current-buffer (get-file-buffer (expand-file-name "p.txt"))
+          (expect (buffer-string) :to-equal "PREPENDED\nkeep\nfoo tail\n")))))
+
   (it "preserves CRLF line endings on the disk write-back path"
     (projectile-replace-review-test--with-project
         (("crlf.txt" . "foo\r\nbar\r\n"))
