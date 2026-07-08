@@ -341,7 +341,29 @@ project root.  BODY runs with `default-directory' at the root and
              (buf (projectile-scan-async-test--seed root)))
         (kill-buffer buf)
         ;; a chunk that fires after its buffer was killed is a silent no-op
-        (expect (projectile-replace--scan-step buf candidates "foo" 100 nil)
-                :not :to-throw)))))
+        (expect (projectile-replace--scan-step buf candidates "foo" 100 nil 0)
+                :not :to-throw))))
+
+  (it "ignores a chunk carrying a superseded scan generation"
+    (projectile-scan-async-test--with-project
+        (("a.txt" . "foo\nfoo\n"))
+      (let* ((root default-directory)
+             (candidates (projectile-scan-async-test--candidates root))
+             (buf (projectile-scan-async-test--seed root)))
+        (unwind-protect
+            (progn
+              (projectile-replace--gather-async candidates "foo" buf nil)
+              (projectile-scan-async-test--pump buf)
+              (with-current-buffer buf
+                (let ((current projectile-replace--scan-generation)
+                      (before (copy-sequence projectile-replace--matches)))
+                  ;; a step from an earlier generation must not touch the matches
+                  (projectile-replace--scan-step buf candidates "foo" 100 nil (1- current))
+                  (expect projectile-replace--matches :to-equal before)
+                  ;; sanity: the same step at the current generation does append
+                  (projectile-replace--scan-step buf candidates "foo" 100 nil current)
+                  (expect (length projectile-replace--matches)
+                          :to-be-greater-than (length before)))))
+          (kill-buffer buf))))))
 
 ;;; projectile-scan-async-test.el ends here

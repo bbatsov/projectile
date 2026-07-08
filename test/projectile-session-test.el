@@ -285,6 +285,25 @@
                 (when (buffer-live-p buf) (kill-buffer buf)))))
         (delete-file tmp))))
 
+  (it "recreates a file buffer without interactive prompts"
+    (let ((tmp (make-temp-file "projectile-session-file" nil ".txt")))
+      (unwind-protect
+          (progn
+            (with-temp-file tmp (insert "x\n"))
+            (let (seen-lfwt seen-elv)
+              (spy-on 'find-file-noselect :and-call-fake
+                      (lambda (&rest _)
+                        (setq seen-lfwt large-file-warning-threshold
+                              seen-elv enable-local-variables)
+                        (get-buffer-create " *psession-fake*")))
+              (projectile-session--deserialize-file (list :file tmp))
+              ;; large-file warnings and unsafe file-locals must be suppressed,
+              ;; so restoring a session never blocks on a prompt
+              (expect seen-lfwt :to-be nil)
+              (expect seen-elv :to-be :safe)))
+        (when (get-buffer " *psession-fake*") (kill-buffer " *psession-fake*"))
+        (delete-file tmp))))
+
   (it "round-trips a dired buffer via its directory"
     (let* ((dir (make-temp-file "projectile-session-dired" t))
            (buf (dired-noselect dir)))
@@ -455,6 +474,22 @@
                 (when (get-buffer n) (kill-buffer n)))))
         (delete-file tmp1)
         (delete-file tmp2))))
+
+  (it "survives a corrupt window layout by falling back to the recreated buffers"
+    (let ((tmp (make-temp-file "projectile-session-corrupt" nil ".txt")))
+      (unwind-protect
+          (progn
+            (with-temp-file tmp (insert "x\n"))
+            ;; a data blob that passes the version check but carries a bogus
+            ;; :window-state must not abort the whole restore
+            (spy-on 'projectile-session--read :and-return-value
+                    (list :buffers (list (cons t (list :file tmp :point 1)))
+                          :window-state '(this is not a valid window state)))
+            ;; a throw here would fail the test; the fix demotes it to a message
+            (expect (projectile-session-restore "/proj/root/") :to-be t))
+        (when (get-buffer (file-name-nondirectory tmp))
+          (kill-buffer (file-name-nondirectory tmp)))
+        (delete-file tmp))))
 
   (it "does not error restoring a layout whose file is gone"
     (let ((tmp (make-temp-file "projectile-session-gone" nil ".txt")))
