@@ -28,41 +28,15 @@
 (require 'projectile-test-helpers)
 
 (defmacro projectile-replace-test--with-project (files &rest body)
-  "Evaluate BODY in a sandbox project containing FILES.
-
-FILES is a literal alist of (NAME . CONTENT) file specs, created
-relative to the project root.  BODY runs with `default-directory' set
-to the project root, `projectile-project-root' stubbed accordingly,
-native indexing with fresh caches, and default case handling.  Buffers
-visiting project files are killed afterwards; the replace commands
-modify buffers without saving them, so leftovers would leak into the
-next spec."
+  "Like `projectile-test-with-project' but with the replace smart-case bindings.
+BODY additionally runs with `search-upper-case' and `case-replace' set, so
+the case-handling expectations are independent of the environment: a
+lower-case search folds case, a mixed-case one doesn't."
   (declare (indent 1) (debug (sexp &rest form)))
-  `(projectile-test-with-sandbox
-     (make-directory "project" t)
-     (with-temp-file "project/.projectile")
-     ,@(mapcar (lambda (spec)
-                 `(progn
-                    (when-let* ((dir (file-name-directory ,(car spec))))
-                      (make-directory (expand-file-name dir "project") t))
-                    (with-temp-file (expand-file-name ,(car spec) "project")
-                      (insert ,(cdr spec)))))
-               files)
-     (let ((default-directory (file-name-as-directory
-                               (projectile-test-project-root)))
-           (projectile-indexing-method 'native)
-           (projectile-projects-cache (make-hash-table :test 'equal))
-           (projectile-projects-cache-time (make-hash-table :test 'equal))
-           (projectile-enable-caching nil)
-           ;; make the case-handling expectations independent of the
-           ;; environment: lower-case input folds case, mixed-case doesn't
-           (case-fold-search t)
-           (search-upper-case t)
+  `(projectile-test-with-project ,files
+     (let ((search-upper-case t)
            (case-replace t))
-       (spy-on 'projectile-project-root :and-return-value default-directory)
-       (unwind-protect
-           (progn ,@body)
-         (projectile-test-kill-project-buffers default-directory)))))
+       ,@body)))
 
 (defun projectile-replace-test--replace (old new &optional regexp-p)
   "Replace OLD with NEW in the current project, auto-confirming everything.

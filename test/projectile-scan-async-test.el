@@ -35,32 +35,6 @@
 
 (require 'projectile-test-helpers)
 
-(defmacro projectile-scan-async-test--with-project (files &rest body)
-  "Evaluate BODY in a sandbox project containing FILES.
-FILES is a literal alist of (NAME . CONTENT) file specs relative to the
-project root.  BODY runs with `default-directory' at the root and
-`projectile-project-root' stubbed accordingly."
-  (declare (indent 1) (debug (sexp &rest form)))
-  `(projectile-test-with-sandbox
-     (make-directory "project" t)
-     (with-temp-file "project/.projectile")
-     ,@(mapcar (lambda (spec)
-                 `(progn
-                    (when-let* ((dir (file-name-directory ,(car spec))))
-                      (make-directory (expand-file-name dir "project") t))
-                    (with-temp-file (expand-file-name ,(car spec) "project")
-                      (insert ,(cdr spec)))))
-               files)
-     (let ((default-directory (file-name-as-directory
-                               (projectile-test-project-root)))
-           (projectile-indexing-method 'native)
-           (projectile-projects-cache (make-hash-table :test 'equal))
-           (projectile-projects-cache-time (make-hash-table :test 'equal))
-           (projectile-enable-caching nil)
-           (case-fold-search t))
-       (spy-on 'projectile-project-root :and-return-value default-directory)
-       ,@body)))
-
 (defun projectile-scan-async-test--seed (root)
   "Return a results buffer in `projectile-replace-mode' seeded for a foo scan."
   (let ((buf (get-buffer-create "*projectile-scan-async-test*")))
@@ -95,7 +69,7 @@ project root.  BODY runs with `default-directory' at the root and
 
 (describe "projectile-replace--gather-async"
   (it "produces the same final matches as the synchronous gather"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo one foo\n")
          ("b.txt" . "start foo end\n")
          ("lib/c.txt" . "foo\nfoo\n")
@@ -119,7 +93,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "streams matches in chunk by chunk and ends with the full set"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\nfoo\n")
          ("b.txt" . "foo\n")
          ("c.txt" . "foo\nfoo\n")
@@ -149,7 +123,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "keeps case sensitivity in a late chunk (parity with sync)"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n")
          ("b.txt" . "foo\n")
          ("c.txt" . "foo\n")
@@ -180,7 +154,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "truncates at the same match as sync on a chunk-boundary budget"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n") ("b.txt" . "foo\n") ("c.txt" . "foo\n")
          ("d.txt" . "foo\n") ("e.txt" . "foo\n") ("f.txt" . "foo\n"))
       (let* ((root default-directory)
@@ -202,7 +176,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "runs ON-DONE in the buffer once scanning finishes"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n")
          ("b.txt" . "foo\n"))
       (let* ((root default-directory)
@@ -222,7 +196,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "honors projectile-replace-max-matches and sets truncated"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\nfoo\n")
          ("b.txt" . "foo\nfoo\n")
          ("c.txt" . "foo\nfoo\n"))
@@ -241,7 +215,7 @@ project root.  BODY runs with `default-directory' at the root and
 
 (describe "projectile-replace async scanning-state gating"
   (it "refuses to apply while a scan is still running"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (projectile-scan-async-test--seed default-directory)))
         (unwind-protect
@@ -251,7 +225,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "refuses to export while a scan is still running"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (projectile-scan-async-test--seed default-directory)))
         (unwind-protect
@@ -262,7 +236,7 @@ project root.  BODY runs with `default-directory' at the root and
 
   (it "refuses to filter while a scan is still running"
     ;; a later chunk would append past the filter, leaving an incoherent list
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (projectile-scan-async-test--seed default-directory)))
         (unwind-protect
@@ -273,7 +247,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "lets apply and export proceed once scanning has cleared"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (projectile-scan-async-test--seed default-directory)))
         (unwind-protect
@@ -286,7 +260,7 @@ project root.  BODY runs with `default-directory' at the root and
 
 (describe "projectile-replace async cancellation"
   (it "cancels an in-flight timer when a re-scan starts"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n")
          ("b.txt" . "foo\n")
          ("c.txt" . "foo\n"))
@@ -309,7 +283,7 @@ project root.  BODY runs with `default-directory' at the root and
           (kill-buffer buf)))))
 
   (it "cancels the timer and drops it from timer-list when the buffer is killed"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n")
          ("b.txt" . "foo\n")
          ("c.txt" . "foo\n"))
@@ -325,7 +299,7 @@ project root.  BODY runs with `default-directory' at the root and
           (expect (memq old timer-list) :to-be nil)))))
 
   (it "guards the chunk callback against a killed buffer"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let* ((root default-directory)
              (candidates (projectile-scan-async-test--candidates root))
@@ -336,7 +310,7 @@ project root.  BODY runs with `default-directory' at the root and
                 :not :to-throw))))
 
   (it "ignores a chunk carrying a superseded scan generation"
-    (projectile-scan-async-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\nfoo\n"))
       (let* ((root default-directory)
              (candidates (projectile-scan-async-test--candidates root))

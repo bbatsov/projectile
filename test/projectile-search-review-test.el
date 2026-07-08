@@ -30,38 +30,6 @@
 
 (require 'projectile-test-helpers)
 
-(defmacro projectile-search-review-test--with-project (files &rest body)
-  "Evaluate BODY in a sandbox project containing FILES.
-
-FILES is a literal alist of (NAME . CONTENT) file specs created relative
-to the project root.  A `.projectile' marker is created; include one in
-FILES to override its contents (e.g. to add ignore rules).  BODY runs
-with `default-directory' at the root and `projectile-project-root'
-stubbed accordingly.  Project buffers and the results buffers are killed
-afterwards."
-  (declare (indent 1) (debug (sexp &rest form)))
-  `(projectile-test-with-sandbox
-     (make-directory "project" t)
-     (with-temp-file "project/.projectile")
-     ,@(mapcar (lambda (spec)
-                 `(progn
-                    (when-let* ((dir (file-name-directory ,(car spec))))
-                      (make-directory (expand-file-name dir "project") t))
-                    (with-temp-file (expand-file-name ,(car spec) "project")
-                      (insert ,(cdr spec)))))
-               files)
-     (let ((default-directory (file-name-as-directory
-                               (projectile-test-project-root)))
-           (projectile-indexing-method 'native)
-           (projectile-projects-cache (make-hash-table :test 'equal))
-           (projectile-projects-cache-time (make-hash-table :test 'equal))
-           (projectile-enable-caching nil)
-           (case-fold-search t))
-       (spy-on 'projectile-project-root :and-return-value default-directory)
-       (unwind-protect
-           (progn ,@body)
-         (projectile-test-kill-project-buffers default-directory)))))
-
 (defun projectile-search-review-test--run (term &optional regexp-p)
   "Drive the search review command for TERM and return the results buffer.
 REGEXP-P selects `projectile-search-regexp-review'."
@@ -85,7 +53,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review (literal)"
   (it "finds every literal match grouped by file, read-only, no apply keys"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo one foo\n")
          ("lib/b.txt" . "start foo end\n"))
       (projectile-test-use-plain-grep)
@@ -106,7 +74,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
           (expect (buffer-string) :not :to-match "\\[[ X]\\]")))))
 
   (it "renders each match as LINE:COL: with the matched span present"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "alpha foo beta\n"))
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-search-review-test--run "foo")))
@@ -114,7 +82,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
           (expect (buffer-string) :to-match "1:7: alpha foo beta")))))
 
   (it "reports no matches without popping a buffer"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "nothing here\n"))
       (projectile-test-use-plain-grep)
       (spy-on 'message)
@@ -123,7 +91,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-regexp-review"
   (it "honors Emacs-only regexp constructs a shell regexp couldn't express"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("s.txt" . "foo foobar barfoo foo\n"))
       (let ((buf (projectile-search-review-test--run "\\_<foo\\_>" 'regexp)))
         (with-current-buffer buf
@@ -133,7 +101,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review visit"
   (it "RET resolves the right file and line/column"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "line one\nsecond foo here\n")
          ("lib/b.txt" . "foo at top\n"))
       (projectile-test-use-plain-grep)
@@ -163,7 +131,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review filtering"
   (it "prunes matches by line and marks the list filtered"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("f.txt" . "keep foo here\ndrop foo there\nkeep foo again\n"))
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-search-review-test--run "foo")))
@@ -178,7 +146,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
           (expect projectile-replace--filtered :to-be nil)))))
 
   (it "prunes matches by file"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("keep.txt" . "foo\n")
          ("lib/skip.txt" . "foo\n"))
       (projectile-test-use-plain-grep)
@@ -194,7 +162,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review case and regexp toggles"
   (it "re-scans when case sensitivity flips"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("case.txt" . "Foo foo FOO\n"))
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-search-review-test--run "foo")))
@@ -209,7 +177,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
                   :to-equal "foo")))))
 
   (it "re-scans when literal/regexp flips"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("meta.txt" . "a.b axb a.b\n"))
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-search-review-test--run "a.b")))
@@ -223,7 +191,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review status header"
   (it "shows the term, counts and mode flags"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("h.txt" . "foo\n"))
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-search-review-test--run "foo")))
@@ -246,7 +214,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review export to grep-mode"
   (it "renders the shown matches as a navigable grep-mode buffer"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo one foo\n")
          ("lib/b.txt" . "start foo end\n"))
       (projectile-test-use-plain-grep)
@@ -265,7 +233,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review to-replace bridge"
   (it "opens the replace reviewer preloaded with the same term"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo one foo\n"))
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-search-review-test--run "foo")))
@@ -286,7 +254,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
             (expect (buffer-string) :to-match "\\[X\\]"))))))
 
   (it "carries literal-ness through from a regexp search"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("s.txt" . "foo foobar foo\n"))
       (let ((buf (projectile-search-review-test--run "\\_<foo\\_>" 'regexp)))
         (with-current-buffer buf
@@ -406,7 +374,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search--rg-ingest streaming and cap"
   (it "honors projectile-replace-max-matches and marks the list truncated"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name))
             (line (lambda (n)
@@ -434,7 +402,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 (describe "projectile-search-review ripgrep process lifecycle"
   (it "cancel-scan kills the running process, leaving no orphan"
     (assume (executable-find "sleep") "needs a sleep executable")
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       ;; stub the command so we get a controllable long-running process
       ;; without depending on ripgrep being installed
@@ -455,7 +423,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
   (it "killing the results buffer kills the running process"
     (assume (executable-find "sleep") "needs a sleep executable")
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (cl-letf (((symbol-function 'projectile-search--rg-command)
                  (lambda (&rest _) (list "sleep" "30"))))
@@ -488,7 +456,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
       (expect (projectile-search--rg-fastpath-p t) :to-be nil)))
 
   (it "routes a literal search-mode buffer to the ripgrep gather"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name)))
         (projectile-replace--seed buf #'projectile-search-mode
@@ -501,7 +469,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (expect 'projectile-replace--gather-async :not :to-have-been-called))))
 
   (it "routes a regexp search-mode buffer to the elisp path (no rg)"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name)))
         (projectile-replace--seed buf #'projectile-search-mode
@@ -514,7 +482,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (expect 'projectile-replace--gather-async :to-have-been-called))))
 
   (it "never routes a replace-mode buffer to ripgrep, even for a literal"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-replace-buffer-name)))
         (projectile-replace--seed buf #'projectile-replace-mode
@@ -527,7 +495,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (expect 'projectile-replace--gather-async :to-have-been-called))))
 
   (it "projectile-search-use-ripgrep nil forces the elisp path"
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name)))
         (projectile-replace--seed buf #'projectile-search-mode
@@ -542,7 +510,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 (describe "projectile-search-review ripgrep end-to-end"
   (it "finds matches with a correct character column on a multibyte line"
     (assume (executable-find "rg") "ripgrep is not installed")
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("mb.txt" . "café foo bar\n")
          ("plain.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name))
@@ -562,7 +530,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
   (it "honors projectile-replace-max-matches over a real ripgrep stream"
     (assume (executable-find "rg") "ripgrep is not installed")
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo\nfoo\nfoo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name))
             (root default-directory)
@@ -578,7 +546,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
   (it "excludes a path-rooted .projectile ignore from the ripgrep results"
     (assume (executable-find "rg") "ripgrep is not installed")
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         ((".projectile" . "-/vendor\n")
          ("keep.txt" . "foo\n")
          ("vendor/hidden.txt" . "foo\n"))
@@ -603,7 +571,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 (describe "projectile-search-review ripgrep vs elisp parity"
   (it "the ripgrep fast-path finds the same matches as the elisp scan"
     (assume (executable-find "rg") "needs a real ripgrep")
-    (projectile-search-review-test--with-project
+    (projectile-test-with-project
         (("a.txt" . "foo one\nno match here\nfoo two\n")
          ("sub/b.txt" . "prefix foo suffix\n")
          ("c.txt" . "nothing to see\n"))
