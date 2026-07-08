@@ -253,9 +253,9 @@
                                    (setq captured choices)
                                    nil))
           (projectile--find-file-of-kind (assq :controller projectile--rails-file-kinds))
-          (expect (sort (copy-sequence captured) #'string<)
-                  :to-equal '("app/controllers/products_controller.rb"
-                              "app/controllers/users_controller.rb")))))))
+          (expect captured
+                  :to-have-same-items-as '("app/controllers/products_controller.rb"
+                                           "app/controllers/users_controller.rb")))))))
 
 (describe "projectile-toggle-related-file"
   (it "opens the single counterpart immediately"

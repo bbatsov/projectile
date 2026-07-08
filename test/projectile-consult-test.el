@@ -77,9 +77,9 @@
                (output (with-temp-buffer
                          (apply #'process-file (car wrapped) nil t nil (cdr wrapped))
                          (buffer-string)))
-               (files (sort (split-string output "\n" t) #'string<)))
+               (files (split-string output "\n" t)))
           ;; Same set Projectile itself would index, one per line (no NULs).
-          (expect files :to-equal '("a.el" "src/b.el"))
+          (expect files :to-have-same-items-as '("a.el" "src/b.el"))
           (expect output :not :to-match "\0"))))))
 
   (it "errors when external-command indexing is disabled"

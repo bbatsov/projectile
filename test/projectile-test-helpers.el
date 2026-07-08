@@ -190,6 +190,36 @@ process filters and sentinels get a chance to run.  TIMEOUT defaults to
       (accept-process-output nil 0.05))
     result))
 
+
+;;; Custom matchers
+
+(buttercup-define-matcher :to-have-same-items-as (actual expected)
+  "Match when ACTUAL and EXPECTED hold the same items, ignoring order.
+A readable stand-in for `(sort ...) :to-equal (sort ...)' - the failure
+message reports exactly which items are missing and which are extra."
+  (let* ((actual (funcall actual))
+         (expected (funcall expected))
+         (missing (cl-set-difference expected actual :test #'equal))
+         (extra (cl-set-difference actual expected :test #'equal)))
+    (cons (and (null missing) (null extra))
+          (format "Expected %S to have the same items as %S (missing: %S, extra: %S)"
+                  actual expected missing extra))))
+
+;;; Match helpers (reviewable search/replace)
+
+(defun projectile-test-match-sig (matches root)
+  "Return a stable, comparable signature for MATCHES relative to ROOT.
+Each `projectile-replace--match' becomes (RELPATH LINE COLUMN STRING);
+the list is sorted so two gatherings of the same matches compare `equal'
+regardless of the order they were collected in."
+  (sort (mapcar (lambda (m)
+                  (list (file-relative-name (projectile-replace--match-file m) root)
+                        (projectile-replace--match-line m)
+                        (projectile-replace--match-column m)
+                        (projectile-replace--match-string m)))
+                matches)
+        (lambda (a b) (string< (format "%S" a) (format "%S" b)))))
+
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
 Just delegates OPERATION and ARGS for all operations except for

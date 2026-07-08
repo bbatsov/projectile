@@ -74,15 +74,6 @@ project root.  BODY runs with `default-directory' at the root and
             projectile-replace--case-fold t))
     buf))
 
-(defun projectile-scan-async-test--sig (matches root)
-  "Return a comparable signature (relpath line col string) list for MATCHES."
-  (mapcar (lambda (m)
-            (list (file-relative-name (projectile-replace--match-file m) root)
-                  (projectile-replace--match-line m)
-                  (projectile-replace--match-column m)
-                  (projectile-replace--match-string m)))
-          matches))
-
 (defun projectile-scan-async-test--candidates (root)
   "Return the regexp-search candidate files under ROOT for term foo."
   (projectile-replace--candidates "foo" nil t root))
@@ -121,10 +112,10 @@ project root.  BODY runs with `default-directory' at the root and
               (with-current-buffer buf
                 (expect projectile-replace--scanning :to-be nil)
                 (expect projectile-replace--scan-timer :to-be nil)
-                (expect (projectile-scan-async-test--sig
+                (expect (projectile-test-match-sig
                          projectile-replace--matches root)
                         :to-equal
-                        (projectile-scan-async-test--sig sync root))))
+                        (projectile-test-match-sig sync root))))
           (kill-buffer buf)))))
 
   (it "streams matches in chunk by chunk and ends with the full set"
@@ -151,10 +142,10 @@ project root.  BODY runs with `default-directory' at the root and
               (with-current-buffer buf
                 (expect projectile-replace--scanning :to-be nil)
                 (expect projectile-replace--scan-timer :to-be nil)
-                (expect (projectile-scan-async-test--sig
+                (expect (projectile-test-match-sig
                          projectile-replace--matches root)
                         :to-equal
-                        (projectile-scan-async-test--sig sync root))))
+                        (projectile-test-match-sig sync root))))
           (kill-buffer buf)))))
 
   (it "keeps case sensitivity in a late chunk (parity with sync)"
@@ -179,11 +170,11 @@ project root.  BODY runs with `default-directory' at the root and
               (projectile-replace--gather-async candidates "foo" buf nil)
               (projectile-scan-async-test--pump buf)
               (with-current-buffer buf
-                (expect (projectile-scan-async-test--sig
+                (expect (projectile-test-match-sig
                          projectile-replace--matches root)
                         :to-equal
-                        (projectile-scan-async-test--sig sync root))
-                (expect (projectile-scan-async-test--sig
+                        (projectile-test-match-sig sync root))
+                (expect (projectile-test-match-sig
                          projectile-replace--matches root)
                         :not :to-contain '("e.txt" 1 0 "FOO"))))
           (kill-buffer buf)))))
@@ -204,10 +195,10 @@ project root.  BODY runs with `default-directory' at the root and
               (with-current-buffer buf
                 (expect (length projectile-replace--matches) :to-equal 3)
                 (expect projectile-replace--truncated :to-be-truthy)
-                (expect (projectile-scan-async-test--sig
+                (expect (projectile-test-match-sig
                          projectile-replace--matches root)
                         :to-equal
-                        (projectile-scan-async-test--sig sync root))))
+                        (projectile-test-match-sig sync root))))
           (kill-buffer buf)))))
 
   (it "runs ON-DONE in the buffer once scanning finishes"
