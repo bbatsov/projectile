@@ -5319,7 +5319,6 @@ a plist with the following optional properties:
   :key-fn  a function of the file's relative path returning its resource
            key string, or nil when the file is not of this kind.  When
            omitted the key is derived by `projectile--file-kind-default-key'.
-  :file-fn  reserved for a future inverse of :key-fn; currently unused.
 
 The returned function, given a relative path, finds the first kind the
 path belongs to and emits, for every *other* kind, an entry
@@ -12640,12 +12639,20 @@ so shared or circular structure in a record can't hang the write."
 (defun projectile-session--read-file (file)
   "Read and return the session data stored in FILE, or nil.
 Data that isn't a well-formed session plist of the current version is
-ignored, so an unreadable or stale file is skipped rather than erroring."
+ignored, so an unreadable or stale file is skipped rather than erroring.
+A real session file written by an incompatible format version is skipped
+with a message, so the user learns why nothing was restored."
   (let ((data (projectile-unserialize file)))
-    (and (consp data)
-         (equal (plist-get data :projectile-session-version)
-                projectile-session--format-version)
-         data)))
+    (cond
+     ((and (consp data)
+           (equal (plist-get data :projectile-session-version)
+                  projectile-session--format-version)
+           data))
+     ((and (consp data) (plist-member data :projectile-session-version))
+      (message "Ignoring session file %s: format version %s (expected %s)"
+               file (plist-get data :projectile-session-version)
+               projectile-session--format-version)
+      nil))))
 
 (defun projectile-session--read (root)
   "Read and return project ROOT's session data, or nil.
