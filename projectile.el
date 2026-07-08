@@ -1746,6 +1746,10 @@ The cache is created both in memory and on the hard drive."
           (puthash project-root new-cache projectile-projects-cache)
           (when (projectile-persistent-cache-p)
             (projectile-serialize new-cache (projectile-project-cache-file project-root)))
+          ;; Re-derive watches from the shrunken cache, otherwise the purged
+          ;; file's directory keeps being watched and a later create-event
+          ;; there re-adds the entries we just removed.
+          (projectile--maybe-watch-project project-root new-cache)
           (when projectile-verbose
             (message "%s removed from cache" file)))
       (user-error "%s is not in the cache" file))))
@@ -1764,7 +1768,10 @@ The cache is created both in memory and on the hard drive."
                                 project-cache)))
     (puthash project-root new-cache projectile-projects-cache)
     (when (projectile-persistent-cache-p)
-      (projectile-serialize new-cache (projectile-project-cache-file project-root)))))
+      (projectile-serialize new-cache (projectile-project-cache-file project-root)))
+    ;; Re-derive watches so the purged directory is no longer watched (and its
+    ;; files don't get re-added by a later create-event).
+    (projectile--maybe-watch-project project-root new-cache)))
 
 (defun projectile-file-cached-p (file project)
   "Check if FILE is already in PROJECT cache."
@@ -5453,7 +5460,10 @@ for the kind, and repeated invocations cycle through them in table order."
     (unless file
       (user-error "The current buffer is not visiting a file"))
     (let* ((project-root (projectile-acquire-root))
-           (rel-path (file-relative-name file project-root))
+           ;; Spell the file the same way as the root (symlink-resolved), so a
+           ;; project reached through a symlinked root doesn't yield a bogus
+           ;; `../'-prefixed relative name and a spurious "no related files".
+           (rel-path (projectile--project-relative-name (file-truename file) project-root))
            (ring (projectile--related-file-ring rel-path))
            (others (remove rel-path ring)))
       (unless others
@@ -8107,6 +8117,12 @@ Only the read-only search reviewer's ripgrep fast-path uses this; the
 pure-elisp async scan uses `projectile-replace--scan-timer' instead.
 Held so a re-scan, a quit, or killing the buffer can kill a scan that is
 still running, leaving no orphaned process.")
+(defvar-local projectile-replace--scan-generation 0
+  "Monotonic token identifying the current async scan of this buffer.
+Every (re-)scan and every cancel bumps it; a chunk timer carries the
+generation it was scheduled under and no-ops when it no longer matches.
+This way a timer that already fired and is waiting to run can't append
+to a newer scan's match list if it is superseded in the meantime.")
 (defvar-local projectile-replace--render-function #'projectile-replace--render
   "Function that redraws the current results buffer from its state.
 The scanning, navigation, filter and toggle machinery is shared
@@ -8274,6 +8290,9 @@ on re-scan, on quit, and from `kill-buffer-hook'."
     ;; drop our sentinel first so killing it doesn't run the finish handler
     (set-process-sentinel projectile-replace--scan-process #'ignore)
     (delete-process projectile-replace--scan-process))
+  ;; Bump the generation so a chunk timer that already fired and is queued
+  ;; behind us no-ops rather than resurrecting this scan.
+  (cl-incf projectile-replace--scan-generation)
   (setq projectile-replace--scan-timer nil
         projectile-replace--scan-process nil
         projectile-replace--scanning nil))
@@ -8289,24 +8308,31 @@ REGEXP; `projectile-replace-max-matches' and the `:truncated' note are
 honored the same way.  ON-DONE (or nil) is called in BUFFER once the scan
 finishes.  A scan already running in BUFFER should be canceled first (see
 `projectile-replace--cancel-scan')."
-  (with-current-buffer buffer
-    (setq projectile-replace--matches nil
-          projectile-replace--truncated nil
-          projectile-replace--filtered nil
-          projectile-replace--scanning t
-          projectile-replace--scan-timer nil))
-  (projectile-replace--scan-step
-   buffer candidates regexp projectile-replace-max-matches on-done))
+  (let ((generation
+         (with-current-buffer buffer
+           (setq projectile-replace--matches nil
+                 projectile-replace--truncated nil
+                 projectile-replace--filtered nil
+                 projectile-replace--scanning t
+                 projectile-replace--scan-timer nil)
+           (cl-incf projectile-replace--scan-generation))))
+    (projectile-replace--scan-step
+     buffer candidates regexp projectile-replace-max-matches on-done generation)))
 
-(defun projectile-replace--scan-step (buffer remaining regexp budget on-done)
+(defun projectile-replace--scan-step (buffer remaining regexp budget on-done generation)
   "Scan one chunk of REMAINING candidates for REGEXP into BUFFER.
-BUDGET is the remaining match allowance.  Delivers this chunk's matches
-into BUFFER and re-renders; while candidates and budget remain it
-schedules itself for the next chunk via a zero-delay timer, otherwise it
-finishes: clears the scanning state, does a final render and calls
-ON-DONE.  Guarded against a killed BUFFER (leaving no work behind) and
-against \\`C-g' during a chunk (which cancels the scan cleanly)."
-  (when (buffer-live-p buffer)
+BUDGET is the remaining match allowance.  GENERATION is the scan token
+this chunk belongs to; the step no-ops when it no longer matches BUFFER's
+current `projectile-replace--scan-generation' (i.e. the scan was
+superseded or canceled).  Delivers this chunk's matches into BUFFER and
+re-renders; while candidates and budget remain it schedules itself for
+the next chunk via a zero-delay timer, otherwise it finishes: clears the
+scanning state, does a final render and calls ON-DONE.  Guarded against a
+killed BUFFER (leaving no work behind) and against \\`C-g' during a chunk
+\(which cancels the scan cleanly)."
+  (when (and (buffer-live-p buffer)
+             (= generation
+                (buffer-local-value 'projectile-replace--scan-generation buffer)))
     (condition-case nil
         (let ((fold (buffer-local-value 'projectile-replace--case-fold buffer))
               (count 0)
@@ -8341,7 +8367,7 @@ against \\`C-g' during a chunk (which cancels the scan cleanly)."
                 (setq projectile-replace--scan-timer
                       (run-with-timer 0 nil
                                       #'projectile-replace--scan-step
-                                      buffer remaining regexp budget on-done))
+                                      buffer remaining regexp budget on-done generation))
                 (funcall projectile-replace--render-function))
             ;; finished (or budget-truncated): settle and hand off
             (with-current-buffer buffer
@@ -8482,7 +8508,7 @@ async scan streams matches in."
                      "\\[projectile-replace--export] export  "
                      "\\[projectile-replace--refresh] re-search  "
                      "\\[projectile-replace--visit] visit  "
-                     "\\[quit-window] quit\n"
+                     "\\[projectile-replace--quit] quit\n"
                      "\\[projectile-replace--toggle-case] case  "
                      "\\[projectile-replace--toggle-regexp] regexp/literal  "
                      "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
@@ -9429,7 +9455,7 @@ property so the shared navigation, visit and filter commands find it."
                      "\\[projectile-replace--refresh] re-search  "
                      "\\[projectile-search--to-replace] replace these  "
                      "\\[projectile-replace--export] export  "
-                     "\\[quit-window] quit\n"
+                     "\\[projectile-replace--quit] quit\n"
                      "\\[projectile-replace--toggle-case] case  "
                      "\\[projectile-replace--toggle-regexp] regexp/literal  "
                      "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
@@ -12477,10 +12503,15 @@ deserializer declines (e.g. the underlying file is gone)."
     (list :file (buffer-file-name buffer) :point (point))))
 
 (defun projectile-session--deserialize-file (record)
-  "Recreate the file buffer described by RECORD, or nil when the file is gone."
+  "Recreate the file buffer described by RECORD, or nil when the file is gone.
+The file is visited non-interactively - large-file warnings and unsafe
+file-local-variable prompts are suppressed - so restoring a session (in
+particular on startup) never blocks Emacs on a `yes-or-no-p'."
   (let ((file (plist-get record :file)))
     (when (and file (file-exists-p file))
-      (let ((buffer (find-file-noselect file)))
+      (let* ((large-file-warning-threshold nil)
+             (enable-local-variables :safe)
+             (buffer (find-file-noselect file)))
         (when (buffer-live-p buffer)
           (let ((point (plist-get record :point)))
             (when (integerp point)
@@ -12652,8 +12683,15 @@ session was restored."
          (recreated
           (let ((state (plist-get data :window-state)))
             (when state
-              (window-state-put (projectile-session--sanitize-window-state state)
-                                (frame-root-window) 'safe)))
+              ;; A hand-edited or corrupt :window-state that still passes the
+              ;; version check shouldn't abort the whole restore - fall through
+              ;; to the recreated buffers instead, matching the buffer-recreation
+              ;; guard above and the file-read robustness elsewhere here.
+              (condition-case err
+                  (window-state-put (projectile-session--sanitize-window-state state)
+                                    (frame-root-window) 'safe)
+                (error
+                 (message "projectile-session: could not restore window layout: %S" err)))))
           t)
          ;; Nothing could be recreated (every saved file is gone, say);
          ;; return nil so `restore-on-switch' falls back to populating the

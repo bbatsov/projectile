@@ -143,7 +143,16 @@
       ;; The in-memory cache should be updated
       (expect (gethash "/project/" projectile-projects-cache) :to-equal '("foo.el" "baz.el"))
       ;; projectile-serialize should be called with the updated list, not the stale one
-      (expect 'projectile-serialize :to-have-been-called-with '("foo.el" "baz.el") "/tmp/cache.eld"))))
+      (expect 'projectile-serialize :to-have-been-called-with '("foo.el" "baz.el") "/tmp/cache.eld")))
+  (it "re-derives file-notify watches from the updated cache"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching t))
+      (puthash "/project/" '("foo.el" "bar.el") projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/project/")
+      (spy-on 'projectile--maybe-watch-project)
+      (projectile-purge-file-from-cache "bar.el")
+      (expect 'projectile--maybe-watch-project
+              :to-have-been-called-with "/project/" '("foo.el")))))
 
 (describe "projectile-purge-dir-from-cache"
   (it "removes files under the directory from the in-memory cache"
@@ -177,7 +186,16 @@
       (spy-on 'projectile-project-root :and-return-value "/project/")
       (spy-on 'projectile-serialize)
       (projectile-purge-dir-from-cache "src/")
-      (expect 'projectile-serialize :not :to-have-been-called))))
+      (expect 'projectile-serialize :not :to-have-been-called)))
+  (it "re-derives file-notify watches from the updated cache"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile-enable-caching t))
+      (puthash "/project/" '("src/foo.el" "test/baz.el") projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/project/")
+      (spy-on 'projectile--maybe-watch-project)
+      (projectile-purge-dir-from-cache "src/")
+      (expect 'projectile--maybe-watch-project
+              :to-have-been-called-with "/project/" '("test/baz.el")))))
 
 (describe "projectile-sort-by-modification-time"
   (it "sorts files by modification time in descending order"

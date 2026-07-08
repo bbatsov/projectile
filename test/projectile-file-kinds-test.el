@@ -273,6 +273,27 @@
             (projectile-toggle-related-file)
             (expect 'find-file :to-have-been-called-with
                     (expand-file-name "app/models/user.rb" root)))))))
+  (it "resolves the visited file's symlinks against the project root"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files-using-custom-project
+          ("app/controllers/users_controller.rb"
+           "app/models/user.rb")
+          (:file-kinds projectile--rails-file-kinds)
+        (let* ((root (file-truename (expand-file-name "project/")))
+               ;; the current file reached through a symlinked project root, so
+               ;; `buffer-file-name' is un-resolved while the root is resolved
+               (link-file (expand-file-name
+                           "app/controllers/users_controller.rb"
+                           (file-name-as-directory (expand-file-name "linkproj")))))
+          (make-symbolic-link "project" "linkproj")
+          (spy-on 'find-file)
+          (cl-letf (((symbol-function 'buffer-file-name)
+                     (lambda (&optional _) link-file)))
+            (setq last-command nil this-command 'projectile-toggle-related-file)
+            ;; without truename'ing the file this raises "No related files"
+            (projectile-toggle-related-file)
+            (expect 'find-file :to-have-been-called-with
+                    (expand-file-name "app/models/user.rb" root)))))))
   (it "cycles through several related kinds on repeated invocation"
     (projectile-test-with-sandbox
       (projectile-test-with-files-using-custom-project
