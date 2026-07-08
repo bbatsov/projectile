@@ -27,6 +27,14 @@ jobs:
     - name: Check out the source code
       uses: actions/checkout@v6
 
+    # ripgrep powers the search reviewer's fast-path; install it so the specs
+    # that exercise the real `rg' subprocess actually run in CI instead of
+    # being skipped (they self-skip when `rg' is absent).
+    - name: Install ripgrep
+      run: |
+        apt-get update
+        apt-get install -y ripgrep
+
     - name: Test the project
       run: |
         eldev -p -dtT -C test --expect 680

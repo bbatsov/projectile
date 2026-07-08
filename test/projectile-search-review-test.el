@@ -104,6 +104,16 @@ REGEXP-P selects `projectile-search-regexp-review'."
                     files :test #'equal))
       (sort files #'string<))))
 
+(defun projectile-search-review-test--sig (matches root)
+  "Return a comparable (relpath line col string) signature list for MATCHES."
+  (sort (mapcar (lambda (m)
+                  (list (file-relative-name (projectile-replace--match-file m) root)
+                        (projectile-replace--match-line m)
+                        (projectile-replace--match-column m)
+                        (projectile-replace--match-string m)))
+                matches)
+        (lambda (a b) (string< (format "%S" a) (format "%S" b)))))
+
 (describe "projectile-search-review (literal)"
   (it "finds every literal match grouped by file, read-only, no apply keys"
     (projectile-search-review-test--with-project
@@ -322,11 +332,15 @@ REGEXP-P selects `projectile-search-regexp-review'."
 ;;; Ripgrep fast-path
 
 (defun projectile-search-review-test--wait (buf)
-  "Pump events until BUF's ripgrep scan finishes (or a timeout elapses)."
+  "Pump events until BUF's ripgrep scan finishes (or a timeout elapses).
+Pumps the general event loop (not just the scan process): once the rg
+process has exited, `accept-process-output' on that dead process can
+return immediately without dispatching its queued sentinel - the sentinel
+is what runs `projectile-search--rg-finish' and clears the scanning flag."
   (with-current-buffer buf
     (let ((limit (+ (float-time) 10)))
       (while (and projectile-replace--scanning (< (float-time) limit))
-        (accept-process-output projectile-replace--scan-process 0.05)))))
+        (accept-process-output nil 0.05)))))
 
 (describe "projectile-search--rg byte->char column conversion"
   (it "counts a multibyte prefix as characters, not bytes"
@@ -632,5 +646,29 @@ REGEXP-P selects `projectile-search-regexp-review'."
                               (projectile-replace--match-file m)))
                            projectile-replace--matches)
                   :to-be nil))))))
+
+(describe "projectile-search-review ripgrep vs elisp parity"
+  (it "the ripgrep fast-path finds the same matches as the elisp scan"
+    (assume (executable-find "rg") "needs a real ripgrep")
+    (projectile-search-review-test--with-project
+        (("a.txt" . "foo one\nno match here\nfoo two\n")
+         ("sub/b.txt" . "prefix foo suffix\n")
+         ("c.txt" . "nothing to see\n"))
+      (let* ((root default-directory)
+             (term "foo")
+             ;; elisp reference scan (the portable, deterministic path)
+             (candidates (projectile-replace--candidates term t t root))
+             (elisp (plist-get (projectile-replace--gather candidates term)
+                               :matches))
+             ;; ripgrep fast-path
+             (buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  root term term nil t t)
+        (projectile-search--gather-rg buf term nil)
+        (projectile-search-review-test--wait buf)
+        (expect (projectile-search-review-test--sig
+                 (buffer-local-value 'projectile-replace--matches buf) root)
+                :to-equal
+                (projectile-search-review-test--sig elisp root))))))
 
 ;;; projectile-search-review-test.el ends here
