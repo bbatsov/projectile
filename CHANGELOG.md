@@ -39,6 +39,11 @@
   * Which buffers are recorded, and how, is extensible via `projectile-session-buffer-serializers`; file-visiting and `dired-mode` buffers work out of the box.
   * The session commands are bound under the `w` sub-prefix of the command map (`s-p w s`, `s-p w S`, `s-p w r`, `s-p w R`, `s-p w f`, `s-p w b`), and are also available from `projectile-dispatch` and the Projectile menu.
 
+### Changes
+
+* Add `projectile-frecency-max-projects` (default 100), which caps how many projects' frecency history is kept so the store can't grow without bound.
+* `projectile-replace-scan-chunk-size` is now a user-facing `defcustom` (was an internal variable).
+
 ## 3.1.0 (2026-07-04)
 
 ### New features
