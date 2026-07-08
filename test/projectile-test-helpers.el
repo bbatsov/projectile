@@ -332,6 +332,41 @@ matter which of rg/ag/ack happens to be installed."
       (insert-file-contents (expand-file-name file)))
     (buffer-string)))
 
+(defmacro projectile-test-with-project (files &rest body)
+  "Evaluate BODY in a sandbox `project/' containing FILES.
+FILES is a literal alist of (RELPATH . CONTENT) specs created under a
+`project/' directory; a `.projectile' marker is added (include one in
+FILES to override its contents, e.g. to add ignore rules).  BODY runs
+with `default-directory' at the truename'd project root,
+`projectile-project-root' stubbed to it, native indexing with fresh
+caches, caching off and `case-fold-search' on.  Buffers visiting project
+files, and the search/replace results buffers, are killed afterwards.
+
+This is the shared core behind the per-suite search/replace project
+macros; a suite that needs extra dynamic bindings (e.g. the replace
+specs' smart-case settings) can wrap BODY in its own `let'."
+  (declare (indent 1) (debug (sexp &rest form)))
+  `(projectile-test-with-sandbox
+     (make-directory "project" t)
+     (with-temp-file "project/.projectile")
+     ,@(mapcar (lambda (spec)
+                 `(progn
+                    (when-let* ((dir (file-name-directory ,(car spec))))
+                      (make-directory (expand-file-name dir "project") t))
+                    (with-temp-file (expand-file-name ,(car spec) "project")
+                      (insert ,(cdr spec)))))
+               files)
+     (let ((default-directory (file-name-as-directory (projectile-test-project-root)))
+           (projectile-indexing-method 'native)
+           (projectile-projects-cache (make-hash-table :test 'equal))
+           (projectile-projects-cache-time (make-hash-table :test 'equal))
+           (projectile-enable-caching nil)
+           (case-fold-search t))
+       (spy-on 'projectile-project-root :and-return-value default-directory)
+       (unwind-protect
+           (progn ,@body)
+         (projectile-test-kill-project-buffers default-directory)))))
+
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
 Just delegates OPERATION and ARGS for all operations except for
