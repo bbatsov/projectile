@@ -316,7 +316,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "+/src\n"
                   "-/build\n"
@@ -333,7 +333,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/")))
+      (let ((root (projectile-test-project-root))
             (coding-system-for-write 'utf-8-unix))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-héllo/wörld\n"
@@ -347,7 +347,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n-bar"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -361,7 +361,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -376,7 +376,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let* ((root (file-truename (expand-file-name "project/")))
+      (let* ((root (projectile-test-project-root))
              (dirconfig (expand-file-name ".projectile" root)))
         (with-temp-file dirconfig (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -393,7 +393,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (spy-on 'projectile-project-root :and-return-value root)
         (expect (projectile-parse-dirconfig-file) :to-be nil)
         (expect (gethash root projectile--dirconfig-cache) :to-be nil)))))
@@ -401,7 +401,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -416,7 +416,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n"))
         (with-temp-file (expand-file-name ".projectile-alt" root)
@@ -437,7 +437,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\nstale-pattern\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -450,7 +450,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n+/src\n!/build/keep\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -462,7 +462,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "stale-pattern\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -478,7 +478,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -494,7 +494,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (spy-on 'projectile-project-root :and-return-value root)
         (spy-on 'projectile-dir-files-alien :and-return-value '("a"))
         (spy-on 'display-warning)
@@ -507,7 +507,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -522,7 +522,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-foo\n"))
         (spy-on 'projectile-project-root :and-return-value root)

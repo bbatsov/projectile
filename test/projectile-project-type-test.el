@@ -258,7 +258,7 @@
        "project/spec/"
        "project/package.json")
       (let ((projectile-indexing-method 'native))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'rails-rspec)))))
   (it "detects project-type for elisp eldev projects"
     (projectile-test-with-sandbox
@@ -267,7 +267,7 @@
        "project/Eldev"
        "project/project.el")
       (let ((projectile-indexing-method 'native))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'emacs-eldev)))))
   (it "detects project-type for dotnet sln projects"
     (projectile-test-with-sandbox
@@ -275,7 +275,7 @@
       ("project/"
        "project/Project.sln")
       (let ((projectile-indexing-method 'native))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'dotnet-sln)))))
   (it "detects project-type for dotnet slnx projects"
     (projectile-test-with-sandbox
@@ -283,7 +283,7 @@
       ("project/"
        "project/Project.slnx")
       (let ((projectile-indexing-method 'native))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'dotnet-sln)))))
   (it "detects project-type for Julia PkgTemplates.jl projects"
     (projectile-test-with-sandbox
@@ -292,7 +292,7 @@
        "project/src/"
        "project/Project.toml")
       (let ((projectile-indexing-method 'native))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'julia)))))
   (it "detects project-type for Zig projects"
     (projectile-test-with-sandbox
@@ -301,7 +301,7 @@
        "project/src/"
        "project/build.zig.zon")
       (let ((projectile-indexing-method 'native))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'zig)))))
   (it "does not match a project type whose marker-files are empty"
     (projectile-test-with-sandbox
@@ -311,7 +311,7 @@
       (let ((projectile-project-types '((empty marker-files nil)
                                         (real marker-files ("foo"))))
             (projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'real)))))
   (it "falls back to generic when the only type has empty marker-files"
     (projectile-test-with-sandbox
@@ -320,7 +320,7 @@
        "project/foo")
       (let ((projectile-project-types '((empty marker-files nil)))
             (projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'generic)))))
   (it "detects a marker that sits in a subdirectory of the root"
     ;; `debian/control' carries a path separator, so it can't be answered
@@ -332,7 +332,7 @@
        "project/debian/"
        "project/debian/control")
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'debian)))))
   (it "detects project-type for lowercase makefile projects"
     (projectile-test-with-sandbox
@@ -340,7 +340,7 @@
       ("project/"
        "project/makefile")
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'make)))))
   (it "detects project-type for GNUmakefile projects"
     (projectile-test-with-sandbox
@@ -348,7 +348,7 @@
       ("project/"
        "project/GNUmakefile")
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (file-truename (expand-file-name "project/")))
+        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'gnumake)))))
   (it "passes the project root to a function marker (#1909)"
     (let ((projectile-project-types

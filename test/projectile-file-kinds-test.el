@@ -264,7 +264,7 @@
           ("app/controllers/users_controller.rb"
            "app/models/user.rb")
           (:file-kinds projectile--rails-file-kinds)
-        (let ((root (file-truename (expand-file-name "project/"))))
+        (let ((root (projectile-test-project-root)))
           (spy-on 'find-file)
           (spy-on 'buffer-file-name :and-return-value
                   (expand-file-name "app/controllers/users_controller.rb" root))
@@ -278,7 +278,7 @@
           ("app/controllers/users_controller.rb"
            "app/models/user.rb")
           (:file-kinds projectile--rails-file-kinds)
-        (let* ((root (file-truename (expand-file-name "project/")))
+        (let* ((root (projectile-test-project-root))
                ;; the current file reached through a symlinked project root, so
                ;; `buffer-file-name' is un-resolved while the root is resolved
                (link-file (expand-file-name
@@ -299,7 +299,7 @@
            "app/models/user.rb"
            "app/views/users/index.html.erb")
           (:file-kinds projectile--rails-file-kinds)
-        (let* ((root (file-truename (expand-file-name "project/")))
+        (let* ((root (projectile-test-project-root))
                (current "app/controllers/users_controller.rb"))
           (spy-on 'find-file :and-call-fake
                   (lambda (path)

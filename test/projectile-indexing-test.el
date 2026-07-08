@@ -63,7 +63,7 @@
      (projectile-test-with-files
       ("project/"
        "project/existing.txt")
-      (let ((default-directory (file-truename (expand-file-name "project/")))
+      (let ((default-directory (projectile-test-project-root))
             (projectile-git-use-fd nil)
             (projectile-fd-executable nil))
         ;; Initialize a real git repo, commit a file, then delete it without staging
@@ -137,7 +137,7 @@
        "project/keep.txt"
        "project/drop.txt"
        "project/.projectile")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-/drop.txt\n"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -614,7 +614,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (spy-on 'projectile--git-submodule-paths
                 :and-return-value '("vendor/sub"))
         (expect (projectile--git-submodules root) :to-equal '("vendor/sub"))
@@ -625,7 +625,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (spy-on 'projectile--git-submodule-paths
                 :and-return-value '("vendor/sub"))
         (projectile--git-submodules root)
@@ -640,7 +640,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (spy-on 'projectile--git-submodule-paths
                 :and-return-value '("vendor/sub"))
         (spy-on 'projectile-project-root :and-return-value root)
@@ -657,7 +657,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/.git/")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (spy-on 'projectile--git-submodule-paths)
         (spy-on 'projectile-files-via-ext-command)
         (expect (projectile--git-submodules root) :to-be nil)
@@ -669,7 +669,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/vendor/sub/.git")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".gitmodules" root)
           (insert "[submodule \"sub\"]\n"
                   "\tpath = vendor/sub\n"
@@ -684,7 +684,7 @@
        "project/web-ui/"
        "project/web-ui/vendor/sub/.git"
        "project/server/vendor/other/.git")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".gitmodules" root)
           (insert "[submodule \"sub\"]\n"
                   "\tpath = web-ui/vendor/sub\n"
@@ -699,7 +699,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
-      (let ((root (file-truename (expand-file-name "project/")))
+      (let ((root (projectile-test-project-root))
             (projectile-git-submodule-command "git my-submodule-lister"))
         (spy-on 'projectile-files-via-ext-command
                 :and-return-value '("vendor/sub"))
@@ -713,7 +713,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
-      (let ((root (file-truename (expand-file-name "project/")))
+      (let ((root (projectile-test-project-root))
             (projectile-git-submodule-command nil))
         (spy-on 'projectile--git-submodule-paths)
         (spy-on 'projectile-files-via-ext-command)
@@ -850,7 +850,7 @@
        "project/dir with spaces/.git"
        ;; Registered but never initialized: no .git inside.
        "project/vendor/uninitialized/")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".gitmodules" root)
           (insert "# top-level comment\n"
                   "[submodule \"first\"]\n"
@@ -869,7 +869,7 @@
      (projectile-test-with-files
       ("project/.git/"
        "project/.gitmodules")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (expect (projectile--git-submodule-paths root) :to-be nil))))))
 
 (describe "projectile-get-all-sub-projects-files"
@@ -964,7 +964,7 @@
        "project/docs/a.text"
        "project/keep.text"
        "project/README.md")
-      (let ((root (file-truename (expand-file-name "project/"))))
+      (let ((root (projectile-test-project-root)))
         (with-temp-file (expand-file-name ".projectile" root)
           (insert "-*.text\n!keep.text\n-vendor/\n-src/gen/\n"))
         (spy-on 'projectile-project-root :and-return-value root)

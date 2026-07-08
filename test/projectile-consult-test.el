@@ -67,7 +67,7 @@
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/" "project/src/" "project/a.el" "project/src/b.el")
-      (let ((default-directory (file-truename (expand-file-name "project/")))
+      (let ((default-directory (projectile-test-project-root))
             (projectile-git-use-fd nil))
         (call-process "git" nil nil nil "init")
         (call-process "git" nil nil nil "add" "-A")

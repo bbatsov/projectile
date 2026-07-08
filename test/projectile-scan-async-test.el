@@ -52,7 +52,7 @@ project root.  BODY runs with `default-directory' at the root and
                       (insert ,(cdr spec)))))
                files)
      (let ((default-directory (file-name-as-directory
-                               (file-truename (expand-file-name "project/"))))
+                               (projectile-test-project-root)))
            (projectile-indexing-method 'native)
            (projectile-projects-cache (make-hash-table :test 'equal))
            (projectile-projects-cache-time (make-hash-table :test 'equal))

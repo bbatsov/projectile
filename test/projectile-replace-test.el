@@ -27,16 +27,6 @@
 
 (require 'projectile-test-helpers)
 
-(defun projectile-replace-test--kill-project-buffers (root)
-  "Kill all buffers visiting files under ROOT, discarding modifications."
-  (dolist (buffer (buffer-list))
-    (when-let* ((file (buffer-file-name buffer)))
-      (when (string-prefix-p root (file-truename file))
-        (with-current-buffer buffer
-          (set-buffer-modified-p nil))
-        (let (kill-buffer-query-functions)
-          (kill-buffer buffer))))))
-
 (defmacro projectile-replace-test--with-project (files &rest body)
   "Evaluate BODY in a sandbox project containing FILES.
 
@@ -59,7 +49,7 @@ next spec."
                       (insert ,(cdr spec)))))
                files)
      (let ((default-directory (file-name-as-directory
-                               (file-truename (expand-file-name "project/"))))
+                               (projectile-test-project-root)))
            (projectile-indexing-method 'native)
            (projectile-projects-cache (make-hash-table :test 'equal))
            (projectile-projects-cache-time (make-hash-table :test 'equal))
@@ -72,7 +62,7 @@ next spec."
        (spy-on 'projectile-project-root :and-return-value default-directory)
        (unwind-protect
            (progn ,@body)
-         (projectile-replace-test--kill-project-buffers default-directory)))))
+         (projectile-test-kill-project-buffers default-directory)))))
 
 (defun projectile-replace-test--replace (old new &optional regexp-p)
   "Replace OLD with NEW in the current project, auto-confirming everything.
@@ -112,23 +102,12 @@ modify buffers without saving them."
         (insert-file-contents file)
         (buffer-string)))))
 
-(defun projectile-replace-test--use-plain-grep ()
-  "Force `projectile-files-with-string' to shell out to plain grep.
-Skips the calling spec when grep isn't available.  Pinning the tool
-makes the specs exercise the external listing pipeline deterministically
-no matter which of rg/ag/ack happens to be installed."
-  (assume (projectile-unixy-system-p) "needs unixy text utilities")
-  (spy-on 'executable-find :and-call-fake
-          (lambda (command &rest _)
-            ;; keep `projectile-unixy-system-p' truthy, hide rg/ag/ack/git
-            (member command '("grep" "cut" "uniq")))))
-
 (describe "projectile-replace"
   (it "replaces a literal string across multiple project files"
     (projectile-replace-test--with-project
         (("a.txt" . "foo one foo\n")
          ("lib/b.txt" . "start foo end\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (projectile-replace-test--replace "foo" "bar")
       (expect (projectile-replace-test--contents "a.txt")
               :to-equal "bar one bar\n")
@@ -139,7 +118,7 @@ no matter which of rg/ag/ack happens to be installed."
     (projectile-replace-test--with-project
         (("code.txt" . "call f(x) + 1\n")
          ("decoy.txt" . "fx is not a match\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (projectile-replace-test--replace "f(x)" "g(y)")
       (expect (projectile-replace-test--contents "code.txt")
               :to-equal "call g(y) + 1\n")
@@ -151,7 +130,7 @@ no matter which of rg/ag/ack happens to be installed."
     (projectile-replace-test--with-project
         (("match.txt" . "some foo here\n")
          ("nomatch.txt" . "nothing to see\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (projectile-replace-test--replace "foo" "bar")
       (expect (projectile-replace-test--contents "match.txt")
               :to-equal "some bar here\n")
@@ -164,7 +143,7 @@ no matter which of rg/ag/ack happens to be installed."
     (projectile-replace-test--with-project
         (("open.txt" . "first foo\nmiddle\nlast foo\n")
          ("closed.txt" . "foo here\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (with-current-buffer (find-file-noselect (expand-file-name "open.txt"))
         (goto-char (point-max)))
       (projectile-replace-test--replace "foo" "bar")
@@ -178,7 +157,7 @@ no matter which of rg/ag/ack happens to be installed."
         (("case.txt" . "Foo bar\n"))
       ;; the listing must go through a real (case-sensitive by default)
       ;; external tool for this to prove anything
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (projectile-replace-test--replace "foo" "qux")
       ;; standard `query-replace' semantics: the match is folded and the
       ;; replacement preserves its case
@@ -189,7 +168,7 @@ no matter which of rg/ag/ack happens to be installed."
     (projectile-replace-test--with-project
         (("case.txt" . "Foo bar foo\n")
          ("lower.txt" . "foo only\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (projectile-replace-test--replace "Foo" "Qux")
       (expect (projectile-replace-test--contents "case.txt")
               :to-equal "Qux bar foo\n")
@@ -201,7 +180,7 @@ no matter which of rg/ag/ack happens to be installed."
   (it "works when the project root is in abbreviated form (#1115)"
     (projectile-replace-test--with-project
         (("a.txt" . "hello foo world\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       ;; roots commonly come back as "~/..." because `find-file' sets an
       ;; abbreviated `default-directory'; the external listing must still
       ;; line up with the expanded project file list
@@ -279,7 +258,7 @@ no matter which of rg/ag/ack happens to be installed."
         (("exact.txt" . "foo\n")
          ("cased.txt" . "FOO\n")
          ("none.txt" . "bar\n"))
-      (projectile-replace-test--use-plain-grep)
+      (projectile-test-use-plain-grep)
       (let ((files (projectile-files-with-string "foo" default-directory)))
         (expect (sort files #'string<)
                 :to-equal (list (expand-file-name "cased.txt")
