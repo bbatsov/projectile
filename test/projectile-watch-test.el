@@ -502,11 +502,26 @@ watch bookkeeping into each other, caching is on (transient) and
       (projectile-watch-test-env
         (projectile-watch-test--spy-file-notify)
         (let ((projectile-auto-update-cache-with-watches nil)
+              (projectile-mode t)
               (root (projectile-project-root)))
           (puthash root '("a.el") projectile-projects-cache)
           (funcall (get 'projectile-auto-update-cache-with-watches 'custom-set)
                    'projectile-auto-update-cache-with-watches t)
           (expect (gethash root projectile--project-watches) :not :to-be nil)))))
+
+  (it "does not arm watches when the mode is off"
+    (projectile-test-with-stub-root "project" ("a.el")
+      (projectile-watch-test-env
+        (projectile-watch-test--spy-file-notify)
+        (let ((projectile-auto-update-cache-with-watches nil)
+              (projectile-mode nil)
+              (root (projectile-project-root)))
+          (puthash root '("a.el") projectile-projects-cache)
+          ;; arming watches with the mode off would leave them with no
+          ;; mode-disable teardown to clean them up
+          (funcall (get 'projectile-auto-update-cache-with-watches 'custom-set)
+                   'projectile-auto-update-cache-with-watches t)
+          (expect (gethash root projectile--project-watches) :to-be nil)))))
 
   (it "disabling projectile-mode tears down all watches"
     (spy-on 'projectile--teardown-all-watches)

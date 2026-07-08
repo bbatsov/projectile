@@ -114,7 +114,12 @@
     (projectile-mode 1)
     (expect (memq 'projectile-find-file-hook-function find-file-hook) :to-be-truthy)
     (projectile-mode -1)
-    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy)))
+    (expect (memq 'projectile-find-file-hook-function find-file-hook) :not :to-be-truthy))
+  (it "forgets the last-seen project when disabled"
+    (spy-on 'projectile--teardown-all-watches)
+    (setq projectile--current-project "/some/project/")
+    (projectile-mode -1)
+    (expect projectile--current-project :to-be nil)))
 
 (describe "projectile-default-mode-line"
   (it "includes the project name and type when in a project"

@@ -329,7 +329,10 @@ takes effect the next time a project's file list is cached."
          ;; The watch machinery is defined further down in this file, so
          ;; guard against the initial `defcustom' evaluation at load time.
          (if value
-             (when (fboundp 'projectile--watch-all-cached-projects)
+             ;; Only arm watches when the mode is on; otherwise they'd have no
+             ;; mode-disable teardown to fire and would linger until Emacs exits.
+             (when (and (bound-and-true-p projectile-mode)
+                        (fboundp 'projectile--watch-all-cached-projects))
                (projectile--watch-all-cached-projects))
            (when (fboundp 'projectile--teardown-all-watches)
              (projectile--teardown-all-watches))))
@@ -2506,7 +2509,13 @@ PATH may be a file or directory and directory paths may end with a slash."
 A single `directory-files' call replaces one `file-exists-p' per
 candidate name - over TRAMP that turns N sequential remote round-trips
 into one.  Returns nil when DIRECTORY can't be listed (missing or
-permission denied) or contains no entries."
+permission denied) or contains no entries.
+
+Note: membership is by directory entry, not `file-exists-p', so a broken
+symlink named like a marker counts as present here (the old per-candidate
+`file-exists-p' followed the link and returned nil).  This is harmless in
+practice - a project marker that is a dangling symlink is a pathological
+setup."
   (when-let* ((entries (ignore-errors
                          (directory-files
                           directory nil directory-files-no-dot-files-regexp t))))
@@ -12070,6 +12079,9 @@ Otherwise behave as if called interactively.
     (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
     (remove-hook 'kill-emacs-hook #'projectile--teardown-all-watches)
     (projectile--teardown-all-watches)
+    ;; Forget the last-seen project so re-enabling the mode fires
+    ;; `projectile-project-changed-functions' on the first re-entry.
+    (setq projectile--current-project nil)
     (advice-remove 'compilation-find-file #'compilation-find-file-projectile-find-compilation-buffer)
     (advice-remove 'delete-file #'delete-file-projectile-remove-from-cache))))
 
