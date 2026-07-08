@@ -309,11 +309,9 @@ that stores into it as the async callback."
             (projectile-git-use-fd nil))
         (call-process "git" nil nil nil "init")
         (call-process "git" nil nil nil "add" "-A")
-        (let ((sync (sort (projectile-dir-files-alien default-directory) #'string<))
-              (async (sort (copy-sequence
-                            (projectile--dir-files-alien-await default-directory))
-                           #'string<)))
-          (expect async :to-equal sync)
+        (let ((sync (projectile-dir-files-alien default-directory))
+              (async (projectile--dir-files-alien-await default-directory)))
+          (expect async :to-have-same-items-as sync)
           (expect async :to-contain "a.el")
           (expect async :to-contain "src/b.el"))))))
 

@@ -987,7 +987,7 @@
                          (projectile-dir-files root)))
                (hybrid (let ((projectile-indexing-method 'hybrid))
                          (projectile-dir-files root))))
-          (expect (sort native #'string<) :to-equal (sort hybrid #'string<))
+          (expect native :to-have-same-items-as hybrid)
           (expect native :to-contain "src/main.c")
           (expect native :to-contain "README.md")
           (expect native :to-contain "keep.text")

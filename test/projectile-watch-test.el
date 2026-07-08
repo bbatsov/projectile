@@ -66,10 +66,9 @@ watch bookkeeping into each other, caching is on (transient) and
 (describe "projectile--watch-directories"
   (it "derives the project root and the directory chain of every cached file"
     (let ((root "/tmp/watched-project/"))
-      (expect (sort (projectile--watch-directories
-                     root '("a.el" "src/b.el" "src/sub/c.el" "doc/d.adoc"))
-                    #'string<)
-              :to-equal
+      (expect (projectile--watch-directories
+               root '("a.el" "src/b.el" "src/sub/c.el" "doc/d.adoc"))
+              :to-have-same-items-as
               (list root
                     (concat root "doc/")
                     (concat root "src/")
@@ -83,9 +82,8 @@ watch bookkeeping into each other, caching is on (transient) and
         (let ((root (projectile-project-root)))
           (projectile-cache-project root '("a.el" "src/b.el" "src/sub/c.el"))
           (expect (spy-calls-count 'file-notify-add-watch) :to-equal 3)
-          (expect (sort (mapcar #'cdr (gethash root projectile--project-watches))
-                        #'string<)
-                  :to-equal
+          (expect (mapcar #'cdr (gethash root projectile--project-watches))
+                  :to-have-same-items-as
                   (list root (concat root "src/") (concat root "src/sub/")))))))
 
   (it "skips directories that no longer exist on disk"
@@ -323,8 +321,8 @@ watch bookkeeping into each other, caching is on (transient) and
             (projectile--handle-watch-event root (list descriptor 'created file))
             (projectile--handle-watch-event root (list descriptor 'created file)))
           (projectile--process-watch-events root)
-          (expect (sort (gethash root projectile-projects-cache) #'string<)
-                  :to-equal '("a.el" "b.el"))
+          (expect (gethash root projectile-projects-cache)
+                  :to-have-same-items-as '("a.el" "b.el"))
           (projectile--unwatch-project root)))))
 
   (it "invalidates the cache when the project root itself is deleted"

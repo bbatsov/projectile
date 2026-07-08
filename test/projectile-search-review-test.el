@@ -104,16 +104,6 @@ REGEXP-P selects `projectile-search-regexp-review'."
                     files :test #'equal))
       (sort files #'string<))))
 
-(defun projectile-search-review-test--sig (matches root)
-  "Return a comparable (relpath line col string) signature list for MATCHES."
-  (sort (mapcar (lambda (m)
-                  (list (file-relative-name (projectile-replace--match-file m) root)
-                        (projectile-replace--match-line m)
-                        (projectile-replace--match-column m)
-                        (projectile-replace--match-string m)))
-                matches)
-        (lambda (a b) (string< (format "%S" a) (format "%S" b)))))
-
 (describe "projectile-search-review (literal)"
   (it "finds every literal match grouped by file, read-only, no apply keys"
     (projectile-search-review-test--with-project
@@ -332,15 +322,9 @@ REGEXP-P selects `projectile-search-regexp-review'."
 ;;; Ripgrep fast-path
 
 (defun projectile-search-review-test--wait (buf)
-  "Pump events until BUF's ripgrep scan finishes (or a timeout elapses).
-Pumps the general event loop (not just the scan process): once the rg
-process has exited, `accept-process-output' on that dead process can
-return immediately without dispatching its queued sentinel - the sentinel
-is what runs `projectile-search--rg-finish' and clears the scanning flag."
-  (with-current-buffer buf
-    (let ((limit (+ (float-time) 10)))
-      (while (and projectile-replace--scanning (< (float-time) limit))
-        (accept-process-output nil 0.05)))))
+  "Pump events until BUF's ripgrep scan finishes (or a timeout elapses)."
+  (projectile-test-wait-for
+   (lambda () (not (buffer-local-value 'projectile-replace--scanning buf)))))
 
 (describe "projectile-search--rg byte->char column conversion"
   (it "counts a multibyte prefix as characters, not bytes"
@@ -666,9 +650,9 @@ is what runs `projectile-search--rg-finish' and clears the scanning flag."
                                   root term term nil t t)
         (projectile-search--gather-rg buf term nil)
         (projectile-search-review-test--wait buf)
-        (expect (projectile-search-review-test--sig
+        (expect (projectile-test-match-sig
                  (buffer-local-value 'projectile-replace--matches buf) root)
                 :to-equal
-                (projectile-search-review-test--sig elisp root))))))
+                (projectile-test-match-sig elisp root))))))
 
 ;;; projectile-search-review-test.el ends here
