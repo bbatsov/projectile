@@ -211,7 +211,33 @@
        (expect (gethash "mine.el" files) :to-equal '(1 . 1000))
        (expect (gethash "theirs.el" files) :to-equal '(3 . 2000))
        ;; max count, latest timestamp
-       (expect (gethash "shared.el" files) :to-equal '(7 . 1000))))))
+       (expect (gethash "shared.el" files) :to-equal '(7 . 1000)))))
+
+  (it "keeps the newer on-disk timestamp when merging an older local entry"
+    (projectile-test-with-frecency
+     (projectile-test--record-visit "/proj/" "shared.el" 1000)
+     ;; another session recorded the same file more recently
+     (with-temp-file projectile-frecency-file
+       (insert (prin1-to-string '(("/proj/" ("shared.el" 1 5000))))))
+     (projectile--frecency-save)
+     (setq projectile--frecency-table nil)
+     (expect (gethash "shared.el" (gethash "/proj/" (projectile--frecency-data)))
+             :to-equal '(1 . 5000))))
+
+  (it "caps the saved data at projectile-frecency-max-projects roots"
+    (projectile-test-with-frecency
+     (let ((projectile-frecency-max-projects 2))
+       (projectile-test--record-visit "/a/" "a.el" 1000)
+       (projectile-test--record-visit "/b/" "b.el" 2000)
+       (projectile-test--record-visit "/c/" "c.el" 3000)
+       (projectile--frecency-save)
+       (setq projectile--frecency-table nil)
+       (let ((data (projectile--frecency-data)))
+         (expect (hash-table-count data) :to-equal 2)
+         ;; the two most recently active roots survive, the oldest is dropped
+         (expect (gethash "/c/" data) :to-be-truthy)
+         (expect (gethash "/b/" data) :to-be-truthy)
+         (expect (gethash "/a/" data) :to-be nil))))))
 
 (describe "projectile-completing-read sort metadata"
   (it "exposes the sort function via completion metadata"
