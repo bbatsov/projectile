@@ -282,6 +282,56 @@ regardless of the order they were collected in."
                 matches)
         (lambda (a b) (string< (format "%S" a) (format "%S" b)))))
 
+;;; Sandbox project helpers
+
+(defun projectile-test-project-root ()
+  "Return the truename'd root of the sandbox `project/' subdirectory.
+The `projectile-test-with-files-using-custom-project' macro and the
+search/replace `--with-project' macros all build the project under a
+`project/' directory and stub `projectile-project-root' to this value."
+  (file-truename (expand-file-name "project/")))
+
+(defun projectile-test-kill-project-buffers (root)
+  "Kill buffers visiting files under ROOT, plus the results buffers.
+Discards modifications first (the replace commands leave buffers dirty),
+and also kills the `*projectile-search*'/`*projectile-replace*' results
+buffers so they don't leak into the next spec."
+  (dolist (buffer (buffer-list))
+    (when-let* ((file (buffer-file-name buffer)))
+      (when (string-prefix-p root (file-truename file))
+        (with-current-buffer buffer
+          (set-buffer-modified-p nil))
+        (let (kill-buffer-query-functions)
+          (kill-buffer buffer)))))
+  (dolist (name (list projectile-search-buffer-name
+                      projectile-replace-buffer-name))
+    (when-let* ((buf (get-buffer name)))
+      (kill-buffer buf))))
+
+(defun projectile-test-use-plain-grep ()
+  "Force `projectile-files-with-string' to shell out to plain grep.
+Skips the calling spec when grep isn't available.  Pinning the tool makes
+the specs exercise the external listing pipeline deterministically no
+matter which of rg/ag/ack happens to be installed."
+  (assume (projectile-unixy-system-p) "needs unixy text utilities")
+  (spy-on 'executable-find :and-call-fake
+          (lambda (command &rest _)
+            ;; keep `projectile-unixy-system-p' truthy, hide rg/ag/ack/git
+            (member command '("grep" "cut" "uniq")))))
+
+(defun projectile-test-disk (file)
+  "Return the on-disk contents of project FILE."
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name file))
+    (buffer-string)))
+
+(defun projectile-test-disk-raw (file)
+  "Return the raw (unconverted) on-disk bytes of project FILE as a string."
+  (with-temp-buffer
+    (let ((coding-system-for-read 'no-conversion))
+      (insert-file-contents (expand-file-name file)))
+    (buffer-string)))
+
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
 Just delegates OPERATION and ARGS for all operations except for
