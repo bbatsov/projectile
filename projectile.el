@@ -2246,6 +2246,15 @@ When the limit is exceeded, the lowest-ranking entries are dropped."
   :type 'natnum
   :package-version '(projectile . "3.1.0"))
 
+(defcustom projectile-frecency-max-projects 100
+  "Maximum number of projects whose frecency history is kept.
+When the store holds more roots than this, the least recently active
+ones are dropped on save, so the history can't grow without bound as
+projects come and go."
+  :group 'projectile
+  :type 'natnum
+  :package-version '(projectile . "3.2.0"))
+
 (defvar projectile--frecency-table nil
   "Hash of project root to a hash of relative file name to (COUNT . TIME).
 TIME is the last visit in seconds since the epoch.  nil until loaded
@@ -2377,6 +2386,21 @@ both, the higher visit count and the later timestamp win."
           disk-files)))
      disk-table)))
 
+(defun projectile--frecency-cap-projects (data)
+  "Return DATA capped at `projectile-frecency-max-projects' roots.
+DATA is an alist of (ROOT . FILE-ENTRIES), each FILE-ENTRY a
+\(FILE COUNT TIME) list.  The most recently active roots (highest file
+timestamp) are kept and the rest dropped, so the store can't accumulate
+dead roots without bound."
+  (if (<= (length data) projectile-frecency-max-projects)
+      data
+    (let ((ranked
+           (sort (copy-sequence data)
+                 (lambda (a b)
+                   (> (apply #'max 0 (mapcar (lambda (fe) (or (nth 2 fe) 0)) (cdr a)))
+                      (apply #'max 0 (mapcar (lambda (fe) (or (nth 2 fe) 0)) (cdr b))))))))
+      (seq-take ranked projectile-frecency-max-projects))))
+
 (defun projectile--frecency-save ()
   "Persist the frecency data to `projectile-frecency-file'.
 Merges with the data on disk first, so concurrent Emacs sessions
@@ -2401,7 +2425,8 @@ the file isn't writable, so a later save can retry."
                         files)
                (push (cons root file-entries) data))))
          projectile--frecency-table)
-        (projectile-serialize data projectile-frecency-file))
+        (projectile-serialize (projectile--frecency-cap-projects data)
+                              projectile-frecency-file))
       (setq projectile--frecency-dirty nil))))
 
 ;;;###autoload
