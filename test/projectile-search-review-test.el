@@ -346,13 +346,10 @@ REGEXP-P selects `projectile-search-regexp-review'."
            (ms (projectile-search--rg-parse-line json "/proj/"))
            (m (car ms)))
       (expect (length ms) :to-equal 1)
-      (expect (projectile-replace--match-file m) :to-equal "/proj/lib/mb.txt")
-      (expect (projectile-replace--match-line m) :to-equal 3)
-      ;; byte offset 6 -> character column 5
-      (expect (projectile-replace--match-column m) :to-equal 5)
-      (expect (projectile-replace--match-string m) :to-equal "foo")
-      ;; the trailing newline is stripped from the context line
-      (expect (projectile-replace--match-context m) :to-equal "café foo bar")
+      ;; byte offset 6 -> character column 5; the trailing newline is stripped
+      ;; from the context line
+      (expect m :to-be-a-match-with '(:file "/proj/lib/mb.txt" :line 3 :column 5
+                                      :string "foo" :context "café foo bar"))
       ;; write-back-only fields stay nil (search never uses them)
       (expect (projectile-replace--match-beg m) :to-be nil)
       (expect (projectile-replace--match-end m) :to-be nil)
@@ -579,17 +576,10 @@ REGEXP-P selects `projectile-search-regexp-review'."
           (expect projectile-replace--scanning :to-be nil)
           (expect (projectile-search-review-test--files buf)
                   :to-equal '("mb.txt" "plain.txt"))
-          (let ((mb (cl-find-if
-                     (lambda (m) (string-suffix-p
-                                  "mb.txt" (projectile-replace--match-file m)))
-                     projectile-replace--matches)))
-            (expect mb :not :to-be nil)
-            (expect (projectile-replace--match-line mb) :to-equal 1)
-            ;; character column 5 ("café " is 5 chars), NOT the byte offset 6
-            (expect (projectile-replace--match-column mb) :to-equal 5)
-            (expect (projectile-replace--match-string mb) :to-equal "foo")
-            (expect (projectile-replace--match-context mb)
-                    :to-equal "café foo bar"))))))
+          ;; character column 5 ("café " is 5 chars), NOT the byte offset 6
+          (expect (projectile-test-find-match projectile-replace--matches "mb.txt")
+                  :to-be-a-match-with '(:line 1 :column 5 :string "foo"
+                                        :context "café foo bar"))))))
 
   (it "honors projectile-replace-max-matches over a real ripgrep stream"
     (assume (executable-find "rg") "ripgrep is not installed")

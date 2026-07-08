@@ -178,6 +178,32 @@ macro-expansion time and must therefore be literals, not variables."
           "/tmp/temporary-file-" (format "%d" (random))
           ".eld"))
 
+(defmacro projectile-test-with-temp-files (bindings &rest body)
+  "Bind each VAR in BINDINGS to a fresh temp file (or directory) for BODY.
+Each binding is (VAR) or (VAR SUFFIX) for an empty temp file with the
+optional SUFFIX (e.g. \".txt\"), or (VAR :dir) for a temp directory.
+Every created path is removed when BODY exits, normally or via error -
+files with `delete-file', directories recursively - so a test doesn't
+have to hand-roll the `unwind-protect'/`delete-file' dance."
+  (declare (indent 1) (debug (sexp &rest form)))
+  (let ((vars (mapcar #'car bindings)))
+    `(let ,(mapcar
+            (lambda (b)
+              (let ((var (car b)) (arg (cadr b)))
+                (cond
+                 ((eq arg :dir) `(,var (file-name-as-directory
+                                        (make-temp-file "projectile-test-" t))))
+                 (arg           `(,var (make-temp-file "projectile-test-" nil ,arg)))
+                 (t             `(,var (make-temp-file "projectile-test-"))))))
+            bindings)
+       (unwind-protect
+           (progn ,@body)
+         (dolist (projectile-test--tmp (list ,@vars))
+           (ignore-errors
+             (if (file-directory-p projectile-test--tmp)
+                 (delete-directory projectile-test--tmp t)
+               (delete-file projectile-test--tmp))))))))
+
 (defun projectile-test-wait-for (predicate &optional timeout)
   "Block until PREDICATE returns non-nil or TIMEOUT seconds elapse.
 Pumps the event loop with `accept-process-output' so asynchronous
@@ -205,7 +231,43 @@ message reports exactly which items are missing and which are extra."
           (format "Expected %S to have the same items as %S (missing: %S, extra: %S)"
                   actual expected missing extra))))
 
+(defconst projectile-test--match-accessors
+  '(:file projectile-replace--match-file
+    :buffer projectile-replace--match-buffer
+    :line projectile-replace--match-line
+    :column projectile-replace--match-column
+    :string projectile-replace--match-string
+    :context projectile-replace--match-context
+    :enabled projectile-replace--match-enabled)
+  "Map of field keyword to accessor for `:to-be-a-match-with'.")
+
+(buttercup-define-matcher :to-be-a-match-with (match plist)
+  "Match when MATCH's `projectile-replace--match' fields equal PLIST.
+PLIST maps field keywords (`:file' `:line' `:column' `:string' `:context'
+`:buffer' `:enabled') to their expected values; only the listed fields
+are checked.  Collapses a stack of per-field `expect' forms into one, and
+the failure message names every field that didn't match."
+  (let* ((m (funcall match))
+         (plist (funcall plist))
+         (mismatches nil))
+    (if (null m)
+        (cons nil "Expected a match struct but got nil")
+      (cl-loop for (k v) on plist by #'cddr
+               for acc = (plist-get projectile-test--match-accessors k)
+               for actual = (funcall acc m)
+               unless (equal actual v)
+               do (push (format "%s: expected %S, got %S" k v actual) mismatches))
+      (cons (null mismatches)
+            (format "Expected match to have %S but %s" plist
+                    (string-join (nreverse mismatches) "; "))))))
+
 ;;; Match helpers (reviewable search/replace)
+
+(defun projectile-test-find-match (matches file-suffix)
+  "Return the match in MATCHES whose file name ends with FILE-SUFFIX."
+  (cl-find-if (lambda (m)
+                (string-suffix-p file-suffix (projectile-replace--match-file m)))
+              matches))
 
 (defun projectile-test-match-sig (matches root)
   "Return a stable, comparable signature for MATCHES relative to ROOT.

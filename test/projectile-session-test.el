@@ -492,18 +492,15 @@
         (delete-file tmp))))
 
   (it "skips a session file from an incompatible version with a message"
-    (let ((file (make-temp-file "projectile-session-ver" nil ".eld")))
-      (unwind-protect
-          (progn
-            (projectile-serialize
-             (list :projectile-session-version
-                   (1+ projectile-session--format-version)
-                   :buffers nil)
-             file)
-            (spy-on 'message)
-            (expect (projectile-session--read-file file) :to-be nil)
-            (expect 'message :to-have-been-called))
-        (delete-file file))))
+    (projectile-test-with-temp-files ((file ".eld"))
+      (projectile-serialize
+       (list :projectile-session-version
+             (1+ projectile-session--format-version)
+             :buffers nil)
+       file)
+      (spy-on 'message)
+      (expect (projectile-session--read-file file) :to-be nil)
+      (expect 'message :to-have-been-called)))
 
   (it "does not error restoring a layout whose file is gone"
     (let ((tmp (make-temp-file "projectile-session-gone" nil ".txt")))
