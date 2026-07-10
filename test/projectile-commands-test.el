@@ -178,6 +178,30 @@
     ;; the compilation dir
     (spy-on 'file-directory-p :and-return-value t))
 
+  (it "with :no-cache does not cache the command but still records history"
+    (let ((command-map (make-hash-table :test 'equal))
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-project-root "/a/random/path"))
+      (projectile--run-project-cmd "cmake . --preset debug" command-map
+                                   :command-type 'configure :no-cache t)
+      ;; nothing frozen in the cache...
+      (expect (hash-table-count command-map) :to-equal 0)
+      ;; ...but the executed command still feeds both histories, so
+      ;; projectile-repeat-last-command keeps working
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root 'configure))
+              :to-equal '("cmake . --preset debug"))
+      (expect (ring-elements
+               (projectile--get-command-history projectile-project-root))
+              :to-equal '("cmake . --preset debug"))))
+
+  (it "caches the command by default"
+    (let ((command-map (make-hash-table :test 'equal))
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-project-root "/a/random/path"))
+      (projectile--run-project-cmd "make" command-map :command-type 'compile)
+      (expect (hash-table-count command-map) :to-equal 1)))
+
   (it "projectile-cmd-hist-ignoredups set to t"
 
     (let ((command-map (make-hash-table :test 'equal))
@@ -256,6 +280,52 @@
   (it "returns nil for missing command"
     (let ((projectile-project-types '((test-type))))
       (expect (projectile-default-generic-command 'test-type 'compile-command) :to-equal nil))))
+
+(describe "function-valued lifecycle commands"
+  ;; #1549 / #1676: a project type can register a lifecycle command as a
+  ;; function (e.g. CMake's preset pickers, or a user's own :run/:test
+  ;; function).  It must be re-invoked - and may prompt - on every run rather
+  ;; than being frozen once its first result lands in the command cache.
+  (before-each
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'file-directory-p :and-return-value t)
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-root :and-return-value "/proj/")
+    (spy-on 'projectile-compilation-dir :and-return-value "/proj/")
+    (spy-on 'projectile-project-name :and-return-value "proj"))
+
+  (it "re-invokes a function :run command each run and never caches it"
+    (let ((projectile-project-types projectile-project-types)
+          (projectile-run-cmd-map (make-hash-table :test 'equal))
+          (projectile-project-run-cmd nil)
+          (projectile-per-project-compilation-buffer nil)
+          (compilation-read-command nil))
+      (defun projectile-test--dyn-run () "run-it")
+      (projectile-register-project-type 'dyn-run-project '("dyn.marker")
+                                        :run 'projectile-test--dyn-run)
+      (spy-on 'projectile-project-type :and-return-value 'dyn-run-project)
+      (spy-on 'projectile-test--dyn-run :and-call-through)
+      (projectile-run-project nil)
+      (projectile-run-project nil)
+      ;; the function is consulted on BOTH runs...
+      (expect 'projectile-test--dyn-run :to-have-been-called-times 2)
+      ;; ...and nothing is frozen in the run-command cache
+      (expect (hash-table-count projectile-run-cmd-map) :to-equal 0)
+      (expect 'projectile-run-compilation :to-have-been-called-with "run-it" nil)))
+
+  (it "re-runs CMake preset selection on every configure"
+    (let ((projectile-configure-cmd-map (make-hash-table :test 'equal))
+          (projectile-project-configure-cmd nil)
+          (projectile-per-project-compilation-buffer nil)
+          (compilation-read-command nil))
+      (spy-on 'projectile-project-type :and-return-value 'cmake)
+      (spy-on 'projectile--cmake-select-command
+              :and-return-value projectile--cmake-no-preset)
+      (projectile-configure-project nil)
+      (projectile-configure-project nil)
+      ;; the preset picker runs on each configure, not just the first
+      (expect 'projectile--cmake-select-command :to-have-been-called-times 2)
+      (expect (hash-table-count projectile-configure-cmd-map) :to-equal 0))))
 
 (describe "display-variant commands"
   ;; The other-window/-frame variants share a helper and differ only in the

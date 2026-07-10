@@ -44,6 +44,10 @@
 * Add `projectile-frecency-max-projects` (default 100), which caps how many projects' frecency history is kept so the store can't grow without bound.
 * `projectile-replace-scan-chunk-size` is now a user-facing `defcustom` (was an internal variable).
 
+### Bugs fixed
+
+* [#1549](https://github.com/bbatsov/projectile/issues/1549), [#1676](https://github.com/bbatsov/projectile/issues/1676): Re-invoke a function-valued lifecycle command (e.g. a CMake preset picker or a project type's `:run`/`:test` function) on every run instead of freezing its first result in the command cache, so it can prompt again.
+
 ## 3.1.0 (2026-07-04)
 
 ### New features
