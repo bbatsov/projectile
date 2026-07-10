@@ -10232,10 +10232,13 @@ Duplicates are handled according to `projectile-cmd-hist-ignoredups'."
    (t (ring-insert history command))))
 
 (cl-defun projectile--run-project-cmd
-    (command command-map &key command-type show-prompt prompt-prefix save-buffers use-comint-mode buffer-name-function)
+    (command command-map &key command-type show-prompt prompt-prefix save-buffers use-comint-mode buffer-name-function no-cache)
   "Run a project COMMAND, typically a test- or compile command.
 
 Cache the COMMAND for later use inside the hash-table COMMAND-MAP.
+With NO-CACHE non-nil the command is not stored in COMMAND-MAP (though
+its result still enters the command history); this is for
+function-derived commands that must be re-resolved on every run.
 
 COMMAND-TYPE, when non-nil, is the lifecycle command type symbol
 \(e.g. `compile' or `test') and is used to keep a per-type command
@@ -10265,7 +10268,11 @@ The command actually run is returned."
          (compilation-buffer-name-function compilation-buffer-name-function)
          (compilation-save-buffers-predicate compilation-save-buffers-predicate))
     (when command-map
-      (puthash default-directory command command-map)
+      ;; A function-derived command (NO-CACHE) is re-resolved on every run so
+      ;; it can prompt again (e.g. a CMake preset picker); don't freeze its
+      ;; result in the cache, only feed it to the history below.
+      (unless no-cache
+        (puthash default-directory command command-map))
       ;; Record into the combined per-project history (read by
       ;; `projectile-repeat-last-command') and, when known, into the
       ;; per-type history used for this command's prompt.
@@ -10331,6 +10338,20 @@ The command actually run is returned."
   :type 'boolean
   :package-version '(projectile . "2.5.0"))
 
+(defun projectile--phase-command-dynamic-p (phase)
+  "Non-nil when PHASE's command comes from a function for the current project.
+A project type can register a lifecycle command as a function (e.g. the
+CMake preset pickers, or a user's own `:test'/`:run' function).  Such a
+command is meant to be re-invoked - and may prompt - on every run, so its
+result must not be frozen in the command cache after the first run.  A
+`.dir-locals.el' override always wins and is a plain string, so it is
+never treated as dynamic."
+  (let ((descriptor (projectile--phase-descriptor phase)))
+    (and (not (symbol-value (plist-get descriptor :dir-local-var)))
+         (functionp
+          (plist-get (alist-get (projectile-project-type) projectile-project-types)
+                     (intern (format "%s-command" phase)))))))
+
 (defun projectile--run-lifecycle-phase (phase show-prompt)
   "Run the current project's command for lifecycle PHASE.
 PHASE is a symbol naming an entry of `projectile--lifecycle-phases'.
@@ -10346,6 +10367,7 @@ With SHOW-PROMPT non-nil force prompting for the command, as in
                                  :show-prompt show-prompt
                                  :prompt-prefix (plist-get descriptor :prompt)
                                  :save-buffers (plist-get descriptor :save-buffers)
+                                 :no-cache (projectile--phase-command-dynamic-p phase)
                                  :use-comint-mode (symbol-value (plist-get descriptor :use-comint-var)))))
 
 ;;;###autoload
