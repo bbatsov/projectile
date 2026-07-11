@@ -89,6 +89,28 @@ REGEXP-P selects `projectile-search-regexp-review'."
       (let ((buf (projectile-search-review-test--run "absent")))
         (expect buf :to-be nil)))))
 
+(describe "projectile-search-review prompt tool tag"
+  (before-each
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-replace--candidates :and-return-value nil)
+    (spy-on 'projectile-replace--open))
+
+  (it "advertises [ripgrep] when the literal fast-path will run"
+    (spy-on 'projectile-search--rg-fastpath-p :and-return-value t)
+    (let (label)
+      (spy-on 'projectile--read-search-string-with-default :and-call-fake
+              (lambda (l) (setq label l) "foo"))
+      (projectile-search--review t)
+      (expect label :to-match (regexp-quote "[ripgrep]"))))
+
+  (it "advertises [elisp] for a regexp search that never takes the fast-path"
+    (spy-on 'projectile-search--rg-fastpath-p :and-return-value nil)
+    (let (label)
+      (spy-on 'projectile--read-search-string-with-default :and-call-fake
+              (lambda (l) (setq label l) "foo"))
+      (projectile-search--review nil)
+      (expect label :to-match (regexp-quote "[elisp]")))))
+
 (describe "projectile-search-regexp-review"
   (it "honors Emacs-only regexp constructs a shell regexp couldn't express"
     (projectile-test-with-project
