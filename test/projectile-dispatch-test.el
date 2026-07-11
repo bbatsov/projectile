@@ -74,6 +74,50 @@
     (projectile-dispatch-switch-project)
     (expect captured :to-equal (cons 'projectile-switch-project nil))))
 
+(describe "projectile-dispatch reviewable search/replace wrappers"
+  ;; These wrappers pick the literal vs regexp reviewer from `--regexp' and
+  ;; seed case sensitivity from `--case-sensitive' (by binding
+  ;; `case-fold-search' around the call).  Capture both the command run and
+  ;; the `case-fold-search' in effect at that moment.
+  :var (captured cfs)
+  (before-each
+    (setq captured nil cfs 'unset)
+    (spy-on 'projectile-dispatch--args :and-return-value nil)
+    (spy-on 'call-interactively :and-call-fake
+            (lambda (command) (setq captured command cfs case-fold-search))))
+
+  (it "runs the literal search reviewer and leaves case as-is with no modifiers"
+    (let ((case-fold-search t))
+      (projectile-dispatch-search-review))
+    (expect captured :to-be 'projectile-search-review)
+    (expect cfs :to-be t))
+
+  (it "runs the regexp search reviewer when --regexp is active"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--regexp"))
+    (projectile-dispatch-search-review)
+    (expect captured :to-be 'projectile-search-regexp-review))
+
+  (it "seeds a case-sensitive search when --case-sensitive is active"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--case-sensitive"))
+    (let ((case-fold-search t))
+      (projectile-dispatch-search-review))
+    (expect captured :to-be 'projectile-search-review)
+    (expect cfs :to-be nil))
+
+  (it "combines --regexp and --case-sensitive"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--regexp" "--case-sensitive"))
+    (let ((case-fold-search t))
+      (projectile-dispatch-search-review))
+    (expect captured :to-be 'projectile-search-regexp-review)
+    (expect cfs :to-be nil))
+
+  (it "applies the same switches to the replace reviewer"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--regexp" "--case-sensitive"))
+    (let ((case-fold-search t))
+      (projectile-dispatch-replace-review))
+    (expect captured :to-be 'projectile-replace-regexp-review)
+    (expect cfs :to-be nil)))
+
 (describe "projectile-dispatch prefix"
   (it "is defined as a transient prefix"
     ;; transient is bundled with Emacs 28.1+ (Projectile's minimum), so the
