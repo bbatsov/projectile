@@ -11767,6 +11767,30 @@ PROPS is a plist of:
   :prefix-arg "--regexp")
 (projectile-dispatch--define projectile-dispatch-ripgrep projectile-ripgrep
   :prefix-arg "--regexp")
+
+(defun projectile-dispatch-search-review ()
+  "Reviewable search honouring the `--regexp' and `--case-sensitive' switches.
+`--regexp' runs the Emacs-regexp reviewer, `--case-sensitive' seeds the
+search case-sensitive; both can still be flipped (`x'/`c') in the results
+buffer."
+  (interactive)
+  (let ((switches (projectile-dispatch--args)))
+    (let ((case-fold-search (if (member "--case-sensitive" switches)
+                                nil case-fold-search)))
+      (call-interactively (if (member "--regexp" switches)
+                              #'projectile-search-regexp-review
+                            #'projectile-search-review)))))
+
+(defun projectile-dispatch-replace-review ()
+  "Reviewable replace honouring the `--regexp' and `--case-sensitive' switches.
+Like `projectile-dispatch-search-review', but for the replace reviewer."
+  (interactive)
+  (let ((switches (projectile-dispatch--args)))
+    (let ((case-fold-search (if (member "--case-sensitive" switches)
+                                nil case-fold-search)))
+      (call-interactively (if (member "--regexp" switches)
+                              #'projectile-replace-regexp-review
+                            #'projectile-replace-review)))))
 ;; New process
 (projectile-dispatch--define projectile-dispatch-run projectile-run
   :prefix-arg "--new-process")
@@ -11800,12 +11824,15 @@ PROPS is a plist of:
 
 The switches in the Modifiers group tweak how the commands below run:
 `--invalidate-cache' rebuilds the file cache first (file/dir commands),
-`--regexp' searches for a regexp (ag/ripgrep), `--new-process' starts a
-fresh process (shells), and `--display' opens the result in another
-window or frame (file/buffer/project commands)."
+`--regexp' searches for a regexp (the ag/ripgrep search and the
+reviewable search/replace), `--case-sensitive' seeds the reviewable
+search/replace case-sensitive, `--new-process' starts a fresh process
+(shells), and `--display' opens the result in another window or frame
+(file/buffer/project commands)."
     ["Modifiers"
      ("-i" "invalidate cache" "--invalidate-cache")
      ("-r" "regexp search" "--regexp")
+     ("-c" "case-sensitive search" "--case-sensitive")
      ("-n" "new process" "--new-process")
      ("-d" "display in" "--display="
       :class transient-switches
@@ -11838,11 +11865,10 @@ window or frame (file/buffer/project commands)."
       ("sr" "ripgrep" projectile-dispatch-ripgrep)
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
-      ("sR" "search (review)" projectile-search-review)
-      ("sX" "search regexp (review)" projectile-search-regexp-review)
+      ("sR" "search (review)" projectile-dispatch-search-review)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
-      ("R" "replace (review)" projectile-replace-review)]]
+      ("R" "replace (review)" projectile-dispatch-replace-review)]]
     [["Project"
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
@@ -11886,9 +11912,11 @@ window or frame (file/buffer/project commands)."
 
 The switches in the Modifiers group tweak how the commands below run:
 `--invalidate-cache' rebuilds the file cache first (file/dir commands),
-`--regexp' searches for a regexp (ag/ripgrep), `--new-process' starts a
-fresh process (shells), and `--display' opens the result in another
-window or frame (file/buffer/project commands)."
+`--regexp' searches for a regexp (the ag/ripgrep search and the
+reviewable search/replace), `--case-sensitive' seeds the reviewable
+search/replace case-sensitive, `--new-process' starts a fresh process
+(shells), and `--display' opens the result in another window or frame
+(file/buffer/project commands)."
   (interactive)
   ;; Loading `transient' is deferred until the menu is first used; this
   ;; stub is replaced by the real transient prefix on that first call.

@@ -43,6 +43,7 @@
 
 * Add `projectile-frecency-max-projects` (default 100), which caps how many projects' frecency history is kept so the store can't grow without bound.
 * `projectile-replace-scan-chunk-size` is now a user-facing `defcustom` (was an internal variable).
+* Wire the reviewable search/replace into the `projectile-dispatch` Modifiers: the two literal/regexp search entries are folded into one `sR` driven by `--regexp` (matching how `--regexp` already drives the ag/ripgrep search), and a new `--case-sensitive` switch seeds the reviewable search/replace case-sensitive. Both can still be flipped with `x`/`c` in the results buffer.
 * Highlight the search tool and the default value in the search prompts, and give them one consistent `Search [tool] for (default: X)` format across `projectile-search`, `projectile-grep`/`-ag`/`-ripgrep` and the reviewable search. The tool that will run (`grep`/`ag`/`ripgrep`, or `ripgrep`/`elisp` for the reviewable search's literal fast-path) is faced with `projectile-search-prompt-tool` and the symbol-at-point default with `projectile-search-prompt-default`. The reviewable search now also shows its default up front and which engine it will use.
 
 ### Bugs fixed
