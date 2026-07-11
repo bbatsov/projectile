@@ -87,6 +87,38 @@
       (projectile-search "foo" t)
       (expect captured :to-equal '("foo" t)))))
 
+(describe "search prompt highlighting"
+  (it "wraps the tool in brackets and faces it"
+    (let ((tag (projectile--search-tool-tag "ripgrep")))
+      ;; face aside, it's a plain [tool] tag
+      (expect tag :to-equal "[ripgrep]")
+      (expect (get-text-property 1 'face tag)
+              :to-equal 'projectile-search-prompt-tool)))
+
+  (describe "projectile--read-search-string-with-default"
+    (before-each
+      (spy-on 'projectile-prepend-project-name :and-call-fake #'identity))
+
+    (it "shows the symbol-at-point default, faced, and returns it on RET"
+      (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "foo")
+      (let (prompt)
+        (spy-on 'read-string :and-call-fake
+                (lambda (p &rest _) (setq prompt p) "foo"))
+        (expect (projectile--read-search-string-with-default "Grep for") :to-equal "foo")
+        (expect prompt :to-match (regexp-quote "(default: foo)"))
+        ;; the default value itself carries the highlight face
+        (let ((i (string-match "foo)" prompt)))
+          (expect (get-text-property i 'face prompt)
+                  :to-equal 'projectile-search-prompt-default))))
+
+    (it "omits the default label when there is no symbol at point"
+      (spy-on 'projectile-symbol-or-selection-at-point :and-return-value nil)
+      (let (prompt)
+        (spy-on 'read-string :and-call-fake
+                (lambda (p &rest _) (setq prompt p) "typed"))
+        (projectile--read-search-string-with-default "Grep for")
+        (expect prompt :not :to-match "default")))))
+
 (describe "the search wrapper commands"
   (it "projectile-ripgrep forces the ripgrep backend"
     (let (seen)

@@ -7012,14 +7012,39 @@ This is a subset of `grep-read-files', where either a matching entry from
   "Return ignored file suffixes as a list of glob patterns."
   (mapcar (lambda (pat) (concat "*" pat)) projectile-globally-ignored-file-suffixes))
 
-(defun projectile--read-search-string-with-default (prefix-label)
-  (let* ((prefix-label (projectile-prepend-project-name prefix-label))
+(defface projectile-search-prompt-tool
+  '((t :inherit font-lock-function-name-face :weight bold))
+  "Face for the tool/backend highlighted in Projectile's search prompts."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defface projectile-search-prompt-default
+  '((t :inherit font-lock-constant-face))
+  "Face for the default value highlighted in Projectile's search prompts."
+  :group 'projectile
+  :package-version '(projectile . "3.2.0"))
+
+(defun projectile--search-tool-tag (tool)
+  "Return a faced `[TOOL]' tag for a search prompt.
+Used where the backend varies (e.g. `projectile-search' or the
+reviewable search's ripgrep/elisp fast-path) so the prompt makes clear
+which tool will run."
+  (format "[%s]" (propertize tool 'face 'projectile-search-prompt-tool)))
+
+(defun projectile--read-search-string-with-default (prompt-label)
+  "Read a search string, defaulting to the symbol or region at point.
+PROMPT-LABEL is the action shown in the prompt (already carrying any
+faced tool tag its caller wants).  The default value, when there is one,
+is appended and faced as `(default VALUE)'."
+  (let* ((prompt-label (projectile-prepend-project-name prompt-label))
          (default-value (projectile-symbol-or-selection-at-point))
          (default-label (if (or (not default-value)
                                 (string= default-value ""))
                             ""
-                          (format " (default %s)" default-value))))
-    (read-string (format "%s%s: " prefix-label default-label) nil nil default-value)))
+                          (format " (default: %s)"
+                                  (propertize default-value
+                                              'face 'projectile-search-prompt-default)))))
+    (read-string (format "%s%s: " prompt-label default-label) nil nil default-value)))
 
 (defvar projectile-grep-find-ignored-paths)
 (defvar projectile-grep-find-unignored-paths)
@@ -7353,8 +7378,9 @@ The backend is chosen from `projectile-search-backends' according to
                                                 "search"))
          (term (or search-term
                    (projectile--read-search-string-with-default
-                    (format "Search [%s]%s for"
-                            (car backend) (if regexp " regexp" ""))))))
+                    (format "Search %s%s for"
+                            (projectile--search-tool-tag (car backend))
+                            (if regexp " regexp" ""))))))
     (funcall (plist-get (cdr backend) :search) term regexp)))
 
 ;;;###autoload
@@ -7370,7 +7396,9 @@ With REGEXP given, don't query the user for a regexp."
   ;; Fail fast (with a friendly error) before prompting when not in a project.
   (projectile-acquire-root)
   (let ((search-regexp (or regexp
-                           (projectile--read-search-string-with-default "Grep for")))
+                           (projectile--read-search-string-with-default
+                            (format "Search %s for"
+                                    (projectile--search-tool-tag "grep")))))
         (files (and arg (or (and (equal current-prefix-arg '-)
                                  (projectile-grep-default-files))
                             (read-string (projectile-prepend-project-name "Grep in: ")
@@ -7386,7 +7414,9 @@ With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression."
   (interactive
    (list (projectile--read-search-string-with-default
-          (format "Ag %ssearch for" (if current-prefix-arg "regexp " "")))
+          (format "Search %s%s for"
+                  (projectile--search-tool-tag "ag")
+                  (if current-prefix-arg " regexp" "")))
          current-prefix-arg))
   (let ((projectile-search-backend 'ag))
     (projectile-search search-term arg)))
@@ -7403,7 +7433,9 @@ This command depends on the Emacs packages ripgrep or rg being
 installed to work."
   (interactive
    (list (projectile--read-search-string-with-default
-          (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
+          (format "Search %s%s for"
+                  (projectile--search-tool-tag "ripgrep")
+                  (if current-prefix-arg " regexp" "")))
          current-prefix-arg))
   (let ((projectile-search-backend 'ripgrep))
     (projectile-search search-term arg)))
@@ -9587,10 +9619,12 @@ matches to a `grep-mode' buffer for wgrep or Emacs 31's `grep-edit-mode'.
 LITERAL non-nil searches for a literal string; otherwise the term is an
 Emacs regexp.  There is no replacement prompt."
   (let* ((root (projectile-acquire-root))
-         (term (read-string
-                (projectile-prepend-project-name
-                 (if literal "Search: " "Search regexp: "))
-                (projectile-symbol-or-selection-at-point)))
+         (term (projectile--read-search-string-with-default
+                (format "Search %s%s for"
+                        (projectile--search-tool-tag
+                         (if (and literal (projectile-search--rg-fastpath-p t))
+                             "ripgrep" "elisp"))
+                        (if literal "" " regexp"))))
          (regexp (if literal (regexp-quote term) term))
          (case-fold case-fold-search)
          (candidates (projectile-replace--candidates term literal case-fold root)))
