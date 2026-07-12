@@ -95,6 +95,22 @@
       (expect (get-text-property 1 'face tag)
               :to-equal 'projectile-search-prompt-tool)))
 
+  (it "accepts a backend name symbol as well as a string (#2094)"
+    ;; `projectile-search' passes the backend symbol, not a string
+    (expect (projectile--search-tool-tag 'grep) :to-equal "[grep]"))
+
+  (it "projectile-search builds its prompt without erroring on the backend symbol (#2094)"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-prepend-project-name :and-call-fake #'identity)
+    (let (prompt
+          (projectile-search-backends
+           (list (cons 'grep (list :search (lambda (&rest _) nil)))))
+          (projectile-search-backend 'grep))
+      (spy-on 'read-string :and-call-fake (lambda (p &rest _) (setq prompt p) "foo"))
+      ;; term nil -> the interactive prompt path that used to crash
+      (projectile-search nil nil)
+      (expect prompt :to-match (regexp-quote "[grep]"))))
+
   (describe "projectile--read-search-string-with-default"
     (before-each
       (spy-on 'projectile-prepend-project-name :and-call-fake #'identity))

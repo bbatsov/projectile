@@ -7035,10 +7035,12 @@ This is a subset of `grep-read-files', where either a matching entry from
 
 (defun projectile--search-tool-tag (tool)
   "Return a faced `[TOOL]' tag for a search prompt.
-Used where the backend varies (e.g. `projectile-search' or the
-reviewable search's ripgrep/elisp fast-path) so the prompt makes clear
-which tool will run."
-  (format "[%s]" (propertize tool 'face 'projectile-search-prompt-tool)))
+TOOL is the backend, given as a symbol or a string: `projectile-search'
+passes the backend name symbol while the reviewable search passes a
+\"ripgrep\"/\"elisp\" string.  Used where the backend varies so the
+prompt makes clear which tool will run."
+  (format "[%s]" (propertize (format "%s" tool)
+                             'face 'projectile-search-prompt-tool)))
 
 (defun projectile--read-search-string-with-default (prompt-label)
   "Read a search string, defaulting to the symbol or region at point.
