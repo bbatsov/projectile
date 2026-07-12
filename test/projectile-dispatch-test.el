@@ -79,12 +79,15 @@
   ;; seed case sensitivity from `--case-sensitive' (by binding
   ;; `case-fold-search' around the call).  Capture both the command run and
   ;; the `case-fold-search' in effect at that moment.
-  :var (captured cfs)
+  :var (captured cfs pww)
   (before-each
-    (setq captured nil cfs 'unset)
+    (setq captured nil cfs 'unset pww 'unset)
     (spy-on 'projectile-dispatch--args :and-return-value nil)
     (spy-on 'call-interactively :and-call-fake
-            (lambda (command) (setq captured command cfs case-fold-search))))
+            (lambda (command)
+              (setq captured command
+                    cfs case-fold-search
+                    pww projectile-search-whole-word))))
 
   (it "runs the literal search reviewer and leaves case as-is with no modifiers"
     (let ((case-fold-search t))
@@ -111,12 +114,21 @@
     (expect captured :to-be 'projectile-search-regexp-review)
     (expect cfs :to-be nil))
 
+  (it "seeds whole-word matching when --word is active"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--word"))
+    (let ((projectile-search-whole-word nil))
+      (projectile-dispatch-search-review))
+    (expect captured :to-be 'projectile-search-review)
+    (expect pww :to-be t))
+
   (it "applies the same switches to the replace reviewer"
-    (spy-on 'projectile-dispatch--args :and-return-value '("--regexp" "--case-sensitive"))
-    (let ((case-fold-search t))
+    (spy-on 'projectile-dispatch--args
+            :and-return-value '("--regexp" "--case-sensitive" "--word"))
+    (let ((case-fold-search t) (projectile-search-whole-word nil))
       (projectile-dispatch-replace-review))
     (expect captured :to-be 'projectile-replace-regexp-review)
-    (expect cfs :to-be nil)))
+    (expect cfs :to-be nil)
+    (expect pww :to-be t)))
 
 (describe "projectile-dispatch prefix"
   (it "is defined as a transient prefix"
