@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 3.2.0 (2026-07-12)
+
 ### New features
 
 * Add reviewable read-only search commands, a search-only sibling of the reviewable replace UI.
