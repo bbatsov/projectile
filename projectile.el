@@ -2739,6 +2739,7 @@ See also `projectile-acquire-root'."
     (cond
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
                                                     "Switch to project: " projectile-known-projects
+                                                    :category 'file
                                                     :caller 'projectile-read-project))
      (projectile-require-project-root (user-error "Projectile cannot find a project definition in %s" default-directory))
      (t default-directory))))
@@ -3902,6 +3903,7 @@ choices."
    prompt
    (delete (buffer-name (current-buffer))
            (projectile-project-buffer-names))
+   :category 'buffer
    :caller 'projectile-read-buffer))
 
 ;;; Other window/frame display variants
@@ -3990,6 +3992,7 @@ yields the other-window/-frame variants."
    (projectile-completing-read
     "Display buffer: "
     (projectile-project-buffer-names)
+    :category 'buffer
     :caller 'projectile-read-buffer)))
 
 ;;;###autoload
@@ -4365,7 +4368,7 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
-(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function)
+(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function (category 'project-file))
   "Present a project tailored PROMPT with CHOICES.
 
 Reads with `completing-read', unless `projectile-completion-system' is a
@@ -4375,8 +4378,15 @@ INITIAL-INPUT is passed to `completing-read'.  ACTION, when non-nil, is
 called on the selected candidate and its result returned.  SORT-FUNCTION,
 when non-nil, is exposed as the completion metadata's
 `display-sort-function' and `cycle-sort-function', so completion UIs
-that honor metadata present the candidates in that order.  CALLER is
-accepted for backward compatibility but no longer used."
+that honor metadata present the candidates in that order.
+
+CATEGORY is the completion metadata category advertised to UIs like
+marginalia and embark so they annotate and act on the candidates
+appropriately; it defaults to `project-file' (the candidates are project
+files) and should be overridden when they are not - e.g. `buffer' for a
+buffer switch or `file' for a directory.  A nil CATEGORY omits it.
+
+CALLER is accepted for backward compatibility but no longer used."
   (ignore caller)
   (let* ((prompt (projectile-prepend-project-name prompt))
          (res (if (functionp projectile-completion-system)
@@ -4384,11 +4394,10 @@ accepted for backward compatibility but no longer used."
                 (completing-read
                  prompt
                  (lambda (string pred action)
-                   ;; The `project-file' category lets packages like
-                   ;; marginalia and embark enhance how candidates are
-                   ;; presented.
+                   ;; The completion category lets packages like marginalia
+                   ;; and embark enhance how candidates are presented.
                    (if (eq action 'metadata)
-                       `(metadata (category . project-file)
+                       `(metadata ,@(when category `((category . ,category)))
                                   ,@(when sort-function
                                       `((display-sort-function . ,sort-function)
                                         (cycle-sort-function . ,sort-function))))
@@ -9818,6 +9827,7 @@ prompt for a known project to open instead of the current one."
            (if arg
                (projectile-completing-read
                 "Dired in project: " (projectile-relevant-known-projects)
+                :category 'file
                 :caller 'projectile-read-project)
              (projectile-acquire-root))))
 
@@ -9851,6 +9861,7 @@ directory to open."
                      (projectile-completing-read
                       "Open project VC in: "
                       projectile-known-projects
+                      :category 'file
                       :caller 'projectile-read-project))))
   (unless project-root
     (setq project-root (projectile-acquire-root)))
@@ -11024,6 +11035,7 @@ of `projectile-switch-project-action'."
          "Switch to project: " projects
          :action (lambda (project)
                    (projectile-switch-project-by-name project arg))
+         :category 'file
          :caller 'projectile-read-project)
       (user-error "There are no known projects"))))
 
@@ -11040,6 +11052,7 @@ of `projectile-switch-project-action'."
          "Switch to open project: " projects
          :action (lambda (project)
                    (projectile-switch-project-by-name project arg))
+         :category 'file
          :caller 'projectile-read-project)
       (user-error "There are no open projects"))))
 
@@ -11317,6 +11330,7 @@ projects removed."
   (interactive (list (projectile-completing-read
                       "Remove from known projects: " projectile-known-projects
                       :action 'projectile-remove-known-project
+                      :category 'file
                       :caller 'projectile-read-project)))
   (unless (called-interactively-p 'any)
     (setq projectile-known-projects
@@ -11447,6 +11461,7 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
                           (projectile-completing-read
                            "Project name: "
                            (projectile-relevant-known-projects)
+                           :category 'file
                            :caller 'projectile-read-project)
                         (projectile-acquire-root))))
     (projectile-ibuffer-by-project project-root)))
