@@ -111,6 +111,36 @@ REGEXP-P selects `projectile-search-regexp-review'."
       (projectile-search--review nil)
       (expect label :to-match (regexp-quote "[elisp]")))))
 
+(describe "projectile-search-review whole-word"
+  (it "fences the pattern in shy-grouped word boundaries"
+    (expect (projectile-replace--word-boundary-regexp "foo\\|bar")
+            :to-equal "\\<\\(?:foo\\|bar\\)\\>"))
+
+  (it "matches only whole-word occurrences when whole-word mode is on"
+    (projectile-test-with-project
+        (("a.txt" . "foo foobar barfoo foo\n"))
+      (projectile-test-use-plain-grep)
+      (let* ((projectile-search-whole-word t)
+             (buf (projectile-search-review-test--run "foo")))
+        (with-current-buffer buf
+          (expect projectile-replace--word :to-be t)
+          ;; the two standalone `foo's match, foobar/barfoo do not
+          (expect (length projectile-replace--matches) :to-equal 2)
+          (expect (buffer-string) :to-match "\\[word\\]")))))
+
+  (it "toggling whole-word off re-scans and matches substrings again"
+    (projectile-test-with-project
+        (("a.txt" . "foo foobar barfoo foo\n"))
+      (projectile-test-use-plain-grep)
+      (let* ((projectile-search-whole-word t)
+             (buf (projectile-search-review-test--run "foo")))
+        (with-current-buffer buf
+          (expect (length projectile-replace--matches) :to-equal 2)
+          ;; batch scans synchronously, so the re-gather is done on return
+          (projectile-replace--toggle-word)
+          (expect projectile-replace--word :to-be nil)
+          (expect (length projectile-replace--matches) :to-equal 4))))))
+
 (describe "projectile-search-regexp-review"
   (it "honors Emacs-only regexp constructs a shell regexp couldn't express"
     (projectile-test-with-project
@@ -374,10 +404,12 @@ REGEXP-P selects `projectile-search-regexp-review'."
 (describe "projectile-search--rg-command"
   (it "builds a fixed-strings, ignore-aware command with the term after --"
     (let ((cmd (projectile-search--rg-command
-                "foo-bar" t '("node_modules/" "*.elc" "./vendor/"))))
+                "foo-bar" t nil '("node_modules/" "*.elc" "./vendor/"))))
       (expect (member "--fixed-strings" cmd) :to-be-truthy)
       (expect (member "--ignore-case" cmd) :to-be-truthy)
       (expect (member "--case-sensitive" cmd) :to-be nil)
+      ;; no whole-word restriction unless requested
+      (expect (member "--word-regexp" cmd) :to-be nil)
       ;; a basename glob becomes a negated --glob verbatim
       (expect (member "!node_modules/" cmd) :to-be-truthy)
       (expect (member "!*.elc" cmd) :to-be-truthy)
@@ -390,9 +422,13 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (expect (cadr tail) :to-equal "./"))))
 
   (it "uses --case-sensitive when case-fold is nil"
-    (let ((cmd (projectile-search--rg-command "foo" nil nil)))
+    (let ((cmd (projectile-search--rg-command "foo" nil nil nil)))
       (expect (member "--case-sensitive" cmd) :to-be-truthy)
-      (expect (member "--ignore-case" cmd) :to-be nil))))
+      (expect (member "--ignore-case" cmd) :to-be nil)))
+
+  (it "adds --word-regexp when whole-word matching is requested"
+    (let ((cmd (projectile-search--rg-command "foo" nil t nil)))
+      (expect (member "--word-regexp" cmd) :to-be-truthy))))
 
 (describe "projectile-search--rg-ingest streaming and cap"
   (it "honors projectile-replace-max-matches and marks the list truncated"
