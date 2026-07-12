@@ -279,7 +279,42 @@
     (let ((projectile-completion-system 'ido))
       (spy-on 'completing-read :and-return-value "x")
       (expect (projectile-completing-read "Prompt" '("x")) :to-equal "x")
-      (expect 'completing-read :to-have-been-called))))
+      (expect 'completing-read :to-have-been-called)))
+
+  ;; The completion metadata category is what marginalia and embark key off
+  ;; to annotate and act on candidates, so it must reflect what they are.
+  (it "advertises the project-file category by default"
+    (let ((projectile-completion-system 'default) table)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_prompt coll &rest _) (setq table coll) "x"))
+      (projectile-completing-read "Prompt" '("a"))
+      (expect (alist-get 'category (cdr (funcall table "" nil 'metadata)))
+              :to-be 'project-file)))
+
+  (it "honors an explicit :category"
+    (let ((projectile-completion-system 'default) table)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_prompt coll &rest _) (setq table coll) "x"))
+      (projectile-completing-read "Prompt" '("a") :category 'buffer)
+      (expect (alist-get 'category (cdr (funcall table "" nil 'metadata)))
+              :to-be 'buffer)))
+
+  (it "omits the category when :category is nil"
+    (let ((projectile-completion-system 'default) table)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_prompt coll &rest _) (setq table coll) "x"))
+      (projectile-completing-read "Prompt" '("a") :category nil)
+      (expect (assq 'category (cdr (funcall table "" nil 'metadata)))
+              :to-be nil)))
+
+  (it "buffer switching advertises the buffer category"
+    (let (table)
+      (spy-on 'projectile-project-buffer-names :and-return-value '("b1" "b2"))
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_prompt coll &rest _) (setq table coll) "b1"))
+      (projectile-read-buffer-to-switch "Switch: ")
+      (expect (alist-get 'category (cdr (funcall table "" nil 'metadata)))
+              :to-be 'buffer))))
 
 (describe "projectile-sort-files"
   (it "returns the files unchanged for the default sort order"
