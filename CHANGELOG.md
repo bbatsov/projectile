@@ -2,6 +2,8 @@
 
 ## master (unreleased)
 
+## 3.2.1 (2026-07-13)
+
 ### Bugs fixed
 
 * [#2094](https://github.com/bbatsov/projectile/issues/2094): Fix a `wrong-type-argument stringp` crash when running `projectile-search` (a 3.2.0 regression): the search-prompt tool tag now accepts the backend name symbol, not just a string.
