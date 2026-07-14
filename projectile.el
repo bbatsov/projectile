@@ -2739,7 +2739,7 @@ See also `projectile-acquire-root'."
     (cond
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
                                                     "Switch to project: " projectile-known-projects
-                                                    :category 'file
+                                                    :category 'projectile-project
                                                     :caller 'projectile-read-project))
      (projectile-require-project-root (user-error "Projectile cannot find a project definition in %s" default-directory))
      (t default-directory))))
@@ -9829,7 +9829,7 @@ prompt for a known project to open instead of the current one."
            (if arg
                (projectile-completing-read
                 "Dired in project: " (projectile-relevant-known-projects)
-                :category 'file
+                :category 'projectile-project
                 :caller 'projectile-read-project)
              (projectile-acquire-root))))
 
@@ -9863,7 +9863,7 @@ directory to open."
                      (projectile-completing-read
                       "Open project VC in: "
                       projectile-known-projects
-                      :category 'file
+                      :category 'projectile-project
                       :caller 'projectile-read-project))))
   (unless project-root
     (setq project-root (projectile-acquire-root)))
@@ -11037,7 +11037,7 @@ of `projectile-switch-project-action'."
          "Switch to project: " projects
          :action (lambda (project)
                    (projectile-switch-project-by-name project arg))
-         :category 'file
+         :category 'projectile-project
          :caller 'projectile-read-project)
       (user-error "There are no known projects"))))
 
@@ -11054,7 +11054,7 @@ of `projectile-switch-project-action'."
          "Switch to open project: " projects
          :action (lambda (project)
                    (projectile-switch-project-by-name project arg))
-         :category 'file
+         :category 'projectile-project
          :caller 'projectile-read-project)
       (user-error "There are no open projects"))))
 
@@ -11332,7 +11332,7 @@ projects removed."
   (interactive (list (projectile-completing-read
                       "Remove from known projects: " projectile-known-projects
                       :action 'projectile-remove-known-project
-                      :category 'file
+                      :category 'projectile-project
                       :caller 'projectile-read-project)))
   (unless (called-interactively-p 'any)
     (setq projectile-known-projects
@@ -11463,7 +11463,7 @@ Let user choose another project when PROMPT-FOR-PROJECT is supplied."
                           (projectile-completing-read
                            "Project name: "
                            (projectile-relevant-known-projects)
-                           :category 'file
+                           :category 'projectile-project
                            :caller 'projectile-read-project)
                         (projectile-acquire-root))))
     (projectile-ibuffer-by-project project-root)))
@@ -13114,6 +13114,107 @@ existing tabs untouched."
                  #'projectile-session--maybe-restore-on-startup)
     (remove-hook 'tab-bar-tab-pre-close-functions
                  #'projectile-session--on-tab-close))))
+
+
+;;; Optional Embark / Marginalia integration
+;;
+;; Gated behind `with-eval-after-load' so Embark and Marginalia stay soft,
+;; opt-in enhancements rather than dependencies.  Two Embark wins on top of the
+;; completion categories Projectile already advertises:
+;;
+;; 1. A transformer that expands a `project-file' candidate (which Projectile
+;;    presents project-relative) to an absolute path against the Projectile
+;;    root, so Embark's file actions hit the right file regardless of
+;;    `default-directory'.
+;; 2. A `projectile-project' action keymap, so acting on a project candidate
+;;    offers project operations (switch, vc, dired, remove) instead of only
+;;    generic file actions.  Marginalia keeps annotating those candidates via
+;;    the built-in file annotator (they are directory paths).
+
+(defun projectile--embark-project-file-target (target)
+  "Resolve a `project-file' TARGET to an absolute path under the Projectile root.
+Return (file . ABSOLUTE) only when TARGET actually exists under the
+current Projectile project root, otherwise nil so the caller can defer to
+Embark's own `project-file' handling.  The existence guard keeps the
+integration from ever misresolving a `project-file' candidate that is not
+Projectile's - worst case it does nothing and Embark behaves as before."
+  (when-let* ((root (projectile-project-root))
+              (full (expand-file-name target root))
+              ((file-exists-p full)))
+    (cons 'file full)))
+
+(defun projectile-embark-switch-project (project)
+  "Switch to PROJECT.  An Embark action for a project candidate."
+  (interactive "sProject: ")
+  (projectile-switch-project-by-name project))
+
+(defun projectile-embark-vc (project)
+  "Open the VC interface for PROJECT.  An Embark action for a project candidate."
+  (interactive "sProject: ")
+  (projectile-vc project))
+
+(defvar projectile--embark-project-file-prev-transform nil
+  "The `project-file' transformer Embark had before Projectile augmented it.
+Preserved so `projectile--embark-project-file-transform' can defer to it
+for candidates that don't belong to the current Projectile project.")
+
+(defun projectile--embark-project-file-transform (type target)
+  "Embark `project-file' transformer augmenting Embark's own with Projectile.
+Resolves TARGET against the Projectile root when it lives there,
+otherwise defers to the transformer Embark had before (or leaves
+TYPE/TARGET unchanged), so non-Projectile completions are unaffected."
+  (or (projectile--embark-project-file-target target)
+      (and projectile--embark-project-file-prev-transform
+           (funcall projectile--embark-project-file-prev-transform type target))
+      (cons type target)))
+
+(defvar projectile-embark-project-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "s") #'projectile-embark-switch-project)
+    (define-key map (kbd "v") #'projectile-embark-vc)
+    (define-key map (kbd "d") #'dired)
+    (define-key map (kbd "D") #'projectile-remove-known-project)
+    map)
+  "Embark action keymap for Projectile `projectile-project' candidates.")
+
+(defvar embark-transformer-alist)
+(defvar embark-keymap-alist)
+(defvar embark-general-map)
+
+(defun projectile--embark-setup ()
+  "Wire Projectile's transformer and action keymap into Embark.
+Run from a `with-eval-after-load' on Embark, and idempotent so loading
+Projectile again doesn't stack wrappers."
+  ;; inherit Embark's generic actions (collect, export, ...)
+  (set-keymap-parent projectile-embark-project-map embark-general-map)
+  ;; Augment - never replace - Embark's `project-file' handling.  Our
+  ;; transformer only claims a candidate that actually lives under the
+  ;; Projectile root; anything else defers to whatever transformer Embark
+  ;; already had, so non-Projectile `project-file' completions are unaffected.
+  ;; The `eq' guard keeps re-loading Projectile from wrapping our own wrapper.
+  (let ((prev (alist-get 'project-file embark-transformer-alist)))
+    (unless (eq prev #'projectile--embark-project-file-transform)
+      (setq projectile--embark-project-file-prev-transform prev)
+      (setf (alist-get 'project-file embark-transformer-alist)
+            #'projectile--embark-project-file-transform)))
+  (add-to-list 'embark-keymap-alist
+               '(projectile-project . projectile-embark-project-map)))
+
+(with-eval-after-load 'embark (projectile--embark-setup))
+
+(defun projectile--marginalia-setup ()
+  "Teach Marginalia how to annotate `projectile-project' candidates.
+They are directory paths, so the built-in file annotator fits and the
+candidates look exactly like they did under the `file' category.  The
+registry is `marginalia-annotators' these days and was
+`marginalia-annotator-registry' in older releases, so register with
+whichever one the installed Marginalia has."
+  (dolist (registry '(marginalia-annotators marginalia-annotator-registry))
+    (when (boundp registry)
+      (add-to-list registry
+                   '(projectile-project marginalia-annotate-file builtin none)))))
+
+(with-eval-after-load 'marginalia (projectile--marginalia-setup))
 
 (provide 'projectile)
 

@@ -198,6 +198,56 @@ in particular should read the
 xref:upgrading_to_projectile_3.adoc#ido-users[upgrade guide], which covers
 `ido-completing-read+`.
 
+=== Embark and Marginalia
+
+Projectile ships a small integration layer for
+https://github.com/oantolin/embark[Embark] and
+https://github.com/minad/marginalia[Marginalia]. It's wired with
+`with-eval-after-load`, so neither package becomes a dependency - if you don't
+have them installed, nothing happens; if you do, it activates on its own with no
+configuration.
+
+Two things come out of it. First, `embark-act` on a file candidate targets the
+right file. Projectile presents its file candidates relative to the project
+root, so acting on one from a buffer whose `default-directory` is a
+subdirectory would otherwise resolve against the wrong place. The integration
+adds an Embark transformer that expands the candidate against the project root
+- but only when the file really does live there, otherwise it defers to
+whatever Embark was already doing, so `project-file` completions that aren't
+Projectile's behave exactly as before.
+
+Second, acting on a *project* candidate offers project operations rather than
+generic file ones. Project prompts (`projectile-switch-project` and friends) use
+a `projectile-project` completion category bound to
+`projectile-embark-project-map`:
+
+|===
+| Key | Action
+
+| kbd:[s] | switch to the project
+| kbd:[v] | open the project's VC interface
+| kbd:[d] | open the project root in Dired
+| kbd:[D] | remove it from the known projects
+|===
+
+Acting on a project from the switch prompt, then opening it in Dired:
+
+image::projectile-embark-project.gif[embark-act on a project candidate, showing the project action keymap]
+
+The keymap inherits from `embark-general-map`, so Embark's generic actions
+(collect, export, insert, and so on) are available too. Rebind or extend it like
+any other keymap:
+
+[source,elisp]
+----
+(with-eval-after-load 'embark
+  (define-key projectile-embark-project-map (kbd "b") #'projectile-ibuffer))
+----
+
+Marginalia annotates the project candidates with its built-in file annotator,
+since they're just directory paths - so they look the same as they did before
+the category change.
+
 === Custom completion function
 
 You can also set `projectile-completion-system` to a function that accepts a
