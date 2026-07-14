@@ -316,6 +316,49 @@
       (expect (alist-get 'category (cdr (funcall table "" nil 'metadata)))
               :to-be 'buffer))))
 
+(describe "Embark integration"
+  (it "resolves a project-file target that exists under the root"
+    (spy-on 'projectile-project-root :and-return-value "/proj/")
+    (spy-on 'file-exists-p :and-return-value t)
+    (expect (projectile--embark-project-file-target "src/foo.el")
+            :to-equal '(file . "/proj/src/foo.el")))
+
+  (it "declines (returns nil) outside a project, so Embark's own handling wins"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (expect (projectile--embark-project-file-target "src/foo.el") :to-be nil))
+
+  (it "declines when the target does not live under the project root"
+    (spy-on 'projectile-project-root :and-return-value "/proj/")
+    (spy-on 'file-exists-p :and-return-value nil)
+    (expect (projectile--embark-project-file-target "src/foo.el") :to-be nil))
+
+  (it "defers to Embark's previous transformer when Projectile declines"
+    ;; augment, never replace: a non-Projectile project-file target must reach
+    ;; whatever transformer Embark already had
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (let ((projectile--embark-project-file-prev-transform
+           (lambda (_type target) (cons 'file (concat "/other/" target)))))
+      (expect (projectile--embark-project-file-transform 'project-file "x")
+              :to-equal '(file . "/other/x"))))
+
+  (it "leaves the target unchanged when neither Projectile nor a prior transformer resolves it"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (let ((projectile--embark-project-file-prev-transform nil))
+      (expect (projectile--embark-project-file-transform 'project-file "x")
+              :to-equal '(project-file . "x"))))
+
+  (it "binds project actions in the project action keymap"
+    (expect (keymapp projectile-embark-project-map) :to-be-truthy)
+    (expect (lookup-key projectile-embark-project-map "s")
+            :to-be 'projectile-embark-switch-project)
+    (expect (lookup-key projectile-embark-project-map "D")
+            :to-be 'projectile-remove-known-project))
+
+  (it "the switch action delegates to projectile-switch-project-by-name"
+    (spy-on 'projectile-switch-project-by-name)
+    (projectile-embark-switch-project "/proj/")
+    (expect 'projectile-switch-project-by-name :to-have-been-called-with "/proj/")))
+
 (describe "projectile-sort-files"
   (it "returns the files unchanged for the default sort order"
     (let ((projectile-sort-order 'default))

@@ -6,6 +6,10 @@
 
 ## master (unreleased)
 
+### New features
+
+- Add an optional Embark/Marginalia integration (experimental, wired via `with-eval-after-load` so neither is a dependency): an Embark transformer that *augments* (never replaces) Embark's own `project-file` handling - it resolves a candidate against the Projectile root only when the file actually lives there and otherwise defers to Embark, so file actions target the right file even from a subdirectory without affecting non-Projectile completions; and a `projectile-embark-project-map` that offers project actions (switch, vc, dired, remove) when acting on a project candidate. Project-switch completions now use the `projectile-project` category, still annotated through Marginalia's file annotator.
+
 ### Changes
 
 - Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`. It's an optional module shipped inside the Projectile package, not a package of its own, and the phantom `Package-Requires` made build tooling treat it as one (e.g. it broke `eldev`-based test runs on Emacs 28.x by enforcing Consult's Emacs 29.1 floor on the whole project). Its runtime needs (Consult 2.0+, hence Emacs 29.1+) are unchanged and documented in the file and the manual.
