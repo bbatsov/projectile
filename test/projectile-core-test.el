@@ -27,6 +27,15 @@
 
 (require 'projectile-test-helpers)
 
+;; Embark and Marginalia aren't dependencies, so their registries are usually
+;; unbound here.  Declare them special so the integration specs can `let'-bind
+;; them dynamically and watch the setup functions write to them.
+(defvar embark-transformer-alist)
+(defvar embark-keymap-alist)
+(defvar embark-general-map)
+(defvar marginalia-annotators)
+(defvar marginalia-annotator-registry)
+
 (describe "projectile-dispatch"
   (it "is defined as a command when transient is available"
     (assume (require 'transient nil t) "transient is not available")
@@ -315,6 +324,92 @@
       (projectile-read-buffer-to-switch "Switch: ")
       (expect (alist-get 'category (cdr (funcall table "" nil 'metadata)))
               :to-be 'buffer))))
+
+(describe "Embark integration"
+  (it "resolves a project-file target that exists under the root"
+    (spy-on 'projectile-project-root :and-return-value "/proj/")
+    (spy-on 'file-exists-p :and-return-value t)
+    (expect (projectile--embark-project-file-target "src/foo.el")
+            :to-equal '(file . "/proj/src/foo.el")))
+
+  (it "declines (returns nil) outside a project, so Embark's own handling wins"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (expect (projectile--embark-project-file-target "src/foo.el") :to-be nil))
+
+  (it "declines when the target does not live under the project root"
+    (spy-on 'projectile-project-root :and-return-value "/proj/")
+    (spy-on 'file-exists-p :and-return-value nil)
+    (expect (projectile--embark-project-file-target "src/foo.el") :to-be nil))
+
+  (it "defers to Embark's previous transformer when Projectile declines"
+    ;; augment, never replace: a non-Projectile project-file target must reach
+    ;; whatever transformer Embark already had
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (let ((projectile--embark-project-file-prev-transform
+           (lambda (_type target) (cons 'file (concat "/other/" target)))))
+      (expect (projectile--embark-project-file-transform 'project-file "x")
+              :to-equal '(file . "/other/x"))))
+
+  (it "leaves the target unchanged when neither Projectile nor a prior transformer resolves it"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (let ((projectile--embark-project-file-prev-transform nil))
+      (expect (projectile--embark-project-file-transform 'project-file "x")
+              :to-equal '(project-file . "x"))))
+
+  (it "binds project actions in the project action keymap"
+    (expect (keymapp projectile-embark-project-map) :to-be-truthy)
+    (expect (lookup-key projectile-embark-project-map "s")
+            :to-be 'projectile-embark-switch-project)
+    (expect (lookup-key projectile-embark-project-map "D")
+            :to-be 'projectile-remove-known-project))
+
+  (it "the switch action delegates to projectile-switch-project-by-name"
+    (spy-on 'projectile-switch-project-by-name)
+    (projectile-embark-switch-project "/proj/")
+    (expect 'projectile-switch-project-by-name :to-have-been-called-with "/proj/"))
+
+  (it "registers the transformer and the keymap, preserving Embark's own transformer"
+    (let* ((prev (lambda (type target) (cons type target)))
+           (embark-general-map (make-sparse-keymap))
+           (embark-transformer-alist (list (cons 'project-file prev)))
+           (embark-keymap-alist nil)
+           (projectile--embark-project-file-prev-transform nil))
+      (projectile--embark-setup)
+      (expect (alist-get 'project-file embark-transformer-alist)
+              :to-be #'projectile--embark-project-file-transform)
+      (expect projectile--embark-project-file-prev-transform :to-be prev)
+      (expect (alist-get 'projectile-project embark-keymap-alist)
+              :to-be 'projectile-embark-project-map)
+      (expect (keymap-parent projectile-embark-project-map)
+              :to-be embark-general-map)))
+
+  (it "is idempotent, so re-loading Projectile doesn't wrap its own wrapper"
+    (let* ((prev (lambda (type target) (cons type target)))
+           (embark-general-map (make-sparse-keymap))
+           (embark-transformer-alist (list (cons 'project-file prev)))
+           (embark-keymap-alist nil)
+           (projectile--embark-project-file-prev-transform nil))
+      (projectile--embark-setup)
+      (projectile--embark-setup)
+      (expect projectile--embark-project-file-prev-transform :to-be prev)
+      (expect (length embark-keymap-alist) :to-equal 1))))
+
+(describe "Marginalia integration"
+  (it "registers the file annotator for project candidates"
+    ;; the registry Marginalia actually ships today
+    (let ((marginalia-annotators '((file marginalia-annotate-file builtin none))))
+      (projectile--marginalia-setup)
+      (expect (alist-get 'projectile-project marginalia-annotators)
+              :to-equal '(marginalia-annotate-file builtin none))))
+
+  (it "also registers with the registry name older Marginalia releases used"
+    (let ((marginalia-annotator-registry '((file marginalia-annotate-file builtin none))))
+      (projectile--marginalia-setup)
+      (expect (alist-get 'projectile-project marginalia-annotator-registry)
+              :to-equal '(marginalia-annotate-file builtin none))))
+
+  (it "does nothing when neither registry exists, instead of erroring"
+    (expect (projectile--marginalia-setup) :not :to-throw)))
 
 (describe "projectile-sort-files"
   (it "returns the files unchanged for the default sort order"
