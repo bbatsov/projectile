@@ -1,0 +1,14 @@
+config:
+  default: true
+
+  line-length:
+    line_length: 100
+    code_blocks: false
+    tables: false
+
+  no-duplicate-heading:
+    allow_different_nesting: true
+
+  no-inline-html: false
+
+  first-line-heading: false
