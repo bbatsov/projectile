@@ -37,6 +37,16 @@ NOTE: The examples below (and throughout this manual) use the `s-p` prefix.
 ** package project (kbd:[s-p c p])
 ** run project (kbd:[s-p c r])
 
+Here's `projectile-find-file` (kbd:[s-p f]) in action, narrowing the project's
+files down with a few keystrokes (shown with `vertico` and `marginalia`, which
+Projectile's completion categories integrate with nicely):
+
+image::projectile-find-file.gif[projectile-find-file narrowing the project's files in the minibuffer]
+
+And this is what switching projects (kbd:[s-p p]) looks like:
+
+image::projectile-switch-project.png[projectile-switch-project prompting for one of the known projects]
+
 There are many more commands, covered in the sections below, but the basics can get you pretty far.
 
 == Basic setup
@@ -208,6 +218,11 @@ command honors full Emacs regexp syntax (e.g. symbol boundaries like
 `\_<foo\_>`) and the preview reflects the exact text that will be edited,
 including any unsaved changes in already-open buffers.
 
+Here's the whole flow - gather the matches, toggle off the ones you want to
+keep, apply the rest:
+
+image::projectile-replace-review.gif[projectile-replace-review toggling matches off and applying the rest]
+
 Every match starts enabled (shown as `[X]`); toggle the ones you don't want
 off (`[ ]`) and apply only the rest, in any order. The results buffer
 supports these keys:
@@ -319,6 +334,8 @@ buffer, grouped by file, one `LINE:COL: CONTEXT` line per match with the
 matched span highlighted. There is no replacement, no per-match toggle and
 no apply: the buffer never edits your files.
 
+image::projectile-search-review.png[The projectile-search results buffer, grouped by file]
+
 The results buffer supports these keys:
 
 |===
@@ -428,6 +445,8 @@ Projectile ships `projectile-dispatch`, a `transient` menu that mirrors
 menu than memorize a lot of keybindings. The menu keys match the command map
 (e.g. kbd:[f] to find a file, kbd:[c c] to compile, kbd:[s g] to grep). Invoke
 it with kbd:[s-p m].
+
+image::projectile-dispatch.png[The projectile-dispatch menu]
 
 It's also wired into project switching: press kbd:[C-u s-p p] and Projectile
 opens the dispatch menu after you select a project, so you can run any command
