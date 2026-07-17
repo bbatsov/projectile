@@ -64,6 +64,8 @@ task gets its own compilation buffer, named `+*projectile-task: NAME*+` (with
 the project name appended when `projectile-per-project-compilation-buffer` is
 non-nil), so several tasks can run side by side.
 
+image::projectile-run-task.png[projectile-run-task prompting for one of the project's tasks]
+
 A task's command is either a shell command string or a function called with no
 arguments (with `default-directory` at the project root) that returns one.
 
