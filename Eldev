@@ -15,17 +15,13 @@
 ;; `projectile-consult.el' is an optional Consult integration that ships with
 ;; Projectile but is loaded only on demand (Consult is a soft dependency, not
 ;; part of Projectile's `Package-Requires').  Pull Consult in just for building
-;; and testing so the module can be byte-compiled and exercised in CI.  Consult
-;; requires Emacs 29.1+, so on older Emacsen we cannot install it: exclude the
-;; module (and its test, which `require's it) from the build/test filesets there.
-(if (version<= "29.1" emacs-version)
-    (progn
-      (eldev-add-extra-dependencies 'build 'consult)
-      (eldev-add-extra-dependencies 'test 'consult))
-  (setf eldev-standard-excludes
-        `(:or ,eldev-standard-excludes
-              "./projectile-consult.el"
-              "./test/projectile-consult-test.el")))
+;; and testing so the module compiles against the real library and its specs
+;; run.  Consult requires Emacs 29.1+, so we can only install it there; on older
+;; Emacsen the module still byte-compiles cleanly without Consult (the functions
+;; it uses are forward-declared) and its specs self-skip via `assume'.
+(when (version<= "29.1" emacs-version)
+  (eldev-add-extra-dependencies 'build 'consult)
+  (eldev-add-extra-dependencies 'test 'consult))
 
 ;; Eldev regenerates `projectile-pkg.el' from the package headers on every
 ;; build.  Some CI images then byte-compile the leftover copy and, under

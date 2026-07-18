@@ -29,10 +29,15 @@
 (require 'projectile-test-helpers)
 
 (defvar projectile-consult-available
-  ;; On Emacs < 29.1 Consult cannot be installed (it requires 29.1), so the
-  ;; `require' may signal rather than just return nil; swallow that too.
-  (ignore-errors (require 'projectile-consult nil t))
-  "Non-nil when `projectile-consult' (and thus Consult) could be loaded.")
+  ;; The module loads on any Emacs (it only soft-requires Consult), so its
+  ;; presence says nothing about whether the specs can run - what matters is
+  ;; Consult itself, which needs Emacs 29.1+ and drives every command under
+  ;; test.  Probe for Consult directly and skip when it's absent.  Wrapped in
+  ;; `ignore-errors' because the `require' can signal rather than return nil.
+  (and (ignore-errors (require 'projectile-consult nil t))
+       (ignore-errors (require 'consult nil t))
+       t)
+  "Non-nil when Consult is available so the integration specs can run.")
 
 (describe "projectile-consult--file-command"
   (it "wraps the indexing command in a shell with a NUL->newline translation"

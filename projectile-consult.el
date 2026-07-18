@@ -5,8 +5,12 @@
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/projectile
 ;; Keywords: project, convenience, matching
-;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1") (projectile "3.0.0") (consult "2.0"))
+
+;; This file is an optional module shipped inside the Projectile package; it
+;; carries no `Package-Requires' header of its own so it isn't mistaken for a
+;; standalone package.  At runtime it needs `consult' 2.0+, which in turn
+;; requires Emacs 29.1+, but Projectile core never loads it, so those are not
+;; Projectile dependencies (see the Commentary).
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -38,13 +42,10 @@
 ;; you can start typing.
 ;;
 ;; Projectile core does NOT load this file; require it yourself (it pulls in
-;; `consult'):
+;; `consult', which needs Emacs 29.1+):
 ;;
 ;;   (require 'projectile-consult)
 ;;   (define-key projectile-command-map (kbd "f") #'projectile-consult-find-file)
-;;
-;; It is intentionally self-contained so it can be split out into its own
-;; package in the future.
 
 ;;; Code:
 

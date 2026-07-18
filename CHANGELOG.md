@@ -6,6 +6,10 @@
 
 ## master (unreleased)
 
+### Changes
+
+- Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`. It's an optional module shipped inside the Projectile package, not a package of its own, and the phantom `Package-Requires` made build tooling treat it as one (e.g. it broke `eldev`-based test runs on Emacs 28.x by enforcing Consult's Emacs 29.1 floor on the whole project). Its runtime needs (Consult 2.0+, hence Emacs 29.1+) are unchanged and documented in the file and the manual.
+
 ## 3.2.1 (2026-07-13)
 
 ### Bugs fixed

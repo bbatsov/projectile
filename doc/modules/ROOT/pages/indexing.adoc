@@ -557,9 +557,8 @@ in `projectile-consult.el`. It's an optional module with a soft dependency on
 indexing command and streams the candidates into Consult as they arrive, so
 there's no wait for the whole project to be indexed before you can start
 typing. Because it goes through `projectile-project-files-producer`, it stays
-VCS-aware and honours the project's indexing configuration. The module
-requires Emacs 29.1+ (Consult's floor) and may be split into a standalone
-package in the future.
+VCS-aware and honours the project's indexing configuration. The module needs
+Consult 2.0+, which in turn requires Emacs 29.1+.
 
 === File exists cache
 
