@@ -198,14 +198,48 @@ in particular should read the
 xref:upgrading_to_projectile_3.adoc#ido-users[upgrade guide], which covers
 `ido-completing-read+`.
 
-=== Embark and Marginalia
+[#recommended-completion-stack]
+=== A recommended setup
 
-Projectile ships a small integration layer for
-https://github.com/oantolin/embark[Embark] and
-https://github.com/minad/marginalia[Marginalia]. It's wired with
-`with-eval-after-load`, so neither package becomes a dependency - if you don't
-have them installed, nothing happens; if you do, it activates on its own with no
-configuration.
+Nothing below is required, but this is the combination that gets the most out of
+Projectile's completion metadata, and it's what the screenshots in this manual
+were taken with:
+
+[source,elisp]
+----
+(use-package vertico      ; a vertical completion UI
+  :ensure t
+  :init (vertico-mode +1))
+
+(use-package marginalia   ; annotations next to each candidate
+  :ensure t
+  :init (marginalia-mode +1))
+
+(use-package orderless    ; space-separated, order-independent matching
+  :ensure t
+  :init (setq completion-styles '(orderless basic)))
+----
+
+https://github.com/minad/marginalia[Marginalia] is the one worth calling out,
+because Projectile does real work to make it useful. Every Projectile prompt
+tags its candidates with a completion category, and Marginalia keys off that
+category to decide what to show: file size, permissions and modification time at
+`projectile-find-file`, buffer sizes and major modes at
+`projectile-switch-to-buffer`, and so on. The same prompt without Marginalia
+(top) and with it (bottom):
+
+image::projectile-marginalia.png[projectile-find-file without and with Marginalia annotations]
+
+Picking a file by its size or by how recently you touched it, without leaving
+the prompt, turns out to be a much bigger deal in day-to-day use than it sounds.
+
+=== Embark actions
+
+Projectile also ships a small integration layer for
+https://github.com/oantolin/embark[Embark]. Like the Marginalia support, it's
+wired with `with-eval-after-load`, so neither package becomes a dependency - if
+you don't have them installed, nothing happens; if you do, it activates on its
+own with no configuration.
 
 Two things come out of it. First, `embark-act` on a file candidate targets the
 right file. Projectile presents its file candidates relative to the project
@@ -244,9 +278,8 @@ any other keymap:
   (define-key projectile-embark-project-map (kbd "b") #'projectile-ibuffer))
 ----
 
-Marginalia annotates the project candidates with its built-in file annotator,
-since they're just directory paths - so they look the same as they did before
-the category change.
+Project candidates keep their Marginalia annotations under the new category -
+they're directory paths, so Marginalia's file annotator handles them.
 
 === Custom completion function
 

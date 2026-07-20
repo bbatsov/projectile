@@ -21,8 +21,11 @@ NOTE: The rest of this manual writes keybindings as `s-p ...`; just substitute
 whatever prefix you picked above.
 
 TIP: Pair Projectile with a modern completion UI such as
-https://github.com/minad/vertico[Vertico] for a much nicer experience at every
-prompt. See xref:configuration.adoc#completion-options[Completion options].
+https://github.com/minad/vertico[Vertico], plus
+https://github.com/minad/marginalia[Marginalia] for annotations (file sizes,
+modification times, major modes) next to each candidate. It's a much nicer
+experience at every prompt. See
+xref:configuration.adoc#recommended-completion-stack[A recommended setup].
 
 == Open a project
 
