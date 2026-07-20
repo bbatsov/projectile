@@ -622,8 +622,6 @@ is set to `alien'."
 (defcustom projectile-globally-ignored-directories
   '(".idea"
     ".vscode"
-    ".ensime_cache"
-    ".eunit"
     ".git"
     ".hg"
     ".fslckout"
