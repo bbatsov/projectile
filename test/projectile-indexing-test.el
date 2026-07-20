@@ -1033,7 +1033,82 @@
 
   (it "leaves a nil command alone when external indexing is disabled"
     (spy-on 'projectile-get-ext-command :and-return-value nil)
-    (expect (projectile--alien-ext-command 'none "/proj/") :to-be nil)))
+    (expect (projectile--alien-ext-command 'none "/proj/") :to-be nil))
+
+  (it "leaves the command alone under hybrid indexing"
+    ;; hybrid filters the output itself; pushing the rules down as well
+    ;; would hand it alien's semantics for the rules where the two differ
+    (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -z")
+    (spy-on 'projectile--project-ignore-globs :and-return-value '("node_modules/"))
+    (let ((projectile-indexing-method 'hybrid))
+      (expect (projectile--alien-ext-command 'git "/proj/")
+              :to-equal "git ls-files -z"))
+    (let ((projectile-indexing-method 'alien))
+      (expect (projectile--alien-ext-command 'git "/proj/")
+              :not :to-equal "git ls-files -z")))
+
+  (it "treats a `*'-prefixed ignored directory as a name, not a wildcard"
+    ;; `*.osc' names the directory `.osc' at any depth - a glob matcher
+    ;; would read the `*' as a wildcard and also drop `foo.osc'
+    (spy-on 'projectile-parse-dirconfig-file :and-return-value nil)
+    (let ((projectile-globally-ignored-directories '("*.osc"))
+          (projectile-globally-unignored-directories nil)
+          (projectile-globally-ignored-files nil)
+          (projectile-globally-ignored-file-suffixes nil))
+      (expect (projectile--project-ignore-globs "/proj/") :to-contain ".osc/")
+      (expect (projectile--project-ignore-globs "/proj/") :not :to-contain "*.osc/"))))
+
+(describe "native/alien dirconfig parity"
+  ;; Native is the semantic reference: it walks the tree in Emacs Lisp and
+  ;; applies the rules directly, so whatever it produces is what the
+  ;; translated exclusions have to reproduce.  Comparing alien against
+  ;; hybrid alone would not catch a mistranslation, since both of those
+  ;; start from the same external listing.
+  (it "produces the same file set under native and alien"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/keep.txt"
+       "project/src/main.c"
+       "project/docs/a.text"
+       "project/deep/nested/b.text"
+       "project/build.elc"
+       "project/vendor/lib.js"
+       "project/deep/vendor/deep.js"
+       "project/q1.txt"
+       "project/qXY.txt")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (with-temp-file (expand-file-name ".projectile" root)
+          ;; a glob, a directory pattern and a single-character wildcard
+          (insert "-*.text\n-vendor/\n-q?.txt\n"))
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (spy-on 'projectile-project-root :and-return-value root)
+        (spy-on 'projectile-get-repo-ignored-files :and-return-value nil)
+        (spy-on 'projectile-get-repo-ignored-directory :and-return-value nil)
+        (let* ((projectile-enable-caching nil)
+               (projectile-globally-ignored-file-suffixes '(".elc"))
+               ;; pin the ignore config rather than leaning on the defaults;
+               ;; the native walker would otherwise descend into .git, which
+               ;; git ls-files never reports in the first place
+               (projectile-globally-ignored-directories '(".git"))
+               (projectile-globally-ignored-files nil)
+               (projectile-git-use-fd nil)
+               (projectile-fd-executable nil)
+               (native (let ((projectile-indexing-method 'native))
+                         (projectile-project-files root)))
+               (alien (let ((projectile-indexing-method 'alien))
+                        (projectile-project-files root))))
+          (expect alien :to-have-same-items-as native)
+          (expect alien :to-contain "src/main.c")
+          (expect alien :to-contain "qXY.txt")
+          (expect alien :not :to-contain "docs/a.text")
+          (expect alien :not :to-contain "deep/nested/b.text")
+          (expect alien :not :to-contain "vendor/lib.js")
+          (expect alien :not :to-contain "deep/vendor/deep.js")
+          (expect alien :not :to-contain "q1.txt")
+          (expect alien :not :to-contain "build.elc")))))))
 
 (describe "alien/hybrid dirconfig parity"
   ;; The acceptance test for pushing the ignore rules into the external

@@ -225,18 +225,54 @@ below summarises which configuration knobs take effect under which mode:
 |===
 
 [#alien-ignores]
-NOTE: `alien` honors the ignore rules without giving up its speed: they are
-handed to the external tool as exclusion arguments (`git ls-files` pathspecs,
-`fd --exclude`) rather than applied to its output, so no filtering happens in
-Emacs.  The handful of tools that can't express exclusions - `svn`, `fossil`,
-`bzr`, `darcs`, `pijul` and the plain `find` fallback - do get their output
-filtered in Emacs Lisp instead, so the file set is the same either way.  Set
-`projectile-alien-honors-ignores` to nil to get the raw listing back and defer
-entirely to the tool's own ignore rules.
+=== How `alien` applies the ignore rules
 
-NOTE: Dirconfig `+` keep entries and `!` unignore entries have no equivalent in
-the external tools, so they remain `hybrid`/`native` only.  A project that
-relies on them still needs one of those indexing methods.
+`alien` honors the ignore rules without giving up its speed: instead of
+filtering the tool's output in Emacs, it hands the rules to the tool as
+exclusion arguments. Which tools can do that varies, so the ones that can't get
+their output filtered in Emacs Lisp after all. Either way the resulting file set
+is the same - the difference is only where the work happens:
+
+[cols="1,2,2",options="header"]
+|===
+| Indexing command | How the rules are applied | Cost
+
+| `git ls-files`
+| `:(exclude,glob)` pathspecs
+| In the tool
+
+| `fd` (including `projectile-git-use-fd`)
+| repeated `--exclude` globs
+| In the tool
+
+| `hg locate`, `sl locate`, `jj file list`
+| output filtered in Emacs Lisp
+| One pass over the file list
+
+| `svn`, `fossil`, `bzr`, `darcs`, `pijul`
+| output filtered in Emacs Lisp
+| One pass over the file list
+
+| the plain `find` fallback
+| output filtered in Emacs Lisp
+| One pass over the file list
+|===
+
+Set `projectile-alien-honors-ignores` to nil to get the raw listing back and
+defer entirely to the tool's own ignore rules (`.gitignore` and friends).
+
+NOTE: Dirconfig `+` keep entries and `!` unignore entries, and the
+`projectile-globally-unignored-*` variables, have no equivalent in any of these
+tools and can't be reproduced by filtering a listing that already omits the
+files. They remain `hybrid`/`native` only, and a project that relies on them
+still needs one of those indexing methods.
+
+WARNING: A bare entry in `projectile-globally-ignored-directories` matches at
+any depth under `alien`, the same as it does under `native`, whereas `hybrid`
+matches it only at the top level. The `*` prefix (which marks an entry as
+"at any depth" rather than acting as a wildcard) makes no difference under
+`alien`. If you depend on the distinction, `hybrid` is the method that honors
+it.
 
 TIP: For the details of each ignore mechanism (`.projectile`, the indexing
 tools, and the global ignore/unignore variables), see

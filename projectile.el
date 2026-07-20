@@ -3120,6 +3120,12 @@ folded in as exclusion arguments when the tool understands them and
   (let ((command (projectile-get-ext-command vcs directory)))
     (if-let* ((command)
               (projectile-alien-honors-ignores)
+              ;; Only alien pushes the rules down.  Hybrid applies them to
+              ;; the output itself, and doing both would silently give it
+              ;; alien's semantics for the rules where the two differ (a
+              ;; bare `projectile-globally-ignored-directories' entry is
+              ;; top-level-only under hybrid, any-depth under alien).
+              ((eq projectile-indexing-method 'alien))
               (globs (projectile--project-ignore-globs directory))
               (args (projectile--alien-exclude-args vcs command globs)))
         (concat command " " args)
@@ -7569,9 +7575,15 @@ files and directories ignored via the project's dirconfig
 \(`.projectile') are rooted at ROOT with a leading `./'."
   (let ((default-directory root))
     (append
-     ;; globally ignored directory names, matched at any depth
+     ;; Globally ignored directory names, matched at any depth.  A leading
+     ;; `*' in `projectile-globally-ignored-directories' is a marker meaning
+     ;; "at any depth", not a wildcard, so it has to be stripped rather than
+     ;; passed on to a glob matcher that would read it as one (`*.osc' names
+     ;; the directory `.osc', it doesn't match `foo.osc').
      (mapcar (lambda (name)
-               (concat (directory-file-name name) "/"))
+               (concat (directory-file-name
+                        (string-remove-prefix "*" name))
+                       "/"))
              (projectile-globally-ignored-directory-names))
      ;; globally ignored files, matched at any depth
      (copy-sequence projectile-globally-ignored-files)
