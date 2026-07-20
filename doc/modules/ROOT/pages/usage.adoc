@@ -74,6 +74,14 @@ Here's how a typical Projectile configuration would look:
   :init
   (vertico-mode +1))
 
+;; Optional: marginalia annotates the completion candidates - file sizes and
+;; modification times at `projectile-find-file', major modes at
+;; `projectile-switch-to-buffer', and so on.
+(use-package marginalia
+  :ensure t
+  :init
+  (marginalia-mode +1))
+
 ;; Optional: which-key will show you options for partially completed keybindings
 ;; It's extremely useful for packages with many keybindings like Projectile.
 (use-package which-key
@@ -158,9 +166,11 @@ a prefix argument it also removes projects nested deeper in the tree.
 Projectile reads through Emacs's built-in `completing-read`, so it works with
 whatever minibuffer UI you use. It works fine with the stock completion, but
 you're encouraged to pair it with a modern package like `vertico` (+ `consult`,
-`marginalia`, `orderless`) or `fido-mode`/`fido-vertical-mode`. See the
-xref:configuration.adoc#completion-options[Completion Options] section for
-details, including how to plug in a custom completion function.
+`marginalia`, `orderless`) or `fido-mode`/`fido-vertical-mode`. See
+xref:configuration.adoc#recommended-completion-stack[A recommended setup] for
+the combination this manual assumes, and the surrounding
+xref:configuration.adoc#completion-options[Completion Options] section for the
+rest, including how to plug in a custom completion function.
 
 === Installing external tools
 
