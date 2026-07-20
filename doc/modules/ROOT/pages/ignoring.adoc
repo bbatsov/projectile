@@ -8,8 +8,11 @@ comparison] for the full matrix of what each method honors.
 
 == Ignoring files using `.projectile` (a.k.a. dirconfig)
 
-WARNING: The contents of `.projectile` are ignored when using the
- `alien` project indexing method.
+NOTE: All three indexing methods honor the `-` ignore entries below.  Under
+`alien` they are handed to the external indexing tool as exclusion arguments
+(see xref:indexing.adoc#alien-ignores[Indexing]).  The `+` keep and `!` unignore
+entries have no equivalent in those tools, so they apply under `hybrid` and
+`native` only.
 
 If you'd like to instruct Projectile to ignore certain files in a
 project, when indexing it you can do so in the `.projectile` file by
@@ -130,8 +133,10 @@ way to further adjust what you want to see in Projectile.
 == Global ignore and unignore settings
 
 In addition to per-project ignores, Projectile provides several variables for
-globally ignoring files and directories.  These take effect with `native` and
-`hybrid` indexing but are **not** applied with the `alien` indexing method.
+globally ignoring files and directories.  These take effect with every indexing
+method; under `alien` they are pushed down into the external indexing tool.  The
+`projectile-globally-unignored-*` variables are the exception - they apply with
+`native` and `hybrid` indexing only.
 
 [source,elisp]
 ----
@@ -159,7 +164,8 @@ character — it is the marker that promotes an entry from anchored to anywhere.
 
 The `*` prefix only matters for the `hybrid` post-processor; in `native`
 indexing every entry is matched by directory basename at every traversal step
-(so `tmp` and `*tmp` behave the same). `alien` ignores both forms entirely.
+(so `tmp` and `*tmp` behave the same). Under `alien` both forms are translated
+into an exclusion matching the directory name at any depth.
 
 You can also _unignore_ specific files or directories that would otherwise be
 excluded.  This is useful when your VCS ignores files that you still want

@@ -8,10 +8,12 @@
 
 ### New features
 
+- Alien indexing now honors Projectile's ignore rules. Previously `alien` (the default indexing method) delegated the whole walk to an external tool and applied none of `projectile-globally-ignored-files` / `-directories` / `-file-suffixes`, `projectile-global-ignore-file-patterns` or the `-` entries of a project's `.projectile`, which was a frequent source of confusion. The rules are now pushed down into the tool itself (`git ls-files` exclude pathspecs, `fd --exclude`), so the filtering still happens outside Emacs and `alien` stays fast; the few tools that can't express exclusions (svn, fossil, bzr, darcs, pijul, and the plain `find` fallback) have their output filtered in Emacs Lisp instead. Set the new `projectile-alien-honors-ignores` to nil to restore the old behavior. Dirconfig `+` keep and `!` unignore entries have no equivalent in the external tools and remain `hybrid`/`native` only. As a result `alien` projects will list fewer files than before - which is the point, but do check the new `projectile-alien-honors-ignores` if a file you expect goes missing.
 - Add an optional Embark/Marginalia integration, wired via `with-eval-after-load` so neither package becomes a dependency. `embark-act` on a project file now targets the right file even when `default-directory` is a subdirectory, via a transformer that *augments* (never replaces) Embark's own `project-file` handling - it resolves a candidate against the Projectile root only when the file actually lives there, and otherwise defers to Embark, leaving non-Projectile completions untouched. Acting on a project candidate offers project actions (switch, vc, dired, remove) through the new `projectile-embark-project-map`; project prompts now use a `projectile-project` completion category, annotated by Marginalia's file annotator just like before.
 
 ### Changes
 
+- Remove `projectile-warn-when-dirconfig-is-ignored` and the warning it controlled. It existed only to tell you that `alien` indexing was bypassing your `.projectile`, which it no longer does.
 - Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`. It's an optional module shipped inside the Projectile package, not a package of its own, and the phantom `Package-Requires` made build tooling treat it as one (e.g. it broke `eldev`-based test runs on Emacs 28.x by enforcing Consult's Emacs 29.1 floor on the whole project). Its runtime needs (Consult 2.0+, hence Emacs 29.1+) are unchanged and documented in the file and the manual.
 
 ## 3.2.1 (2026-07-13)

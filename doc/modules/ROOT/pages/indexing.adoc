@@ -188,7 +188,12 @@ below summarises which configuration knobs take effect under which mode:
 | Fast
 | Fastest
 
-| Honors `.projectile` (dirconfig) `+`/`-`/`!` rules
+| Honors `.projectile` (dirconfig) `-` ignore rules
+| Yes
+| Yes
+| Yes
+
+| Honors `.projectile` (dirconfig) `+` keep and `!` unignore rules
 | Yes
 | Yes
 | No
@@ -196,7 +201,7 @@ below summarises which configuration knobs take effect under which mode:
 | Honors `projectile-globally-ignored-files` / `-directories` / `-file-suffixes` / `projectile-global-ignore-file-patterns`
 | Yes
 | Yes
-| No (rely on the VCS / `fd` / `find` ignores instead)
+| Yes
 
 | Honors `projectile-globally-unignored-*`
 | Yes
@@ -219,11 +224,19 @@ below summarises which configuration knobs take effect under which mode:
 | Requires Unix utilities
 |===
 
-NOTE: When `alien` is in use and a non-empty `.projectile` file is
-present, Projectile emits a one-time warning so the silent bypass
-doesn't catch you off guard.  Switch to `hybrid` (or `native`) if you
-need those rules applied; set
-`projectile-warn-when-dirconfig-is-ignored` to nil to silence.
+[#alien-ignores]
+NOTE: `alien` honors the ignore rules without giving up its speed: they are
+handed to the external tool as exclusion arguments (`git ls-files` pathspecs,
+`fd --exclude`) rather than applied to its output, so no filtering happens in
+Emacs.  The handful of tools that can't express exclusions - `svn`, `fossil`,
+`bzr`, `darcs`, `pijul` and the plain `find` fallback - do get their output
+filtered in Emacs Lisp instead, so the file set is the same either way.  Set
+`projectile-alien-honors-ignores` to nil to get the raw listing back and defer
+entirely to the tool's own ignore rules.
+
+NOTE: Dirconfig `+` keep entries and `!` unignore entries have no equivalent in
+the external tools, so they remain `hybrid`/`native` only.  A project that
+relies on them still needs one of those indexing methods.
 
 TIP: For the details of each ignore mechanism (`.projectile`, the indexing
 tools, and the global ignore/unignore variables), see
