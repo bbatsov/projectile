@@ -37,17 +37,14 @@ Here are some of Projectile's essential features:
 There's also a rich ecosystem of third-party [Projectile extensions](https://melpa.org/#/?q=projectile) that add even more features.
 
 ---------------
+[![GitHub Sponsors](https://img.shields.io/badge/sponsor-GitHub-ea4aaa.svg?logo=github)](https://github.com/sponsors/bbatsov)
 [![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/bbatsov)
 [![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=GRQKNBM6P8VRQ)
 
 I've been developing Projectile for over a decade now (since 2011). While it's a fun
-project to work on, it still requires a lot of time and energy to
-maintain.
+project to work on, it still requires a lot of time and energy to maintain.
 
-You can support my work on Projectile via
- [PayPal](https://www.paypal.me/bbatsov),
- [Patreon](https://www.patreon.com/bbatsov) and
- [GitHub Sponsors](https://github.com/sponsors/bbatsov).
+**Please consider [supporting financially Projectile's ongoing development](#funding).**
 
 ## Projectile in Action
 
@@ -178,6 +175,18 @@ Check out the project's
 [issue list](https://github.com/bbatsov/projectile/issues?sort=created&direction=desc&state=open)
 a list of unresolved issues. By the way - feel free to fix any of them
 and send me a pull request. :-)
+
+## Funding
+
+While Projectile is free software and will always be, the project would benefit
+immensely from some funding. If you (or the company you work for) are making
+serious use of Projectile, please consider supporting its ongoing development.
+
+You can support my work on Projectile via:
+
+* [GitHub Sponsors](https://github.com/sponsors/bbatsov)
+* [Patreon](https://www.patreon.com/bbatsov)
+* [PayPal](https://www.paypal.me/bbatsov)
 
 ## Contributors
 
