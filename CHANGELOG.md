@@ -13,6 +13,8 @@
 
 ### Changes
 
+- Drop `.ensime_cache` and `.eunit` from the default `projectile-globally-ignored-directories`. ENSIME was archived in 2018 and `.eunit` is a rebar2 artifact; both just added noise to every project's ignore set. Add them back if you still need them.
+- Fix the globs derived from `projectile-globally-ignored-directories` treating a leading `*` as a wildcard. It is a marker meaning "at any depth", so `*.osc` names the `.osc` directory and must not also match `foo.osc`. This affected the patterns handed to `project.el`'s `project-ignores` and to the ripgrep search path.
 - Remove `projectile-warn-when-dirconfig-is-ignored` and the warning it controlled. It existed only to tell you that `alien` indexing was bypassing your `.projectile`, which it no longer does.
 - Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`. It's an optional module shipped inside the Projectile package, not a package of its own, and the phantom `Package-Requires` made build tooling treat it as one (e.g. it broke `eldev`-based test runs on Emacs 28.x by enforcing Consult's Emacs 29.1 floor on the whole project). Its runtime needs (Consult 2.0+, hence Emacs 29.1+) are unchanged and documented in the file and the manual.
 
