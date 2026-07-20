@@ -13,6 +13,7 @@
 
 ### Changes
 
+- Ignore matching is now case-sensitive under every indexing method. `native` and `hybrid` used to fold case when matching `projectile-globally-ignored-file-suffixes`, `projectile-global-ignore-file-patterns` and the dirconfig patterns - a side effect of `string-suffix-p`'s IGNORE-CASE argument and of `case-fold-search` defaulting to `t`, rather than a deliberate choice - so `.elc` also hid `BUILD.ELC`. The external tools behind `alien` can't express that, so the three methods disagreed; they now agree on the case-sensitive reading. Spell out both cases if you relied on the old behavior.
 - Drop `.ensime_cache` and `.eunit` from the default `projectile-globally-ignored-directories`. ENSIME was archived in 2018 and `.eunit` is a rebar2 artifact; both just added noise to every project's ignore set. Add them back if you still need them.
 - Fix the globs derived from `projectile-globally-ignored-directories` treating a leading `*` as a wildcard. It is a marker meaning "at any depth", so `*.osc` names the `.osc` directory and must not also match `foo.osc`. This affected the patterns handed to `project.el`'s `project-ignores` and to the ripgrep search path.
 - Remove `projectile-warn-when-dirconfig-is-ignored` and the warning it controlled. It existed only to tell you that `alien` indexing was bypassing your `.projectile`, which it no longer does.

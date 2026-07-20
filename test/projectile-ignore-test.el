@@ -472,6 +472,16 @@
         (expect 'display-warning :not :to-have-been-called))))))
 
 (describe "projectile--ignored-file-fast-p"
+  (it "matches global ignore patterns and suffixes case-sensitively"
+    ;; `string-match-p' and `string-suffix-p' both fold case by default
+    (let ((rules (projectile--make-walk-rules nil nil nil))
+          (projectile-global-ignore-file-patterns '("build"))
+          (projectile-globally-ignored-file-suffixes '(".elc")))
+      (expect (projectile--ignored-file-fast-p "/r/build/a.o" rules) :to-be-truthy)
+      (expect (projectile--ignored-file-fast-p "/r/BUILD/a.o" rules) :not :to-be-truthy)
+      (expect (projectile--ignored-file-fast-p "/r/a.elc" rules) :to-be-truthy)
+      (expect (projectile--ignored-file-fast-p "/r/a.ELC" rules) :not :to-be-truthy)))
+
   (it "returns t for files in the pre-computed ignored-files-set"
     (let ((rules (projectile--make-walk-rules
                   '("/r/TAGS") nil nil)))
@@ -513,7 +523,26 @@
     (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
            (files (mapcar 'projectile-expand-root file-names)))
       (let ((projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
-        (expect (projectile-remove-ignored files) :to-equal (mapcar 'projectile-expand-root '("foo.c" "foo.o.gz"))))))
+        ;; matching is case-sensitive, so `foo.tar.GZ' survives `.tar.gz'
+        (expect (projectile-remove-ignored files)
+                :to-equal (mapcar 'projectile-expand-root
+                                  '("foo.c" "foo.o.gz" "foo.tar.GZ"))))))
+
+  (it "matches ignored suffixes case-sensitively"
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
+    (spy-on 'projectile-ignored-files-rel)
+    (spy-on 'projectile-ignored-directories-rel)
+    (let ((projectile-globally-ignored-file-suffixes '(".elc")))
+      (expect (projectile-remove-ignored '("a.elc" "B.ELC" "c.Elc"))
+              :to-equal '("B.ELC" "c.Elc"))))
+
+  (it "matches dirconfig ignore patterns case-sensitively"
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
+    (spy-on 'projectile-ignored-files-rel)
+    (spy-on 'projectile-ignored-directories-rel)
+    (spy-on 'projectile-filtering-patterns :and-return-value '(("*.log") . nil))
+    (expect (projectile-remove-ignored '("a.log" "B.LOG"))
+            :to-equal '("B.LOG")))
   (it "drops files whose basename matches an ignored entry"
     (spy-on 'projectile-ignored-files-rel :and-return-value '("TAGS"))
     (spy-on 'projectile-ignored-directories-rel :and-return-value nil)

@@ -2878,16 +2878,18 @@ basenames to ignore anywhere in the tree."
   "Like `projectile-ignored-file-p' but consulting pre-built RULES.
 Used on the hot indexing path to avoid O(N*M) `member' scans."
   (or (gethash file (plist-get rules :ignored-files-set))
-      (seq-some (lambda (re) (string-match-p re file))
+      (seq-some (lambda (re) (let ((case-fold-search nil))
+                               (string-match-p re file)))
                 projectile-global-ignore-file-patterns)
-      (seq-some (lambda (suf) (string-suffix-p suf file t))
+      (seq-some (lambda (suf) (string-suffix-p suf file))
                 projectile-globally-ignored-file-suffixes)))
 
 (defun projectile--ignored-directory-fast-p (directory local-name rules)
   "Like `projectile-ignored-directory-p' but consulting pre-built RULES.
 LOCAL-NAME is the basename of DIRECTORY."
   (or (gethash directory (plist-get rules :ignored-dirs-set))
-      (seq-some (lambda (re) (string-match-p re directory))
+      (seq-some (lambda (re) (let ((case-fold-search nil))
+                               (string-match-p re directory)))
                 projectile-global-ignore-file-patterns)
       (gethash local-name (plist-get rules :globally-ignored-dir-names-set))))
 
@@ -2992,7 +2994,10 @@ state across calls."
   "Recursive walker for `projectile-index-directory'.
 DIRECTORY, PROGRESS-REPORTER and RULES carry the same state as the
 public entry point.  ACC-CELL is a 1-element list whose car
-accumulates discovered file paths in reverse order."
+accumulates discovered file paths in reverse order.
+
+Ignore matching is case-sensitive, so `case-fold-search' is pinned off
+for the dirconfig regexps matched below."
   ;; Use ignore-errors to skip unreadable directories (e.g.
   ;; .Spotlight-V100 on macOS) instead of aborting the entire indexing
   ;; operation.
@@ -3003,12 +3008,13 @@ accumulates discovered file paths in reverse order."
   ;; files from directories without a `file-directory-p' stat per entry -
   ;; that stat is a separate filesystem round-trip each, which dominates the
   ;; walk on large or remote (TRAMP) trees.
-  (let ((entries (ignore-errors
-                   (directory-files-and-attributes
-                    directory t directory-files-no-dot-files-regexp nil 'integer)))
-        (ignore-re (plist-get rules :dirconfig-ignore-re))
-        (ensure-re (plist-get rules :dirconfig-ensure-re))
-        (match-base-len (plist-get rules :match-base-len)))
+  (let* ((case-fold-search nil)
+         (entries (ignore-errors
+                    (directory-files-and-attributes
+                     directory t directory-files-no-dot-files-regexp nil 'integer)))
+         (ignore-re (plist-get rules :dirconfig-ignore-re))
+         (ensure-re (plist-get rules :dirconfig-ensure-re))
+         (match-base-len (plist-get rules :match-base-len)))
     (dolist (entry entries)
       (let* ((f (car entry))
              ;; The type field is t for a directory, a string (the link
@@ -3843,7 +3849,10 @@ Dirconfig ignore patterns (the non-slash-prefixed `-' entries of the
 `.projectile' file) are also applied, compiled via
 `projectile--compile-dirconfig-patterns'; `!' ensure patterns rescue
 files from them."
-  (let* ((filtering-patterns (projectile-filtering-patterns))
+  (let* (;; Ignore matching is case-sensitive; `string-match-p' would
+         ;; otherwise fold case, since `case-fold-search' defaults to t.
+         (case-fold-search nil)
+         (filtering-patterns (projectile-filtering-patterns))
          (dirconfig-ignore-re (projectile--compile-dirconfig-patterns
                                (car filtering-patterns)))
          (dirconfig-ensure-re (projectile--compile-dirconfig-patterns
@@ -3877,7 +3886,7 @@ files from them."
                    (delete "" (split-string
                                (or (file-name-directory file) "") "/"))))
              (seq-some (lambda (dir) (string-prefix-p dir file)) prefix-dirs)
-             (seq-some (lambda (suf) (string-suffix-p suf file t)) suffixes)
+             (seq-some (lambda (suf) (string-suffix-p suf file)) suffixes)
              (and dirconfig-ignore-re
                   (string-match-p dirconfig-ignore-re file)
                   (not (and dirconfig-ensure-re
@@ -4212,7 +4221,7 @@ A pre-computed list of IGNORED-FILES may optionally be provided."
     projectile-global-ignore-file-patterns)
    (seq-some
     (lambda (suffix)
-      (string-suffix-p suffix file t))
+      (string-suffix-p suffix file))
     projectile-globally-ignored-file-suffixes)))
 
 (defun projectile-ignored-files ()
