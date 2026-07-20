@@ -267,6 +267,13 @@ tools and can't be reproduced by filtering a listing that already omits the
 files. They remain `hybrid`/`native` only, and a project that relies on them
 still needs one of those indexing methods.
 
+WARNING: Ignore matching is *case-sensitive* under `alien`, but
+case-insensitive under `native` and `hybrid` (which match suffixes and dirconfig
+patterns through Emacs functions that fold case by default). So with `.elc` in
+`projectile-globally-ignored-file-suffixes`, a file named `BUILD.ELC` is hidden
+under `native`/`hybrid` and listed under `alien`. On a case-insensitive
+filesystem, like the macOS default, you are unlikely to notice.
+
 WARNING: A bare entry in `projectile-globally-ignored-directories` matches at
 any depth under `alien`, the same as it does under `native`, whereas `hybrid`
 matches it only at the top level. The `*` prefix (which marks an entry as
