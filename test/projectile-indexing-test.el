@@ -92,7 +92,10 @@
     (spy-on 'projectile-get-sub-projects-files :and-return-value nil)
     (spy-on 'projectile-git-deleted-files :and-return-value nil)
     (let ((projectile-git-use-fd t)
-          (projectile-fd-executable "fd"))
+          (projectile-fd-executable "fd")
+          ;; this spec is about which base command is picked, not about
+          ;; the ignore exclusions appended to it
+          (projectile-alien-honors-ignores nil))
       (projectile-dir-files-alien "/my/root/" 'git)
       ;; When fd is on we don't ask git for deleted files.
       (expect 'projectile-git-deleted-files :not :to-have-been-called)
@@ -101,7 +104,8 @@
                 (concat "fd " projectile-git-fd-args)))))
   (it "falls back to the generic command for projects without a VCS"
     (spy-on 'projectile-files-via-ext-command :and-return-value '("a.txt"))
-    (let ((files (projectile-dir-files-alien "/my/root/" 'none)))
+    (let* ((projectile-alien-honors-ignores nil)
+           (files (projectile-dir-files-alien "/my/root/" 'none)))
       (expect files :to-equal '("a.txt"))
       (expect (cadr (spy-calls-args-for 'projectile-files-via-ext-command 0))
               :to-equal projectile-generic-command))))
@@ -994,5 +998,100 @@
           (expect native :not :to-contain "docs/a.text")
           (expect native :not :to-contain "vendor/lib.js")
           (expect native :not :to-contain "src/gen/out.c")))))))
+
+(describe "alien ignore exclusions"
+  (it "translates ignore globs into git pathspec bodies"
+    (expect (projectile--alien-exclude-glob "node_modules/" 'git)
+            :to-equal "**/node_modules/**")
+    (expect (projectile--alien-exclude-glob "TAGS" 'git) :to-equal "**/TAGS")
+    (expect (projectile--alien-exclude-glob "*.elc" 'git) :to-equal "**/*.elc")
+    (expect (projectile--alien-exclude-glob "./vendor/" 'git) :to-equal "vendor/**")
+    (expect (projectile--alien-exclude-glob "./a/b.txt" 'git) :to-equal "a/b.txt"))
+
+  (it "translates ignore globs into fd exclude patterns"
+    ;; fd speaks gitignore, where a leading slash anchors to the search root
+    (expect (projectile--alien-exclude-glob "node_modules/" 'fd)
+            :to-equal "node_modules")
+    (expect (projectile--alien-exclude-glob "*.elc" 'fd) :to-equal "*.elc")
+    (expect (projectile--alien-exclude-glob "./vendor/" 'fd) :to-equal "/vendor")
+    (expect (projectile--alien-exclude-glob "./a/b.txt" 'fd) :to-equal "/a/b.txt"))
+
+  (it "declines for tools that cannot express exclusions"
+    ;; svn and friends are shell pipelines, so the caller filters in Lisp
+    (expect (projectile--alien-exclude-args 'svn projectile-svn-command '("*.elc"))
+            :to-be nil)
+    (expect (projectile--alien-command-excludes-p 'svn projectile-svn-command)
+            :to-be nil)
+    (expect (projectile--alien-command-excludes-p 'git projectile-git-command)
+            :to-be-truthy))
+
+  (it "leaves the command alone when the option is off"
+    (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -z")
+    (let ((projectile-alien-honors-ignores nil))
+      (expect (projectile--alien-ext-command 'git "/proj/")
+              :to-equal "git ls-files -z")))
+
+  (it "leaves a nil command alone when external indexing is disabled"
+    (spy-on 'projectile-get-ext-command :and-return-value nil)
+    (expect (projectile--alien-ext-command 'none "/proj/") :to-be nil)))
+
+(describe "alien/hybrid dirconfig parity"
+  ;; The acceptance test for pushing the ignore rules into the external
+  ;; tool: against a real git repo, alien must produce the same file set
+  ;; hybrid does, even though it never filters the output in Lisp.
+  (it "produces the same file set under alien and hybrid"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/"
+       "project/src/"
+       "project/src/main.c"
+       "project/vendor/"
+       "project/vendor/lib.js"
+       "project/docs/"
+       "project/docs/a.text"
+       "project/README.md"
+       "project/build.elc")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-*.text\n-vendor/\n"))
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (spy-on 'projectile-project-root :and-return-value root)
+        ;; projectile-add-unignored asks git for its ignored entries
+        (spy-on 'projectile-get-repo-ignored-files :and-return-value nil)
+        (spy-on 'projectile-get-repo-ignored-directory :and-return-value nil)
+        (let* ((projectile-enable-caching nil)
+               (projectile-globally-ignored-file-suffixes '(".elc"))
+               (projectile-git-use-fd nil)
+               (projectile-fd-executable nil)
+               (alien (let ((projectile-indexing-method 'alien))
+                        (projectile-project-files root)))
+               (hybrid (let ((projectile-indexing-method 'hybrid))
+                         (projectile-project-files root))))
+          (expect alien :to-have-same-items-as hybrid)
+          (expect alien :to-contain "src/main.c")
+          (expect alien :to-contain "README.md")
+          (expect alien :not :to-contain "docs/a.text")
+          (expect alien :not :to-contain "vendor/lib.js")
+          (expect alien :not :to-contain "build.elc"))))))
+
+  (it "lists everything again once the option is turned off"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/docs/" "project/docs/a.text" "project/README.md")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "-*.text\n"))
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (spy-on 'projectile-project-root :and-return-value root)
+        (let* ((projectile-enable-caching nil)
+               (projectile-indexing-method 'alien)
+               (projectile-git-use-fd nil)
+               (projectile-fd-executable nil)
+               (projectile-alien-honors-ignores nil))
+          (expect (projectile-project-files root) :to-contain "docs/a.text")))))))
 
 ;;; projectile-indexing-test.el ends here

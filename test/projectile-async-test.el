@@ -370,7 +370,8 @@ that stores into it as the async callback."
   (it "describes the external indexing command for the project"
     (spy-on 'projectile-project-vcs :and-return-value 'git)
     (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -zco")
-    (let ((producer (projectile-project-files-producer "/proj/")))
+    (let* ((projectile-alien-honors-ignores nil)
+           (producer (projectile-project-files-producer "/proj/")))
       (expect (plist-get producer :directory) :to-equal "/proj/")
       (expect (plist-get producer :vcs) :to-equal 'git)
       (expect (plist-get producer :command) :to-equal "git ls-files -zco")
@@ -388,6 +389,17 @@ that stores into it as the async callback."
     (spy-on 'projectile-get-ext-command :and-return-value nil)
     (expect (plist-get (projectile-project-files-producer "/proj/") :command)
             :to-be nil))
+
+  (it "folds Projectile's ignore rules into the command as exclusions"
+    ;; external finders driving :command themselves must get the same
+    ;; file set `projectile-find-file' would show
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -zco")
+    (spy-on 'projectile--project-ignore-globs :and-return-value '("node_modules/"))
+    (expect (plist-get (projectile-project-files-producer "/proj/") :command)
+            :to-equal
+            (concat "git ls-files -zco -- "
+                    (shell-quote-argument ":(exclude,glob)**/node_modules/**"))))
 
   (it "defaults to the current project when no root is given"
     (spy-on 'projectile-acquire-root :and-return-value "/current/")

@@ -353,9 +353,6 @@ and the other reference pages.
 | `projectile-warn-on-prefixless-dirconfig-lines`
 | Whether to warn about deprecated prefix-less ignore entries.
 
-| `projectile-warn-when-dirconfig-is-ignored`
-| Whether to warn when a non-empty .projectile is bypassed by alien indexing.
-
 | `projectile-watch-directory-limit`
 | Maximum number of file-notify watches to register per project.
 

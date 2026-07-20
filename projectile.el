@@ -144,12 +144,12 @@ and alien indexing.
 
 The alien indexing method optimizes to the limit the speed
 of the hybrid indexing method.  This means that Projectile will
-not do any processing of the files returned by the external
-commands and you're going to get the maximum performance
-possible.  This behaviour makes a lot of sense for most people,
-as they'd typically be putting ignores in their VCS config and
-won't care about any additional ignores/unignores/sorting that
-Projectile might also provide.
+not post-process the files returned by the external commands and
+you're going to get the maximum performance possible.  Projectile's
+ignore rules are still respected - they are handed to the external
+tool as exclusion arguments where it understands them, and applied
+in Emacs Lisp only for the few tools that can't express them (see
+`projectile-alien-honors-ignores').  Sorting is never applied.
 
 The disadvantage of the hybrid and alien methods is that they are not well
 supported on Windows systems.  That's why by default alien indexing is the
@@ -161,6 +161,34 @@ default on all operating systems, except Windows."
           (const :tag "Hybrid" hybrid)
           (const :tag "Alien" alien))
   :package-version '(projectile . "2.0.0"))
+
+(defcustom projectile-alien-honors-ignores t
+  "Whether `alien' indexing applies Projectile's own ignore rules.
+
+The `alien' indexing method delegates the directory walk to an external
+tool (`git ls-files', `fd', `find', ...), which knows nothing about
+Projectile's ignore configuration: `projectile-globally-ignored-files',
+`projectile-globally-ignored-directories',
+`projectile-globally-ignored-file-suffixes' and the `-' entries of a
+project's dirconfig file (see `projectile-dirconfig-file').
+
+When this is non-nil those rules are honored.  Tools that can express
+exclusions themselves (`git ls-files' via pathspecs, `fd' via
+`--exclude') are handed the rules as arguments, so the filtering still
+happens outside Emacs and alien indexing stays fast.  For the few tools
+that can't (svn, fossil, bzr, darcs, pijul, and the plain `find'
+fallback) the rules are applied to the tool's output in Emacs Lisp
+instead.
+
+Set this to nil to get the raw listing back and defer entirely to the
+external tool's own ignore rules (`.gitignore' and friends), which is
+how alien indexing behaved before Projectile 3.3.
+
+Note that dirconfig `+' keep entries and `!' unignore entries are a
+separate mechanism and remain `hybrid'/`native' only."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.3.0"))
 
 (defcustom projectile-enable-caching (eq projectile-indexing-method 'native)
   "When t enables project files caching.
@@ -551,17 +579,6 @@ Similar to '#' in .gitignore files."
   :group 'projectile
   :type 'character
   :package-version '(projectile . "2.2.0"))
-
-(defcustom projectile-warn-when-dirconfig-is-ignored t
-  "Whether to warn when a non-empty .projectile is bypassed by alien indexing.
-Under the `alien' indexing method, Projectile does not consult the
-project's dirconfig file at indexing time.  When this option is
-non-nil, a one-time warning is shown for each project where a
-non-empty dirconfig is present alongside alien indexing, since the
-silent bypass is a frequent source of confusion."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-warn-on-prefixless-dirconfig-lines t
   "Whether to warn about deprecated prefix-less ignore entries.
@@ -1048,9 +1065,6 @@ a single pass over the project's cached file list.")
   "Set of project roots already reported as too big (or unable) to watch.
 Used to emit the `projectile-watch-directory-limit' message only once
 per project and session.")
-
-(defvar projectile--alien-dirconfig-warned-projects (make-hash-table :test 'equal)
-  "Set of project roots already warned about alien indexing skipping the dirconfig.")
 
 (defvar projectile--prefixless-dirconfig-warned-projects (make-hash-table :test 'equal)
   "Set of project roots already warned about prefix-less dirconfig entries.")
@@ -3033,6 +3047,109 @@ accumulates discovered file paths in reverse order."
 ;; This corresponds to `projectile-indexing-method' being set to hybrid or alien.
 ;; The only difference between the two methods is that alien doesn't do
 ;; any post-processing of the files obtained via the external command.
+;;
+;; Projectile's own ignore rules are still honored under alien (see
+;; `projectile-alien-honors-ignores'), but they are pushed down into the
+;; external tool as exclusion arguments rather than applied to its output, so
+;; alien keeps doing no Lisp-side filtering.  Only the tools that can't express
+;; exclusions fall back to filtering in Emacs.
+
+(defun projectile--fd-command-p (command)
+  "Return non-nil when COMMAND is one of Projectile's `fd' recipes.
+Recognised by the `--strip-cwd-prefix' flag Projectile puts in them, the
+same way `projectile--ext-command-line' does.  COMMAND may be nil, which
+is how Projectile spells \"external-command indexing is disabled\"."
+  (and command (string-match-p "--strip-cwd-prefix\\b" command)))
+
+(defun projectile--alien-exclude-glob (glob style)
+  "Translate GLOB into an exclusion pattern of the given STYLE.
+
+GLOB is an entry as produced by `projectile--project-ignore-globs': a
+leading `./' means the entry is anchored at the project root, a trailing
+`/' means it names a directory (so its whole subtree is excluded), and
+anything else matches at any depth.
+
+STYLE is `git' for a `git ls-files' pathspec body (wildmatch semantics,
+where `**' crosses directory separators) or `fd' for an `fd --exclude'
+pattern (gitignore semantics, where a leading `/' anchors to the search
+root)."
+  (let* ((rooted (string-prefix-p "./" glob))
+         (body (if rooted (substring glob 2) glob))
+         (dirp (string-suffix-p "/" body))
+         (body (if dirp (substring body 0 -1) body)))
+    (pcase style
+      ('git (concat (unless rooted "**/") body (when dirp "/**")))
+      ('fd (concat (when rooted "/") body))
+      (_ (error "Unknown exclusion style `%S'" style)))))
+
+(defun projectile--alien-exclude-args (vcs command globs)
+  "Return exclusion arguments appending GLOBS to COMMAND, or nil.
+
+Returns nil when GLOBS is empty, or when COMMAND's tool has no way to
+express exclusions - the caller then has to filter the output in Emacs
+Lisp instead (see `projectile--maybe-remove-ignored').
+
+VCS is the project's version-control system as returned by
+`projectile-project-vcs'."
+  (when globs
+    (cond
+     ;; `fd' takes repeated `--exclude' globs.  Checked before VCS because
+     ;; git projects use fd too when `projectile-git-use-fd' is on.
+     ((projectile--fd-command-p command)
+      (mapconcat (lambda (glob)
+                   (concat "-E " (shell-quote-argument
+                                  (projectile--alien-exclude-glob glob 'fd))))
+                 globs " "))
+     ;; `git ls-files' takes exclude pathspecs.  A pathspec list made up
+     ;; entirely of exclusions still lists everything else, so there's no
+     ;; need to add a positive pathspec alongside them.
+     ((eq vcs 'git)
+      (concat "-- "
+              (mapconcat (lambda (glob)
+                           (shell-quote-argument
+                            (concat ":(exclude,glob)"
+                                    (projectile--alien-exclude-glob glob 'git))))
+                         globs " ")))
+     (t nil))))
+
+(defun projectile--alien-ext-command (vcs directory)
+  "Return the external listing command for DIRECTORY, honoring ignore rules.
+Like `projectile-get-ext-command', but with Projectile's ignore rules
+folded in as exclusion arguments when the tool understands them and
+`projectile-alien-honors-ignores' is non-nil."
+  (let ((command (projectile-get-ext-command vcs directory)))
+    (if-let* ((command)
+              (projectile-alien-honors-ignores)
+              (globs (projectile--project-ignore-globs directory))
+              (args (projectile--alien-exclude-args vcs command globs)))
+        (concat command " " args)
+      command)))
+
+(defun projectile--alien-command-excludes-p (vcs command)
+  "Return non-nil when COMMAND for VCS carries the ignore rules itself.
+When it doesn't, the ignore rules have to be applied to the command's
+output instead."
+  (or (projectile--fd-command-p command) (eq vcs 'git)))
+
+(defun projectile--maybe-remove-ignored (project-root files)
+  "Remove PROJECT-ROOT's ignored entries from FILES, honoring the option.
+A no-op when `projectile-alien-honors-ignores' is nil.  FILES are paths
+relative to PROJECT-ROOT, which is bound as `default-directory' so the
+ignore configuration is read for the right project."
+  (if (not projectile-alien-honors-ignores)
+      files
+    (let ((default-directory project-root))
+      (projectile-remove-ignored files))))
+
+(defun projectile--alien-apply-ignores (project-root vcs files)
+  "Apply PROJECT-ROOT's ignore rules to the alien listing FILES.
+Does nothing when the external command for VCS already excluded them
+itself, which is the fast path (see `projectile--alien-exclude-args')."
+  (if (projectile--alien-command-excludes-p
+       vcs (projectile-get-ext-command vcs project-root))
+      files
+    (projectile--maybe-remove-ignored project-root files)))
+
 (defun projectile-dir-files-alien (directory &optional vcs subdirs)
   "Get the files for DIRECTORY using external tools.
 VCS, when supplied, must be the project's VCS as returned by
@@ -3052,9 +3169,14 @@ without shelling out per kept directory."
       (let* ((fd (and projectile-git-use-fd
                       (projectile-fd-executable-for directory)))
              (files (nconc (projectile-files-via-ext-command
-                            directory (projectile-get-ext-command vcs directory)
+                            directory (projectile--alien-ext-command vcs directory)
                             subdirs)
-                           (projectile--restricted-sub-projects-files directory vcs subdirs)))
+                           ;; Submodules are listed by their own `git ls-files'
+                           ;; runs, which never saw our exclusions, so those
+                           ;; files have to be filtered here.
+                           (projectile--maybe-remove-ignored
+                            directory
+                            (projectile--restricted-sub-projects-files directory vcs subdirs))))
              ;; When using git ls-files (not fd), deleted but unstaged
              ;; files are still reported.  Remove them.  Note that the
              ;; fd-availability check is per-DIRECTORY: a project may be
@@ -3067,7 +3189,8 @@ without shelling out per kept directory."
               (dolist (f deleted) (puthash f t deleted-set))
               (seq-remove (lambda (f) (gethash f deleted-set)) files))
           files)))
-     (t (projectile-files-via-ext-command directory (projectile-get-ext-command vcs directory) subdirs)))))
+     (t (projectile-files-via-ext-command
+         directory (projectile--alien-ext-command vcs directory) subdirs)))))
 
 (defun projectile--restricted-sub-projects-files (project-root vcs subdirs)
   "Return git submodule files under PROJECT-ROOT, optionally restricted to SUBDIRS.
@@ -3517,7 +3640,7 @@ files) run synchronously once the main command finishes, inside the
 sentinel - off the caller's critical path - so the assembled result
 matches the synchronous function.  Returns the main command's process."
   (let* ((vcs (or vcs (projectile-project-vcs directory)))
-         (command (projectile-get-ext-command vcs directory)))
+         (command (projectile--alien-ext-command vcs directory)))
     (if (eq vcs 'git)
         (let ((fd (and projectile-git-use-fd
                        (projectile-fd-executable-for directory))))
@@ -3527,8 +3650,12 @@ matches the synchronous function.  Returns the main command's process."
              (if err
                  (funcall callback nil err)
                (let* ((all (nconc files
-                                  (projectile--restricted-sub-projects-files
-                                   directory vcs subdirs)))
+                                  ;; Submodules run their own `git ls-files',
+                                  ;; which never saw our exclusions.
+                                  (projectile--maybe-remove-ignored
+                                   directory
+                                   (projectile--restricted-sub-projects-files
+                                    directory vcs subdirs))))
                       (deleted (unless fd (projectile-git-deleted-files directory))))
                  (funcall callback
                           (if deleted
@@ -3675,7 +3802,11 @@ run Projectile's own indexing command itself:
   :directory  the directory the command should run in (the project root)
   :vcs        the detected version-control system, a symbol (or `none')
   :command    the shell command that lists the files, NUL-separated, or
-              nil when external-command indexing is disabled
+              nil when external-command indexing is disabled.  Carries
+              Projectile's ignore rules as exclusion arguments when the
+              tool understands them (see `projectile-alien-honors-ignores');
+              for the tools that don't, the caller has to apply
+              `projectile-remove-ignored' to the output itself
   :separator  the string that separates records in the command's output
 
 The command's output is exactly what `projectile-files-via-ext-command'
@@ -3690,7 +3821,7 @@ PROJECT-ROOT defaults to the current project."
          (vcs (projectile-project-vcs root)))
     (list :directory root
           :vcs vcs
-          :command (projectile-get-ext-command vcs root)
+          :command (projectile--alien-ext-command vcs root)
           :separator "\0")))
 
 (defun projectile-adjust-files (project vcs files)
@@ -4405,30 +4536,6 @@ CALLER is accepted for backward compatibility but no longer used."
                  nil nil initial-input))))
     (if action (funcall action res) res)))
 
-(defun projectile--dirconfig-non-empty-p ()
-  "Return non-nil if the current project's dirconfig file has any content."
-  (let* ((dirconfig (projectile-dirconfig-file))
-         (attrs (and (projectile-file-exists-p dirconfig)
-                     (file-attributes dirconfig))))
-    (and attrs (> (file-attribute-size attrs) 0))))
-
-(defun projectile--maybe-warn-dirconfig-ignored (project-root)
-  "Warn once per session that PROJECT-ROOT's dirconfig is bypassed by alien mode."
-  (when (and projectile-warn-when-dirconfig-is-ignored
-             (eq projectile-indexing-method 'alien)
-             (not (gethash project-root
-                           projectile--alien-dirconfig-warned-projects))
-             (projectile--dirconfig-non-empty-p))
-    (puthash project-root t projectile--alien-dirconfig-warned-projects)
-    (display-warning
-     'projectile
-     (format "Project %s has a non-empty %s but `projectile-indexing-method' \
-is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
-`native' if you need those rules to apply, or set \
-`projectile-warn-when-dirconfig-is-ignored' to nil to silence this warning."
-             project-root projectile-dirconfig-file)
-     :warning)))
-
 (defun projectile-project-files (project-root)
   "Return a list of files for the PROJECT-ROOT."
   (let (files)
@@ -4456,11 +4563,14 @@ is `alien', which bypasses dirconfig filtering.  Switch to `hybrid' or \
         (message "Projectile is initializing cache for %s ..." project-root))
       (setq files
             (if (eq projectile-indexing-method 'alien)
-                ;; In alien mode we can just skip reading
-                ;; .projectile and find all files in the root dir.
-                (progn
-                  (projectile--maybe-warn-dirconfig-ignored project-root)
-                  (projectile--dir-files-alien-maybe-async project-root))
+                ;; In alien mode we let the external tool walk the whole
+                ;; root.  Projectile's ignore rules ride along as exclusion
+                ;; arguments on the command itself; only the tools that
+                ;; can't express them need a pass over the output here.
+                (let ((vcs (projectile-project-vcs project-root)))
+                  (projectile--alien-apply-ignores
+                   project-root vcs
+                   (projectile--dir-files-alien-maybe-async project-root vcs)))
               (let ((dirs (projectile-get-project-directories project-root)))
                 (cond
                  ((and (eq projectile-indexing-method 'hybrid) (cdr dirs))
