@@ -50,8 +50,13 @@
 
   (it "fails when there is no projectile project"
     (projectile-test-with-sandbox
-     (let ((default-directory "/"))
-       (expect (projectile-add-dir-local-variable nil 'fooo 1) :to-throw 'error)))))
+     ;; `projectile-require-project-root' defaults to `prompt', which would
+     ;; send this down the "Switch to project:" completing-read path instead
+     ;; of the error path the spec is about.
+     (let ((default-directory "/")
+           (projectile-require-project-root t))
+       (expect (projectile-add-dir-local-variable nil 'fooo 1)
+               :to-throw 'user-error)))))
 
 (describe "projectile-delete-dir-local-variable"
   (it "deletes existing dir-local variables"
@@ -78,8 +83,12 @@
 
   (it "fails when there is no projectile project"
     (projectile-test-with-sandbox
-     (let ((default-directory "/"))
-       (expect (projectile-delete-dir-local-variable nil 'fooo 1) :to-throw 'error)))))
+     (let ((default-directory "/")
+           (projectile-require-project-root t))
+       ;; two arguments: passing three used to fail with
+       ;; `wrong-number-of-arguments' before reaching the body at all
+       (expect (projectile-delete-dir-local-variable nil 'fooo)
+               :to-throw 'user-error)))))
 
 (describe "projectile-most-recent-project"
   (it "records the project switched away from"
