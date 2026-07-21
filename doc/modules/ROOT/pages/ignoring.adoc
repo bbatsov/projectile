@@ -101,6 +101,14 @@ global ignore variables described below.
   character classes are supported.
 * Matching is case-sensitive.
 
+The search commands (`projectile-grep`, `projectile-ag`,
+`projectile-ripgrep`, `projectile-find-references`) apply the very same
+patterns, translated into whatever exclusion syntax the underlying tool
+speaks, so a search sees the same set of files indexing does. The one
+place the translation can't be exact is `grep`: `*` in a `find` path
+glob crosses `/`, so a root-anchored pattern like `-/*.txt` also
+excludes deeper matches there.
+
 [#worked-examples]
 === Worked examples
 
