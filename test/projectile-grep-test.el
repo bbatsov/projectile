@@ -31,21 +31,28 @@
   (it "greps the project for the (regexp-quoted) symbol, scoped and honouring ignores"
     (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
     (spy-on 'projectile--project-ignore-globs
-            :and-return-value '("*.elc" "./build/"))
+            :and-return-value '("*.elc" "/build/"))
     (spy-on 'xref-matches-in-directory :and-return-value nil)
     ;; `xref-show-xrefs' would try to display; run the fetcher and stop.
     (spy-on 'xref-show-xrefs :and-call-fake
             (lambda (fetcher &rest _) (funcall fetcher)))
     (projectile-find-references "foo.bar")
     (expect 'xref-matches-in-directory :to-have-been-called-with
+            ;; the gitignore patterns are respelled in project.el's format
             "foo\\.bar" "*" "/my/root/" '("*.elc" "./build/"))))
 
 (describe "projectile--ripgrep-ignore-globs"
   (it "builds unquoted --glob=! exclusions that also work on Windows (#1946)"
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("*.log"))
     (let ((projectile-globally-ignored-files '("TAGS" "GTAGS"))
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-ignored-file-suffixes nil)
+          (projectile-globally-unignored-directories nil)
           (projectile-globally-ignored-directories '(".git" ".svn")))
       (expect (projectile--ripgrep-ignore-globs)
-              :to-equal '("--glob=!TAGS" "--glob=!GTAGS" "--glob=!.git" "--glob=!.svn")))))
+              :to-equal '("--glob=!.git/" "--glob=!.svn/"
+                          "--glob=!TAGS" "--glob=!GTAGS"
+                          "--glob=!*.log")))))
 
 (describe "projectile-grep"
   (describe "multi-root grep"

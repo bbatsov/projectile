@@ -367,16 +367,6 @@
             (expect (cl-some (lambda (f) (string-match-p "/alias\\.el\\'" f)) files)
                     :to-be-truthy))))))))
 
-(describe "projectile--list->set"
-  (it "puts all elements as keys with value t and tests with equal"
-    (let ((set (projectile--list->set '("a" "b/" "c"))))
-      (expect (gethash "a" set) :to-be t)
-      (expect (gethash "b/" set) :to-be t)
-      (expect (gethash "missing" set) :to-be nil)))
-  (it "handles the empty list without error"
-    (let ((set (projectile--list->set nil)))
-      (expect (hash-table-count set) :to-equal 0))))
-
 (describe "projectile-get-sub-projects-command"
   (it "gets sub projects command for git"
     (expect (string-prefix-p "git" (projectile-get-sub-projects-command 'git)) :to-be-truthy))
@@ -908,15 +898,15 @@
        "projectA/src/html/index.html"
        "projectA/.projectile")
 
-      ;; verify that indexing only invokes these funcs once during recursion
-      (spy-on 'projectile-ignored-files :and-call-through)
-      (spy-on 'projectile-ignored-directories :and-call-through)
-      (spy-on 'projectile-globally-ignored-directory-names :and-call-through)
+      ;; the ignore rules are computed and compiled once per indexing run,
+      ;; not once per visited directory
+      (spy-on 'projectile--ignore-patterns :and-call-through)
+      (spy-on 'projectile--compile-ignore-patterns :and-call-through)
 
       (projectile-dir-files-native "projectA/")
-      (expect 'projectile-ignored-files :to-have-been-called-times 1)
-      (expect 'projectile-globally-ignored-directory-names :to-have-been-called-times 1)
-      (expect 'projectile-ignored-directories :to-have-been-called-times 1))))
+      (expect 'projectile--ignore-patterns :to-have-been-called-times 1)
+      ;; once for the ignore patterns, once for the ensure ones
+      (expect 'projectile--compile-ignore-patterns :to-have-been-called-times 2))))
   (it "ignores globally ignored directories when using native indexing"
       (projectile-test-with-sandbox
        (projectile-test-with-files
@@ -930,6 +920,46 @@
 
         (setq projectile-globally-ignored-directories '(".ignoreme"))
         (expect (projectile-dir-files-native "project") :to-equal '("config.conf"))))))
+
+(describe "globally ignored directories under native indexing"
+  ;; The entries are gitignore patterns: slashless names match at any
+  ;; depth, a leading `/' anchors at the root and `*' is a real wildcard.
+  (before-each
+    (setq projectile-globally-ignored-files nil
+          projectile-globally-ignored-file-suffixes nil))
+  (it "matches a slashless name at any depth"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/tmp/a" "project/src/tmp/b" "project/src/keep.c")
+      (setq projectile-globally-ignored-directories '("tmp"))
+      (expect (projectile-dir-files-native "project")
+              :to-equal '("src/keep.c")))))
+  (it "anchors a rooted name at the project root"
+    (projectile-test-with-stub-root "project"
+        ("tmp/a" "src/tmp/b" "src/keep.c")
+      (setq projectile-globally-ignored-directories '("/tmp"))
+      (expect (projectile-dir-files-native "project")
+              :to-have-same-items-as '("src/tmp/b" "src/keep.c"))))
+  (it "treats a leading `*' as a wildcard, not as a marker"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/.osc/a" "project/foo.osc/b" "project/keep.c")
+      (setq projectile-globally-ignored-directories '("*.osc"))
+      (expect (projectile-dir-files-native "project") :to-equal '("keep.c")))))
+  (it "matches only the named directory when the pattern has no wildcard"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/.osc/a" "project/foo.osc/b" "project/keep.c")
+      (setq projectile-globally-ignored-directories '(".osc"))
+      (expect (projectile-dir-files-native "project")
+              :to-have-same-items-as '("foo.osc/b" "keep.c")))))
+  (it "spares a file that shares its name with an ignored directory"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/node_modules/a" "project/lib/node_modules")
+      (setq projectile-globally-ignored-directories '("node_modules"))
+      (expect (projectile-dir-files-native "project")
+              :to-equal '("lib/node_modules"))))))
 
 (describe "projectile--vcs-from-directory-listing"
   (it "detects the VCS from a marker directly inside the directory"
@@ -1005,16 +1035,20 @@
             :to-equal "**/node_modules/**")
     (expect (projectile--alien-exclude-glob "TAGS" 'git) :to-equal "**/TAGS")
     (expect (projectile--alien-exclude-glob "*.elc" 'git) :to-equal "**/*.elc")
-    (expect (projectile--alien-exclude-glob "./vendor/" 'git) :to-equal "vendor/**")
-    (expect (projectile--alien-exclude-glob "./a/b.txt" 'git) :to-equal "a/b.txt"))
+    ;; a pathspec is anchored already, so an anchored pattern loses the `**/'
+    (expect (projectile--alien-exclude-glob "/vendor/" 'git) :to-equal "vendor/**")
+    (expect (projectile--alien-exclude-glob "/a/b.txt" 'git) :to-equal "a/b.txt")
+    ;; an interior slash anchors too
+    (expect (projectile--alien-exclude-glob "a/b.txt" 'git) :to-equal "a/b.txt"))
 
   (it "translates ignore globs into fd exclude patterns"
     ;; fd speaks gitignore, where a leading slash anchors to the search root
     (expect (projectile--alien-exclude-glob "node_modules/" 'fd)
-            :to-equal "node_modules")
+            :to-equal "node_modules/")
     (expect (projectile--alien-exclude-glob "*.elc" 'fd) :to-equal "*.elc")
-    (expect (projectile--alien-exclude-glob "./vendor/" 'fd) :to-equal "/vendor")
-    (expect (projectile--alien-exclude-glob "./a/b.txt" 'fd) :to-equal "/a/b.txt"))
+    (expect (projectile--alien-exclude-glob "/vendor/" 'fd) :to-equal "/vendor/")
+    (expect (projectile--alien-exclude-glob "/a/b.txt" 'fd) :to-equal "/a/b.txt")
+    (expect (projectile--alien-exclude-glob "a/b.txt" 'fd) :to-equal "/a/b.txt"))
 
   (it "declines for tools that cannot express exclusions"
     ;; svn and friends are shell pipelines, so the caller filters in Lisp
@@ -1024,6 +1058,18 @@
             :to-be nil)
     (expect (projectile--alien-command-excludes-p 'git projectile-git-command)
             :to-be-truthy))
+
+  (it "declines for a project with dirconfig ensure entries"
+    ;; an exclusion argument can't be taken back, so a project with `!'
+    ;; entries has to be filtered in Lisp, where they can rescue files
+    (spy-on 'projectile--ensure-patterns :and-return-value '("keep.elc"))
+    (expect (projectile--alien-command-excludes-p 'git projectile-git-command "/proj/")
+            :to-be nil)
+    (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -z")
+    (spy-on 'projectile--project-ignore-globs :and-return-value '("*.elc"))
+    (let ((projectile-indexing-method 'alien))
+      (expect (projectile--alien-ext-command 'git "/proj/")
+              :to-equal "git ls-files -z")))
 
   (it "leaves the command alone when the option is off"
     (spy-on 'projectile-get-ext-command :and-return-value "git ls-files -z")
@@ -1047,16 +1093,15 @@
       (expect (projectile--alien-ext-command 'git "/proj/")
               :not :to-equal "git ls-files -z")))
 
-  (it "treats a `*'-prefixed ignored directory as a name, not a wildcard"
-    ;; `*.osc' names the directory `.osc' at any depth - a glob matcher
-    ;; would read the `*' as a wildcard and also drop `foo.osc'
+  (it "emits the ignore patterns as they are, gitignore syntax being what the tools want"
     (spy-on 'projectile-parse-dirconfig-file :and-return-value nil)
-    (let ((projectile-globally-ignored-directories '("*.osc"))
+    (let ((projectile-globally-ignored-directories '(".osc" "node_modules"))
           (projectile-globally-unignored-directories nil)
-          (projectile-globally-ignored-files nil)
-          (projectile-globally-ignored-file-suffixes nil))
-      (expect (projectile--project-ignore-globs "/proj/") :to-contain ".osc/")
-      (expect (projectile--project-ignore-globs "/proj/") :not :to-contain "*.osc/"))))
+          (projectile-globally-ignored-files '("TAGS"))
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-ignored-file-suffixes '(".elc")))
+      (expect (projectile--project-ignore-globs "/proj/")
+              :to-equal '(".osc/" "node_modules/" "TAGS" "*.elc")))))
 
 (describe "native/alien dirconfig parity"
   ;; Native is the semantic reference: it walks the tree in Emacs Lisp and
