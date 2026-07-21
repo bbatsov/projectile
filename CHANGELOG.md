@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2112](https://github.com/bbatsov/projectile/pull/2112): Add `projectile-dashboard` (`s-p P`), a buffer summarising the current project that also works as a `projectile-switch-project-action`.
+  - Covers the project name, root, type and file count, the branch and how many files are modified or untracked, the files you visit most (ranked by frecency), the project's tasks and its configured lifecycle commands.
+  - Every entry is a button: `RET` visits a file, runs a task or a lifecycle command, or opens the VC interface.
+  - It never indexes the project and only queries git on a local git project, so it stays cheap enough for a project switch; `projectile-dashboard-sections` controls what's shown.
 - [#2111](https://github.com/bbatsov/projectile/pull/2111): Add `projectile-doctor` (`s-p H`), which reports how Projectile sees the current project and what to do about it.
   - Covers the project root and which root function found it, the type and matching marker, the indexing method and the exact command that will run, the available external tools, the file count and cache state, and the effective ignore rules.
   - Ends with a list of findings - each either `ok` or a concrete suggestion.

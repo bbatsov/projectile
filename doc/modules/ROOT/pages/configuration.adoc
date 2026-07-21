@@ -73,6 +73,24 @@ menu so you can choose what to do in it.
 NOTE: This requires the optional `transient` dependency. Without it the prefix
 argument is ignored and the usual `projectile-switch-project-action` runs.
 
+[[dashboard-switch-action]]
+=== `projectile-dashboard`
+
+[source,elisp]
+----
+(setq projectile-switch-project-action #'projectile-dashboard)
+----
+
+With this setting you land in a summary of the project you just switched to -
+its type and file count, the branch and how dirty the working tree is, the
+files you were last working on, and the tasks and lifecycle commands you can
+run - all of it actionable with kbd:[RET]. It's the closest thing Projectile
+has to `project.el`'s command menu, except it also tells you where you are.
+
+The dashboard is built to be cheap enough for this: it never indexes the
+project (a cold project simply reports "not indexed yet") and it skips the VCS
+query on remote projects. See xref:usage.adoc#dashboard[Project dashboard].
+
 === `projectile-find-file-in-known-projects`
 
 Similar to `projectile-find-file` but lists all files in all known projects. Since

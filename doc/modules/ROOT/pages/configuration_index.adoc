@@ -62,6 +62,12 @@ and the other reference pages.
 | `projectile-darcs-command`
 | Command used by projectile to get the files in a darcs project.
 
+| `projectile-dashboard-recent-files`
+| How many recently visited files ‘projectile-dashboard’ lists.
+
+| `projectile-dashboard-sections`
+| The sections ‘projectile-dashboard’ renders, in order.
+
 | `projectile-default-src-directory`
 | The default value of a project’s src-dir property.
 

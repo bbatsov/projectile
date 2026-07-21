@@ -489,6 +489,46 @@ NOTE: `projectile-dispatch` is powered by `transient`, which is bundled with
 Emacs 28.1+ (Projectile's minimum), so the menu is always available. It's bound
 to kbd:[s-p m], and kbd:[C-u s-p p] opens it when switching projects.
 
+[[dashboard]]
+== Project dashboard
+
+`projectile-dashboard` (kbd:[s-p P]) opens a buffer that sums up the project
+you're in:
+
+* the project's name, root, type and file count
+* the version control system, the current branch and how many files are
+modified or untracked
+* the project files you visit most, ranked by frecency - the same ranking
+`projectile-find-file`'s completion uses
+* the project's xref:tasks.adoc[tasks]
+* the lifecycle commands (compile, test, run, ...) that are configured for it
+
+Everything worth acting on is a button, so the dashboard doubles as a launcher.
+kbd:[RET] on a file visits it, on a task or a lifecycle command runs it, on the
+branch opens the project's VC interface (Magit, if you have it), and on the
+root opens it in Dired. kbd:[TAB] moves to the next button, kbd:[g] refreshes
+and kbd:[q] buries the buffer.
+
+`projectile-dashboard-sections` picks which sections show up and in what order,
+and `projectile-dashboard-recent-files` how many recent files are listed:
+
+[source,elisp]
+----
+(setq projectile-dashboard-sections '(project vcs recent))
+(setq projectile-dashboard-recent-files 20)
+----
+
+The dashboard is deliberately cheap, so that it works as a
+`projectile-switch-project-action` (see
+xref:configuration.adoc#dashboard-switch-action[Configuration]). It never
+indexes the project and never touches the file cache: a project that isn't
+cached yet is reported as "not indexed yet" rather than indexed on the spot.
+The branch and status come from two short `git` commands, and only on a local
+git project - on a remote (TRAMP) project, or under any other VCS, the section
+says so instead of reaching over the wire. Lifecycle commands and tasks whose
+command is a function are listed but not resolved, since resolving one can pop
+up a prompt.
+
 == Using Projectile with project.el
 
 Starting with version 2.7 Projectile bundles some integration with

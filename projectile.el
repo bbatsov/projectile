@@ -12190,6 +12190,526 @@ risking a hang, and the report says so."
   (interactive)
   (pop-to-buffer (projectile-doctor--report default-directory)))
 
+;;; Project dashboard
+;;
+;; `projectile-dashboard' summarises a project in one buffer: what the
+;; project is, what its VCS thinks of it, the files you keep coming back
+;; to, and what you can run in it.  Every interesting entry is a button,
+;; so the dashboard doubles as a launcher - which is what makes it a
+;; usable `projectile-switch-project-action'.
+;;
+;; Being a switch action is what shapes the whole thing.  It runs right
+;; after a switch, on a project that is very likely cold, and it must not
+;; make the switch feel slow.  So it reports only what is already there:
+;; it never indexes, and an uncached project is shown as "not indexed
+;; yet" rather than indexed on the spot, which would both cost seconds
+;; and warm a cache the user didn't ask for.  Like the doctor, it neither
+;; populates nor invalidates `projectile-projects-cache'.
+;;
+;; The only external process it runs is git - two short commands, and
+;; only on a local git project.  `git rev-parse' is constant time, and
+;; `git status --porcelain' rides the index stat cache and doesn't
+;; recurse into untracked directories.  On a remote (TRAMP) project the
+;; VCS section is skipped outright: even `rev-parse' means a round-trip
+;; over the wire, and the frecency history isn't tracked for remote
+;; projects anyway, so the recent files list is empty there too.  Every
+;; other VCS degrades to its bare name.
+;;
+;; Lifecycle commands and tasks whose command is a function (the CMake
+;; preset pickers, say) are listed but never resolved - resolving one can
+;; pop up a prompt, and a dashboard that opens a minibuffer on project
+;; switch would be intolerable.
+
+(defcustom projectile-dashboard-sections
+  '(project vcs recent tasks commands)
+  "The sections `projectile-dashboard' renders, in order.
+
+Each element is one of the symbols `project' (name, root, type and file
+count), `vcs' (version-control system, branch and working tree status),
+`recent' (the project files you visit most, ranked by frecency), `tasks'
+\(the project's named tasks) and `commands' (the configured lifecycle
+commands).  Dropping a section skips both its rendering and the work
+needed to fill it in."
+  :group 'projectile
+  :type '(repeat (choice (const :tag "Project summary" project)
+                         (const :tag "Version control" vcs)
+                         (const :tag "Recently visited files" recent)
+                         (const :tag "Tasks" tasks)
+                         (const :tag "Lifecycle commands" commands)))
+  :package-version '(projectile . "3.3.0"))
+
+(defcustom projectile-dashboard-recent-files 10
+  "How many recently visited files `projectile-dashboard' lists.
+The files are ranked by frecency, so this is the length of the \"what
+was I working on\" list, not a history limit - that's
+`projectile-frecency-max-files'."
+  :group 'projectile
+  :type 'natnum
+  :package-version '(projectile . "3.3.0"))
+
+(defconst projectile-dashboard-buffer-name "*projectile-dashboard*"
+  "The name of the buffer `projectile-dashboard' renders into.")
+
+(defconst projectile-dashboard--label-width 16
+  "Column width of the labels in the dashboard.")
+
+(defvar-local projectile-dashboard--directory nil
+  "The directory the dashboard in this buffer was generated from.
+Used by the buffer's `revert-buffer' to regenerate it.")
+
+(defun projectile-dashboard--section-p (section)
+  "Return non-nil when SECTION is enabled in `projectile-dashboard-sections'."
+  (memq section projectile-dashboard-sections))
+
+
+;;;; Dashboard data collection
+
+(defun projectile-dashboard--git (root &rest args)
+  "Run git with ARGS in ROOT and return its output, or nil when it fails.
+No shell is involved, and the call would go through TRAMP for a remote
+ROOT - which is why the callers make sure never to reach here with one.
+
+`--no-optional-locks' keeps a dashboard opened on project switch from
+taking the index lock and rewriting the index behind the user's back."
+  (let ((default-directory root))
+    (with-temp-buffer
+      (when (eql 0 (ignore-errors
+                     (apply #'process-file "git" nil '(t nil) nil
+                            "--no-optional-locks" args)))
+        (buffer-string)))))
+
+(defun projectile-dashboard--git-status (root)
+  "Return the git branch and working tree counts for ROOT as a plist.
+
+The branch comes from a single `git rev-parse' and the counts from a
+single `git status --porcelain', which rides git's index stat cache and
+reports an untracked directory as one entry instead of recursing into
+it - that's what keeps this cheap enough to run on a project switch.
+The status is scoped to ROOT, since a project can sit below the git root
+\(see `projectile-project-vcs') and the whole repository's counts would
+be meaningless for it.
+
+The plist's `:vcs-state' is `ok' when both answered, `partial' when only
+the branch could be determined and `unavailable' when git couldn't
+answer at all (not installed, no commits yet, a broken repository)."
+  (if-let* ((branch (projectile-dashboard--git
+                     root "rev-parse" "--abbrev-ref" "HEAD")))
+      (let ((status (projectile-dashboard--git
+                     root "status" "--porcelain" "--untracked-files=normal"
+                     "--" "."))
+            (modified 0)
+            (untracked 0))
+        (dolist (line (and status (split-string status "\n" t)))
+          (if (string-prefix-p "??" line)
+              (setq untracked (1+ untracked))
+            (setq modified (1+ modified))))
+        (list :vcs-state (if status 'ok 'partial)
+              ;; `--abbrev-ref' prints "HEAD" itself when the head is
+              ;; detached, which would read as a branch named HEAD.
+              :branch (let ((branch (string-trim branch)))
+                        (if (equal branch "HEAD") "detached HEAD" branch))
+              :modified modified
+              :untracked untracked))
+    (list :vcs-state 'unavailable)))
+
+(defun projectile-dashboard--vcs-info (root vcs remote)
+  "Return the version control data for the project at ROOT as a plist.
+VCS is the project's version-control system and REMOTE is non-nil for a
+TRAMP root.  Only git is queried, and only locally, so the dashboard
+never blocks on a network round-trip or on a status command whose cost
+we can't vouch for; everything else degrades to the bare VCS name."
+  (cond
+   ((not (eq vcs 'git)) (list :vcs-state 'unsupported))
+   (remote (list :vcs-state 'skipped))
+   (t (projectile-dashboard--git-status root))))
+
+(defun projectile-dashboard--recent-files (root)
+  "Return ROOT's most frecent files, best first.
+This is the ranking `projectile-find-file' completion uses (see
+`projectile--frecency-score'), capped at
+`projectile-dashboard-recent-files'.
+
+The history outlives the files it tracks, so candidates are checked for
+existence as they are taken - which normally means one check per file
+shown, and never more than the tracked history.  The check is skipped
+for a remote ROOT, where each one would be a round-trip (nothing is
+tracked for remote projects in the first place)."
+  (when projectile-enable-frecency
+    (when-let* ((files (gethash root (projectile--frecency-data))))
+      (let ((now (projectile-time-seconds))
+            entries)
+        (maphash (lambda (file entry)
+                   (push (cons file (projectile--frecency-score entry now))
+                         entries))
+                 files)
+        (let ((ranked (seq-sort-by #'cdr #'> entries))
+              (remote (file-remote-p root))
+              (taken 0)
+              recent)
+          (while (and ranked (< taken projectile-dashboard-recent-files))
+            (let ((entry (pop ranked)))
+              (when (or remote
+                        (file-exists-p (expand-file-name (car entry) root)))
+                (push entry recent)
+                (setq taken (1+ taken)))))
+          (nreverse recent))))))
+
+(defun projectile-dashboard--commands (root)
+  "Return the configured lifecycle commands of the project at ROOT.
+Each element is a cons of the phase symbol and the shell command that
+would run, or nil for a phase whose command is a function.  Those are
+listed but never resolved: resolving one can pop up a prompt, which is
+the last thing to do in somebody's project-switch action."
+  (let ((compile-dir (or (ignore-errors (projectile-compilation-dir)) root)))
+    (delq nil
+          (mapcar
+           (lambda (descriptor)
+             (let ((phase (plist-get descriptor :name)))
+               (if (projectile--phase-command-dynamic-p phase)
+                   (cons phase nil)
+                 (when-let* ((command
+                              (ignore-errors
+                                (funcall (plist-get descriptor :command-fn)
+                                         compile-dir))))
+                   (cons phase command)))))
+           projectile--lifecycle-phases))))
+
+(defun projectile-dashboard--collect-in-project (dir root)
+  "Collect the dashboard data for the project at ROOT, reached from DIR.
+Must run in a buffer that has ROOT's directory-local variables applied -
+see `projectile-dashboard--collect', which arranges that."
+  (let* ((remote (file-remote-p root))
+         (vcs (ignore-errors (projectile-project-vcs root)))
+         (cached (gethash root projectile-projects-cache 'uncached))
+         (project (projectile-dashboard--section-p 'project)))
+    (append
+     (list :dir dir
+           :root root
+           :remote remote
+           :vcs vcs
+           :frecency projectile-enable-frecency
+           :name (when project (ignore-errors (projectile-project-name root)))
+           :type (when project (ignore-errors (projectile-project-type)))
+           :file-count (unless (eq cached 'uncached) (length cached))
+           :recent-files (when (projectile-dashboard--section-p 'recent)
+                           (projectile-dashboard--recent-files root))
+           :tasks (when (projectile-dashboard--section-p 'tasks)
+                    (ignore-errors (projectile-project-tasks)))
+           :commands (when (projectile-dashboard--section-p 'commands)
+                       (ignore-errors (projectile-dashboard--commands root))))
+     (when (projectile-dashboard--section-p 'vcs)
+       (projectile-dashboard--vcs-info root vcs remote)))))
+
+(defun projectile-dashboard--collect (&optional dir)
+  "Collect the dashboard data for DIR's project as a plist.
+DIR defaults to `default-directory'.  Outside a project the plist has a
+nil `:root' and the rendering degrades to saying so.
+
+The data is collected in a temporary buffer with the project's
+directory-local variables applied, the way
+`projectile-switch-project-by-name' runs the switch action.  The project
+type, its tasks and its lifecycle commands can all come from
+.dir-locals.el, and the dashboard buffer has none of them - without this
+a refresh would quietly render a different project than the first pass.
+
+Nothing here indexes the project or touches the file cache: an uncached
+project is reported as not indexed rather than indexed on the spot, so
+that the dashboard stays cheap enough to be a
+`projectile-switch-project-action'."
+  (let* ((dir (or dir default-directory))
+         (root (ignore-errors (projectile-project-root dir))))
+    (if (null root)
+        (list :dir dir :root nil)
+      (with-temp-buffer
+        (setq default-directory root)
+        (hack-dir-local-variables-non-file-buffer)
+        (projectile-dashboard--collect-in-project dir root)))))
+
+
+;;;; Dashboard buttons
+
+(defun projectile-dashboard--visit-file (button)
+  "Visit the project file BUTTON stands for."
+  (find-file (expand-file-name (button-get button 'projectile-file)
+                               (button-get button 'projectile-root))))
+
+(defun projectile-dashboard--run-task (button)
+  "Run the project task BUTTON stands for."
+  (let ((default-directory (button-get button 'projectile-root)))
+    (projectile--run-task (button-get button 'projectile-task)
+                          (button-get button 'projectile-command)
+                          nil)))
+
+(defun projectile-dashboard--run-command (button)
+  "Run the lifecycle command BUTTON stands for."
+  (let ((default-directory (button-get button 'projectile-root)))
+    (call-interactively (button-get button 'projectile-command))))
+
+(defun projectile-dashboard--open-vc (button)
+  "Open the VC interface of the project BUTTON stands for."
+  (projectile-vc (button-get button 'projectile-root)))
+
+(defun projectile-dashboard--open-dired (button)
+  "Open the root of the project BUTTON stands for in Dired."
+  (dired (button-get button 'projectile-root)))
+
+(define-button-type 'projectile-dashboard-file
+  'action #'projectile-dashboard--visit-file
+  'follow-link t
+  'help-echo "mouse-1, RET: visit this file")
+
+(define-button-type 'projectile-dashboard-task
+  'action #'projectile-dashboard--run-task
+  'follow-link t
+  'help-echo "mouse-1, RET: run this task")
+
+(define-button-type 'projectile-dashboard-command
+  'action #'projectile-dashboard--run-command
+  'follow-link t
+  'help-echo "mouse-1, RET: run this command")
+
+(define-button-type 'projectile-dashboard-vc
+  'action #'projectile-dashboard--open-vc
+  'follow-link t
+  'help-echo "mouse-1, RET: open the project's VC interface")
+
+(define-button-type 'projectile-dashboard-dired
+  'action #'projectile-dashboard--open-dired
+  'follow-link t
+  'help-echo "mouse-1, RET: open the project root in Dired")
+
+
+;;;; Dashboard rendering
+
+(defun projectile-dashboard--label (label)
+  "Insert LABEL padded out to the dashboard's label column."
+  (insert label
+          (make-string (max 1 (- projectile-dashboard--label-width
+                                 (length label)))
+                       ?\s)))
+
+(defun projectile-dashboard--field (label value)
+  "Insert a LABEL/VALUE line into the dashboard.
+VALUE is rendered with `%s'; a nil or empty one reads as \"n/a\"."
+  (projectile-dashboard--label label)
+  (insert (if (or (null value) (equal value "")) "n/a" (format "%s" value))
+          "\n"))
+
+(defun projectile-dashboard--section (title)
+  "Insert the header of a dashboard section titled TITLE."
+  (insert "\n" title "\n" (make-string (length title) ?-) "\n"))
+
+(defun projectile-dashboard--button (label type root &rest properties)
+  "Insert a button labelled LABEL of button TYPE for the project at ROOT.
+PROPERTIES are any additional button properties, as a plist."
+  (apply #'insert-text-button label
+         'type type 'projectile-root root properties))
+
+(defun projectile-dashboard--entry (label type root &rest properties)
+  "Insert an indented list entry button, padded to the value column.
+LABEL, TYPE, ROOT and PROPERTIES are as in `projectile-dashboard--button'."
+  (insert "  ")
+  (apply #'projectile-dashboard--button label type root properties)
+  (insert (make-string (max 1 (- projectile-dashboard--label-width
+                                 2 (length label)))
+                       ?\s)))
+
+(defun projectile-dashboard--phase-command (phase)
+  "Return the interactive command running lifecycle PHASE.
+The lifecycle commands are named after their phase by construction (see
+`projectile--lifecycle-phases')."
+  (intern (format "projectile-%s-project" phase)))
+
+(defun projectile-dashboard--render-project (data)
+  "Render DATA's project summary."
+  (let ((root (plist-get data :root)))
+    (projectile-dashboard--section "Project")
+    (projectile-dashboard--field "name" (plist-get data :name))
+    (projectile-dashboard--label "root")
+    (projectile-dashboard--button root 'projectile-dashboard-dired root)
+    (insert "\n")
+    (projectile-dashboard--field "type" (plist-get data :type))
+    (projectile-dashboard--field
+     "files"
+     (if-let* ((count (plist-get data :file-count)))
+         (format "%d (cached)" count)
+       "not indexed yet"))
+    (when (plist-get data :remote)
+      (projectile-dashboard--field "remote" (plist-get data :remote)))))
+
+(defun projectile-dashboard--render-vcs (data)
+  "Render DATA's version control summary."
+  (let ((root (plist-get data :root))
+        (vcs (plist-get data :vcs)))
+    (projectile-dashboard--section "Version control")
+    (projectile-dashboard--field "vcs" vcs)
+    (pcase (plist-get data :vcs-state)
+      ((and (or 'ok 'partial) state)
+       (projectile-dashboard--label "branch")
+       (projectile-dashboard--button (plist-get data :branch)
+                                     'projectile-dashboard-vc root)
+       (insert "\n")
+       (projectile-dashboard--field
+        "status"
+        (if (eq state 'partial)
+            "unavailable"
+          (format "%d modified, %d untracked"
+                  (plist-get data :modified)
+                  (plist-get data :untracked)))))
+      ('skipped
+       (projectile-dashboard--field "status" "not checked (remote project)"))
+      ('unavailable
+       (projectile-dashboard--field "status" "unavailable (no commits yet?)"))
+      (_
+       (unless (memq vcs '(nil none))
+         (projectile-dashboard--label "vc")
+         (projectile-dashboard--button "open the VC interface"
+                                       'projectile-dashboard-vc root)
+         (insert "\n"))))))
+
+(defun projectile-dashboard--render-recent (data)
+  "Render DATA's recently visited files."
+  (let ((root (plist-get data :root))
+        (files (plist-get data :recent-files)))
+    (projectile-dashboard--section "Recent files")
+    (if (null files)
+        (insert (if (plist-get data :frecency)
+                    "Nothing visited in this project yet.\n"
+                  "Frecency tracking is off (`projectile-enable-frecency').\n"))
+      (dolist (entry files)
+        (insert "  ")
+        (projectile-dashboard--button (car entry) 'projectile-dashboard-file
+                                      root 'projectile-file (car entry))
+        (insert "\n")))))
+
+(defun projectile-dashboard--render-tasks (data)
+  "Render DATA's project tasks."
+  (let ((root (plist-get data :root))
+        (tasks (plist-get data :tasks)))
+    (projectile-dashboard--section "Tasks")
+    (if (null tasks)
+        (insert "No tasks defined for this project (see `projectile-tasks').\n")
+      (dolist (task tasks)
+        (projectile-dashboard--entry (car task) 'projectile-dashboard-task root
+                                     'projectile-task (car task)
+                                     'projectile-command (cdr task))
+        (insert (if (stringp (cdr task)) (cdr task) "computed at run time")
+                "\n")))))
+
+(defun projectile-dashboard--render-commands (data)
+  "Render DATA's configured lifecycle commands."
+  (let ((root (plist-get data :root))
+        (commands (plist-get data :commands)))
+    (projectile-dashboard--section "Lifecycle commands")
+    (if (null commands)
+        (insert "No lifecycle commands configured for this project type.\n")
+      (dolist (entry commands)
+        (projectile-dashboard--entry
+         (symbol-name (car entry)) 'projectile-dashboard-command root
+         'projectile-command (projectile-dashboard--phase-command (car entry)))
+        (insert (or (cdr entry) "computed at run time") "\n")))))
+
+(defun projectile-dashboard--render-no-project (data)
+  "Render the no-project dashboard for DATA."
+  (projectile-dashboard--section "Project")
+  (projectile-dashboard--field "directory" (plist-get data :dir))
+  (projectile-dashboard--field "root" "none - not inside a project")
+  (insert (format "
+There's no project around that directory, so there's nothing to show.
+Create a `%s' file in it (an empty one will do) or put it under version
+control, then press `g' to try again.
+
+`M-x projectile-doctor' lists the root functions that were tried and
+explains why none of them claimed the directory.
+" projectile-dirconfig-file)))
+
+(defun projectile-dashboard--render (data)
+  "Render the dashboard described by DATA into the current buffer."
+  (insert "Projectile project dashboard\n"
+          "============================\n")
+  (if (null (plist-get data :root))
+      (projectile-dashboard--render-no-project data)
+    (dolist (section projectile-dashboard-sections)
+      (pcase section
+        ('project (projectile-dashboard--render-project data))
+        ('vcs (projectile-dashboard--render-vcs data))
+        ('recent (projectile-dashboard--render-recent data))
+        ('tasks (projectile-dashboard--render-tasks data))
+        ('commands (projectile-dashboard--render-commands data))))
+    (insert "\nRET acts on the entry at point, TAB moves to the next one, "
+            "g refreshes, q buries.\n")))
+
+
+;;;; The dashboard buffer
+
+(defvar projectile-dashboard-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "TAB") #'forward-button)
+    (define-key map (kbd "<backtab>") #'backward-button)
+    ;; The buffer is a list of entries, so moving by entry is more useful
+    ;; here than the `next-line'/`previous-line' these shadow.
+    (define-key map (kbd "n") #'forward-button)
+    (define-key map (kbd "p") #'backward-button)
+    map)
+  "Keymap for `projectile-dashboard-mode'.")
+
+(define-derived-mode projectile-dashboard-mode special-mode "Projectile-Dashboard"
+  "Major mode for the `projectile-dashboard' buffer, read-only.
+
+The files, tasks, lifecycle commands and the current branch are buttons.
+RET acts on the one at point; \\<projectile-dashboard-mode-map>\\[forward-button] and \\[backward-button] (also `n' and `p')
+move between them.  \\[revert-buffer] refreshes the dashboard and \\[quit-window] buries it.
+
+\\{projectile-dashboard-mode-map}"
+  (setq-local revert-buffer-function
+              (lambda (&rest _)
+                (projectile-dashboard--refresh
+                 projectile-dashboard--directory))))
+
+(defun projectile-dashboard--refresh (dir)
+  "Render the dashboard for DIR into the dashboard buffer and return it."
+  (let ((data (projectile-dashboard--collect dir))
+        (buffer (get-buffer-create projectile-dashboard-buffer-name)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (projectile-dashboard-mode)
+        (setq-local projectile-dashboard--directory dir)
+        ;; The buffer is reused across projects, so point it at the one it
+        ;; currently shows - otherwise commands invoked in it (and the mode
+        ;; line) would keep targeting whichever project opened it first.
+        (setq-local default-directory (or (plist-get data :root) dir))
+        (projectile-dashboard--render data)
+        (goto-char (point-min))))
+    buffer))
+
+;;;###autoload
+(defun projectile-dashboard ()
+  "Show a dashboard summarising the project around `default-directory'.
+
+The dashboard covers the project's name, root, type and file count, the
+version control system with the current branch and how many files are
+modified or untracked, the project files you visit most (ranked by
+frecency, the same ranking `projectile-find-file' uses), the project's
+tasks and its configured lifecycle commands.
+
+Everything worth acting on is a button, so the buffer doubles as a
+launcher: RET on a file visits it, on a task or a lifecycle command runs
+it, on the branch opens the project's VC interface, and on the root
+opens it in Dired.  TAB moves to the next button, `g' refreshes the
+dashboard and `q' buries it.
+
+The command is cheap on purpose, so that it can serve as a
+`projectile-switch-project-action'.  It never indexes the project and
+never touches the file cache - an uncached project is reported as not
+indexed rather than indexed on the spot.  The branch and status come
+from two short git commands, run only on a local git project; on a
+remote project, or under any other VCS, that section says so instead.
+
+`projectile-dashboard-sections' controls which sections are shown."
+  (interactive)
+  (pop-to-buffer (projectile-dashboard--refresh default-directory)))
+
 
 ;;; Projectile Minor mode
 
@@ -12332,6 +12852,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "x 4 G") #'projectile-run-ghostel-other-window)
     ;; misc
     (define-key map (kbd "H") #'projectile-doctor)
+    (define-key map (kbd "P") #'projectile-dashboard)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
     (define-key map (kbd "<right>") #'projectile-next-project-buffer)
@@ -12618,6 +13139,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("q" "switch open project" projectile-switch-open-project)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)
+      ("P" "dashboard" projectile-dashboard)
       ("H" "doctor" projectile-doctor)]
      ["Lifecycle"
       ("cc" "compile" projectile-compile-project)
@@ -12723,6 +13245,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Toggle project wide read-only" projectile-toggle-project-read-only]
          ["Edit .dir-locals.el" projectile-edit-dir-locals]
          ["Project info" projectile-project-info]
+         ["Project dashboard" projectile-dashboard]
          ["Project diagnostics (doctor)" projectile-doctor])
         ("Search"
          ["Search (default backend)" projectile-search]
