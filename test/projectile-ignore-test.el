@@ -471,96 +471,90 @@
           (projectile-parse-dirconfig-file))
         (expect 'display-warning :not :to-have-been-called))))))
 
-(describe "projectile--ignored-file-fast-p"
-  (it "matches global ignore patterns and suffixes case-sensitively"
-    ;; `string-match-p' and `string-suffix-p' both fold case by default
-    (let ((rules (projectile--make-walk-rules nil nil nil))
-          (projectile-global-ignore-file-patterns '("build"))
-          (projectile-globally-ignored-file-suffixes '(".elc")))
-      (expect (projectile--ignored-file-fast-p "/r/build/a.o" rules) :to-be-truthy)
-      (expect (projectile--ignored-file-fast-p "/r/BUILD/a.o" rules) :not :to-be-truthy)
-      (expect (projectile--ignored-file-fast-p "/r/a.elc" rules) :to-be-truthy)
-      (expect (projectile--ignored-file-fast-p "/r/a.ELC" rules) :not :to-be-truthy)))
+(describe "projectile--global-ignore-regexp-p"
+  (it "matches the regexps case-sensitively"
+    ;; `string-match-p' folds case by default
+    (let ((projectile-global-ignore-file-patterns '("build")))
+      (expect (projectile--global-ignore-regexp-p "/r/build/a.o") :to-be-truthy)
+      (expect (projectile--global-ignore-regexp-p "/r/BUILD/a.o") :not :to-be-truthy)))
+  (it "matches against the absolute file name"
+    (let ((projectile-global-ignore-file-patterns '("\\.min\\.js\\'")))
+      (expect (projectile--global-ignore-regexp-p "/r/foo.min.js") :to-be-truthy)
+      (expect (projectile--global-ignore-regexp-p "/r/foo.js") :not :to-be-truthy)))
+  (it "returns nil when there are no patterns"
+    (let ((projectile-global-ignore-file-patterns nil))
+      (expect (projectile--global-ignore-regexp-p "/r/foo.js") :not :to-be-truthy))))
 
-  (it "returns t for files in the pre-computed ignored-files-set"
-    (let ((rules (projectile--make-walk-rules
-                  '("/r/TAGS") nil nil)))
-      (expect (projectile--ignored-file-fast-p "/r/TAGS" rules) :to-be-truthy)
-      (expect (projectile--ignored-file-fast-p "/r/keep.el" rules)
-              :not :to-be-truthy)))
-  (it "honors projectile-globally-ignored-file-suffixes"
-    (let ((rules (projectile--make-walk-rules nil nil nil))
+(describe "projectile--ignore-patterns"
+  (before-each
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("-only-me" "/rooted")))
+  (it "merges the global ignore options into one gitignore pattern list"
+    (let ((projectile-globally-ignored-directories '("node_modules" ".git"))
+          (projectile-globally-unignored-directories nil)
+          (projectile-globally-ignored-files '("TAGS"))
+          (projectile-globally-unignored-files nil)
           (projectile-globally-ignored-file-suffixes '(".elc")))
-      (expect (projectile--ignored-file-fast-p "/r/foo.elc" rules) :to-be-truthy)
-      (expect (projectile--ignored-file-fast-p "/r/foo.el" rules)
-              :not :to-be-truthy)))
-  (it "honors projectile-global-ignore-file-patterns"
-    (let ((rules (projectile--make-walk-rules nil nil nil))
-          (projectile-global-ignore-file-patterns '("\\.min\\.js\\'")))
-      (expect (projectile--ignored-file-fast-p "/r/foo.min.js" rules) :to-be-truthy)
-      (expect (projectile--ignored-file-fast-p "/r/foo.js" rules)
-              :not :to-be-truthy))))
-
-(describe "projectile--ignored-directory-fast-p"
-  (it "matches absolute ignored-dirs entries"
-    (let ((rules (projectile--make-walk-rules
-                  nil '("/r/build/") nil)))
-      (expect (projectile--ignored-directory-fast-p "/r/build/" "build" rules)
-              :to-be-truthy)))
-  (it "matches globally ignored directory basenames"
-    (let ((rules (projectile--make-walk-rules nil nil '(".git"))))
-      (expect (projectile--ignored-directory-fast-p "/r/.git/" ".git" rules)
-              :to-be-truthy)
-      (expect (projectile--ignored-directory-fast-p "/r/src/" "src" rules)
-              :not :to-be-truthy))))
+      (expect (projectile--ignore-patterns "/r/")
+              :to-equal '("node_modules/" ".git/" "TAGS" "*.elc"
+                          "-only-me" "/rooted"))))
+  (it "honors the globally unignored options"
+    (let ((projectile-globally-ignored-directories '("node_modules" ".git"))
+          (projectile-globally-unignored-directories '(".git"))
+          (projectile-globally-ignored-files '("TAGS" "GTAGS"))
+          (projectile-globally-unignored-files '("GTAGS"))
+          (projectile-globally-ignored-file-suffixes nil))
+      (expect (projectile--ignore-patterns "/r/")
+              :to-equal '("node_modules/" "TAGS" "-only-me" "/rooted")))))
 
 (describe "projectile-remove-ignored"
   (it "removes files whose suffix matches projectile-globally-ignored-file-suffixes"
     (spy-on 'projectile-project-root :and-return-value "/path/to/project")
     (spy-on 'projectile-project-name :and-return-value "project")
-    (spy-on 'projectile-ignored-files-rel)
-    (spy-on 'projectile-ignored-directories-rel)
-    (let* ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
-           (files (mapcar 'projectile-expand-root file-names)))
-      (let ((projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
-        ;; matching is case-sensitive, so `foo.tar.GZ' survives `.tar.gz'
-        (expect (projectile-remove-ignored files)
-                :to-equal (mapcar 'projectile-expand-root
-                                  '("foo.c" "foo.o.gz" "foo.tar.GZ"))))))
+    (spy-on 'projectile--dirconfig-ignore)
+    (let ((file-names '("foo.c" "foo.o" "foo.so" "foo.o.gz" "foo.tar.gz" "foo.tar.GZ"))
+          (projectile-globally-ignored-directories nil)
+          (projectile-globally-ignored-files nil)
+          (projectile-globally-ignored-file-suffixes '(".o" ".so" ".tar.gz")))
+      ;; matching is case-sensitive, so `foo.tar.GZ' survives `.tar.gz'
+      (expect (projectile-remove-ignored file-names)
+              :to-equal '("foo.c" "foo.o.gz" "foo.tar.GZ"))))
 
   (it "matches ignored suffixes case-sensitively"
     (spy-on 'projectile-project-root :and-return-value "/path/to/project")
-    (spy-on 'projectile-ignored-files-rel)
-    (spy-on 'projectile-ignored-directories-rel)
-    (let ((projectile-globally-ignored-file-suffixes '(".elc")))
+    (spy-on 'projectile--dirconfig-ignore)
+    (let ((projectile-globally-ignored-directories nil)
+          (projectile-globally-ignored-files nil)
+          (projectile-globally-ignored-file-suffixes '(".elc")))
       (expect (projectile-remove-ignored '("a.elc" "B.ELC" "c.Elc"))
               :to-equal '("B.ELC" "c.Elc"))))
 
   (it "matches dirconfig ignore patterns case-sensitively"
     (spy-on 'projectile-project-root :and-return-value "/path/to/project")
-    (spy-on 'projectile-ignored-files-rel)
-    (spy-on 'projectile-ignored-directories-rel)
     (spy-on 'projectile-filtering-patterns :and-return-value '(("*.log") . nil))
     (expect (projectile-remove-ignored '("a.log" "B.LOG"))
             :to-equal '("B.LOG")))
-  (it "drops files whose basename matches an ignored entry"
-    (spy-on 'projectile-ignored-files-rel :and-return-value '("TAGS"))
-    (spy-on 'projectile-ignored-directories-rel :and-return-value nil)
+  (it "drops an ignored file name at any depth"
+    (spy-on 'projectile-filtering-patterns :and-return-value '(("TAGS") . nil))
     (expect (projectile-remove-ignored '("a/TAGS" "src/foo.el" "TAGS"))
             :to-equal '("src/foo.el")))
-  (it "treats `*'-prefixed entries as any-segment matches"
-    (spy-on 'projectile-ignored-files-rel :and-return-value nil)
-    (spy-on 'projectile-ignored-directories-rel :and-return-value '("*node_modules/"))
+  (it "matches a slashless directory pattern at any depth"
+    (spy-on 'projectile-filtering-patterns
+            :and-return-value '(("node_modules/") . nil))
     (expect (projectile-remove-ignored
              '("src/foo.js"
                "node_modules/lib/index.js"
                "vendor/node_modules/lib/index.js"))
             :to-equal '("src/foo.js")))
-  (it "treats plain entries as path-prefix matches"
-    (spy-on 'projectile-ignored-files-rel :and-return-value nil)
-    (spy-on 'projectile-ignored-directories-rel :and-return-value '("build/"))
-    (expect (projectile-remove-ignored '("build/foo.o" "src/foo.c" "buildbot/x"))
-            :to-equal '("src/foo.c" "buildbot/x"))))
+  (it "anchors a rooted pattern at the project root"
+    (spy-on 'projectile-filtering-patterns :and-return-value '(("/build/") . nil))
+    (expect (projectile-remove-ignored
+             '("build/foo.o" "src/foo.c" "buildbot/x" "src/build/gen.o"))
+            :to-equal '("src/foo.c" "buildbot/x" "src/build/gen.o")))
+  (it "rescues ensure-pattern matches from an ignore pattern"
+    (spy-on 'projectile-filtering-patterns
+            :and-return-value '(("*.elc") . ("keep.elc")))
+    (expect (projectile-remove-ignored '("a.elc" "sub/keep.elc"))
+            :to-equal '("sub/keep.elc"))))
 
 (describe "projectile-ignored-project-p"
   (it "matches abbreviated paths against truename-resolved ignored list"
@@ -616,15 +610,12 @@
   (it "returns ignore globs in the format expected by project.el"
     (let ((root (file-truename (expand-file-name "/my/root/")))
           (projectile-globally-ignored-files '("TAGS" ".#foo"))
+          (projectile-globally-unignored-files nil)
           (projectile-globally-ignored-file-suffixes '(".elc" ".o")))
       (spy-on 'projectile-globally-ignored-directory-names
               :and-return-value '(".git" ".svn/"))
-      (spy-on 'projectile-patterns-to-ignore :and-return-value '("*.log"))
-      (spy-on 'projectile-project-ignored-directories
-              :and-return-value (list (concat root "build/")
-                                      (concat root "dist/")))
-      (spy-on 'projectile-project-ignored-files
-              :and-return-value (list (concat root "TODO")))
+      (spy-on 'projectile--dirconfig-ignore
+              :and-return-value '("*.log" "/build/" "/TODO" "src/gen"))
       (let ((ignores (project-ignores (cons 'projectile root) root)))
         ;; globally ignored directory names match at any depth
         (expect (member ".git/" ignores) :to-be-truthy)
@@ -633,13 +624,22 @@
         (expect (member "TAGS" ignores) :to-be-truthy)
         ;; suffixes become globs
         (expect (member "*.elc" ignores) :to-be-truthy)
-        ;; dirconfig patterns are passed through
+        ;; slashless dirconfig patterns are passed through
         (expect (member "*.log" ignores) :to-be-truthy)
-        ;; dirconfig ignored directories are rooted and end with a slash
+        ;; anchored patterns are spelled with a leading `./' there
         (expect (member "./build/" ignores) :to-be-truthy)
-        (expect (member "./dist/" ignores) :to-be-truthy)
-        ;; dirconfig ignored files are rooted
-        (expect (member "./TODO" ignores) :to-be-truthy)))))
+        (expect (member "./TODO" ignores) :to-be-truthy)
+        (expect (member "./src/gen" ignores) :to-be-truthy)))))
+
+(describe "projectile--project-el-ignore-glob"
+  (it "leaves any-depth patterns alone"
+    (expect (projectile--project-el-ignore-glob "TAGS") :to-equal "TAGS")
+    (expect (projectile--project-el-ignore-glob "*.elc") :to-equal "*.elc")
+    (expect (projectile--project-el-ignore-glob ".git/") :to-equal ".git/"))
+  (it "respells anchored patterns with a leading ./"
+    (expect (projectile--project-el-ignore-glob "/build/") :to-equal "./build/")
+    (expect (projectile--project-el-ignore-glob "/TODO") :to-equal "./TODO")
+    (expect (projectile--project-el-ignore-glob "src/gen") :to-equal "./src/gen")))
 
 (describe "projectile-normalise-patterns"
   (it "drops absolute (path) patterns and keeps relative globs"
@@ -648,9 +648,9 @@
   (it "returns an empty list when every pattern is a path"
     (expect (projectile-normalise-patterns '("/a" "/b")) :to-equal nil)))
 
-(describe "projectile--dirconfig-pattern-to-regexp"
+(describe "projectile--ignore-pattern-to-regexp"
   (cl-flet ((matches (pattern path)
-              (string-match-p (projectile--compile-dirconfig-patterns
+              (string-match-p (projectile--compile-ignore-patterns
                                (list pattern))
                               path)))
     (it "matches a slashless glob against the file name anywhere"
@@ -697,11 +697,11 @@
       (expect (matches "a+b.c" "a+b.c") :to-be-truthy)
       (expect (matches "a+b.c" "aab.c") :not :to-be-truthy))))
 
-(describe "projectile--compile-dirconfig-patterns"
+(describe "projectile--compile-ignore-patterns"
   (it "returns nil for no patterns"
-    (expect (projectile--compile-dirconfig-patterns nil) :to-be nil))
+    (expect (projectile--compile-ignore-patterns nil) :to-be nil))
   (it "matches when any of several patterns matches"
-    (let ((re (projectile--compile-dirconfig-patterns '("*.o" "vendor/"))))
+    (let ((re (projectile--compile-ignore-patterns '("*.o" "vendor/"))))
       (expect (string-match-p re "x/y.o") :to-be-truthy)
       (expect (string-match-p re "vendor/z.js") :to-be-truthy)
       (expect (string-match-p re "src/main.c") :not :to-be-truthy))))

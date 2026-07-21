@@ -404,7 +404,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
 (describe "projectile-search--rg-command"
   (it "builds a fixed-strings, ignore-aware command with the term after --"
     (let ((cmd (projectile-search--rg-command
-                "foo-bar" t nil '("node_modules/" "*.elc" "./vendor/"))))
+                "foo-bar" t nil '("node_modules/" "*.elc" "/vendor/"))))
       (expect (member "--fixed-strings" cmd) :to-be-truthy)
       (expect (member "--ignore-case" cmd) :to-be-truthy)
       (expect (member "--case-sensitive" cmd) :to-be nil)
@@ -413,9 +413,8 @@ REGEXP-P selects `projectile-search-regexp-review'."
       ;; a basename glob becomes a negated --glob verbatim
       (expect (member "!node_modules/" cmd) :to-be-truthy)
       (expect (member "!*.elc" cmd) :to-be-truthy)
-      ;; a root-anchored `./' glob is translated to ripgrep's `/'-anchored form
+      ;; ripgrep speaks gitignore, so a root-anchored glob is passed as is
       (expect (member "!/vendor/" cmd) :to-be-truthy)
-      (expect (member "!./vendor/" cmd) :to-be nil)
       ;; the term is right after the -- terminator, then the relative `./' root
       (let ((tail (cdr (member "--" cmd))))
         (expect (car tail) :to-equal "foo-bar")

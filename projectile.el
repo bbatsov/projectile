@@ -594,8 +594,11 @@ such line, listing the offending entries."
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name projectile-cache-file)
   "A list of files globally ignored by projectile.
-Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'."
+
+Entries are gitignore patterns: a plain name matches a file with that
+name at any depth, a name containing a slash is anchored at the project
+root, and `*', `**', `?' and `[...]' are the usual wildcards.  See
+`projectile-globally-ignored-directories' for the full pattern language."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
@@ -604,8 +607,8 @@ is set to `alien'."
 (defcustom projectile-globally-unignored-files nil
   "A list of files globally unignored by projectile.
 
-Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'."
+Entries cancel out the matching `projectile-globally-ignored-files'
+entries."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -613,8 +616,9 @@ is set to `alien'."
 (defcustom projectile-globally-ignored-file-suffixes
   nil
   "A list of file suffixes globally ignored by projectile.
-Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'."
+Each suffix is matched at the end of a file name at any depth, as if it
+were the gitignore pattern `*SUFFIX' (e.g. \".elc\" ignores every
+`.elc' file in the project)."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.12.0"))
@@ -637,21 +641,23 @@ is set to `alien'."
     ".clangd"
     ".sl"
     ".jj"
-    "*.osc")
+    ".osc")
   "A list of directories globally ignored by projectile.
 
-Strings that don't start with * are only ignored at the top level
-of the project.  Strings that start with * are ignored everywhere
-in the project, as if there was no *.  So note that * when used as
-a prefix is not a wildcard; it is an indicator that the directory
-should be ignored at all levels, not just root.
+Entries are gitignore patterns, matched against paths relative to the
+project root and applied by every indexing method alike:
 
-Examples: \"tmp\" ignores only ./tmp at the top level of the
-project, but not ./src/tmp.  \"*tmp\" will ignore both ./tmp and
-./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
+- a pattern without a slash matches a directory with that name at any
+  depth, so \"tmp\" ignores both ./tmp and ./src/tmp
+- a pattern containing a slash is anchored at the project root, so
+  \"/tmp\" and \"doc/frotz\" only match there
+- `*' is a wildcard within a path segment, `**' spans segments, `?'
+  matches a single non-slash character and `[...]'/`[!...]' are
+  character classes
 
-Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'.
+Matching is case-sensitive.  Note that a leading `*' is a plain
+wildcard - it used to be a marker meaning \"at any depth\", which is
+now the default for every slashless pattern.
 
 See also `projectile-global-ignore-file-patterns'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
@@ -661,8 +667,9 @@ See also `projectile-global-ignore-file-patterns'."
 
 (defcustom projectile-globally-unignored-directories nil
   "A list of directories globally unignored by projectile.
-Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'."
+
+Entries cancel out the matching `projectile-globally-ignored-directories'
+entries."
   :group 'projectile
   :type '(repeat string)
   :package-version '(projectile . "0.14.0"))
@@ -671,12 +678,15 @@ is set to `alien'."
   nil
   "A list of file regexp patterns ignored by Projectile.
 
-It complements `projectile-globally-ignored-files' and
-`projectile-globally-ignored-directories'.  See also
-`projectile-ignored-file-p' and `projectile-ignored-directory-p'.
+Unlike `projectile-globally-ignored-files' and
+`projectile-globally-ignored-directories', which speak gitignore
+patterns, the entries here are Emacs regexps, matched against absolute
+file names.  They complement the pattern-based options; because they
+can't be handed to an external tool, nor expressed as globs, they are
+only applied by `native' indexing.
 
-Note that files aren't filtered if `projectile-indexing-method'
-is set to `alien'."
+See also `projectile-ignored-file-p' and
+`projectile-ignored-directory-p'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
@@ -2857,41 +2867,14 @@ Files are returned as relative paths to DIRECTORY."
             (projectile-index-directory directory (projectile-filtering-patterns)
                                         progress-reporter))))
 
-(defun projectile--list->set (list)
-  "Return a hash table whose keys are the elements of LIST.
-Values are all `t'.  Tests with `equal'."
-  (let ((set (make-hash-table :test 'equal :size (max 1 (length list)))))
-    (dolist (elt list set)
-      (puthash elt t set))))
-
-(defun projectile--make-walk-rules (ignored-files ignored-directories globally-ignored-directories)
-  "Build a plist of pre-computed rule sets used by `projectile-index-directory'.
-IGNORED-FILES and IGNORED-DIRECTORIES are the absolute paths to
-ignore; GLOBALLY-IGNORED-DIRECTORIES is the list of directory
-basenames to ignore anywhere in the tree."
-  (list :ignored-files-set (projectile--list->set ignored-files)
-        :ignored-dirs-set (projectile--list->set ignored-directories)
-        :globally-ignored-dir-names-set
-        (projectile--list->set globally-ignored-directories)))
-
-(defun projectile--ignored-file-fast-p (file rules)
-  "Like `projectile-ignored-file-p' but consulting pre-built RULES.
-Used on the hot indexing path to avoid O(N*M) `member' scans."
-  (or (gethash file (plist-get rules :ignored-files-set))
-      (seq-some (lambda (re) (let ((case-fold-search nil))
-                               (string-match-p re file)))
-                projectile-global-ignore-file-patterns)
-      (seq-some (lambda (suf) (string-suffix-p suf file))
-                projectile-globally-ignored-file-suffixes)))
-
-(defun projectile--ignored-directory-fast-p (directory local-name rules)
-  "Like `projectile-ignored-directory-p' but consulting pre-built RULES.
-LOCAL-NAME is the basename of DIRECTORY."
-  (or (gethash directory (plist-get rules :ignored-dirs-set))
-      (seq-some (lambda (re) (let ((case-fold-search nil))
-                               (string-match-p re directory)))
-                projectile-global-ignore-file-patterns)
-      (gethash local-name (plist-get rules :globally-ignored-dir-names-set))))
+(defun projectile--global-ignore-regexp-p (path)
+  "Return non-nil when PATH matches `projectile-global-ignore-file-patterns'.
+PATH is an absolute file name.  Those patterns are Emacs regexps rather
+than globs, which is why they are a separate mechanism from the ignore
+patterns proper; matching is case-sensitive."
+  (seq-some (lambda (re) (let ((case-fold-search nil))
+                           (string-match-p re path)))
+            projectile-global-ignore-file-patterns))
 
 (defun projectile--glob-to-regexp (glob)
   "Translate the dirconfig GLOB into a regexp fragment.
@@ -2922,47 +2905,45 @@ pass through (with `!' translated to `^')."
       (setq i (1+ i)))
     (apply #'concat (nreverse fragments))))
 
-(defun projectile--dirconfig-pattern-to-regexp (pattern)
-  "Translate a dirconfig ignore/ensure PATTERN into a regexp.
-The regexp matches root-relative paths using gitignore-like rules:
-a pattern without a slash matches the file name or any directory
+(defun projectile--ignore-pattern-to-regexp (pattern)
+  "Translate an ignore/ensure PATTERN into a regexp.
+The regexp matches root-relative paths using gitignore rules: a
+pattern without a slash matches the file name or any directory
 segment anywhere in the tree, while a pattern containing a slash is
-anchored at the project root.  A trailing slash restricts the match
-to directories (and thus everything below them).  Directories must
-be matched with a trailing slash appended."
+anchored at the project root (a leading `/' anchors without naming a
+directory of its own).  A trailing slash restricts the match to
+directories (and thus everything below them).  Directories must be
+matched with a trailing slash appended."
   (let* ((dir-only (string-suffix-p "/" pattern))
          (pattern (string-remove-suffix "/" pattern))
          (floating (string-prefix-p "**/" pattern))
          (pattern (if floating (substring pattern 3) pattern))
-         (anchored (string-search "/" pattern)))
+         (rooted (string-prefix-p "/" pattern))
+         (pattern (if rooted (substring pattern 1) pattern))
+         (anchored (or rooted (string-search "/" pattern))))
     (concat (cond (floating "\\`\\(?:.*/\\)?")
                   (anchored "\\`")
                   (t "\\(?:\\`\\|/\\)"))
             (projectile--glob-to-regexp pattern)
             (if dir-only "/" "\\(?:/\\|\\'\\)"))))
 
-(defun projectile--compile-dirconfig-patterns (patterns)
-  "Compile dirconfig PATTERNS into a single regexp.
+(defun projectile--compile-ignore-patterns (patterns)
+  "Compile the gitignore-style PATTERNS into a single regexp.
 Return nil when PATTERNS is empty.  The regexp matches a
 root-relative path when any of PATTERNS does; pass directory paths
 with a trailing slash so directory-only patterns can match them."
   (when patterns
-    (mapconcat #'projectile--dirconfig-pattern-to-regexp patterns "\\|")))
+    (mapconcat #'projectile--ignore-pattern-to-regexp patterns "\\|")))
 
-(defun projectile-index-directory (directory patterns progress-reporter &optional ignored-files ignored-directories globally-ignored-directories)
+(defun projectile-index-directory (directory patterns progress-reporter)
   "Index DIRECTORY taking into account PATTERNS.
 
-The function dispatches to an internal walker that uses pre-built
-hash sets, so the per-file membership checks stay O(1) on large
-projects.  The PROGRESS-REPORTER is updated while the function is
-executing.  Lists of IGNORED-FILES, IGNORED-DIRECTORIES, and
-GLOBALLY-IGNORED-DIRECTORIES may optionally be provided to share
-state across calls."
-  (let* ((ignored-files (or ignored-files (projectile-ignored-files)))
-         (ignored-directories (or ignored-directories (projectile-ignored-directories)))
-         (globally-ignored-directories (or globally-ignored-directories
-                                           (projectile-globally-ignored-directory-names)))
-         ;; Dirconfig patterns match root-relative paths, so when DIRECTORY
+PATTERNS is a cons of the ignore and the ensure patterns, as returned by
+`projectile-filtering-patterns'; both are compiled into a single regexp
+each, so the per-entry check is one regexp match regardless of how many
+rules there are.  The PROGRESS-REPORTER is updated while the function is
+executing."
+  (let* (;; Ignore patterns match root-relative paths, so when DIRECTORY
          ;; is a subdirectory of the project (a dirconfig `+' keep entry)
          ;; the paths matched must stay relative to the project root, not
          ;; to the walked directory.  Fall back to DIRECTORY when it isn't
@@ -2975,13 +2956,9 @@ state across calls."
                                                walk-base))
                          (file-name-as-directory (expand-file-name project-root))
                        walk-base))
-         (rules (append (projectile--make-walk-rules ignored-files ignored-directories
-                                                     globally-ignored-directories)
-                        (list :dirconfig-ignore-re
-                              (projectile--compile-dirconfig-patterns (car patterns))
-                              :dirconfig-ensure-re
-                              (projectile--compile-dirconfig-patterns (cdr patterns))
-                              :match-base-len (length match-base))))
+         (rules (list :ignore-re (projectile--compile-ignore-patterns (car patterns))
+                      :ensure-re (projectile--compile-ignore-patterns (cdr patterns))
+                      :match-base-len (length match-base)))
          ;; A 1-element list whose car is the accumulator.  Using a
          ;; mutable cell lets the recursive walker push results onto a
          ;; single shared list (O(N) total) instead of `apply append'-ing
@@ -2997,7 +2974,7 @@ public entry point.  ACC-CELL is a 1-element list whose car
 accumulates discovered file paths in reverse order.
 
 Ignore matching is case-sensitive, so `case-fold-search' is pinned off
-for the dirconfig regexps matched below."
+for the regexps matched below."
   ;; Use ignore-errors to skip unreadable directories (e.g.
   ;; .Spotlight-V100 on macOS) instead of aborting the entire indexing
   ;; operation.
@@ -3012,8 +2989,8 @@ for the dirconfig regexps matched below."
          (entries (ignore-errors
                     (directory-files-and-attributes
                      directory t directory-files-no-dot-files-regexp nil 'integer)))
-         (ignore-re (plist-get rules :dirconfig-ignore-re))
-         (ensure-re (plist-get rules :dirconfig-ensure-re))
+         (ignore-re (plist-get rules :ignore-re))
+         (ensure-re (plist-get rules :ensure-re))
          (match-base-len (plist-get rules :match-base-len)))
     (dolist (entry entries)
       (let* ((f (car entry))
@@ -3024,27 +3001,22 @@ for the dirconfig regexps matched below."
              ;; follow-symlink behaviour; that extra stat only happens for
              ;; the rare symlink entry, not for every file.
              (type (file-attribute-type (cdr entry)))
-             (local-f (file-name-nondirectory (directory-file-name f)))
              (directory-p (if (stringp type) (file-directory-p f) (eq type t)))
-             ;; Dirconfig patterns match against the root-relative path,
-             ;; with a trailing slash appended for directories so that
+             ;; Ignore patterns match against the root-relative path, with
+             ;; a trailing slash appended for directories so that
              ;; directory-only patterns (trailing `/') can match.
              (match-name (and ignore-re
                               (concat (substring f match-base-len)
                                       (and directory-p "/")))))
-        (unless (and match-name
-                     (string-match-p ignore-re match-name)
-                     (not (and ensure-re (string-match-p ensure-re match-name))))
+        (unless (or (and match-name
+                         (string-match-p ignore-re match-name)
+                         (not (and ensure-re (string-match-p ensure-re match-name))))
+                    (projectile--global-ignore-regexp-p f))
           (progress-reporter-update progress-reporter)
-          (cond
-           (directory-p
-            (unless (projectile--ignored-directory-fast-p
-                     (file-name-as-directory f) local-f rules)
+          (if directory-p
               (projectile--index-directory-walk f progress-reporter
-                                                rules acc-cell)))
-           (t
-            (unless (projectile--ignored-file-fast-p f rules)
-              (setcar acc-cell (cons f (car acc-cell)))))))))))
+                                                rules acc-cell)
+            (setcar acc-cell (cons f (car acc-cell)))))))))
 
 ;;; Alien Project Indexing
 ;;
@@ -3068,22 +3040,25 @@ is how Projectile spells \"external-command indexing is disabled\"."
 (defun projectile--alien-exclude-glob (glob style)
   "Translate GLOB into an exclusion pattern of the given STYLE.
 
-GLOB is an entry as produced by `projectile--project-ignore-globs': a
-leading `./' means the entry is anchored at the project root, a trailing
-`/' means it names a directory (so its whole subtree is excluded), and
-anything else matches at any depth.
+GLOB is an entry as produced by `projectile--project-ignore-globs', i.e.
+a gitignore pattern: any slash other than a trailing one anchors it at
+the project root, a trailing `/' means it names a directory (so its
+whole subtree is excluded), and a pattern without a slash matches at any
+depth.
 
 STYLE is `git' for a `git ls-files' pathspec body (wildmatch semantics,
 where `**' crosses directory separators) or `fd' for an `fd --exclude'
 pattern (gitignore semantics, where a leading `/' anchors to the search
 root)."
-  (let* ((rooted (string-prefix-p "./" glob))
-         (body (if rooted (substring glob 2) glob))
-         (dirp (string-suffix-p "/" body))
-         (body (if dirp (substring body 0 -1) body)))
+  (let* ((dirp (string-suffix-p "/" glob))
+         (body (if dirp (substring glob 0 -1) glob))
+         (rooted (string-search "/" body))
+         (body (string-remove-prefix "/" body)))
     (pcase style
+      ;; A pathspec is anchored at the pathspec root already, so an
+      ;; any-depth pattern is the one that needs the `**/' prefix.
       ('git (concat (unless rooted "**/") body (when dirp "/**")))
-      ('fd (concat (when rooted "/") body))
+      ('fd (concat (when rooted "/") body (when dirp "/")))
       (_ (error "Unknown exclusion style `%S'" style)))))
 
 (defun projectile--alien-exclude-args (vcs command globs)
@@ -3124,22 +3099,31 @@ folded in as exclusion arguments when the tool understands them and
   (let ((command (projectile-get-ext-command vcs directory)))
     (if-let* ((command)
               (projectile-alien-honors-ignores)
-              ;; Only alien pushes the rules down.  Hybrid applies them to
-              ;; the output itself, and doing both would silently give it
-              ;; alien's semantics for the rules where the two differ (a
-              ;; bare `projectile-globally-ignored-directories' entry is
-              ;; top-level-only under hybrid, any-depth under alien).
+              ;; Only alien pushes the rules down; hybrid applies them to
+              ;; the output itself.  Both speak the same rules now, so
+              ;; doing both would just be wasted work.
               ((eq projectile-indexing-method 'alien))
+              ((projectile--alien-command-excludes-p vcs command directory))
               (globs (projectile--project-ignore-globs directory))
               (args (projectile--alien-exclude-args vcs command globs)))
         (concat command " " args)
       command)))
 
-(defun projectile--alien-command-excludes-p (vcs command)
-  "Return non-nil when COMMAND for VCS carries the ignore rules itself.
-When it doesn't, the ignore rules have to be applied to the command's
-output instead."
-  (or (projectile--fd-command-p command) (eq vcs 'git)))
+(defun projectile--alien-command-excludes-p (vcs command &optional directory)
+  "Return non-nil when COMMAND for VCS can carry the ignore rules itself.
+When it can't, the ignore rules have to be applied to the command's
+output instead.
+
+Besides the tools that have no way to express exclusions at all, that's
+also the case for a project whose dirconfig has `!' ensure entries: an
+exclusion argument can't be taken back (neither a git exclude pathspec
+nor `fd --exclude' has a way to un-exclude a path), so such a project is
+filtered in Lisp, where the ensure patterns can rescue the files the
+ignore patterns matched.  DIRECTORY is the project root the ensure
+entries are read from; it defaults to `default-directory'."
+  (and (or (projectile--fd-command-p command) (eq vcs 'git))
+       (null (projectile--ensure-patterns directory))
+       t))
 
 (defun projectile--maybe-remove-ignored (project-root files)
   "Remove PROJECT-ROOT's ignored entries from FILES, honoring the option.
@@ -3156,7 +3140,7 @@ ignore configuration is read for the right project."
 Does nothing when the external command for VCS already excluded them
 itself, which is the fast path (see `projectile--alien-exclude-args')."
   (if (projectile--alien-command-excludes-p
-       vcs (projectile-get-ext-command vcs project-root))
+       vcs (projectile-get-ext-command vcs project-root) project-root)
       files
     (projectile--maybe-remove-ignored project-root files)))
 
@@ -3841,56 +3825,24 @@ PROJECT-ROOT defaults to the current project."
 (defun projectile-remove-ignored (files)
   "Remove ignored files and folders from FILES.
 
-If ignored directory prefixed with `*', then ignore all
-directories/subdirectories with matching filename,
-otherwise operates relative to project root.
-
-Dirconfig ignore patterns (the non-slash-prefixed `-' entries of the
-`.projectile' file) are also applied, compiled via
-`projectile--compile-dirconfig-patterns'; `!' ensure patterns rescue
-files from them."
+FILES are paths relative to the project root.  They are matched against
+the project's ignore patterns (see `projectile--ignore-patterns'), the
+same gitignore-style rules the native indexer and the alien push-down
+apply; `!' ensure patterns rescue files from them."
   (let* (;; Ignore matching is case-sensitive; `string-match-p' would
          ;; otherwise fold case, since `case-fold-search' defaults to t.
          (case-fold-search nil)
          (filtering-patterns (projectile-filtering-patterns))
-         (dirconfig-ignore-re (projectile--compile-dirconfig-patterns
-                               (car filtering-patterns)))
-         (dirconfig-ensure-re (projectile--compile-dirconfig-patterns
-                               (cdr filtering-patterns)))
-         (ignored-files (projectile-ignored-files-rel))
-         (ignored-dirs (projectile-ignored-directories-rel))
-         ;; Hash basenames of ignored files for O(1) lookup per project
-         ;; file (the original `seq-some'/`string=' over the list was
-         ;; O(M) per file).
-         (ignored-files-set (projectile--list->set ignored-files))
-         ;; Split ignored dirs into the two matching modes used below:
-         ;; entries prefixed with `*' are matched as a path *segment*
-         ;; (basename anywhere in the file's directory chain), the rest
-         ;; are matched as a literal path *prefix*.  Hash the segment
-         ;; entries so the per-file segment loop becomes O(segments).
-         (any-segment-dir-names nil)
-         (prefix-dirs nil))
-    (dolist (dir ignored-dirs)
-      (if (string-prefix-p "*" dir)
-          (push (string-remove-suffix "/" (substring dir 1))
-                any-segment-dir-names)
-        (push dir prefix-dirs)))
-    (let ((any-segment-dir-set (projectile--list->set any-segment-dir-names))
-          (suffixes projectile-globally-ignored-file-suffixes))
+         (ignore-re (projectile--compile-ignore-patterns
+                     (car filtering-patterns)))
+         (ensure-re (projectile--compile-ignore-patterns
+                     (cdr filtering-patterns))))
+    (if (null ignore-re)
+        files
       (seq-remove
        (lambda (file)
-         (or (gethash (file-name-nondirectory file) ignored-files-set)
-             (and any-segment-dir-names
-                  (seq-some
-                   (lambda (segment) (gethash segment any-segment-dir-set))
-                   (delete "" (split-string
-                               (or (file-name-directory file) "") "/"))))
-             (seq-some (lambda (dir) (string-prefix-p dir file)) prefix-dirs)
-             (seq-some (lambda (suf) (string-suffix-p suf file)) suffixes)
-             (and dirconfig-ignore-re
-                  (string-match-p dirconfig-ignore-re file)
-                  (not (and dirconfig-ensure-re
-                            (string-match-p dirconfig-ensure-re file))))))
+         (and (string-match-p ignore-re file)
+              (not (and ensure-re (string-match-p ensure-re file)))))
        files))))
 
 (defun projectile-keep-ignored-files (project vcs files)
@@ -4344,9 +4296,49 @@ Unignored files/directories are not included."
   "Return a list of relative file patterns."
   (projectile-normalise-patterns (projectile--dirconfig-ensure)))
 
-(defun projectile-filtering-patterns ()
-  (cons (projectile-patterns-to-ignore)
-        (projectile-patterns-to-ensure)))
+(defun projectile--ignore-patterns (&optional root)
+  "Return ROOT's ignore rules as a list of gitignore-style patterns.
+
+This is Projectile's single source of ignore patterns: every indexing
+method and every external tool Projectile drives is configured from this
+list, so they all apply the same rules the same way.  It merges
+
+- `projectile-globally-ignored-directories', as directory-only patterns
+  \(a trailing `/' is appended)
+- `projectile-globally-ignored-files', as-is
+- `projectile-globally-ignored-file-suffixes', as `*SUFFIX' globs
+- the `-' (ignore) entries of the project's dirconfig, which are already
+  written in this language
+
+The `projectile-globally-unignored-*' options cancel out the matching
+entries.  `projectile-global-ignore-file-patterns' is deliberately not
+part of this: those are Emacs regexps, not patterns, and can't be handed
+to an external tool.
+
+ROOT defaults to the current project's root and only matters for the
+dirconfig entries; outside a project the global patterns are returned on
+their own.  See `projectile--ignore-pattern-to-regexp' for the matching
+rules."
+  (let ((default-directory (or root default-directory)))
+    (append
+     (mapcar (lambda (name) (concat (directory-file-name name) "/"))
+             (projectile-globally-ignored-directory-names))
+     (seq-difference projectile-globally-ignored-files
+                     projectile-globally-unignored-files)
+     (projectile--globally-ignored-file-suffixes-glob)
+     (projectile--dirconfig-ignore))))
+
+(defun projectile--ensure-patterns (&optional root)
+  "Return ROOT's ensure rules as a list of gitignore-style patterns.
+These are the `!' entries of the project's dirconfig; a path they match
+is kept even when `projectile--ignore-patterns' also matches it."
+  (let ((default-directory (or root default-directory)))
+    (projectile--dirconfig-ensure)))
+
+(defun projectile-filtering-patterns (&optional root)
+  "Return ROOT's ignore and ensure patterns as a cons cell."
+  (cons (projectile--ignore-patterns root)
+        (projectile--ensure-patterns root)))
 
 (defun projectile-project-unignored ()
   "Return list of project ignored files/directories."
@@ -7425,15 +7417,17 @@ Requires the `ag' Emacs package."
     (funcall ag-command search-term (projectile-acquire-root))))
 
 (defun projectile--ripgrep-ignore-globs ()
-  "Return ripgrep `--glob' exclusions for the globally ignored files and dirs.
+  "Return ripgrep `--glob' exclusions for the project's ignore patterns.
+
+The patterns come from `projectile--ignore-patterns' and are passed to
+ripgrep as they are - ripgrep's globs follow gitignore rules too.
 
 Uses the `--glob=!PATTERN' form rather than `--glob \\='!PATTERN\\='', whose
 surrounding single quotes are only stripped by POSIX shells - on Windows
 `cmd' they become part of the pattern and the exclusion silently fails
 \(see #1946)."
   (mapcar (lambda (val) (concat "--glob=!" val))
-          (append projectile-globally-ignored-files
-                  projectile-globally-ignored-directories)))
+          (projectile--ignore-patterns)))
 
 (defun projectile--ripgrep (search-term &optional regexp)
   "Run a ripgrep (rg) search for SEARCH-TERM in the project.
@@ -7575,37 +7569,21 @@ installed to work."
     (projectile-search search-term arg)))
 
 (defun projectile--project-ignore-globs (root)
-  "Return ROOT's ignore patterns as globs in `project-ignores' format.
-Derived from Projectile's ignore configuration: globally ignored
-directory names and file suffixes match at any depth, while the
-files and directories ignored via the project's dirconfig
-\(`.projectile') are rooted at ROOT with a leading `./'."
-  (let ((default-directory root))
-    (append
-     ;; Globally ignored directory names, matched at any depth.  A leading
-     ;; `*' in `projectile-globally-ignored-directories' is a marker meaning
-     ;; "at any depth", not a wildcard, so it has to be stripped rather than
-     ;; passed on to a glob matcher that would read it as one (`*.osc' names
-     ;; the directory `.osc', it doesn't match `foo.osc').
-     (mapcar (lambda (name)
-               (concat (directory-file-name
-                        (string-remove-prefix "*" name))
-                       "/"))
-             (projectile-globally-ignored-directory-names))
-     ;; globally ignored files, matched at any depth
-     (copy-sequence projectile-globally-ignored-files)
-     ;; globally ignored file suffixes as globs, e.g. "*.elc"
-     (projectile--globally-ignored-file-suffixes-glob)
-     ;; dirconfig patterns, matched by base name at any depth
-     (projectile-patterns-to-ignore)
-     ;; dirconfig ignored directories, rooted at the project root
-     (mapcar (lambda (dir)
-               (concat "./" (file-relative-name (directory-file-name dir)) "/"))
-             (projectile-project-ignored-directories))
-     ;; dirconfig ignored files, rooted at the project root
-     (mapcar (lambda (file)
-               (concat "./" (file-relative-name file)))
-             (projectile-project-ignored-files)))))
+  "Return ROOT's ignore patterns as gitignore globs.
+That's `projectile--ignore-patterns' verbatim: gitignore syntax is
+exactly what the tools Projectile hands these to speak (`fd --exclude',
+`git ls-files' exclude pathspecs, `rg --glob')."
+  (projectile--ignore-patterns root))
+
+(defun projectile--project-el-ignore-glob (glob)
+  "Translate the gitignore GLOB into project.el's `project-ignores' format.
+There a root-anchored pattern is spelled with a leading `./' instead of
+gitignore's leading `/' (or an interior slash), and everything else
+matches at any depth."
+  (let ((body (string-remove-suffix "/" glob)))
+    (if (string-search "/" body)
+        (concat "./" (string-remove-prefix "/" glob))
+      glob)))
 
 (defun projectile-find-references (&optional symbol)
   "Find textual references to SYMBOL across the current project.
@@ -7626,7 +7604,10 @@ Projectile project too when `projectile-mode' is enabled."
                      (read-string
                       (projectile-prepend-project-name "Find references to: ")
                       (projectile-symbol-or-selection-at-point))))
-         (ignores (projectile--project-ignore-globs project-root))
+         ;; `xref-matches-in-directory' reads its IGNORES in project.el's
+         ;; format, not gitignore's.
+         (ignores (mapcar #'projectile--project-el-ignore-glob
+                          (projectile--project-ignore-globs project-root)))
          ;; `xref-matches-in-directory' greps for the pattern (honouring
          ;; IGNORES) and re-matches it in-buffer to pin down columns, so a
          ;; plain quoted symbol is the portable choice: symbol/word-boundary
@@ -9296,8 +9277,11 @@ the deterministic elisp scan."
 CASE-FOLD selects case-insensitive matching; WORD restricts matches to
 whole words (`--word-regexp'); GLOBS is a list of ignore patterns (from
 `projectile--project-ignore-globs') passed as `--glob' exclusions so
-Projectile's ignores narrow ripgrep's own ignore rules.  The search path
-is the relative `./', so the caller must run the process with
+Projectile's ignores narrow ripgrep's own ignore rules.  They are
+gitignore patterns, which is what ripgrep's globs are, so they need no
+translation - but a root-anchored one only resolves against the project
+root when the searched path is relative, which is why the search path
+below is `./' and the caller must run the process with
 `default-directory' bound to the project root."
   (append
    (list (projectile-search--rg-executable)
@@ -9305,17 +9289,7 @@ is the relative `./', so the caller must run the process with
          "--color" "never"
          (if case-fold "--ignore-case" "--case-sensitive"))
    (when word (list "--word-regexp"))
-   ;; Projectile's `project-ignores' globs mark a root-anchored pattern with a
-   ;; leading `./' (e.g. a `.projectile' `-/vendor' line); ripgrep spells a
-   ;; root-anchored glob with a leading `/', so translate `./PAT' to `/PAT'.
-   ;; rg honors that only when searching a path relative to the root, which is
-   ;; why the search path below is `./' and the caller binds default-directory.
-   (mapcan (lambda (g)
-             (list "--glob"
-                   (concat "!" (if (string-prefix-p "./" g)
-                                   (substring g 1)
-                                 g))))
-           globs)
+   (mapcan (lambda (g) (list "--glob" (concat "!" g))) globs)
    ;; `--' terminates options so a TERM starting with `-' is not misread.
    (list "--" term "./")))
 
@@ -12322,15 +12296,14 @@ when opening new files.  PROJECT-ROOT defaults to the current project."
 (cl-defmethod project-ignores ((project (head projectile)) _dir)
   "Return a list of glob patterns to ignore in PROJECT.
 
-The patterns are derived from Projectile's ignore configuration and
-returned in the format expected by project.el (see `project-ignores'):
-globally ignored directory names and file suffixes are matched at any
-depth, while the files and directories ignored via the project's
-dirconfig (`.projectile') are rooted at the project root with a
-leading `./'."
+The patterns are Projectile's own ignore patterns (see
+`projectile--ignore-patterns'), converted to the format project.el
+expects (see `project-ignores'): a pattern anchored at the project root
+is spelled with a leading `./' there, the rest match at any depth."
   ;; PROJECT is Projectile's own `(projectile . root)' representation, so read
   ;; the root straight from the cdr rather than going through `project-root'.
-  (projectile--project-ignore-globs (cdr project)))
+  (mapcar #'projectile--project-el-ignore-glob
+          (projectile--project-ignore-globs (cdr project))))
 
 ;;;###autoload
 (defun project-projectile (dir)
