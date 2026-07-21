@@ -19,6 +19,10 @@
 
 ### Changes
 
+- [#2110](https://github.com/bbatsov/projectile/pull/2110): The grep/ag search integration and the ignore predicates now derive their exclusions from the same gitignore patterns indexing uses, instead of expanding the dirconfig into absolute paths on their own.
+  - `projectile-ignored-file-p` and `projectile-ignored-directory-p` now take an optional project root instead of a pre-computed list of ignored paths, and answer exactly what indexing would (ensure entries included, a file under an ignored directory counted as ignored).
+  - Under `rgrep` an ignore pattern is passed as a pattern rather than as whatever it happened to expand to on disk, `!` ensure entries can now rescue root-anchored paths too, and the globally ignored suffixes are no longer also folded into `grep-find-ignored-files`.
+  - Removed `projectile-ignored-files`, `projectile-ignored-directories`, their `-rel` variants, `projectile-project-ignored`, `projectile-project-ignored-files`, `projectile-project-ignored-directories`, `projectile-paths-to-ignore` and `projectile-patterns-to-ignore`, all of which existed only to build those absolute path lists.
 - [#2109](https://github.com/bbatsov/projectile/pull/2109): `alien` indexing now honors dirconfig `+` keep entries, which it previously ignored without saying so.
 - [#2109](https://github.com/bbatsov/projectile/pull/2109): Fix indexing failing outright when a dirconfig had `+` keep entries and the indexing command was a shell pipeline (the plain `find` fallback, svn, fossil, pijul), since the kept paths were appended to the last stage of the pipeline rather than to the lister.
 - [#2107](https://github.com/bbatsov/projectile/pull/2107): Projectile's ignore configuration now speaks gitignore patterns everywhere, matched the same way by every indexing method.
