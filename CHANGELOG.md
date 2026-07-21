@@ -8,16 +8,22 @@
 
 ### New features
 
-- Alien indexing now honors Projectile's ignore rules. Previously `alien` (the default indexing method) delegated the whole walk to an external tool and applied none of `projectile-globally-ignored-files` / `-directories` / `-file-suffixes`, `projectile-global-ignore-file-patterns` or the `-` entries of a project's `.projectile`, which was a frequent source of confusion. The rules are now pushed down into the tool itself (`git ls-files` exclude pathspecs, `fd --exclude`), so the filtering still happens outside Emacs and `alien` stays fast; the few tools that can't express exclusions (svn, fossil, bzr, darcs, pijul, and the plain `find` fallback) have their output filtered in Emacs Lisp instead. Set the new `projectile-alien-honors-ignores` to nil to restore the old behavior. Dirconfig `+` keep and `!` unignore entries have no equivalent in the external tools and remain `hybrid`/`native` only. As a result `alien` projects will list fewer files than before - which is the point, but do check the new `projectile-alien-honors-ignores` if a file you expect goes missing.
-- Add an optional Embark/Marginalia integration, wired via `with-eval-after-load` so neither package becomes a dependency. `embark-act` on a project file now targets the right file even when `default-directory` is a subdirectory, via a transformer that *augments* (never replaces) Embark's own `project-file` handling - it resolves a candidate against the Projectile root only when the file actually lives there, and otherwise defers to Embark, leaving non-Projectile completions untouched. Acting on a project candidate offers project actions (switch, vc, dired, remove) through the new `projectile-embark-project-map`; project prompts now use a `projectile-project` completion category, annotated by Marginalia's file annotator just like before.
+- Alien indexing now honors Projectile's ignore rules, which it previously skipped entirely.
+  - The rules are pushed into the external tool (`git ls-files` exclude pathspecs, `fd --exclude`), so the filtering still happens outside Emacs.
+  - Tools that can't express exclusions (svn, fossil, bzr, darcs, pijul, plain `find`) have their output filtered in Emacs Lisp instead.
+  - Dirconfig `+` keep and `!` unignore entries have no equivalent in the tools and stay `hybrid`/`native` only.
+  - Alien projects will list fewer files than before; set `projectile-alien-honors-ignores` to nil for the old behavior.
+- Add an optional Embark/Marginalia integration, wired via `with-eval-after-load` so neither package becomes a dependency.
+  - A `project-file` transformer resolves Projectile's project-relative candidates, augmenting Embark's own rather than replacing it.
+  - Project prompts use a new `projectile-project` category with an action keymap (switch, vc, dired, remove) and a Marginalia annotator.
 
 ### Changes
 
-- Ignore matching is now case-sensitive under every indexing method. `native` and `hybrid` used to fold case when matching `projectile-globally-ignored-file-suffixes`, `projectile-global-ignore-file-patterns` and the dirconfig patterns - a side effect of `string-suffix-p`'s IGNORE-CASE argument and of `case-fold-search` defaulting to `t`, rather than a deliberate choice - so `.elc` also hid `BUILD.ELC`. The external tools behind `alien` can't express that, so the three methods disagreed; they now agree on the case-sensitive reading. Spell out both cases if you relied on the old behavior.
-- Drop `.ensime_cache` and `.eunit` from the default `projectile-globally-ignored-directories`. ENSIME was archived in 2018 and `.eunit` is a rebar2 artifact; both just added noise to every project's ignore set. Add them back if you still need them.
-- Fix the globs derived from `projectile-globally-ignored-directories` treating a leading `*` as a wildcard. It is a marker meaning "at any depth", so `*.osc` names the `.osc` directory and must not also match `foo.osc`. This affected the patterns handed to `project.el`'s `project-ignores` and to the ripgrep search path.
-- Remove `projectile-warn-when-dirconfig-is-ignored` and the warning it controlled. It existed only to tell you that `alien` indexing was bypassing your `.projectile`, which it no longer does.
-- Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`. It's an optional module shipped inside the Projectile package, not a package of its own, and the phantom `Package-Requires` made build tooling treat it as one (e.g. it broke `eldev`-based test runs on Emacs 28.x by enforcing Consult's Emacs 29.1 floor on the whole project). Its runtime needs (Consult 2.0+, hence Emacs 29.1+) are unchanged and documented in the file and the manual.
+- Ignore matching is now case-sensitive under every indexing method, where `native` and `hybrid` previously folded case (so `.elc` also hid `BUILD.ELC`); the external tools behind `alien` can't express that, so spell out both cases if you relied on it.
+- Drop `.ensime_cache` and `.eunit` from the default `projectile-globally-ignored-directories`, as ENSIME was archived in 2018 and `.eunit` is a rebar2 artifact.
+- Fix a leading `*` in `projectile-globally-ignored-directories` being treated as a wildcard rather than the "at any depth" marker it is, which also affected `project.el`'s `project-ignores` and the ripgrep search path.
+- Remove `projectile-warn-when-dirconfig-is-ignored`, which existed only to warn that `alien` bypassed the dirconfig.
+- Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`, since the phantom `Package-Requires` made build tooling treat an in-package module as its own package (it broke `eldev` test runs on Emacs 28.x).
 
 ## 3.2.1 (2026-07-13)
 
