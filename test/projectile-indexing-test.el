@@ -46,7 +46,6 @@
   (it "lists the files in directory and sub-directories"
     (spy-on 'file-directory-p :and-call-fake
             (lambda (filename) (equal filename "/my/root/")))
-    (spy-on 'projectile-patterns-to-ignore)
     (spy-on 'projectile-index-directory :and-call-fake (lambda (dir patterns progress-reporter)
                                                          (expect dir :to-equal "/my/root/")
                                                          '("/my/root/a/b/c" "/my/root/a/d/e")))

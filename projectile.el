@@ -2185,8 +2185,9 @@ PROJECT-ROOT defaults to the current project."
       (let* ((abs-current-file (file-truename (buffer-file-name)))
              (current-file (file-relative-name abs-current-file current-project)))
         (unless (or (projectile-file-cached-p current-file current-project)
-                    (projectile-ignored-directory-p (file-name-directory abs-current-file))
-                    (projectile-ignored-file-p abs-current-file))
+                    ;; A file under an ignored directory is ignored too, so
+                    ;; the single file check covers its parents as well.
+                    (projectile-ignored-file-p abs-current-file current-project))
           (let ((project-files (cons current-file (gethash current-project projectile-projects-cache))))
             (puthash current-project project-files projectile-projects-cache)
             ;; Defer the disk write until Emacs is idle to avoid freezing the
@@ -4175,85 +4176,58 @@ projectile project root."
   (let ((project-root (projectile-project-root)))
     (mapcar (lambda (f) (projectile--project-relative-name f project-root)) files)))
 
-(defun projectile-ignored-directory-p
-    (directory &optional ignored-directories local-directory globally-ignored-directories)
+(defun projectile--ignored-path-p (path root directory-p)
+  "Return non-nil when PATH is ignored in the project at ROOT.
+
+PATH is an absolute file name and DIRECTORY-P says whether it names a
+directory, in which case directory-only patterns (those with a trailing
+slash) can match it.  ROOT defaults to the current project's root.
+
+The check is the one indexing performs: PATH's root-relative name is
+matched against `projectile--ignore-patterns', `!' ensure patterns
+rescue it, and `projectile-global-ignore-file-patterns' is applied to
+the absolute name.  Because an ignored directory covers its whole
+subtree, a path inside one is reported as ignored too."
+  (let* ((path (expand-file-name path))
+         (root (file-name-as-directory
+                (expand-file-name (or root (projectile-project-root)))))
+         (relative-name (projectile--project-relative-name path root))
+         (relative-name (if directory-p
+                            (file-name-as-directory relative-name)
+                          relative-name))
+         (patterns (projectile-filtering-patterns root))
+         (ignore-re (projectile--compile-ignore-patterns (car patterns)))
+         (ensure-re (projectile--compile-ignore-patterns (cdr patterns)))
+         ;; Ignore matching is case-sensitive.
+         (case-fold-search nil))
+    (or (projectile--global-ignore-regexp-p path)
+        (and ignore-re
+             (string-match-p ignore-re relative-name)
+             (not (and ensure-re (string-match-p ensure-re relative-name)))
+             t))))
+
+(defun projectile-ignored-directory-p (directory &optional root)
   "Check if DIRECTORY should be ignored.
 
-Pre-computed lists of IGNORED-DIRECTORIES and GLOBALLY-IGNORED-DIRECTORIES
-and the LOCAL-DIRECTORY name may optionally be provided."
-  (let ((ignored-directories (or ignored-directories (projectile-ignored-directories)))
-        (globally-ignored-directories (or globally-ignored-directories (projectile-globally-ignored-directory-names)))
-        (local-directory (or local-directory (file-name-nondirectory (directory-file-name directory)))))
-    (or (member directory ignored-directories)
-        (seq-some
-         (lambda (name)
-           (string-match-p name directory))
-         projectile-global-ignore-file-patterns)
-        (member local-directory globally-ignored-directories))))
+DIRECTORY is an absolute directory name and ROOT is the project root it
+belongs to, defaulting to the current project's.  The answer is the one
+indexing gives - see `projectile--ignored-path-p'."
+  (projectile--ignored-path-p directory root t))
 
-(defun projectile-ignored-file-p (file &optional ignored-files)
+(defun projectile-ignored-file-p (file &optional root)
   "Check if FILE should be ignored.
 
-A pre-computed list of IGNORED-FILES may optionally be provided."
-  (or
-   (member file (or ignored-files (projectile-ignored-files)))
-   (seq-some
-    (lambda (name)
-      (string-match-p name file))
-    projectile-global-ignore-file-patterns)
-   (seq-some
-    (lambda (suffix)
-      (string-suffix-p suffix file))
-    projectile-globally-ignored-file-suffixes)))
-
-(defun projectile-ignored-files ()
-  "Return list of ignored files.
-
-That's a combination of the globally ignored files and
-files ignored in a project's dirconfig."
-  (seq-difference
-   (mapcar
-    #'projectile-expand-root
-    (append
-     projectile-globally-ignored-files
-     (projectile-project-ignored-files)))
-   (projectile-unignored-files)))
+FILE is an absolute file name and ROOT is the project root it belongs
+to, defaulting to the current project's.  The answer is the one indexing
+gives - see `projectile--ignored-path-p'.  A file inside an ignored
+directory counts as ignored."
+  (projectile--ignored-path-p file root nil))
 
 (defun projectile-globally-ignored-directory-names ()
   "Return list of ignored directory names."
   (seq-difference
    projectile-globally-ignored-directories
    projectile-globally-unignored-directories))
-
-(defun projectile-ignored-directories ()
-  "Return list of ignored directories."
-  (seq-difference
-   (mapcar
-    #'file-name-as-directory
-    (mapcar
-     #'projectile-expand-root
-     (append
-      projectile-globally-ignored-directories
-      (projectile-project-ignored-directories))))
-   (projectile-unignored-directories)))
-
-(defun projectile-ignored-directories-rel ()
-  "Return list of ignored directories, relative to the root."
-  (projectile-make-relative-to-root (projectile-ignored-directories)))
-
-(defun projectile-ignored-files-rel ()
-  "Return list of ignored files, relative to the root."
-  (projectile-make-relative-to-root (projectile-ignored-files)))
-
-(defun projectile-project-ignored-files ()
-  "Return list of project ignored files.
-Unignored files are not included."
-  (seq-remove 'file-directory-p (projectile-project-ignored)))
-
-(defun projectile-project-ignored-directories ()
-  "Return list of project ignored directories.
-Unignored directories are not included."
-  (seq-filter 'file-directory-p (projectile-project-ignored)))
 
 (defun projectile--dirconfig-ignore ()
   "Return the IGNORE entries from the project's dirconfig, or nil."
@@ -4264,20 +4238,6 @@ Unignored directories are not included."
   "Return the ENSURE entries from the project's dirconfig, or nil."
   (when-let* ((cfg (projectile-parse-dirconfig-file)))
     (projectile-dirconfig-ensure cfg)))
-
-(defun projectile-paths-to-ignore ()
-  "Return a list of ignored project paths."
-  (projectile-normalise-paths (projectile--dirconfig-ignore)))
-
-(defun projectile-patterns-to-ignore ()
-  "Return a list of relative file patterns."
-  (projectile-normalise-patterns (projectile--dirconfig-ignore)))
-
-(defun projectile-project-ignored ()
-  "Return list of project ignored files/directories.
-Unignored files/directories are not included."
-  (let ((paths (projectile-paths-to-ignore)))
-    (projectile-expand-paths paths)))
 
 (defun projectile-unignored-files ()
   "Return list of unignored files."
