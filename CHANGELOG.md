@@ -19,6 +19,8 @@
 
 ### Changes
 
+- [#2109](https://github.com/bbatsov/projectile/pull/2109): `alien` indexing now honors dirconfig `+` keep entries, which it previously ignored without saying so.
+- [#2109](https://github.com/bbatsov/projectile/pull/2109): Fix indexing failing outright when a dirconfig had `+` keep entries and the indexing command was a shell pipeline (the plain `find` fallback, svn, fossil, pijul), since the kept paths were appended to the last stage of the pipeline rather than to the lister.
 - [#2107](https://github.com/bbatsov/projectile/pull/2107): Projectile's ignore configuration now speaks gitignore patterns everywhere, matched the same way by every indexing method.
   - `projectile-globally-ignored-directories`, `projectile-globally-ignored-files` and `projectile-globally-ignored-file-suffixes` join the `.projectile` `-` entries in one pattern language and one matcher: a slashless pattern matches at any depth, a pattern with a slash is anchored at the project root, a trailing `/` means directory-only, and `*`, `**`, `?` and `[...]` are wildcards.
   - The `*` prefix in `projectile-globally-ignored-directories` is no longer a marker meaning "at any depth" (that's now the default) - it's a plain wildcard, so `*node_modules` should become `node_modules`. The default entry `*.osc` became `.osc` accordingly.

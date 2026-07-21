@@ -3186,20 +3186,26 @@ without shelling out per kept directory."
      (t (projectile-files-via-ext-command
          directory (projectile--alien-ext-command vcs directory) subdirs)))))
 
+(defun projectile--restrict-to-subdirs (files subdirs)
+  "Keep only the FILES that live under one of SUBDIRS.
+FILES and SUBDIRS are both relative to the project root.  Returns FILES
+unchanged when SUBDIRS is nil."
+  (if (null subdirs)
+      files
+    (let ((normalized (mapcar #'file-name-as-directory subdirs)))
+      (seq-filter
+       (lambda (f)
+         (seq-some (lambda (sd) (string-prefix-p sd f)) normalized))
+       files))))
+
 (defun projectile--restricted-sub-projects-files (project-root vcs subdirs)
   "Return git submodule files under PROJECT-ROOT, optionally restricted to SUBDIRS.
 SUBDIRS is a list of paths relative to PROJECT-ROOT; when non-nil
 only files whose project-relative path starts with one of those
 subdirectories are returned.  When nil, behaves exactly like
 `projectile-get-sub-projects-files'."
-  (let ((files (projectile-get-sub-projects-files project-root vcs)))
-    (if subdirs
-        (let ((normalized (mapcar #'file-name-as-directory subdirs)))
-          (seq-filter
-           (lambda (f)
-             (seq-some (lambda (sd) (string-prefix-p sd f)) normalized))
-           files))
-      files)))
+  (projectile--restrict-to-subdirs
+   (projectile-get-sub-projects-files project-root vcs) subdirs))
 
 (defun projectile-git-deleted-files (directory)
   "Get a list of deleted but unstaged files in DIRECTORY."
@@ -3410,6 +3416,17 @@ VCS is the VCS of the project."
     (when cmd
       (projectile-files-via-ext-command project (concat cmd " " dir)))))
 
+(defun projectile--command-accepts-pathspecs-p (command)
+  "Return non-nil when COMMAND can take trailing path arguments.
+
+Several of the indexing commands Projectile ships are shell pipelines:
+the svn, fossil and pijul recipes, and the plain find fallback, all end
+in a `tr' stage.  Appending a path to one of those hands it to that last
+stage rather than to the lister, which fails outright instead of
+restricting the listing, so the caller has to filter the command output
+itself (see `projectile--restrict-to-subdirs')."
+  (and command (not (string-match-p "|" command))))
+
 (defun projectile--ext-command-line (command pathspecs)
   "Return COMMAND with PATHSPECS appended as shell-quoted positional arguments.
 PATHSPECS may be nil, in which case COMMAND is returned unchanged.
@@ -3492,9 +3509,13 @@ project.  Either way COMMAND's stderr is captured into the
 
 Only text sent to standard output is taken into account."
   (when (and (stringp command) (not (string-empty-p command)))
-    (let ((default-directory root)
-          (full-command (projectile--ext-command-line command pathspecs))
-          (errors-file (make-temp-file "projectile-files-errors")))
+    (let* ((default-directory root)
+           ;; A pipeline can't take the pathspecs; run it unrestricted and
+           ;; filter its output below instead.
+           (pathspecs-on-command (and (projectile--command-accepts-pathspecs-p command)
+                                      pathspecs))
+           (full-command (projectile--ext-command-line command pathspecs-on-command))
+           (errors-file (make-temp-file "projectile-files-errors")))
       (unwind-protect
           (with-temp-buffer
             ;; `process-file-shell-command' goes through TRAMP for remote
@@ -3521,7 +3542,9 @@ Only text sent to standard output is taken into account."
                      "Projectile indexing command failed with exit code %d: %s\n\
 See the *projectile-files-errors* buffer for details"
                      exit-code full-command)))))
-              files))
+              (if pathspecs-on-command
+                  files
+                (projectile--restrict-to-subdirs files pathspecs))))
         (when (file-exists-p errors-file)
           (delete-file errors-file))))))
 
@@ -3560,7 +3583,12 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
            ;; `make-process' :stderr support over TRAMP.
            (errors-file (make-nearby-temp-file "projectile-files-errors"))
            (errors-localname (or (file-remote-p errors-file 'localname) errors-file))
-           (full-command (concat "{ " (projectile--ext-command-line command pathspecs)
+           ;; See the synchronous runner: a pipeline can't take the pathspecs,
+           ;; so it runs unrestricted and its output is filtered instead.
+           (pathspecs-on-command (and (projectile--command-accepts-pathspecs-p command)
+                                      pathspecs))
+           (restrict (unless pathspecs-on-command pathspecs))
+           (full-command (concat "{ " (projectile--ext-command-line command pathspecs-on-command)
                                  "; } 2>" (shell-quote-argument errors-localname)))
            (stdout-buffer (generate-new-buffer " *projectile-async-index*"))
            (proc
@@ -3588,8 +3616,10 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
                      ;; failure or clobber the errors buffer - just clean up.
                      (unless (process-get proc 'projectile-aborted)
                        (let ((exit-code (process-exit-status proc))
-                             (files (with-current-buffer stdout-buffer
-                                      (projectile--ext-command-output-files))))
+                             (files (projectile--restrict-to-subdirs
+                                     (with-current-buffer stdout-buffer
+                                       (projectile--ext-command-output-files))
+                                     restrict)))
                          (cond
                           ;; Clean exit: pass the listing through.
                           ((and (numberp exit-code) (zerop exit-code))
@@ -4568,14 +4598,21 @@ CALLER is accepted for backward compatibility but no longer used."
         (message "Projectile is initializing cache for %s ..." project-root))
       (setq files
             (if (eq projectile-indexing-method 'alien)
-                ;; In alien mode we let the external tool walk the whole
-                ;; root.  Projectile's ignore rules ride along as exclusion
-                ;; arguments on the command itself; only the tools that
-                ;; can't express them need a pass over the output here.
-                (let ((vcs (projectile-project-vcs project-root)))
+                ;; In alien mode the external tool does the walking.  The
+                ;; ignore rules ride along as exclusion arguments on the
+                ;; command; dirconfig `+' keep entries ride along as
+                ;; pathspecs (or, for a tool that can't take them, as a
+                ;; filter over its output).  Only the tools that can't
+                ;; express the ignores need a further pass here.
+                (let* ((vcs (projectile-project-vcs project-root))
+                       (dirs (projectile-get-project-directories project-root))
+                       (subdirs (unless (equal dirs (list project-root))
+                                  (mapcar (lambda (d)
+                                            (file-relative-name d project-root))
+                                          dirs))))
                   (projectile--alien-apply-ignores
                    project-root vcs
-                   (projectile--dir-files-alien-maybe-async project-root vcs)))
+                   (projectile--dir-files-alien-maybe-async project-root vcs subdirs)))
               (let ((dirs (projectile-get-project-directories project-root)))
                 (cond
                  ((and (eq projectile-indexing-method 'hybrid) (cdr dirs))

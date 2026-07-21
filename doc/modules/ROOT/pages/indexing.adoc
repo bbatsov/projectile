@@ -195,7 +195,7 @@ below summarises which configuration knobs take effect under which mode:
 | Honors `.projectile` (dirconfig) `+` keep rules
 | Yes
 | Yes
-| No
+| Yes
 
 | Honors `.projectile` (dirconfig) `!` unignore rules
 | Yes
@@ -279,10 +279,12 @@ defer entirely to the tool's own ignore rules (`.gitignore` and friends).
 NOTE: An exclusion argument can't be taken back, so a project whose dirconfig
 has `!` ensure entries is filtered in Emacs Lisp under `alien` too, rather than
 pushed down - the rules are the same, only the fast path is given up. Dirconfig
-`+` keep entries have no equivalent at all and remain `hybrid`/`native` only.
-Neither can any method add back files the external tool never listed in the
-first place (because `.gitignore` excludes them); only `hybrid` does that, via
-its VCS-aware unignore pass.
+`+` keep entries are passed to the tool as path arguments where it takes them,
+and applied to its output where it doesn't.
+
+NOTE: No indexing method can add back files the external tool never listed in
+the first place (because `.gitignore` excludes them); only `hybrid` does that,
+via its VCS-aware unignore pass.
 
 NOTE: Ignore matching is case-sensitive under every indexing method. With
 `.elc` in `projectile-globally-ignored-file-suffixes`, a file named `BUILD.ELC`
