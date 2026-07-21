@@ -8,17 +8,17 @@ comparison] for the full matrix of what each method honors.
 
 == Ignoring files using `.projectile` (a.k.a. dirconfig)
 
-NOTE: All three indexing methods honor the `-` ignore entries below.  Under
-`alien` they are handed to the external indexing tool as exclusion arguments
-(see xref:indexing.adoc#alien-ignores[Indexing]).  The `+` keep and `!` unignore
-entries have no equivalent in those tools, so they apply under `hybrid` and
-`native` only.
+NOTE: All three indexing methods honor the `-` ignore and `!` unignore entries
+below.  Under `alien` the ignore entries are handed to the external indexing
+tool as exclusion arguments (see xref:indexing.adoc#alien-ignores[Indexing]).
+The `+` keep entries have no equivalent in those tools, so they apply under
+`hybrid` and `native` only.
 
 If you'd like to instruct Projectile to ignore certain files in a
 project, when indexing it you can do so in the `.projectile` file by
-adding each path to ignore, where the paths all are relative to the
-root directory and start with a slash. Everything ignored should be
-preceded with a `-` sign.
+adding one pattern per line, each preceded with a `-` sign. The
+patterns follow gitignore rules and are matched against paths relative
+to the project root - a leading slash anchors a pattern there.
 
 NOTE: Lines without any prefix at all are still accepted and treated
 as ignore patterns for backward compatibility, but the implicit form
@@ -34,8 +34,8 @@ Here's an example for a typical Rails application:
 -/public/uploads
 ----
 
-This would ignore the folders only at the root of the project.
-Projectile also supports relative pathname ignores:
+This would ignore those folders only at the root of the project.
+Patterns without a slash match at any depth instead:
 
 ----
 -tmp
@@ -76,33 +76,29 @@ When a path is overridden, its contents are still subject to ignore
 patterns. To override those files as well, specify their full path
 with a bang prefix.
 
-=== Path entries vs. glob patterns
+[#pattern-language]
+=== The pattern language
 
-The two ignore examples above look similar but go through different
-matchers. An entry that begins with a slash (e.g. `-/log`,
-`+/src/foo`, `!/src/foo`) is treated as a *path* relative to the
-project root and is expanded literally. An entry without a leading
-slash (e.g. `-tmp`, `-*.rb`) is treated as a *glob pattern* matched
-against every file's root-relative path, with rules modeled on
-`.gitignore` (since Projectile 3.1; the rules are identical under the
-`native` and `hybrid` indexing methods):
+Both ignore examples above are the same thing: gitignore patterns,
+matched against every file's root-relative path. There's one pattern
+language and one matcher, shared by every indexing method and by the
+global ignore variables described below.
 
 * A pattern without a slash matches the file name or any directory
   segment at any depth: `-log` ignores a file or directory called
   `log` anywhere in the tree, but won't match `xlog` or `log.txt`.
-* A pattern containing a slash is anchored at the project root:
-  `-src/gen` ignores only `src/gen`, not `lib/src/gen`. Prefix the
-  pattern with `**/` to match at any depth.
+* A pattern containing a slash is anchored at the project root, and a
+  leading slash anchors without naming a directory of its own:
+  `-src/gen` and `-/log` ignore only `src/gen` and `log` at the root,
+  not `lib/src/gen` or `src/log`. Prefix the pattern with `**/` to
+  match at any depth.
 * A trailing slash restricts the pattern to directories: `-vendor/`
   ignores `vendor` directories, but not files named `vendor`.
 * A matched directory covers its entire subtree.
 * `*` matches within a single path segment, while `**` also crosses
   `/`; `?` matches a single character, and `[...]`/`[!...]`
   character classes are supported.
-
-If a glob pattern doesn't behave the way you'd expect, try the
-explicit path form first to confirm whether the file is being indexed
-at all.
+* Matching is case-sensitive.
 
 === Comments
 
@@ -133,39 +129,45 @@ way to further adjust what you want to see in Projectile.
 == Global ignore and unignore settings
 
 In addition to per-project ignores, Projectile provides several variables for
-globally ignoring files and directories.  These take effect with every indexing
-method; under `alien` they are pushed down into the external indexing tool.  The
-`projectile-globally-unignored-*` variables are the exception - they apply with
-`native` and `hybrid` indexing only.
+globally ignoring files and directories.  Except for
+`projectile-global-ignore-file-patterns` (see below) their entries are the
+gitignore patterns described xref:pattern-language[above], and they take effect
+with every indexing method; under `alien` they are pushed down into the external
+indexing tool.
 
 [source,elisp]
 ----
+;; Ignore files by name, at any depth
+(setq projectile-globally-ignored-files '("TAGS" "GPATH"))
+
 ;; Ignore files by suffix (e.g. compiled artifacts)
 (setq projectile-globally-ignored-file-suffixes '(".o" ".pyc" ".elc"))
 
-;; Ignore files matching regexp patterns
-(setq projectile-global-ignore-file-patterns '("\\.min\\.js$" "\\.map$"))
+;; Ignore directories - the entries are patterns, so `*' is a wildcard
+(setq projectile-globally-ignored-directories
+      '("node_modules"  ; any directory named node_modules, at any depth
+        "/tmp"          ; only ./tmp, at the project root
+        "*.egg-info"))  ; any directory whose name ends in .egg-info
 ----
 
-=== Anchored vs anywhere directory ignores
-
-`projectile-globally-ignored-directories` distinguishes between *anchored*
-entries (matched as a path prefix relative to the project root) and *anywhere*
-entries (matched at any depth in the tree). The leading `*` is **not** a glob
-character — it is the marker that promotes an entry from anchored to anywhere.
+`projectile-global-ignore-file-patterns` is the odd one out: its entries are
+Emacs regexps, matched against absolute file names, not patterns. They can't be
+handed to an external tool or expressed as a glob, so they only apply under
+`native` indexing.
 
 [source,elisp]
 ----
-(setq projectile-globally-ignored-directories
-      '("tmp"           ; only ignores ./tmp at the project root
-        "*node_modules" ; ignores any directory named node_modules at any depth
-        ))
+;; Ignore files matching regexp patterns (native indexing only)
+(setq projectile-global-ignore-file-patterns '("\\.min\\.js$" "\\.map$"))
 ----
 
-The `*` prefix only matters for the `hybrid` post-processor; in `native`
-indexing every entry is matched by directory basename at every traversal step
-(so `tmp` and `*tmp` behave the same). Under `alien` both forms are translated
-into an exclusion matching the directory name at any depth.
+NOTE: Before Projectile 3.3 a leading `*` in
+`projectile-globally-ignored-directories` was a marker meaning "at any depth"
+rather than a wildcard, and a bare entry was matched at the top level only
+(under `hybrid`) or by directory name at any depth (under `native`). Now every
+entry is a plain gitignore pattern, matched identically by every indexing
+method: drop the `*` prefix from entries like `*node_modules`, and write `/tmp`
+if you really mean only the one at the project root.
 
 You can also _unignore_ specific files or directories that would otherwise be
 excluded.  This is useful when your VCS ignores files that you still want
