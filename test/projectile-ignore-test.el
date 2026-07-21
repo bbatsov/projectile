@@ -28,17 +28,60 @@
 (require 'projectile-test-helpers)
 
 (describe "projectile-ignored-directory-p"
+  (before-each
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project/")
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("tmp" "t.ignore"))
+    (spy-on 'projectile--dirconfig-ensure))
   (it "checks if directory should be ignored"
-    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp" "/path/to/project/t.ignore"))
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/t.ignore") :to-be-truthy)
-    (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
+    (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy))
+  (it "matches slashless patterns at any depth, like indexing does"
+    (expect (projectile-ignored-directory-p "/path/to/project/src/tmp") :to-be-truthy))
+  (it "lets directory-only patterns match a directory"
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("vendor/"))
+    (expect (projectile-ignored-directory-p "/path/to/project/vendor") :to-be-truthy)
+    (expect (projectile-ignored-file-p "/path/to/project/vendor") :not :to-be-truthy))
+  (it "accepts an explicit project root"
+    (spy-on 'projectile-project-root :and-throw-error 'error)
+    (expect (projectile-ignored-directory-p "/elsewhere/tmp" "/elsewhere/")
+            :to-be-truthy)))
 
 (describe "projectile-ignored-file-p"
+  (before-each
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project/")
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("TAGS" "T*.el"))
+    (spy-on 'projectile--dirconfig-ensure))
   (it "checks if file should be ignored"
-    (spy-on 'projectile-ignored-files :and-return-value '("/path/to/project/TAGS" "/path/to/project/T.*"))
     (expect (projectile-ignored-file-p "/path/to/project/TAGS") :to-be-truthy)
-    (expect (projectile-ignored-file-p "/path/to/project/foo.el") :not :to-be-truthy)))
+    (expect (projectile-ignored-file-p "/path/to/project/Tags.el") :to-be-truthy)
+    (expect (projectile-ignored-file-p "/path/to/project/foo.el") :not :to-be-truthy))
+  (it "reports a file inside an ignored directory as ignored"
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("vendor/"))
+    (expect (projectile-ignored-file-p "/path/to/project/vendor/dep/a.el") :to-be-truthy))
+  (it "lets an ensure pattern rescue an ignored file"
+    (spy-on 'projectile--dirconfig-ensure :and-return-value '("TAGS"))
+    (expect (projectile-ignored-file-p "/path/to/project/TAGS") :not :to-be-truthy))
+  (it "applies projectile-global-ignore-file-patterns to the absolute name"
+    (let ((projectile-global-ignore-file-patterns '("\\.min\\.js\\'")))
+      (expect (projectile-ignored-file-p "/path/to/project/a.min.js") :to-be-truthy)
+      (expect (projectile-ignored-file-p "/path/to/project/a.js") :not :to-be-truthy))))
+
+(describe "the ignore predicates and indexing"
+  (it "agree on the same configuration"
+    (spy-on 'projectile-project-root :and-return-value "/r/")
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("*.log" "/build" "vendor/"))
+    (spy-on 'projectile--dirconfig-ensure :and-return-value '("keep.log"))
+    (let ((projectile-globally-ignored-directories '("node_modules"))
+          (projectile-globally-ignored-files '("TAGS"))
+          (projectile-globally-ignored-file-suffixes '(".elc"))
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-unignored-directories nil)
+          (files '("a.el" "a.elc" "TAGS" "keep.log" "src/a.log" "build/out"
+                   "vendor/dep/a.el" "node_modules/dep/a.js" "src/build/out")))
+      (expect (seq-remove (lambda (f) (projectile-ignored-file-p (concat "/r/" f)))
+                          files)
+              :to-equal (projectile-remove-ignored files)))))
 
 (describe "projectile-globally-ignored-files"
   (it "includes TAGS file by default"
@@ -46,9 +89,9 @@
   (it "includes cache file by default"
     (expect (member projectile-cache-file projectile-globally-ignored-files) :to-be-truthy))
   (it "causes cache file to be ignored via projectile-ignored-file-p"
-    (spy-on 'projectile-ignored-files :and-return-value
-            (list (concat "/path/to/project/" projectile-cache-file)
-                  (concat "/path/to/project/" projectile-tags-file-name)))
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project/")
+    (spy-on 'projectile--dirconfig-ignore)
+    (spy-on 'projectile--dirconfig-ensure)
     (expect (projectile-ignored-file-p (concat "/path/to/project/" projectile-cache-file)) :to-be-truthy)
     (expect (projectile-ignored-file-p "/path/to/project/source.el") :not :to-be-truthy)))
 
@@ -101,72 +144,6 @@
   (it "rejects non-symbols for projectile-project-type"
     (let ((pred (get 'projectile-project-type 'safe-local-variable)))
       (expect (funcall pred "maven") :not :to-be-truthy))))
-
-(describe "projectile-ignored-files"
-  (it "returns list of ignored files"
-    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
-    (spy-on 'projectile-project-name :and-return-value "project")
-    (spy-on 'projectile-project-ignored-files :and-return-value '("foo.js" "bar.rb"))
-    (let ((files '("/path/to/project/TAGS"
-                   "/path/to/project/foo.js"
-                   "/path/to/project/bar.rb"
-                   "/path/to/project/file1.log"
-                   "/path/to/project/file2.log"))
-          (projectile-ignored-files '("TAGS" "file\d+\\.log")))
-      (expect (projectile-ignored-files) :not :to-equal files)
-      (expect (projectile-ignored-files) :to-equal '("/path/to/project/TAGS"
-                                                     "/path/to/project/.projectile-cache.eld"
-                                                     "/path/to/project/foo.js"
-                                                     "/path/to/project/bar.rb")))))
-
-(describe "projectile-ignored-directories"
-  (it "returns list of ignored directories"
-    (spy-on 'projectile-project-ignored-directories :and-return-value '("tmp" "log"))
-    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
-    (let ((paths '("/path/to/project/compiled/"
-                   "/path/to/project/ignoreme"
-                   "/path/to/project/ignoremetoo"
-                   "/path/to/project/tmp"
-                   "/path/to/project/log"))
-          (projectile-globally-ignored-directories '("compiled" "ignoreme")))
-      (expect (projectile-ignored-directories) :not :to-equal paths)
-      (expect (projectile-ignored-directories) :to-equal '("/path/to/project/compiled/"
-                                                           "/path/to/project/ignoreme/"
-                                                           "/path/to/project/tmp/"
-                                                           "/path/to/project/log/")))))
-
-(describe "projectile-project-ignored-files"
-  (it "returns list of project ignored files"
-    (let ((files '("/path/to/project/foo.el" "/path/to/project/foo.elc")))
-      (spy-on 'projectile-project-ignored :and-return-value files)
-      (spy-on 'file-directory-p :and-return-value nil)
-      (expect (projectile-project-ignored-files) :to-equal files)
-      (spy-on 'file-directory-p :and-return-value t)
-      (expect (projectile-project-ignored-files) :not :to-be-truthy))))
-
-(describe "projectile-project-ignored-directories"
-  (it "returns list of project ignored directories"
-    (let ((directories '("/path/to/project/tmp" "/path/to/project/log")))
-      (spy-on 'projectile-project-ignored :and-return-value directories)
-      (spy-on 'file-directory-p :and-return-value t)
-      (expect (projectile-project-ignored-directories) :to-equal directories)
-      (spy-on 'file-directory-p :and-return-value nil)
-      (expect (projectile-project-ignored-directories) :not :to-be-truthy))))
-
-(describe "projectile-project-ignored"
-  (it "returns list of ignored files/directories"
-    (spy-on 'projectile-project-root :and-return-value "/path/to/project")
-    (spy-on 'projectile-project-name :and-return-value "project")
-    (spy-on 'projectile-paths-to-ignore :and-return-value (list "log" "tmp" "compiled"))
-    (spy-on 'file-expand-wildcards :and-call-fake
-            (lambda (pattern ignored)
-              (cond
-               ((string-equal pattern "log") "/path/to/project/log")
-               ((string-equal pattern "tmp") "/path/to/project/tmp")
-               ((string-equal pattern "compiled") "/path/to/project/compiled"))))
-    (let* ((file-names '("log" "tmp" "compiled"))
-           (files (mapcar 'projectile-expand-root file-names)))
-      (expect (projectile-project-ignored) :to-equal files))))
 
 (describe "projectile-add-unignored"
   (it "requires explicitly unignoring files inside ignored paths"
@@ -597,12 +574,15 @@
             :not :to-be-truthy)))
 
 (describe "projectile-test-ignored-directory-p"
+  (before-each
+    (spy-on 'projectile-project-root :and-return-value "/path/to/project/")
+    (spy-on 'projectile--dirconfig-ensure))
   (it "ignores specified directory values"
-    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/tmp"))
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("/tmp"))
     (expect (projectile-ignored-directory-p "/path/to/project/tmp") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy))
   (it "ignores specified directory values with characters that need to be escaped"
-    (spy-on 'projectile-ignored-directories :and-return-value '("/path/to/project/.dir"))
+    (spy-on 'projectile--dirconfig-ignore :and-return-value '("/.dir"))
     (expect (projectile-ignored-directory-p "/path/to/project/.dir") :to-be-truthy)
     (expect (projectile-ignored-directory-p "/path/to/project/log") :not :to-be-truthy)))
 
