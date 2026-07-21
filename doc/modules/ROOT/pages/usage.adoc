@@ -328,6 +328,28 @@ Emacs 31's `grep-edit-mode`. wgrep is an optional integration, not a
 dependency; after exporting, Projectile tells you which workflow is
 available based on what you have installed.
 
+==== Undoing an applied replace
+
+Applying a replace across a whole project is the most destructive thing
+Projectile does, so `projectile-replace-undo` (kbd:[s-p u]) puts it back.
+It reverts exactly the edits kbd:[!] wrote - files that applying skipped
+were never touched and aren't part of the record.
+
+Undo is deliberately paranoid. Before reverting a file it checks that the
+text the replace wrote is still there, byte for byte, at the position it
+was written to. A file that has since been edited, reverted, deleted, or
+rewritten by a branch switch is reported and left alone; the rest of the
+files are still reverted. Open buffers are handled the same way applying
+handles them: the buffer is edited in place rather than the file written
+behind its back, a clean buffer is saved, and one with unsaved changes of
+its own is edited but left for you to save.
+
+Only the last applied replace is undoable, it is not per project, and the
+record lives in memory - restarting Emacs forgets it. Files that were
+reverted drop out of the record, so undoing twice can never revert
+anything twice; files that were skipped stay undoable once you've sorted
+out whatever changed under them.
+
 === Reviewing search matches
 
 When you want to look through every match for a term across the project
