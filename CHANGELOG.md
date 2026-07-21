@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2114](https://github.com/bbatsov/projectile/pull/2114): Add project-scoped bookmarks - `projectile-bookmark-set` (`s-p B s`), `projectile-bookmark-jump` (`s-p B j`) and `projectile-bookmark-delete` (`s-p B d`).
+  - They're plain Emacs bookmarks, so they show up in `list-bookmarks` and are persisted by `bookmark.el` itself; Projectile only scopes the completion to the current project and suggests a project-prefixed name.
+  - A bookmark counts as the project's when its file lives under the project root or its name starts with the project's name - see `projectile-bookmark-scope`.
 - [#2113](https://github.com/bbatsov/projectile/pull/2113): Add `projectile-todos` (`s-p s t`), which collects the project's `TODO`/`FIXME`-style annotations into the reviewable search buffer.
   - The keywords come from `projectile-todo-keywords`; with a prefix argument you're prompted for which of them to search for.
   - A keyword only counts as a whole word followed by a colon, by whitespace or by the end of the line, so `TODOS` and `MASTODON` are not hits.
@@ -31,6 +34,7 @@
 
 ### Changes
 
+- [#2114](https://github.com/bbatsov/projectile/pull/2114): In `projectile-dispatch`, "display buffer" moved from `B` to `C-o` (mirroring its `s-p 4 C-o` binding), so `B` could become the bookmark prefix.
 - [#2110](https://github.com/bbatsov/projectile/pull/2110): The grep/ag search integration and the ignore predicates now derive their exclusions from the same gitignore patterns indexing uses, instead of expanding the dirconfig into absolute paths on their own.
   - `projectile-ignored-file-p` and `projectile-ignored-directory-p` now take an optional project root instead of a pre-computed list of ignored paths, and answer exactly what indexing would (ensure entries included, a file under an ignored directory counted as ignored).
   - Under `rgrep` an ignore pattern is passed as a pattern rather than as whatever it happened to expand to on disk, `!` ensure entries can now rescue root-anchored paths too, and the globally ignored suffixes are no longer also folded into `grep-find-ignored-files`.

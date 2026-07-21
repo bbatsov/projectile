@@ -32,6 +32,9 @@ and the other reference pages.
 | `projectile-before-switch-project-hook`
 | Hooks run right before project is switched.
 
+| `projectile-bookmark-scope`
+| How a bookmark is recognised as belonging to a project.
+
 | `projectile-buffers-filter-function`
 | A function used to filter the buffers in ‘projectile-project-buffers’.
 

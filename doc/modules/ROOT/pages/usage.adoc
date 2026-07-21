@@ -447,6 +447,65 @@ comment: neither scan parses the language (and the comment syntax would
 have to be guessed per file type), so an annotation inside a string or in
 prose is reported too - kbd:[d] flushes those you don't care about.
 
+== Project bookmarks
+
+Emacs bookmarks are global, which makes them awkward for project work: a
+handful of projects and the list you get from `bookmark-jump` is a mess.
+Projectile adds a project scope on top of the built-in `bookmark.el` -
+that's all it adds. There's no separate storage and no separate
+persistence: the bookmarks you set are ordinary Emacs bookmarks, they
+show up in `list-bookmarks` and `bookmark.el` saves them for you.
+
+* `projectile-bookmark-set` (kbd:[s-p B s]) - bookmark the current
+location. The suggested name is the one `bookmark-set` would suggest
+(normally the file name), prefixed with the project's name, e.g.
+`projectile: projectile.el`. Edit it as you please.
+* `projectile-bookmark-jump` (kbd:[s-p B j]) - jump to one of the
+project's bookmarks. Only they are offered for completion.
+* `projectile-bookmark-delete` (kbd:[s-p B d]) - delete one of them.
+
+The completion candidates are advertised under the standard `bookmark`
+completion category, so `marginalia` annotates them and `embark` acts on
+them exactly like on any other bookmark prompt.
+
+NOTE: The bookmarks live wherever `bookmark-default-file` points, like
+all your other bookmarks. They have nothing to do with
+`projectile-bookmarks.eld`, which is the (unfortunately named) file
+Projectile keeps its list of known projects in.
+
+Since the suggested name is derived from the file, bookmarking a second
+spot in the same file and accepting the suggested name again replaces
+the first bookmark - give the second one a name of its own.
+
+=== How a bookmark is scoped to a project
+
+There are two ways to tell whether a bookmark is the project's, and
+neither is perfect:
+
+* the bookmark's *recorded file* lives under the project root. This
+survives renaming the bookmark and catches bookmarks you set with plain
+`bookmark-set` (or with `org-capture`, or from Dired), but it can't see
+bookmarks that record no file at all, like those of Info or Man buffers.
+* the bookmark's *name* starts with the project's name followed by a
+colon and a space, which is how `projectile-bookmark-set` names them.
+That covers the file-less bookmarks, but it breaks the moment the
+bookmark (or the project directory) is renamed.
+
+By default Projectile applies both and a bookmark belongs to the project
+when either test says so. Set `projectile-bookmark-scope` to `file` or
+`name` to use just one of them:
+
+[source,elisp]
+----
+;; only bookmarks whose file is inside the project
+(setq projectile-bookmark-scope 'file)
+----
+
+NOTE: If the file a bookmark points to has been deleted in the meantime,
+`projectile-bookmark-jump` says so and stops, instead of taking you
+through the relocation prompt of `bookmark.el`. Use
+`projectile-bookmark-delete` to get rid of a stale bookmark.
+
 == Customizing Projectile's keybindings
 
 It is possible to add additional commands to

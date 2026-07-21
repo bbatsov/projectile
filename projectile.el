@@ -11704,6 +11704,177 @@ overwriting each other's changes."
     (projectile-save-known-projects)))
 
 
+;;; Project bookmarks
+;;
+;; Project-scoped bookmarks on top of the built-in `bookmark.el'.  There's
+;; no separate storage and no separate persistence: a Projectile bookmark
+;; is an ordinary Emacs bookmark, so it shows up in `list-bookmarks',
+;; survives restarts and honours `bookmark-save-flag' for free.  All
+;; Projectile adds is a project scope - the commands below only ever offer
+;; you the current project's bookmarks - and a project-prefixed default
+;; name, so the entries stay identifiable in the global list.
+
+;; `bookmark' is built in, but only its commands are autoloaded - the
+;; accessors and `bookmark-alist' used below are not.
+(require 'bookmark)
+
+(defcustom projectile-bookmark-scope 'both
+  "How a bookmark is recognised as belonging to a project.
+
+Emacs bookmarks are global, so Projectile has to decide which of them
+belong to the project at hand.  There are two ways to tell, each with a
+different failure mode:
+
+- `file' - the bookmark's recorded file lives under the project root.
+  Robust (it survives renaming the bookmark, and catches bookmarks made
+  with plain `bookmark-set'), but blind to bookmarks that record no
+  file, e.g. those of Info or Man buffers.
+
+- `name' - the bookmark's name starts with the project's name followed
+  by a colon and a space, which is how `projectile-bookmark-set' names
+  bookmarks by default.  Covers bookmarks without a file, but breaks as
+  soon as the bookmark (or the project directory) is renamed.
+
+- `both' - the default: a bookmark belongs to the project when either
+  test says so."
+  :group 'projectile
+  :type '(choice (const :tag "Recorded file lives under the project root" file)
+                 (const :tag "Name starts with the project name" name)
+                 (const :tag "Either of the two" both))
+  :package-version '(projectile . "3.3.0"))
+
+(defun projectile-bookmark--name-prefix (&optional project)
+  "Return the bookmark name prefix for PROJECT.
+PROJECT is a project root and defaults to the current project."
+  (format "%s: " (projectile-project-name project)))
+
+(defun projectile-bookmark--under-root-p (filename root)
+  "Return non-nil when FILENAME is a file under ROOT.
+ROOT is expected to be a true name already; FILENAME is resolved to
+one, so a symlinked path into the project still matches.  FILENAME need
+not exist - a bookmark whose file was deleted still belongs to the
+project that file was in."
+  (and filename
+       ;; A remote file can't be under a local root (and the other way
+       ;; around).  Answer that from the names alone: resolving a remote
+       ;; name would open a TRAMP connection, and a single stale remote
+       ;; bookmark would then stall every bookmark prompt.
+       (equal (file-remote-p filename) (file-remote-p root))
+       (let ((non-essential t))
+         (string-prefix-p root (file-truename (expand-file-name filename))))))
+
+(defun projectile-bookmark--belongs-p (bookmark root)
+  "Return non-nil when BOOKMARK belongs to the project at ROOT.
+BOOKMARK is a bookmark record and ROOT the project root's true name,
+ending in a slash.  Which test is applied is governed by
+`projectile-bookmark-scope'."
+  (or (and (memq projectile-bookmark-scope '(file both))
+           (projectile-bookmark--under-root-p
+            (bookmark-get-filename bookmark) root)
+           t)
+      (and (memq projectile-bookmark-scope '(name both))
+           (string-prefix-p (projectile-bookmark--name-prefix root)
+                            (bookmark-name-from-full-record bookmark)))))
+
+(defun projectile-bookmark-names (&optional root)
+  "Return the names of the bookmarks belonging to the project at ROOT.
+ROOT defaults to the current project.  See `projectile-bookmark-scope'
+for what makes a bookmark the project's."
+  (let ((root (file-name-as-directory
+               (file-truename (or root (projectile-acquire-root))))))
+    (bookmark-maybe-load-default-file)
+    (delq nil (mapcar (lambda (bookmark)
+                        (and (projectile-bookmark--belongs-p bookmark root)
+                             (bookmark-name-from-full-record bookmark)))
+                      bookmark-alist))))
+
+(defun projectile-bookmark--default-name (root)
+  "Return the suggested name for a new bookmark at point in ROOT.
+That's the name `bookmark-make-record' suggests (normally the file or
+buffer name), prefixed with the project's name.  Buffers `bookmark.el'
+cannot record at all (those visiting neither a file nor a directory,
+unless their mode knows how to bookmark itself) are refused with a
+`user-error' rather than with a bare error and a backtrace."
+  (concat (projectile-bookmark--name-prefix root)
+          ;; Without this binding the record's name falls back to that of
+          ;; the bookmark last used, which has nothing to do with the
+          ;; location being bookmarked now.
+          (let ((bookmark-current-bookmark nil))
+            (condition-case err
+                (bookmark-name-from-full-record (bookmark-make-record))
+              (user-error (signal (car err) (cdr err)))
+              (error (user-error "%s" (error-message-string err)))))))
+
+(defun projectile-bookmark--record (name)
+  "Return the bookmark record named NAME.
+Signals a `user-error' when there is no such bookmark - the completion
+prompts don't require a match, and `bookmark.el' answers a name it
+doesn't know with a bare error (or, in the case of `bookmark-delete',
+with a cheerful nothing at all)."
+  (or (bookmark-get-bookmark name t)
+      (user-error "No bookmark named `%s'" name)))
+
+(defun projectile-bookmark--read (prompt &optional root)
+  "Read one of the project's bookmark names with PROMPT.
+ROOT defaults to the current project.  Signals a `user-error' when the
+project has no bookmarks yet."
+  (let* ((root (or root (projectile-acquire-root)))
+         (names (projectile-bookmark-names root)))
+    (unless names
+      (user-error "%s" (projectile-prepend-project-name
+                        "No bookmarks in this project")))
+    (projectile-completing-read prompt names :category 'bookmark)))
+
+;;;###autoload
+(defun projectile-bookmark-set (name)
+  "Set a bookmark named NAME at point, scoped to the current project.
+
+The bookmark is a regular Emacs bookmark - it lands in `bookmark-alist',
+shows up in `list-bookmarks' and is persisted by `bookmark.el' itself.
+The only Projectile touch is the suggested NAME: the name `bookmark-set'
+would suggest, prefixed with the project's name (e.g. \"projectile:
+projectile.el\"), so the project's bookmarks are easy to spot in the
+global list.  You're free to edit the name - a bookmark on a file inside
+the project is recognised as the project's even without the prefix (see
+`projectile-bookmark-scope')."
+  (interactive
+   (let ((default (projectile-bookmark--default-name (projectile-acquire-root))))
+     (list (read-string "Set bookmark: " default 'bookmark-history default))))
+  (bookmark-set name))
+
+;;;###autoload
+(defun projectile-bookmark-jump (name)
+  "Jump to the project bookmark named NAME.
+Only the current project's bookmarks are offered for completion - see
+`projectile-bookmark-scope' for how that's decided.
+
+When the bookmark's file has been deleted in the meantime this refuses
+with a friendly error instead of dragging you through the relocation
+prompt of `bookmark.el'.  Use `projectile-bookmark-delete' to get rid of
+such a stale bookmark."
+  (interactive (list (projectile-bookmark--read "Jump to bookmark: ")))
+  (let* ((record (projectile-bookmark--record name))
+         (file (bookmark-get-filename record)))
+    ;; A bookmark with a handler of its own may keep something else
+    ;; entirely in `filename', so only vet the ones `bookmark.el' will
+    ;; resolve as a file itself.
+    (when (and file
+               (not (bookmark-get-handler record))
+               (not (file-readable-p file)))
+      (user-error "The file of bookmark `%s' is gone (%s)" name file)))
+  (bookmark-jump name))
+
+;;;###autoload
+(defun projectile-bookmark-delete (name)
+  "Delete the project bookmark named NAME.
+Only the current project's bookmarks are offered for completion - see
+`projectile-bookmark-scope' for how that's decided."
+  (interactive (list (projectile-bookmark--read "Delete bookmark: ")))
+  (projectile-bookmark--record name)
+  (bookmark-delete name)
+  (message "Deleted bookmark `%s'" name))
+
+
 ;;; IBuffer integration
 (define-ibuffer-filter projectile-files
     "Show Ibuffer with all buffers in the current project."
@@ -12922,6 +13093,10 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "a") #'projectile-find-other-file)
     (define-key map (kbd "A") #'projectile-add-known-project)
     (define-key map (kbd "b") #'projectile-switch-to-buffer)
+    ;; project-scoped bookmarks (see `projectile-bookmark-set')
+    (define-key map (kbd "B s") #'projectile-bookmark-set)
+    (define-key map (kbd "B j") #'projectile-bookmark-jump)
+    (define-key map (kbd "B d") #'projectile-bookmark-delete)
     (define-key map (kbd "d") #'projectile-find-dir)
     (define-key map (kbd "D") #'projectile-dired)
     (define-key map (kbd "e") #'projectile-recentf)
@@ -13258,10 +13433,14 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("J" "toggle related" projectile-toggle-related-file)]
      ["Buffers"
       ("b" "switch buffer" projectile-dispatch-switch-to-buffer)
-      ("B" "display buffer" projectile-display-buffer)
+      ("C-o" "display buffer" projectile-display-buffer)
       ("I" "ibuffer" projectile-ibuffer)
       ("k" "kill buffers" projectile-kill-buffers)
       ("S" "save buffers" projectile-save-project-buffers)]
+     ["Bookmarks"
+      ("Bs" "set bookmark" projectile-bookmark-set)
+      ("Bj" "jump to bookmark" projectile-bookmark-jump)
+      ("Bd" "delete bookmark" projectile-bookmark-delete)]
      ["Search / Replace"
       ("ss" "search" projectile-dispatch-search)
       ("sg" "grep" projectile-grep)
@@ -13361,6 +13540,10 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Recent files" projectile-recentf]
          ["Previous buffer" projectile-previous-project-buffer]
          ["Next buffer" projectile-next-project-buffer])
+        ("Bookmarks"
+         ["Set bookmark" projectile-bookmark-set]
+         ["Jump to bookmark" projectile-bookmark-jump]
+         ["Delete bookmark" projectile-bookmark-delete])
         ("Projects"
          ["Add known project" projectile-add-known-project]
          ["Add and switch to project" projectile-add-and-switch-project]
