@@ -122,10 +122,10 @@ TIP: It's a great idea to install https://github.com/sharkdp/fd[fd] which is muc
  If `fd` is found, projectile will use it as a replacement for `find` for non-VCS projects.
 
 WARNING: The `find` fallback does *not* exclude common build/cache directories
- (`.git`, `node_modules`, `target`, `build`, …); a non-VCS project under `alien`
- indexing on a host without `fd` will list everything.  Either install `fd`,
- switch to `hybrid` indexing so `projectile-globally-ignored-directories`
- applies, or override `projectile-generic-command` with a tighter recipe.
+ (`.git`, `node_modules`, `target`, `build`, …) itself, so it walks the whole
+ tree even though Projectile then drops the ignored entries from its output (see
+ xref:#alien-ignores[below]).  Install `fd` or override
+ `projectile-generic-command` with a tighter recipe if that walk is slow.
 
 By default, `fd` is also used inside Git repositories (instead of `git ls-files`),
 because `git ls-files` has the limitation that it lists deleted files until the
@@ -159,9 +159,8 @@ words, it's `alien` plus a second pass that applies:
 
 * `.projectile` (dirconfig) ignore/keep/ensure entries
 * `projectile-globally-ignored-files`,
-  `projectile-globally-ignored-directories`,
-  `projectile-globally-ignored-file-suffixes`, and
-  `projectile-global-ignore-file-patterns`
+  `projectile-globally-ignored-directories` and
+  `projectile-globally-ignored-file-suffixes`
 * `projectile-globally-unignored-files` and
   `projectile-globally-unignored-directories`
 * The configured sort order from `projectile-sort-order`
@@ -193,18 +192,33 @@ below summarises which configuration knobs take effect under which mode:
 | Yes
 | Yes
 
-| Honors `.projectile` (dirconfig) `+` keep and `!` unignore rules
+| Honors `.projectile` (dirconfig) `+` keep rules
 | Yes
 | Yes
 | No
 
-| Honors `projectile-globally-ignored-files` / `-directories` / `-file-suffixes` / `projectile-global-ignore-file-patterns`
+| Honors `.projectile` (dirconfig) `!` unignore rules
 | Yes
 | Yes
 | Yes
 
+| Honors `projectile-globally-ignored-files` / `-directories` / `-file-suffixes`
+| Yes
+| Yes
+| Yes
+
+| Honors `projectile-global-ignore-file-patterns` (Emacs regexps)
+| Yes
+| No
+| No
+
 | Honors `projectile-globally-unignored-*`
 | Yes
+| Yes
+| Yes
+
+| Re-adds files the VCS itself ignores (`projectile-globally-unignored-*`, `!` entries)
+| n/a
 | Yes
 | No
 
@@ -230,8 +244,9 @@ below summarises which configuration knobs take effect under which mode:
 `alien` honors the ignore rules without giving up its speed: instead of
 filtering the tool's output in Emacs, it hands the rules to the tool as
 exclusion arguments. Which tools can do that varies, so the ones that can't get
-their output filtered in Emacs Lisp after all. Either way the resulting file set
-is the same - the difference is only where the work happens:
+their output filtered in Emacs Lisp after all. Every path applies the same
+gitignore rules to the same pattern list, so the resulting file set is the same
+- the difference is only where the work happens:
 
 [cols="1,2,2",options="header"]
 |===
@@ -261,11 +276,13 @@ is the same - the difference is only where the work happens:
 Set `projectile-alien-honors-ignores` to nil to get the raw listing back and
 defer entirely to the tool's own ignore rules (`.gitignore` and friends).
 
-NOTE: Dirconfig `+` keep entries and `!` unignore entries, and the
-`projectile-globally-unignored-*` variables, have no equivalent in any of these
-tools and can't be reproduced by filtering a listing that already omits the
-files. They remain `hybrid`/`native` only, and a project that relies on them
-still needs one of those indexing methods.
+NOTE: An exclusion argument can't be taken back, so a project whose dirconfig
+has `!` ensure entries is filtered in Emacs Lisp under `alien` too, rather than
+pushed down - the rules are the same, only the fast path is given up. Dirconfig
+`+` keep entries have no equivalent at all and remain `hybrid`/`native` only.
+Neither can any method add back files the external tool never listed in the
+first place (because `.gitignore` excludes them); only `hybrid` does that, via
+its VCS-aware unignore pass.
 
 NOTE: Ignore matching is case-sensitive under every indexing method. With
 `.elc` in `projectile-globally-ignored-file-suffixes`, a file named `BUILD.ELC`
@@ -273,12 +290,11 @@ is *not* ignored - spell out both cases if you want both. Before Projectile 3.3
 `native` and `hybrid` folded case here (a side effect of the Emacs functions
 they matched with), which `alien` had no way to reproduce in the external tools.
 
-WARNING: A bare entry in `projectile-globally-ignored-directories` matches at
-any depth under `alien`, the same as it does under `native`, whereas `hybrid`
-matches it only at the top level. The `*` prefix (which marks an entry as
-"at any depth" rather than acting as a wildcard) makes no difference under
-`alien`. If you depend on the distinction, `hybrid` is the method that honors
-it.
+NOTE: Since Projectile 3.3 every ignore option speaks gitignore patterns and
+every indexing method matches them the same way, so a bare entry in
+`projectile-globally-ignored-directories` matches at any depth everywhere. It
+used to be top-level-only under `hybrid`, and a `*` prefix was a marker rather
+than a wildcard; both quirks are gone.
 
 TIP: For the details of each ignore mechanism (`.projectile`, the indexing
 tools, and the global ignore/unignore variables), see
