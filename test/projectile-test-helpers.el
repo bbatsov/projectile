@@ -46,6 +46,19 @@
   (when (fboundp fn)
     (advice-add fn :override #'ignore)))
 
+;; A spec that reaches a real `completing-read' blocks on stdin in batch mode.
+;; Whether that shows up as a failure or as a hang depends on nothing more than
+;; whether stdin happens to be at EOF: under `eldev test' it usually is, so the
+;; read errors out and the spec "passes"; run the same suite with anything
+;; still holding the pipe open (a CI wrapper, a pager, `sleep 300 | ...') and it
+;; waits forever instead.  Turn any unstubbed prompt into an immediate, legible
+;; failure.  `spy-on' and `cl-letf' stubs replace `symbol-function', so they
+;; still win over this.
+(dolist (fn '(completing-read read-from-minibuffer))
+  (advice-add fn :override
+              (lambda (prompt &rest _)
+                (error "Unexpected minibuffer prompt in a spec: %s" prompt))))
+
 ;; Useful debug information
 (message "Running tests on Emacs %s" emacs-version)
 
