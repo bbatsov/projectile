@@ -28,6 +28,9 @@
 (require 'projectile-test-helpers)
 
 (assert-friendly-error-when-no-project projectile-project-info)
+(assert-friendly-error-when-no-project projectile-bookmark-set)
+(assert-friendly-error-when-no-project projectile-bookmark-jump)
+(assert-friendly-error-when-no-project projectile-bookmark-delete)
 (assert-friendly-error-when-no-project projectile-display-buffer)
 (assert-friendly-error-when-no-project projectile-find-implementation-or-test-other-frame)
 (assert-friendly-error-when-no-project projectile-find-implementation-or-test-other-window)
