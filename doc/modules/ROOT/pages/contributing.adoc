@@ -8,7 +8,10 @@ and https://github.com/bbatsov/projectile/discussions[our discussions board].
 
 If you want to file a bug, please provide all the necessary info listed in
 our issue reporting template (it's loaded automatically when you create a
-new GitHub issue).
+new GitHub issue). Pasting the output of kbd:[M-x] `projectile-doctor` is a
+great start - it describes how Projectile sees your project (root, type,
+indexing, cache, ignore rules) and saves us a round of questions. See
+xref:troubleshooting.adoc#doctor[Troubleshooting] for the details.
 
 It's usually a good idea to try to reproduce (obscure) bugs in isolation. You
 can do this by cloning Projectile's GitHub repo and running `eldev emacs` inside

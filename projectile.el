@@ -11671,6 +11671,526 @@ entered, keeping the entries made so far."
       (save-buffer))))
 
 
+;;; Project diagnostics (the doctor)
+;;
+;; `projectile-doctor' renders what Projectile thinks is going on in the
+;; current project - and why - into a plain, copy-pasteable buffer.  It
+;; computes nothing new: every value shown comes from the same accessor
+;; the rest of Projectile uses.
+;;
+;; A note on side effects, since a diagnostic that changes what it
+;; diagnoses is worse than useless.  The doctor reports the caches as it
+;; finds them: it never populates and never invalidates
+;; `projectile-projects-cache'.  When a project's file list isn't cached
+;; yet, the doctor indexes it with caching bound off, times that run and
+;; labels it a fresh index in the report - so running the doctor can't
+;; turn a cold project warm (or a warm one cold) behind your back.  The
+;; dirconfig is read with the uncached parser for the same reason.  The
+;; project root and VCS caches are the exception: those are populated by
+;; merely asking, exactly as any other command would.
+;;
+;; Anything whose cost is unknown - indexing, `executable-find', listing
+;; the project root - is skipped for remote (TRAMP) projects and marked
+;; as skipped in the report, so the doctor can't hang on a slow host.
+
+(defconst projectile-doctor-buffer-name "*projectile-doctor*"
+  "The name of the buffer `projectile-doctor' renders its report in.")
+
+(defconst projectile-doctor--large-project 10000
+  "File count above which a project is considered large by the doctor.")
+
+(defconst projectile-doctor--huge-project 50000
+  "File count above which the doctor suspects the ignore rules.")
+
+(defconst projectile-doctor--label-width 22
+  "Column width of the labels in a doctor report.")
+
+(defvar-local projectile-doctor--directory nil
+  "The directory a doctor report was generated from.
+Used by the report buffer's `revert-buffer' to regenerate it.")
+
+(defun projectile-doctor--root-function (dir)
+  "Return the `projectile-project-root-functions' entry that roots DIR.
+That is the first function in the list to return a project root for
+DIR, which is the one whose answer function `projectile-project-root'
+used.  Returns nil when no function claims DIR."
+  (let ((true-dir (ignore-errors (file-truename dir))))
+    (seq-find (lambda (func)
+                (ignore-errors
+                  (funcall func (if (eq func 'projectile-root-local)
+                                    dir
+                                  (or true-dir dir)))))
+              projectile-project-root-functions)))
+
+(defun projectile-doctor--root-marker (func root)
+  "Return the marker file in ROOT that made FUNC report it as a root.
+Returns nil for a root function with no marker list of its own (e.g.
+`projectile-root-local', which reads a buffer-local variable) or when
+no marker can be pinned down."
+  (when-let* ((markers (pcase func
+                         ('projectile-root-marked
+                          (list projectile-dirconfig-file))
+                         ('projectile-root-bottom-up
+                          projectile-project-root-files-bottom-up)
+                         ('projectile-root-top-down
+                          projectile-project-root-files)
+                         ('projectile-root-top-down-recurring
+                          projectile-project-root-files-top-down-recurring))))
+    (seq-find (lambda (marker)
+                (ignore-errors
+                  (projectile-file-exists-p
+                   (projectile-expand-file-name-wildcard marker root))))
+              markers)))
+
+(defun projectile-doctor--type-marker (type)
+  "Return the registered marker files of the project TYPE, or nil."
+  (when-let* ((record (assq type projectile-project-types)))
+    (plist-get (cdr record) 'marker-files)))
+
+(defun projectile-doctor--executable (name remote)
+  "Report the availability of the NAME executable.
+Returns `present', `missing', or `skipped' when the project is REMOTE
+and looking the program up would mean a TRAMP round-trip."
+  (cond (remote 'skipped)
+        ((and name (executable-find name)) 'present)
+        (t 'missing)))
+
+(defun projectile-doctor--index-command (root vcs)
+  "Return the external indexing command Projectile would run in ROOT.
+VCS is the project's version-control system.  Returns nil under the
+`native' indexing method, which shells out to nothing."
+  (unless (eq projectile-indexing-method 'native)
+    (let ((default-directory root))
+      (ignore-errors (projectile--alien-ext-command vcs root)))))
+
+(defun projectile-doctor--file-info (root remote)
+  "Return a plist describing ROOT's file list and how it was obtained.
+The cached list is used when there is one.  Otherwise the project is
+indexed with caching bound off, so the doctor doesn't warm a cache the
+user didn't ask it to warm, and the timing of that run is reported.
+Indexing is skipped altogether when the project is REMOTE."
+  (let ((cached (gethash root projectile-projects-cache)))
+    (cond
+     (cached (list :file-count (length cached) :files-source 'cache))
+     (remote (list :files-source 'skipped))
+     (t (let* ((start (float-time))
+               (files (condition-case err
+                          ;; Index without touching the cache: no entry is
+                          ;; stored, no stale entry is evicted, no file
+                          ;; watch is armed.
+                          (let ((projectile-enable-caching nil)
+                                (projectile-files-cache-expire nil))
+                            (projectile-project-files root))
+                        (error (cons 'error (error-message-string err))))))
+          (if (eq (car-safe files) 'error)
+              (list :files-source 'error :files-error (cdr files))
+            (list :file-count (length files)
+                  :index-time (- (float-time) start)
+                  :files-source 'fresh)))))))
+
+(defun projectile-doctor--excluded-entries (root patterns)
+  "Return ROOT's immediate entries excluded by the ignore PATTERNS.
+Directories are returned with a trailing slash, the way the patterns
+match them."
+  (when-let* ((re (projectile--compile-ignore-patterns patterns))
+              (entries (ignore-errors
+                         (directory-files
+                          root t directory-files-no-dot-files-regexp))))
+    (let ((case-fold-search nil))
+      (delq nil
+            (mapcar (lambda (entry)
+                      (let ((rel (concat (file-name-nondirectory entry)
+                                         (if (file-directory-p entry) "/" ""))))
+                        (and (string-match-p re rel) rel)))
+                    entries)))))
+
+(defun projectile-doctor--collect (&optional dir)
+  "Collect the diagnostic data for DIR's project as a plist.
+DIR defaults to `default-directory'.  Outside a project the plist has
+a nil `:root' and the rendering degrades to saying so."
+  (let* ((dir (or dir default-directory))
+         (root (ignore-errors (projectile-project-root dir))))
+    (if (null root)
+        (list :dir dir :root nil)
+      (let* ((remote (file-remote-p root))
+             ;; The doctor reports prefix-less dirconfig lines as a
+             ;; finding; it shouldn't also pop up the warning buffer over
+             ;; the report it's about to show.
+             (projectile-warn-on-prefixless-dirconfig-lines nil)
+             (default-directory root)
+             (vcs (ignore-errors (projectile-project-vcs root)))
+             (type (ignore-errors (projectile-project-type)))
+             (root-func (projectile-doctor--root-function dir))
+             (ignore-patterns (ignore-errors (projectile--ignore-patterns root)))
+             (cache-time (gethash root projectile-projects-cache-time)))
+        (append
+         (list :dir dir
+               :root root
+               :remote remote
+               :root-function root-func
+               :root-marker (and root-func
+                                 (projectile-doctor--root-marker root-func root))
+               :name (ignore-errors (projectile-project-name root))
+               :name-source (if projectile-project-name
+                                'local-variable
+                              projectile-project-name-function)
+               :type type
+               :type-source (if projectile-project-type 'local-variable 'detected)
+               :type-marker (unless projectile-project-type
+                              (projectile-doctor--type-marker type))
+               :vcs vcs
+               :indexing-method projectile-indexing-method
+               :async-indexing projectile-async-indexing
+               :index-command (projectile-doctor--index-command root vcs)
+               :git (projectile-doctor--executable "git" remote)
+               :fd (projectile-doctor--executable
+                    (ignore-errors (projectile-fd-executable-for root)) remote)
+               :rg (projectile-doctor--executable "rg" remote)
+               :git-use-fd projectile-git-use-fd
+               :caching projectile-enable-caching
+               :cache-time cache-time
+               :cache-age (and cache-time
+                               (- (projectile-time-seconds) cache-time))
+               :cache-expire projectile-files-cache-expire
+               :cache-file (and (projectile-persistent-cache-p)
+                                (not remote)
+                                (let ((file (projectile-project-cache-file root)))
+                                  (and (file-exists-p file) file)))
+               :dirconfig-file (projectile-dirconfig-file)
+               ;; The uncached parser, so the doctor doesn't seed the
+               ;; dirconfig cache as a side effect of looking.
+               :dirconfig (ignore-errors
+                            (projectile--parse-dirconfig-file-uncached))
+               :ignore-patterns ignore-patterns
+               :ensure-patterns (ignore-errors (projectile--ensure-patterns root))
+               :excluded-entries (unless remote
+                                   (projectile-doctor--excluded-entries
+                                    root ignore-patterns))
+               :projectile-mode (bound-and-true-p projectile-mode))
+         (projectile-doctor--file-info root remote))))))
+
+
+;;;; Doctor findings
+
+(defun projectile-doctor--findings (data)
+  "Return the list of findings for the report DATA.
+Each finding is a cons of a status symbol (`ok', `warn' or `info') and
+a one-line description."
+  (let* ((remote (plist-get data :remote))
+         (method (plist-get data :indexing-method))
+         (external (memq method '(alien hybrid)))
+         (count (plist-get data :file-count))
+         (cfg (plist-get data :dirconfig))
+         (findings nil))
+    (push (if (eq (plist-get data :type) 'generic)
+              (cons 'warn (concat "Project type not detected (generic).  "
+                                  "Register a type with "
+                                  "`projectile-register-project-type', or set "
+                                  "`projectile-project-type' in .dir-locals.el."))
+            (cons 'ok (format "Project type detected: %s."
+                              (plist-get data :type))))
+          findings)
+    (when (and external (eq (plist-get data :vcs) 'git))
+      (push (pcase (plist-get data :git)
+              ('present (cons 'ok "git is installed and lists the project files."))
+              ('skipped (cons 'info "git availability not checked (remote project)."))
+              (_ (cons 'warn (concat "git is not installed, but this is a git "
+                                     "project - indexing falls back to `find'."))))
+            findings))
+    (when external
+      (push (pcase (plist-get data :fd)
+              ('present (cons 'ok "fd is installed and used for fast indexing."))
+              ('skipped (cons 'info "fd availability not checked (remote project)."))
+              (_ (cons 'warn (concat "fd is not installed.  Installing it speeds "
+                                     "up indexing noticeably on large projects "
+                                     "(see `projectile-git-use-fd')."))))
+            findings))
+    (when (and (eq (plist-get data :rg) 'missing) (not remote))
+      (push (cons 'info (concat "ripgrep (rg) is not installed; "
+                                "`projectile-ripgrep' and the fast path of the "
+                                "search reviewer need it."))
+            findings))
+    (when (integerp count)
+      (cond
+       ((>= count projectile-doctor--huge-project)
+        (push (cons 'warn (format (concat "%d files indexed.  That's a lot - "
+                                          "check the ignore rules above, a "
+                                          "build or vendor directory may be "
+                                          "sneaking in.")
+                                  count))
+              findings))
+       ((and (>= count projectile-doctor--large-project)
+             (not (plist-get data :caching)))
+        (push (cons 'warn (format (concat "%d files indexed with caching "
+                                          "disabled.  Set "
+                                          "`projectile-enable-caching' to t "
+                                          "(or `persistent').")
+                                  count))
+              findings))
+       (t (push (cons 'ok (format "%d files indexed." count)) findings))))
+    (when (and remote (not (plist-get data :async-indexing)))
+      (push (cons 'warn (concat "Remote project with `projectile-async-indexing' "
+                                "off - indexing will block Emacs for as long as "
+                                "the remote takes."))
+            findings))
+    (when cfg
+      (when (projectile-dirconfig-keep cfg)
+        (push (cons 'info (format (concat "The dirconfig has %d `+' keep "
+                                          "entries, so the project is "
+                                          "restricted to those subdirectories "
+                                          "- everything else is invisible to "
+                                          "Projectile.")
+                                  (length (projectile-dirconfig-keep cfg))))
+              findings))
+      (when (projectile-dirconfig-prefixless-ignore cfg)
+        (push (cons 'warn (concat "The dirconfig has lines without a "
+                                  "`+'/`-'/`!' prefix.  They are treated as "
+                                  "ignore rules for now, but the implicit form "
+                                  "is being phased out - prefix them with `-'."))
+              findings)))
+    (unless (plist-get data :projectile-mode)
+      (push (cons 'warn (concat "`projectile-mode' is not enabled; "
+                                "Projectile's keymap and mode line are "
+                                "inactive."))
+            findings))
+    (nreverse findings)))
+
+
+;;;; Doctor report rendering
+
+(defun projectile-doctor--field (label value)
+  "Insert a LABEL/VALUE line into the report.
+VALUE is rendered with `%s'; a nil or empty one reads as \"n/a\"."
+  (insert label
+          (make-string (max 1 (- projectile-doctor--label-width (length label)))
+                       ?\s)
+          (if (or (null value) (equal value "")) "n/a" (format "%s" value))
+          "\n"))
+
+(defun projectile-doctor--section (title)
+  "Insert the header of a report section titled TITLE."
+  (insert "\n" title "\n" (make-string (length title) ?-) "\n"))
+
+(defun projectile-doctor--list-field (label items)
+  "Insert LABEL followed by ITEMS, one per line."
+  (if (null items)
+      (projectile-doctor--field label "none")
+    (projectile-doctor--field label (car items))
+    (dolist (item (cdr items))
+      (insert (make-string projectile-doctor--label-width ?\s) item "\n"))))
+
+(defun projectile-doctor--executable-string (status)
+  "Return the human-readable rendering of an executable STATUS."
+  (pcase status
+    ('present "present")
+    ('missing "missing")
+    (_ "not checked (remote)")))
+
+(defun projectile-doctor--files-string (data)
+  "Return the file-count line of the report DATA."
+  (pcase (plist-get data :files-source)
+    ('cache (format "%d (from the cache)" (plist-get data :file-count)))
+    ('fresh (format "%d (fresh index, %.2fs - not cached by the doctor)"
+                    (plist-get data :file-count)
+                    (plist-get data :index-time)))
+    ('skipped "not indexed (skipped for a remote project)")
+    ('error (format "indexing failed: %s" (plist-get data :files-error)))
+    (_ "n/a")))
+
+(defun projectile-doctor--cache-string (data)
+  "Return the cache-state line of the report DATA."
+  (let ((age (plist-get data :cache-age))
+        (expire (plist-get data :cache-expire)))
+    (cond
+     ((null age) "not cached")
+     (expire (format "cached %ds ago (expires after %ds)" age expire))
+     (t (format "cached %ds ago (never expires)" age)))))
+
+(defun projectile-doctor--render-no-project (data)
+  "Render the no-project report for DATA."
+  (projectile-doctor--section "Project")
+  (projectile-doctor--field "directory" (plist-get data :dir))
+  (projectile-doctor--field "root" "none - not inside a project")
+  (projectile-doctor--list-field
+   "root functions tried"
+   (mapcar #'symbol-name projectile-project-root-functions))
+  (insert (format "
+None of the functions above found a project marker at or above that
+directory.  To make it a project, create a `%s' file in it (an
+empty one will do) or put it under version control.
+
+If you did that already and nothing changed, run
+`projectile-invalidate-cache' first - the \"not a project\" answer is
+cached too.
+" projectile-dirconfig-file)))
+
+(defun projectile-doctor--render (data)
+  "Render the report described by DATA into the current buffer."
+  (insert "Projectile doctor report\n"
+          "========================\n"
+          (format "projectile %s, Emacs %s, %s\n"
+                  projectile-version emacs-version system-type))
+  (if (null (plist-get data :root))
+      (projectile-doctor--render-no-project data)
+    (projectile-doctor--section "Project")
+    (projectile-doctor--field "root" (plist-get data :root))
+    (projectile-doctor--field
+     "detected by"
+     (when-let* ((func (plist-get data :root-function)))
+       (concat (symbol-name func)
+               (if-let* ((marker (plist-get data :root-marker)))
+                   (format " (marker: %s)" marker)
+                 ""))))
+    (projectile-doctor--field
+     "name"
+     (format "%s (%s)" (plist-get data :name)
+             (if (eq (plist-get data :name-source) 'local-variable)
+                 "from the `projectile-project-name' variable"
+               (format "via %s" (plist-get data :name-source)))))
+    (projectile-doctor--field "remote" (or (plist-get data :remote)
+                                           "no (local project)"))
+    (projectile-doctor--field "projectile-mode"
+                              (if (plist-get data :projectile-mode) "on" "off"))
+
+    (projectile-doctor--section "Type")
+    (projectile-doctor--field
+     "type"
+     (format "%s (%s)" (plist-get data :type)
+             (if (eq (plist-get data :type-source) 'local-variable)
+                 "from the `projectile-project-type' variable"
+               "auto-detected")))
+    (projectile-doctor--field
+     "marker"
+     (when-let* ((marker (plist-get data :type-marker)))
+       (if (functionp marker)
+           (format "%s (predicate)" marker)
+         (string-join (ensure-list marker) " "))))
+    (projectile-doctor--field "vcs" (plist-get data :vcs))
+    (when (eq (plist-get data :type) 'generic)
+      (insert "
+No registered project type matched this project's files.  That only
+affects the type-specific commands (compile, test, run, related files);
+file listing and search work regardless.  Set `projectile-project-type'
+in .dir-locals.el to pin a type, or register one with
+`projectile-register-project-type'.
+"))
+
+    (projectile-doctor--section "Indexing")
+    (projectile-doctor--field "method" (plist-get data :indexing-method))
+    (projectile-doctor--field "async indexing"
+                              (if (plist-get data :async-indexing) "on" "off"))
+    (projectile-doctor--field "command"
+                              (or (plist-get data :index-command)
+                                  "none (native indexing walks the tree in Lisp)"))
+    (projectile-doctor--field "git" (projectile-doctor--executable-string
+                                     (plist-get data :git)))
+    (projectile-doctor--field
+     "fd" (concat (projectile-doctor--executable-string (plist-get data :fd))
+                  (unless (plist-get data :git-use-fd)
+                    " (not used - projectile-git-use-fd is nil)")))
+    (projectile-doctor--field "rg" (projectile-doctor--executable-string
+                                    (plist-get data :rg)))
+
+    (projectile-doctor--section "Files")
+    (projectile-doctor--field "files" (projectile-doctor--files-string data))
+    (projectile-doctor--field "caching" (pcase (plist-get data :caching)
+                                          ('nil "disabled")
+                                          ('persistent "persistent")
+                                          (_ "enabled (this session)")))
+    (projectile-doctor--field "cache state" (projectile-doctor--cache-string data))
+    (projectile-doctor--field "cache file" (plist-get data :cache-file))
+
+    (projectile-doctor--section "Ignores")
+    (let ((cfg (plist-get data :dirconfig)))
+      (projectile-doctor--field
+       "dirconfig"
+       (if cfg
+           (format "%s (keep %d, ignore %d, ensure %d)"
+                   (plist-get data :dirconfig-file)
+                   (length (projectile-dirconfig-keep cfg))
+                   (length (projectile-dirconfig-ignore cfg))
+                   (length (projectile-dirconfig-ensure cfg)))
+         (format "%s (absent)" (plist-get data :dirconfig-file))))
+      (when cfg
+        (projectile-doctor--list-field "keep (+)"
+                                       (projectile-dirconfig-keep cfg))
+        (projectile-doctor--list-field "ignore (-)"
+                                       (projectile-dirconfig-ignore cfg))
+        (projectile-doctor--list-field "ensure (!)"
+                                       (projectile-dirconfig-ensure cfg))))
+    (projectile-doctor--list-field "ignore patterns"
+                                   (plist-get data :ignore-patterns))
+    (projectile-doctor--list-field "ensure patterns"
+                                   (plist-get data :ensure-patterns))
+    (projectile-doctor--list-field "ignored in root"
+                                   (if (plist-get data :remote)
+                                       (list "not checked (remote)")
+                                     (plist-get data :excluded-entries)))
+
+    (projectile-doctor--section "Findings")
+    (dolist (finding (projectile-doctor--findings data))
+      (insert (format "%-6s%s\n"
+                      (pcase (car finding)
+                        ('ok "ok")
+                        ('warn "warn")
+                        (_ "info"))
+                      (cdr finding))))))
+
+(defvar projectile-doctor-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") #'quit-window)
+    map)
+  "Keymap for `projectile-doctor-mode'.")
+
+(define-derived-mode projectile-doctor-mode special-mode "Projectile-Doctor"
+  "Major mode for the `projectile-doctor' report, read-only.
+
+The report is deliberately plain text, so it can be pasted verbatim into
+a bug report.  \\<projectile-doctor-mode-map>\\[revert-buffer] regenerates it for the same directory
+and \\[quit-window] buries it.
+
+\\{projectile-doctor-mode-map}"
+  (setq-local revert-buffer-function
+              (lambda (&rest _)
+                (projectile-doctor--report projectile-doctor--directory))))
+
+(defun projectile-doctor--report (dir)
+  "Render a doctor report for DIR into the report buffer and return it."
+  (let ((data (projectile-doctor--collect dir))
+        (buffer (get-buffer-create projectile-doctor-buffer-name)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (projectile-doctor-mode)
+        (setq-local projectile-doctor--directory dir)
+        (projectile-doctor--render data)
+        (goto-char (point-min))))
+    buffer))
+
+;;;###autoload
+(defun projectile-doctor ()
+  "Diagnose Projectile's view of the current project.
+
+Open a read-only report describing the project Projectile sees around
+`default-directory': its root and which of
+`projectile-project-root-functions' found it, the detected project type
+and the marker that matched, the indexing method and the very command
+that will be run, which external tools are available, the file count and
+the cache state, the ignore rules in effect, and a list of findings -
+things that look fine and things worth changing.  Outside a project the
+report says so and explains how to mark the directory as one.
+
+The report is plain text, meant to be pasted into a bug report.
+
+The doctor doesn't change what it measures: it never populates and never
+invalidates the file cache.  A project that isn't cached yet is indexed
+with caching switched off and that run is reported as a fresh index.  On
+remote projects indexing and program lookups are skipped rather than
+risking a hang, and the report says so."
+  (interactive)
+  (pop-to-buffer (projectile-doctor--report default-directory)))
+
+
 ;;; Projectile Minor mode
 
 (defcustom projectile-mode-line-prefix
@@ -11811,6 +12331,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "x G") #'projectile-run-ghostel)
     (define-key map (kbd "x 4 G") #'projectile-run-ghostel-other-window)
     ;; misc
+    (define-key map (kbd "H") #'projectile-doctor)
     (define-key map (kbd "z") #'projectile-cache-current-file)
     (define-key map (kbd "<left>") #'projectile-previous-project-buffer)
     (define-key map (kbd "<right>") #'projectile-next-project-buffer)
@@ -12096,7 +12617,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
       ("A" "add known project" projectile-add-known-project)
-      ("v" "vc" projectile-vc)]
+      ("v" "vc" projectile-vc)
+      ("H" "doctor" projectile-doctor)]
      ["Lifecycle"
       ("cc" "compile" projectile-compile-project)
       ("ct" "test" projectile-test-project)
@@ -12200,7 +12722,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
          "--"
          ["Toggle project wide read-only" projectile-toggle-project-read-only]
          ["Edit .dir-locals.el" projectile-edit-dir-locals]
-         ["Project info" projectile-project-info])
+         ["Project info" projectile-project-info]
+         ["Project diagnostics (doctor)" projectile-doctor])
         ("Search"
          ["Search (default backend)" projectile-search]
          ["Search with grep" projectile-grep]

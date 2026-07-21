@@ -211,6 +211,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p m]
 | Open the Projectile dispatch menu (a `transient` interface to Projectile's commands).
 
+| kbd:[s-p H]
+| Run `projectile-doctor` - a diagnostic report on how Projectile sees the current project (see xref:troubleshooting.adoc#doctor[Troubleshooting]).
+
 | kbd:[s-p x r]
 | Start or visit a shell/REPL/terminal for the project, using the configured backend (`projectile-run`, see below).
 
