@@ -11,8 +11,9 @@ comparison] for the full matrix of what each method honors.
 NOTE: All three indexing methods honor the `-` ignore and `!` unignore entries
 below.  Under `alien` the ignore entries are handed to the external indexing
 tool as exclusion arguments (see xref:indexing.adoc#alien-ignores[Indexing]).
-The `+` keep entries have no equivalent in those tools, so they apply under
-`hybrid` and `native` only.
+The `+` keep entries apply everywhere too: under `alien` they are passed to the
+indexing tool as path arguments, or applied to its output for the few tools that
+can't take them.
 
 If you'd like to instruct Projectile to ignore certain files in a
 project, when indexing it you can do so in the `.projectile` file by
@@ -141,10 +142,10 @@ left, and because neither has a slash they match at any depth: one `-dist/`
 handles every package's build output, and one `-node_modules/` catches both the
 top-level and the nested one.
 
-WARNING: `+` keep entries only apply under `native` and `hybrid`. Run this same
-project under `alien` (the default) and `packages/legacy/src/c.ts` comes back,
-because the external indexing tool has no way to express "list only these
-directories". If you rely on `+`, set `projectile-indexing-method` accordingly.
+NOTE: Under `alien` the kept directories are handed to the indexing tool as
+path arguments (`git ls-files -- src tests`, `fd --search-path`), so the
+restriction costs nothing extra. Tools whose command is a shell pipeline can't
+take path arguments, so there the listing is filtered inside Emacs instead.
 
 ==== Rescuing a file the ignore rules would drop
 

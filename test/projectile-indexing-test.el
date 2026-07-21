@@ -1155,6 +1155,74 @@
           (expect alien :not :to-contain "q1.txt")
           (expect alien :not :to-contain "build.elc")))))))
 
+(describe "dirconfig keep entries under alien"
+  (it "restricts the listing to the kept directories"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/src/a.txt" "project/tests/b.txt" "project/other/c.txt")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "+/src\n+/tests\n"))
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (spy-on 'projectile-project-root :and-return-value root)
+        (let ((projectile-enable-caching nil)
+              (projectile-indexing-method 'alien)
+              (projectile-git-use-fd nil)
+              (projectile-fd-executable nil))
+          (let ((files (projectile-project-files root)))
+            (expect files :to-contain "src/a.txt")
+            (expect files :to-contain "tests/b.txt")
+            (expect files :not :to-contain "other/c.txt")))))))
+
+  (it "restricts the listing for a tool that cannot take pathspecs"
+    ;; the shipped svn/fossil/pijul commands and the plain `find' fallback are
+    ;; shell pipelines: appending a path lands it on the last stage, so the
+    ;; listing is filtered in Emacs instead
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/src/a.txt" "project/other/c.txt")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (with-temp-file (expand-file-name ".projectile" root)
+          (insert "+/src\n"))
+        (spy-on 'projectile-project-root :and-return-value root)
+        ;; the sandbox sits inside Projectile's own git repo, so pin the VCS
+        ;; or the walk-up finds it and picks `git ls-files' instead
+        (spy-on 'projectile-project-vcs :and-return-value 'none)
+        (let ((projectile-enable-caching nil)
+              (projectile-indexing-method 'alien)
+              (projectile-git-use-fd nil)
+              (projectile-fd-executable nil)
+              (projectile-generic-command
+               "find . -type f | cut -c3- | tr \'\\n\' \'\\0\'"))
+          (let ((files (projectile-project-files root)))
+            (expect files :to-contain "src/a.txt")
+            (expect files :not :to-contain "other/c.txt"))))))))
+
+(describe "projectile--command-accepts-pathspecs-p"
+  (it "declines pipelines and accepts plain commands"
+    (expect (projectile--command-accepts-pathspecs-p projectile-git-command)
+            :to-be-truthy)
+    (expect (projectile--command-accepts-pathspecs-p projectile-hg-command)
+            :to-be-truthy)
+    (expect (projectile--command-accepts-pathspecs-p projectile-svn-command)
+            :to-be nil)
+    (expect (projectile--command-accepts-pathspecs-p
+             "find . -type f | cut -c3- | tr '\\n' '\\0'")
+            :to-be nil)
+    (expect (projectile--command-accepts-pathspecs-p nil) :to-be nil)))
+
+(describe "projectile--restrict-to-subdirs"
+  (it "keeps only files under one of the subdirs"
+    (expect (projectile--restrict-to-subdirs
+             '("src/a" "tests/b" "other/c") '("src" "tests"))
+            :to-equal '("src/a" "tests/b")))
+  (it "is a no-op without subdirs"
+    (expect (projectile--restrict-to-subdirs '("a" "b") nil)
+            :to-equal '("a" "b"))))
+
 (describe "alien/hybrid dirconfig parity"
   ;; The acceptance test for pushing the ignore rules into the external
   ;; tool: against a real git repo, alien must produce the same file set
