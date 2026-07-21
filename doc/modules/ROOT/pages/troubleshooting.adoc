@@ -7,6 +7,57 @@ Generally, it's not a bad idea to configure Emacs to spit the backtrace on error
 (instead of just logging the error in the `+*Messages*+` buffer). You can toggle
 this behavior by using kbd:[M-x] `toggle-debug-on-error`.
 
+[[doctor]]
+== Start with the doctor
+
+Before you reach for the debugger, ask Projectile what it thinks is going on:
+
+----
+M-x projectile-doctor
+----
+
+(bound to kbd:[s-p H], and available from the dispatch menu and the Projectile
+menu)
+
+This opens a plain-text report in a `+*projectile-doctor*+` buffer describing
+the project around `default-directory`:
+
+* *Project* - the project root and, crucially, *which* entry of
+`projectile-project-root-functions` found it and off which marker file, the
+project name and where it came from, and whether the root is remote (TRAMP).
+* *Type* - the detected project type and the marker that matched, or an
+explanation of what to do when nothing matched.
+* *Indexing* - the indexing method, whether async indexing is on, the actual
+command Projectile will shell out to (ignore rules and all), and which of
+`git`, `fd` and `rg` are installed.
+* *Files* - how many files are indexed and how long a fresh index took, plus
+the cache state (cached or not, how old, when it expires, whether the cache is
+persistent).
+* *Ignores* - the dirconfig and its parsed `+` / `-` / `!` entries, the
+effective ignore patterns, and which entries in the project root those
+patterns are hiding.  Handy when files you expect to see are missing.
+* *Findings* - a short list of observations, each either `ok` or a concrete
+suggestion (fd not installed, caching off on a large project, a dirconfig
+using the deprecated prefix-less syntax, a remote project indexed
+synchronously, and so on).
+
+Outside a project the report says so and lists the root functions that were
+tried, which is usually enough to figure out why a directory isn't recognized.
+
+The doctor is careful not to change what it measures: it never populates and
+never invalidates the file cache.  When a project isn't cached yet, the doctor
+indexes it with caching switched off and labels that as a fresh index, so
+running it can't turn a cold project warm behind your back.  On remote
+projects, indexing and program lookups are skipped rather than risking a hang,
+and the report marks them as skipped.
+
+kbd:[g] regenerates the report, kbd:[q] buries it.
+
+TIP: The report is plain, copy-pasteable text on purpose.  When you file an
+ issue on the https://github.com/bbatsov/projectile/issues[issue tracker],
+ pasting the output of `projectile-doctor` answers most of the questions we'd
+ otherwise have to ask you.
+
 == Debugging Projectile commands
 
 Emacs features a super powerful built-in
@@ -69,6 +120,10 @@ Note that Projectile caches the operation of checking which project
 (if any) a file belongs to. If you have already opened a file, then
 later added a marker file like `.projectile`, run `M-x
 projectile-invalidate-cache` to reset the cache.
+
+`M-x projectile-doctor` tells you exactly which of the
+`projectile-project-root-functions` claimed the directory and off which marker
+file, which usually settles the "why *this* root?" question on the spot.
 
 === I upgraded Projectile using `package.el` and nothing changed
 

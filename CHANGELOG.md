@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2111](https://github.com/bbatsov/projectile/pull/2111): Add `projectile-doctor` (`s-p H`), which reports how Projectile sees the current project and what to do about it.
+  - Covers the project root and which root function found it, the type and matching marker, the indexing method and the exact command that will run, the available external tools, the file count and cache state, and the effective ignore rules.
+  - Ends with a list of findings - each either `ok` or a concrete suggestion.
+  - The report is plain text meant to be pasted into a bug report, and the doctor never populates or invalidates the file cache.
 - [#2104](https://github.com/bbatsov/projectile/pull/2104): Alien indexing now honors Projectile's ignore rules, which it previously skipped entirely.
   - The rules are pushed into the external tool (`git ls-files` exclude pathspecs, `fd --exclude`), so the filtering still happens outside Emacs.
   - Tools that can't express exclusions (svn, fossil, bzr, darcs, pijul, plain `find`) have their output filtered in Emacs Lisp instead.
