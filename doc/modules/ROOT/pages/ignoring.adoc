@@ -100,6 +100,98 @@ global ignore variables described below.
   character classes are supported.
 * Matching is case-sensitive.
 
+[#worked-examples]
+=== Worked examples
+
+The rules compose, and the composition is where people trip up. All three
+examples below are real: the file lists are what Projectile actually returns.
+
+==== A monorepo: keep two packages, drop build output
+
+Given this tree:
+
+----
+packages/core/src/a.ts
+packages/core/dist/a.js
+packages/web/src/b.ts
+packages/web/node_modules/dep/i.js
+packages/legacy/src/c.ts
+node_modules/top/x.js
+----
+
+and this `.projectile`:
+
+----
++/packages/core
++/packages/web
+-dist/
+-node_modules/
+----
+
+you get:
+
+----
+packages/core/src/a.ts
+packages/web/src/b.ts
+----
+
+The `+` entries run first and restrict the project to those two directories, so
+`packages/legacy` never enters the picture. The `-` entries then apply to what's
+left, and because neither has a slash they match at any depth: one `-dist/`
+handles every package's build output, and one `-node_modules/` catches both the
+top-level and the nested one.
+
+WARNING: `+` keep entries only apply under `native` and `hybrid`. Run this same
+project under `alien` (the default) and `packages/legacy/src/c.ts` comes back,
+because the external indexing tool has no way to express "list only these
+directories". If you rely on `+`, set `projectile-indexing-method` accordingly.
+
+==== Rescuing a file the ignore rules would drop
+
+Given `app/main.rb`, `config/app.yml`, `log/dev.log`, `tmp/cache/x`,
+`vendor/assets/lib.min.js` and `vendor/assets/custom.min.js`, plus:
+
+----
+-/log/
+-/tmp/
+-*.min.js
+!/vendor/assets/custom.min.js
+----
+
+you get:
+
+----
+app/main.rb
+config/app.yml
+vendor/assets/custom.min.js
+----
+
+`-*.min.js` drops every minified file, and the `!` entry pulls one specific file
+back. This works under all three indexing methods, though a project with `!`
+entries gives up `alien`'s push-down and is filtered inside Emacs instead - an
+exclusion handed to `git` or `fd` can't be taken back afterwards.
+
+==== Anchored and floating, side by side
+
+The single most common surprise is forgetting that a slash changes the meaning.
+Given `log/a.txt`, `src/log/b.txt`, `build/d.o`, `src/build/c.o` and `keep.txt`:
+
+----
+-/log/
+-build/
+----
+
+leaves:
+
+----
+keep.txt
+src/log/b.txt
+----
+
+`-/log/` is anchored, so it only removes the `log` directory at the project
+root and `src/log` survives. `-build/` has no leading slash, so it removes
+`build` directories at every depth. Write `-log/` if you meant both.
+
 === Comments
 
 If you would like to include comment lines in your .projectile file,
