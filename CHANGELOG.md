@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2113](https://github.com/bbatsov/projectile/pull/2113): Add `projectile-todos` (`s-p s t`), which collects the project's `TODO`/`FIXME`-style annotations into the reviewable search buffer.
+  - The keywords come from `projectile-todo-keywords`; with a prefix argument you're prompted for which of them to search for.
+  - A keyword only counts as a whole word followed by a colon, by whitespace or by the end of the line, so `TODOS` and `MASTODON` are not hits.
+  - The scan takes the ripgrep fast path when `rg` is available, even though it's not a literal search.
 - [#2112](https://github.com/bbatsov/projectile/pull/2112): Add `projectile-dashboard` (`s-p P`), a buffer summarising the current project that also works as a `projectile-switch-project-action`.
   - Covers the project name, root, type and file count, the branch and how many files are modified or untracked, the files you visit most (ranked by frecency), the project's tasks and its configured lifecycle commands.
   - Every entry is a button: `RET` visits a file, runs a task or a lifecycle command, or opens the VC interface.

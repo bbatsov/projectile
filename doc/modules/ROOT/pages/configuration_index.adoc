@@ -344,6 +344,9 @@ and the other reference pages.
 | `projectile-test-use-comint-mode`
 | Make the output buffer of ‘projectile-test-project’ interactive.
 
+| `projectile-todo-keywords`
+| Annotation keywords ‘projectile-todos’ collects across the project.
+
 | `projectile-track-known-projects-automatically`
 | Controls whether Projectile will automatically register known projects.
 
