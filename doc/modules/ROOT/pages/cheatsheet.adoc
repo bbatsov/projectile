@@ -211,6 +211,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p m]
 | Open the Projectile dispatch menu (a `transient` interface to Projectile's commands).
 
+| kbd:[s-p P]
+| Open `projectile-dashboard` - a summary of the current project (branch, recent files, tasks, lifecycle commands), with every entry actionable (see xref:usage.adoc#dashboard[Project dashboard]).
+
 | kbd:[s-p H]
 | Run `projectile-doctor` - a diagnostic report on how Projectile sees the current project (see xref:troubleshooting.adoc#doctor[Troubleshooting]).
 
