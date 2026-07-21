@@ -112,6 +112,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p R]
 | Reviewable replace: gather all matches in a results buffer where you can preview and toggle them before applying (see below).
 
+| kbd:[s-p u]
+| Undo the last replace applied from the reviewable replace buffer.
+
 | kbd:[s-p i]
 | Invalidates the project cache (if existing).
 

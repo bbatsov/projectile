@@ -9060,8 +9060,61 @@ text and applying them would corrupt unrelated bytes."
             (format "skipping %s (%s)" name reason)))
   'skipped)
 
+(cl-defstruct (projectile-replace--undo-edit
+               (:constructor projectile-replace--undo-edit-create)
+               (:copier nil))
+  "One replacement that was actually written, recorded so it can be reverted."
+  beg   ; position of the written text, with every earlier edit in the file in
+  old   ; the text that was there before
+  new)  ; the text the replace wrote
+
+(cl-defstruct (projectile-replace--undo-record
+               (:constructor projectile-replace--undo-record-create)
+               (:copier nil))
+  "Everything needed to revert one applied project-wide replace."
+  root         ; project root the replace ran in
+  term         ; the search term it ran with
+  replacement  ; the replacement it wrote
+  files)       ; alist of (FILE . list of `projectile-replace--undo-edit')
+
+(defvar projectile-replace--last-apply nil
+  "Record of the most recent applied replace, or nil when there is none.
+Holds a `projectile-replace--undo-record' describing exactly what
+`projectile-replace--apply' wrote - files it skipped contribute nothing -
+which is what `projectile-replace-undo' reverts.
+
+Deliberately one global record rather than a per-project stack: this is
+insurance against the last replace going wrong, not a history.  Every
+apply that writes something supersedes it, a fully successful undo clears
+it, and it lives only for the current Emacs session.")
+
+(defun projectile-replace--undo-edits (matches replacement literal)
+  "Return the undo edits produced by applying MATCHES with REPLACEMENT.
+MATCHES all belong to one file or buffer.  Each edit records where its
+written text ends up once every edit before it in the same file has been
+made, so reverting them from the bottom up needs no rescan.  LITERAL
+selects verbatim vs. capture-group expansion, so the recorded text is
+exactly what `projectile-replace--do-one' writes."
+  (let ((ascending (sort (copy-sequence matches)
+                         (lambda (a b)
+                           (< (projectile-replace--match-beg a)
+                              (projectile-replace--match-beg b)))))
+        (offset 0)
+        (edits nil))
+    (dolist (m ascending)
+      (let ((old (projectile-replace--match-string m))
+            (new (projectile-replace--expand
+                  replacement (projectile-replace--match-groups m) literal)))
+        (push (projectile-replace--undo-edit-create
+               :beg (+ (projectile-replace--match-beg m) offset)
+               :old old
+               :new new)
+              edits)
+        (setq offset (+ offset (- (length new) (length old))))))
+    (nreverse edits)))
+
 (defun projectile-replace--apply-file (file matches replacement literal)
-  "Apply MATCHES in FILE and return the count, or the symbol `skipped'.
+  "Apply MATCHES in FILE and return its undo edits, or the symbol `skipped'.
 Edits run from the highest buffer position downwards so earlier edits
 don't shift later matches.  The live buffer visiting FILE (if any) is
 re-resolved now rather than trusted from scan time, so a file opened
@@ -9070,7 +9123,8 @@ disk, and a scan-time buffer that has since been killed is handled.  In
 either case the recorded positions are verified to still span the matched
 text; if not (the file or buffer changed since the scan) the file is
 skipped rather than corrupted.  A clean buffer is saved; a buffer with
-unsaved changes is edited but left for the user to save."
+unsaved changes is edited but left for the user to save.  The returned
+edits describe what was really written, and feed `projectile-replace-undo'."
   (let* ((descending (sort (copy-sequence matches)
                            (lambda (a b)
                              (> (projectile-replace--match-beg a)
@@ -9091,7 +9145,7 @@ unsaved changes is edited but left for the user to save."
               (unless was-modified
                 (let ((require-final-newline nil))
                   (save-buffer)))
-              (length matches))))
+              (projectile-replace--undo-edits matches replacement literal))))
       (with-temp-buffer
         (insert-file-contents file)
         (let ((coding last-coding-system-used))
@@ -9102,18 +9156,23 @@ unsaved changes is edited but left for the user to save."
               (projectile-replace--do-one m replacement literal))
             (let ((coding-system-for-write coding))
               (write-region (point-min) (point-max) file nil 'no-message))
-            (length matches)))))))
+            (projectile-replace--undo-edits matches replacement literal)))))))
 
 (defun projectile-replace--apply ()
-  "Apply every enabled match, grouped by file, then re-run the search."
+  "Apply every enabled match, grouped by file, then re-run the search.
+What actually got written is recorded in `projectile-replace--last-apply'
+so `projectile-replace-undo' can revert it."
   (interactive)
   (projectile-replace--ensure-not-scanning)
   (let ((enabled (cl-remove-if-not #'projectile-replace--match-enabled
                                    projectile-replace--matches))
         (replacement projectile-replace--replacement)
         (literal projectile-replace--literal)
+        (root projectile-replace--root)
+        (term projectile-replace--term)
         (groups (make-hash-table :test 'equal))
         (order nil)
+        (applied nil)
         (nfiles 0)
         (nrepl 0)
         (skipped 0))
@@ -9137,8 +9196,16 @@ unsaved changes is edited but left for the user to save."
                         (error-message-string err))))))
         (if (eq result 'skipped)
             (cl-incf skipped)
+          (push (cons file result) applied)
           (cl-incf nfiles)
-          (cl-incf nrepl result))))
+          (cl-incf nrepl (length result)))))
+    ;; an apply that wrote nothing leaves the previous record alone - there's
+    ;; nothing new to undo, and dropping it would lose a still-valid undo
+    (when applied
+      (setq projectile-replace--last-apply
+            (projectile-replace--undo-record-create
+             :root root :term term :replacement replacement
+             :files (nreverse applied))))
     (message "%s"
              (projectile-prepend-project-name
               (format "Replaced %d occurrence%s in %d file%s%s"
@@ -9149,6 +9216,123 @@ unsaved changes is edited but left for the user to save."
                                   skipped (if (= skipped 1) "" "s"))
                         ""))))
     (projectile-replace--refresh)))
+
+;;; Undoing the last applied replace
+
+(defun projectile-replace--undo-valid-p (edits)
+  "Return non-nil when EDITS still span exactly the text the replace wrote.
+Checked against the current buffer.  This is the guard that keeps an undo
+from corrupting a file that moved on since the replace: unless every
+recorded span still holds the written text, verbatim, the file is left
+alone."
+  (cl-every (lambda (e)
+              (let* ((beg (projectile-replace--undo-edit-beg e))
+                     (new (projectile-replace--undo-edit-new e))
+                     (end (+ beg (length new))))
+                (and (<= (point-min) beg end (point-max))
+                     (string= (buffer-substring-no-properties beg end) new))))
+            edits))
+
+(defun projectile-replace--undo-one (e)
+  "Put back the text edit E replaced, in the current buffer."
+  (let ((beg (projectile-replace--undo-edit-beg e)))
+    (goto-char beg)
+    (delete-region beg (+ beg (length (projectile-replace--undo-edit-new e))))
+    (insert (projectile-replace--undo-edit-old e))))
+
+(defun projectile-replace--undo-file (file edits)
+  "Revert EDITS in FILE and return the count, or the symbol `skipped'.
+Mirrors `projectile-replace--apply-file' in every respect: edits are
+reverted from the highest position downwards, the live buffer visiting
+FILE is re-resolved now (so an undo never writes a file behind the back
+of a buffer visiting it), a clean buffer is saved and a modified one is
+left for the user, and closed files are rewritten with their own coding
+system.  A file is reverted only if all of its edits still verify, so it
+comes back whole or not at all."
+  (let ((descending (sort (copy-sequence edits)
+                          (lambda (a b)
+                            (> (projectile-replace--undo-edit-beg a)
+                               (projectile-replace--undo-edit-beg b)))))
+        (buffer (get-file-buffer file)))
+    (if (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (if (not (projectile-replace--undo-valid-p descending))
+              (projectile-replace--skip (buffer-name buffer)
+                                        "changed since the replace")
+            (let ((was-modified (buffer-modified-p)))
+              (save-excursion
+                (save-restriction
+                  (widen)
+                  (atomic-change-group
+                    (mapc #'projectile-replace--undo-one descending))))
+              ;; same rule as applying: a buffer that had unsaved changes of
+              ;; its own is edited but not saved on the user's behalf
+              (unless was-modified
+                (let ((require-final-newline nil))
+                  (save-buffer)))
+              (length edits))))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (let ((coding last-coding-system-used))
+          (if (not (projectile-replace--undo-valid-p descending))
+              (projectile-replace--skip (file-name-nondirectory file)
+                                        "changed on disk since the replace")
+            (mapc #'projectile-replace--undo-one descending)
+            (let ((coding-system-for-write coding))
+              (write-region (point-min) (point-max) file nil 'no-message))
+            (length edits)))))))
+
+;;;###autoload
+(defun projectile-replace-undo ()
+  "Revert the last project-wide replace applied from the replace reviewer.
+
+Only replaces applied with \\<projectile-replace-mode-map>\\[projectile-replace--apply] in a
+`*projectile-replace*' buffer are recorded, and only the most recent one:
+this is a safety net for the single most destructive thing Projectile
+does, not an edit history.  The record lives in memory, so it is gone
+after restarting Emacs.
+
+Each file is reverted only when the text the replace wrote is still
+exactly there; a file edited, reverted, deleted or rewritten by a branch
+switch in the meantime is reported and left alone rather than corrupted.
+Files that were reverted are dropped from the record, so undoing twice
+can never apply anything twice, while files that were skipped stay
+undoable once you have sorted them out."
+  (interactive)
+  (let ((record projectile-replace--last-apply))
+    (unless record
+      (user-error "No applied project-wide replace to undo"))
+    (let ((nedits 0)
+          (nfiles 0)
+          (remaining nil))
+      (dolist (entry (projectile-replace--undo-record-files record))
+        (let* ((file (car entry))
+               (result (condition-case err
+                           (projectile-replace--undo-file file (cdr entry))
+                         (error
+                          (projectile-replace--skip
+                           (file-name-nondirectory file)
+                           (error-message-string err))))))
+          (if (eq result 'skipped)
+              (push entry remaining)
+            (cl-incf nfiles)
+            (cl-incf nedits result))))
+      (setq remaining (nreverse remaining))
+      (setf (projectile-replace--undo-record-files record) remaining)
+      (unless remaining
+        (setq projectile-replace--last-apply nil))
+      (message "%s"
+               (format "[%s] Reverted %d replacement%s of %s in %d file%s%s"
+                       (projectile-project-name
+                        (projectile-replace--undo-record-root record))
+                       nedits (if (= nedits 1) "" "s")
+                       (projectile-replace--undo-record-term record)
+                       nfiles (if (= nfiles 1) "" "s")
+                       (if remaining
+                           (format " (skipped %d changed file%s)"
+                                   (length remaining)
+                                   (if (= (length remaining) 1) "" "s"))
+                         ""))))))
 
 ;;; Exporting to a grep-mode buffer for wgrep / grep-edit-mode
 
@@ -13119,6 +13303,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "q") #'projectile-switch-open-project)
     (define-key map (kbd "r") #'projectile-replace)
     (define-key map (kbd "R") #'projectile-replace-review)
+    (define-key map (kbd "u") #'projectile-replace-undo)
     (define-key map (kbd "s s") #'projectile-search)
     (define-key map (kbd "s g") #'projectile-grep)
     (define-key map (kbd "s r") #'projectile-ripgrep)
@@ -13451,7 +13636,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("st" "todos" projectile-todos)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
-      ("R" "replace (review)" projectile-dispatch-replace-review)]]
+      ("R" "replace (review)" projectile-dispatch-replace-review)
+      ("u" "undo last replace" projectile-replace-undo)]]
     [["Project"
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
@@ -13578,6 +13764,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Replace in project" projectile-replace]
          ["Replace in project (review)" projectile-replace-review]
          ["Replace regexp in project (review)" projectile-replace-regexp-review]
+         ["Undo last project-wide replace" projectile-replace-undo
+          :enable projectile-replace--last-apply]
          ["Multi-occur in project" projectile-multi-occur]
          ["Find references in project" projectile-find-references])
         ("Run..."

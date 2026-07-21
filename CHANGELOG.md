@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2115](https://github.com/bbatsov/projectile/pull/2115): Add `projectile-replace-undo` (`s-p u`), which reverts the last replace applied from the reviewable replace buffer.
+  - Only the edits that were actually written are recorded, and a file is reverted only if the replaced text is still exactly where the replace put it - anything changed since is reported and left alone.
+  - Open buffers are edited in place instead of being written behind, mirroring what applying does; the record covers just the last apply and doesn't survive an Emacs restart.
 - [#2114](https://github.com/bbatsov/projectile/pull/2114): Add project-scoped bookmarks - `projectile-bookmark-set` (`s-p B s`), `projectile-bookmark-jump` (`s-p B j`) and `projectile-bookmark-delete` (`s-p B d`).
   - They're plain Emacs bookmarks, so they show up in `list-bookmarks` and are persisted by `bookmark.el` itself; Projectile only scopes the completion to the current project and suggests a project-prefixed name.
   - A bookmark counts as the project's when its file lives under the project root or its name starts with the project's name - see `projectile-bookmark-scope`.
