@@ -412,7 +412,40 @@ nil to force the elisp scan, whose result set matches Projectile's ignore
 configuration exactly. The regexp search command always uses the elisp
 scan (ripgrep's regex syntax is not Emacs regexp syntax), and the whole
 replace reviewer always uses the elisp scan (its write-back needs the
-exact buffer positions the elisp scan records).
+exact buffer positions the elisp scan records). The one exception is
+`projectile-todos` below: it builds its own pattern and hands the reviewer
+a ripgrep-syntax spelling of it, so it gets the fast-path despite not
+being a literal search.
+
+=== Collecting the project's TODOs
+
+`projectile-todos` (kbd:[s-p s t]) gathers every `TODO`/`FIXME`-style
+annotation in the project into the same read-only `+*projectile-search*+`
+buffer, so all the keys in the table above apply - navigate them, filter
+them down with kbd:[k]/kbd:[d]/kbd:[K]/kbd:[D], export them to
+`grep-mode`, or hand them to the replace reviewer.
+
+The keywords are `projectile-todo-keywords`, which defaults to:
+
+[source,elisp]
+----
+(setq projectile-todo-keywords '("TODO" "FIXME" "HACK" "XXX" "BUG" "NOTE"))
+----
+
+Add your own conventions to that list (`REVIEW`, `OPTIMIZE`, `DEPRECATED`,
+...). With a prefix argument (kbd:[C-u s-p s t]) Projectile prompts for
+which of the keywords to search for; several can be given, comma
+separated, and you can type in a keyword that isn't in the list for a
+one-off search.
+
+A keyword only counts when it stands as a whole word followed by a colon,
+by a space or tab, or by the end of the line - so `TODO:` and `FIXME ` are
+found while `TODOS` and `MASTODON` are not. Matching is case-sensitive,
+since annotation keywords are uppercase by convention; kbd:[c] in the
+results buffer relaxes that. The keyword does *not* have to sit in a
+comment: neither scan parses the language (and the comment syntax would
+have to be guessed per file type), so an annotation inside a string or in
+prose is reported too - kbd:[d] flushes those you don't care about.
 
 == Customizing Projectile's keybindings
 

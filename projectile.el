@@ -8235,11 +8235,30 @@ Projectile's ignore configuration exactly.
 The regexp search command always uses the elisp scan (ripgrep's regex
 syntax is not Emacs regexp syntax), and the whole replace reviewer always
 uses the elisp scan (its write-back needs the exact buffer positions the
-elisp scan records).  In batch mode (`noninteractive') the elisp scan is
-used so scripted runs stay deterministic."
+elisp scan records).  A command that knows a ripgrep-syntax equivalent of
+its Emacs regexp can opt into the fast-path anyway, which is what
+`projectile-todos' does.  In batch mode (`noninteractive') the elisp scan
+is used so scripted runs stay deterministic."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
+
+(defcustom projectile-todo-keywords
+  '("TODO" "FIXME" "HACK" "XXX" "BUG" "NOTE")
+  "Annotation keywords `projectile-todos' collects across the project.
+Each keyword is matched as a whole word, case-sensitively, and must be
+followed by a colon, by whitespace or by the end of the line - so `TODO:'
+and `FIXME ' are hits while `TODOS' and `MASTODON' are not.  Add your own
+project's conventions here (`REVIEW', `OPTIMIZE', `DEPRECATED', ...);
+`projectile-todos' with a prefix argument prompts for which of these to
+search for.
+
+The keywords are not required to sit in a comment: neither the pure-elisp
+scan nor the ripgrep fast-path parses the language, so an annotation in a
+string or in prose is reported too."
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile . "3.3.0"))
 
 (defcustom projectile-replace-scan-chunk-size 24
   "Number of candidate files scanned per async chunk before yielding.
@@ -8327,6 +8346,14 @@ around every (re-)gather so it drives which matches are collected.")
 Initialized from `projectile-search-whole-word' at the first search; the
 scan regexp is fenced with word boundaries (and ripgrep gets
 `--word-regexp') while it holds.")
+(defvar-local projectile-replace--rg-pattern nil
+  "A ripgrep-syntax equivalent of this buffer's search, or nil.
+Set by commands that build a non-literal search from a pattern they can
+also express in ripgrep's regex syntax (`projectile-todos'), so the
+read-only search reviewer's ripgrep fast-path can run for them too.  Nil
+means the fast-path is only available to a literal search.  Cleared when
+the search changes shape (the literal/regexp toggle), since the new
+search has no known ripgrep equivalent.")
 (defvar-local projectile-replace--matches nil
   "List of `projectile-replace--match' structs shown in the results buffer.")
 (defvar-local projectile-replace--truncated nil
@@ -8932,7 +8959,9 @@ refused with a message so the buffer stays usable rather than erroring."
       (setq projectile-replace--literal new-literal
             projectile-replace--search (if new-literal
                                            (regexp-quote projectile-replace--term)
-                                         projectile-replace--term))
+                                         projectile-replace--term)
+            ;; the ripgrep equivalent (if any) described the old search
+            projectile-replace--rg-pattern nil)
       (projectile-replace--regather)
       (message "%s"
                (projectile-prepend-project-name
@@ -9249,11 +9278,12 @@ write back to the files.
   (buffer-disable-undo))
 
 (defun projectile-replace--seed (buf mode root term regexp replacement
-                                     literal case-fold &optional word)
+                                     literal case-fold &optional word
+                                     rg-pattern)
   "Put BUF in MODE and seed its results-buffer state, with no matches yet.
-ROOT, TERM, REGEXP, REPLACEMENT, LITERAL, CASE-FOLD and WORD seed the
-search parameters; the match list starts empty, ready for a (sync or
-async) scan to fill it."
+ROOT, TERM, REGEXP, REPLACEMENT, LITERAL, CASE-FOLD, WORD and RG-PATTERN
+seed the search parameters; the match list starts empty, ready for a
+\(sync or async) scan to fill it."
   (with-current-buffer buf
     (funcall mode)
     (setq projectile-replace--root root
@@ -9263,6 +9293,7 @@ async) scan to fill it."
           projectile-replace--literal literal
           projectile-replace--case-fold case-fold
           projectile-replace--word word
+          projectile-replace--rg-pattern rg-pattern
           projectile-replace--matches nil
           projectile-replace--truncated nil
           projectile-replace--filtered nil
@@ -9280,46 +9311,52 @@ async) scan to fill it."
 ;; search reviewer renders are filled (file, line, character column, matched
 ;; string, context line); the write-back-only fields (`beg'/`end'/`match-data'/
 ;; `groups') stay nil because the search->replace bridge re-gathers via elisp.
-;; This path is deliberately narrow: the regexp search command keeps the elisp
-;; scan (rg's Rust regex is not Emacs regexp) and the whole replace reviewer
-;; keeps the elisp scan (its apply needs exact buffer positions).  The elisp
-;; scan stays the default and the fallback; rg is purely additive.
+;; This path is deliberately narrow: the interactive regexp search command
+;; keeps the elisp scan (rg's Rust regex is not Emacs regexp) and the whole
+;; replace reviewer keeps the elisp scan (its apply needs exact buffer
+;; positions).  A command that builds its own pattern and can also spell it in
+;; rg's syntax may pass that spelling as `projectile-replace--rg-pattern' and
+;; get the fast-path for a non-literal search too - `projectile-todos' does.
+;; The elisp scan stays the default and the fallback; rg is purely additive.
 
 (defun projectile-search--rg-executable ()
   "Return the ripgrep executable name if available, else nil."
   (and (executable-find "rg") "rg"))
 
-(defun projectile-search--rg-fastpath-p (literal)
+(defun projectile-search--rg-fastpath-p (literal &optional rg-pattern)
   "Return non-nil when the search reviewer should use the ripgrep fast-path.
-True for a LITERAL search when `projectile-search-use-ripgrep' is set,
-`rg' is available, and we are interactive; batch (`noninteractive') keeps
-the deterministic elisp scan."
+True for a LITERAL search, or for a non-literal one that supplied
+RG-PATTERN (a ripgrep-syntax equivalent of its Emacs regexp), when
+`projectile-search-use-ripgrep' is set, `rg' is available, and we are
+interactive; batch (`noninteractive') keeps the deterministic elisp scan."
   (and projectile-search-use-ripgrep
-       literal
+       (or literal rg-pattern)
        (not noninteractive)
        (projectile-search--rg-executable)
        t))
 
-(defun projectile-search--rg-command (term case-fold word globs)
+(defun projectile-search--rg-command (term case-fold word globs &optional pattern)
   "Build the `rg --json' command line searching for literal TERM.
-CASE-FOLD selects case-insensitive matching; WORD restricts matches to
-whole words (`--word-regexp'); GLOBS is a list of ignore patterns (from
-`projectile--project-ignore-globs') passed as `--glob' exclusions so
-Projectile's ignores narrow ripgrep's own ignore rules.  They are
-gitignore patterns, which is what ripgrep's globs are, so they need no
-translation - but a root-anchored one only resolves against the project
-root when the searched path is relative, which is why the search path
-below is `./' and the caller must run the process with
-`default-directory' bound to the project root."
+When PATTERN is non-nil it is searched for as a ripgrep-syntax regexp
+instead, and TERM is ignored.  CASE-FOLD selects case-insensitive
+matching; WORD restricts matches to whole words (`--word-regexp'); GLOBS
+is a list of ignore patterns (from `projectile--project-ignore-globs')
+passed as `--glob' exclusions so Projectile's ignores narrow ripgrep's
+own ignore rules.  They are gitignore patterns, which is what ripgrep's
+globs are, so they need no translation - but a root-anchored one only
+resolves against the project root when the searched path is relative,
+which is why the search path below is `./' and the caller must run the
+process with `default-directory' bound to the project root."
   (append
    (list (projectile-search--rg-executable)
-         "--json" "--fixed-strings" "--line-number" "--column"
+         "--json" "--line-number" "--column"
          "--color" "never"
          (if case-fold "--ignore-case" "--case-sensitive"))
+   (unless pattern (list "--fixed-strings"))
    (when word (list "--word-regexp"))
    (mapcan (lambda (g) (list "--glob" (concat "!" g))) globs)
    ;; `--' terminates options so a TERM starting with `-' is not misread.
-   (list "--" term "./")))
+   (list "--" (or pattern term) "./")))
 
 (defun projectile-search--rg-json-get (obj &rest keys)
   "Walk KEYS through nested hash-table OBJ, returning the leaf or nil.
@@ -9417,6 +9454,8 @@ against a killed BUFFER."
 
 (defun projectile-search--gather-rg (buffer term on-done)
   "Scan for literal TERM into BUFFER via `rg --json', then call ON-DONE.
+When BUFFER carries a `projectile-replace--rg-pattern', that
+ripgrep-syntax regexp is searched for instead of the literal TERM.
 Resets BUFFER's match list and scanning state, launches `rg' as a
 subprocess reading ROOT, CASE-FOLD and the ignore globs from BUFFER's
 buffer-locals, and streams parsed matches into the buffer as ripgrep
@@ -9430,8 +9469,10 @@ finishes."
   (let* ((root (buffer-local-value 'projectile-replace--root buffer))
          (case-fold (buffer-local-value 'projectile-replace--case-fold buffer))
          (word (buffer-local-value 'projectile-replace--word buffer))
+         (pattern (buffer-local-value 'projectile-replace--rg-pattern buffer))
          (globs (projectile--project-ignore-globs root))
-         (command (projectile-search--rg-command term case-fold word globs))
+         (command (projectile-search--rg-command term case-fold word globs
+                                                 pattern))
          (pending ""))
     (with-current-buffer buffer
       (setq projectile-replace--matches nil
@@ -9506,15 +9547,17 @@ either way -- only delivery differs.  BUFFER is re-rendered when done and
 ON-DONE (or nil) is called in it.
 
 As an optional accelerator, a read-only search-reviewer BUFFER doing a
-literal search takes the ripgrep fast-path (`projectile-search--gather-rg')
-when `projectile-search--rg-fastpath-p' holds; the replace reviewer and
-the regexp search always take the elisp path below."
+literal search (or one carrying a `projectile-replace--rg-pattern') takes
+the ripgrep fast-path (`projectile-search--gather-rg') when
+`projectile-search--rg-fastpath-p' holds; the replace reviewer and the
+plain regexp search always take the elisp path below."
   (with-current-buffer buffer
     (projectile-replace--cancel-scan))
   (cond
    ((with-current-buffer buffer
       (and (derived-mode-p 'projectile-search-mode)
-           (projectile-search--rg-fastpath-p projectile-replace--literal)))
+           (projectile-search--rg-fastpath-p projectile-replace--literal
+                                             projectile-replace--rg-pattern)))
     (projectile-search--gather-rg
      buffer (buffer-local-value 'projectile-replace--term buffer) on-done))
    ((projectile-replace--async-p)
@@ -9545,14 +9588,15 @@ the regexp search always take the elisp path below."
 
 (defun projectile-replace--open (mode buf-name root term regexp replacement
                                       literal case-fold candidates no-match-msg
-                                      &optional word)
+                                      &optional word rg-pattern)
   "Open BUF-NAME in MODE and scan CANDIDATES for REGEXP into it.
 When scanning is asynchronous the buffer is shown immediately and matches
 stream in; when synchronous (always in batch) the scan completes first
 and, to preserve the pre-async behavior, no buffer is shown when nothing
 matched -- NO-MATCH-MSG is issued instead.  Returns the results buffer,
 or nil on the synchronous no-match path.  ROOT, TERM, REGEXP,
-REPLACEMENT, LITERAL, CASE-FOLD and WORD seed the buffer state."
+REPLACEMENT, LITERAL, CASE-FOLD, WORD and RG-PATTERN seed the buffer
+state."
   ;; re-running the command must not orphan a scan still filling an earlier
   ;; instance of the buffer (re-seeding resets its buffer-locals)
   (when-let* ((existing (get-buffer buf-name)))
@@ -9563,10 +9607,10 @@ REPLACEMENT, LITERAL, CASE-FOLD and WORD seed the buffer state."
           ;; engine is off (`projectile-replace-async' nil); `--start' then
           ;; dispatches it to ripgrep
           (and (eq mode #'projectile-search-mode)
-               (projectile-search--rg-fastpath-p literal)))
+               (projectile-search--rg-fastpath-p literal rg-pattern)))
       (let ((buf (get-buffer-create buf-name)))
         (projectile-replace--seed buf mode root term regexp replacement
-                                  literal case-fold word)
+                                  literal case-fold word rg-pattern)
         (with-current-buffer buf
           (setq projectile-replace--scanning t)
           (funcall projectile-replace--render-function))
@@ -9585,7 +9629,7 @@ REPLACEMENT, LITERAL, CASE-FOLD and WORD seed the buffer state."
           (progn (when no-match-msg (message "%s" no-match-msg)) nil)
         (let ((buf (get-buffer-create buf-name)))
           (projectile-replace--seed buf mode root term regexp replacement
-                                    literal case-fold word)
+                                    literal case-fold word rg-pattern)
           (with-current-buffer buf
             (setq projectile-replace--matches matches
                   projectile-replace--truncated truncated)
@@ -9870,6 +9914,99 @@ so full Emacs regexp syntax (e.g. symbol boundaries like `\\_<foo\\_>')
 is honored."
   (interactive)
   (projectile-search--review nil))
+
+;;; Project-wide TODO/FIXME annotations
+;;
+;; `projectile-todos' is a thin command on top of the read-only search
+;; reviewer above: it builds one regexp out of `projectile-todo-keywords' and
+;; opens the very same `*projectile-search*' buffer, so grouping by file,
+;; navigation, the keep/flush filters, re-search, the grep-mode export and the
+;; hand-off to the replace reviewer all come for free.
+;;
+;; The keyword regexp is fenced the way hl-todo and magit-todos fence theirs:
+;; the keyword must start at a word boundary and be followed by a colon,
+;; whitespace or the end of the line, so `TODO:' and `FIXME ' are hits while
+;; `TODOS' and `MASTODON' are not.  Requiring a comment character in front is
+;; deliberately NOT done: neither scan parses the language, and the comment
+;; syntax would have to be guessed per file type, so an annotation in a string
+;; or in prose is reported too (cheap to filter out with `d' in the buffer).
+;;
+;; Because a big repo is exactly where a pure-elisp scan hurts, the command
+;; also hands the reviewer a ripgrep-syntax spelling of the same pattern
+;; (`projectile-replace--rg-pattern'), which lets the otherwise literal-only
+;; ripgrep fast-path run for this non-literal search.  The two spellings agree
+;; except at underscores (rg's `\b' counts `_' as a word character, Emacs'
+;; word boundaries do not), which only shows up for identifiers like
+;; `TODO_LIST'.
+
+(defun projectile-todos--rg-quote (keyword)
+  "Quote KEYWORD for ripgrep's regex syntax.
+Every character that is not alphanumeric or an underscore is escaped, so
+a keyword carrying punctuation (`@TODO', `TODO?') stays literal in Rust
+regex syntax, where more characters are special than in Emacs'."
+  (replace-regexp-in-string "[^[:alnum:]_]" "\\\\\\&" keyword t))
+
+(defun projectile-todos--regexp (keywords)
+  "Return the Emacs regexp matching any annotation keyword in KEYWORDS.
+The keyword must begin at a word boundary and be followed by a colon, by
+whitespace or by the end of the line."
+  (concat "\\<" (regexp-opt keywords) "\\>\\(?::\\|[[:blank:]]\\|$\\)"))
+
+(defun projectile-todos--rg-pattern (keywords)
+  "Return the ripgrep-syntax equivalent of `projectile-todos--regexp'.
+KEYWORDS is the list of annotation keywords to match."
+  (concat "\\b(?:"
+          (mapconcat #'projectile-todos--rg-quote keywords "|")
+          ")\\b(?::|[[:blank:]]|$)"))
+
+(defun projectile-todos--read-keywords ()
+  "Read which of `projectile-todo-keywords' to search for.
+Several keywords can be given, comma separated, and a keyword that is not
+in the list can be typed in for a one-off search."
+  (let ((keywords (delete "" (completing-read-multiple
+                              (projectile-prepend-project-name
+                               "TODO keywords: ")
+                              projectile-todo-keywords))))
+    (or keywords (user-error "No annotation keywords given"))))
+
+;;;###autoload
+(defun projectile-todos (&optional arg)
+  "Collect the project's TODO-style annotations and review them read-only.
+
+Searches every project file for the annotation keywords in
+`projectile-todo-keywords' (`TODO', `FIXME', `HACK', ... - customize the
+list to match your own conventions) and gathers the hits into the same
+read-only `*projectile-search*' buffer `projectile-search-review' uses,
+grouped by file, so all of its navigation, filtering, re-search, export
+and hand-off commands apply.
+
+A keyword only counts when it stands as a whole word followed by a colon,
+by whitespace or by the end of the line, so `TODO:' and `FIXME ' are
+found while `TODOS' and `MASTODON' are not.  Matching is case-sensitive
+\(annotation keywords are uppercase by convention); toggle that with `c'
+in the results buffer.  The keyword does not have to sit in a comment.
+
+With a prefix argument ARG, prompt for which keywords to search for
+instead of using all of them."
+  (interactive "P")
+  (let* ((root (projectile-acquire-root))
+         (keywords (or (if arg
+                           (projectile-todos--read-keywords)
+                         projectile-todo-keywords)
+                       (user-error "`projectile-todo-keywords' is empty")))
+         (regexp (projectile-todos--regexp keywords))
+         (rg-pattern (projectile-todos--rg-pattern keywords))
+         ;; the term IS the regexp, so the in-buffer toggles keep working
+         (case-fold nil)
+         (candidates (projectile-replace--candidates regexp nil case-fold root)))
+    (projectile-replace--open
+     #'projectile-search-mode projectile-search-buffer-name
+     root regexp regexp nil nil case-fold candidates
+     (projectile-prepend-project-name
+      (format "No %s annotations found" (string-join keywords "/")))
+     ;; The pattern is already word-fenced and ends in a delimiter, so the
+     ;; whole-word fence could never match; whole-word mode is not seeded here.
+     nil rg-pattern)))
 
 (defun projectile--buffer-matches-conditions (buffer conditions)
   "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
@@ -12814,6 +12951,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "s x") #'projectile-find-references)
     (define-key map (kbd "s R") #'projectile-search-review)
     (define-key map (kbd "s X") #'projectile-search-regexp-review)
+    (define-key map (kbd "s t") #'projectile-todos)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
     (define-key map (kbd "T") #'projectile-find-test-file)
@@ -13131,6 +13269,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("sR" "search (review)" projectile-dispatch-search-review)
+      ("st" "todos" projectile-todos)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
       ("R" "replace (review)" projectile-dispatch-replace-review)]]
@@ -13252,6 +13391,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Search with grep" projectile-grep]
          ["Search with ripgrep" projectile-ripgrep]
          ["Search with ag" projectile-ag]
+         ["Project TODOs (review)" projectile-todos]
          ["Replace in project" projectile-replace]
          ["Replace in project (review)" projectile-replace-review]
          ["Replace regexp in project (review)" projectile-replace-regexp-review]

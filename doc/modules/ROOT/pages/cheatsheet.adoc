@@ -76,6 +76,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p s X]
 | Reviewable search for an Emacs regexp (the regexp sibling of kbd:[s-p s R]).
 
+| kbd:[s-p s t]
+| Collect the project's `TODO`/`FIXME`-style annotations into the reviewable search buffer. With a prefix argument it prompts for which keywords to search for.
+
 | kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
 
