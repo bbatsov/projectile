@@ -7214,6 +7214,82 @@ is appended and faced as `(default VALUE)'."
 (defvar projectile-grep-find-ignored-patterns)
 (defvar projectile-grep-find-unignored-patterns)
 
+(defun projectile--grep-find-specs (patterns)
+  "Split gitignore-style PATTERNS into specs for the `find'-based grep.
+Return a cons of the root-anchored patterns, spelled relative to the
+project root, and the floating ones, which match at any depth.  Trailing
+slashes are dropped: `find' sees directory entries without one, and
+pruning a directory takes its whole subtree with it anyway."
+  (let (anchored floating)
+    (dolist (pattern patterns)
+      (let ((body (string-remove-suffix "/" pattern)))
+        (cond ((string-empty-p body))
+              ((string-prefix-p "**/" body) (push (substring body 3) floating))
+              ((string-prefix-p "/" body) (push (substring body 1) anchored))
+              ((string-search "/" body) (push body anchored))
+              (t (push body floating)))))
+    (cons (nreverse anchored) (nreverse floating))))
+
+(defun projectile--grep-rebase-paths (paths project-root root-dir)
+  "Respell root-anchored PATHS relative to ROOT-DIR.
+PATHS are relative to PROJECT-ROOT, while `find' is started in ROOT-DIR -
+either the project root itself or one of the dirconfig `+' keep
+subdirectories.  A path that doesn't live under ROOT-DIR can't match
+anything the search will see, so it is dropped."
+  (let ((prefix (file-relative-name
+                 (file-name-as-directory (expand-file-name root-dir))
+                 (file-name-as-directory (expand-file-name project-root)))))
+    (if (member prefix '("./" "" "."))
+        paths
+      (delq nil (mapcar (lambda (path)
+                          (and (string-prefix-p prefix path)
+                               (substring path (length prefix))))
+                        paths)))))
+
+(defun projectile--grep-find-path-tests (anchored floating)
+  "Return `find' -path tests matching the ANCHORED and FLOATING patterns.
+An anchored pattern is spelled `./PATH', so it only matches from the
+directory `find' was started in; a floating one gets a `*/' prefix, so it
+matches at any depth.  Return nil when both lists are empty.
+
+The one place this can't be exact is that `*' in a `find' -path glob
+crosses `/', where a gitignore `*' stays within a path segment, so an
+anchored pattern like `/*.txt' also prunes deeper matches here."
+  (when-let* ((globs (append
+                      (mapcar (lambda (pattern) (concat "./" pattern)) anchored)
+                      (mapcar (lambda (pattern)
+                                (if (string-prefix-p "*" pattern)
+                                    pattern
+                                  (concat "*/" pattern)))
+                              floating))))
+    (concat " -path " (mapconcat #'shell-quote-argument globs " -o -path "))))
+
+(defun projectile--grep-find-prune-clause ()
+  "Return the `find' prune expression for Projectile's ignore configuration.
+Built from the four `projectile-grep-find-*' variables `projectile--grep'
+binds around the `rgrep' call.  The `!' ensure entries are subtracted
+from the whole ignore expression, so they rescue an anchored path just
+like they rescue a floating pattern - and just like they do when
+indexing."
+  (when-let* ((ignore-tests (projectile--grep-find-path-tests
+                             projectile-grep-find-ignored-paths
+                             projectile-grep-find-ignored-patterns)))
+    (let ((unignore-tests (projectile--grep-find-path-tests
+                           projectile-grep-find-unignored-paths
+                           projectile-grep-find-unignored-patterns)))
+      (concat (shell-quote-argument "(")
+              (if unignore-tests
+                  (concat " " (shell-quote-argument "(")
+                          ignore-tests
+                          " " (shell-quote-argument ")")
+                          " -a " (shell-quote-argument "!")
+                          " " (shell-quote-argument "(")
+                          unignore-tests
+                          " " (shell-quote-argument ")"))
+                ignore-tests)
+              " " (shell-quote-argument ")")
+              " -prune -o "))))
+
 (defun projectile-rgrep-default-command (regexp files dir)
   "Compute the command for \\[rgrep] to use by default.
 
@@ -7273,63 +7349,7 @@ which it shares its arglist."
                  " "
                  (shell-quote-argument ")")
                  " -prune -o "))
-    (and projectile-grep-find-ignored-paths
-         (concat (shell-quote-argument "(")
-                 " -path "
-                 (mapconcat
-                  (lambda (ignore) (shell-quote-argument
-                                    (concat "./" ignore)))
-                  projectile-grep-find-ignored-paths
-                  " -o -path ")
-                 " "
-                 (shell-quote-argument ")")
-                 " -prune -o "))
-    (and projectile-grep-find-ignored-patterns
-         (concat (shell-quote-argument "(")
-                 (and (or projectile-grep-find-unignored-paths
-                          projectile-grep-find-unignored-patterns)
-                      (concat " "
-                              (shell-quote-argument "(")))
-                 " -path "
-                 (mapconcat
-                  (lambda (ignore)
-                    (shell-quote-argument
-                     (if (string-prefix-p "*" ignore) ignore
-                       (concat "*/" ignore))))
-                  projectile-grep-find-ignored-patterns
-                  " -o -path ")
-                 (and (or projectile-grep-find-unignored-paths
-                          projectile-grep-find-unignored-patterns)
-                      (concat " "
-                              (shell-quote-argument ")")
-                              " -a "
-                              (shell-quote-argument "!")
-                              " "
-                              (shell-quote-argument "(")
-                              (and projectile-grep-find-unignored-paths
-                                   (concat " -path "
-                                           (mapconcat
-                                            (lambda (ignore) (shell-quote-argument
-                                                              (concat "./" ignore)))
-                                            projectile-grep-find-unignored-paths
-                                            " -o -path ")))
-                              (and projectile-grep-find-unignored-paths
-                                   projectile-grep-find-unignored-patterns
-                                   " -o")
-                              (and projectile-grep-find-unignored-patterns
-                                   (concat " -path "
-                                           (mapconcat
-                                            (lambda (ignore)
-                                              (shell-quote-argument
-                                               (if (string-prefix-p "*" ignore) ignore
-                                                 (concat "*/" ignore))))
-                                            projectile-grep-find-unignored-patterns
-                                            " -o -path ")))
-                              " "
-                              (shell-quote-argument ")")))
-                 " "
-                 (shell-quote-argument ")")
-                 " -prune -o ")))))
+    (projectile--grep-find-prune-clause))))
 
 ;;; Project search
 ;;
@@ -7394,31 +7414,28 @@ FILES, when non-nil, is an rgrep files specification restricting the
 search.  Honours Projectile's ignore configuration and runs
 `projectile-grep-finished-hook' when done."
   (require 'grep) ;; for `rgrep'
-  (let ((roots (projectile-get-project-directories (projectile-acquire-root))))
+  (let* ((project-root (projectile-acquire-root))
+         (roots (projectile-get-project-directories project-root))
+         ;; The ignore and ensure rules are the project's, so they're read
+         ;; once and respelled per root below.
+         (ignore-specs (projectile--grep-find-specs
+                        (projectile--ignore-patterns project-root)))
+         (ensure-specs (projectile--grep-find-specs
+                        (projectile--ensure-patterns project-root))))
     (dolist (root-dir roots)
       (require 'vc-git) ;; for `vc-git-grep'
       ;; in git projects users have the option to use `vc-git-grep' instead of `rgrep'
       (if (and (eq (projectile-project-vcs) 'git)
                projectile-use-git-grep)
           (vc-git-grep search-regexp (or files "") root-dir)
-        ;; paths for find-grep should relative and without trailing /
-        (let ((grep-find-ignored-files
-               (seq-union (projectile--globally-ignored-file-suffixes-glob)
-                          grep-find-ignored-files))
-              (projectile-grep-find-ignored-paths
-               (append (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
-                               (projectile-ignored-directories))
-                       (mapcar (lambda (file)
-                                 (file-relative-name file root-dir))
-                               (projectile-ignored-files))))
+        (let ((projectile-grep-find-ignored-paths
+               (projectile--grep-rebase-paths (car ignore-specs)
+                                              project-root root-dir))
+              (projectile-grep-find-ignored-patterns (cdr ignore-specs))
               (projectile-grep-find-unignored-paths
-               (append (mapcar (lambda (f) (directory-file-name (file-relative-name f root-dir)))
-                               (projectile-unignored-directories))
-                       (mapcar (lambda (file)
-                                 (file-relative-name file root-dir))
-                               (projectile-unignored-files))))
-              (projectile-grep-find-ignored-patterns (projectile-patterns-to-ignore))
-              (projectile-grep-find-unignored-patterns (projectile-patterns-to-ensure)))
+               (projectile--grep-rebase-paths (car ensure-specs)
+                                              project-root root-dir))
+              (projectile-grep-find-unignored-patterns (cdr ensure-specs)))
           (grep-compute-defaults)
           (cl-letf (((symbol-function 'rgrep-default-command) #'projectile-rgrep-default-command))
             (rgrep search-regexp (or files "* .*") root-dir)
@@ -7429,6 +7446,22 @@ search.  Honours Projectile's ignore configuration and runs
               (with-current-buffer "*grep*"
                 (rename-buffer (concat "*grep <" root-dir ">*") t)))))))
     (run-hooks 'projectile-grep-finished-hook)))
+
+(defun projectile--ag-ignore-patterns ()
+  "Return `ag-ignore-list' entries for the project's ignore patterns.
+
+They come from `projectile--ignore-patterns'.  `ag' takes plain globs
+with no notion of anchoring, so the gitignore markers it wouldn't make
+sense of - a leading `/' or `**/', a trailing `/' - are stripped; what's
+left matches at any depth, which is as close as `ag' gets."
+  (seq-remove
+   #'string-empty-p
+   (mapcar (lambda (pattern)
+             (let ((body (string-remove-suffix "/" pattern)))
+               (cond ((string-prefix-p "**/" body) (substring body 3))
+                     ((string-prefix-p "/" body) (substring body 1))
+                     (t body))))
+           (projectile--ignore-patterns))))
 
 (defun projectile--ag (search-term &optional regexp)
   "Run an `ag' search for SEARCH-TERM in the project.
@@ -7441,9 +7474,7 @@ Requires the `ag' Emacs package."
                               (seq-uniq
                                (append
                                 ag-ignore-list
-                                (projectile-ignored-files-rel)
-                                (projectile-ignored-directories-rel)
-                                (projectile--globally-ignored-file-suffixes-glob)
+                                (projectile--ag-ignore-patterns)
                                 ;; ag supports git ignore files directly
                                 (unless (eq (projectile-project-vcs) 'git)
                                   (append grep-find-ignored-files

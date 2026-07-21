@@ -54,6 +54,78 @@
                           "--glob=!TAGS" "--glob=!GTAGS"
                           "--glob=!*.log")))))
 
+(describe "projectile--ag-ignore-patterns"
+  (it "strips the gitignore markers ag can't make sense of"
+    (spy-on 'projectile--dirconfig-ignore
+            :and-return-value '("*.log" "/build/" "**/gen" "src/out"))
+    (let ((projectile-globally-ignored-directories '("node_modules"))
+          (projectile-globally-unignored-directories nil)
+          (projectile-globally-ignored-files '("TAGS"))
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-ignored-file-suffixes '(".elc")))
+      (expect (projectile--ag-ignore-patterns)
+              :to-equal '("node_modules" "TAGS" "*.elc"
+                          "*.log" "build" "gen" "src/out")))))
+
+(describe "the grep and indexing ignore lists"
+  ;; The whole point of deriving grep's exclusions from
+  ;; `projectile--ignore-patterns' is that the two agree, so assert it
+  ;; directly: every pattern indexing filters by has to show up in the
+  ;; find expression, on the right side of the anchored/floating split.
+  (before-each
+    (spy-on 'projectile--dirconfig-ignore
+            :and-return-value '("*.log" "/build/" "vendor/" "src/gen" "**/tmp"))
+    (spy-on 'projectile--dirconfig-ensure :and-return-value '("keep.log")))
+  (it "cover the same patterns"
+    (let* ((projectile-globally-ignored-directories '("node_modules"))
+           (projectile-globally-unignored-directories nil)
+           (projectile-globally-ignored-files '("TAGS"))
+           (projectile-globally-unignored-files nil)
+           (projectile-globally-ignored-file-suffixes '(".elc"))
+           (patterns (projectile--ignore-patterns "/r/"))
+           (specs (projectile--grep-find-specs patterns)))
+      (expect (car specs) :to-equal '("build" "src/gen"))
+      (expect (cdr specs) :to-equal '("node_modules" "TAGS" "*.elc"
+                                      "*.log" "vendor" "tmp"))
+      ;; nothing indexing knows about is dropped on the way to grep
+      (expect (+ (length (car specs)) (length (cdr specs)))
+              :to-equal (length patterns))))
+  (it "agree on which files a search sees"
+    (let* ((projectile-globally-ignored-directories '("node_modules"))
+           (projectile-globally-unignored-directories nil)
+           (projectile-globally-ignored-files '("TAGS"))
+           (projectile-globally-unignored-files nil)
+           (projectile-globally-ignored-file-suffixes '(".elc"))
+           (files '("a.el" "a.elc" "TAGS" "keep.log" "src/a.log"
+                    "build/out" "vendor/dep/a.el" "src/gen/a.el"
+                    "node_modules/dep/a.js" "deep/tmp/a.el"))
+           (specs (projectile--grep-find-specs (projectile--ignore-patterns "/r/")))
+           (ensure (projectile--grep-find-specs (projectile--ensure-patterns "/r/"))))
+      (spy-on 'projectile-project-root :and-return-value "/r/")
+      (cl-flet* ((path-prefixes (file)
+                   ;; `find' prunes a directory, which takes its whole
+                   ;; subtree with it, so a test hitting any ancestor of
+                   ;; FILE removes FILE too
+                   (let (prefixes current)
+                     (dolist (segment (split-string file "/") (nreverse prefixes))
+                       (setq current (if current (concat current "/" segment) segment))
+                       (push current prefixes))))
+                 (tested-p (specs file)
+                   (let ((globs (append
+                                 (mapcar (lambda (p) (concat "./" p)) (car specs))
+                                 (mapcar (lambda (p) (concat "*/" p)) (cdr specs)))))
+                     (seq-some (lambda (path)
+                                 (seq-some (lambda (glob)
+                                             (string-match-p (wildcard-to-regexp glob)
+                                                             (concat "./" path)))
+                                           globs))
+                               (path-prefixes file))))
+                 (pruned-p (file)
+                   (and (tested-p specs file)
+                        (not (tested-p ensure file)))))
+        (expect (seq-remove #'pruned-p files)
+                :to-equal (projectile-remove-ignored files))))))
+
 (describe "projectile-grep"
   (describe "multi-root grep"
     (after-each
@@ -98,10 +170,14 @@
                 (projectile-globally-ignored-file-suffixes '("IG_SUF"))
                 (projectile-globally-ignored-directories '("GLOB_IG_DIR")))
             (projectile-grep "hi")))
+        ;; the projectile clause carries the gitignore patterns: the
+        ;; globally ignored directory and file names match at any depth,
+        ;; and so do the ignored suffixes
         (expect 'compilation-start :to-have-been-called-with
                 (concat "-type d \\( -path \\*/IG_DIR \\) -prune -o "
-                        "\\! -type d \\( -name \\*IG_SUF -o -name IG_FILE \\) -prune -o "
-                        "\\( -path ./GLOB_IG_DIR -o -path ./GLOB_IG_FILE \\) -prune -o ")
+                        "\\! -type d \\( -name IG_FILE \\) -prune -o "
+                        "\\( -path \\*/GLOB_IG_DIR -o -path \\*/GLOB_IG_FILE "
+                        "-o -path \\*IG_SUF \\) -prune -o ")
                 'grep-mode))))
     (it "excludes project ignores"
       (projectile-test-with-sandbox
@@ -128,10 +204,13 @@
                 projectile-globally-ignored-file-suffixes
                 projectile-globally-ignored-directories)
             (projectile-grep "hi")))
+        ;; the ignore patterns go in as patterns, not as the paths they
+        ;; happened to expand to on disk, and the `!' entries are
+        ;; subtracted from the whole ignore expression
         (expect 'compilation-start :to-have-been-called-with
-                (concat "\\( -path ./baz -o -path ./foo.txt -o -path ./bar/foo.txt \\) -prune -o "
-                        "\\( "
-                        "\\( -path \\*.txt -o -path \\*.text \\) "
+                (concat "\\( "
+                        "\\( -path ./\\*.txt -o -path ./bar/\\*.txt -o -path ./baz "
+                        "-o -path \\*.txt -o -path \\*.text \\) "
                         "-a \\! \\( -path ./abc.txt -o -path ./bar/abc.txt -o -path \\*/def.txt \\) "
                         "\\) -prune -o ")
                 'grep-mode)))))
