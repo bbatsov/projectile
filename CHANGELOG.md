@@ -60,6 +60,7 @@
 
 ### Bugs fixed
 
+- [#2116](https://github.com/bbatsov/projectile/issues/2116): Fix alien/hybrid indexing being broken on Windows: the asynchronous indexer no longer hardcodes `/bin/sh` (which `make-process` can't spawn on Windows), locating `sh` via `exec-path` there and falling back to the synchronous runner when no POSIX shell is available.
 - [#2094](https://github.com/bbatsov/projectile/issues/2094): Fix a `wrong-type-argument stringp` crash when running `projectile-search` (a 3.2.0 regression): the search-prompt tool tag now accepts the backend name symbol, not just a string.
 
 ## 3.2.0 (2026-07-12)
