@@ -149,7 +149,57 @@ that stores into it as the async callback."
               :to-be nil)
       (expect (nth 0 result) :to-be-truthy)
       (expect (nth 1 result) :to-be nil)
+      (expect (nth 2 result) :to-be-truthy)))
+
+  (it "declines (never spawns) when no POSIX shell is available"
+    ;; #2116: on Windows without `sh' on `exec-path' there is no POSIX shell to
+    ;; run the wrapper under.  We must decline like the remote-unsupported case
+    ;; - return nil and report an error - so the caller falls back to the
+    ;; synchronous runner instead of erroring out of `make-process'.
+    (spy-on 'projectile--posix-shell :and-return-value nil)
+    (spy-on 'make-process :and-call-through)
+    (projectile-test-with-async-result result
+      (expect (projectile-files-via-ext-command-async
+               temporary-file-directory "echo hi"
+               (lambda (files err)
+                 (setf (nth 1 result) files (nth 2 result) err (nth 0 result) t)))
+              :to-be nil)
+      (expect 'make-process :not :to-have-been-called)
+      (expect (nth 0 result) :to-be-truthy)
+      (expect (nth 1 result) :to-be nil)
+      (expect (nth 2 result) :to-be-truthy)))
+
+  (it "traps a spawn error and declines instead of propagating it"
+    ;; #2116: even when a shell is resolved, a bad interpreter makes
+    ;; `make-process' signal `file-error'.  That must be caught and turned into
+    ;; the same decline path, not thrown at the caller.
+    (spy-on 'make-process :and-call-fake
+            (lambda (&rest _) (signal 'file-error '("Spawning child process" "Invalid argument"))))
+    (projectile-test-with-async-result result
+      (expect (projectile-files-via-ext-command-async
+               temporary-file-directory "echo hi"
+               (lambda (files err)
+                 (setf (nth 1 result) files (nth 2 result) err (nth 0 result) t)))
+              :to-be nil)
+      (expect (nth 0 result) :to-be-truthy)
+      (expect (nth 1 result) :to-be nil)
       (expect (nth 2 result) :to-be-truthy))))
+
+(describe "projectile--posix-shell"
+  (it "uses /bin/sh on non-Windows platforms"
+    (let ((system-type 'gnu/linux))
+      (expect (projectile--posix-shell) :to-equal "/bin/sh")))
+
+  (it "looks up `sh' on `exec-path' on Windows"
+    (let ((system-type 'windows-nt))
+      (spy-on 'executable-find :and-return-value "C:/Git/usr/bin/sh.exe")
+      (expect (projectile--posix-shell) :to-equal "C:/Git/usr/bin/sh.exe")
+      (expect 'executable-find :to-have-been-called-with "sh")))
+
+  (it "returns nil on Windows when no `sh' is found"
+    (let ((system-type 'windows-nt))
+      (spy-on 'executable-find :and-return-value nil)
+      (expect (projectile--posix-shell) :to-be nil))))
 
 (describe "projectile-dir-files-alien-async"
   (it "assembles main + submodule files and removes deleted ones (git)"

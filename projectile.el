@@ -3549,6 +3549,21 @@ See the *projectile-files-errors* buffer for details"
         (when (file-exists-p errors-file)
           (delete-file errors-file))))))
 
+(defun projectile--posix-shell ()
+  "Return the POSIX shell the asynchronous indexer should run under, or nil.
+The async runner wraps the command in POSIX-sh syntax (the `{ ...; }
+2>file' grouping in `projectile-files-via-ext-command-async'), so it needs
+a POSIX shell rather than the user's interactive `shell-file-name', which
+may be csh/tcsh/fish (see #2042).  On Unix that is always `/bin/sh'.  On
+Windows there is no guaranteed one, so we look for `sh' on the executable
+search path (e.g. the `sh.exe' shipped with Git for Windows or MSYS) and
+return nil when none is found - the caller then falls back to the
+synchronous runner, which drives cmd.exe without any POSIX syntax
+\(see #2116)."
+  (if (memq system-type '(windows-nt ms-dos))
+      (executable-find "sh")
+    "/bin/sh"))
+
 (defun projectile-files-via-ext-command-async (root command callback &optional pathspecs)
   "Asynchronously list relative file names in project ROOT by running COMMAND.
 
@@ -3592,60 +3607,69 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
            (full-command (concat "{ " (projectile--ext-command-line command pathspecs-on-command)
                                  "; } 2>" (shell-quote-argument errors-localname)))
            (stdout-buffer (generate-new-buffer " *projectile-async-index*"))
+           ;; A POSIX shell to run the wrapper under (see
+           ;; `projectile--posix-shell' for why we don't use `shell-file-name');
+           ;; nil on Windows without `sh', in which case we decline below and
+           ;; the caller falls back to the synchronous runner (see #2116).
+           (shell (projectile--posix-shell))
            (proc
-            (make-process
-             :name "projectile-index"
-             :buffer stdout-buffer
-             ;; Run under a POSIX shell rather than the user's interactive
-             ;; `shell-file-name': the `{ ...; } 2>file' wrapper (and the
-             ;; `shell-quote-argument' quoting above) is POSIX-sh syntax, which
-             ;; breaks under csh/tcsh/fish (see #2042).  The indexing command
-             ;; itself is a plain POSIX command, so `/bin/sh' is the right
-             ;; interpreter regardless of the user's login shell.
-             :command (list "/bin/sh" "-c" full-command)
-             :connection-type 'pipe
-             :noquery t
-             :file-handler t
-             :sentinel
-             (lambda (proc _event)
-               (when (memq (process-status proc) '(exit signal))
-                 (unwind-protect
-                     ;; A consumer that gives up on the wait (e.g. a C-g during
-                     ;; `projectile--dir-files-alien-await') marks the process
-                     ;; aborted and kills it.  Killing fires this sentinel with a
-                     ;; `signal' status, but we must not then report a bogus
-                     ;; failure or clobber the errors buffer - just clean up.
-                     (unless (process-get proc 'projectile-aborted)
-                       (let ((exit-code (process-exit-status proc))
-                             (files (projectile--restrict-to-subdirs
-                                     (with-current-buffer stdout-buffer
-                                       (projectile--ext-command-output-files))
-                                     restrict)))
-                         (cond
-                          ;; Clean exit: pass the listing through.
-                          ((and (numberp exit-code) (zerop exit-code))
-                           (funcall callback files nil))
-                          ;; Non-zero exit but we still got a listing: trust it,
-                          ;; mirroring the synchronous runner.  Surface stderr
-                          ;; and mention it quietly when there's anything to see.
-                          (files
-                           (when (projectile--surface-ext-command-errors errors-file)
-                             (message "Projectile: `%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
-                                      command exit-code))
-                           (funcall callback files nil))
-                          ;; Non-zero exit and nothing on stdout: a real failure.
-                          (t
-                           (projectile--surface-ext-command-errors errors-file)
-                           (funcall callback
-                                    nil
-                                    (format "exit code %s: %s"
-                                            exit-code command))))))
-                   (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
-                   (when (file-exists-p errors-file)
-                     (ignore-errors (delete-file errors-file)))))))))
-      ;; A file-name handler may decline to create a process (e.g. a remote
-      ;; host that doesn't support `make-process'), returning nil and never
-      ;; firing the sentinel.  Honour the callback contract and clean up.
+            (when shell
+              (condition-case nil
+                  (make-process
+                   :name "projectile-index"
+                   :buffer stdout-buffer
+                   :command (list shell "-c" full-command)
+                   :connection-type 'pipe
+                   :noquery t
+                   :file-handler t
+                   :sentinel
+                   (lambda (proc _event)
+                     (when (memq (process-status proc) '(exit signal))
+                       (unwind-protect
+                           ;; A consumer that gives up on the wait (e.g. a C-g during
+                           ;; `projectile--dir-files-alien-await') marks the process
+                           ;; aborted and kills it.  Killing fires this sentinel with a
+                           ;; `signal' status, but we must not then report a bogus
+                           ;; failure or clobber the errors buffer - just clean up.
+                           (unless (process-get proc 'projectile-aborted)
+                             (let ((exit-code (process-exit-status proc))
+                                   (files (projectile--restrict-to-subdirs
+                                           (with-current-buffer stdout-buffer
+                                             (projectile--ext-command-output-files))
+                                           restrict)))
+                               (cond
+                                ;; Clean exit: pass the listing through.
+                                ((and (numberp exit-code) (zerop exit-code))
+                                 (funcall callback files nil))
+                                ;; Non-zero exit but we still got a listing: trust it,
+                                ;; mirroring the synchronous runner.  Surface stderr
+                                ;; and mention it quietly when there's anything to see.
+                                (files
+                                 (when (projectile--surface-ext-command-errors errors-file)
+                                   (message "Projectile: `%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
+                                            command exit-code))
+                                 (funcall callback files nil))
+                                ;; Non-zero exit and nothing on stdout: a real failure.
+                                (t
+                                 (projectile--surface-ext-command-errors errors-file)
+                                 (funcall callback
+                                          nil
+                                          (format "exit code %s: %s"
+                                                  exit-code command))))))
+                         (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
+                         (when (file-exists-p errors-file)
+                           (ignore-errors (delete-file errors-file)))))))
+                ;; A failed spawn (e.g. Windows can't exec the shell, #2116)
+                ;; signals `file-error'; trap it and decline so the caller
+                ;; falls back to the synchronous runner, rather than letting
+                ;; it escape from indexing.
+                (file-error nil)))))
+      ;; No process: either no POSIX shell was found (Windows without `sh',
+      ;; see #2116), a spawn error was trapped above, or a file-name handler
+      ;; declined (e.g. a remote host that doesn't support `make-process').
+      ;; In every case the sentinel never fires, so honour the callback
+      ;; contract and clean up; the caller then falls back to the synchronous
+      ;; runner.
       (unless proc
         (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
         (when (file-exists-p errors-file) (ignore-errors (delete-file errors-file)))
