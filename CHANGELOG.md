@@ -8,7 +8,7 @@
 
 ### New features
 
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Add 34 project types Projectile had no support for, which used to come out as generic projects.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Add 34 project types Projectile had no support for, which used to come out as generic projects.
   - JavaScript: `node` (a `package.json` with no lock file next to it), `bun`, `deno`, `nx` and `turborepo`.
   - Python: `python-uv` and `python-pdm`.
   - PHP: `php-composer` and `php-laravel` - Symfony was the only PHP type we shipped.
@@ -17,7 +17,7 @@
   - Build and task runners: `just`, `mise`, `buck2` and `pants`.
   - Languages: `gleam`, `babashka`, `scala-cli`, `dub`, `fpm`, `alire`, `foundry`, `godot` and `platformio`.
   - Static sites: `hugo`, `jekyll`, `zola`, `mkdocs` and `quarto`.
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): A project type marker can now be an `(:any "file1" "file2")` clause, matched when any one of its files is present, so a build file with several spellings no longer needs a predicate function.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): A project type marker can now be an `(:any "file1" "file2")` clause, matched when any one of its files is present, so a build file with several spellings no longer needs a predicate function.
 - [#2115](https://github.com/bbatsov/projectile/pull/2115): Add `projectile-replace-undo` (`s-p u`), which reverts the last replace applied from the reviewable replace buffer.
   - Only the edits that were actually written are recorded, and a file is reverted only if the replaced text is still exactly where the replace put it - anything changed since is reported and left alone.
   - Open buffers are edited in place instead of being written behind, mirroring what applying does; the record covers just the last apply and doesn't survive an Emacs restart.
@@ -47,11 +47,11 @@
 
 ### Changes
 
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Bring the stale build tool markers up to date: Bazel now matches on `MODULE.bazel` (Bazel 8's default, with `WORKSPACE` on its way out), Gradle on the Kotlin DSL and on a settings file alone, Zig on `build.zig` rather than only on the `build.zig.zon` a project grows once it has dependencies, and go-task on all four `Taskfile` spellings.
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Modernize the lifecycle commands that no longer work: Symfony's console moved to `bin/` and its server out of the framework, the Dart CLI subsumed `pub`, `setup.py build` is deprecated by the PyPA, and poetry projects run pytest.
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Rails and Django had their development server wired to the compile command, leaving the run command empty; the server is now the run command and compile is `bundle exec rake` / `manage.py collectstatic`.
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): The PHP types are now registered after the JavaScript ones, so a PHP application isn't detected as a Node project because of the `package.json` its asset pipeline ships.
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): The supported project types table in the manual is now generated from the registry, which had drifted well behind it.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Bring the stale build tool markers up to date: Bazel now matches on `MODULE.bazel` (Bazel 8's default, with `WORKSPACE` on its way out), Gradle on the Kotlin DSL and on a settings file alone, Zig on `build.zig` rather than only on the `build.zig.zon` a project grows once it has dependencies, and go-task on all four `Taskfile` spellings.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Modernize the lifecycle commands that no longer work: Symfony's console moved to `bin/` and its server out of the framework, the Dart CLI subsumed `pub`, `setup.py build` is deprecated by the PyPA, and poetry projects run pytest.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Rails and Django had their development server wired to the compile command, leaving the run command empty; the server is now the run command and compile is `bundle exec rake` / `manage.py collectstatic`.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): The PHP types are now registered after the JavaScript ones, so a PHP application isn't detected as a Node project because of the `package.json` its asset pipeline ships.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): The supported project types table in the manual is now generated from the registry, which had drifted well behind it.
 - [#2114](https://github.com/bbatsov/projectile/pull/2114): In `projectile-dispatch`, "display buffer" moved from `B` to `C-o` (mirroring its `s-p 4 C-o` binding), so `B` could become the bookmark prefix.
 - [#2110](https://github.com/bbatsov/projectile/pull/2110): The grep/ag search integration and the ignore predicates now derive their exclusions from the same gitignore patterns indexing uses, instead of expanding the dirconfig into absolute paths on their own.
   - `projectile-ignored-file-p` and `projectile-ignored-directory-p` now take an optional project root instead of a pre-computed list of ignored paths, and answer exactly what indexing would (ensure entries included, a file under an ignored directory counted as ignored).
@@ -73,9 +73,9 @@
 
 ### Bugs fixed
 
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Fix the `angular` project type never matching anything: its two markers were ANDed, but a project has either `angular.json` (Angular 6+) or `.angular-cli.json`, never both.
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Fix the Python project types shadowing each other - `pyproject.toml` was checked before `django`, `python-poetry`, `python-pipenv` and `python-tox`, and since nearly every Python project has one, those four types never matched (a Django project also lost its file kinds along the way).
-- [#2118](https://github.com/bbatsov/projectile/pull/2118): Fix `php-symfony` not matching a modern Symfony project: it required an `app` directory, gone since Symfony 3, and a `vendor` directory, which only exists after someone has run composer.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Fix the `angular` project type never matching anything: its two markers were ANDed, but a project has either `angular.json` (Angular 6+) or `.angular-cli.json`, never both.
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Fix the Python project types shadowing each other - `pyproject.toml` was checked before `django`, `python-poetry`, `python-pipenv` and `python-tox`, and since nearly every Python project has one, those four types never matched (a Django project also lost its file kinds along the way).
+- [#2119](https://github.com/bbatsov/projectile/pull/2119): Fix `php-symfony` not matching a modern Symfony project: it required an `app` directory, gone since Symfony 3, and a `vendor` directory, which only exists after someone has run composer.
 
 ## 3.2.1 (2026-07-13)
 
