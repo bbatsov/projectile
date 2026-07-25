@@ -71,6 +71,17 @@
       (expect (member "real.manifest" projectile-project-root-files) :to-be-truthy)
       (expect (member "foo.manifest" projectile-project-root-files) :not :to-be-truthy)))
 
+  (it "seeds every alternative of a leading (:any ...) marker as a root file"
+    (let ((projectile-project-types nil)
+          (projectile-project-root-files nil)
+          (projectile-project-root-files-bottom-up '(".git")))
+      (projectile-register-project-type 'foo '((:any "foo.toml" "foo.json") "src"))
+      (expect (projectile-project-type-attribute 'foo 'project-file)
+              :to-equal '("foo.toml" "foo.json"))
+      (expect (member "foo.toml" projectile-project-root-files) :to-be-truthy)
+      (expect (member "foo.json" projectile-project-root-files) :to-be-truthy)
+      (expect (member "src" projectile-project-root-files) :not :to-be-truthy)))
+
   (it "opts out of root-file seeding when project-file is `none'"
     ;; Regression for #1901: bloop's marker also lives in $HOME, so it
     ;; must drive detection without ever anchoring a project root.
@@ -364,6 +375,27 @@
           (projectile-project-type-cache (make-hash-table :test 'equal)))
       (spy-on 'projectile-project-root :and-return-value "/repo/elsewhere/")
       (expect (projectile-detect-project-type) :to-equal 'generic))))
+
+(describe "projectile-verify-files"
+  (it "requires every plain marker to be present"
+    (projectile-test-with-stub-root "proj" ("a" "b")
+      (expect (projectile-verify-files '("a" "b")) :to-be-truthy)
+      (expect (projectile-verify-files '("a" "c")) :to-be nil)))
+  (it "is satisfied by any one file of an (:any ...) clause"
+    (projectile-test-with-stub-root "proj" ("b")
+      (expect (projectile-verify-files '((:any "a" "b"))) :to-be-truthy)
+      (expect (projectile-verify-files '((:any "a" "c"))) :to-be nil)))
+  (it "still ANDs an (:any ...) clause with the other markers"
+    (projectile-test-with-stub-root "proj" ("b")
+      (expect (projectile-verify-files '((:any "a" "b") "src")) :to-be nil)))
+  (it "answers an (:any ...) clause from the entry set"
+    (let ((entry-set (make-hash-table :test 'equal)))
+      (puthash "build.gradle.kts" t entry-set)
+      (spy-on 'projectile-file-exists-p :and-return-value nil)
+      (expect (projectile-verify-files
+               '((:any "build.gradle" "build.gradle.kts")) "/whatever/" entry-set)
+              :to-be-truthy)
+      (expect 'projectile-file-exists-p :not :to-have-been-called))))
 
 (describe "projectile-verify-file"
   (it "answers a plain-name file from the entry set without touching disk"
