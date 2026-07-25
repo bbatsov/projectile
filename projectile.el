@@ -6378,6 +6378,11 @@ a manual COMMAND-TYPE command is created with
                                   :install "task install")
 ;; Go should take higher precedence than Make because Go projects often have a Makefile.
 (projectile-register-project-type 'go projectile-go-project-test-function
+                                  ;; The type is detected by predicate (a
+                                  ;; project can be Go without a go.mod), but
+                                  ;; the module file is still what marks a Go
+                                  ;; project's root - and its subprojects.
+                                  :project-file "go.mod"
                                   :compile "go build"
                                   :test "go test ./..."
                                   :test-suffix "_test")
