@@ -236,6 +236,18 @@ gitignore patterns described xref:pattern-language[above], and they take effect
 with every indexing method; under `alien` they are pushed down into the external
 indexing tool.
 
+Out of the box `projectile-globally-ignored-directories` covers the editor and
+version control directories plus the dependency and build output directories of
+the common ecosystems - `node_modules`, `target`, `__pycache__`, `.venv`,
+`.next`, `.terraform` and so on. Under `alien` your VCS is usually ignoring
+those anyway; the defaults matter for `native` and `hybrid` indexing, and for
+projects that aren't under version control at all.
+
+Directories that projects do sometimes commit - `vendor`, `dist`, `public`,
+`build` - are deliberately left out. If one of the defaults gets in your way,
+add it to `projectile-globally-unignored-directories`, or put a `!` line in
+that project's `.projectile` to get it back for that project alone.
+
 [source,elisp]
 ----
 ;; Ignore files by name, at any depth

@@ -624,8 +624,13 @@ were the gitignore pattern `*SUFFIX' (e.g. \".elc\" ignores every
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-globally-ignored-directories
-  '(".idea"
+  '(;; editors
+    ".idea"
     ".vscode"
+    ".ccls-cache"
+    ".cache"
+    ".clangd"
+    ;; version control
     ".git"
     ".hg"
     ".fslckout"
@@ -633,15 +638,44 @@ were the gitignore pattern `*SUFFIX' (e.g. \".elc\" ignores every
     ".bzr"
     "_darcs"
     ".pijul"
-    ".tox"
     ".svn"
-    ".stack-work"
-    ".ccls-cache"
-    ".cache"
-    ".clangd"
     ".sl"
     ".jj"
-    ".osc")
+    ".osc"
+    ;; dependencies and build output
+    ;;
+    ;; These are all directories a tool generates and a project doesn't
+    ;; commit.  Under `alien' they're usually excluded by the VCS anyway;
+    ;; the point of listing them is `native' and `hybrid' indexing, and
+    ;; projects that aren't under version control at all.  Names that some
+    ;; projects do commit - `vendor', `build', `dist', `public' - are
+    ;; deliberately not here.
+    "node_modules"
+    "target"
+    "_build"
+    ".gradle"
+    ".stack-work"
+    ".build"
+    "elm-stuff"
+    ".dart_tool"
+    ".zig-cache"
+    "zig-out"
+    "__pycache__"
+    "*.egg-info"
+    ".venv"
+    ".tox"
+    ".mypy_cache"
+    ".pytest_cache"
+    ".ruff_cache"
+    ".next"
+    ".nuxt"
+    ".svelte-kit"
+    ".astro"
+    ".turbo"
+    ".parcel-cache"
+    "_site"
+    ".terraform"
+    ".direnv")
   "A list of directories globally ignored by projectile.
 
 Entries are gitignore patterns, matched against paths relative to the
@@ -659,11 +693,18 @@ Matching is case-sensitive.  Note that a leading `*' is a plain
 wildcard - it used to be a marker meaning \"at any depth\", which is
 now the default for every slashless pattern.
 
+Besides the editor and version control directories, the default value
+covers the dependency and build output directories of the common
+ecosystems - `node_modules', `target', `__pycache__' and so on.  Add
+an entry to `projectile-globally-unignored-directories' to get one of
+them back, or a `!' line to a project's `.projectile' to get it back
+for that project only.
+
 See also `projectile-global-ignore-file-patterns'."
   :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
-  :package-version '(projectile . "3.1.0"))
+  :package-version '(projectile . "3.3.0"))
 
 (defcustom projectile-globally-unignored-directories nil
   "A list of directories globally unignored by projectile.
