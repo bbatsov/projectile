@@ -6310,9 +6310,16 @@ a manual COMMAND-TYPE command is created with
                                   :test "go test ./..."
                                   :test-suffix "_test")
 ;; PHP
-(projectile-register-project-type 'php-symfony '("composer.json" "app" "src" "vendor")
-                                  :compile "app/console server:run"
-                                  :test "phpunit -c app "
+;; Symfony 3 dropped the `app' directory and moved the console to `bin',
+;; and `vendor' is only there once someone has run composer, so neither
+;; can be required.  The console is what tells a Symfony project apart
+;; from any other composer one.
+(projectile-register-project-type 'php-symfony '("composer.json" (:any "bin/console" "app/console"))
+                                  :compile "composer install"
+                                  :run "symfony serve"
+                                  :test "vendor/bin/phpunit"
+                                  :src-dir "src/"
+                                  :test-dir "tests/"
                                   :test-suffix "Test")
 ;; Erlang & Elixir
 (projectile-register-project-type 'rebar '("rebar.config")
@@ -6359,12 +6366,12 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "_test"
                                   :file-kinds projectile--django-file-kinds)
 (projectile-register-project-type 'python-pip '("requirements.txt")
-                                  :compile "python setup.py build"
+                                  :compile "pip install -r requirements.txt"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-pkg '("setup.py")
-                                  :compile "python setup.py build"
+                                  :compile "python -m build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
@@ -6380,7 +6387,7 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-poetry '("poetry.lock")
                                   :compile "poetry build"
-                                  :test "poetry run python -m unittest discover"
+                                  :test "poetry run pytest"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-toml '("pyproject.toml")
@@ -6468,13 +6475,15 @@ a manual COMMAND-TYPE command is created with
 ;; Rails needs to be registered after npm, otherwise `package.json` makes it `npm`.
 ;; https://github.com/bbatsov/projectile/pull/1191
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test")
-                                  :compile "bundle exec rails server"
+                                  :compile "bundle exec rake"
+                                  :run "bundle exec rails server"
                                   :src-dir "app/"
                                   :test "bundle exec rake test"
                                   :test-suffix "_test"
                                   :file-kinds projectile--rails-file-kinds)
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec")
-                                  :compile "bundle exec rails server"
+                                  :compile "bundle exec rake"
+                                  :run "bundle exec rails server"
                                   :src-dir "app/"
                                   :test "bundle exec rspec"
                                   :test-dir "spec/"
@@ -6531,9 +6540,11 @@ a manual COMMAND-TYPE command is created with
 
 ;; Dart
 (projectile-register-project-type 'dart '("pubspec.yaml")
-                                  :compile "pub get"
-                                  :test "pub run test"
-                                  :run "dart"
+                                  :compile "dart pub get"
+                                  :test "dart test"
+                                  :run "dart run"
+                                  :src-dir "lib/"
+                                  :test-dir "test/"
                                   :test-suffix "_test.dart")
 
 ;; Elm
