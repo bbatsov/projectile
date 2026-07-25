@@ -50,7 +50,8 @@ Here are some of Projectile's features in no particular order:
 * xref:usage.adoc#reviewing-search-matches[grep (search) in project] (multiple back-ends like `ag`, `rg`, and a native reviewable results UI)
 * find references in project (using `xref` internally)
 * visit project in `dired`
-* run xref:tasks.adoc#project-tasks[project commands and tasks] (build/test/run, `make`, and your own named tasks)
+* run xref:tasks.adoc#project-tasks[project commands and tasks] (build/test/run, your own named tasks, and the npm scripts, Make targets and justfile recipes a project already defines)
+* xref:tasks.adoc#subprojects[work on one part of a monorepo] - find files in a subproject, build or test just the module you're in
 * xref:tasks.adoc#running-the-test-at-point[run the test at point] (tree-sitter, Emacs 29+)
 * works with any `completing-read`-based minibuffer completion UI (Vertico, Consult, `fido-mode`, etc.)
 * automatic project discovery (see `projectile-project-search-path`)
