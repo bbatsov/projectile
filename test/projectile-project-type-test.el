@@ -230,6 +230,26 @@
   (it "uses `eask test' as its test command (#1935)"
     (expect (projectile-default-test-command 'emacs-eask) :to-equal "eask test")))
 
+(describe "rails project types"
+  (it "runs the server as the run command, not as the compile command"
+    (dolist (type '(rails-test rails-rspec))
+      (expect (projectile-default-run-command type)
+              :to-equal "bundle exec rails server")
+      (expect (projectile-default-compilation-command type)
+              :to-equal "bundle exec rake"))))
+
+(describe "php-symfony project type"
+  (it "detects a modern Symfony layout, which has no app directory"
+    (projectile-test-with-stub-root "project"
+        ("composer.json" "src/" "bin/" "bin/console")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'php-symfony))))
+  (it "still detects the legacy app/console layout"
+    (projectile-test-with-stub-root "project"
+        ("composer.json" "src/" "app/" "app/console")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'php-symfony)))))
+
 (describe "projectile-project-type"
   :var ((dir default-directory))
   (it "detects the type of Projectile's project"
