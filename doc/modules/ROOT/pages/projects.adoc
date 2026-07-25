@@ -37,234 +37,309 @@ a project. Out of the box Projectile supports:
 === File markers
 
 Projectile considers many files to denote the root of a project. Usually those files
-are the configuration files of various build tools. Out of the box the following are supported:
+are the configuration files of various build tools. Out of the box the following are supported
+(a `+` between markers means all of them have to be present, `or` means any one of them will do):
 
 |===
-| Language/Family | File | Project Type
+| Project type | Markers
 
-| Universal
-| `xmake.lua`
-| xmake project
+| `alire`
+| `alire.toml`
 
-| Universal
-| `SConstruct`
-| Scons project file
+| `angular`
+| `angular.json` or `.angular-cli.json`
 
-| Universal
-| `meson.build`
-| Meson project file
+| `ansible`
+| `ansible.cfg`
 
-| Universal
-| `default.nix`
-| Nix project file
+| `babashka`
+| `bb.edn`
 
-| Universal
-| `flake.nix`
-| Nix flake project file
+| `bazel`
+| `MODULE.bazel` or `WORKSPACE` or `WORKSPACE.bazel`
 
-| Universal
-| `WORKSPACE`
-| Bazel workspace file
-
-| Universal
-| `debian/control`
-| Debian package dpkg control file
-
-| Make & CMake
-| `Makefile` or `makefile`
-| Make
-
-| Make & CMake
-| `GNUmakefile`
-| GNU Make
-
-| Make & CMake
-| `CMakeLists.txt`
-| CMake
-
-| Go-task/Task
-| `Taskfile.yml`
-| Go-task/Task project file
-
-| PHP (Symfony)
-| `composer.json`
-| Symfony project file
-
-| Erlang & Elixir
-| `rebar.config`
-| Rebar project file
-
-| Erlang & Elixir
-| `mix.exs`
-| Elixir mix project file
-
-| JavaScript
-| `Gruntfile.js`
-| Grunt project file
-
-| Angular
-| `angular.json`
-| Angular project file
-
-| JavaScript
-| `gulpfile.js`
-| Javascript Gulp file
-
-| JavaScript
-| `package.json`
-| npm, pnpm and yarn project file
-
-| Python
-| `manage.py`
-| Django project file
-
-| Python
-| `requirements.txt`
-| Python requirements file
-
-| Python
-| `setup.py`
-| Setuptools file
-
-| Python
-| `tox.ini`
-| Python Tox file
-
-| Python
-| `Pipfile`
-| Python Pip file
-
-| Python
-| `poetry.lock`
-| Python Poetry project file
-
-| Python
-| `pyproject.toml`
-| Python project file
-
-| Java & friends
-| `pom.xml`
-| Maven project file
-
-| Java & friends
-| `application.yml`
-| Grails project file
-
-| Java & friends
-| `build.gradle`
-| Gradle project file
-
-| Java & friends
-| `gradlew`
-| Gradle wrapper script
-
-| Scala
-| `build.sbt`
-| SBT project file
-
-| Scala
-| `build.sc`
-| Mill project file
-
-| Scala
+| `bloop`
 | `.bloop/bloop.settings.json`
-| Bloop project file
 
-| Clojure
-| `project.clj`
-| Leiningen project file
-
-| Clojure
+| `boot-clj`
 | `build.boot`
-| Boot-clj project file
 
-| Clojure
+| `buck2`
+| `.buckconfig`
+
+| `bun`
+| `package.json` + (`bun.lock` or `bun.lockb`)
+
+| `clojure-cli`
 | `deps.edn`
-| Clojure CLI project file
 
-| Ruby
-| `Gemfile`
-| Bundler file
+| `cmake`
+| `CMakeLists.txt`
 
-| Crystal
+| `crystal-spec`
 | `shard.yml`
-| Crystal project file
 
-| Emacs
-| `Cask`
-| Emacs cask file
-
-| Emacs
-| `Eask`
-| Emacs Eask file
-
-| Emacs
-| `Eldev`
-| Emacs LISP project file
-
-| R
-| `DESCRIPTION`
-| R package description file
-
-| Haskell
-| `stack.yaml`
-| Haskell's stack tool based project
-
-| Rust
-| `Cargo.toml`
-| Cargo project file
-
-| Racket
-| `info.rkt`
-| Racket package description file
-
-| Dart
+| `dart`
 | `pubspec.yaml`
-| Dart project file
 
-| Elm
+| `debian`
+| `debian/control`
+
+| `deno`
+| `deno.json` or `deno.jsonc`
+
+| `django`
+| `manage.py`
+
+| `docker-compose`
+| `compose.yaml` or `compose.yml` or `docker-compose.yaml` or `docker-compose.yml`
+
+| `dotnet`
+| `projectile-dotnet-project-p` (predicate)
+
+| `dotnet-sln`
+| `projectile-dotnet-sln-project-p` (predicate)
+
+| `dub`
+| `dub.json` or `dub.sdl`
+
+| `elixir`
+| `mix.exs`
+
+| `elm`
 | `elm.json`
-| Elm project file
 
-| Julia
+| `emacs-cask`
+| `Cask`
+
+| `emacs-eask`
+| `Eask`
+
+| `emacs-eldev`
+| `projectile-eldev-project-p` (predicate)
+
+| `flutter`
+| `projectile-flutter-project-p` (predicate)
+
+| `foundry`
+| `foundry.toml`
+
+| `fpm`
+| `fpm.toml`
+
+| `gleam`
+| `gleam.toml`
+
+| `gnumake`
+| `GNUmakefile`
+
+| `go`
+| `projectile-go-project-p` (predicate)
+
+| `go-task`
+| `Taskfile.yml` or `Taskfile.yaml` or `Taskfile.dist.yml` or `Taskfile.dist.yaml`
+
+| `godot`
+| `project.godot`
+
+| `gradle`
+| `build.gradle` or `build.gradle.kts` or `settings.gradle` or `settings.gradle.kts`
+
+| `gradlew`
+| `gradlew`
+
+| `grails`
+| `application.yml` + `grails-app`
+
+| `grunt`
+| `Gruntfile.js`
+
+| `gulp`
+| `gulpfile.js`
+
+| `haskell-cabal`
+| `projectile-cabal-project-p` (predicate)
+
+| `haskell-stack`
+| `stack.yaml`
+
+| `helm`
+| `Chart.yaml`
+
+| `hugo`
+| `hugo.toml` or `hugo.yaml` or `hugo.json`
+
+| `jekyll`
+| `_config.yml`
+
+| `julia`
 | `Project.toml`
-| Julia project file
 
-| OCaml
+| `just`
+| `justfile` or `.justfile` or `Justfile`
+
+| `lein-midje`
+| `project.clj` + `.midje.clj`
+
+| `lein-test`
+| `project.clj`
+
+| `make`
+| `projectile-make-project-p` (predicate)
+
+| `maven`
+| `pom.xml`
+
+| `meson`
+| `meson.build`
+
+| `mill`
+| `projectile-mill-project-p` (predicate)
+
+| `mise`
+| `mise.toml` or `.mise.toml`
+
+| `mkdocs`
+| `mkdocs.yml`
+
+| `nim-nimble`
+| `projectile-nimble-project-p` (predicate)
+
+| `nix`
+| `default.nix`
+
+| `nix-flake`
+| `flake.nix`
+
+| `node`
+| `package.json`
+
+| `npm`
+| `package.json` + `package-lock.json`
+
+| `nx`
+| `nx.json`
+
+| `ocaml-dune`
 | `dune-project`
-| OCaml Dune project file
 
-| Universal
-| `GTAGS`
-| GNU Global tags
+| `pants`
+| `pants.toml`
 
-| Universal
-| `TAGS`
-| etags/ctags are usually in the root of project
+| `php-composer`
+| `composer.json`
 
-| Universal
-| `configure.ac`
-| autoconf new style
+| `php-laravel`
+| `composer.json` + `artisan`
 
-| Universal
-| `configure.in`
-| autoconf old style
+| `php-symfony`
+| `composer.json` + (`bin/console` or `app/console`)
 
-| C
-| `cscope.out`
-| cscope
+| `platformio`
+| `platformio.ini`
 
-| Zig
-| `build.zig.zon`
-| Zig project file
+| `pnpm`
+| `package.json` + `pnpm-lock.yaml`
 
-| Swift
+| `pulumi`
+| `Pulumi.yaml`
+
+| `python-pdm`
+| `pdm.lock`
+
+| `python-pip`
+| `requirements.txt`
+
+| `python-pipenv`
+| `Pipfile`
+
+| `python-pkg`
+| `setup.py`
+
+| `python-poetry`
+| `poetry.lock`
+
+| `python-toml`
+| `pyproject.toml`
+
+| `python-tox`
+| `tox.ini`
+
+| `python-uv`
+| `uv.lock`
+
+| `quarto`
+| `_quarto.yml`
+
+| `r`
+| `DESCRIPTION`
+
+| `racket`
+| `info.rkt`
+
+| `rails-rspec`
+| `Gemfile` + `app` + `lib` + `db` + `config` + `spec`
+
+| `rails-test`
+| `Gemfile` + `app` + `lib` + `db` + `config` + `test`
+
+| `rebar`
+| `rebar.config`
+
+| `ruby-rspec`
+| `Gemfile` + `lib` + `spec`
+
+| `ruby-test`
+| `Gemfile` + `lib` + `test`
+
+| `rust-cargo`
+| `Cargo.toml`
+
+| `sbt`
+| `build.sbt`
+
+| `scala-cli`
+| `project.scala`
+
+| `scons`
+| `SConstruct`
+
+| `swift-spm`
 | `Package.swift`
-| Swift package file
+
+| `terraform`
+| `projectile-terraform-project-p` (predicate)
+
+| `turborepo`
+| `turbo.json`
+
+| `xcode`
+| `projectile-xcode-project-p` (predicate)
+
+| `xmake`
+| `xmake.lua`
+
+| `yarn`
+| `package.json` + `yarn.lock`
+
+| `zig`
+| `build.zig` or `build.zig.zon`
+
+| `zola`
+| `config.toml` + `content`
+
 |===
 
 There's also Projectile's own `.projectile` which serves both as a project marker
 and a configuration file. See xref:ignoring.adoc[Ignoring files] for its ignore/keep rules.
+
+Plenty of projects match more than one of these - a Django application has a
+`pyproject.toml`, a Laravel one has a `package.json` for its assets, and all sorts of
+projects ship a `justfile` or a Compose file. Projectile tries the types from the most
+specific to the least, so the framework wins over the packaging tool, and the packaging
+tool wins over the generic task runner. `projectile-doctor` reports which type matched
+and on which marker, which is the quickest way to find out why a project came out the
+way it did.
 
 == Adding custom project types
 
