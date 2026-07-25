@@ -11427,15 +11427,20 @@ that part of the repository."
       (find-file (expand-file-name file project-root))
       (run-hooks 'projectile-find-file-hook))))
 
-(defun projectile-compilation-dir ()
-  "Retrieve the compilation directory for this project."
-  (let* ((project-root (projectile-acquire-root))
-         (type (projectile-project-type project-root))
+(defun projectile-compilation-dir (&optional base)
+  "Retrieve the compilation directory for this project.
+
+BASE, when non-nil, is the directory the project type's compilation
+directory is resolved against instead of the project root - a
+subproject's root, say, so a Meson module builds in its own `build'
+directory rather than the repository's."
+  (let* ((base (or base (projectile-acquire-root)))
+         (type (projectile-project-type base))
          (comp-dir (or projectile-project-compilation-dir
-                        (projectile-default-compilation-dir type))))
+                       (projectile-default-compilation-dir type))))
     (if comp-dir
-        (expand-file-name (file-name-as-directory comp-dir) project-root)
-      project-root)))
+        (expand-file-name (file-name-as-directory comp-dir) base)
+      base)))
 
 (defun projectile-maybe-read-command (arg default-cmd prompt &optional command-type)
   "Prompt user for command unless DEFAULT-CMD is an Elisp function.
@@ -11489,7 +11494,7 @@ Duplicates are handled according to `projectile-cmd-hist-ignoredups'."
    (t (ring-insert history command))))
 
 (cl-defun projectile--run-project-cmd
-    (command command-map &key command-type show-prompt prompt-prefix save-buffers use-comint-mode buffer-name-function no-cache)
+    (command command-map &key command-type directory show-prompt prompt-prefix save-buffers use-comint-mode buffer-name-function no-cache)
   "Run a project COMMAND, typically a test- or compile command.
 
 Cache the COMMAND for later use inside the hash-table COMMAND-MAP.
@@ -11500,6 +11505,11 @@ function-derived commands that must be re-resolved on every run.
 COMMAND-TYPE, when non-nil, is the lifecycle command type symbol
 \(e.g. `compile' or `test') and is used to keep a per-type command
 history for the prompt, in addition to the combined per-project one.
+
+DIRECTORY, when non-nil, is where the command runs; it defaults to
+`projectile-compilation-dir'.  The caller passes it when it has already
+resolved the directory, so the command it looked up and the directory it
+runs in can't diverge.
 
 Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
@@ -11517,7 +11527,7 @@ The placeholder `%p' in COMMAND is replaced with the project name.
 
 The command actually run is returned."
   (let* ((project-root (projectile-acquire-root))
-         (default-directory (projectile-compilation-dir))
+         (default-directory (or directory (projectile-compilation-dir)))
          (command (projectile-maybe-read-command show-prompt
                                                  command
                                                  prompt-prefix
@@ -11609,22 +11619,35 @@ never treated as dynamic."
           (plist-get (alist-get (projectile-project-type) projectile-project-types)
                      (intern (format "%s-command" phase)))))))
 
-(defun projectile--run-lifecycle-phase (phase show-prompt &optional prompt-prefix)
+(defun projectile--lifecycle-prompt (descriptor base)
+  "Return the command prompt for the lifecycle phase DESCRIPTOR.
+When BASE is non-nil the command runs somewhere other than the project
+root, and the prompt says where - there's no other way to tell a
+subproject build from a whole-project one at the prompt."
+  (let ((prompt (plist-get descriptor :prompt)))
+    (if (null base)
+        prompt
+      (format "%s in %s: "
+              (string-trim-right prompt "[ :]+")
+              (file-relative-name base (projectile-acquire-root))))))
+
+(defun projectile--run-lifecycle-phase (phase show-prompt &optional base)
   "Run the current project's command for lifecycle PHASE.
 PHASE is a symbol naming an entry of `projectile--lifecycle-phases'.
 With SHOW-PROMPT non-nil force prompting for the command, as in
-`projectile--run-project-cmd'.  PROMPT-PREFIX overrides the phase's own
-prompt."
+`projectile--run-project-cmd'.  BASE, when non-nil, is the directory the
+phase's compilation directory is resolved against instead of the project
+root (see `projectile-compilation-dir')."
   (let* ((descriptor (projectile--phase-descriptor phase))
-         (command (funcall (plist-get descriptor :command-fn)
-                           (projectile-compilation-dir)))
+         (directory (projectile-compilation-dir base))
+         (command (funcall (plist-get descriptor :command-fn) directory))
          (command-map (if (projectile--cache-project-commands-p)
                           (symbol-value (plist-get descriptor :cmd-map)))))
     (projectile--run-project-cmd command command-map
                                  :command-type phase
+                                 :directory directory
                                  :show-prompt show-prompt
-                                 :prompt-prefix (or prompt-prefix
-                                                    (plist-get descriptor :prompt))
+                                 :prompt-prefix (projectile--lifecycle-prompt descriptor base)
                                  :save-buffers (plist-get descriptor :save-buffers)
                                  :no-cache (projectile--phase-command-dynamic-p phase)
                                  :use-comint-mode (symbol-value (plist-get descriptor :use-comint-var)))))
@@ -11660,55 +11683,45 @@ with a prefix ARG."
   (interactive "P")
   (projectile--run-lifecycle-phase 'test arg))
 
-(defun projectile--run-subproject-phase (phase show-prompt prompt-prefix)
+(defun projectile--run-subproject-phase (phase show-prompt)
   "Run lifecycle PHASE in the nearest subproject of the current file.
-SHOW-PROMPT and PROMPT-PREFIX are as in `projectile--run-lifecycle-phase',
-which does the actual work - the subproject only changes the directory
-the command runs in."
-  (let* ((project-root (projectile-acquire-root))
-         (subproject-root (projectile-subproject-root))
-         (projectile-project-compilation-dir
-          (file-relative-name subproject-root project-root)))
-    (projectile--run-lifecycle-phase phase show-prompt prompt-prefix)))
+SHOW-PROMPT is as in `projectile--run-lifecycle-phase', which does the
+actual work - the subproject is just the directory the phase resolves
+its compilation directory against."
+  (projectile--run-lifecycle-phase phase show-prompt (projectile-subproject-root)))
 
-;;;###autoload
-(defun projectile-compile-subproject (arg)
-  "Run compilation in the nearest subproject.
+(defmacro projectile--define-subproject-commands (&rest phases)
+  "Define a subproject variant of the lifecycle command of each of PHASES.
+Each variant runs the phase command in the nearest subproject rather than
+at the project root; see `projectile--run-subproject-phase'."
+  `(progn
+     ,@(mapcar
+        (lambda (phase)
+          (let ((name (intern (format "projectile-%s-subproject" phase))))
+            `(defun ,name (arg)
+               ,(format "Run the %s command of the project in the nearest subproject.
+
 Find the closest project manifest (e.g. pom.xml, Cargo.toml) between the
-current directory and the project root, then run the project's compile
-command there.  This is useful for multi-module projects where building
-a single module is faster than building the entire project.
+current directory and the project root, and run the command there instead
+of over the whole repository.  In a monorepo that is the module being
+worked on.  The command itself is unchanged - only the directory it runs
+in - so a project type that builds in a subdirectory (Meson in `build',
+say) still does, relative to the subproject.
 
-Normally you'll be prompted for a compilation command, unless
-variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
-  (interactive "P")
-  (projectile--run-subproject-phase 'compile arg "Compile subproject command: "))
-
-;;;###autoload
-(defun projectile-test-subproject (arg)
-  "Run tests in the nearest subproject.
-Find the closest project manifest (e.g. pom.xml, Cargo.toml) between the
-current directory and the project root, then run the project's test
-command there.  This is useful for multi-module projects where testing
-a single module is faster than testing the entire project.
-
-Normally you'll be prompted for a compilation command, unless
-variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
-  (interactive "P")
-  (projectile--run-subproject-phase 'test arg "Test subproject command: "))
-
-;;;###autoload
-(defun projectile-run-subproject (arg)
-  "Run the nearest subproject.
-Like `projectile-compile-subproject', but for the project's run command -
-handy in a monorepo where each service is started from its own directory.
-
-Normally you'll be prompted for a command, unless variable
+Normally you will be prompted for the command, unless variable
 `compilation-read-command'.  You can force the prompt with a prefix ARG."
-  (interactive "P")
-  (projectile--run-subproject-phase 'run arg "Run subproject command: "))
+                        phase)
+               (interactive "P")
+               (projectile--run-subproject-phase ',phase arg))))
+        phases)))
+
+;;;###autoload (autoload 'projectile-configure-subproject "projectile" nil t)
+;;;###autoload (autoload 'projectile-compile-subproject "projectile" nil t)
+;;;###autoload (autoload 'projectile-test-subproject "projectile" nil t)
+;;;###autoload (autoload 'projectile-install-subproject "projectile" nil t)
+;;;###autoload (autoload 'projectile-package-subproject "projectile" nil t)
+;;;###autoload (autoload 'projectile-run-subproject "projectile" nil t)
+(projectile--define-subproject-commands configure compile test install package run)
 
 (defun projectile-test-at-point-python-name (node)
   "Return the test name for the Python `function_definition' NODE.
@@ -14030,11 +14043,15 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c t") #'projectile-test-project)
     (define-key map (kbd "c .") #'projectile-run-test-at-point)
     (define-key map (kbd "c r") #'projectile-run-project)
-    ;; subprojects (see `projectile-project-subprojects')
+    ;; subprojects (see `projectile-project-subprojects') - the keys
+    ;; mirror the project-wide ones a level down
+    (define-key map (kbd "c m f") #'projectile-find-file-in-subproject)
+    (define-key map (kbd "c m o") #'projectile-configure-subproject)
     (define-key map (kbd "c m c") #'projectile-compile-subproject)
     (define-key map (kbd "c m t") #'projectile-test-subproject)
+    (define-key map (kbd "c m i") #'projectile-install-subproject)
+    (define-key map (kbd "c m p") #'projectile-package-subproject)
     (define-key map (kbd "c m r") #'projectile-run-subproject)
-    (define-key map (kbd "c m f") #'projectile-find-file-in-subproject)
     (define-key map (kbd "c x") #'projectile-run-task)
     (define-key map (kbd "c X") #'projectile-repeat-last-task)
     ;; integration with utilities
@@ -14361,7 +14378,10 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("cmf" "find file" projectile-find-file-in-subproject)
       ("cmc" "compile" projectile-compile-subproject)
       ("cmt" "test" projectile-test-subproject)
-      ("cmr" "run" projectile-run-subproject)]
+      ("cmr" "run" projectile-run-subproject)
+      ("cmo" "configure" projectile-configure-subproject)
+      ("cmi" "install" projectile-install-subproject)
+      ("cmp" "package" projectile-package-subproject)]
      ["Shells / Run"
       ("xr" "run" projectile-dispatch-run)
       ("xe" "eshell" projectile-dispatch-run-eshell)
@@ -14500,8 +14520,11 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Run task" projectile-run-task]
          ["Repeat last task" projectile-repeat-last-task]
          "--"
+         ["Configure subproject" projectile-configure-subproject]
          ["Compile subproject" projectile-compile-subproject]
          ["Test subproject" projectile-test-subproject]
+         ["Install subproject" projectile-install-subproject]
+         ["Package subproject" projectile-package-subproject]
          ["Run subproject" projectile-run-subproject]
          "--"
          ["Repeat last build command" projectile-repeat-last-command])

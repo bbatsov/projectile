@@ -199,16 +199,23 @@ dependency's manifest doesn't count as a subproject).
 
 * `projectile-find-file-in-subproject` (kbd:[s-p c m f]) prompts for a
   subproject and then completes over just its files.
-* `projectile-compile-subproject` (kbd:[s-p c m c]),
-  `projectile-test-subproject` (kbd:[s-p c m t]) and
-  `projectile-run-subproject` (kbd:[s-p c m r]) run the project's compile,
-  test and run commands in the *nearest* subproject - the one containing the
-  file you're visiting - rather than at the project root. The command itself is
-  the project's, only the directory changes, which is what workspace-aware
-  tools like Cargo, npm and Maven need to scope their work.
+* Every lifecycle command has a subproject variant, bound one level down from
+  the project-wide one: `projectile-configure-subproject` (kbd:[s-p c m o]),
+  `-compile-` (kbd:[s-p c m c]), `-test-` (kbd:[s-p c m t]), `-install-`
+  (kbd:[s-p c m i]), `-package-` (kbd:[s-p c m p]) and `-run-`
+  (kbd:[s-p c m r]). They run in the *nearest* subproject - the one containing
+  the file you're visiting - rather than at the project root. The command
+  itself is the project's, only the directory changes, which is what
+  workspace-aware tools like Cargo, npm and Maven need to scope their work.
+
+The prompt tells you where the command will run (`Test command in
+services/api/:`), so a subproject build is never mistaken for a whole-project
+one. A project type that builds in a subdirectory keeps doing so, relative to
+the subproject: in a Meson monorepo kbd:[s-p c m c] runs ninja in
+`sub/build/`, not in `sub/`.
 
 If there's no manifest between the current file and the project root, those
-three commands say so rather than silently building the whole repository.
+commands say so rather than silently building the whole repository.
 
 == Running the test at point
 
