@@ -6359,18 +6359,23 @@ a manual COMMAND-TYPE command is created with
                                   :test "ng test"
                                   :test-suffix ".spec")
 ;; Python
-(projectile-register-project-type 'django '("manage.py")
-                                  :compile "python manage.py runserver"
-                                  :test "python manage.py test"
-                                  :test-prefix "test_"
-                                  :test-suffix "_test"
-                                  :file-kinds projectile--django-file-kinds)
+;;
+;; Nearly every Python project carries a `pyproject.toml' these days, and
+;; most carry a `requirements.txt' or a `setup.py' too, so the generic
+;; manifests are registered first (and thus checked last).  What tells
+;; the projects apart is the tool-specific lock file on top, and the
+;; framework beats the packaging tool.
 (projectile-register-project-type 'python-pip '("requirements.txt")
                                   :compile "pip install -r requirements.txt"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
 (projectile-register-project-type 'python-pkg '("setup.py")
+                                  :compile "python -m build"
+                                  :test "python -m unittest discover"
+                                  :test-prefix "test_"
+                                  :test-suffix "_test")
+(projectile-register-project-type 'python-toml '("pyproject.toml")
                                   :compile "python -m build"
                                   :test "python -m unittest discover"
                                   :test-prefix "test_"
@@ -6390,11 +6395,13 @@ a manual COMMAND-TYPE command is created with
                                   :test "poetry run pytest"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
-(projectile-register-project-type 'python-toml '("pyproject.toml")
-                                  :compile "python -m build"
-                                  :test "python -m unittest discover"
+(projectile-register-project-type 'django '("manage.py")
+                                  :compile "python manage.py collectstatic"
+                                  :run "python manage.py runserver"
+                                  :test "python manage.py test"
                                   :test-prefix "test_"
-                                  :test-suffix "_test")
+                                  :test-suffix "_test"
+                                  :file-kinds projectile--django-file-kinds)
 ;; Java & friends
 (projectile-register-project-type 'maven '("pom.xml")
                                   :compile "mvn -B clean install"

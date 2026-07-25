@@ -238,6 +238,33 @@
       (expect (projectile-default-compilation-command type)
               :to-equal "bundle exec rake"))))
 
+(describe "python project types"
+  ;; Nearly every Python project has a pyproject.toml, so the more
+  ;; specific types have to win over it.
+  (it "prefers django over the packaging manifests"
+    (projectile-test-with-stub-root "project" ("manage.py" "pyproject.toml" "requirements.txt")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'django))))
+  (it "prefers poetry over the bare pyproject.toml"
+    (projectile-test-with-stub-root "project" ("poetry.lock" "pyproject.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'python-poetry))))
+  (it "prefers pipenv over the bare pyproject.toml"
+    (projectile-test-with-stub-root "project" ("Pipfile" "pyproject.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'python-pipenv))))
+  (it "prefers tox over the bare pyproject.toml"
+    (projectile-test-with-stub-root "project" ("tox.ini" "pyproject.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'python-tox))))
+  (it "prefers pyproject.toml over setup.py and requirements.txt"
+    (projectile-test-with-stub-root "project" ("pyproject.toml" "setup.py" "requirements.txt")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'python-toml))))
+  (it "runs the django server as the run command, not as the compile command"
+    (expect (projectile-default-run-command 'django)
+            :to-equal "python manage.py runserver")))
+
 (describe "php-symfony project type"
   (it "detects a modern Symfony layout, which has no app directory"
     (projectile-test-with-stub-root "project"
