@@ -5692,6 +5692,12 @@ ones and overrule settings in the other lists."
         (setq rtn (plist-put rtn p v))))
     rtn))
 
+(defun projectile--any-marker-p (marker)
+  "Return non-nil when MARKER is an alternatives clause.
+Such a clause has the form (:any FILE...) and is satisfied by any one
+of its FILEs; see `projectile-register-project-type'."
+  (and (consp marker) (eq (car marker) :any)))
+
 (cl-defun projectile--build-project-plist
     (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn file-kinds tasks)
   "Return a project type plist with the provided arguments.
@@ -5702,10 +5708,13 @@ and optional keyword arguments.
 MARKER-FILES is either a list of files or a predicate function.  When it
 is a list, ALL of the listed files must be present in the project root for
 the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
-is the common case.  To match when ANY one of several files is present,
-don't pass a list; use a predicate function instead.  The predicate is
-called with the project root as its single argument and should return
-non-nil when the project is of this type.
+is the common case.  A list element may itself be an alternatives clause
+of the form (:any FILE...), which is satisfied when any one of its FILEs
+is present, so `((:any \"build.gradle\" \"build.gradle.kts\"))' matches a
+project with either of them.  For anything more involved, don't pass a
+list; use a predicate function instead.  The predicate is called with the
+project root as its single argument and should return non-nil when the
+project is of this type.
 
 The optional keyword arguments are:
 PROJECT-FILE the main project file in the root project directory.  It may be a
@@ -5744,8 +5753,12 @@ TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
   ;; up outside real projects and so must not anchor a project root.
   (let* ((project-file (cond ((eq project-file 'none) nil)
                              (project-file project-file)
-                             ((and (consp marker-files)
-                                   (stringp (car marker-files)))
+                             ((not (consp marker-files)) nil)
+                             ;; An alternatives clause contributes all of
+                             ;; its files, so each of them can anchor a root.
+                             ((projectile--any-marker-p (car marker-files))
+                              (cdar marker-files))
+                             ((stringp (car marker-files))
                               (car marker-files))))
          (project-plist (list 'marker-files marker-files
                               'project-file project-file
@@ -5788,15 +5801,19 @@ and optional keyword arguments.
 MARKER-FILES is either a list of files or a predicate function.  When it
 is a list, ALL of the listed files must be present in the project root for
 the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
-is the common case.  To match when ANY one of several files is present,
-don't pass a list; use a predicate function instead.  The predicate is
-called with the project root as its single argument and should return
-non-nil when the project is of this type.
+is the common case.  A list element may itself be an alternatives clause
+of the form (:any FILE...), which is satisfied when any one of its FILEs
+is present, so `((:any \"build.gradle\" \"build.gradle.kts\"))' matches a
+project with either of them.  For anything more involved, don't pass a
+list; use a predicate function instead.  The predicate is called with the
+project root as its single argument and should return non-nil when the
+project is of this type.
 
 The optional keyword arguments are:
 PROJECT-FILE the main project file in the root project directory.  It may be a
              single file or a list of possible files.  When omitted it
-             defaults to the first marker file.  Pass the symbol `none'
+             defaults to the first marker file, or to all the alternatives
+             of the first marker clause.  Pass the symbol `none'
              to opt out, so the type is detected but contributes no
              project-root marker (e.g. when its marker also appears
              outside real projects).
@@ -6602,12 +6619,20 @@ The project type is cached for improved performance."
 
 (defun projectile-verify-files (files &optional dir entry-set)
   "Check whether all FILES exist in the project.
+An element of FILES may also be an alternatives clause of the form
+\(:any FILE...), which is satisfied when any one of its FILEs exists.
 When DIR is specified it checks DIR's project, otherwise
 it acts on the current project.  ENTRY-SET, when non-nil, is a hash set
 of the project root's immediate entries (see
 `projectile--directory-entry-set') used to answer plain-name FILES
 without a filesystem round-trip each."
-  (seq-every-p (lambda (file) (projectile-verify-file file dir entry-set)) files))
+  (seq-every-p (lambda (file)
+                 (if (projectile--any-marker-p file)
+                     (seq-some (lambda (alternative)
+                                 (projectile-verify-file alternative dir entry-set))
+                               (cdr file))
+                   (projectile-verify-file file dir entry-set)))
+               files))
 
 (defun projectile-verify-file (file &optional dir entry-set)
   "Check whether FILE exists in the current project.
@@ -12580,7 +12605,12 @@ cached too.
      (when-let* ((marker (plist-get data :type-marker)))
        (if (functionp marker)
            (format "%s (predicate)" marker)
-         (string-join (ensure-list marker) " "))))
+         (mapconcat (lambda (clause)
+                      (if (projectile--any-marker-p clause)
+                          (string-join (cdr clause) "|")
+                        clause))
+                    (ensure-list marker)
+                    " "))))
     (projectile-doctor--field "vcs" (plist-get data :vcs))
     (when (eq (plist-get data :type) 'generic)
       (insert "
