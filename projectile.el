@@ -206,6 +206,21 @@ using the native indexing method."
           (const :tag "Persistent" persistent))
   :package-version '(projectile . "2.9.0"))
 
+(defcustom projectile-async-index-sentinel-timeout 1.0
+  "Seconds to wait for a finished index's result before collecting it.
+
+The asynchronous indexer hands its result over from the indexing
+process's sentinel.  Once that process has exited, Emacs is expected to
+run the sentinel promptly - but it isn't guaranteed to while a command is
+waiting for it, and Projectile then used to wait forever (issue #2118).
+
+After this many seconds Projectile parses the finished command's output
+itself instead.  There's no correctness difference; the timeout only
+decides how long to let Emacs do it first."
+  :group 'projectile
+  :type 'number
+  :package-version '(projectile . "3.3.0"))
+
 (defcustom projectile-async-indexing t
   "Whether to index projects without freezing Emacs.
 
@@ -3677,6 +3692,50 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
            ;; nil on Windows without `sh', in which case we decline below and
            ;; the caller falls back to the synchronous runner (see #2116).
            (shell (projectile--posix-shell))
+           ;; The result is delivered by this function rather than
+           ;; straight from the sentinel, so a caller waiting on the
+           ;; process can also deliver it (see
+           ;; `projectile--dir-files-alien-await' and issue #2118).  It
+           ;; runs at most once, whoever gets there first.
+           (finished nil)
+           (finish
+            (lambda (proc)
+              (unless finished
+                (setq finished t)
+                (unwind-protect
+                    ;; A consumer that gives up on the wait (e.g. a C-g during
+                    ;; `projectile--dir-files-alien-await') marks the process
+                    ;; aborted and kills it.  Killing fires the sentinel with a
+                    ;; `signal' status, but we must not then report a bogus
+                    ;; failure or clobber the errors buffer - just clean up.
+                    (unless (process-get proc 'projectile-aborted)
+                      (let ((exit-code (process-exit-status proc))
+                            (files (projectile--restrict-to-subdirs
+                                    (with-current-buffer stdout-buffer
+                                      (projectile--ext-command-output-files))
+                                    restrict)))
+                        (cond
+                         ;; Clean exit: pass the listing through.
+                         ((and (numberp exit-code) (zerop exit-code))
+                          (funcall callback files nil))
+                         ;; Non-zero exit but we still got a listing: trust it,
+                         ;; mirroring the synchronous runner.  Surface stderr
+                         ;; and mention it quietly when there's anything to see.
+                         (files
+                          (when (projectile--surface-ext-command-errors errors-file)
+                            (message "Projectile: `%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
+                                     command exit-code))
+                          (funcall callback files nil))
+                         ;; Non-zero exit and nothing on stdout: a real failure.
+                         (t
+                          (projectile--surface-ext-command-errors errors-file)
+                          (funcall callback
+                                   nil
+                                   (format "exit code %s: %s"
+                                           exit-code command))))))
+                  (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
+                  (when (file-exists-p errors-file)
+                    (ignore-errors (delete-file errors-file)))))))
            (proc
             (when shell
               (condition-case nil
@@ -3690,45 +3749,16 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
                    :sentinel
                    (lambda (proc _event)
                      (when (memq (process-status proc) '(exit signal))
-                       (unwind-protect
-                           ;; A consumer that gives up on the wait (e.g. a C-g during
-                           ;; `projectile--dir-files-alien-await') marks the process
-                           ;; aborted and kills it.  Killing fires this sentinel with a
-                           ;; `signal' status, but we must not then report a bogus
-                           ;; failure or clobber the errors buffer - just clean up.
-                           (unless (process-get proc 'projectile-aborted)
-                             (let ((exit-code (process-exit-status proc))
-                                   (files (projectile--restrict-to-subdirs
-                                           (with-current-buffer stdout-buffer
-                                             (projectile--ext-command-output-files))
-                                           restrict)))
-                               (cond
-                                ;; Clean exit: pass the listing through.
-                                ((and (numberp exit-code) (zerop exit-code))
-                                 (funcall callback files nil))
-                                ;; Non-zero exit but we still got a listing: trust it,
-                                ;; mirroring the synchronous runner.  Surface stderr
-                                ;; and mention it quietly when there's anything to see.
-                                (files
-                                 (when (projectile--surface-ext-command-errors errors-file)
-                                   (message "Projectile: `%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
-                                            command exit-code))
-                                 (funcall callback files nil))
-                                ;; Non-zero exit and nothing on stdout: a real failure.
-                                (t
-                                 (projectile--surface-ext-command-errors errors-file)
-                                 (funcall callback
-                                          nil
-                                          (format "exit code %s: %s"
-                                                  exit-code command))))))
-                         (when (buffer-live-p stdout-buffer) (kill-buffer stdout-buffer))
-                         (when (file-exists-p errors-file)
-                           (ignore-errors (delete-file errors-file)))))))
+                       (funcall finish proc))))
                 ;; A failed spawn (e.g. Windows can't exec the shell, #2116)
                 ;; signals `file-error'; trap it and decline so the caller
                 ;; falls back to the synchronous runner, rather than letting
                 ;; it escape from indexing.
                 (file-error nil)))))
+      ;; Hand the delivery function to whoever waits on the process, so a
+      ;; sentinel that doesn't get run can't strand them (see #2118).
+      (when (processp proc)
+        (process-put proc 'projectile-finish finish))
       ;; No process: either no POSIX shell was found (Windows without `sh',
       ;; see #2116), a spawn error was trapped above, or a file-name handler
       ;; declined (e.g. a remote host that doesn't support `make-process').
@@ -3876,9 +3906,29 @@ and timers (but not interactive commands) may run while we wait."
                                (propertize (abbreviate-file-name directory)
                                            'face 'font-lock-keyword-face)))))
         (unwind-protect
-            (while (not done)
-              (accept-process-output proc 0.1)
-              (progress-reporter-update reporter))
+            (progn
+              (while (and (not done) (process-live-p proc))
+                (accept-process-output proc 0.1)
+                (progress-reporter-update reporter))
+              ;; The command is done, but the result reaches us from the
+              ;; process sentinel, and that isn't guaranteed to have run:
+              ;; `accept-process-output' on a process that has already
+              ;; exited returns without running it, and the status change
+              ;; may not be noticed until Emacs is back in its command
+              ;; loop.  That used to leave this loop spinning forever with
+              ;; the progress reporter turning (issue #2118).  Pump the
+              ;; event loop briefly - `sit-for', unlike
+              ;; `accept-process-output', does run pending sentinels - and
+              ;; if the result still hasn't arrived, deliver it here.
+              (unless done
+                (let ((deadline (+ (projectile-time-seconds)
+                                   projectile-async-index-sentinel-timeout)))
+                  (while (and (not done) (< (projectile-time-seconds) deadline))
+                    (sit-for 0.02)
+                    (progress-reporter-update reporter)))
+                (unless done
+                  (when-let* ((finish (process-get proc 'projectile-finish)))
+                    (funcall finish proc)))))
           ;; Runs on normal completion and on `keyboard-quit': make sure we
           ;; never leave the indexing process running behind us.  Mark it
           ;; aborted first so its sentinel skips the failure path (killing
@@ -3888,10 +3938,14 @@ and timers (but not interactive commands) may run while we wait."
             (process-put proc 'projectile-aborted t)
             (delete-process proc)))
         (progress-reporter-done reporter))
-      (if err
-          (user-error "Projectile indexing failed: %s.  \
-See the *projectile-files-errors* buffer for details" err)
-        files)))))
+      (cond
+       (err
+        (user-error "Projectile indexing failed: %s.  \
+See the *projectile-files-errors* buffer for details" err))
+       (done files)
+       ;; Neither the sentinel nor we could deliver a result - rather than
+       ;; report an empty project, index the old (blocking) way.
+       (t (projectile-dir-files-alien directory vcs subdirs)))))))
 
 (defun projectile--dir-files-alien-maybe-async (directory &optional vcs subdirs)
   "Return alien-indexed files for DIRECTORY, without freezing when possible.
