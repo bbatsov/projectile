@@ -238,6 +238,34 @@
       (expect (projectile-default-compilation-command type)
               :to-equal "bundle exec rake"))))
 
+(describe "JavaScript project types"
+  (it "falls back to node for a package.json with no lock file"
+    (projectile-test-with-stub-root "project" ("package.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'node))))
+  (it "prefers the package manager that owns the lock file"
+    (projectile-test-with-stub-root "project" ("package.json" "pnpm-lock.yaml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'pnpm))))
+  (it "detects a bun project by either spelling of its lock file"
+    (projectile-test-with-stub-root "project" ("package.json" "bun.lock")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'bun)))
+    (projectile-test-with-stub-root "project" ("package.json" "bun.lockb")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'bun))))
+  (it "detects a deno project"
+    (projectile-test-with-stub-root "project" ("deno.jsonc")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'deno))))
+  (it "prefers the monorepo tool over the package manager underneath it"
+    (projectile-test-with-stub-root "project" ("package.json" "package-lock.json" "turbo.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'turborepo)))
+    (projectile-test-with-stub-root "project" ("package.json" "pnpm-lock.yaml" "nx.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'nx)))))
+
 (describe "python project types"
   ;; Nearly every Python project has a pyproject.toml, so the more
   ;; specific types have to win over it.
