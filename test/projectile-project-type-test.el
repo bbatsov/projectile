@@ -266,6 +266,25 @@
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
         (expect (projectile-detect-project-type) :to-equal 'nx)))))
 
+(describe "single-language project types"
+  (it "detects each language by its manifest"
+    (dolist (case '(("gleam.toml" . gleam)
+                    ("bb.edn" . babashka)
+                    ("project.scala" . scala-cli)
+                    ("dub.sdl" . dub)
+                    ("fpm.toml" . fpm)
+                    ("alire.toml" . alire)
+                    ("foundry.toml" . foundry)
+                    ("project.godot" . godot)
+                    ("platformio.ini" . platformio)))
+      (projectile-test-with-sandbox
+        (projectile-test-with-files ("project/")
+          (let ((projectile-project-type-cache (make-hash-table :test 'equal))
+                (root (file-truename (expand-file-name "project/"))))
+            (write-region "" nil (expand-file-name (car case) root))
+            (spy-on 'projectile-project-root :and-return-value root)
+            (expect (projectile-detect-project-type) :to-equal (cdr case))))))))
+
 (describe "task runner project types"
   (it "detects a just project by any spelling of the justfile"
     (projectile-test-with-stub-root "project" ("justfile")

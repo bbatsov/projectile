@@ -6391,6 +6391,14 @@ a manual COMMAND-TYPE command is created with
                                   :src-dir "lib/"
                                   :test "mix test"
                                   :test-suffix "_test")
+;; Gleam
+(projectile-register-project-type 'gleam '("gleam.toml")
+                                  :compile "gleam build"
+                                  :test "gleam test"
+                                  :run "gleam run"
+                                  :src-dir "src/"
+                                  :test-dir "test/"
+                                  :test-suffix "_test")
 ;; JavaScript
 ;; A bare `package.json' with no lock file next to it is still a Node
 ;; project - this is the fallback for all the more specific types below.
@@ -6581,6 +6589,12 @@ a manual COMMAND-TYPE command is created with
                                   :test-dir "src/test/"
                                   :test-suffix "Spec")
 
+(projectile-register-project-type 'scala-cli '("project.scala")
+                                  :compile "scala-cli compile ."
+                                  :test "scala-cli test ."
+                                  :run "scala-cli run ."
+                                  :test-suffix "Test")
+
 ;; Clojure
 (projectile-register-project-type 'lein-test '("project.clj")
                                   :compile "lein compile"
@@ -6595,6 +6609,12 @@ a manual COMMAND-TYPE command is created with
                                   :test "boot test"
                                   :test-suffix "_test")
 (projectile-register-project-type 'clojure-cli '("deps.edn")
+                                  :test-suffix "_test")
+;; Babashka's tasks are project-specific, so there are no commands to
+;; default to - `bb tasks' lists whatever a project defines.
+(projectile-register-project-type 'babashka '("bb.edn")
+                                  :src-dir "src/"
+                                  :test-dir "test/"
                                   :test-suffix "_test")
 
 ;; Ruby
@@ -6723,6 +6743,49 @@ a manual COMMAND-TYPE command is created with
                                   :compile "swift build"
                                   :test "swift test"
                                   :run "swift run")
+
+;; D
+(projectile-register-project-type 'dub '((:any "dub.json" "dub.sdl"))
+                                  :compile "dub build"
+                                  :test "dub test"
+                                  :run "dub run"
+                                  :src-dir "source/")
+
+;; Fortran
+(projectile-register-project-type 'fpm '("fpm.toml")
+                                  :compile "fpm build"
+                                  :test "fpm test"
+                                  :run "fpm run"
+                                  :src-dir "src/"
+                                  :test-dir "test/")
+
+;; Ada
+(projectile-register-project-type 'alire '("alire.toml")
+                                  :compile "alr build"
+                                  :test "alr test"
+                                  :run "alr run"
+                                  :src-dir "src/"
+                                  :test-dir "tests/")
+
+;; Solidity
+(projectile-register-project-type 'foundry '("foundry.toml")
+                                  :compile "forge build"
+                                  :test "forge test"
+                                  :src-dir "src/"
+                                  :test-dir "test/"
+                                  :test-suffix ".t")
+
+;; Godot
+(projectile-register-project-type 'godot '("project.godot")
+                                  :run "godot --path .")
+
+;; Embedded
+(projectile-register-project-type 'platformio '("platformio.ini")
+                                  :compile "pio run"
+                                  :install "pio run -t upload"
+                                  :test "pio test"
+                                  :src-dir "src/"
+                                  :test-dir "test/")
 
 (defvar-local projectile-project-type nil
   "Buffer local var for overriding the auto-detected project type.
