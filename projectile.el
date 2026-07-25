@@ -6270,9 +6270,11 @@ a manual COMMAND-TYPE command is created with
                                   :compile "nix build"
                                   :test "nix flake check"
                                   :run "nix run")
-(projectile-register-project-type 'bazel '("WORKSPACE")
-                                  :compile "bazel build"
-                                  :test "bazel test"
+;; `MODULE.bazel' is what Bazel 8+ uses by default (bzlmod); `WORKSPACE'
+;; and `WORKSPACE.bazel' are the older, now removed, dependency model.
+(projectile-register-project-type 'bazel '((:any "MODULE.bazel" "WORKSPACE" "WORKSPACE.bazel"))
+                                  :compile "bazel build //..."
+                                  :test "bazel test //..."
                                   :run "bazel run")
 (projectile-register-project-type 'debian '("debian/control")
                                   :compile "debuild -uc -us")
@@ -6297,7 +6299,8 @@ a manual COMMAND-TYPE command is created with
                                   :install #'projectile--cmake-install-command
                                   :package #'projectile--cmake-package-command)
 ;; go-task/task
-(projectile-register-project-type 'go-task '("Taskfile.yml")
+(projectile-register-project-type 'go-task '((:any "Taskfile.yml" "Taskfile.yaml"
+                                                   "Taskfile.dist.yml" "Taskfile.dist.yaml"))
                                   :compile "task build"
                                   :test "task test"
                                   :install "task install")
@@ -6341,7 +6344,9 @@ a manual COMMAND-TYPE command is created with
                                   :test "pnpm test"
                                   :test-suffix ".test")
 ;; Angular
-(projectile-register-project-type 'angular '("angular.json" ".angular-cli.json")
+;; `angular.json' is Angular 6+, `.angular-cli.json' the older spelling -
+;; a project has one or the other, never both.
+(projectile-register-project-type 'angular '((:any "angular.json" ".angular-cli.json"))
                                   :compile "ng build"
                                   :run "ng serve"
                                   :test "ng test"
@@ -6390,7 +6395,10 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix "Test"
                                   :src-dir "src/main/"
                                   :test-dir "src/test/")
-(projectile-register-project-type 'gradle '("build.gradle")
+;; The Kotlin DSL (`.kts') is what new Gradle builds use, and the root of
+;; a multi-project build may carry only a settings file.
+(projectile-register-project-type 'gradle '((:any "build.gradle" "build.gradle.kts"
+                                                  "settings.gradle" "settings.gradle.kts"))
                                   :compile "gradle build"
                                   :test "gradle test"
                                   :test-suffix "Spec")
@@ -6545,7 +6553,9 @@ a manual COMMAND-TYPE command is created with
                                   :test "dune runtest")
 
 ;; Zig
-(projectile-register-project-type 'zig '("build.zig.zon")
+;; `build.zig' is the build script; `build.zig.zon' only shows up once a
+;; project declares dependencies or a package name.
+(projectile-register-project-type 'zig '((:any "build.zig" "build.zig.zon"))
                                   :compile "zig build"
                                   :test "zig build test"
                                   :run "zig build run")
