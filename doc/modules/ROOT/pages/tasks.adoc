@@ -77,10 +77,13 @@ Tasks can be defined in three places:
 * per project, by setting `projectile-tasks` in `.dir-locals.el`, which makes
   the tasks shareable with your team through your VCS
 
+On top of those, Projectile discovers the tasks your project's own tooling
+already defines - see <<discovered-tasks,Discovered tasks>> below.
+
 The effective tasks for a project are the project type's tasks merged with
-`projectile-tasks`; when both define a task with the same name, the
-`projectile-tasks` entry wins. Use `projectile-project-tasks` if you need the
-merged alist programmatically.
+`projectile-tasks` and the discovered ones; when several define a task with the
+same name, the `projectile-tasks` entry wins, then the project type's. Use
+`projectile-project-tasks` if you need the merged alist programmatically.
 
 Here's a `.dir-locals.el` example:
 
@@ -121,6 +124,57 @@ arguments. Each task keeps its own command history at that prompt.
 in the current project, including any ad-hoc edits you made to its command,
 without asking again (you confirmed it the first time). It survives Emacs
 restarts when `savehist-mode` is enabled.
+
+[#discovered-tasks]
+=== Discovered tasks
+
+Most projects already list their tasks somewhere - npm scripts, Makefile
+targets, justfile recipes - and retyping those into `projectile-tasks` is
+busy-work. Projectile reads them straight out of the project instead, so
+`projectile-run-task` is useful in a fresh checkout without any configuration.
+
+Out of the box it knows about:
+
+|===
+| Source | File | Tasks named
+
+| npm scripts
+| `package.json`
+| `npm:build`, or `pnpm:` / `yarn:` / `bun:` depending on the lock file
+
+| Deno tasks
+| `deno.json`, `deno.jsonc`
+| `deno:dev`
+
+| Composer scripts
+| `composer.json`
+| `composer:lint`
+
+| just recipes
+| `justfile`, `.justfile`, `Justfile`
+| `just:build`
+
+| go-task tasks
+| `Taskfile.yml` and friends
+| `task:build`
+
+| Make targets
+| `Makefile`, `makefile`, `GNUmakefile`
+| `make:test`
+|===
+
+Discovered tasks carry the name of the tool that defines them, so they never
+collide with the tasks you configure yourself, and you can tell at the prompt
+where a task came from. Only plain named Make targets are offered - pattern
+rules, file targets and the dot-targets aren't things you'd run by hand.
+
+Set `projectile-discover-tasks` to nil to turn this off, or customize
+`projectile-task-providers` to add your own. A provider is a function taking
+the project root and returning an alist of `(TASK-NAME . COMMAND)`; one that
+signals an error is skipped, so a malformed manifest can't break the command.
+
+The manifests are read on each invocation rather than cached, and providers
+never shell out, so nothing has to be re-indexed when you add a script.
 
 == Running the test at point
 
