@@ -285,6 +285,34 @@
             (spy-on 'projectile-project-root :and-return-value root)
             (expect (projectile-detect-project-type) :to-equal (cdr case))))))))
 
+(describe "static site project types"
+  (it "detects a Hugo site by any of its config file spellings"
+    (projectile-test-with-stub-root "project" ("hugo.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'hugo)))
+    (projectile-test-with-stub-root "project" ("hugo.yaml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'hugo))))
+  (it "detects Jekyll, MkDocs and Quarto"
+    (projectile-test-with-stub-root "project" ("_config.yml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'jekyll)))
+    (projectile-test-with-stub-root "project" ("mkdocs.yml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'mkdocs)))
+    (projectile-test-with-stub-root "project" ("_quarto.yml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'quarto))))
+  (it "detects a Zola site without letting config.toml anchor a root"
+    (projectile-test-with-stub-root "project" ("config.toml" "content/")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'zola)))
+    (expect (member "config.toml" projectile-project-root-files) :to-be nil))
+  (it "prefers the site generator over the package.json of its asset pipeline"
+    (projectile-test-with-stub-root "project" ("hugo.toml" "package.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'hugo)))))
+
 (describe "task runner project types"
   (it "detects a just project by any spelling of the justfile"
     (projectile-test-with-stub-root "project" ("justfile")
