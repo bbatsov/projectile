@@ -88,6 +88,9 @@
 
 ### Bugs fixed
 
+- [#2118](https://github.com/bbatsov/projectile/issues/2118): Fix `projectile-find-file` showing "Projectile is indexing" forever with `projectile-async-indexing` enabled. The indexing command's result is handed over by its process sentinel, and Emacs doesn't guarantee it runs that while a command sits waiting on the process - the wait then never ended, and only `C-g` (which returns to the command loop, where the sentinel does run) got out of it.
+  - Projectile now waits for the process rather than for the sentinel, and collects the finished command's output itself if the sentinel hasn't run within `projectile-async-index-sentinel-timeout` (1 second). The parsing is shared, so the result is the same either way.
+  - Should even that fail, it indexes synchronously rather than reporting an empty project.
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): Fix the `angular` project type never matching anything: its two markers were ANDed, but a project has either `angular.json` (Angular 6+) or `.angular-cli.json`, never both.
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): Fix the Python project types shadowing each other - `pyproject.toml` was checked before `django`, `python-poetry`, `python-pipenv` and `python-tox`, and since nearly every Python project has one, those four types never matched (a Django project also lost its file kinds along the way).
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): Fix `php-symfony` not matching a modern Symfony project: it required an `app` directory, gone since Symfony 3, and a `vendor` directory, which only exists after someone has run composer.

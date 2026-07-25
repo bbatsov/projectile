@@ -376,6 +376,57 @@ that stores into it as the async callback."
     (expect (projectile--dir-files-alien-await "/proj/") :to-equal '("fallback.el"))
     (expect 'projectile-dir-files-alien :to-have-been-called))
 
+  (it "lets a queued sentinel deliver the result before stepping in (#2118)"
+    (let (finish-calls)
+      (spy-on 'projectile-dir-files-alien-async :and-call-fake
+              (lambda (_dir callback &rest _)
+                (let ((proc (make-process :name "projectile-test-index"
+                                          :command '("sh" "-c" "exit 0")
+                                          :noquery t
+                                          :sentinel
+                                          (lambda (p _e)
+                                            (when (memq (process-status p) '(exit signal))
+                                              (funcall callback '("from-sentinel.el") nil))))))
+                  (process-put proc 'projectile-finish
+                               (lambda (_p) (push 'finish finish-calls)))
+                  proc)))
+      (expect (projectile--dir-files-alien-await "/proj/")
+              :to-equal '("from-sentinel.el"))
+      ;; the sentinel got there first, so we never took over
+      (expect finish-calls :to-be nil)))
+
+  (it "delivers the result itself when the sentinel never runs (#2118)"
+    ;; The reported hang: the indexing command finishes and is reaped, but
+    ;; its sentinel isn't run while we wait, so the callback never fires
+    ;; and the progress reporter spins forever.  Simulated here by a
+    ;; process whose sentinel does nothing at all.
+    (let (proc)
+      (spy-on 'projectile-dir-files-alien-async :and-call-fake
+              (lambda (_dir callback &rest _)
+                (setq proc (make-process :name "projectile-test-index"
+                                         :command '("sh" "-c" "exit 0")
+                                         :noquery t
+                                         :sentinel #'ignore))
+                (process-put proc 'projectile-finish
+                             (lambda (_p) (funcall callback '("a.el" "src/b.el") nil)))
+                proc))
+      (let ((projectile-async-index-sentinel-timeout 0.05))
+        (expect (projectile--dir-files-alien-await "/proj/")
+                :to-equal '("a.el" "src/b.el")))))
+
+  (it "indexes synchronously when no result can be had at all (#2118)"
+    ;; Same as above, but nothing knows how to deliver the result either -
+    ;; report the project's files the slow way rather than claim it's empty.
+    (spy-on 'projectile-dir-files-alien-async :and-call-fake
+            (lambda (_dir _callback &rest _)
+              (make-process :name "projectile-test-index"
+                            :command '("sh" "-c" "exit 0")
+                            :noquery t
+                            :sentinel #'ignore)))
+    (spy-on 'projectile-dir-files-alien :and-return-value '("fallback.el"))
+    (let ((projectile-async-index-sentinel-timeout 0.05))
+      (expect (projectile--dir-files-alien-await "/proj/") :to-equal '("fallback.el"))))
+
   (it "signals a user-error, and kills the process, when indexing fails"
     (let ((proc (start-process "projectile-test-sleep" nil "sleep" "30")))
       ;; Hand back a live process (so the await path, not the can't-start

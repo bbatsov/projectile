@@ -542,6 +542,13 @@ NOTE: It has no effect under `native` indexing (the Emacs Lisp directory walk
 can't run off the main thread), in batch mode, or while a keyboard macro is
 executing - those index synchronously.
 
+The result of the indexing command reaches Projectile from the process's
+sentinel, and Emacs doesn't guarantee it runs that promptly while a command is
+waiting on the process. If it hasn't run `projectile-async-index-sentinel-timeout`
+seconds after the command finished, Projectile parses the output itself instead
+of waiting any longer. You shouldn't ever need to touch that option; it exists
+because waiting forever was once possible.
+
 You can also warm the cache ahead of time, without blocking, using kbd:[M-x]
 `projectile-index-project-async`:
 
