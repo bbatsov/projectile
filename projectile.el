@@ -6302,6 +6302,18 @@ a manual COMMAND-TYPE command is created with
                                   :compile "pulumi preview"
                                   :run "pulumi up")
 
+;; Generic task runners
+;;
+;; Like the infrastructure types these are a fallback: a justfile or a
+;; mise config usually sits next to a project's real build tool, which
+;; should win.
+(projectile-register-project-type 'mise '((:any "mise.toml" ".mise.toml"))
+                                  :compile "mise run build"
+                                  :test "mise run test")
+(projectile-register-project-type 'just '((:any "justfile" ".justfile" "Justfile"))
+                                  :compile "just build"
+                                  :test "just test")
+
 ;; Universal
 (projectile-register-project-type 'xmake '("xmake.lua")
                                   :compile "xmake build"
@@ -6330,6 +6342,12 @@ a manual COMMAND-TYPE command is created with
                                   :compile "bazel build //..."
                                   :test "bazel test //..."
                                   :run "bazel run")
+(projectile-register-project-type 'buck2 '(".buckconfig")
+                                  :compile "buck2 build //..."
+                                  :test "buck2 test //...")
+(projectile-register-project-type 'pants '("pants.toml")
+                                  :compile "pants package ::"
+                                  :test "pants test ::")
 (projectile-register-project-type 'debian '("debian/control")
                                   :compile "debuild -uc -us")
 

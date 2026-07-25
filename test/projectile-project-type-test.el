@@ -266,6 +266,30 @@
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
         (expect (projectile-detect-project-type) :to-equal 'nx)))))
 
+(describe "task runner project types"
+  (it "detects a just project by any spelling of the justfile"
+    (projectile-test-with-stub-root "project" ("justfile")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'just)))
+    (projectile-test-with-stub-root "project" (".justfile")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'just))))
+  (it "detects a mise project"
+    (projectile-test-with-stub-root "project" ("mise.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'mise))))
+  (it "yields to the project's own build tool"
+    (projectile-test-with-stub-root "project" ("justfile" "Cargo.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'rust-cargo))))
+  (it "detects buck2 and pants projects"
+    (projectile-test-with-stub-root "project" (".buckconfig")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'buck2)))
+    (projectile-test-with-stub-root "project" ("pants.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'pants)))))
+
 (describe "infrastructure project types"
   (it "detects a Terraform project"
     (projectile-test-with-stub-root "project" ("main.tf")
