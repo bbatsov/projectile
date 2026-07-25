@@ -176,6 +176,40 @@ signals an error is skipped, so a malformed manifest can't break the command.
 The manifests are read on each invocation rather than cached, and providers
 never shell out, so nothing has to be re-indexed when you add a script.
 
+[#subprojects]
+== Monorepos and subprojects
+
+A monorepo is a single project as far as version control is concerned, and
+that's how Projectile treats it too - the repository is the project, and
+finding files or searching covers all of it. But its parts usually have
+manifests of their own (a crate, a package, a Maven module), and building or
+testing the whole repository when you're working on one of them is wasteful.
+
+Projectile calls those parts *subprojects*: any directory below the project
+root that holds a project manifest. What counts as a manifest comes from
+`projectile-subproject-markers`, which by default is derived from the
+registered project types, so every type Projectile knows about - including the
+ones you register yourself - is recognized inside a monorepo. A polyglot
+repository works out of the box: a `Cargo.toml` under a `package.json` project
+is still a subproject.
+
+`projectile-project-subprojects` returns them, scanning the project's own file
+listing (so the xref:ignoring.adoc[ignore rules] apply, and a vendored
+dependency's manifest doesn't count as a subproject).
+
+* `projectile-find-file-in-subproject` (kbd:[s-p c m f]) prompts for a
+  subproject and then completes over just its files.
+* `projectile-compile-subproject` (kbd:[s-p c m c]),
+  `projectile-test-subproject` (kbd:[s-p c m t]) and
+  `projectile-run-subproject` (kbd:[s-p c m r]) run the project's compile,
+  test and run commands in the *nearest* subproject - the one containing the
+  file you're visiting - rather than at the project root. The command itself is
+  the project's, only the directory changes, which is what workspace-aware
+  tools like Cargo, npm and Maven need to scope their work.
+
+If there's no manifest between the current file and the project root, those
+three commands say so rather than silently building the whole repository.
+
 == Running the test at point
 
 While `projectile-test-project` runs a project's whole test suite,
