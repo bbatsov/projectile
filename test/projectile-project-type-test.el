@@ -641,6 +641,11 @@
     (projectile-test-with-stub-root "proj" ("README")
       (expect (projectile-cabal-project-p) :to-be nil))))
 
+(describe "go project type"
+  (it "registers go.mod as a project file, so it can anchor a root"
+    (expect (projectile-project-type-attribute 'go 'project-file) :to-equal "go.mod")
+    (expect (member "go.mod" projectile-project-root-files) :to-be-truthy)))
+
 (describe "projectile-flutter-project-p"
   (it "is true for a pubspec.yaml that depends on the Flutter SDK"
     (projectile-test-with-stub-root "proj" ("pubspec.yaml")
