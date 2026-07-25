@@ -266,6 +266,31 @@
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
         (expect (projectile-detect-project-type) :to-equal 'nx)))))
 
+(describe "infrastructure project types"
+  (it "detects a Terraform project"
+    (projectile-test-with-stub-root "project" ("main.tf")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'terraform))))
+  (it "detects a Helm chart"
+    (projectile-test-with-stub-root "project" ("Chart.yaml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'helm))))
+  (it "detects a Pulumi project"
+    (projectile-test-with-stub-root "project" ("Pulumi.yaml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'pulumi))))
+  (it "detects a Compose project by any of the file's four spellings"
+    (projectile-test-with-stub-root "project" ("compose.yaml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'docker-compose)))
+    (projectile-test-with-stub-root "project" ("docker-compose.yml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'docker-compose))))
+  (it "yields to the project's own build tool when it merely ships a Compose file"
+    (projectile-test-with-stub-root "project" ("compose.yaml" "Cargo.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'rust-cargo)))))
+
 (describe "python project types"
   ;; Nearly every Python project has a pyproject.toml, so the more
   ;; specific types have to win over it.
