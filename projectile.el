@@ -2546,6 +2546,48 @@ setup."
       (dolist (entry entries) (puthash entry t set))
       set)))
 
+(defun projectile--wildcard-p (name)
+  "Return non-nil if NAME has a shell wildcard character in it."
+  (string-match-p "[][*?]" name))
+
+(defun projectile--read-json-file (file &rest args)
+  "Read FILE as JSON, passing ARGS to `json-parse-buffer'.
+Returns nil when FILE doesn't exist, or when this Emacs was built
+without native JSON support."
+  (when (and (functionp 'json-parse-buffer) (file-exists-p file))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (apply #'json-parse-buffer args))))
+
+(defun projectile--directory-marker (directory markers &optional files-only)
+  "Return the first of MARKERS present in DIRECTORY, or nil.
+
+DIRECTORY is listed once with `projectile--directory-entry-set' and the
+plain-name markers are answered from that listing, so probing N
+candidates costs one round-trip instead of N - which matters both for
+long marker lists and for remote projects.  A marker carrying a path
+separator or a wildcard can't be answered from a basename listing and is
+probed directly.  With FILES-ONLY non-nil a marker naming a directory
+doesn't count as present."
+  (let ((entries nil) (listed nil))
+    (seq-find
+     (lambda (marker)
+       (cond
+        ((not (stringp marker)) nil)
+        ((or (string-search "/" marker) (projectile--wildcard-p marker))
+         (let ((expanded (projectile-expand-file-name-wildcard marker directory)))
+           (and (projectile-file-exists-p expanded)
+                (or (not files-only) (not (file-directory-p expanded))))))
+        (t (unless listed
+             (setq entries (projectile--directory-entry-set directory)
+                   listed t))
+           (and entries
+                (gethash marker entries)
+                (or (not files-only)
+                    (not (file-directory-p (expand-file-name marker directory))))))))
+     markers)))
+
 (defun projectile--locate-dominating-file (file name first-match-only)
   "Walk up from FILE looking for NAME and return the matching directory.
 NAME is either a filename (matched via `projectile-file-exists-p' in
@@ -2602,14 +2644,12 @@ This is intended to be used as a file local variable.")
   "Identify a project root in DIR by top-down search for files in LIST.
 If LIST is nil, use `projectile-project-root-files' instead.
 Return the first (topmost) matched directory or nil if not found."
-  (projectile-locate-dominating-file-top-down
-   dir
-   (lambda (dir)
-     (seq-find (lambda (f)
-                    (let ((expanded (projectile-expand-file-name-wildcard f dir)))
-                      (and (projectile-file-exists-p expanded)
-                           (not (file-directory-p expanded)))))
-                 (or list projectile-project-root-files)))))
+  (let ((markers (or list projectile-project-root-files)))
+    (projectile-locate-dominating-file-top-down
+     dir
+     ;; A root file has to be a file, not a directory - `src' being a
+     ;; marker of some project type mustn't make every `src' a root.
+     (lambda (dir) (projectile--directory-marker dir markers 'files-only)))))
 
 (defun projectile-root-marked (dir)
   "Identify a project root in DIR by search for `projectile-dirconfig-file`."
@@ -2630,26 +2670,10 @@ Return the first (bottommost) matched directory or nil if not found."
          ;; (which runs on every root resolution) is this case.
          (lambda (directory)
            (projectile-file-exists-p (expand-file-name (car markers) directory)))
-       (lambda (directory)
-         ;; Probe each level with a single `directory-files' listing rather
-         ;; than one `file-exists-p' per marker.  The default markers are all
-         ;; plain names sitting directly in the directory, so membership in
-         ;; the listing is equivalent; markers carrying a path separator
-         ;; (a user customization) can't be answered from the basename listing
-         ;; and fall back to `projectile-file-exists-p'.  The listing is
-         ;; fetched lazily, once, and only if a plain-name marker is reached.
-         (let ((entries nil) (listed nil))
-           (seq-some
-            (lambda (marker)
-              (cond
-               ((not marker) nil)
-               ((string-match-p "/" marker)
-                (projectile-file-exists-p (expand-file-name marker directory)))
-               (t (unless listed
-                    (setq entries (projectile--directory-entry-set directory)
-                          listed t))
-                  (and entries (gethash marker entries)))))
-            markers)))))))
+       ;; Probe each level with a single `directory-files' listing rather
+       ;; than one `file-exists-p' per marker.  A VCS marker is a directory,
+       ;; so unlike the top-down search this one doesn't filter those out.
+       (lambda (directory) (projectile--directory-marker directory markers))))))
 
 (defun projectile-root-top-down-recurring (dir &optional list)
   "Identify a project root in DIR by recurring top-down search for files in LIST.
@@ -5752,6 +5776,11 @@ TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
   ;; seeding below, for types (e.g. bloop) whose only marker also shows
   ;; up outside real projects and so must not anchor a project root.
   (let* ((project-file (cond ((eq project-file 'none) nil)
+                             ;; An alternatives clause is a marker shape, so
+                             ;; accept it here too and keep the plain list of
+                             ;; file names the rest of the code expects.
+                             ((projectile--any-marker-p project-file)
+                              (cdr project-file))
                              (project-file project-file)
                              ((not (consp marker-files)) nil)
                              ;; An alternatives clause contributes all of
@@ -6089,10 +6118,7 @@ it acts on the current project."
 
 (defun projectile--cmake-read-preset (filename)
   "Read CMake preset from FILENAME."
-  (when (file-exists-p filename)
-    (with-temp-buffer
-      (insert-file-contents filename)
-      (json-parse-buffer :array-type 'list))))
+  (projectile--read-json-file filename :array-type 'list))
 
 (defconst projectile--cmake-command-preset-array-id-alist
   '((:configure-command . "configurePresets")
@@ -6235,6 +6261,22 @@ a manual COMMAND-TYPE command is created with
   "CMake package command."
   (projectile--cmake-command :package-command))
 
+(defconst projectile--justfile-names '("justfile" ".justfile" "Justfile")
+  "The file names `just' reads its recipes from.")
+
+(defconst projectile--taskfile-names
+  '("Taskfile.yml" "Taskfile.yaml" "Taskfile.dist.yml" "Taskfile.dist.yaml")
+  "The file names go-task reads its tasks from.")
+
+(defconst projectile--makefile-names '("Makefile" "makefile" "GNUmakefile")
+  "The file names GNU make reads its targets from.")
+
+(defconst projectile--deno-config-names '("deno.json" "deno.jsonc")
+  "The file names Deno reads its configuration from.")
+
+(defconst projectile--bun-lock-names '("bun.lock" "bun.lockb")
+  "The lock file names Bun writes - the text one and the older binary one.")
+
 ;;; Project type registration
 ;;
 ;; Project type detection happens in a reverse order with respect to
@@ -6310,7 +6352,7 @@ a manual COMMAND-TYPE command is created with
 (projectile-register-project-type 'mise '((:any "mise.toml" ".mise.toml"))
                                   :compile "mise run build"
                                   :test "mise run test")
-(projectile-register-project-type 'just '((:any "justfile" ".justfile" "Justfile"))
+(projectile-register-project-type 'just `((:any ,@projectile--justfile-names))
                                   :compile "just build"
                                   :test "just test")
 
@@ -6352,8 +6394,9 @@ a manual COMMAND-TYPE command is created with
                                   :compile "debuild -uc -us")
 
 ;; Make & CMake
-;; Marker lists mean AND, so the Makefile/makefile alternatives go
-;; through a predicate.  The explicit :project-file keeps "Makefile"
+;; The Makefile/makefile alternatives predate the `(:any ...)' marker
+;; clause and still go through a predicate, since that predicate is part
+;; of the public API.  The explicit :project-file keeps "Makefile"
 ;; registered as a root file, as the marker list used to do.
 (projectile-register-project-type 'make #'projectile-make-project-p
                                   :project-file "Makefile"
@@ -6371,8 +6414,7 @@ a manual COMMAND-TYPE command is created with
                                   :install #'projectile--cmake-install-command
                                   :package #'projectile--cmake-package-command)
 ;; go-task/task
-(projectile-register-project-type 'go-task '((:any "Taskfile.yml" "Taskfile.yaml"
-                                                   "Taskfile.dist.yml" "Taskfile.dist.yaml"))
+(projectile-register-project-type 'go-task `((:any ,@projectile--taskfile-names))
                                   :compile "task build"
                                   :test "task test"
                                   :install "task install")
@@ -6432,12 +6474,12 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix ".test")
 ;; `bun.lockb' is the binary lock file Bun used before 1.2, `bun.lock' the
 ;; text one it writes now.
-(projectile-register-project-type 'bun '("package.json" (:any "bun.lock" "bun.lockb"))
+(projectile-register-project-type 'bun `("package.json" (:any ,@projectile--bun-lock-names))
                                   :compile "bun install"
                                   :test "bun test"
                                   :run "bun run start"
                                   :test-suffix ".test")
-(projectile-register-project-type 'deno '((:any "deno.json" "deno.jsonc"))
+(projectile-register-project-type 'deno `((:any ,@projectile--deno-config-names))
                                   :compile "deno check ."
                                   :test "deno test"
                                   :run "deno task start"
@@ -10914,46 +10956,47 @@ configured tasks."
   :type '(repeat function)
   :package-version '(projectile . "3.3.0"))
 
+(defvar projectile--task-entry-set nil
+  "Entries of the project root being scanned for tasks, or nil.
+Bound by `projectile-discovered-tasks' so the providers can answer
+\"is this manifest here?\" from a single directory listing instead of
+stat-ing every candidate name (see `projectile--directory-entry-set').")
+
 (defun projectile--task-file (project-root name)
   "Return NAME under PROJECT-ROOT when it exists as a readable file."
-  (let ((file (expand-file-name name project-root)))
-    (and (file-readable-p file)
-         (not (file-directory-p file))
-         file)))
+  (when (or (null projectile--task-entry-set)
+            (gethash name projectile--task-entry-set))
+    (let ((file (expand-file-name name project-root)))
+      (and (file-readable-p file)
+           (not (file-directory-p file))
+           file))))
 
 (defun projectile--first-task-file (project-root names)
   "Return the first of NAMES that exists under PROJECT-ROOT."
   (seq-some (lambda (name) (projectile--task-file project-root name)) names))
 
-(defun projectile--read-json-object (file)
-  "Read FILE as JSON and return its top-level object as an alist.
-Returns nil when FILE doesn't hold a JSON object, or when this Emacs was
-built without native JSON support."
-  (when (functionp 'json-parse-buffer)
-    (with-temp-buffer
-      (insert-file-contents file)
-      (goto-char (point-min))
-      (let ((json (json-parse-buffer :object-type 'alist
-                                     :array-type 'list
-                                     :null-object nil
-                                     :false-object nil)))
-        (and (consp json) json)))))
+(defun projectile--tasks-named (names prefix command-format)
+  "Turn NAMES into tasks called `PREFIX:NAME'.
+Each task runs COMMAND-FORMAT with the name substituted for its `%s'."
+  (mapcar (lambda (name)
+            (cons (format "%s:%s" prefix name) (format command-format name)))
+          names))
 
 (defun projectile--json-tasks (file key prefix command-format)
   "Return the tasks under KEY in the JSON object in FILE.
 Each key of that object becomes a task named `PREFIX:KEY', running
 COMMAND-FORMAT with the key substituted for its `%s'."
-  (when-let* ((json (projectile--read-json-object file))
-              (entries (alist-get key json)))
-    ;; `seq-keep' would read better, but it's Emacs 29.1 and compat
-    ;; doesn't back it up.
-    (delq nil
-          (mapcar (lambda (entry)
-                    (when-let* ((name (and (consp entry) (car entry)))
-                                (name (if (symbolp name) (symbol-name name) name)))
-                      (cons (format "%s:%s" prefix name)
-                            (format command-format name))))
-                  entries))))
+  (when-let* ((json (projectile--read-json-file file
+                                                :object-type 'alist
+                                                :array-type 'list
+                                                :null-object nil
+                                                :false-object nil))
+              ;; A JSON document that isn't an object parses to something
+              ;; `alist-get' would choke on.
+              (object (and (consp json) json))
+              (entries (alist-get key object)))
+    (projectile--tasks-named (mapcar (lambda (entry) (symbol-name (car entry))) entries)
+                             prefix command-format)))
 
 (defun projectile--npm-runner (project-root)
   "Return the package manager command to use in PROJECT-ROOT.
@@ -10961,21 +11004,21 @@ Derived from the lock file present, so it holds regardless of which
 project type won detection."
   (cond ((projectile--task-file project-root "pnpm-lock.yaml") "pnpm")
         ((projectile--task-file project-root "yarn.lock") "yarn")
-        ((projectile--first-task-file project-root '("bun.lock" "bun.lockb")) "bun")
+        ((projectile--first-task-file project-root projectile--bun-lock-names) "bun")
         (t "npm")))
 
 (defun projectile-tasks-from-npm (project-root)
   "Return the npm scripts of the project in PROJECT-ROOT as tasks.
 The scripts run through whichever package manager the project's lock
 file points at."
-  (when-let* ((file (projectile--task-file project-root "package.json"))
-              (runner (projectile--npm-runner project-root)))
-    (projectile--json-tasks file 'scripts runner (concat runner " run %s"))))
+  (when-let* ((file (projectile--task-file project-root "package.json")))
+    (let ((runner (projectile--npm-runner project-root)))
+      (projectile--json-tasks file 'scripts runner (concat runner " run %s")))))
 
 (defun projectile-tasks-from-deno (project-root)
   "Return the Deno tasks of the project in PROJECT-ROOT."
   (when-let* ((file (projectile--first-task-file
-                     project-root '("deno.json" "deno.jsonc"))))
+                     project-root projectile--deno-config-names)))
     (projectile--json-tasks file 'tasks "deno" "deno task %s")))
 
 (defun projectile-tasks-from-composer (project-root)
@@ -11001,57 +11044,65 @@ duplicates dropped."
 (defun projectile-tasks-from-just (project-root)
   "Return the recipes of the justfile in PROJECT-ROOT as tasks."
   (when-let* ((file (projectile--first-task-file
-                     project-root '("justfile" ".justfile" "Justfile"))))
-    (mapcar (lambda (name) (cons (format "just:%s" name) (format "just %s" name)))
-            ;; A recipe starts in column zero, may be marked quiet with
-            ;; `@' and may take parameters.  The lookahead keeps `:=',
-            ;; which is an assignment, from reading as a recipe.
-            (projectile--matches-in-file
-             file "^@?\\([a-zA-Z_][a-zA-Z0-9_-]*\\)[^:\n]*:\\(?:[^=\n]\\|$\\)"))))
+                     project-root projectile--justfile-names)))
+    ;; A recipe starts in column zero, may be marked quiet with `@' and
+    ;; may take parameters.  The lookahead keeps `:=', which is an
+    ;; assignment, from reading as a recipe.
+    (projectile--tasks-named
+     (projectile--matches-in-file
+      file "^@?\\([a-zA-Z_][a-zA-Z0-9_-]*\\)[^:\n]*:\\(?:[^=\n]\\|$\\)")
+     "just" "just %s")))
+
+(defun projectile--taskfile-task-names (file)
+  "Return the keys of the top-level `tasks:' mapping in the Taskfile FILE.
+Those are the lines indented exactly one level under it; anything deeper
+belongs to a task rather than naming one."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (let ((case-fold-search nil)
+          names)
+      (when (re-search-forward "^tasks:[ \t]*$" nil t)
+        (forward-line 1)
+        (let ((indent (current-indentation)))
+          (while (and (not (eobp))
+                      (or (looking-at-p "^[ \t]*$")
+                          (< 0 (current-indentation))))
+            (when (and (= (current-indentation) indent)
+                       (looking-at "[ \t]+\\([a-zA-Z0-9_.:-]+\\):"))
+              (let ((name (match-string 1)))
+                (unless (member name names)
+                  (push name names))))
+            (forward-line 1))))
+      (nreverse names))))
 
 (defun projectile-tasks-from-taskfile (project-root)
   "Return the tasks of the go-task Taskfile in PROJECT-ROOT."
   (when-let* ((file (projectile--first-task-file
-                     project-root '("Taskfile.yml" "Taskfile.yaml"
-                                    "Taskfile.dist.yml" "Taskfile.dist.yaml"))))
-    (mapcar (lambda (name) (cons (format "task:%s" name) (format "task %s" name)))
-            ;; The keys of the top-level `tasks:' mapping, i.e. the lines
-            ;; indented exactly one level under it.
-            (with-temp-buffer
-              (insert-file-contents file)
-              (goto-char (point-min))
-              (let ((case-fold-search nil)
-                    names)
-                (when (re-search-forward "^tasks:[ \t]*$" nil t)
-                  (forward-line 1)
-                  (let ((indent (current-indentation)))
-                    (while (and (not (eobp))
-                                (or (looking-at-p "^[ \t]*$")
-                                    (< 0 (current-indentation))))
-                      (when (and (= (current-indentation) indent)
-                                 (looking-at "[ \t]+\\([a-zA-Z0-9_.:-]+\\):"))
-                        (let ((name (match-string 1)))
-                          (unless (member name names)
-                            (push name names))))
-                      (forward-line 1))))
-                (nreverse names))))))
+                     project-root projectile--taskfile-names)))
+    (projectile--tasks-named (projectile--taskfile-task-names file)
+                             "task" "task %s")))
 
 (defun projectile-tasks-from-make (project-root)
   "Return the targets of the Makefile in PROJECT-ROOT as tasks.
 Only plain named targets are offered - pattern rules, file targets and
 the special dot-targets aren't things you'd run by hand."
   (when-let* ((file (projectile--first-task-file
-                     project-root '("Makefile" "makefile" "GNUmakefile"))))
-    (mapcar (lambda (name) (cons (format "make:%s" name) (format "make %s" name)))
-            (projectile--matches-in-file
-             file "^\\([a-zA-Z0-9][a-zA-Z0-9_-]*\\)[ \t]*:\\(?:[^=\n]\\|$\\)"))))
+                     project-root projectile--makefile-names)))
+    (projectile--tasks-named
+     (projectile--matches-in-file
+      file "^\\([a-zA-Z0-9][a-zA-Z0-9_-]*\\)[ \t]*:\\(?:[^=\n]\\|$\\)")
+     "make" "make %s")))
 
 (defun projectile-discovered-tasks (&optional project-root)
   "Return the tasks discovered in the project at PROJECT-ROOT.
 PROJECT-ROOT defaults to the current project's root.  The tasks come
 from `projectile-task-providers'; a provider that signals is skipped."
   (when projectile-discover-tasks
-    (when-let* ((root (or project-root (projectile-project-root))))
+    (when-let* ((root (or project-root (projectile-project-root)))
+                ;; One listing of the root answers every provider's
+                ;; "does this manifest exist?" question.
+                (projectile--task-entry-set (projectile--directory-entry-set root)))
       (seq-mapcat (lambda (provider)
                     (condition-case err
                         (funcall provider root)
@@ -11257,7 +11308,7 @@ See `projectile-subproject-markers'."
                        ;; A wildcard would have to be expanded per
                        ;; directory, and a name with a directory component
                        ;; (`debian/control') isn't a plain marker.
-                       (not (string-match-p "[*?]" file))
+                       (not (projectile--wildcard-p file))
                        (not (string-search "/" file))
                        (not (member file markers)))
               (push file markers))))
@@ -11280,10 +11331,13 @@ into a subproject."
     (dolist (marker markers)
       (puthash marker t marker-set))
     (dolist (file (projectile-project-files root))
-      ;; A manifest sitting in the root itself has no directory part -
-      ;; that's the project, not a subproject.
-      (when-let* ((dir (file-name-directory file)))
-        (when (gethash (file-name-nondirectory file) marker-set)
+      ;; The marker test first: it's a hash lookup against a name we
+      ;; already have, while `file-name-directory' allocates - and this
+      ;; runs over every file in the project.  A manifest sitting in the
+      ;; root itself has no directory part, which is the project rather
+      ;; than a subproject.
+      (when (gethash (file-name-nondirectory file) marker-set)
+        (when-let* ((dir (file-name-directory file)))
           (puthash dir t dirs))))
     (sort (hash-table-keys dirs) #'string<)))
 
@@ -11298,12 +11352,12 @@ if no subproject is found between DIR and the project root."
          (dir (or dir (file-name-directory (or (buffer-file-name) default-directory))))
          (result nil))
     ;; Walk up from current directory, stop at (but include) project root.
+    ;; Each level costs one directory listing rather than one stat per
+    ;; marker, which matters here - the derived marker set is long.
     (while (and (not result)
                 dir
                 (string-prefix-p project-root dir))
-      (when (seq-some (lambda (m)
-                        (file-exists-p (expand-file-name m dir)))
-                      markers)
+      (when (projectile--directory-marker dir markers 'files-only)
         (setq result dir))
       (let ((parent (file-name-directory (directory-file-name dir))))
         (setq dir (unless (string= parent dir) parent))))
@@ -11320,9 +11374,17 @@ that part of the repository."
          (subprojects (projectile-project-subprojects project-root)))
     (unless subprojects
       (user-error "No subprojects found in %s" project-root))
-    (let ((subproject (projectile-completing-read "Subproject: " subprojects)))
-      (projectile-find-file-in-directory
-       (expand-file-name subproject project-root)))))
+    (let* ((subproject (projectile-completing-read "Subproject: " subprojects))
+           ;; Narrow the project's own listing rather than indexing the
+           ;; subdirectory afresh: it's already there, and indexing the
+           ;; subdirectory as if it were a project of its own would drop
+           ;; the project's ignore rules.
+           (files (projectile--restrict-to-subdirs
+                   (projectile-project-files project-root) (list subproject)))
+           (file (projectile-completing-read "Find file: " files
+                                             :caller 'projectile-read-file)))
+      (find-file (expand-file-name file project-root))
+      (run-hooks 'projectile-find-file-hook))))
 
 (defun projectile-compilation-dir ()
   "Retrieve the compilation directory for this project."
@@ -11562,8 +11624,8 @@ with a prefix ARG."
 SHOW-PROMPT and PROMPT-PREFIX are as in `projectile--run-lifecycle-phase',
 which does the actual work - the subproject only changes the directory
 the command runs in."
-  (let* ((subproject-root (projectile-subproject-root))
-         (project-root (projectile-acquire-root))
+  (let* ((project-root (projectile-acquire-root))
+         (subproject-root (projectile-subproject-root))
          (projectile-project-compilation-dir
           (file-relative-name subproject-root project-root)))
     (projectile--run-lifecycle-phase phase show-prompt prompt-prefix)))
