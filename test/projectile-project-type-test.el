@@ -285,6 +285,14 @@
     (projectile-test-with-stub-root "project" ("tox.ini" "pyproject.toml")
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
         (expect (projectile-detect-project-type) :to-equal 'python-tox))))
+  (it "detects a uv project"
+    (projectile-test-with-stub-root "project" ("uv.lock" "pyproject.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'python-uv))))
+  (it "detects a pdm project"
+    (projectile-test-with-stub-root "project" ("pdm.lock" "pyproject.toml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'python-pdm))))
   (it "prefers pyproject.toml over setup.py and requirements.txt"
     (projectile-test-with-stub-root "project" ("pyproject.toml" "setup.py" "requirements.txt")
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))

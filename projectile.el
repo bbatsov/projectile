@@ -6424,6 +6424,18 @@ a manual COMMAND-TYPE command is created with
                                   :test "poetry run pytest"
                                   :test-prefix "test_"
                                   :test-suffix "_test")
+(projectile-register-project-type 'python-pdm '("pdm.lock")
+                                  :compile "pdm build"
+                                  :install "pdm install"
+                                  :test "pdm run pytest"
+                                  :test-prefix "test_"
+                                  :test-suffix "_test")
+(projectile-register-project-type 'python-uv '("uv.lock")
+                                  :compile "uv build"
+                                  :install "uv sync"
+                                  :test "uv run pytest"
+                                  :test-prefix "test_"
+                                  :test-suffix "_test")
 (projectile-register-project-type 'django '("manage.py")
                                   :compile "python manage.py collectstatic"
                                   :run "python manage.py runserver"
