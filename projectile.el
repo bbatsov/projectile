@@ -6484,6 +6484,29 @@ a manual COMMAND-TYPE command is created with
                                   :src-dir "app/"
                                   :test-dir "tests/"
                                   :test-suffix "Test")
+
+;; Static site and documentation generators
+;; These come after the JavaScript types, as a site's asset pipeline
+;; often brings a package.json along.
+(projectile-register-project-type 'jekyll '("_config.yml")
+                                  :compile "bundle exec jekyll build"
+                                  :run "bundle exec jekyll serve")
+;; Zola's marker is a plain `config.toml', which is far too common a file
+;; name to let it anchor a project root on its own.
+(projectile-register-project-type 'zola '("config.toml" "content")
+                                  :project-file 'none
+                                  :compile "zola build"
+                                  :run "zola serve")
+(projectile-register-project-type 'hugo '((:any "hugo.toml" "hugo.yaml" "hugo.json"))
+                                  :compile "hugo"
+                                  :run "hugo server")
+(projectile-register-project-type 'mkdocs '("mkdocs.yml")
+                                  :compile "mkdocs build"
+                                  :run "mkdocs serve")
+(projectile-register-project-type 'quarto '("_quarto.yml")
+                                  :compile "quarto render"
+                                  :run "quarto preview")
+
 ;; Python
 ;;
 ;; Nearly every Python project carries a `pyproject.toml' these days, and
