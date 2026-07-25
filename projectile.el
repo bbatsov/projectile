@@ -6028,6 +6028,12 @@ it acts on the current project."
   :type 'function
   :package-version '(projectile . "1.0.0"))
 
+(defun projectile-terraform-project-p (&optional dir)
+  "Check if a project contains Terraform configuration files.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (projectile-verify-file-wildcard "?*.tf" dir))
+
 (defun projectile-xcode-project-p (&optional dir)
   "Check if a project contains an Xcode project or workspace.
 When DIR is specified it checks DIR's project, otherwise
@@ -6256,6 +6262,12 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
+(projectile-register-project-type 'terraform #'projectile-terraform-project-p
+                                  :project-file "?*.tf"
+                                  :configure "terraform init"
+                                  :compile "terraform plan"
+                                  :run "terraform apply"
+                                  :test "terraform validate")
 (projectile-register-project-type 'xcode #'projectile-xcode-project-p
                                   :project-file '("?*.xcworkspace" "?*.xcodeproj")
                                   :compile "xcodebuild build"
@@ -6269,6 +6281,26 @@ a manual COMMAND-TYPE command is created with
                                   :src-dir "src"
                                   :test-dir "tests")
 ;; File-based detection project types
+
+;; Infrastructure as code
+;;
+;; These are registered first, and so checked last: a repository that
+;; deploys itself with Helm or Compose is usually some other kind of
+;; project first, and only falls back to these when nothing else matched.
+(projectile-register-project-type 'docker-compose
+                                  '((:any "compose.yaml" "compose.yml"
+                                          "docker-compose.yaml" "docker-compose.yml"))
+                                  :compile "docker compose build"
+                                  :run "docker compose up")
+(projectile-register-project-type 'ansible '("ansible.cfg")
+                                  :test "ansible-lint")
+(projectile-register-project-type 'helm '("Chart.yaml")
+                                  :compile "helm template ."
+                                  :install "helm install"
+                                  :test "helm lint")
+(projectile-register-project-type 'pulumi '("Pulumi.yaml")
+                                  :compile "pulumi preview"
+                                  :run "pulumi up")
 
 ;; Universal
 (projectile-register-project-type 'xmake '("xmake.lua")
