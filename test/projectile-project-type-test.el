@@ -301,7 +301,7 @@
     (expect (projectile-default-run-command 'django)
             :to-equal "python manage.py runserver")))
 
-(describe "php-symfony project type"
+(describe "PHP project types"
   (it "detects a modern Symfony layout, which has no app directory"
     (projectile-test-with-stub-root "project"
         ("composer.json" "src/" "bin/" "bin/console")
@@ -311,7 +311,21 @@
     (projectile-test-with-stub-root "project"
         ("composer.json" "src/" "app/" "app/console")
       (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'php-symfony)))))
+        (expect (projectile-detect-project-type) :to-equal 'php-symfony))))
+  (it "detects a Laravel project"
+    (projectile-test-with-stub-root "project" ("composer.json" "artisan")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'php-laravel))))
+  (it "falls back to plain composer for any other PHP project"
+    (projectile-test-with-stub-root "project" ("composer.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'php-composer))))
+  (it "is not mistaken for a Node project because of its front-end assets"
+    ;; A PHP application ships a package.json for its asset pipeline.
+    (projectile-test-with-stub-root "project"
+        ("composer.json" "artisan" "package.json" "package-lock.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'php-laravel)))))
 
 (describe "projectile-project-type"
   :var ((dir default-directory))

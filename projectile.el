@@ -6309,18 +6309,6 @@ a manual COMMAND-TYPE command is created with
                                   :compile "go build"
                                   :test "go test ./..."
                                   :test-suffix "_test")
-;; PHP
-;; Symfony 3 dropped the `app' directory and moved the console to `bin',
-;; and `vendor' is only there once someone has run composer, so neither
-;; can be required.  The console is what tells a Symfony project apart
-;; from any other composer one.
-(projectile-register-project-type 'php-symfony '("composer.json" (:any "bin/console" "app/console"))
-                                  :compile "composer install"
-                                  :run "symfony serve"
-                                  :test "vendor/bin/phpunit"
-                                  :src-dir "src/"
-                                  :test-dir "tests/"
-                                  :test-suffix "Test")
 ;; Erlang & Elixir
 (projectile-register-project-type 'rebar '("rebar.config")
                                   :compile "rebar3 compile"
@@ -6387,6 +6375,35 @@ a manual COMMAND-TYPE command is created with
                                   :compile "turbo build"
                                   :test "turbo test"
                                   :test-suffix ".test")
+
+;; PHP
+;; Like Rails, these have to be registered after the JavaScript types -
+;; a PHP application ships a package.json for its front-end assets, which
+;; would otherwise make it a Node project.
+(projectile-register-project-type 'php-composer '("composer.json")
+                                  :compile "composer install"
+                                  :test "vendor/bin/phpunit"
+                                  :src-dir "src/"
+                                  :test-dir "tests/"
+                                  :test-suffix "Test")
+;; Symfony 3 dropped the `app' directory and moved the console to `bin',
+;; and `vendor' is only there once someone has run composer, so neither
+;; can be required.  The console is what tells a Symfony project apart
+;; from any other composer one.
+(projectile-register-project-type 'php-symfony '("composer.json" (:any "bin/console" "app/console"))
+                                  :compile "composer install"
+                                  :run "symfony serve"
+                                  :test "vendor/bin/phpunit"
+                                  :src-dir "src/"
+                                  :test-dir "tests/"
+                                  :test-suffix "Test")
+(projectile-register-project-type 'php-laravel '("composer.json" "artisan")
+                                  :compile "composer install"
+                                  :run "php artisan serve"
+                                  :test "php artisan test"
+                                  :src-dir "app/"
+                                  :test-dir "tests/"
+                                  :test-suffix "Test")
 ;; Python
 ;;
 ;; Nearly every Python project carries a `pyproject.toml' these days, and
