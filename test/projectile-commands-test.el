@@ -576,13 +576,23 @@
       (expect (projectile-project-subprojects "/proj/") :to-equal '("crates/parser/")))))
 
 (describe "projectile-find-file-in-subproject"
-  (it "finds the file in the chosen subproject's directory"
+  (it "completes over just the chosen subproject's files, from the project's listing"
     (spy-on 'projectile-acquire-root :and-return-value "/proj/")
     (spy-on 'projectile-project-subprojects :and-return-value '("app/" "lib/"))
-    (spy-on 'projectile-completing-read :and-return-value "lib/")
-    (spy-on 'projectile-find-file-in-directory)
-    (projectile-find-file-in-subproject)
-    (expect 'projectile-find-file-in-directory :to-have-been-called-with "/proj/lib/"))
+    (spy-on 'projectile-project-files :and-return-value
+            '("app/main.js" "lib/util.js" "lib/util.test.js" "README.md"))
+    (spy-on 'find-file)
+    (let (offered)
+      (spy-on 'projectile-completing-read :and-call-fake
+              (lambda (prompt choices &rest _)
+                (if (string-prefix-p "Subproject" prompt)
+                    "lib/"
+                  (setq offered choices)
+                  "lib/util.js")))
+      (projectile-find-file-in-subproject)
+      ;; only the subproject's files, and the project is indexed once
+      (expect offered :to-equal '("lib/util.js" "lib/util.test.js"))
+      (expect 'find-file :to-have-been-called-with "/proj/lib/util.js")))
 
   (it "errors when the project has no subprojects"
     (spy-on 'projectile-acquire-root :and-return-value "/proj/")
