@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2120](https://github.com/bbatsov/projectile/pull/2120): `projectile-run-task` now also offers the tasks a project's own tooling defines, so it's useful in a fresh checkout without any configuration.
+  - npm scripts (run through whichever package manager the lock file points at), Deno tasks, Composer scripts, just recipes, go-task tasks and Make targets.
+  - Discovered tasks are named after the tool that defines them (`npm:build`, `make:test`), so they never collide with the tasks you configure yourself.
+  - Turn it off with `projectile-discover-tasks`, or add your own reader to `projectile-task-providers`.
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): Add 34 project types Projectile had no support for, which used to come out as generic projects.
   - JavaScript: `node` (a `package.json` with no lock file next to it), `bun`, `deno`, `nx` and `turborepo`.
   - Python: `python-uv` and `python-pdm`.

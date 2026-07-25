@@ -56,6 +56,7 @@
   (it "merges the project type's tasks with projectile-tasks, the latter winning"
     (let ((projectile-project-types projectile-project-types)
           (projectile-project-root-files projectile-project-root-files)
+          (projectile-discover-tasks nil)
           (projectile-tasks '(("lint" . "make custom-lint")
                               ("docs" . "make docs"))))
       (projectile-register-project-type 'tasked-project '("Taskedfile")
@@ -70,6 +71,7 @@
   (it "returns just the project type's tasks when projectile-tasks is nil"
     (let ((projectile-project-types projectile-project-types)
           (projectile-project-root-files projectile-project-root-files)
+          (projectile-discover-tasks nil)
           (projectile-tasks nil))
       (projectile-register-project-type 'tasked-project '("Taskedfile")
                                         :tasks '(("bench" . "make bench")))
@@ -77,19 +79,182 @@
               :to-equal '(("bench" . "make bench")))))
 
   (it "returns just projectile-tasks for a type without tasks"
-    (let ((projectile-tasks '(("lint" . "make lint"))))
+    (let ((projectile-tasks '(("lint" . "make lint")))
+          (projectile-discover-tasks nil))
       (expect (projectile-project-tasks 'generic)
               :to-equal '(("lint" . "make lint")))))
 
   (it "picks up tasks added via projectile-update-project-type"
     (let ((projectile-project-types projectile-project-types)
           (projectile-project-root-files projectile-project-root-files)
+          (projectile-discover-tasks nil)
           (projectile-tasks nil))
       (projectile-register-project-type 'tasked-project '("Taskedfile"))
       (projectile-update-project-type 'tasked-project
                                       :tasks '(("bench" . "make bench")))
       (expect (projectile-project-tasks 'tasked-project)
               :to-equal '(("bench" . "make bench"))))))
+
+(describe "task discovery"
+  (describe "projectile-tasks-from-npm"
+    (it "reads the scripts of a package.json"
+      (projectile-test-with-project
+          (("package.json" . "{\"name\": \"demo\",
+  \"scripts\": {\"build\": \"tsc\", \"test\": \"vitest run\"}}"))
+        (expect (projectile-tasks-from-npm (projectile-project-root))
+                :to-equal '(("npm:build" . "npm run build")
+                            ("npm:test" . "npm run test")))))
+
+    (it "runs the scripts through the package manager the lock file points at"
+      (projectile-test-with-project
+          (("package.json" . "{\"scripts\": {\"build\": \"tsc\"}}")
+           ("pnpm-lock.yaml" . "lockfileVersion: '9.0'\n"))
+        (expect (projectile-tasks-from-npm (projectile-project-root))
+                :to-equal '(("pnpm:build" . "pnpm run build"))))
+      (projectile-test-with-project
+          (("package.json" . "{\"scripts\": {\"build\": \"tsc\"}}")
+           ("bun.lock" . "{}"))
+        (expect (projectile-tasks-from-npm (projectile-project-root))
+                :to-equal '(("bun:build" . "bun run build")))))
+
+    (it "returns nothing for a package.json without scripts"
+      (projectile-test-with-project (("package.json" . "{\"name\": \"demo\"}"))
+        (expect (projectile-tasks-from-npm (projectile-project-root)) :to-be nil)))
+
+    (it "returns nothing when there is no package.json"
+      (projectile-test-with-project (("README" . "hi"))
+        (expect (projectile-tasks-from-npm (projectile-project-root)) :to-be nil))))
+
+  (describe "projectile-tasks-from-deno"
+    (it "reads the tasks of a deno.json"
+      (projectile-test-with-project
+          (("deno.json" . "{\"tasks\": {\"dev\": \"deno run -A main.ts\"}}"))
+        (expect (projectile-tasks-from-deno (projectile-project-root))
+                :to-equal '(("deno:dev" . "deno task dev"))))))
+
+  (describe "projectile-tasks-from-composer"
+    (it "reads the scripts of a composer.json"
+      (projectile-test-with-project
+          (("composer.json" . "{\"scripts\": {\"lint\": \"php-cs-fixer fix\"}}"))
+        (expect (projectile-tasks-from-composer (projectile-project-root))
+                :to-equal '(("composer:lint" . "composer run-script lint"))))))
+
+  (describe "projectile-tasks-from-just"
+    (it "reads the recipes of a justfile, including quiet ones and ones with parameters"
+      (projectile-test-with-project
+          (("justfile" . "set shell := [\"bash\", \"-c\"]
+version := \"1.0\"
+
+# build everything
+build:
+    cargo build
+
+@fmt:
+    cargo fmt
+
+test filter=\"\":
+    cargo test {{filter}}
+"))
+        (expect (projectile-tasks-from-just (projectile-project-root))
+                :to-equal '(("just:build" . "just build")
+                            ("just:fmt" . "just fmt")
+                            ("just:test" . "just test")))))
+
+    (it "does not mistake an assignment for a recipe"
+      (projectile-test-with-project (("justfile" . "export FOO := \"bar\"\n"))
+        (expect (projectile-tasks-from-just (projectile-project-root)) :to-be nil))))
+
+  (describe "projectile-tasks-from-taskfile"
+    (it "reads the keys of the tasks mapping"
+      (projectile-test-with-project
+          (("Taskfile.yml" . "version: '3'
+
+vars:
+  GREETING: hello
+
+tasks:
+  build:
+    cmds:
+      - go build ./...
+  test:
+    cmds:
+      - go test ./...
+"))
+        (expect (projectile-tasks-from-taskfile (projectile-project-root))
+                :to-equal '(("task:build" . "task build")
+                            ("task:test" . "task test")))))
+
+    (it "does not pick up the keys nested inside a task"
+      (projectile-test-with-project
+          (("Taskfile.yml" . "tasks:
+  build:
+    desc: Build it
+    cmds:
+      - go build ./...
+"))
+        (expect (projectile-tasks-from-taskfile (projectile-project-root))
+                :to-equal '(("task:build" . "task build"))))))
+
+  (describe "projectile-tasks-from-make"
+    (it "reads the named targets of a Makefile"
+      (projectile-test-with-project
+          (("Makefile" . "CC := gcc
+.PHONY: all test
+
+all: main.o
+\t$(CC) -o demo main.o
+
+test:
+\t./run-tests
+
+main.o: main.c
+\t$(CC) -c main.c
+
+%.o: %.c
+\t$(CC) -c $<
+"))
+        (expect (projectile-tasks-from-make (projectile-project-root))
+                :to-equal '(("make:all" . "make all")
+                            ("make:test" . "make test")))))
+
+    (it "does not mistake a variable assignment for a target"
+      (projectile-test-with-project (("Makefile" . "CFLAGS := -O2\n"))
+        (expect (projectile-tasks-from-make (projectile-project-root)) :to-be nil))))
+
+  (describe "projectile-discovered-tasks"
+    (it "collects the tasks of every provider"
+      (projectile-test-with-project
+          (("package.json" . "{\"scripts\": {\"build\": \"tsc\"}}")
+           ("Makefile" . "test:\n\t./run-tests\n"))
+        (expect (projectile-discovered-tasks (projectile-project-root))
+                :to-equal '(("npm:build" . "npm run build")
+                            ("make:test" . "make test")))))
+
+    (it "returns nothing when discovery is off"
+      (projectile-test-with-project (("package.json" . "{\"scripts\": {\"build\": \"tsc\"}}"))
+        (let ((projectile-discover-tasks nil))
+          (expect (projectile-discovered-tasks (projectile-project-root)) :to-be nil))))
+
+    (it "skips a provider that signals instead of failing outright"
+      (projectile-test-with-project (("Makefile" . "test:\n\t./run-tests\n"))
+        (let ((projectile-task-providers
+               (list (lambda (_root) (error "Boom")) #'projectile-tasks-from-make))
+              (projectile-verbose nil))
+          (expect (projectile-discovered-tasks (projectile-project-root))
+                  :to-equal '(("make:test" . "make test"))))))
+
+    (it "survives a malformed manifest"
+      (projectile-test-with-project (("package.json" . "{not json at all"))
+        (let ((projectile-verbose nil))
+          (expect (projectile-discovered-tasks (projectile-project-root)) :to-be nil)))))
+
+  (describe "projectile-project-tasks"
+    (it "offers the discovered tasks after the configured ones"
+      (projectile-test-with-project (("Makefile" . "test:\n\t./run-tests\n"))
+        (let ((projectile-tasks '(("lint" . "make lint"))))
+          (expect (projectile-project-tasks 'generic (projectile-project-root))
+                  :to-equal '(("lint" . "make lint")
+                              ("make:test" . "make test"))))))))
 
 (describe "projectile-run-task"
   (before-each
@@ -203,7 +368,8 @@
   (it "errors when the selected task doesn't exist"
     (spy-on 'projectile-run-compilation)
     (spy-on 'projectile-completing-read :and-return-value "nope")
-    (let ((projectile-tasks '(("lint" . "make lint"))))
+    (let ((projectile-tasks '(("lint" . "make lint")))
+          (projectile-discover-tasks nil))
       (expect (projectile-run-task nil) :to-throw 'user-error)
       (expect 'projectile-run-compilation :not :to-have-been-called)))
 

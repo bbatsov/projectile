@@ -10864,18 +10864,221 @@ project type."
   :safe #'projectile-tasks-safe-p
   :package-version '(projectile . "3.1.0"))
 
-(defun projectile-project-tasks (&optional project-type)
+;;;; Task discovery
+;;
+;; Most projects already describe their tasks somewhere - npm scripts,
+;; Makefile targets, justfile recipes - and retyping those into
+;; `projectile-tasks' is busy-work.  A provider reads one such file and
+;; turns it into tasks, which are offered alongside the configured ones.
+;;
+;; Providers are deliberately simple readers rather than full parsers:
+;; they only need the task names, and they must not shell out (that
+;; would make `projectile-run-task' pay for a process launch, and go
+;; wrong over TRAMP).
+
+(defcustom projectile-discover-tasks t
+  "Whether to offer the tasks a project's own tooling defines.
+
+When non-nil `projectile-run-task' also lists the tasks found by
+`projectile-task-providers' - npm scripts, Makefile targets and so on -
+in addition to the tasks configured via `projectile-tasks' and the
+project type.  Discovered tasks are named after the tool that defines
+them (e.g. `npm:build'), so they never collide with configured ones."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.3.0"))
+
+(defcustom projectile-task-providers
+  '(projectile-tasks-from-npm
+    projectile-tasks-from-deno
+    projectile-tasks-from-composer
+    projectile-tasks-from-just
+    projectile-tasks-from-taskfile
+    projectile-tasks-from-make)
+  "Functions that discover the tasks a project's tooling defines.
+
+Each function is called with the project root and should return an
+alist of (TASK-NAME . COMMAND), both strings, or nil when the project
+has nothing it recognizes.  A function that signals is ignored, so a
+malformed manifest can't break `projectile-run-task'.
+
+Task names should carry a tool prefix (`npm:build', `make:test'), which
+is what keeps the providers from colliding with each other and with the
+configured tasks."
+  :group 'projectile
+  :type '(repeat function)
+  :package-version '(projectile . "3.3.0"))
+
+(defun projectile--task-file (project-root name)
+  "Return NAME under PROJECT-ROOT when it exists as a readable file."
+  (let ((file (expand-file-name name project-root)))
+    (and (file-readable-p file)
+         (not (file-directory-p file))
+         file)))
+
+(defun projectile--first-task-file (project-root names)
+  "Return the first of NAMES that exists under PROJECT-ROOT."
+  (seq-some (lambda (name) (projectile--task-file project-root name)) names))
+
+(defun projectile--read-json-object (file)
+  "Read FILE as JSON and return its top-level object as an alist.
+Returns nil when FILE doesn't hold a JSON object, or when this Emacs was
+built without native JSON support."
+  (when (functionp 'json-parse-buffer)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let ((json (json-parse-buffer :object-type 'alist
+                                     :array-type 'list
+                                     :null-object nil
+                                     :false-object nil)))
+        (and (consp json) json)))))
+
+(defun projectile--json-tasks (file key prefix command-format)
+  "Return the tasks under KEY in the JSON object in FILE.
+Each key of that object becomes a task named `PREFIX:KEY', running
+COMMAND-FORMAT with the key substituted for its `%s'."
+  (when-let* ((json (projectile--read-json-object file))
+              (entries (alist-get key json)))
+    ;; `seq-keep' would read better, but it's Emacs 29.1 and compat
+    ;; doesn't back it up.
+    (delq nil
+          (mapcar (lambda (entry)
+                    (when-let* ((name (and (consp entry) (car entry)))
+                                (name (if (symbolp name) (symbol-name name) name)))
+                      (cons (format "%s:%s" prefix name)
+                            (format command-format name))))
+                  entries))))
+
+(defun projectile--npm-runner (project-root)
+  "Return the package manager command to use in PROJECT-ROOT.
+Derived from the lock file present, so it holds regardless of which
+project type won detection."
+  (cond ((projectile--task-file project-root "pnpm-lock.yaml") "pnpm")
+        ((projectile--task-file project-root "yarn.lock") "yarn")
+        ((projectile--first-task-file project-root '("bun.lock" "bun.lockb")) "bun")
+        (t "npm")))
+
+(defun projectile-tasks-from-npm (project-root)
+  "Return the npm scripts of the project in PROJECT-ROOT as tasks.
+The scripts run through whichever package manager the project's lock
+file points at."
+  (when-let* ((file (projectile--task-file project-root "package.json"))
+              (runner (projectile--npm-runner project-root)))
+    (projectile--json-tasks file 'scripts runner (concat runner " run %s"))))
+
+(defun projectile-tasks-from-deno (project-root)
+  "Return the Deno tasks of the project in PROJECT-ROOT."
+  (when-let* ((file (projectile--first-task-file
+                     project-root '("deno.json" "deno.jsonc"))))
+    (projectile--json-tasks file 'tasks "deno" "deno task %s")))
+
+(defun projectile-tasks-from-composer (project-root)
+  "Return the Composer scripts of the project in PROJECT-ROOT."
+  (when-let* ((file (projectile--task-file project-root "composer.json")))
+    (projectile--json-tasks file 'scripts "composer" "composer run-script %s")))
+
+(defun projectile--matches-in-file (file regexp)
+  "Return the first capture group of every match of REGEXP in FILE.
+Matching is case-sensitive and the results keep their order, with
+duplicates dropped."
+  (let (names)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let ((case-fold-search nil))
+        (while (re-search-forward regexp nil t)
+          (let ((name (match-string 1)))
+            (unless (member name names)
+              (push name names))))))
+    (nreverse names)))
+
+(defun projectile-tasks-from-just (project-root)
+  "Return the recipes of the justfile in PROJECT-ROOT as tasks."
+  (when-let* ((file (projectile--first-task-file
+                     project-root '("justfile" ".justfile" "Justfile"))))
+    (mapcar (lambda (name) (cons (format "just:%s" name) (format "just %s" name)))
+            ;; A recipe starts in column zero, may be marked quiet with
+            ;; `@' and may take parameters.  The lookahead keeps `:=',
+            ;; which is an assignment, from reading as a recipe.
+            (projectile--matches-in-file
+             file "^@?\\([a-zA-Z_][a-zA-Z0-9_-]*\\)[^:\n]*:\\(?:[^=\n]\\|$\\)"))))
+
+(defun projectile-tasks-from-taskfile (project-root)
+  "Return the tasks of the go-task Taskfile in PROJECT-ROOT."
+  (when-let* ((file (projectile--first-task-file
+                     project-root '("Taskfile.yml" "Taskfile.yaml"
+                                    "Taskfile.dist.yml" "Taskfile.dist.yaml"))))
+    (mapcar (lambda (name) (cons (format "task:%s" name) (format "task %s" name)))
+            ;; The keys of the top-level `tasks:' mapping, i.e. the lines
+            ;; indented exactly one level under it.
+            (with-temp-buffer
+              (insert-file-contents file)
+              (goto-char (point-min))
+              (let ((case-fold-search nil)
+                    names)
+                (when (re-search-forward "^tasks:[ \t]*$" nil t)
+                  (forward-line 1)
+                  (let ((indent (current-indentation)))
+                    (while (and (not (eobp))
+                                (or (looking-at-p "^[ \t]*$")
+                                    (< 0 (current-indentation))))
+                      (when (and (= (current-indentation) indent)
+                                 (looking-at "[ \t]+\\([a-zA-Z0-9_.:-]+\\):"))
+                        (let ((name (match-string 1)))
+                          (unless (member name names)
+                            (push name names))))
+                      (forward-line 1))))
+                (nreverse names))))))
+
+(defun projectile-tasks-from-make (project-root)
+  "Return the targets of the Makefile in PROJECT-ROOT as tasks.
+Only plain named targets are offered - pattern rules, file targets and
+the special dot-targets aren't things you'd run by hand."
+  (when-let* ((file (projectile--first-task-file
+                     project-root '("Makefile" "makefile" "GNUmakefile"))))
+    (mapcar (lambda (name) (cons (format "make:%s" name) (format "make %s" name)))
+            (projectile--matches-in-file
+             file "^\\([a-zA-Z0-9][a-zA-Z0-9_-]*\\)[ \t]*:\\(?:[^=\n]\\|$\\)"))))
+
+(defun projectile-discovered-tasks (&optional project-root)
+  "Return the tasks discovered in the project at PROJECT-ROOT.
+PROJECT-ROOT defaults to the current project's root.  The tasks come
+from `projectile-task-providers'; a provider that signals is skipped."
+  (when projectile-discover-tasks
+    (when-let* ((root (or project-root (projectile-project-root))))
+      (seq-mapcat (lambda (provider)
+                    (condition-case err
+                        (funcall provider root)
+                      (error
+                       (when projectile-verbose
+                         (message "Projectile task provider %s failed: %s"
+                                  provider (error-message-string err)))
+                       nil)))
+                  projectile-task-providers))))
+
+(defun projectile--merge-tasks (&rest task-lists)
+  "Merge TASK-LISTS into one alist, earlier lists winning on name."
+  (let (merged)
+    (dolist (tasks task-lists)
+      (dolist (task tasks)
+        (unless (assoc (car task) merged)
+          (push task merged))))
+    (nreverse merged)))
+
+(defun projectile-project-tasks (&optional project-type project-root)
   "Return the effective tasks alist for the current project.
 
 That's the PROJECT-TYPE's `:tasks' table (PROJECT-TYPE defaults to the
 current project's type) merged with `projectile-tasks', whose entries -
 set globally or per project via .dir-locals.el - override same-named
-project-type tasks."
+project-type tasks, and with the tasks discovered in PROJECT-ROOT by
+`projectile-task-providers', which lose to both."
   (let ((type-tasks (projectile-project-type-attribute
                      (or project-type (projectile-project-type)) 'tasks)))
-    (append projectile-tasks
-            (seq-remove (lambda (task) (assoc (car task) projectile-tasks))
-                        type-tasks))))
+    (projectile--merge-tasks projectile-tasks
+                             type-tasks
+                             (projectile-discovered-tasks project-root))))
 
 (defun projectile-default-generic-command (project-type command-type)
   "Generic retrieval of COMMAND-TYPEs default cmd-value for PROJECT-TYPE.
@@ -11632,10 +11835,12 @@ the `%p' placeholder still intact."
   "Run one of the current project's named tasks.
 
 The task is picked with completion among the tasks of the project's
-type and those in `projectile-tasks', which win for same-named tasks
-\(see `projectile-project-tasks').  With a prefix ARG the task's
-command can be edited before it's run, e.g. to pass it ad-hoc
-arguments.
+type, those in `projectile-tasks' (which win for same-named tasks) and
+the ones discovered in the project's own tooling - npm scripts, Makefile
+targets and the like, named after the tool that defines them (see
+`projectile-project-tasks' and `projectile-task-providers').  With a
+prefix ARG the task's command can be edited before it's run, e.g. to
+pass it ad-hoc arguments.
 
 The command runs through the same machinery as
 `projectile-compile-project' - in `projectile-compilation-dir', with
@@ -11644,8 +11849,7 @@ compilation buffer named after the task."
   (interactive "P")
   ;; Establish we're in a project before prompting, so the task menu
   ;; doesn't pop up (with globally-defined tasks) outside one.
-  (projectile-acquire-root)
-  (let ((tasks (projectile-project-tasks)))
+  (let ((tasks (projectile-project-tasks nil (projectile-acquire-root))))
     (unless tasks
       (user-error "No tasks defined for the current project"))
     (let* ((task-name (projectile-completing-read "Run task: " (mapcar #'car tasks)))
@@ -13194,7 +13398,7 @@ see `projectile-dashboard--collect', which arranges that."
            :recent-files (when (projectile-dashboard--section-p 'recent)
                            (projectile-dashboard--recent-files root))
            :tasks (when (projectile-dashboard--section-p 'tasks)
-                    (ignore-errors (projectile-project-tasks)))
+                    (ignore-errors (projectile-project-tasks nil root)))
            :commands (when (projectile-dashboard--section-p 'commands)
                        (ignore-errors (projectile-dashboard--commands root))))
      (when (projectile-dashboard--section-p 'vcs)
