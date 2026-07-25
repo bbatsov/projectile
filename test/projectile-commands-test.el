@@ -599,35 +599,63 @@
     (spy-on 'projectile-project-subprojects :and-return-value nil)
     (expect (projectile-find-file-in-subproject) :to-throw 'user-error)))
 
-(describe "projectile-compile-subproject"
-  (it "compiles with the subproject as the relative compilation dir"
+(describe "projectile-compilation-dir"
+  (before-each
     (spy-on 'projectile-acquire-root :and-return-value "/proj/")
-    (spy-on 'projectile-subproject-root :and-return-value "/proj/mod/")
-    (spy-on 'projectile-compilation-dir :and-return-value "/proj/mod/")
-    (spy-on 'projectile-compilation-command :and-return-value "make")
-    (spy-on 'projectile--cache-project-commands-p :and-return-value nil)
-    (let (seen-dir)
-      (spy-on 'projectile--run-project-cmd :and-call-fake
-              (lambda (&rest _) (setq seen-dir projectile-project-compilation-dir)))
-      (projectile-compile-subproject nil)
-      (expect 'projectile--run-project-cmd :to-have-been-called)
-      ;; the subproject dir is passed relative to the project root
-      (expect seen-dir :to-equal "mod/"))))
+    (spy-on 'projectile-project-type :and-return-value 'meson))
 
-(describe "projectile-run-subproject"
-  (it "runs the project's run command in the subproject"
+  (it "resolves the project type's compilation dir against the project root"
+    (expect (projectile-compilation-dir) :to-equal "/proj/build/"))
+
+  (it "resolves it against a base directory when given one"
+    ;; The subproject case: a Meson module builds in its own build
+    ;; directory, not the repository's.
+    (expect (projectile-compilation-dir "/proj/sub/") :to-equal "/proj/sub/build/"))
+
+  (it "returns the base itself for a type without a compilation dir"
+    (spy-on 'projectile-project-type :and-return-value 'rust-cargo)
+    (expect (projectile-compilation-dir "/proj/sub/") :to-equal "/proj/sub/")
+    (expect (projectile-compilation-dir) :to-equal "/proj/")))
+
+(describe "the subproject lifecycle commands"
+  (before-each
     (spy-on 'projectile-acquire-root :and-return-value "/proj/")
     (spy-on 'projectile-subproject-root :and-return-value "/proj/services/api/")
-    (spy-on 'projectile-compilation-dir :and-return-value "/proj/services/api/")
-    (spy-on 'projectile-run-command :and-return-value "go run .")
-    (spy-on 'projectile--cache-project-commands-p :and-return-value nil)
-    (let (seen-dir seen-command)
+    (spy-on 'projectile-project-type :and-return-value 'rust-cargo)
+    (spy-on 'projectile--cache-project-commands-p :and-return-value nil))
+
+  (it "runs the phase's command in the subproject"
+    (spy-on 'projectile-run-command :and-return-value "cargo run")
+    (let (args)
       (spy-on 'projectile--run-project-cmd :and-call-fake
-              (lambda (command &rest _)
-                (setq seen-dir projectile-project-compilation-dir
-                      seen-command command)))
+              (lambda (command _map &rest rest) (setq args (cons command rest))))
       (projectile-run-subproject nil)
-      (expect seen-command :to-equal "go run .")
-      (expect seen-dir :to-equal "services/api/"))))
+      (expect (car args) :to-equal "cargo run")
+      (expect (plist-get (cdr args) :directory) :to-equal "/proj/services/api/")))
+
+  (it "keeps the project type's compilation dir, relative to the subproject"
+    ;; Regression: this used to replace `projectile-project-compilation-dir'
+    ;; outright, so a Meson module ran ninja in sub/ instead of sub/build/.
+    (spy-on 'projectile-project-type :and-return-value 'meson)
+    (spy-on 'projectile-compilation-command :and-return-value "ninja")
+    (let (args)
+      (spy-on 'projectile--run-project-cmd :and-call-fake
+              (lambda (command _map &rest rest) (setq args (cons command rest))))
+      (projectile-compile-subproject nil)
+      (expect (plist-get (cdr args) :directory) :to-equal "/proj/services/api/build/")))
+
+  (it "says which subproject the command will run in, at the prompt"
+    (spy-on 'projectile-test-command :and-return-value "cargo test")
+    (let (args)
+      (spy-on 'projectile--run-project-cmd :and-call-fake
+              (lambda (command _map &rest rest) (setq args (cons command rest))))
+      (projectile-test-subproject nil)
+      (expect (plist-get (cdr args) :prompt-prefix)
+              :to-equal "Test command in services/api/: ")))
+
+  (it "exists for every lifecycle phase"
+    (dolist (phase '(configure compile test install package run))
+      (expect (commandp (intern (format "projectile-%s-subproject" phase)))
+              :to-be-truthy))))
 
 ;;; projectile-commands-test.el ends here

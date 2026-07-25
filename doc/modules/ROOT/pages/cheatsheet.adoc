@@ -178,11 +178,20 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p c m f]
 | Finds a file in one of the project's subprojects, prompting for the subproject first.
 
+| kbd:[s-p c m o]
+| Runs the configure command in the nearest subproject instead of at the project root.
+
 | kbd:[s-p c m c]
-| Runs the compile command in the nearest subproject instead of at the project root.
+| Runs the compile command in the nearest subproject.
 
 | kbd:[s-p c m t]
 | Runs the test command in the nearest subproject.
+
+| kbd:[s-p c m i]
+| Runs the install command in the nearest subproject.
+
+| kbd:[s-p c m p]
+| Runs the package command in the nearest subproject.
 
 | kbd:[s-p c m r]
 | Runs the run command in the nearest subproject.
