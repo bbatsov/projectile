@@ -545,6 +545,32 @@
     (projectile-test-with-stub-root "proj" ("README")
       (expect (projectile-cabal-project-p) :to-be nil))))
 
+(describe "projectile-flutter-project-p"
+  (it "is true for a pubspec.yaml that depends on the Flutter SDK"
+    (projectile-test-with-stub-root "proj" ("pubspec.yaml")
+      (with-temp-file (expand-file-name "pubspec.yaml" (projectile-project-root))
+        (insert "name: demo\ndependencies:\n  flutter:\n    sdk: flutter\n"))
+      (expect (projectile-flutter-project-p) :to-be-truthy)))
+  (it "is false for a plain Dart package"
+    (projectile-test-with-stub-root "proj" ("pubspec.yaml")
+      (with-temp-file (expand-file-name "pubspec.yaml" (projectile-project-root))
+        (insert "name: demo\ndependencies:\n  http: ^1.0.0\n"))
+      (expect (projectile-flutter-project-p) :to-be nil)))
+  (it "is false when there is no pubspec.yaml at all"
+    (projectile-test-with-stub-root "proj" ("README")
+      (expect (projectile-flutter-project-p) :to-be nil))))
+
+(describe "projectile-xcode-project-p"
+  (it "is true for a project with an Xcode project directory"
+    (projectile-test-with-stub-root "proj" ("Demo.xcodeproj/")
+      (expect (projectile-xcode-project-p) :to-be-truthy)))
+  (it "is true for a project with an Xcode workspace"
+    (projectile-test-with-stub-root "proj" ("Demo.xcworkspace/")
+      (expect (projectile-xcode-project-p) :to-be-truthy)))
+  (it "is false for a project without either"
+    (projectile-test-with-stub-root "proj" ("README")
+      (expect (projectile-xcode-project-p) :to-be nil))))
+
 (describe "projectile-go-project-p"
   (it "is true for a project with a go.mod file"
     (projectile-test-with-stub-root "proj" ("go.mod")
