@@ -314,6 +314,30 @@
       (let ((projectile-indexing-method 'native))
         (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'zig)))))
+  (it "detects a Zig project that has only a build.zig"
+    (projectile-test-with-stub-root "project" ("build.zig")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'zig))))
+  (it "detects a bzlmod Bazel project (MODULE.bazel)"
+    (projectile-test-with-stub-root "project" ("MODULE.bazel")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'bazel))))
+  (it "detects a legacy WORKSPACE Bazel project"
+    (projectile-test-with-stub-root "project" ("WORKSPACE")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'bazel))))
+  (it "detects a Gradle project using the Kotlin DSL"
+    (projectile-test-with-stub-root "project" ("build.gradle.kts")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'gradle))))
+  (it "detects an Angular project (its two markers are alternatives, not both)"
+    (projectile-test-with-stub-root "project" ("angular.json" "package.json")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'angular))))
+  (it "detects a Taskfile.yaml go-task project"
+    (projectile-test-with-stub-root "project" ("Taskfile.yaml")
+      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
+        (expect (projectile-detect-project-type) :to-equal 'go-task))))
   (it "does not match a project type whose marker-files are empty"
     (projectile-test-with-sandbox
      (projectile-test-with-files
