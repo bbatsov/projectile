@@ -6332,6 +6332,13 @@ a manual COMMAND-TYPE command is created with
                                   :test "mix test"
                                   :test-suffix "_test")
 ;; JavaScript
+;; A bare `package.json' with no lock file next to it is still a Node
+;; project - this is the fallback for all the more specific types below.
+(projectile-register-project-type 'node '("package.json")
+                                  :compile "npm install"
+                                  :test "npm test"
+                                  :run "npm start"
+                                  :test-suffix ".test")
 (projectile-register-project-type 'grunt '("Gruntfile.js")
                                   :compile "grunt"
                                   :test "grunt test")
@@ -6350,6 +6357,18 @@ a manual COMMAND-TYPE command is created with
                                   :compile "pnpm install && pnpm build"
                                   :test "pnpm test"
                                   :test-suffix ".test")
+;; `bun.lockb' is the binary lock file Bun used before 1.2, `bun.lock' the
+;; text one it writes now.
+(projectile-register-project-type 'bun '("package.json" (:any "bun.lock" "bun.lockb"))
+                                  :compile "bun install"
+                                  :test "bun test"
+                                  :run "bun run start"
+                                  :test-suffix ".test")
+(projectile-register-project-type 'deno '((:any "deno.json" "deno.jsonc"))
+                                  :compile "deno check ."
+                                  :test "deno test"
+                                  :run "deno task start"
+                                  :test-suffix "_test")
 ;; Angular
 ;; `angular.json' is Angular 6+, `.angular-cli.json' the older spelling -
 ;; a project has one or the other, never both.
@@ -6358,6 +6377,16 @@ a manual COMMAND-TYPE command is created with
                                   :run "ng serve"
                                   :test "ng test"
                                   :test-suffix ".spec")
+;; JavaScript monorepo tools, which sit on top of one of the package
+;; managers above and are what you actually build and test through.
+(projectile-register-project-type 'nx '("nx.json")
+                                  :compile "npx nx run-many -t build"
+                                  :test "npx nx run-many -t test"
+                                  :test-suffix ".spec")
+(projectile-register-project-type 'turborepo '("turbo.json")
+                                  :compile "turbo build"
+                                  :test "turbo test"
+                                  :test-suffix ".test")
 ;; Python
 ;;
 ;; Nearly every Python project carries a `pyproject.toml' these days, and
