@@ -6028,6 +6028,24 @@ it acts on the current project."
   :type 'function
   :package-version '(projectile . "1.0.0"))
 
+(defun projectile-xcode-project-p (&optional dir)
+  "Check if a project contains an Xcode project or workspace.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (or (projectile-verify-file-wildcard "?*.xcworkspace" dir)
+      (projectile-verify-file-wildcard "?*.xcodeproj" dir)))
+
+(defun projectile-flutter-project-p (&optional dir)
+  "Check if a project is a Flutter project.
+That's a Dart project whose `pubspec.yaml' depends on the Flutter SDK.
+When DIR is specified it checks DIR's project, otherwise
+it acts on the current project."
+  (let ((pubspec (projectile-expand-root "pubspec.yaml" dir)))
+    (and (projectile-file-exists-p pubspec)
+         (with-temp-buffer
+           (insert-file-contents pubspec)
+           (and (re-search-forward "^[ \t]*sdk:[ \t]*flutter[ \t]*$" nil t) t)))))
+
 (defun projectile-nimble-project-p (&optional dir)
   "Check if a project contains a Nimble project marker.
 Nim projects that use Nimble contain a <projectname>.nimble file.
@@ -6238,6 +6256,10 @@ a manual COMMAND-TYPE command is created with
                                   :compile "dotnet build"
                                   :run "dotnet run"
                                   :test "dotnet test")
+(projectile-register-project-type 'xcode #'projectile-xcode-project-p
+                                  :project-file '("?*.xcworkspace" "?*.xcodeproj")
+                                  :compile "xcodebuild build"
+                                  :test "xcodebuild test")
 (projectile-register-project-type 'nim-nimble #'projectile-nimble-project-p
                                   :project-file "?*.nimble"
                                   :compile "nimble --noColor build --colors:off"
@@ -6611,6 +6633,16 @@ a manual COMMAND-TYPE command is created with
                                   :src-dir "lib/"
                                   :test-dir "test/"
                                   :test-suffix "_test.dart")
+
+;; Flutter projects are Dart projects, so this has to come after `dart'.
+(projectile-register-project-type 'flutter #'projectile-flutter-project-p
+                                  :project-file "pubspec.yaml"
+                                  :compile "flutter build"
+                                  :test "flutter test"
+                                  :run "flutter run"
+                                  :src-dir "lib/"
+                                  :test-dir "test/"
+                                  :test-suffix "_test")
 
 ;; Elm
 (projectile-register-project-type 'elm '("elm.json")
