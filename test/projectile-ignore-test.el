@@ -83,6 +83,32 @@
                           files)
               :to-equal (projectile-remove-ignored files)))))
 
+(describe "projectile-globally-ignored-directories"
+  (it "keeps the generated directories of the common ecosystems out of the listing"
+    (let ((files '("src/main.js"
+                   "node_modules/left-pad/index.js"
+                   "target/debug/build.rs"
+                   "app/__pycache__/views.cpython-312.pyc"
+                   "demo.egg-info/PKG-INFO"
+                   ".venv/lib/python3.12/site-packages/x.py"
+                   "web/.next/server/pages.js"
+                   "infra/.terraform/providers/registry.tf")))
+      (expect (projectile-remove-ignored files) :to-equal '("src/main.js"))))
+
+  (it "leaves the directories projects do commit alone"
+    ;; Go vendors into `vendor', libraries commit `dist' and `public',
+    ;; and `build' is as often a source directory as an output one.
+    (let ((files '("vendor/github.com/pkg/errors/errors.go"
+                   "dist/bundle.js"
+                   "public/index.html"
+                   "build/ci.sh")))
+      (expect (projectile-remove-ignored files) :to-equal files)))
+
+  (it "can be overridden per entry by the unignored directories"
+    (let ((projectile-globally-unignored-directories '("node_modules")))
+      (expect (projectile-remove-ignored '("node_modules/left-pad/index.js"))
+              :to-equal '("node_modules/left-pad/index.js")))))
+
 (describe "projectile-globally-ignored-files"
   (it "includes TAGS file by default"
     (expect (member projectile-tags-file-name projectile-globally-ignored-files) :to-be-truthy))
