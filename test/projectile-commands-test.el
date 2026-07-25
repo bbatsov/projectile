@@ -474,8 +474,26 @@
     (expect 'projectile-run-compilation
             :to-have-been-called-with "make build" nil)))
 
+(describe "projectile--subproject-markers"
+  (it "derives the markers from the registered project types"
+    (let ((projectile-subproject-markers nil))
+      (expect (member "Cargo.toml" (projectile--subproject-markers)) :to-be-truthy)
+      (expect (member "package.json" (projectile--subproject-markers)) :to-be-truthy)
+      (expect (member "go.mod" (projectile--subproject-markers)) :to-be-truthy)))
+
+  (it "leaves out wildcard patterns and names with a directory component"
+    (let ((projectile-subproject-markers nil))
+      (expect (seq-find (lambda (m) (string-match-p "[*?]" m))
+                        (projectile--subproject-markers))
+              :to-be nil)
+      (expect (member "debian/control" (projectile--subproject-markers)) :to-be nil)))
+
+  (it "honors an explicit list"
+    (let ((projectile-subproject-markers '("only.this")))
+      (expect (projectile--subproject-markers) :to-equal '("only.this")))))
+
 (describe "projectile-subproject-root"
-  (it "returns the nearest ancestor directory that holds a project-file marker"
+  (it "returns the nearest ancestor directory that holds a project marker"
     (let* ((root (file-name-as-directory (make-temp-file "projectile-sub" t)))
            (sub (file-name-as-directory (expand-file-name "mod" root)))
            (deep (file-name-as-directory (expand-file-name "src" sub))))
@@ -485,8 +503,22 @@
             (write-region "" nil (expand-file-name "pom.xml" root))
             (write-region "" nil (expand-file-name "pom.xml" sub))
             (spy-on 'projectile-acquire-root :and-return-value root)
-            (spy-on 'projectile-project-type :and-return-value 'maven)
-            (spy-on 'projectile-project-type-attribute :and-return-value "pom.xml")
+            (let ((default-directory deep))
+              (expect (projectile-subproject-root) :to-equal sub)))
+        (delete-directory root t))))
+
+  (it "recognizes a subproject of a different kind than the project itself"
+    ;; A polyglot monorepo: the manifest of the part you're in counts,
+    ;; whatever the type of the repository as a whole is.
+    (let* ((root (file-name-as-directory (make-temp-file "projectile-sub" t)))
+           (sub (file-name-as-directory (expand-file-name "crates/parser" root)))
+           (deep (file-name-as-directory (expand-file-name "src" sub))))
+      (unwind-protect
+          (progn
+            (make-directory deep t)
+            (write-region "" nil (expand-file-name "package.json" root))
+            (write-region "" nil (expand-file-name "Cargo.toml" sub))
+            (spy-on 'projectile-acquire-root :and-return-value root)
             (let ((default-directory deep))
               (expect (projectile-subproject-root) :to-equal sub)))
         (delete-directory root t))))
@@ -500,8 +532,6 @@
             (make-directory deep t)
             (write-region "" nil (expand-file-name "pom.xml" root))
             (spy-on 'projectile-acquire-root :and-return-value root)
-            (spy-on 'projectile-project-type :and-return-value 'maven)
-            (spy-on 'projectile-project-type-attribute :and-return-value "pom.xml")
             (let ((default-directory deep))
               (expect (projectile-subproject-root) :to-equal root)))
         (delete-directory root t))))
@@ -513,11 +543,51 @@
           (progn
             (make-directory deep t)
             (spy-on 'projectile-acquire-root :and-return-value root)
-            (spy-on 'projectile-project-type :and-return-value 'maven)
-            (spy-on 'projectile-project-type-attribute :and-return-value "pom.xml")
             (let ((default-directory deep))
               (expect (projectile-subproject-root) :to-throw 'user-error)))
         (delete-directory root t)))))
+
+(describe "projectile-project-subprojects"
+  (it "lists the directories below the root that hold a manifest"
+    (spy-on 'projectile-project-files :and-return-value
+            '("README.md"
+              "package.json"
+              "crates/parser/Cargo.toml"
+              "crates/parser/src/lib.rs"
+              "services/api/go.mod"
+              "services/api/main.go"
+              "docs/index.md"))
+    (expect (projectile-project-subprojects "/proj/")
+            :to-equal '("crates/parser/" "services/api/")))
+
+  (it "does not count the project's own manifest as a subproject"
+    (spy-on 'projectile-project-files :and-return-value '("Cargo.toml" "src/main.rs"))
+    (expect (projectile-project-subprojects "/proj/") :to-be nil))
+
+  (it "reports a directory once, however many manifests it holds"
+    (spy-on 'projectile-project-files :and-return-value
+            '("app/package.json" "app/Cargo.toml" "app/Makefile"))
+    (expect (projectile-project-subprojects "/proj/") :to-equal '("app/")))
+
+  (it "honors an explicit marker list"
+    (spy-on 'projectile-project-files :and-return-value
+            '("crates/parser/Cargo.toml" "web/package.json"))
+    (let ((projectile-subproject-markers '("Cargo.toml")))
+      (expect (projectile-project-subprojects "/proj/") :to-equal '("crates/parser/")))))
+
+(describe "projectile-find-file-in-subproject"
+  (it "finds the file in the chosen subproject's directory"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-subprojects :and-return-value '("app/" "lib/"))
+    (spy-on 'projectile-completing-read :and-return-value "lib/")
+    (spy-on 'projectile-find-file-in-directory)
+    (projectile-find-file-in-subproject)
+    (expect 'projectile-find-file-in-directory :to-have-been-called-with "/proj/lib/"))
+
+  (it "errors when the project has no subprojects"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-subprojects :and-return-value nil)
+    (expect (projectile-find-file-in-subproject) :to-throw 'user-error)))
 
 (describe "projectile-compile-subproject"
   (it "compiles with the subproject as the relative compilation dir"
@@ -533,5 +603,21 @@
       (expect 'projectile--run-project-cmd :to-have-been-called)
       ;; the subproject dir is passed relative to the project root
       (expect seen-dir :to-equal "mod/"))))
+
+(describe "projectile-run-subproject"
+  (it "runs the project's run command in the subproject"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-subproject-root :and-return-value "/proj/services/api/")
+    (spy-on 'projectile-compilation-dir :and-return-value "/proj/services/api/")
+    (spy-on 'projectile-run-command :and-return-value "go run .")
+    (spy-on 'projectile--cache-project-commands-p :and-return-value nil)
+    (let (seen-dir seen-command)
+      (spy-on 'projectile--run-project-cmd :and-call-fake
+              (lambda (command &rest _)
+                (setq seen-dir projectile-project-compilation-dir
+                      seen-command command)))
+      (projectile-run-subproject nil)
+      (expect seen-command :to-equal "go run .")
+      (expect seen-dir :to-equal "services/api/"))))
 
 ;;; projectile-commands-test.el ends here

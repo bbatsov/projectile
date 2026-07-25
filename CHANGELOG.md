@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2121](https://github.com/bbatsov/projectile/pull/2121): Projectile now recognizes the subprojects of a monorepo - any directory below the root holding a manifest of its own.
+  - `projectile-find-file-in-subproject` (`s-p c m f`) prompts for a subproject and completes over just its files; `projectile-project-subprojects` lists them, scanning the project's file listing so the ignore rules apply.
+  - `projectile-run-subproject` (`s-p c m r`) joins the existing `projectile-compile-subproject` and `projectile-test-subproject`, which now share the lifecycle machinery rather than reimplementing it.
+  - What counts as a subproject manifest comes from `projectile-subproject-markers`, derived by default from every registered project type - so a polyglot repository works out of the box, where `projectile-subproject-root` previously only looked for the marker of the project's own type (and errored outright for a type without one, e.g. Go).
 - [#2120](https://github.com/bbatsov/projectile/pull/2120): `projectile-run-task` now also offers the tasks a project's own tooling defines, so it's useful in a fresh checkout without any configuration.
   - npm scripts (run through whichever package manager the lock file points at), Deno tasks, Composer scripts, just recipes, go-task tasks and Make targets.
   - Discovered tasks are named after the tool that defines them (`npm:build`, `make:test`), so they never collide with the tasks you configure yourself.
@@ -56,6 +60,7 @@
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): Rails and Django had their development server wired to the compile command, leaving the run command empty; the server is now the run command and compile is `bundle exec rake` / `manage.py collectstatic`.
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): The PHP types are now registered after the JavaScript ones, so a PHP application isn't detected as a Node project because of the `package.json` its asset pipeline ships.
 - [#2119](https://github.com/bbatsov/projectile/pull/2119): The supported project types table in the manual is now generated from the registry, which had drifted well behind it.
+- [#2121](https://github.com/bbatsov/projectile/pull/2121): `go.mod` is now registered as the Go type's project file, so it can anchor the root of a Go project outside version control and mark a module inside a larger repository. The type itself is still detected by predicate, since a directory of `.go` files is a Go project with or without modules.
 - [#2114](https://github.com/bbatsov/projectile/pull/2114): In `projectile-dispatch`, "display buffer" moved from `B` to `C-o` (mirroring its `s-p 4 C-o` binding), so `B` could become the bookmark prefix.
 - [#2110](https://github.com/bbatsov/projectile/pull/2110): The grep/ag search integration and the ignore predicates now derive their exclusions from the same gitignore patterns indexing uses, instead of expanding the dirconfig into absolute paths on their own.
   - `projectile-ignored-file-p` and `projectile-ignored-directory-p` now take an optional project root instead of a pre-computed list of ignored paths, and answer exactly what indexing would (ensure entries included, a file under an ignored directory counted as ignored).

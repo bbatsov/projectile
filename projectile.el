@@ -11222,20 +11222,81 @@ COMMAND-TYPE, when non-nil, selects the per-type command history
                             '(compile-history . 1)
                           'compile-history))))
 
-(defun projectile-subproject-root ()
-  "Find the root of the nearest subproject containing the current file.
-Walk up from `default-directory' looking for the project type's
-`:project-file' marker, stopping at the project root.  Returns the
-directory containing the nearest marker, or signals an error if no
-subproject is found between the current directory and the project root."
+;;; Subprojects
+;;
+;; A monorepo is one project as far as version control (and therefore
+;; Projectile) is concerned, but its parts each have a manifest of their
+;; own - a crate, a package, a module.  Those are subprojects: Projectile
+;; keeps treating the repository as the project, and these commands let
+;; you work on the part you're in.
+
+(defcustom projectile-subproject-markers nil
+  "File names that mark a subproject inside a project.
+
+When nil (the default) the markers are derived from the registered
+project types - every type's `:project-file' - so registering a project
+type also teaches Projectile to recognize its manifest inside a
+monorepo.  Set this to an explicit list to narrow things down, e.g. to
+the manifests of the languages you actually work in.
+
+Derived markers never include the wildcard patterns some types use
+\(`?*.csproj' and friends), nor names with a directory component."
+  :group 'projectile
+  :type '(choice (const :tag "Derive from the registered project types" nil)
+                 (repeat string))
+  :package-version '(projectile . "3.3.0"))
+
+(defun projectile--subproject-markers ()
+  "Return the file names that mark a subproject.
+See `projectile-subproject-markers'."
+  (or projectile-subproject-markers
+      (let (markers)
+        (dolist (record projectile-project-types)
+          (dolist (file (ensure-list (plist-get (cdr record) 'project-file)))
+            (when (and (stringp file)
+                       ;; A wildcard would have to be expanded per
+                       ;; directory, and a name with a directory component
+                       ;; (`debian/control') isn't a plain marker.
+                       (not (string-match-p "[*?]" file))
+                       (not (string-search "/" file))
+                       (not (member file markers)))
+              (push file markers))))
+        markers)))
+
+(defun projectile-project-subprojects (&optional project-root)
+  "Return the subprojects of the project at PROJECT-ROOT.
+
+A subproject is a directory below the root that holds a project manifest
+of its own (see `projectile-subproject-markers').  The result is a sorted
+list of directory names relative to the root, each ending in a slash.
+
+The project's own file listing is what gets scanned, so the ignore rules
+apply as usual - the manifest of a vendored dependency doesn't turn it
+into a subproject."
+  (let* ((root (or project-root (projectile-acquire-root)))
+         (markers (projectile--subproject-markers))
+         (marker-set (make-hash-table :test 'equal))
+         (dirs (make-hash-table :test 'equal)))
+    (dolist (marker markers)
+      (puthash marker t marker-set))
+    (dolist (file (projectile-project-files root))
+      ;; A manifest sitting in the root itself has no directory part -
+      ;; that's the project, not a subproject.
+      (when-let* ((dir (file-name-directory file)))
+        (when (gethash (file-name-nondirectory file) marker-set)
+          (puthash dir t dirs))))
+    (sort (hash-table-keys dirs) #'string<)))
+
+(defun projectile-subproject-root (&optional dir)
+  "Find the root of the nearest subproject containing DIR.
+Walk up from DIR (the current file's directory by default) looking for
+one of `projectile-subproject-markers', stopping at the project root.
+Returns the directory containing the nearest marker, or signals an error
+if no subproject is found between DIR and the project root."
   (let* ((project-root (projectile-acquire-root))
-         (type (projectile-project-type project-root))
-         (project-file (projectile-project-type-attribute type 'project-file))
-         (markers (if (listp project-file) project-file (list project-file)))
-         (dir (file-name-directory (or (buffer-file-name) default-directory)))
+         (markers (projectile--subproject-markers))
+         (dir (or dir (file-name-directory (or (buffer-file-name) default-directory))))
          (result nil))
-    (unless markers
-      (user-error "Project type `%s' has no project-file defined" type))
     ;; Walk up from current directory, stop at (but include) project root.
     (while (and (not result)
                 dir
@@ -11248,6 +11309,20 @@ subproject is found between the current directory and the project root."
         (setq dir (unless (string= parent dir) parent))))
     (or result
         (user-error "No subproject found between current directory and project root"))))
+
+;;;###autoload
+(defun projectile-find-file-in-subproject ()
+  "Jump to a file in one of the current project's subprojects.
+Prompts for the subproject first, so the file completion only covers
+that part of the repository."
+  (interactive)
+  (let* ((project-root (projectile-acquire-root))
+         (subprojects (projectile-project-subprojects project-root)))
+    (unless subprojects
+      (user-error "No subprojects found in %s" project-root))
+    (let ((subproject (projectile-completing-read "Subproject: " subprojects)))
+      (projectile-find-file-in-directory
+       (expand-file-name subproject project-root)))))
 
 (defun projectile-compilation-dir ()
   "Retrieve the compilation directory for this project."
@@ -11431,11 +11506,12 @@ never treated as dynamic."
           (plist-get (alist-get (projectile-project-type) projectile-project-types)
                      (intern (format "%s-command" phase)))))))
 
-(defun projectile--run-lifecycle-phase (phase show-prompt)
+(defun projectile--run-lifecycle-phase (phase show-prompt &optional prompt-prefix)
   "Run the current project's command for lifecycle PHASE.
 PHASE is a symbol naming an entry of `projectile--lifecycle-phases'.
 With SHOW-PROMPT non-nil force prompting for the command, as in
-`projectile--run-project-cmd'."
+`projectile--run-project-cmd'.  PROMPT-PREFIX overrides the phase's own
+prompt."
   (let* ((descriptor (projectile--phase-descriptor phase))
          (command (funcall (plist-get descriptor :command-fn)
                            (projectile-compilation-dir)))
@@ -11444,7 +11520,8 @@ With SHOW-PROMPT non-nil force prompting for the command, as in
     (projectile--run-project-cmd command command-map
                                  :command-type phase
                                  :show-prompt show-prompt
-                                 :prompt-prefix (plist-get descriptor :prompt)
+                                 :prompt-prefix (or prompt-prefix
+                                                    (plist-get descriptor :prompt))
                                  :save-buffers (plist-get descriptor :save-buffers)
                                  :no-cache (projectile--phase-command-dynamic-p phase)
                                  :use-comint-mode (symbol-value (plist-get descriptor :use-comint-var)))))
@@ -11480,10 +11557,21 @@ with a prefix ARG."
   (interactive "P")
   (projectile--run-lifecycle-phase 'test arg))
 
+(defun projectile--run-subproject-phase (phase show-prompt prompt-prefix)
+  "Run lifecycle PHASE in the nearest subproject of the current file.
+SHOW-PROMPT and PROMPT-PREFIX are as in `projectile--run-lifecycle-phase',
+which does the actual work - the subproject only changes the directory
+the command runs in."
+  (let* ((subproject-root (projectile-subproject-root))
+         (project-root (projectile-acquire-root))
+         (projectile-project-compilation-dir
+          (file-relative-name subproject-root project-root)))
+    (projectile--run-lifecycle-phase phase show-prompt prompt-prefix)))
+
 ;;;###autoload
 (defun projectile-compile-subproject (arg)
   "Run compilation in the nearest subproject.
-Find the closest build file (e.g. pom.xml, build.gradle) between the
+Find the closest project manifest (e.g. pom.xml, Cargo.toml) between the
 current directory and the project root, then run the project's compile
 command there.  This is useful for multi-module projects where building
 a single module is faster than building the entire project.
@@ -11492,22 +11580,12 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let* ((subproject-root (projectile-subproject-root))
-         (project-root (projectile-acquire-root))
-         (projectile-project-compilation-dir
-          (file-relative-name subproject-root project-root))
-         (command (projectile-compilation-command (projectile-compilation-dir)))
-         (command-map (if (projectile--cache-project-commands-p) projectile-compilation-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :show-prompt arg
-                                 :prompt-prefix "Compile subproject command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-compile-use-comint-mode)))
+  (projectile--run-subproject-phase 'compile arg "Compile subproject command: "))
 
 ;;;###autoload
 (defun projectile-test-subproject (arg)
   "Run tests in the nearest subproject.
-Find the closest build file (e.g. pom.xml, build.gradle) between the
+Find the closest project manifest (e.g. pom.xml, Cargo.toml) between the
 current directory and the project root, then run the project's test
 command there.  This is useful for multi-module projects where testing
 a single module is faster than testing the entire project.
@@ -11516,17 +11594,18 @@ Normally you'll be prompted for a compilation command, unless
 variable `compilation-read-command'.  You can force the prompt
 with a prefix ARG."
   (interactive "P")
-  (let* ((subproject-root (projectile-subproject-root))
-         (project-root (projectile-acquire-root))
-         (projectile-project-compilation-dir
-          (file-relative-name subproject-root project-root))
-         (command (projectile-test-command (projectile-compilation-dir)))
-         (command-map (if (projectile--cache-project-commands-p) projectile-test-cmd-map)))
-    (projectile--run-project-cmd command command-map
-                                 :show-prompt arg
-                                 :prompt-prefix "Test subproject command: "
-                                 :save-buffers t
-                                 :use-comint-mode projectile-test-use-comint-mode)))
+  (projectile--run-subproject-phase 'test arg "Test subproject command: "))
+
+;;;###autoload
+(defun projectile-run-subproject (arg)
+  "Run the nearest subproject.
+Like `projectile-compile-subproject', but for the project's run command -
+handy in a monorepo where each service is started from its own directory.
+
+Normally you'll be prompted for a command, unless variable
+`compilation-read-command'.  You can force the prompt with a prefix ARG."
+  (interactive "P")
+  (projectile--run-subproject-phase 'run arg "Run subproject command: "))
 
 (defun projectile-test-at-point-python-name (node)
   "Return the test name for the Python `function_definition' NODE.
@@ -13848,8 +13927,11 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c t") #'projectile-test-project)
     (define-key map (kbd "c .") #'projectile-run-test-at-point)
     (define-key map (kbd "c r") #'projectile-run-project)
+    ;; subprojects (see `projectile-project-subprojects')
     (define-key map (kbd "c m c") #'projectile-compile-subproject)
     (define-key map (kbd "c m t") #'projectile-test-subproject)
+    (define-key map (kbd "c m r") #'projectile-run-subproject)
+    (define-key map (kbd "c m f") #'projectile-find-file-in-subproject)
     (define-key map (kbd "c x") #'projectile-run-task)
     (define-key map (kbd "c X") #'projectile-repeat-last-task)
     ;; integration with utilities
@@ -14172,6 +14254,11 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("cp" "package" projectile-package-project)
       ("cx" "run task" projectile-run-task)
       ("cX" "repeat last task" projectile-repeat-last-task)]
+     ["Subproject"
+      ("cmf" "find file" projectile-find-file-in-subproject)
+      ("cmc" "compile" projectile-compile-subproject)
+      ("cmt" "test" projectile-test-subproject)
+      ("cmr" "run" projectile-run-subproject)]
      ["Shells / Run"
       ("xr" "run" projectile-dispatch-run)
       ("xe" "eshell" projectile-dispatch-run-eshell)
@@ -14232,6 +14319,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Find test file" projectile-find-test-file]
          ["Find directory" projectile-find-dir]
          ["Find file in directory" projectile-find-file-in-directory]
+         ["Find file in subproject" projectile-find-file-in-subproject]
          ["Find other file" projectile-find-other-file]
          ["Find file of kind" projectile-find-file-of-kind]
          ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
@@ -14308,6 +14396,10 @@ search/replace case-sensitive, `--word' makes it match whole words,
          "--"
          ["Run task" projectile-run-task]
          ["Repeat last task" projectile-repeat-last-task]
+         "--"
+         ["Compile subproject" projectile-compile-subproject]
+         ["Test subproject" projectile-test-subproject]
+         ["Run subproject" projectile-run-subproject]
          "--"
          ["Repeat last build command" projectile-repeat-last-command])
         ("Session"
