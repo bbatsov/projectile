@@ -88,6 +88,7 @@
 
 ### Bugs fixed
 
+- [#2097](https://github.com/bbatsov/projectile/issues/2097): Fix `projectile-compile-project` and `projectile-test-project` forgetting a command you edited at the prompt in a CMake project. Since 3.2.0 a command a project type registers as a function is resolved on every run (so a preset picker can prompt again), but that also threw away your edit - it's now remembered, and `projectile-discard-command-cache` hands the project back to the picker. Only CMake ships function-valued commands out of the box, which is why `projectile-run-project` looked unaffected: CMake registers no run command.
 - [#2118](https://github.com/bbatsov/projectile/issues/2118): Fix `projectile-find-file` showing "Projectile is indexing" forever with `projectile-async-indexing` enabled. The indexing command's result is handed over by its process sentinel, and Emacs doesn't guarantee it runs that while a command sits waiting on the process - the wait then never ended, and only `C-g` (which returns to the command loop, where the sentinel does run) got out of it.
   - Projectile now waits for the process rather than for the sentinel, and collects the finished command's output itself if the sentinel hasn't run within `projectile-async-index-sentinel-timeout` (1 second). The parsing is shared, so the result is the same either way.
   - Should even that fail, it indexes synchronously rather than reporting an empty project.
