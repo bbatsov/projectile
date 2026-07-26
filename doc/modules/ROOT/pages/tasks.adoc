@@ -39,6 +39,13 @@ to drop the cached commands for the current project so they're re-read on the
 next run. You can also wire it into an `after-save-hook` for `.dir-locals.el`
 buffers if you edit them often.
 
+A project type can also register a command as a *function* rather than a
+string - CMake's preset pickers do this. Such a command is resolved afresh on
+every run, so the picker gets to prompt each time instead of being frozen after
+the first run. Editing what it offers you at the prompt overrides it: the
+edited command is remembered like any other, and `projectile-discard-command-cache`
+hands the project back to the function.
+
 By default, Projectile will not add consecutive duplicate commands to its
 command history.  To alter this behaviour you can use `projectile-cmd-hist-ignoredups`.
   The default value of `t` means consecutive duplicates are ignored, a value

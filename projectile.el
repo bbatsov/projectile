@@ -11553,8 +11553,11 @@ Duplicates are handled according to `projectile-cmd-hist-ignoredups'."
 
 Cache the COMMAND for later use inside the hash-table COMMAND-MAP.
 With NO-CACHE non-nil the command is not stored in COMMAND-MAP (though
-its result still enters the command history); this is for
-function-derived commands that must be re-resolved on every run.
+its result still enters the command history) unless the user edited it
+at the prompt.  This is for function-derived commands, which must be
+re-resolved on every run so they can prompt again - but an edit is the
+user overriding that function, and overriding it once shouldn't have to
+be repeated on every run (issue #2097).
 
 COMMAND-TYPE, when non-nil, is the lifecycle command type symbol
 \(e.g. `compile' or `test') and is used to keep a per-type command
@@ -11582,6 +11585,9 @@ The placeholder `%p' in COMMAND is replaced with the project name.
 The command actually run is returned."
   (let* ((project-root (projectile-acquire-root))
          (default-directory (or directory (projectile-compilation-dir)))
+         ;; What the caller resolved, before the user got a say - the two
+         ;; differing is how we know the command was edited at the prompt.
+         (derived-command command)
          (command (projectile-maybe-read-command show-prompt
                                                  command
                                                  prompt-prefix
@@ -11591,8 +11597,12 @@ The command actually run is returned."
     (when command-map
       ;; A function-derived command (NO-CACHE) is re-resolved on every run so
       ;; it can prompt again (e.g. a CMake preset picker); don't freeze its
-      ;; result in the cache, only feed it to the history below.
-      (unless no-cache
+      ;; result in the cache, only feed it to the history below.  An edit at
+      ;; the prompt is a different matter: the user has overridden the
+      ;; function, so remember that instead of offering the function's
+      ;; answer again next time (issue #2097).  `projectile-discard-command-cache'
+      ;; hands the project back to the function.
+      (unless (and no-cache (equal command derived-command))
         (puthash default-directory command command-map))
       ;; Record into the combined per-project history (read by
       ;; `projectile-repeat-last-command') and, when known, into the

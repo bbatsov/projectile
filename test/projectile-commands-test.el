@@ -325,7 +325,44 @@
       (projectile-configure-project nil)
       ;; the preset picker runs on each configure, not just the first
       (expect 'projectile--cmake-select-command :to-have-been-called-times 2)
-      (expect (hash-table-count projectile-configure-cmd-map) :to-equal 0))))
+      (expect (hash-table-count projectile-configure-cmd-map) :to-equal 0)))
+
+  ;; #2097: not caching a function-derived command also threw away a command
+  ;; the user had edited at the prompt, so every run offered the function's
+  ;; answer again and the edit had to be redone each time.
+  (it "remembers a command edited at the prompt (#2097)"
+    (let ((projectile-project-types projectile-project-types)
+          (projectile-compilation-cmd-map (make-hash-table :test 'equal))
+          (projectile-project-compilation-cmd nil)
+          (projectile-per-project-compilation-buffer nil))
+      (defun projectile-test--dyn-compile () "cmake --build build")
+      (projectile-register-project-type 'dyn-compile-project '("dyn.marker")
+                                        :compile 'projectile-test--dyn-compile)
+      (spy-on 'projectile-project-type :and-return-value 'dyn-compile-project)
+      ;; the user edits the offered command
+      (spy-on 'projectile-maybe-read-command
+              :and-return-value "cmake --build build -j8")
+      (projectile-compile-project nil)
+      (expect (gethash "/proj/" projectile-compilation-cmd-map)
+              :to-equal "cmake --build build -j8")
+      ;; ...so it's what the next invocation offers, function or no function
+      (expect (projectile-compilation-command "/proj/")
+              :to-equal "cmake --build build -j8")))
+
+  (it "still doesn't cache a function's own answer when it's accepted as-is (#1676)"
+    (let ((projectile-project-types projectile-project-types)
+          (projectile-compilation-cmd-map (make-hash-table :test 'equal))
+          (projectile-project-compilation-cmd nil)
+          (projectile-per-project-compilation-buffer nil))
+      (defun projectile-test--dyn-compile2 () "cmake --build build")
+      (projectile-register-project-type 'dyn-compile-project-2 '("dyn.marker")
+                                        :compile 'projectile-test--dyn-compile2)
+      (spy-on 'projectile-project-type :and-return-value 'dyn-compile-project-2)
+      ;; the user accepts what the function produced
+      (spy-on 'projectile-maybe-read-command
+              :and-call-fake (lambda (_arg default &rest _) default))
+      (projectile-compile-project nil)
+      (expect (hash-table-count projectile-compilation-cmd-map) :to-equal 0))))
 
 (describe "display-variant commands"
   ;; The other-window/-frame variants share a helper and differ only in the
