@@ -8,6 +8,7 @@
 
 ### New features
 
+- [#1867](https://github.com/bbatsov/projectile/issues/1867): Add `projectile-per-command-compilation-buffer`, which gives each lifecycle command its own compilation buffer (`*compilation*<test>`) instead of having compile, test and run share one and overwrite each other's output. It composes with `projectile-per-project-compilation-buffer` (`*compilation*<my-project:test>`), and running the test at point shares the test buffer.
 - [#2121](https://github.com/bbatsov/projectile/pull/2121): Projectile now recognizes the subprojects of a monorepo - any directory below the root holding a manifest of its own.
   - `projectile-find-file-in-subproject` (`s-p c m f`) prompts for a subproject and completes over just its files; `projectile-project-subprojects` lists them, scanning the project's file listing so the ignore rules apply.
   - `projectile-run-subproject` (`s-p c m r`) joins the existing `projectile-compile-subproject` and `projectile-test-subproject`, which now share the lifecycle machinery rather than reimplementing it.

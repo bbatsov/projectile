@@ -1440,6 +1440,21 @@ It assumes the test/ folder is at the same level as src/."
   :type 'boolean
   :package-version '(projectile . "2.6.0"))
 
+(defcustom projectile-per-command-compilation-buffer nil
+  "When non-nil, each lifecycle command gets its own compilation buffer.
+
+Compiling, testing and running a project all use `compilation-mode' and
+therefore share one buffer, so running the tests discards the build
+output and vice versa.  With this enabled the command type is part of the
+buffer name (`*compilation*<test>'), which keeps them apart.
+
+Composes with `projectile-per-project-compilation-buffer': with both
+enabled the buffer is named after the project and the command
+\(`*compilation*<my-project:test>')."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.3.0"))
+
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
   :group 'projectile
@@ -11329,12 +11344,32 @@ supplied via .dir-locals.el and finally the default configure command
 for a project of that type."
   (projectile--phase-command 'configure compile-dir))
 
+(defvar projectile--compilation-command-type nil
+  "Lifecycle command type of the compilation being started, or nil.
+Bound by `projectile--run-project-cmd' for the duration of the call, so
+`projectile-compilation-buffer-name' - which `compile' calls with nothing
+but the mode name - can tell a test run from a build.")
+
 (defun projectile-compilation-buffer-name (compilation-mode)
   "Meant to be used for `compilation-buffer-name-function`.
 Argument COMPILATION-MODE is the name of the major mode used for the
-compilation buffer."
-  (concat "*" (downcase compilation-mode) "*"
-          (if (projectile-project-p) (concat "<" (projectile-project-name) ">") "")))
+compilation buffer.
+
+The name is qualified by the project and/or the lifecycle command type,
+according to `projectile-per-project-compilation-buffer' and
+`projectile-per-command-compilation-buffer'."
+  (let ((qualifiers
+         (delq nil
+               (list (and projectile-per-project-compilation-buffer
+                          (projectile-project-p)
+                          (projectile-project-name))
+                     (and projectile-per-command-compilation-buffer
+                          projectile--compilation-command-type
+                          (symbol-name projectile--compilation-command-type))))))
+    (concat "*" (downcase compilation-mode) "*"
+            (if qualifiers
+                (concat "<" (string-join qualifiers ":") ">")
+              ""))))
 
 (defun projectile-current-project-buffer-p ()
   "Meant to be used for `compilation-save-buffers-predicate`.
@@ -11623,7 +11658,10 @@ The command actually run is returned."
                                                  prompt-prefix
                                                  command-type))
          (compilation-buffer-name-function compilation-buffer-name-function)
-         (compilation-save-buffers-predicate compilation-save-buffers-predicate))
+         (compilation-save-buffers-predicate compilation-save-buffers-predicate)
+         ;; `compile' calls the buffer-name function with just the mode
+         ;; name, so the command type has to reach it this way.
+         (projectile--compilation-command-type command-type))
     (when command-map
       ;; A function-derived command (NO-CACHE) is re-resolved on every run so
       ;; it can prompt again (e.g. a CMake preset picker); don't freeze its
@@ -11648,8 +11686,10 @@ The command actually run is returned."
                            (projectile-project-buffer-p (current-buffer)
                                                         project-root))))
     (when projectile-per-project-compilation-buffer
-      (setq compilation-buffer-name-function #'projectile-compilation-buffer-name)
       (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
+    (when (or projectile-per-project-compilation-buffer
+              projectile-per-command-compilation-buffer)
+      (setq compilation-buffer-name-function #'projectile-compilation-buffer-name))
     (when buffer-name-function
       (setq compilation-buffer-name-function buffer-name-function))
     (unless command
@@ -11992,8 +12032,11 @@ a prefix ARG you can edit the command before it's run."
             ;; prompt only when explicitly asked to with a prefix arg.
             (compilation-read-command nil))
         ;; A nil command-map keeps the project's cached test command and
-        ;; command history untouched.
+        ;; command history untouched - the command type is still declared,
+        ;; so this shares the test compilation buffer and the test history
+        ;; at the prompt.
         (projectile--run-project-cmd command nil
+                                     :command-type 'test
                                      :show-prompt arg
                                      :prompt-prefix "Test at point command: "
                                      :save-buffers t
