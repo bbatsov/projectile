@@ -383,6 +383,64 @@
     (expect (lookup-key projectile-command-map (kbd "P"))
             :to-be 'projectile-dashboard)))
 
+(describe "projectile-dashboard notable files"
+  (it "links the docs, the type's manifest and the Projectile config"
+    (projectile-test-with-project
+        (("README.md" . "# demo")
+         ("CHANGELOG.md" . "# changes")
+         ("LICENSE" . "MIT")
+         ("package.json" . "{}")
+         (".projectile" . "")
+         ("src/main.js" . ""))
+      (let ((links (projectile-dashboard--links (projectile-project-root) 'npm)))
+        (expect links :to-contain "README.md")
+        (expect links :to-contain "CHANGELOG.md")
+        (expect links :to-contain "LICENSE")
+        ;; the project type's own manifest
+        (expect links :to-contain "package.json")
+        (expect links :to-contain ".projectile")
+        ;; ordinary sources are not "notable"
+        (expect links :not :to-contain "src/main.js"))))
+
+  (it "matches a doc regardless of its extension"
+    (projectile-test-with-project (("README.rst" . "demo"))
+      (expect (projectile-dashboard--links (projectile-project-root) 'generic)
+              :to-contain "README.rst"))
+    (projectile-test-with-project (("README" . "demo"))
+      (expect (projectile-dashboard--links (projectile-project-root) 'generic)
+              :to-contain "README")))
+
+  (it "offers nothing when the project has none of them"
+    (projectile-test-with-project (("src/main.js" . ""))
+      ;; `.projectile' is created by the test macro, so that one is expected
+      (expect (seq-remove (lambda (f) (equal f ".projectile"))
+                          (projectile-dashboard--links (projectile-project-root) 'generic))
+              :to-be nil)))
+
+  (it "does not offer a wildcard manifest it cannot resolve"
+    ;; the dotnet types use `?*.csproj' as their project file
+    (projectile-test-with-project (("Demo.csproj" . ""))
+      (expect (projectile-dashboard--links (projectile-project-root) 'dotnet)
+              :not :to-contain "?*.csproj"))))
+
+(describe "projectile-dashboard indexing prompt"
+  (it "offers to index a project that has nothing cached"
+    (spy-on 'projectile-project-buffers :and-return-value nil)
+    (with-temp-buffer
+      (projectile-dashboard--render-project
+       '(:root "/proj/" :name "proj" :type npm :file-count nil))
+      (expect (buffer-string) :to-match "not indexed yet")
+      (goto-char (point-min))
+      (expect (re-search-forward "index now" nil t) :to-be-truthy)))
+
+  (it "reports the count instead once the project is cached"
+    (spy-on 'projectile-project-buffers :and-return-value nil)
+    (with-temp-buffer
+      (projectile-dashboard--render-project
+       '(:root "/proj/" :name "proj" :type npm :file-count 42))
+      (expect (buffer-string) :to-match "42 (cached)")
+      (expect (buffer-string) :not :to-match "index now"))))
+
 (provide 'projectile-dashboard-test)
 
 ;;; projectile-dashboard-test.el ends here
