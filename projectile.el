@@ -13199,14 +13199,28 @@ Only the words whose polarity is unambiguous are colored."
 
 (defun projectile--report-hints (bindings)
   "Insert a dimmed footer line describing BINDINGS.
-BINDINGS is an alist of (KEY . DESCRIPTION)."
+BINDINGS is an alist of (COMMAND . DESCRIPTION).  The key is looked up
+with `substitute-command-keys', so the hint tells the truth even when the
+buffer\\='s map has been rebound - the trick Flycheck\\='s verify buffer uses."
   (insert "\n"
           (projectile--report-face
            (mapconcat (lambda (binding)
-                        (format "%s %s" (car binding) (cdr binding)))
+                        (format "%s %s"
+                                (substitute-command-keys
+                                 (format "\\[%s]" (car binding)))
+                                (cdr binding)))
                       bindings "   ")
            'projectile-report-hint)
           "\n"))
+
+(defun projectile--report-setup-outline ()
+  "Make the report\\='s sections collapsible with `outline-minor-mode'.
+Section titles are capitalized and start in column zero, while every
+field label is lowercase, so that one distinction is the whole heading
+regexp - no dependency on `magit-section' needed to fold a long report."
+  (setq-local outline-regexp "[A-Z]")
+  (setq-local outline-level (lambda () 1))
+  (outline-minor-mode 1))
 
 ;;;###autoload
 (defun projectile-report-copy ()
@@ -13679,7 +13693,10 @@ in .dir-locals.el to pin a type, or register one with
                       (_ '("info" . projectile-report-info)))))
         (insert (projectile--report-face (format "%-6s" label) face)
                 message "\n")))
-    (projectile--report-hints '(("g" . "refresh") ("w" . "copy") ("q" . "quit")))))
+    (projectile--report-hints '((revert-buffer . "refresh")
+                                (projectile-report-copy . "copy")
+                                (outline-toggle-children . "fold")
+                                (quit-window . "quit")))))
 
 (defun projectile-doctor--sort-findings (findings)
   "Return FINDINGS ordered warnings first, then info, then `ok'.
@@ -13707,7 +13724,8 @@ and \\[quit-window] buries it.
 \\{projectile-doctor-mode-map}"
   (setq-local revert-buffer-function
               (lambda (&rest _)
-                (projectile-doctor--report projectile-doctor--directory))))
+                (projectile-doctor--report projectile-doctor--directory)))
+  (projectile--report-setup-outline))
 
 (defun projectile-doctor--report (dir)
   "Render a doctor report for DIR into the report buffer and return it."
@@ -13776,17 +13794,20 @@ risking a hang, and the report says so."
 ;; switch would be intolerable.
 
 (defcustom projectile-dashboard-sections
-  '(project vcs recent tasks commands)
+  '(project links vcs recent tasks commands)
   "The sections `projectile-dashboard' renders, in order.
 
-Each element is one of the symbols `project' (name, root, type and file
-count), `vcs' (version-control system, branch and working tree status),
-`recent' (the project files you visit most, ranked by frecency), `tasks'
-\(the project's named tasks) and `commands' (the configured lifecycle
-commands).  Dropping a section skips both its rendering and the work
-needed to fill it in."
+Each element is one of the symbols `project' (name, root, type, file and
+buffer counts, ignore rules), `links' (the project's README, changelog,
+license, manifest and Projectile configuration, when it has them), `vcs'
+\(version-control system, branch and working tree status), `recent' (the
+project files you visit most, ranked by frecency), `tasks' (the project's
+named tasks) and `commands' (the configured lifecycle commands).
+Dropping a section skips both its rendering and the work needed to fill
+it in."
   :group 'projectile
   :type '(repeat (choice (const :tag "Project summary" project)
+                         (const :tag "Notable files" links)
                          (const :tag "Version control" vcs)
                          (const :tag "Recently visited files" recent)
                          (const :tag "Tasks" tasks)
@@ -13929,6 +13950,64 @@ the last thing to do in somebody's project-switch action."
                    (cons phase command)))))
            projectile--lifecycle-phases))))
 
+(defcustom projectile-dashboard-link-files
+  '("README" "CHANGELOG" "CONTRIBUTING" "LICENSE" "COPYING")
+  "Base names the dashboard offers as links when the project has them.
+
+Matched case-insensitively and ignoring any extension, so \"README\"
+finds `README.md\\=' as well as `README.rst\\='.  The project\\='s own marker
+file (`package.json\\=', `Cargo.toml\\=', ...) and its `.projectile\\=' are
+always offered when present, without being listed here."
+  :group 'projectile
+  :type '(repeat string)
+  :package-version '(projectile . "3.4.0"))
+
+(defun projectile-dashboard--links (root type)
+  "Return the notable files of the project at ROOT of TYPE, as relative names.
+Answered from a single listing of the project root, so this costs one
+`directory-files\\=' however many names are looked for."
+  (when-let* ((entries (projectile--directory-entry-set root)))
+    (let ((found nil))
+      ;; The docs a human looks for, matched without their extension.
+      (dolist (base projectile-dashboard-link-files)
+        (when-let* ((hit (seq-find
+                          (lambda (entry)
+                            (string-equal (downcase base)
+                                          (downcase (file-name-base entry))))
+                          (sort (hash-table-keys entries) #'string<))))
+          (push hit found)))
+      ;; The project\\='s own manifest, and its Projectile configuration.
+      (dolist (name (append (ensure-list
+                             (projectile-project-type-attribute type 'project-file))
+                            (list projectile-dirconfig-file ".dir-locals.el")))
+        (when (and (stringp name)
+                   (not (projectile--wildcard-p name))
+                   (gethash name entries)
+                   (not (member name found)))
+          (push name found)))
+      (nreverse found))))
+
+(defun projectile-dashboard--ignore-summary (root)
+  "Return a one-line summary of the ignore rules in effect at ROOT.
+Counting compiled patterns is free - they are derived from the
+configuration and the project\\='s dirconfig, both of which are cached."
+  (ignore-errors
+    (let* ((default-directory root)
+           ;; Reads the project's dirconfig; the parser caches it, so this
+           ;; costs nothing the rest of Projectile isn't paying anyway.
+           (cfg (projectile-parse-dirconfig-file))
+           (local (if cfg
+                      (+ (length (projectile-dirconfig-ignore cfg))
+                         (length (projectile-dirconfig-ensure cfg)))
+                    0))
+           (global (+ (length projectile-globally-ignored-directories)
+                      (length projectile-globally-ignored-files)
+                      (length projectile-globally-ignored-file-suffixes))))
+      (if (zerop local)
+          (format "%d global patterns" global)
+        (format "%d global patterns, %d from %s"
+                global local projectile-dirconfig-file)))))
+
 (defun projectile-dashboard--collect-in-project (dir root)
   "Collect the dashboard data for the project at ROOT, reached from DIR.
 Must run in a buffer that has ROOT's directory-local variables applied -
@@ -13946,6 +14025,12 @@ see `projectile-dashboard--collect', which arranges that."
            :name (when project (ignore-errors (projectile-project-name root)))
            :type (when project (ignore-errors (projectile-project-type)))
            :file-count (unless (eq cached 'uncached) (length cached))
+           :buffer-count (length (ignore-errors (projectile-project-buffers root)))
+           :links (when project
+                    (ignore-errors
+                      (projectile-dashboard--links
+                       root (ignore-errors (projectile-project-type)))))
+           :ignores (when project (projectile-dashboard--ignore-summary root))
            :recent-files (when (projectile-dashboard--section-p 'recent)
                            (projectile-dashboard--recent-files root))
            :tasks (when (projectile-dashboard--section-p 'tasks)
@@ -14008,6 +14093,13 @@ that the dashboard stays cheap enough to be a
   "Open the root of the project BUTTON stands for in Dired."
   (dired (button-get button 'projectile-root)))
 
+(defun projectile-dashboard--index (button)
+  "Index the project BUTTON stands for, then refresh the dashboard."
+  (let ((root (button-get button 'projectile-root)))
+    (projectile-index-project-async root)
+    (message "Projectile: indexing %s - press %s to refresh when it finishes"
+             root (substitute-command-keys "\\[revert-buffer]"))))
+
 (define-button-type 'projectile-dashboard-file
   'action #'projectile-dashboard--visit-file
   'follow-link t
@@ -14032,6 +14124,11 @@ that the dashboard stays cheap enough to be a
   'action #'projectile-dashboard--open-dired
   'follow-link t
   'help-echo "mouse-1, RET: open the project root in Dired")
+
+(define-button-type 'projectile-dashboard-index
+  'action #'projectile-dashboard--index
+  'follow-link t
+  'help-echo "mouse-1, RET: index this project in the background")
 
 
 ;;;; Dashboard rendering
@@ -14083,11 +14180,18 @@ The lifecycle commands are named after their phase by construction (see
     (insert "\n")
     (projectile-dashboard--field "type" (plist-get data :type)
                                  'projectile-report-value)
-    (projectile-dashboard--field
-     "files"
-     (if-let* ((count (plist-get data :file-count)))
-         (format "%d (cached)" count)
-       "not indexed yet"))
+    (projectile-dashboard--label "files")
+    (if-let* ((count (plist-get data :file-count)))
+        (insert (format "%d (cached)\n" count))
+      ;; The dashboard never indexes on its own - but it can offer to.
+      (insert "not indexed yet  ")
+      (projectile-dashboard--button "[index now]" 'projectile-dashboard-index root)
+      (insert "\n"))
+    (when-let* ((buffers (plist-get data :buffer-count)))
+      (unless (zerop buffers)
+        (projectile-dashboard--field "buffers" (format "%d open" buffers))))
+    (when-let* ((ignores (plist-get data :ignores)))
+      (projectile-dashboard--field "ignores" ignores))
     (when (plist-get data :remote)
       (projectile-dashboard--field "remote" (plist-get data :remote)))))
 
@@ -14124,6 +14228,18 @@ The lifecycle commands are named after their phase by construction (see
          (projectile-dashboard--button "open the VC interface"
                                        'projectile-dashboard-vc root)
          (insert "\n"))))))
+
+(defun projectile-dashboard--render-links (data)
+  "Render DATA's notable project files."
+  (let ((root (plist-get data :root))
+        (links (plist-get data :links)))
+    (projectile-dashboard--section "Notable files")
+    (if (null links)
+        (insert "  none found\n")
+      (dolist (file links)
+        (projectile-dashboard--entry file 'projectile-dashboard-file root
+                                     'projectile-file file)
+        (insert "\n")))))
 
 (defun projectile-dashboard--render-recent (data)
   "Render DATA's recently visited files."
@@ -14192,12 +14308,16 @@ explains why none of them claimed the directory.
     (dolist (section projectile-dashboard-sections)
       (pcase section
         ('project (projectile-dashboard--render-project data))
+        ('links (projectile-dashboard--render-links data))
         ('vcs (projectile-dashboard--render-vcs data))
         ('recent (projectile-dashboard--render-recent data))
         ('tasks (projectile-dashboard--render-tasks data))
         ('commands (projectile-dashboard--render-commands data))))
-    (projectile--report-hints '(("RET" . "act on entry") ("TAB" . "next entry")
-                                ("g" . "refresh") ("w" . "copy") ("q" . "bury")))))
+    (projectile--report-hints '((push-button . "act on entry")
+                                (forward-button . "next entry")
+                                (revert-buffer . "refresh")
+                                (projectile-report-copy . "copy")
+                                (quit-window . "bury")))))
 
 
 ;;;; The dashboard buffer
@@ -14225,7 +14345,8 @@ move between them.  \\[revert-buffer] refreshes the dashboard and \\[quit-window
   (setq-local revert-buffer-function
               (lambda (&rest _)
                 (projectile-dashboard--refresh
-                 projectile-dashboard--directory))))
+                 projectile-dashboard--directory)))
+  (projectile--report-setup-outline))
 
 (defun projectile-dashboard--refresh (dir)
   "Render the dashboard for DIR into the dashboard buffer and return it."

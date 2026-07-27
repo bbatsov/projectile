@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2132](https://github.com/bbatsov/projectile/pull/2132): The dashboard gained a "Notable files" section linking the project's README, changelog, license, its type's own manifest and its `.projectile` (see `projectile-dashboard-link-files`), plus a count of its open buffers and a summary of the ignore rules in effect.
+  - A project with nothing cached now offers an `[index now]` button instead of only reporting that it isn't indexed.
+  - Both report buffers set up `outline-minor-mode` over their sections, so a long report folds with the usual outline keys, and their footers derive the keys they advertise with `substitute-command-keys` rather than hardcoding them.
 - [#2131](https://github.com/bbatsov/projectile/pull/2131): The `projectile-doctor` and `projectile-dashboard` buffers are no longer plain text: section headers, field labels, the project's identity and the doctor's findings are faced by meaning, with the findings colored by severity and sorted so anything wanting action comes first.
   - All the new faces only inherit from standard ones, so themes style them without knowing about Projectile and a terminal without colors degrades to what you got before.
   - `projectile-report-copy` (`w` in either buffer) copies the buffer as plain text, without the faces and buttons - a doctor report usually ends up in an issue.

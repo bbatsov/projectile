@@ -611,7 +611,11 @@ you're in:
 
 image::projectile-dashboard.png[The Projectile dashboard: project info, version control status, recent files and tasks]
 
-* the project's name, root, type and file count
+* the project's name, root, type, file count, how many of its buffers are
+open, and a summary of the ignore rules in effect
+* the files worth having a link to - README, changelog, license, the project
+type's own manifest and its `.projectile`, when it has them (see
+`projectile-dashboard-link-files`)
 * the version control system, the current branch and how many files are
 modified or untracked
 * the project files you visit most, ranked by frecency - the same ranking
@@ -627,7 +631,12 @@ kbd:[w] copies and kbd:[q] buries the buffer.
 
 kbd:[w] (`projectile-report-copy`) puts the dashboard on the kill ring as plain
 text, with the faces and buttons stripped, which is what you want when pasting
-it into an issue or a chat window.
+it into an issue or a chat window. The sections are `outline-minor-mode`
+headings, so they fold with the usual outline keys when the dashboard grows
+longer than you want to scroll.
+
+A project with nothing cached yet says so rather than indexing itself, but it
+offers an `[index now]` button that warms the cache in the background.
 
 `projectile-dashboard-sections` picks which sections show up and in what order,
 and `projectile-dashboard-recent-files` how many recent files are listed:

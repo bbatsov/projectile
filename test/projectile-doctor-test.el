@@ -228,12 +228,25 @@
         (expect (projectile-report-test--faces-at "^ok")
                 :to-be 'projectile-report-ok)))
 
-    (it "ends with a hint line naming the copy key"
+    (it "describes its keys by looking them up, not by hardcoding them"
+      ;; `substitute-command-keys' means the footer keeps telling the truth
+      ;; after a rebind, rather than advertising a key that no longer works.
       (spy-on 'projectile-doctor--findings :and-return-value nil)
       (with-temp-buffer
-        (projectile-doctor--render '(:root "/proj/"))
-        (goto-char (point-max))
-        (expect (buffer-string) :to-match "w copy")))))
+        (projectile-doctor-mode)
+        (let ((inhibit-read-only t))
+          (projectile-doctor--render '(:root "/proj/")))
+        (expect (buffer-string) :to-match "w copy"))
+      (with-temp-buffer
+        (projectile-doctor-mode)
+        (use-local-map (let ((map (make-sparse-keymap)))
+                         (set-keymap-parent map projectile-doctor-mode-map)
+                         (define-key map (kbd "C-c C-w") #'projectile-report-copy)
+                         (define-key map (kbd "w") nil)
+                         map))
+        (let ((inhibit-read-only t))
+          (projectile-doctor--render '(:root "/proj/")))
+        (expect (buffer-string) :to-match "C-c C-w copy")))))
 
 (provide 'projectile-doctor-test)
 
