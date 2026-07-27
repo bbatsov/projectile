@@ -22,6 +22,8 @@ menu)
 This opens a plain-text report in a `+*projectile-doctor*+` buffer describing
 the project around `default-directory`:
 
+image::projectile-doctor.png[The Projectile doctor report: project root, type, indexing method and available tools]
+
 * *Project* - the project root and, crucially, *which* entry of
 `projectile-project-root-functions` found it and off which marker file, the
 project name and where it came from, and whether the root is remote (TRAMP).
