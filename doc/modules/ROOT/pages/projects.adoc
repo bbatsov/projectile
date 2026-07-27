@@ -1002,6 +1002,41 @@ Similarly, you can leverage the built-in `project.el` like this:
 (setq projectile-project-root-functions '(projectile-project-current))
 ----
 
+=== Repositories inside repositories
+
+A repository checked out inside another project - a straight.el clone under
+`.emacs.d`, a vendored dependency, a git submodule - can reasonably be either
+its own project or part of the enclosing one, and Projectile can't guess which
+you meant. What it does by default follows from the ordering above: since
+`projectile-root-marked` runs first, a `.projectile` file anywhere up the tree
+wins over a nearer `.git`, so an outer `.projectile` makes the whole tree one
+project no matter how many repositories are nested inside it.
+
+If you want the nested repository to be its own project instead, you have two
+options. Per repository, drop an empty `.projectile` file into it - the nearest
+one wins:
+
+[source,shell]
+----
+touch straight/repos/some-package/.projectile
+----
+
+Or, to make the nearest VCS root win everywhere, put the bottom-up search
+before the marked one:
+
+[source,elisp]
+----
+(setq projectile-project-root-functions
+      '(projectile-root-local
+        projectile-root-bottom-up
+        projectile-root-marked
+        projectile-root-top-down
+        projectile-root-top-down-recurring))
+----
+
+With that ordering a `.projectile` only takes effect where no VCS root sits
+closer to the file you're visiting.
+
 === Customizing VCS detection
 
 The markers used to detect a project's version-control system live in
