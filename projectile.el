@@ -2243,7 +2243,15 @@ PROJECT-ROOT defaults to the current project."
         (unless (or (projectile-file-cached-p current-file current-project)
                     ;; A file under an ignored directory is ignored too, so
                     ;; the single file check covers its parents as well.
-                    (projectile-ignored-file-p abs-current-file current-project))
+                    (projectile-ignored-file-p abs-current-file current-project)
+                    ;; Projectile's own rules don't know what the VCS
+                    ;; ignores, and under `alien'/`hybrid' the VCS is what
+                    ;; produced the file list - so caching an opened file it
+                    ;; ignores would put something in the cache that indexing
+                    ;; never would (issue #1075).  `native' walks the tree
+                    ;; itself and lists such files anyway, so it's left alone.
+                    (and (memq projectile-indexing-method '(alien hybrid))
+                         (projectile-vcs-ignored-file-p abs-current-file current-project)))
           (let ((project-files (cons current-file (gethash current-project projectile-projects-cache))))
             (puthash current-project project-files projectile-projects-cache)
             ;; Defer the disk write until Emacs is idle to avoid freezing the
@@ -3266,6 +3274,28 @@ without shelling out per kept directory."
           files)))
      (t (projectile-files-via-ext-command
          directory (projectile--alien-ext-command vcs directory) subdirs)))))
+
+(defun projectile-vcs-ignored-file-p (file &optional project-root vcs)
+  "Return non-nil if FILE is ignored by the project's version control system.
+
+This is what Projectile's own ignore rules can't answer: under `alien'
+and `hybrid' indexing the file list comes from the version control
+system, so a file that VCS ignores is not part of the project even
+though nothing in `projectile-globally-ignored-directories' or the
+project's `.projectile' mentions it (issue #1075).
+
+PROJECT-ROOT and VCS default to the current project's.  Only git is
+consulted - for any other system the answer is nil, i.e. the file is
+treated as part of the project, which is what Projectile did for every
+system before."
+  (let* ((root (or project-root (projectile-project-root)))
+         (vcs (or vcs (and root (projectile-project-vcs root)))))
+    (when (and root (eq vcs 'git))
+      (let ((default-directory root))
+        ;; `git check-ignore' answers for one path without listing the
+        ;; repository: exit code 0 means ignored, 1 means not.
+        (equal 0 (process-file "git" nil nil nil "check-ignore" "-q" "--"
+                               (file-relative-name file root)))))))
 
 (defun projectile--restrict-to-subdirs (files subdirs)
   "Keep only the FILES that live under one of SUBDIRS.
