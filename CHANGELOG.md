@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2131](https://github.com/bbatsov/projectile/pull/2131): The `projectile-doctor` and `projectile-dashboard` buffers are no longer plain text: section headers, field labels, the project's identity and the doctor's findings are faced by meaning, with the findings colored by severity and sorted so anything wanting action comes first.
+  - All the new faces only inherit from standard ones, so themes style them without knowing about Projectile and a terminal without colors degrades to what you got before.
+  - `projectile-report-copy` (`w` in either buffer) copies the buffer as plain text, without the faces and buttons - a doctor report usually ends up in an issue.
 - [#2130](https://github.com/bbatsov/projectile/pull/2130): `projectile-run-task` now also discovers rake tasks, read out of the project's `Rakefile` and its `.rake` files (in `rakelib`, `tasks` and `lib/tasks`) rather than by running `rake -T`, which would load the whole application. Tasks are qualified with their `namespace` (`rake:db:migrate`) and run through `bundle exec` when the project has a `Gemfile`.
 
 ## 3.3.0 (2026-07-27)

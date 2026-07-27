@@ -622,8 +622,12 @@ modified or untracked
 Everything worth acting on is a button, so the dashboard doubles as a launcher.
 kbd:[RET] on a file visits it, on a task or a lifecycle command runs it, on the
 branch opens the project's VC interface (Magit, if you have it), and on the
-root opens it in Dired. kbd:[TAB] moves to the next button, kbd:[g] refreshes
-and kbd:[q] buries the buffer.
+root opens it in Dired. kbd:[TAB] moves to the next button, kbd:[g] refreshes,
+kbd:[w] copies and kbd:[q] buries the buffer.
+
+kbd:[w] (`projectile-report-copy`) puts the dashboard on the kill ring as plain
+text, with the faces and buttons stripped, which is what you want when pasting
+it into an issue or a chat window.
 
 `projectile-dashboard-sections` picks which sections show up and in what order,
 and `projectile-dashboard-recent-files` how many recent files are listed:

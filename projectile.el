@@ -13110,6 +13110,120 @@ entered, keeping the entries made so far."
 ;; the project root - is skipped for remote (TRAMP) projects and marked
 ;; as skipped in the report, so the doctor can't hang on a slow host.
 
+;;;; Shared rendering for the report buffers
+;;
+;; The doctor and the dashboard are both label/value reports, and they
+;; share their look.  Two rules keep them honest:
+;;
+;; - Every face here only inherits, so themes style them without knowing
+;;   Projectile exists, and a terminal without colors degrades to plain
+;;   text rather than to something unreadable.
+;; - The buffer text stays plain ASCII.  Faces are a display layer on top
+;;   of it, so what you see and what you yank are the same characters -
+;;   which matters because a doctor report's destination is usually a bug
+;;   report (see `projectile-report-copy').
+
+(defface projectile-report-section
+  '((t :inherit font-lock-function-name-face :weight bold))
+  "Face for the section headers of the doctor and dashboard buffers."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defface projectile-report-label
+  '((t :inherit shadow))
+  "Face for the field labels of the doctor and dashboard buffers.
+Labels are dimmed so the values they introduce carry the eye."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defface projectile-report-value
+  '((t :inherit font-lock-string-face))
+  "Face for the values that identify a project - its root, type and name."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defface projectile-report-ok
+  '((t :inherit success))
+  "Face for a finding that reports something is fine, and for `on'/`present'."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defface projectile-report-warning
+  '((t :inherit warning))
+  "Face for a finding that suggests a change, and for `missing'."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defface projectile-report-info
+  '((t :inherit shadow))
+  "Face for a purely informational finding."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defface projectile-report-hint
+  '((t :inherit shadow :slant italic))
+  "Face for the key hints at the foot of a report buffer."
+  :group 'projectile
+  :package-version '(projectile . "3.4.0"))
+
+(defun projectile--report-face (string face)
+  "Return STRING propertized with FACE."
+  (propertize string 'face face))
+
+(defun projectile--report-title (title &optional char)
+  "Insert TITLE underlined with CHAR (`=' by default).
+The rule is kept as text rather than expressed with a face, so a yanked
+report reads the same as the rendered one - but it is dimmed, so the
+title carries the emphasis rather than competing with its own underline."
+  (insert (projectile--report-face title 'projectile-report-section) "\n"
+          (projectile--report-face (make-string (length title) (or char ?=))
+                                   'projectile-report-label)
+          "\n"))
+
+(defun projectile--report-section (title)
+  "Insert the header of a report section titled TITLE."
+  (insert "\n")
+  (projectile--report-title title ?-))
+
+(defun projectile--report-label (label width)
+  "Insert LABEL, dimmed and padded out to WIDTH."
+  (insert (projectile--report-face label 'projectile-report-label)
+          (make-string (max 1 (- width (length label))) ?\s)))
+
+(defun projectile--report-status-face (value)
+  "Return the face for the status word VALUE, or nil when it isn't one.
+Only the words whose polarity is unambiguous are colored."
+  (cond ((member value '("on" "present" "yes")) 'projectile-report-ok)
+        ((member value '("missing")) 'projectile-report-warning)
+        ((member value '("off" "skipped" "none")) 'projectile-report-info)))
+
+(defun projectile--report-hints (bindings)
+  "Insert a dimmed footer line describing BINDINGS.
+BINDINGS is an alist of (KEY . DESCRIPTION)."
+  (insert "\n"
+          (projectile--report-face
+           (mapconcat (lambda (binding)
+                        (format "%s %s" (car binding) (cdr binding)))
+                      bindings "   ")
+           'projectile-report-hint)
+          "\n"))
+
+;;;###autoload
+(defun projectile-report-copy ()
+  "Copy the current report buffer to the kill ring as plain text.
+
+Strips the faces and buttons, so what lands in the clipboard is exactly
+the text of the report - ready to paste into an issue, an email or a
+chat window without dragging Emacs\\='s text properties along."
+  (interactive)
+  (unless (derived-mode-p 'projectile-doctor-mode 'projectile-dashboard-mode)
+    (user-error "Not in a Projectile report buffer"))
+  (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+    (kill-new text)
+    (message "Copied %d lines of %s to the kill ring"
+             (count-lines (point-min) (point-max))
+             (if (derived-mode-p 'projectile-doctor-mode) "the report" "the dashboard"))))
+
 (defconst projectile-doctor-buffer-name "*projectile-doctor*"
   "The name of the buffer `projectile-doctor' renders its report in.")
 
@@ -13375,18 +13489,19 @@ a one-line description."
 
 ;;;; Doctor report rendering
 
-(defun projectile-doctor--field (label value)
+(defun projectile-doctor--field (label value &optional face)
   "Insert a LABEL/VALUE line into the report.
-VALUE is rendered with `%s'; a nil or empty one reads as \"n/a\"."
-  (insert label
-          (make-string (max 1 (- projectile-doctor--label-width (length label)))
-                       ?\s)
-          (if (or (null value) (equal value "")) "n/a" (format "%s" value))
-          "\n"))
+VALUE is rendered with `%s'; a nil or empty one reads as \"n/a\".  FACE,
+when given, is applied to the value; otherwise a value that is an
+unambiguous status word is colored by its polarity."
+  (projectile--report-label label projectile-doctor--label-width)
+  (let* ((value (if (or (null value) (equal value "")) "n/a" (format "%s" value)))
+         (face (or face (projectile--report-status-face value))))
+    (insert (if face (projectile--report-face value face) value) "\n")))
 
 (defun projectile-doctor--section (title)
   "Insert the header of a report section titled TITLE."
-  (insert "\n" title "\n" (make-string (length title) ?-) "\n"))
+  (projectile--report-section title))
 
 (defun projectile-doctor--list-field (label items)
   "Insert LABEL followed by ITEMS, one per line."
@@ -13443,14 +13558,16 @@ cached too.
 
 (defun projectile-doctor--render (data)
   "Render the report described by DATA into the current buffer."
-  (insert "Projectile doctor report\n"
-          "========================\n"
-          (format "projectile %s, Emacs %s, %s\n"
-                  projectile-version emacs-version system-type))
+  (projectile--report-title "Projectile doctor report")
+  (insert (projectile--report-face
+           (format "projectile %s, Emacs %s, %s\n"
+                   projectile-version emacs-version system-type)
+           'projectile-report-label))
   (if (null (plist-get data :root))
       (projectile-doctor--render-no-project data)
     (projectile-doctor--section "Project")
-    (projectile-doctor--field "root" (plist-get data :root))
+    (projectile-doctor--field "root" (plist-get data :root)
+                              'projectile-report-value)
     (projectile-doctor--field
      "detected by"
      (when-let* ((func (plist-get data :root-function)))
@@ -13550,17 +13667,33 @@ in .dir-locals.el to pin a type, or register one with
                                      (plist-get data :excluded-entries)))
 
     (projectile-doctor--section "Findings")
-    (dolist (finding (projectile-doctor--findings data))
-      (insert (format "%-6s%s\n"
-                      (pcase (car finding)
-                        ('ok "ok")
-                        ('warn "warn")
-                        (_ "info"))
-                      (cdr finding))))))
+    ;; Anything that wants action first - a report is read top-down and a
+    ;; lone warning shouldn't be buried among a dozen `ok' lines.
+    (dolist (finding (projectile-doctor--sort-findings
+                      (projectile-doctor--findings data)))
+      (pcase-let* ((`(,severity . ,message) finding)
+                   (`(,label . ,face)
+                    (pcase severity
+                      ('ok '("ok" . projectile-report-ok))
+                      ('warn '("warn" . projectile-report-warning))
+                      (_ '("info" . projectile-report-info)))))
+        (insert (projectile--report-face (format "%-6s" label) face)
+                message "\n")))
+    (projectile--report-hints '(("g" . "refresh") ("w" . "copy") ("q" . "quit")))))
+
+(defun projectile-doctor--sort-findings (findings)
+  "Return FINDINGS ordered warnings first, then info, then `ok'.
+The order within each severity is preserved, so the report still reads
+in the order the checks are written."
+  (let ((rank (lambda (finding)
+                (pcase (car finding) ('warn 0) ('ok 2) (_ 1)))))
+    (sort (copy-sequence findings)
+          (lambda (a b) (< (funcall rank a) (funcall rank b))))))
 
 (defvar projectile-doctor-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "w") #'projectile-report-copy)
     map)
   "Keymap for `projectile-doctor-mode'.")
 
@@ -13905,21 +14038,19 @@ that the dashboard stays cheap enough to be a
 
 (defun projectile-dashboard--label (label)
   "Insert LABEL padded out to the dashboard's label column."
-  (insert label
-          (make-string (max 1 (- projectile-dashboard--label-width
-                                 (length label)))
-                       ?\s)))
+  (projectile--report-label label projectile-dashboard--label-width))
 
-(defun projectile-dashboard--field (label value)
+(defun projectile-dashboard--field (label value &optional face)
   "Insert a LABEL/VALUE line into the dashboard.
-VALUE is rendered with `%s'; a nil or empty one reads as \"n/a\"."
+VALUE is rendered with `%s'; a nil or empty one reads as \"n/a\".  FACE,
+when given, is applied to the value."
   (projectile-dashboard--label label)
-  (insert (if (or (null value) (equal value "")) "n/a" (format "%s" value))
-          "\n"))
+  (let ((value (if (or (null value) (equal value "")) "n/a" (format "%s" value))))
+    (insert (if face (projectile--report-face value face) value) "\n")))
 
 (defun projectile-dashboard--section (title)
   "Insert the header of a dashboard section titled TITLE."
-  (insert "\n" title "\n" (make-string (length title) ?-) "\n"))
+  (projectile--report-section title))
 
 (defun projectile-dashboard--button (label type root &rest properties)
   "Insert a button labelled LABEL of button TYPE for the project at ROOT.
@@ -13950,7 +14081,8 @@ The lifecycle commands are named after their phase by construction (see
     (projectile-dashboard--label "root")
     (projectile-dashboard--button root 'projectile-dashboard-dired root)
     (insert "\n")
-    (projectile-dashboard--field "type" (plist-get data :type))
+    (projectile-dashboard--field "type" (plist-get data :type)
+                                 'projectile-report-value)
     (projectile-dashboard--field
      "files"
      (if-let* ((count (plist-get data :file-count)))
@@ -13971,13 +14103,17 @@ The lifecycle commands are named after their phase by construction (see
        (projectile-dashboard--button (plist-get data :branch)
                                      'projectile-dashboard-vc root)
        (insert "\n")
-       (projectile-dashboard--field
-        "status"
-        (if (eq state 'partial)
-            "unavailable"
-          (format "%d modified, %d untracked"
-                  (plist-get data :modified)
-                  (plist-get data :untracked)))))
+       (let ((modified (plist-get data :modified))
+             (untracked (plist-get data :untracked)))
+         (projectile-dashboard--field
+          "status"
+          (if (eq state 'partial)
+              "unavailable"
+            (format "%d modified, %d untracked" modified untracked))
+          (unless (eq state 'partial)
+            (if (and (zerop modified) (zerop untracked))
+                'projectile-report-ok
+              'projectile-report-warning)))))
       ('skipped
        (projectile-dashboard--field "status" "not checked (remote project)"))
       ('unavailable
@@ -14047,8 +14183,10 @@ explains why none of them claimed the directory.
 
 (defun projectile-dashboard--render (data)
   "Render the dashboard described by DATA into the current buffer."
-  (insert "Projectile project dashboard\n"
-          "============================\n")
+  (projectile--report-title
+   (if-let* ((name (plist-get data :name)))
+       (format "Projectile dashboard: %s" name)
+     "Projectile dashboard"))
   (if (null (plist-get data :root))
       (projectile-dashboard--render-no-project data)
     (dolist (section projectile-dashboard-sections)
@@ -14058,8 +14196,8 @@ explains why none of them claimed the directory.
         ('recent (projectile-dashboard--render-recent data))
         ('tasks (projectile-dashboard--render-tasks data))
         ('commands (projectile-dashboard--render-commands data))))
-    (insert "\nRET acts on the entry at point, TAB moves to the next one, "
-            "g refreshes, q buries.\n")))
+    (projectile--report-hints '(("RET" . "act on entry") ("TAB" . "next entry")
+                                ("g" . "refresh") ("w" . "copy") ("q" . "bury")))))
 
 
 ;;;; The dashboard buffer
@@ -14072,6 +14210,7 @@ explains why none of them claimed the directory.
     ;; here than the `next-line'/`previous-line' these shadow.
     (define-key map (kbd "n") #'forward-button)
     (define-key map (kbd "p") #'backward-button)
+    (define-key map (kbd "w") #'projectile-report-copy)
     map)
   "Keymap for `projectile-dashboard-mode'.")
 

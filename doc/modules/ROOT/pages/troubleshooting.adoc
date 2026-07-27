@@ -24,6 +24,10 @@ the project around `default-directory`:
 
 image::projectile-doctor.png[The Projectile doctor report: project root, type, indexing method and available tools]
 
+The report is meant to be pasted into a bug report, so kbd:[w]
+(`projectile-report-copy`) copies it as plain text with the faces and buttons
+stripped. kbd:[g] regenerates it and kbd:[q] buries the buffer.
+
 * *Project* - the project root and, crucially, *which* entry of
 `projectile-project-root-functions` found it and off which marker file, the
 project name and where it came from, and whether the root is remote (TRAMP).
