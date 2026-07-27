@@ -14,6 +14,12 @@ and the other reference pages.
 | `projectile-after-switch-project-hook`
 | Hooks run right after project is switched.
 
+| `projectile-alien-honors-ignores`
+| Whether ‘alien’ indexing applies Projectile’s own ignore rules.
+
+| `projectile-async-index-sentinel-timeout`
+| Seconds to wait for a finished index’s result before collecting it.
+
 | `projectile-async-indexing`
 | Whether to index projects without freezing Emacs.
 
@@ -83,6 +89,9 @@ and the other reference pages.
 | `projectile-dirconfig-file`
 | The file which serves both as a project marker and configuration file.
 
+| `projectile-discover-tasks`
+| Whether to offer the tasks a project’s own tooling defines.
+
 | `projectile-dynamic-mode-line`
 | If true, update the mode-line dynamically.
 
@@ -124,6 +133,9 @@ and the other reference pages.
 
 | `projectile-frecency-max-files`
 | Maximum number of files tracked per project.
+
+| `projectile-frecency-max-projects`
+| Maximum number of projects whose frecency history is kept.
 
 | `projectile-generic-command`
 | Command used by projectile to get the files in a generic project.
@@ -224,6 +236,9 @@ and the other reference pages.
 | `projectile-package-use-comint-mode`
 | Make the output buffer of ‘projectile-package-project’ interactive.
 
+| `projectile-per-command-compilation-buffer`
+| When non-nil, each lifecycle command gets its own compilation buffer.
+
 | `projectile-per-project-compilation-buffer`
 | When non-nil, the compilation command makes the per-project compilation buffer.
 
@@ -263,6 +278,9 @@ and the other reference pages.
 | `projectile-replace-max-matches`
 | Upper bound on how many matches ‘projectile-replace-review’ collects.
 
+| `projectile-replace-scan-chunk-size`
+| Number of candidate files scanned per async chunk before yielding.
+
 | `projectile-require-project-root`
 | Require the presence of a project root to operate when true.
 
@@ -277,6 +295,9 @@ and the other reference pages.
 
 | `projectile-search-use-ripgrep`
 | Whether ‘projectile-search-review’ accelerates literal search with ripgrep.
+
+| `projectile-search-whole-word`
+| Whether the reviewable search/replace start in whole-word mode.
 
 | `projectile-session-autosave`
 | Whether ‘projectile-session-mode’ saves sessions automatically.
@@ -314,6 +335,9 @@ and the other reference pages.
 | `projectile-sort-order`
 | The sort order used for a project’s files.
 
+| `projectile-subproject-markers`
+| File names that mark a subproject inside a project.
+
 | `projectile-svn-command`
 | Command used by projectile to get the files in a svn project.
 
@@ -331,6 +355,9 @@ and the other reference pages.
 
 | `projectile-tags-file-name`
 | The name of the tags file Projectile excludes from indexing.
+
+| `projectile-task-providers`
+| Functions that discover the tasks a project’s tooling defines.
 
 | `projectile-tasks`
 | An alist of named tasks that can be run with ‘projectile-run-task’.

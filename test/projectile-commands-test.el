@@ -364,6 +364,84 @@
       (projectile-compile-project nil)
       (expect (hash-table-count projectile-compilation-cmd-map) :to-equal 0))))
 
+(describe "projectile-compilation-buffer-name"
+  ;; #1867: compile, test and run all use compilation-mode, so within a
+  ;; project they shared one buffer and each run discarded the last one's
+  ;; output.
+  (before-each
+    (spy-on 'projectile-project-p :and-return-value t)
+    (spy-on 'projectile-project-name :and-return-value "my-project"))
+
+  (it "is the plain compilation buffer when neither option is on"
+    (let ((projectile-per-project-compilation-buffer nil)
+          (projectile-per-command-compilation-buffer nil)
+          (projectile--compilation-command-type 'test))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*")))
+
+  (it "qualifies by project"
+    (let ((projectile-per-project-compilation-buffer t)
+          (projectile-per-command-compilation-buffer nil)
+          (projectile--compilation-command-type 'test))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<my-project>")))
+
+  (it "qualifies by command type"
+    (let ((projectile-per-project-compilation-buffer nil)
+          (projectile-per-command-compilation-buffer t)
+          (projectile--compilation-command-type 'test))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<test>")))
+
+  (it "qualifies by both, project first"
+    (let ((projectile-per-project-compilation-buffer t)
+          (projectile-per-command-compilation-buffer t)
+          (projectile--compilation-command-type 'compile))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<my-project:compile>")))
+
+  (it "omits the command type when there isn't one"
+    (let ((projectile-per-project-compilation-buffer nil)
+          (projectile-per-command-compilation-buffer t)
+          (projectile--compilation-command-type nil))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*"))))
+
+(describe "per-command compilation buffers (#1867)"
+  (before-each
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-p :and-return-value t)
+    (spy-on 'projectile-project-name :and-return-value "my-project")
+    (spy-on 'projectile-compilation-dir :and-return-value "/proj/")
+    (spy-on 'file-directory-p :and-return-value t)
+    (spy-on 'projectile-maybe-read-command :and-call-fake
+            (lambda (_arg default &rest _) default)))
+
+  (it "sends compile and test output to different buffers"
+    (let ((projectile-per-command-compilation-buffer t)
+          (projectile-per-project-compilation-buffer nil)
+          names)
+      (spy-on 'projectile-run-compilation :and-call-fake
+              (lambda (&rest _)
+                (push (funcall compilation-buffer-name-function "compilation") names)))
+      (projectile--run-project-cmd "make" nil :command-type 'compile)
+      (projectile--run-project-cmd "make test" nil :command-type 'test)
+      (expect (nreverse names)
+              :to-equal '("*compilation*<compile>" "*compilation*<test>"))))
+
+  (it "leaves them sharing a buffer when the option is off"
+    (let ((projectile-per-command-compilation-buffer nil)
+          (projectile-per-project-compilation-buffer t)
+          names)
+      (spy-on 'projectile-run-compilation :and-call-fake
+              (lambda (&rest _)
+                (push (funcall compilation-buffer-name-function "compilation") names)))
+      (projectile--run-project-cmd "make" nil :command-type 'compile)
+      (projectile--run-project-cmd "make test" nil :command-type 'test)
+      (expect (nreverse names)
+              :to-equal '("*compilation*<my-project>" "*compilation*<my-project>")))))
+
 (describe "display-variant commands"
   ;; The other-window/-frame variants share a helper and differ only in the
   ;; display function they hand off to.

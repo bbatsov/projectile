@@ -339,6 +339,20 @@ project-specific. This requires that the user set:
 
 Both of these degrade properly when not inside a project.
 
+Within one project those commands still share a buffer, since they all use
+`compilation-mode` - so running the tests discards the build output. To keep
+them apart, name the buffer after the command as well:
+
+[source,elisp]
+----
+(setq projectile-per-command-compilation-buffer t)
+----
+
+That gives you `+*compilation*<test>+` and `+*compilation*<compile>+`, or
+`+*compilation*<my-project:test>+` with both options enabled. Running the test
+at point shares the test buffer. Named tasks already get a buffer each, named
+after the task.
+
 == Limit the number of project file buffers
 
 Projectile can be configured to keep a maximum number of file buffers of a project
