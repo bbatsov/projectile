@@ -609,6 +609,8 @@ to kbd:[s-p m], and kbd:[C-u s-p p] opens it when switching projects.
 `projectile-dashboard` (kbd:[s-p P]) opens a buffer that sums up the project
 you're in:
 
+image::projectile-dashboard.png[The Projectile dashboard: project info, version control status, recent files and tasks]
+
 * the project's name, root, type and file count
 * the version control system, the current branch and how many files are
 modified or untracked
