@@ -4,7 +4,7 @@
      so the line-length and duplicate-heading rules don't fit this file. -->
 <!-- markdownlint-disable MD013 MD024 -->
 
-## master (unreleased)
+## 3.3.0 (2026-07-27)
 
 ### New features
 
