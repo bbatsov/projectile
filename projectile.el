@@ -6411,6 +6411,15 @@ a manual COMMAND-TYPE command is created with
 (defconst projectile--makefile-names '("Makefile" "makefile" "GNUmakefile")
   "The file names GNU make reads its targets from.")
 
+(defconst projectile--rakefile-names
+  '("Rakefile" "rakefile" "Rakefile.rb" "rakefile.rb")
+  "The file names rake accepts as a project's main task file.")
+
+(defconst projectile--rake-task-directories '("rakelib" "tasks" "lib/tasks")
+  "Directories a project keeps its extra `.rake' files in.
+`rakelib' is rake's own convention, `lib/tasks' is Rails\\='s, and
+`tasks' is what a lot of gems use.")
+
 (defconst projectile--deno-config-names '("deno.json" "deno.jsonc")
   "The file names Deno reads its configuration from.")
 
@@ -11081,6 +11090,7 @@ them (e.g. `npm:build'), so they never collide with configured ones."
     projectile-tasks-from-composer
     projectile-tasks-from-just
     projectile-tasks-from-taskfile
+    projectile-tasks-from-rake
     projectile-tasks-from-make)
   "Functions that discover the tasks a project's tooling defines.
 
@@ -11233,6 +11243,77 @@ the special dot-targets aren't things you'd run by hand."
      (projectile--matches-in-file
       file "^\\([a-zA-Z0-9][a-zA-Z0-9_-]*\\)[ \t]*:\\(?:[^=\n]\\|$\\)")
      "make" "make %s")))
+
+(defun projectile--rake-task-files (project-root)
+  "Return the files rake tasks may be defined in under PROJECT-ROOT.
+That's the project's Rakefile plus the `.rake' files in the usual task
+directories (see `projectile--rake-task-directories').  Returns nil when
+the project has no Rakefile, since without one there's nothing for rake
+to run - which also keeps this provider free for non-Ruby projects."
+  (when-let* ((rakefile (projectile--first-task-file
+                         project-root projectile--rakefile-names)))
+    (cons rakefile
+          (mapcan (lambda (dir)
+                    (let ((dir (expand-file-name dir project-root)))
+                      (when (file-directory-p dir)
+                        (ignore-errors
+                          (directory-files dir t "\\.rake\\'" 'nosort)))))
+                  projectile--rake-task-directories))))
+
+(defun projectile--rake-task-names (file)
+  "Return the names of the rake tasks defined in FILE.
+
+Only tasks whose name is written out literally are returned: a name
+built from a variable (`task type, [:id]') can't be known without
+running rake, which this deliberately doesn't do.  Names are qualified
+with the `namespace' blocks they sit in, so a task is returned under the
+name you'd actually invoke it by."
+  (let ((names nil)
+        ;; Stack of (INDENT . NAME) for the `namespace' blocks we're in.
+        (namespaces nil))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let ((case-fold-search nil))
+        (while (not (eobp))
+          (let ((indent (current-indentation)))
+            (cond
+             ;; Leaving a block: drop the namespace it opened, if any.
+             ((looking-at "[ \t]*end\\_>")
+              (when (and namespaces (<= indent (caar namespaces)))
+                (pop namespaces)))
+             ((looking-at "[ \t]*namespace[ \t]+[:'\"]?\\([a-zA-Z0-9_][a-zA-Z0-9_-]*\\)")
+              (push (cons indent (match-string 1)) namespaces))
+             ;; `task' followed by whitespace - not `task.files = ...',
+             ;; which is a method call on a block argument.
+             ((looking-at
+               (concat "[ \t]*\\(?:multi\\)?task[ \t]+"
+                       ;; :symbol | 'string' | "string" | bare-word:
+                       "\\(?::\\([a-zA-Z0-9_][a-zA-Z0-9_:-]*\\)"
+                       "\\|[\"']\\([^\"'\n]+\\)[\"']"
+                       "\\|\\([a-zA-Z0-9_][a-zA-Z0-9_-]*\\):\\)"))
+              (let* ((name (or (match-string 1) (match-string 2) (match-string 3)))
+                     (qualified (string-join
+                                 (append (reverse (mapcar #'cdr namespaces))
+                                         (list name))
+                                 ":")))
+                (unless (member qualified names)
+                  (push qualified names))))))
+          (forward-line 1))))
+    (nreverse names)))
+
+(defun projectile-tasks-from-rake (project-root)
+  "Return the rake tasks of the project in PROJECT-ROOT.
+The tasks are read out of the project's Rakefile and `.rake' files
+rather than by running `rake -T', which would load the whole
+application."
+  (when-let* ((files (projectile--rake-task-files project-root)))
+    (let ((runner (if (projectile--task-file project-root "Gemfile")
+                      "bundle exec rake"
+                    "rake")))
+      (projectile--tasks-named
+       (delete-dups (mapcan #'projectile--rake-task-names files))
+       "rake" (concat runner " %s")))))
 
 (defun projectile-discovered-tasks (&optional project-root)
   "Return the tasks discovered in the project at PROJECT-ROOT.

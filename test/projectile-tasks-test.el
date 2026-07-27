@@ -195,6 +195,109 @@ tasks:
         (expect (projectile-tasks-from-taskfile (projectile-project-root))
                 :to-equal '(("task:build" . "task build"))))))
 
+  (describe "projectile-tasks-from-rake"
+    (it "reads the tasks of a Rakefile, in all the forms rake accepts"
+      (projectile-test-with-project
+          (("Rakefile" . "require 'rake/testtask'
+
+desc 'Build the gem'
+task build: :generate
+
+task :coverage do
+  puts 'coverage'
+end
+
+task 'legacy:import' do
+end
+
+multitask :parallel do
+end
+"))
+        (expect (projectile-tasks-from-rake (projectile-project-root))
+                :to-equal '(("rake:build" . "rake build")
+                            ("rake:coverage" . "rake coverage")
+                            ("rake:legacy:import" . "rake legacy:import")
+                            ("rake:parallel" . "rake parallel")))))
+
+    (it "qualifies a task with the namespaces it sits in"
+      (projectile-test-with-project
+          (("Rakefile" . "namespace :db do
+  task :migrate do
+  end
+
+  namespace :schema do
+    task :load do
+    end
+  end
+end
+
+task :console do
+end
+"))
+        (expect (projectile-tasks-from-rake (projectile-project-root))
+                :to-equal '(("rake:db:migrate" . "rake db:migrate")
+                            ("rake:db:schema:load" . "rake db:schema:load")
+                            ("rake:console" . "rake console")))))
+
+    (it "skips a task whose name is built at runtime"
+      ;; `task type, [:id]' names the task after a variable - there's no way
+      ;; to know what it is without running rake.
+      (projectile-test-with-project
+          (("Rakefile" . "namespace :changelog do
+  %w[new fix change].each do |type|
+    task type, [:id] do |_task, args|
+    end
+  end
+
+  task :merge do
+  end
+end
+"))
+        (expect (projectile-tasks-from-rake (projectile-project-root))
+                :to-equal '(("rake:changelog:merge" . "rake changelog:merge")))))
+
+    (it "does not mistake a method call on a block argument for a task"
+      ;; `task.files = ...' inside a RakeTask block is not a definition.
+      (projectile-test-with-project
+          (("Rakefile" . "RuboCop::RakeTask.new(:internal_investigation) do |task|
+  task.files = ['lib/rubocop/cop/*/*.rb']
+  task.options = ['--no-output']
+end
+
+task :real do
+end
+"))
+        (expect (projectile-tasks-from-rake (projectile-project-root))
+                :to-equal '(("rake:real" . "rake real")))))
+
+    (it "picks up the .rake files of the usual task directories"
+      (projectile-test-with-project
+          (("Rakefile" . "task :root_task do\nend\n")
+           ("lib/tasks/db.rake" . "namespace :db do\n  task :seed do\n  end\nend\n")
+           ("tasks/release.rake" . "task :cut_release do\nend\n")
+           ("rakelib/extra.rake" . "task :extra do\nend\n")
+           ("lib/tasks/notes.txt" . "task :not_a_rake_file do\nend\n"))
+        (let ((names (mapcar #'car (projectile-tasks-from-rake (projectile-project-root)))))
+          (expect names :to-contain "rake:root_task")
+          (expect names :to-contain "rake:db:seed")
+          (expect names :to-contain "rake:cut_release")
+          (expect names :to-contain "rake:extra")
+          (expect names :not :to-contain "rake:not_a_rake_file"))))
+
+    (it "runs through bundler when the project has a Gemfile"
+      (projectile-test-with-project
+          (("Rakefile" . "task :spec do\nend\n")
+           ("Gemfile" . "source 'https://rubygems.org'\n"))
+        (expect (projectile-tasks-from-rake (projectile-project-root))
+                :to-equal '(("rake:spec" . "bundle exec rake spec")))))
+
+    (it "returns nothing without a Rakefile, even when .rake files exist"
+      ;; Without a Rakefile there's nothing for rake to run, and skipping
+      ;; the directory scan keeps this free for non-Ruby projects.
+      (projectile-test-with-project
+          (("lib/tasks/db.rake" . "task :seed do\nend\n"))
+        (expect (projectile-tasks-from-rake (projectile-project-root)) :to-be nil))))
+
   (describe "projectile-tasks-from-make"
     (it "reads the named targets of a Makefile"
       (projectile-test-with-project
