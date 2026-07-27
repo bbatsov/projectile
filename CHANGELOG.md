@@ -4,6 +4,12 @@
      so the line-length and duplicate-heading rules don't fit this file. -->
 <!-- markdownlint-disable MD013 MD024 -->
 
+## master (unreleased)
+
+### New features
+
+- [#2130](https://github.com/bbatsov/projectile/pull/2130): `projectile-run-task` now also discovers rake tasks, read out of the project's `Rakefile` and its `.rake` files (in `rakelib`, `tasks` and `lib/tasks`) rather than by running `rake -T`, which would load the whole application. Tasks are qualified with their `namespace` (`rake:db:migrate`) and run through `bundle exec` when the project has a `Gemfile`.
+
 ## 3.3.0 (2026-07-27)
 
 ### New features

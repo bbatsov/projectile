@@ -167,6 +167,10 @@ image::projectile-discovered-tasks.png[projectile-run-task offering npm scripts 
 | `Taskfile.yml` and friends
 | `task:build`
 
+| rake tasks
+| `Rakefile`, plus the `.rake` files in `rakelib`, `tasks` and `lib/tasks`
+| `rake:db:migrate`
+
 | Make targets
 | `Makefile`, `makefile`, `GNUmakefile`
 | `make:test`
@@ -176,6 +180,13 @@ Discovered tasks carry the name of the tool that defines them, so they never
 collide with the tasks you configure yourself, and you can tell at the prompt
 where a task came from. Only plain named Make targets are offered - pattern
 rules, file targets and the dot-targets aren't things you'd run by hand.
+
+Rake tasks are read out of the project's task files rather than by running
+`rake -T`, which would mean loading the whole application just to fill a
+completion prompt. Tasks are qualified with the `namespace` blocks they sit in
+(`rake:db:migrate`), and run through `bundle exec` when the project has a
+`Gemfile`. A task whose name is computed at runtime (`task type, [:id]`) can't
+be known without running rake, so it isn't listed.
 
 Set `projectile-discover-tasks` to nil to turn this off, or customize
 `projectile-task-providers` to add your own. A provider is a function taking
