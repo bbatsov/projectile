@@ -1200,6 +1200,76 @@
             (expect files :to-contain "src/a.txt")
             (expect files :not :to-contain "other/c.txt"))))))))
 
+(describe "caching a file the VCS ignores (#1075)"
+  ;; Projectile's own ignore rules know nothing about .gitignore, so opening
+  ;; a git-ignored file used to add it to the cache - putting something in
+  ;; there that indexing would never have listed.
+  (it "does not cache an opened file that git ignores"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/build/" "project/main.c" "project/build/main.o")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root)
+             (projectile-indexing-method 'alien)
+             (projectile-enable-caching t)
+             (projectile-projects-cache (make-hash-table :test 'equal))
+             (projectile-projects-cache-time (make-hash-table :test 'equal)))
+        (write-region "build/\n" nil ".gitignore")
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (spy-on 'projectile-project-root :and-return-value root)
+        (puthash root (projectile-dir-files-alien root) projectile-projects-cache)
+        (expect (gethash root projectile-projects-cache) :not :to-contain "build/main.o")
+        (with-temp-buffer
+          (setq buffer-file-name (expand-file-name "build/main.o" root))
+          (projectile-cache-current-file root))
+        (expect (gethash root projectile-projects-cache) :not :to-contain "build/main.o")))))
+
+  (it "still caches a new file the VCS does not ignore"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/build/" "project/main.c")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root)
+             (projectile-indexing-method 'alien)
+             (projectile-enable-caching t)
+             (projectile-projects-cache (make-hash-table :test 'equal))
+             (projectile-projects-cache-time (make-hash-table :test 'equal)))
+        (write-region "build/\n" nil ".gitignore")
+        (call-process "git" nil nil nil "init")
+        (call-process "git" nil nil nil "add" "-A")
+        (spy-on 'projectile-project-root :and-return-value root)
+        (puthash root (projectile-dir-files-alien root) projectile-projects-cache)
+        ;; created after indexing - this is what caching an opened file is for
+        (write-region "" nil (expand-file-name "brand-new.c" root))
+        (with-temp-buffer
+          (setq buffer-file-name (expand-file-name "brand-new.c" root))
+          (projectile-cache-current-file root))
+        (expect (gethash root projectile-projects-cache) :to-contain "brand-new.c")))))
+
+  (it "leaves native indexing alone, which lists ignored files anyway"
+    (spy-on 'projectile-vcs-ignored-file-p :and-return-value t)
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/.projectile" "project/build/" "project/build/main.o")
+      (let* ((root (projectile-test-project-root))
+             (projectile-indexing-method 'native)
+             (projectile-enable-caching t)
+             (projectile-projects-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile-project-root :and-return-value root)
+        (puthash root '("main.c") projectile-projects-cache)
+        (with-temp-buffer
+          (setq buffer-file-name (expand-file-name "build/main.o" root))
+          (projectile-cache-current-file root))
+        (expect (gethash root projectile-projects-cache) :to-contain "build/main.o")
+        (expect 'projectile-vcs-ignored-file-p :not :to-have-been-called)))))
+
+  (it "answers nil for a VCS it cannot ask"
+    (spy-on 'projectile-project-vcs :and-return-value 'svn)
+    (spy-on 'process-file :and-return-value 0)
+    (expect (projectile-vcs-ignored-file-p "/proj/x.o" "/proj/") :to-be nil)
+    (expect 'process-file :not :to-have-been-called)))
+
 (describe "projectile--command-accepts-pathspecs-p"
   (it "declines pipelines and accepts plain commands"
     (expect (projectile--command-accepts-pathspecs-p projectile-git-command)
