@@ -159,6 +159,82 @@
                   "type detected"))
             :to-be 'ok)))
 
+(describe "report rendering"
+  (defun projectile-report-test--faces-at (regexp)
+    "Return the face of the text matched by REGEXP in the current buffer."
+    (goto-char (point-min))
+    (when (re-search-forward regexp nil t)
+      (get-text-property (match-beginning 0) 'face)))
+
+  (describe "projectile--report-title"
+    (it "faces the title and dims its underline"
+      (with-temp-buffer
+        (projectile--report-title "Hello")
+        (expect (projectile-report-test--faces-at "Hello")
+                :to-be 'projectile-report-section)
+        ;; the rule is text, so a yanked report still reads the same...
+        (expect (buffer-string) :to-equal "Hello\n=====\n")
+        ;; ...but it recedes rather than competing with the title
+        (expect (projectile-report-test--faces-at "=====")
+                :to-be 'projectile-report-label))))
+
+  (describe "projectile--report-status-face"
+    (it "colors the status words whose polarity is unambiguous"
+      (expect (projectile--report-status-face "on") :to-be 'projectile-report-ok)
+      (expect (projectile--report-status-face "present") :to-be 'projectile-report-ok)
+      (expect (projectile--report-status-face "missing") :to-be 'projectile-report-warning)
+      (expect (projectile--report-status-face "off") :to-be 'projectile-report-info))
+
+    (it "leaves anything else alone"
+      (expect (projectile--report-status-face "alien") :to-be nil)
+      (expect (projectile--report-status-face "git") :to-be nil)))
+
+  (describe "projectile-doctor--sort-findings"
+    (it "puts what wants action first, keeping each severity's own order"
+      (expect (projectile-doctor--sort-findings
+               '((ok . "a") (info . "b") (warn . "c") (ok . "d") (warn . "e")))
+              :to-equal '((warn . "c") (warn . "e") (info . "b")
+                          (ok . "a") (ok . "d")))))
+
+  (describe "projectile-report-copy"
+    (it "copies the report without its text properties"
+      (with-temp-buffer
+        (projectile-doctor-mode)
+        (let ((inhibit-read-only t))
+          (projectile--report-title "Projectile doctor report")
+          (insert (propertize "root" 'face 'projectile-report-label))
+          (insert-text-button "a button" 'action #'ignore))
+        (let ((kill-ring nil))
+          (projectile-report-copy)
+          (let ((copied (current-kill 0)))
+            (expect copied :to-equal "Projectile doctor report\n========================\nroota button")
+            ;; nothing carries a face or a button into the clipboard
+            (expect (text-properties-at 0 copied) :to-be nil)
+            (expect (next-property-change 0 copied) :to-be nil)))))
+
+    (it "refuses outside a report buffer"
+      (with-temp-buffer
+        (fundamental-mode)
+        (expect (projectile-report-copy) :to-throw 'user-error))))
+
+  (describe "the doctor buffer"
+    (it "renders its findings colored by severity"
+      (spy-on 'projectile-doctor--findings :and-return-value
+              '((warn . "fd is not installed") (ok . "all good")))
+      (with-temp-buffer
+        (projectile-doctor--render '(:root "/proj/" :type 'npm))
+        (expect (projectile-report-test--faces-at "^warn")
+                :to-be 'projectile-report-warning)
+        (expect (projectile-report-test--faces-at "^ok")
+                :to-be 'projectile-report-ok)))
+
+    (it "ends with a hint line naming the copy key"
+      (spy-on 'projectile-doctor--findings :and-return-value nil)
+      (with-temp-buffer
+        (projectile-doctor--render '(:root "/proj/"))
+        (goto-char (point-max))
+        (expect (buffer-string) :to-match "w copy")))))
+
 (provide 'projectile-doctor-test)
 
 ;;; projectile-doctor-test.el ends here
