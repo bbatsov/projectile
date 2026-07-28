@@ -26,7 +26,15 @@ image::projectile-doctor.png[The Projectile doctor report: project root, type, i
 
 The report is meant to be pasted into a bug report, so kbd:[w]
 (`projectile-report-copy`) copies it as plain text with the faces and buttons
-stripped. kbd:[g] regenerates it and kbd:[q] buries the buffer.
+stripped. kbd:[g] regenerates it, kbd:[f] folds a section and kbd:[q] buries
+the buffer.
+
+A finding that Projectile can do something about carries a button on the line
+under it - `[enable]` for a disabled `projectile-mode`, `[enable caching]` on a
+big uncached project, `[open dirconfig]` for a `.projectile` that needs editing.
+Pressing it does the thing and regenerates the report, so the finding answers
+for itself. kbd:[TAB] (or kbd:[n]) moves between them. Findings Projectile
+can't act on - a missing `fd`, say - stay plain advice.
 
 * *Project* - the project root and, crucially, *which* entry of
 `projectile-project-root-functions` found it and off which marker file, the
