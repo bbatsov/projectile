@@ -202,6 +202,9 @@ are the configuration files of various build tools. Out of the box the following
 | `mkdocs`
 | `mkdocs.yml`
 
+| `nextjs`
+| `next.config.js` or `next.config.mjs` or `next.config.ts`
+
 | `nim-nimble`
 | `projectile-nimble-project-p` (predicate)
 
@@ -731,8 +734,8 @@ combined, so declarative and hand-written relations coexist.
 
 ==== Built-in examples
 
-The `rails-test`, `rails-rspec` and `django` project types ship with
-`:file-kinds` tables. Rails relates a resource's model, controller, views
+The `rails-test`, `rails-rspec`, `django`, `elixir` (Phoenix), `php-laravel`
+and `nextjs` project types ship with `:file-kinds` tables. Rails relates a resource's model, controller, views
 and helper by a shared singular key:
 
 [source,elisp]
@@ -751,7 +754,52 @@ English cases (a trailing `-ies` becomes `-y`, `-ses`/`-xes`/`-zes`/`-ches`/
 nouns (person/people, child/children) are not handled and would need a
 custom `:key-fn`.
 
-Django needs no inflection - all of an app's files live in the same
+The other four need no inflection, and between them they show the three shapes
+a key can take.
+
+Phoenix names a resource's modules after it but scatters them under a web
+directory named after the application, so the key is the base name with the
+role suffix removed and the directory ignored:
+
+[source,elisp]
+----
+;; lib/shop_web/controllers/user_controller.ex <-> :controller (key "user")
+;; lib/shop_web/controllers/user_html.ex       <-> :html       (key "user")
+;; lib/shop_web/live/user_live.ex              <-> :live       (key "user")
+----
+
+`:view` is the Phoenix 1.6 spelling that `:html` replaced in 1.7; a project
+will have one or the other.
+
+Laravel keys on the model's class name, which its companions are named after:
+
+[source,elisp]
+----
+;; app/Models/User.php                        <-> :model      (key "User")
+;; app/Http/Controllers/UserController.php    <-> :controller (key "User")
+;; database/factories/UserFactory.php         <-> :factory    (key "User")
+;; database/seeders/UserSeeder.php            <-> :seeder     (key "User")
+;; app/Policies/UserPolicy.php                <-> :policy     (key "User")
+----
+
+NOTE: Blade views are deliberately left out. They live in snake_case plural
+directories while the classes are StudlyCase singular, so relating them would
+need both inflection and case conversion, and would guess wrong often enough
+not to be worth it. Add them with a `:key-fn` of your own if your project is
+consistent about it.
+
+Next.js uses the app router's fixed file names in a shared directory, so the
+directory is the key - and each kind matches the name plus its dot, which
+covers `.js`, `.jsx`, `.ts` and `.tsx` alike:
+
+[source,elisp]
+----
+;; app/dashboard/page.tsx    <-> :page    (key "app/dashboard")
+;; app/dashboard/layout.tsx  <-> :layout  (key "app/dashboard")
+;; app/dashboard/loading.tsx <-> :loading (key "app/dashboard")
+----
+
+Django needs no inflection either - all of an app's files live in the same
 directory, so the key is simply that directory's name:
 
 [source,elisp]

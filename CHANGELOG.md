@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2137](https://github.com/bbatsov/projectile/pull/2137): Ship `:file-kinds` tables for Phoenix, Laravel and Next.js, so `projectile-find-file-of-kind` (`s-p j`) and `projectile-toggle-related-file` (`s-p J`) work in those out of the box - Rails and Django were the only frameworks covered before.
+  - Phoenix keys a resource's modules on the name they share (`user_controller.ex`, `user_html.ex`, `user_live.ex`), Laravel on the model's class name, Next.js on the app router's directory.
+  - Adds a `nextjs` project type (`next.config.js` and friends) to hang the last of those on.
 - [#2136](https://github.com/bbatsov/projectile/pull/2136): `projectile-run-test-at-point` now knows Ruby (RSpec and Minitest), Rust, Elixir and Java, on top of the Python, Go and JS/TS rules it shipped with.
   - Ruby is written the same way whichever framework you use, so the project type picks the runner; Java's picks between Maven and Gradle, and takes the class name from the file.
   - ExUnit can't select a test by name from the command line, so Elixir tests are addressed as `FILE:LINE`.

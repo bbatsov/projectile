@@ -347,4 +347,137 @@
         (expect (functionp (projectile-related-files-fn 'sample-project)) :to-be-truthy)
         (expect (projectile--related-files-kinds "src/foo.c") :to-equal '(:doc))))))
 
+(describe "projectile--file-kind-match (Phoenix)"
+  (defun projectile-fk-test--phoenix (kind path)
+    (projectile--file-kind-match path (cdr (assq kind projectile--phoenix-file-kinds))))
+
+  (it "keys a resource's modules by the name they share"
+    (expect (projectile-fk-test--phoenix
+             :controller "lib/shop_web/controllers/user_controller.ex")
+            :to-equal "user")
+    (expect (projectile-fk-test--phoenix
+             :html "lib/shop_web/controllers/user_html.ex")
+            :to-equal "user")
+    (expect (projectile-fk-test--phoenix
+             :json "lib/shop_web/controllers/user_json.ex")
+            :to-equal "user")
+    (expect (projectile-fk-test--phoenix
+             :live "lib/shop_web/live/user_live.ex")
+            :to-equal "user"))
+
+  (it "ignores the directory, since the web dir is named after the app"
+    ;; Two projects, two different web directories, same key.
+    (expect (projectile-fk-test--phoenix
+             :controller "lib/other_app_web/controllers/user_controller.ex")
+            :to-equal "user"))
+
+  (it "still keys the Phoenix 1.6 view spelling"
+    (expect (projectile-fk-test--phoenix :view "lib/shop_web/views/user_view.ex")
+            :to-equal "user"))
+
+  (it "does not match an unrelated module"
+    (expect (projectile-fk-test--phoenix :controller "lib/shop/accounts.ex")
+            :to-be nil)))
+
+(describe "projectile--file-kind-match (Laravel)"
+  (defun projectile-fk-test--laravel (kind path)
+    (projectile--file-kind-match path (cdr (assq kind projectile--laravel-file-kinds))))
+
+  (it "keys the files named after a model by its class name"
+    (expect (projectile-fk-test--laravel :model "app/Models/User.php")
+            :to-equal "User")
+    (expect (projectile-fk-test--laravel
+             :controller "app/Http/Controllers/UserController.php")
+            :to-equal "User")
+    (expect (projectile-fk-test--laravel :factory "database/factories/UserFactory.php")
+            :to-equal "User")
+    (expect (projectile-fk-test--laravel :seeder "database/seeders/UserSeeder.php")
+            :to-equal "User")
+    (expect (projectile-fk-test--laravel :policy "app/Policies/UserPolicy.php")
+            :to-equal "User"))
+
+  (it "keeps a controller outside app/Http/Controllers out of the kind"
+    (expect (projectile-fk-test--laravel
+             :controller "vendor/pkg/Http/Controllers/UserController.php")
+            :to-be nil))
+
+  (it "does not confuse a model with a controller in the same tree"
+    (expect (projectile-fk-test--laravel :model "app/Models/Order.php")
+            :to-equal "Order")
+    (expect (projectile-fk-test--laravel
+             :controller "app/Http/Controllers/UserController.php")
+            :not :to-equal "Order")))
+
+(describe "projectile--file-kind-match (Next.js)"
+  (defun projectile-fk-test--nextjs (kind path)
+    (projectile--file-kind-match path (cdr (assq kind projectile--nextjs-file-kinds))))
+
+  (it "keys a route's files by their directory"
+    (expect (projectile-fk-test--nextjs :page "app/dashboard/page.tsx")
+            :to-equal "app/dashboard")
+    (expect (projectile-fk-test--nextjs :layout "app/dashboard/layout.tsx")
+            :to-equal "app/dashboard")
+    (expect (projectile-fk-test--nextjs :loading "app/dashboard/loading.tsx")
+            :to-equal "app/dashboard"))
+
+  (it "matches whichever extension the project uses"
+    (dolist (ext '("js" "jsx" "ts" "tsx"))
+      (expect (projectile-fk-test--nextjs :page (format "app/x/page.%s" ext))
+              :to-equal "app/x")))
+
+  (it "does not match a file that merely starts with the name"
+    (expect (projectile-fk-test--nextjs :page "app/x/pageant.tsx") :to-be nil)
+    (expect (projectile-fk-test--nextjs :error "app/x/errors.ts") :to-be nil))
+
+  (it "keeps nested routes distinct"
+    (expect (projectile-fk-test--nextjs :page "app/(shop)/cart/page.tsx")
+            :to-equal "app/(shop)/cart")
+    (expect (projectile-fk-test--nextjs :page "app/cart/page.tsx")
+            :to-equal "app/cart")))
+
+(describe "the new file-kinds tables end to end"
+  (it "relates a Phoenix controller to its html and live modules"
+    (let* ((fn (projectile--file-kinds-related-files-fn projectile--phoenix-file-kinds))
+           (plist (funcall fn "lib/shop_web/controllers/user_controller.ex")))
+      (expect (plist-member plist :controller) :to-equal nil)
+      (expect (funcall (plist-get plist :html)
+                       "lib/shop_web/controllers/user_html.ex")
+              :to-be-truthy)
+      (expect (funcall (plist-get plist :html)
+                       "lib/shop_web/controllers/product_html.ex")
+              :not :to-be-truthy)
+      (expect (funcall (plist-get plist :live) "lib/shop_web/live/user_live.ex")
+              :to-be-truthy)))
+
+  (it "relates a Laravel model to its controller and factory"
+    (let* ((fn (projectile--file-kinds-related-files-fn projectile--laravel-file-kinds))
+           (plist (funcall fn "app/Models/User.php")))
+      (expect (plist-member plist :model) :to-equal nil)
+      (expect (funcall (plist-get plist :controller)
+                       "app/Http/Controllers/UserController.php")
+              :to-be-truthy)
+      (expect (funcall (plist-get plist :controller)
+                       "app/Http/Controllers/OrderController.php")
+              :not :to-be-truthy)
+      (expect (funcall (plist-get plist :factory)
+                       "database/factories/UserFactory.php")
+              :to-be-truthy)))
+
+  (it "relates a Next.js page to the rest of its route"
+    (let* ((fn (projectile--file-kinds-related-files-fn projectile--nextjs-file-kinds))
+           (plist (funcall fn "app/dashboard/page.tsx")))
+      (expect (plist-member plist :page) :to-equal nil)
+      (expect (funcall (plist-get plist :layout) "app/dashboard/layout.tsx")
+              :to-be-truthy)
+      (expect (funcall (plist-get plist :layout) "app/settings/layout.tsx")
+              :not :to-be-truthy)))
+
+  (it "is wired into the project types that need it"
+    (expect (projectile-project-type-attribute 'elixir 'file-kinds)
+            :to-be projectile--phoenix-file-kinds)
+    (expect (projectile-project-type-attribute 'php-laravel 'file-kinds)
+            :to-be projectile--laravel-file-kinds)
+    (expect (projectile-project-type-attribute 'nextjs 'file-kinds)
+            :to-be projectile--nextjs-file-kinds)))
+
 ;;; projectile-file-kinds-test.el ends here
