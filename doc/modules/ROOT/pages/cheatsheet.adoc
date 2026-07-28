@@ -52,6 +52,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p l]
 | Display a list of all files in a directory (that's not necessarily a project)
 
+| kbd:[s-p C]
+| Jump to a file changed in the project - staged, unstaged or untracked. With a prefix argument, everything that differs from a revision you pick. Git only.
+
 | kbd:[s-p s s]
 | Search the project with the configured backend (`projectile-search`, see below). With a prefix argument it performs a regexp search.
 

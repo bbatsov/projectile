@@ -13926,7 +13926,7 @@ Used by the buffer's `revert-buffer' to regenerate it.")
 
 ;;;; Dashboard data collection
 
-(defun projectile-dashboard--git (root &rest args)
+(defun projectile--git (root &rest args)
   "Run git with ARGS in ROOT and return its output, or nil when it fails.
 No shell is involved, and the call would go through TRAMP for a remote
 ROOT - which is why the callers make sure never to reach here with one.
@@ -13939,6 +13939,106 @@ taking the index lock and rewriting the index behind the user's back."
                      (apply #'process-file "git" nil '(t nil) nil
                             "--no-optional-locks" args)))
         (buffer-string)))))
+
+(defun projectile--git-toplevel (root)
+  "Return the toplevel of the git repository containing ROOT, or nil."
+  (when-let* ((top (projectile--git root "rev-parse" "--show-toplevel")))
+    (file-name-as-directory (file-truename (string-trim top)))))
+
+(defun projectile--git-relativize (paths root toplevel)
+  "Return PATHS, given relative to TOPLEVEL, relative to ROOT instead.
+Git reports porcelain and diff paths relative to the repository root
+regardless of where it was run, so a project sitting below that root
+needs them translated - and anything outside the project dropped."
+  (if (equal (file-truename root) toplevel)
+      paths
+    (delq nil
+          (mapcar (lambda (path)
+                    (let ((absolute (expand-file-name path toplevel))
+                          (root (file-truename root)))
+                      (when (string-prefix-p root absolute)
+                        (file-relative-name absolute root))))
+                  paths))))
+
+(defun projectile--git-status-changed-files (root)
+  "Return the paths git reports as changed in ROOT\\='s working tree.
+Covers staged, unstaged and untracked files, as repository-relative
+paths.  A rename occupies two NUL-separated fields - the new name and
+then the old one - so those are consumed in step rather than the old
+name being mistaken for another changed file."
+  (when-let* ((output (projectile--git root "status" "--porcelain" "-z"
+                                       "--untracked-files=all")))
+    (let ((records (split-string output "\0" t))
+          files)
+      (while records
+        (let ((record (pop records)))
+          ;; "XY PATH", with X and Y the index and worktree status codes.
+          (when (> (length record) 3)
+            (let ((status (substring record 0 2))
+                  (path (substring record 3)))
+              (push path files)
+              ;; A rename or copy carries the source path in the next field.
+              (when (string-match-p "[RC]" status)
+                (pop records))))))
+      (nreverse files))))
+
+(defun projectile-git-changed-files (root &optional base)
+  "Return the files changed in the project at ROOT, relative to it.
+
+Without BASE that is the working tree: everything staged, unstaged or
+untracked.  With BASE - a branch, tag or any other revision - it is
+everything that differs from it, plus the files not yet tracked at all,
+which is what \"show me what this branch changed\" usually means.
+
+Only git is supported; any other version control system returns nil."
+  (when (eq (projectile-project-vcs root) 'git)
+    (when-let* ((toplevel (projectile--git-toplevel root)))
+      (let ((paths
+             (if base
+                 (append
+                  (when-let* ((diff (projectile--git root "diff" "--name-only"
+                                                     "-z" base)))
+                    (split-string diff "\0" t))
+                  (when-let* ((new (projectile--git root "ls-files" "-z"
+                                                    "--others" "--exclude-standard")))
+                    (split-string new "\0" t)))
+               (projectile--git-status-changed-files root))))
+        (seq-uniq (projectile--git-relativize paths root toplevel))))))
+
+(defun projectile--read-git-ref (root)
+  "Read a git revision to compare against, completing over ROOT\\='s branches."
+  (let ((branches (when-let* ((output (projectile--git
+                                       root "for-each-ref" "--format=%(refname:short)"
+                                       "refs/heads" "refs/remotes")))
+                    (split-string output "\n" t))))
+    (completing-read "Compare against: " branches nil nil nil nil
+                     (car (member "main" branches)))))
+
+;;;###autoload
+(defun projectile-find-changed-file (&optional arg)
+  "Jump to a file changed in the current project.
+
+That is everything git reports as staged, unstaged or untracked.  With a
+prefix ARG you are asked for a revision to compare against instead - a
+branch, say - and the candidates become everything that differs from it,
+which is the \"what did this branch touch\" list.
+
+Only git projects are supported."
+  (interactive "P")
+  (let* ((root (projectile-acquire-root))
+         (base (when arg (projectile--read-git-ref root))))
+    (unless (eq (projectile-project-vcs root) 'git)
+      (user-error "`projectile-find-changed-file' needs a git project"))
+    (let ((files (projectile-git-changed-files root base)))
+      (unless files
+        (user-error "No changed files in %s%s" root
+                    (if base (format " compared to %s" base) "")))
+      (find-file (expand-file-name
+                  (projectile-completing-read
+                   (if base (format "Changed vs %s: " base) "Changed file: ")
+                   files :caller 'projectile-find-changed-file)
+                  root))
+      (run-hooks 'projectile-find-file-hook))))
 
 (defun projectile-dashboard--git-status (root)
   "Return the git branch and working tree counts for ROOT as a plist.
@@ -13954,9 +14054,9 @@ be meaningless for it.
 The plist's `:vcs-state' is `ok' when both answered, `partial' when only
 the branch could be determined and `unavailable' when git couldn't
 answer at all (not installed, no commits yet, a broken repository)."
-  (if-let* ((branch (projectile-dashboard--git
+  (if-let* ((branch (projectile--git
                      root "rev-parse" "--abbrev-ref" "HEAD")))
-      (let ((status (projectile-dashboard--git
+      (let ((status (projectile--git
                      root "status" "--porcelain" "--untracked-files=normal"
                      "--" "."))
             (modified 0)
@@ -14557,6 +14657,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "B s") #'projectile-bookmark-set)
     (define-key map (kbd "B j") #'projectile-bookmark-jump)
     (define-key map (kbd "B d") #'projectile-bookmark-delete)
+    (define-key map (kbd "C") #'projectile-find-changed-file)
     (define-key map (kbd "d") #'projectile-find-dir)
     (define-key map (kbd "D") #'projectile-dired)
     (define-key map (kbd "e") #'projectile-recentf)
@@ -14890,6 +14991,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("g" "file dwim" projectile-dispatch-find-file-dwim)
       ("a" "other file" projectile-dispatch-find-other-file)
       ("l" "file in dir" projectile-find-file-in-directory)
+      ("C" "changed file" projectile-find-changed-file)
       ("F" "file in known projects" projectile-find-file-in-known-projects)
       ("d" "dir" projectile-dispatch-find-dir)
       ("D" "dired" projectile-dispatch-dired)
@@ -15007,6 +15109,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Find directory" projectile-find-dir]
          ["Find file in directory" projectile-find-file-in-directory]
          ["Find file in subproject" projectile-find-file-in-subproject]
+         ["Find changed file" projectile-find-changed-file]
          ["Find other file" projectile-find-other-file]
          ["Find file of kind" projectile-find-file-of-kind]
          ["Jump between implementation file and test file" projectile-toggle-between-implementation-and-test]
