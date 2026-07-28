@@ -147,7 +147,7 @@
     (spy-on 'projectile-project-vcs :and-return-value 'git)
     ;; Reaching the remote host at all is the thing under test.
     (spy-on 'hack-dir-local-variables-non-file-buffer)
-    (spy-on 'projectile-dashboard--git :and-call-fake
+    (spy-on 'projectile--git :and-call-fake
             (lambda (&rest _) (error "Must not shell out on a remote project")))
     (let* ((projectile--frecency-table (make-hash-table :test 'equal))
            (projectile-dashboard-sections '(vcs recent))
@@ -206,7 +206,7 @@
         (expect dashboard :to-match "3 modified, 1 untracked"))))
 
   (it "shows the branch alone when the status query failed"
-    (spy-on 'projectile-dashboard--git :and-call-fake
+    (spy-on 'projectile--git :and-call-fake
             (lambda (_root &rest args)
               (when (equal (car args) "rev-parse") "main\n")))
     (let ((status (projectile-dashboard--git-status "/tmp/p/")))
@@ -218,7 +218,7 @@
           (expect dashboard :to-match "unavailable")))))
 
   (it "does not pass off a detached HEAD as a branch"
-    (spy-on 'projectile-dashboard--git :and-call-fake
+    (spy-on 'projectile--git :and-call-fake
             (lambda (_root &rest args)
               (if (equal (car args) "rev-parse") "HEAD\n" "")))
     (expect (plist-get (projectile-dashboard--git-status "/tmp/p/") :branch)
@@ -226,13 +226,13 @@
 
   (it "scopes the status query to the project and takes no index lock"
     (spy-on 'process-file :and-return-value 0)
-    (projectile-dashboard--git "/tmp/p/" "status" "--porcelain")
+    (projectile--git "/tmp/p/" "status" "--porcelain")
     (expect (spy-calls-args-for 'process-file 0)
             :to-equal '("git" nil (t nil) nil "--no-optional-locks"
                         "status" "--porcelain"))
-    (spy-on 'projectile-dashboard--git :and-return-value "main\n")
+    (spy-on 'projectile--git :and-return-value "main\n")
     (projectile-dashboard--git-status "/tmp/p/")
-    (expect (spy-calls-args-for 'projectile-dashboard--git 1)
+    (expect (spy-calls-args-for 'projectile--git 1)
             :to-equal '("/tmp/p/" "status" "--porcelain"
                         "--untracked-files=normal" "--" ".")))
 
@@ -254,7 +254,7 @@
         (expect dashboard :not :to-match "branch"))))
 
   (it "counts modified and untracked entries out of the porcelain output"
-    (spy-on 'projectile-dashboard--git :and-call-fake
+    (spy-on 'projectile--git :and-call-fake
             (lambda (_root &rest args)
               (if (equal (car args) "rev-parse")
                   "main\n"
@@ -266,7 +266,7 @@
       (expect (plist-get status :untracked) :to-equal 1)))
 
   (it "reports git being unable to answer"
-    (spy-on 'projectile-dashboard--git :and-return-value nil)
+    (spy-on 'projectile--git :and-return-value nil)
     (expect (projectile-dashboard--git-status "/tmp/p/")
             :to-equal '(:vcs-state unavailable))
     (let ((projectile-dashboard-sections '(vcs)))

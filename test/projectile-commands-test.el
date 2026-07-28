@@ -773,4 +773,140 @@
       (expect (commandp (intern (format "projectile-%s-subproject" phase)))
               :to-be-truthy))))
 
+(describe "projectile-git-changed-files"
+  (defun projectile-changed-test--git (&rest args)
+    (apply #'call-process "git" nil nil nil args))
+
+  (defun projectile-changed-test--init ()
+    (projectile-changed-test--git "init" "-q")
+    (projectile-changed-test--git "config" "user.email" "t@t.dev")
+    (projectile-changed-test--git "config" "user.name" "T"))
+
+  (it "reports staged, unstaged and untracked files"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/committed.el" "project/edited.el" "project/staged.el")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (projectile-changed-test--init)
+        (projectile-changed-test--git "add" "-A")
+        (projectile-changed-test--git "commit" "-qm" "init")
+        (write-region ";; edited\n" nil "edited.el")
+        (write-region ";; staged\n" nil "staged.el")
+        (projectile-changed-test--git "add" "staged.el")
+        (write-region "" nil "untracked.el")
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        (let ((files (projectile-git-changed-files root)))
+          (expect files :to-contain "edited.el")
+          (expect files :to-contain "staged.el")
+          (expect files :to-contain "untracked.el")
+          (expect files :not :to-contain "committed.el"))))))
+
+  (it "reports a rename once, by its new name"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/old-name.el")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (projectile-changed-test--init)
+        (projectile-changed-test--git "add" "-A")
+        (projectile-changed-test--git "commit" "-qm" "init")
+        (projectile-changed-test--git "mv" "old-name.el" "new-name.el")
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        (let ((files (projectile-git-changed-files root)))
+          ;; the source path of a rename must not read as another changed file
+          (expect files :to-equal '("new-name.el")))))))
+
+  (it "lists every file under a new directory, not just the directory"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/committed.el")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (projectile-changed-test--init)
+        (projectile-changed-test--git "add" "-A")
+        (projectile-changed-test--git "commit" "-qm" "init")
+        (make-directory "fresh" t)
+        (write-region "" nil "fresh/a.el")
+        (write-region "" nil "fresh/b.el")
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        (let ((files (projectile-git-changed-files root)))
+          (expect files :to-contain "fresh/a.el")
+          (expect files :to-contain "fresh/b.el"))))))
+
+  (it "compares against a base revision when given one"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("project/" "project/base.el")
+      (let* ((root (projectile-test-project-root))
+             (default-directory root))
+        (projectile-changed-test--init)
+        (projectile-changed-test--git "add" "-A")
+        (projectile-changed-test--git "commit" "-qm" "init")
+        (projectile-changed-test--git "branch" "-M" "main")
+        (projectile-changed-test--git "checkout" "-q" "-b" "feature")
+        (write-region ";; changed on the branch\n" nil "base.el")
+        (write-region "" nil "added.el")
+        (projectile-changed-test--git "add" "-A")
+        (projectile-changed-test--git "commit" "-qm" "work")
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        (let ((files (projectile-git-changed-files root "main")))
+          (expect files :to-contain "base.el")
+          (expect files :to-contain "added.el"))
+        ;; and with no base, a clean tree has nothing to show
+        (expect (projectile-git-changed-files root) :to-be nil)))))
+
+  (it "translates paths when the project sits below the repository root"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("repo/" "repo/outside.el" "repo/sub/" "repo/sub/.projectile" "repo/sub/inside.el")
+      (let* ((repo (file-truename (expand-file-name "repo/")))
+             (default-directory repo))
+        (projectile-changed-test--init)
+        (projectile-changed-test--git "add" "-A")
+        (projectile-changed-test--git "commit" "-qm" "init")
+        (write-region ";; x\n" nil (expand-file-name "outside.el" repo))
+        (write-region ";; x\n" nil (expand-file-name "sub/inside.el" repo))
+        (spy-on 'projectile-project-vcs :and-return-value 'git)
+        (let* ((root (expand-file-name "sub/" repo))
+               (files (projectile-git-changed-files root)))
+          ;; git reports repo-relative paths; they must come back
+          ;; project-relative, and the file outside the project dropped
+          (expect files :to-equal '("inside.el")))))))
+
+  (it "returns nothing for a project that isn't under git"
+    (spy-on 'projectile-project-vcs :and-return-value 'hg)
+    (expect (projectile-git-changed-files "/proj/") :to-be nil)))
+
+(describe "projectile-find-changed-file"
+  (it "refuses outside a git project"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-vcs :and-return-value 'hg)
+    (expect (projectile-find-changed-file) :to-throw 'user-error))
+
+  (it "says so when nothing has changed"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-git-changed-files :and-return-value nil)
+    (expect (projectile-find-changed-file) :to-throw 'user-error))
+
+  (it "visits the file picked from the changed ones"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-git-changed-files :and-return-value '("a.el" "b.el"))
+    (spy-on 'projectile-completing-read :and-return-value "b.el")
+    (spy-on 'find-file)
+    (projectile-find-changed-file)
+    (expect 'find-file :to-have-been-called-with "/proj/b.el"))
+
+  (it "asks for a revision with a prefix argument"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile--read-git-ref :and-return-value "main")
+    (spy-on 'projectile-git-changed-files :and-return-value '("a.el"))
+    (spy-on 'projectile-completing-read :and-return-value "a.el")
+    (spy-on 'find-file)
+    (projectile-find-changed-file t)
+    (expect 'projectile-git-changed-files :to-have-been-called-with "/proj/" "main")))
+
 ;;; projectile-commands-test.el ends here

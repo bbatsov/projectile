@@ -603,6 +603,21 @@ NOTE: `projectile-dispatch` is powered by `transient`, which is bundled with
 Emacs 28.1+ (Projectile's minimum), so the menu is always available. It's bound
 to kbd:[s-p m], and kbd:[C-u s-p p] opens it when switching projects.
 
+== Finding changed files
+
+`projectile-find-changed-file` (kbd:[s-p C]) completes over the files you have
+actually touched rather than the whole project: everything git reports as
+staged, unstaged or untracked.
+
+With a prefix argument it asks for a revision to compare against - completing
+over the project's branches - and the candidates become everything that differs
+from it, plus anything not yet tracked. That is the "what did this branch
+change" list, which is usually what you want when picking a review back up.
+
+The command is git-only and says so on any other version control system. Paths
+are reported relative to the project even when it sits below the repository
+root, and files outside it are left out.
+
 [[dashboard]]
 == Project dashboard
 

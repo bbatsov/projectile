@@ -8,6 +8,7 @@
 
 ### New features
 
+- [#2134](https://github.com/bbatsov/projectile/pull/2134): Add `projectile-find-changed-file` (`s-p C`), which completes over the files git reports as staged, unstaged or untracked - or, with a prefix argument, over everything that differs from a revision you pick.
 - [#2133](https://github.com/bbatsov/projectile/pull/2133): `projectile-doctor` findings you can act on now carry a button that does it - `[enable]` for a disabled `projectile-mode`, `[enable caching]` on a large uncached project, `[open dirconfig]` for a `.projectile` with prefix-less lines, `[edit .dir-locals.el]` for an undetected project type. Pressing one regenerates the report, so the finding answers for itself; findings Projectile can't act on stay plain advice.
 - [#2132](https://github.com/bbatsov/projectile/pull/2132): The dashboard gained a "Notable files" section linking the project's README, changelog, license, its type's own manifest and its `.projectile` (see `projectile-dashboard-link-files`), plus a count of its open buffers and a summary of the ignore rules in effect.
   - A project with nothing cached now offers an `[index now]` button instead of only reporting that it isn't indexed.
