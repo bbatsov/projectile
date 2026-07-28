@@ -585,6 +585,106 @@ watch bookkeeping into each other, caching is on (transient) and
                     :to-have-same-items-as '("src/a.el" "src/b.el"))
             (projectile--unwatch-project root)))))))
 
+(describe "VCS-ignored files under a watch"
+  (defun projectile-watch-test--git (&rest args)
+    (apply #'call-process "git" nil nil nil args))
+
+  (describe "projectile--vcs-ignored-subset"
+    (it "answers for a whole list in one call"
+      (projectile-test-with-sandbox
+        (projectile-test-with-files ("project/" "project/build/" "project/main.el")
+          (let* ((root (projectile-test-project-root))
+                 (default-directory root))
+            (write-region "build/\n*.log\n" nil ".gitignore")
+            (projectile-watch-test--git "init" "-q")
+            (spy-on 'projectile-project-vcs :and-return-value 'git)
+            (expect (projectile--vcs-ignored-subset
+                     root '("main.el" "build/out.o" "debug.log" ".gitignore"))
+                    :to-have-same-items-as '("build/out.o" "debug.log"))))))
+
+    (it "reads an all-clear as an answer, not a failure"
+      ;; `git check-ignore' exits 1 when nothing matches.
+      (projectile-test-with-sandbox
+        (projectile-test-with-files ("project/" "project/main.el")
+          (let* ((root (projectile-test-project-root))
+                 (default-directory root))
+            (projectile-watch-test--git "init" "-q")
+            (spy-on 'projectile-project-vcs :and-return-value 'git)
+            (expect (projectile--vcs-ignored-subset root '("main.el")) :to-be nil)))))
+
+    (it "declines for a VCS it cannot ask"
+      (spy-on 'projectile-project-vcs :and-return-value 'hg)
+      (spy-on 'call-process-region)
+      (expect (projectile--vcs-ignored-subset "/proj/" '("a.el")) :to-be nil)
+      (expect 'call-process-region :not :to-have-been-called))
+
+    (it "asks nothing when the batch added nothing"
+      (spy-on 'call-process-region)
+      (expect (projectile--vcs-ignored-subset "/proj/" nil) :to-be nil)
+      (expect 'call-process-region :not :to-have-been-called)))
+
+  (describe "projectile--watch-drop-vcs-ignored"
+    (it "removes the ignored additions from the cache"
+      (let ((projectile-indexing-method 'alien)
+            (projectile-projects-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile--vcs-ignored-subset
+                :and-return-value '("build/out.o"))
+        (puthash "/proj/" '("main.el" "build/out.o") projectile-projects-cache)
+        (expect (projectile--watch-drop-vcs-ignored "/proj/" '("build/out.o"))
+                :to-be-truthy)
+        (expect (gethash "/proj/" projectile-projects-cache)
+                :to-equal '("main.el"))))
+
+    (it "leaves native indexing alone, which lists ignored files anyway"
+      (let ((projectile-indexing-method 'native)
+            (projectile-projects-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile--vcs-ignored-subset)
+        (puthash "/proj/" '("build/out.o") projectile-projects-cache)
+        (expect (projectile--watch-drop-vcs-ignored "/proj/" '("build/out.o"))
+                :to-be nil)
+        (expect 'projectile--vcs-ignored-subset :not :to-have-been-called)
+        (expect (gethash "/proj/" projectile-projects-cache)
+                :to-equal '("build/out.o"))))
+
+    (it "reports no change when nothing was ignored"
+      (let ((projectile-indexing-method 'alien)
+            (projectile-projects-cache (make-hash-table :test 'equal)))
+        (spy-on 'projectile--vcs-ignored-subset :and-return-value nil)
+        (puthash "/proj/" '("main.el") projectile-projects-cache)
+        (expect (projectile--watch-drop-vcs-ignored "/proj/" '("main.el"))
+                :to-be nil)))))
+
+(describe "file watch integration with a gitignore"
+  (it "does not let a watch cache a file the VCS ignores"
+    (assume (bound-and-true-p file-notify--library)
+            "no file notification backend available")
+    (projectile-test-with-sandbox
+      (projectile-test-with-files ("project/src/a.el" "project/build/")
+        (projectile-watch-test-env
+          (let* ((root (file-name-as-directory
+                        (file-truename (expand-file-name "project"))))
+                 (default-directory root)
+                 (projectile-indexing-method 'alien))
+            (write-region "build/\n" nil (expand-file-name ".gitignore" root))
+            (call-process "git" nil nil nil "init" "-q")
+            (spy-on 'projectile-project-root :and-return-value root)
+            (spy-on 'projectile-project-vcs :and-return-value 'git)
+            (projectile-cache-project root '("src/a.el"))
+            ;; Two files behind Emacs's back: one the VCS ignores, one not.
+            (with-temp-file (expand-file-name "build/out.o" root))
+            (with-temp-file (expand-file-name "src/b.el" root))
+            (let ((deadline (+ (float-time) 10)))
+              (while (and (not (member "src/b.el"
+                                       (gethash root projectile-projects-cache)))
+                          (< (float-time) deadline))
+                (read-event nil nil 0.1)))
+            ;; the tracked file lands...
+            (expect (gethash root projectile-projects-cache) :to-contain "src/b.el")
+            ;; ...and the ignored one does not, however it arrived
+            (expect (gethash root projectile-projects-cache)
+                    :not :to-contain "build/out.o")
+            (projectile--unwatch-project root)))))))
+
 (provide 'projectile-watch-test)
 
 ;;; projectile-watch-test.el ends here

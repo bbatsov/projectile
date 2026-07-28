@@ -2038,6 +2038,54 @@ project was unwatched."
                                #'projectile--process-watch-events project)
                projectile--watch-debounce-timers))))
 
+(defvar projectile--watch-added-files nil
+  "Paths the watch batch in progress has added to the cache.
+Bound by `projectile--process-watch-events\\=' so the whole batch can be
+put to the VCS in one go; nil outside one.")
+
+(defun projectile--vcs-ignored-subset (root relatives)
+  "Return the members of RELATIVES that the VCS at ROOT ignores.
+
+One `git check-ignore\\=' answers for the whole list, which is what makes
+this usable from the watch path - a process per file would not be.
+Returns nil for anything but git, and for a git that fails; treating the
+answer as \"nothing is ignored\" is conservative, since the only cost is
+the drift this exists to remove.
+
+`call-process-region\\=' rather than a TRAMP-aware call because watches are
+never armed for a remote project in the first place."
+  (when (and relatives (eq (projectile-project-vcs root) 'git))
+    (let ((default-directory root))
+      (with-temp-buffer
+        ;; Exit status 1 means "none of them are ignored", which is an
+        ;; answer rather than a failure; only 0 produces output.
+        (when (eq 0 (ignore-errors
+                      (call-process-region
+                       (mapconcat #'identity relatives "\0") nil
+                       "git" nil t nil
+                       "check-ignore" "-z" "--stdin")))
+          (split-string (buffer-string) "\0" t))))))
+
+(defun projectile--watch-drop-vcs-ignored (project added)
+  "Remove from PROJECT\\='s cache the ADDED paths its VCS ignores.
+
+The watch path applies Projectile\\='s own ignore rules, which know nothing
+about a `.gitignore\\='; under `alien\\=' and `hybrid\\=' indexing the VCS is
+what produced the file list, so without this a watched project slowly
+gains files a re-index would never have listed (see issue #1075, which
+fixed the same hole for files opened by hand).
+
+Returns non-nil when the cache was changed."
+  (when (memq projectile-indexing-method '(alien hybrid))
+    (when-let* ((ignored (projectile--vcs-ignored-subset project added)))
+      (let ((set (make-hash-table :test 'equal :size (length ignored))))
+        (dolist (file ignored) (puthash file t set))
+        (puthash project
+                 (seq-remove (lambda (file) (gethash file set))
+                             (gethash project projectile-projects-cache))
+                 projectile-projects-cache)
+        t))))
+
 (defun projectile--process-watch-events (project)
   "Apply PROJECT's queued file-notify events to its cached file list.
 Runs from the debounce timer.  If any event can't be applied
@@ -2060,12 +2108,19 @@ scheduled via `projectile--schedule-cache-flush'."
               'projectile--none)
           (projectile--unwatch-project project)
         (let* ((mutated nil)
+               (projectile--watch-added-files nil)
                (fallback
                 (catch 'projectile--watch-fallback
                   (dolist (event events)
                     (when (projectile--watch-apply-event project event)
                       (setq mutated t)))
                   nil)))
+          ;; One question to the VCS for everything the batch added, rather
+          ;; than one per file as the opened-file path can afford.
+          (when (and (not fallback)
+                     (projectile--watch-drop-vcs-ignored
+                      project projectile--watch-added-files))
+            (setq mutated t))
           (cond
            (fallback
             (when projectile-verbose
@@ -2143,6 +2198,7 @@ Returns non-nil when the cached list was mutated."
       (when (and (not (member relative
                               (gethash project projectile-projects-cache)))
                  (projectile--watch-keep-file-p project relative))
+        (push relative projectile--watch-added-files)
         (puthash project
                  (cons relative (gethash project projectile-projects-cache))
                  projectile-projects-cache)

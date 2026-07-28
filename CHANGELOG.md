@@ -77,6 +77,7 @@
 
 ### Bugs fixed
 
+- [#2139](https://github.com/bbatsov/projectile/pull/2139): The file-notification cache updates now honor the VCS's ignore rules too, so a watched project no longer gains files a re-index would never have listed - the last place `.gitignore` was going unread, after [#2126](https://github.com/bbatsov/projectile/pull/2126) fixed it for files opened by hand. One `git check-ignore` covers a whole batch of events, since a batch can be an entire directory moved into the project.
 - [#1927](https://github.com/bbatsov/projectile/issues/1927): A known projects file Projectile can't read is now moved aside with a `.corrupt` suffix and reported, instead of being read as an empty list - which made it look like another Emacs had removed every project, so the merge dropped the session's projects too and overwrote the file. Projectile also strips text properties when saving, since a propertized string whose properties don't read back is how the file gets corrupted in the first place.
 
 - [#2118](https://github.com/bbatsov/projectile/issues/2118): Fix `projectile-find-file` showing "Projectile is indexing" forever with `projectile-async-indexing` enabled: Projectile waited for the indexing process's sentinel, which Emacs doesn't guarantee to run while a command sits waiting on the process, and now collects the finished command's output itself instead (`projectile-async-index-sentinel-timeout`).
