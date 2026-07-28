@@ -540,6 +540,13 @@ suppress them:
 (setq projectile-verbose nil)
 ----
 
+What this covers is the things Projectile says *without being asked* - caching a
+file you have just opened, a background index that had something to report, a
+session file it had to skip, a search path entry that no longer exists, a
+project whose watches it gave up on. Commands you invoke still report what they
+did either way, so turning this off makes Projectile quieter rather than mute:
+`projectile-invalidate-cache` still confirms that it ran.
+
 === Menu bar
 
 Projectile adds a menu to the Emacs menu bar by default.  To disable it:

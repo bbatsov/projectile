@@ -427,4 +427,102 @@
     (let ((projectile-sort-order 'no-such-order))
       (expect (projectile-sort-files '("b" "a")) :to-equal '("b" "a")))))
 
+(describe "projectile-verbose"
+  ;; The line it draws: Projectile stays quiet about what it does off its
+  ;; own bat, and still answers for what you asked it to do.
+
+  (describe "caching the file you just opened"
+    (it "says nothing when the find-file hook did it"
+      (projectile-test-with-project (("main.el" . ";; x"))
+        (let ((projectile-verbose nil)
+              (projectile-enable-caching t)
+              (root (projectile-project-root)))
+          (puthash root '("other.el") projectile-projects-cache)
+          (spy-on 'message)
+          (with-temp-buffer
+            (setq buffer-file-name (expand-file-name "main.el" root))
+            (projectile-cache-current-file root))
+          ;; it still cached the file...
+          (expect (gethash root projectile-projects-cache) :to-contain "main.el")
+          ;; ...without announcing it
+          (expect 'message :not :to-have-been-called))))
+
+    (it "still answers when you invoke it yourself"
+      (projectile-test-with-project (("main.el" . ";; x"))
+        (let ((projectile-verbose nil)
+              (projectile-enable-caching t)
+              (root (projectile-project-root)))
+          (puthash root '("other.el") projectile-projects-cache)
+          (spy-on 'message)
+          (spy-on 'called-interactively-p :and-return-value t)
+          (with-temp-buffer
+            (setq buffer-file-name (expand-file-name "main.el" root))
+            (projectile-cache-current-file root))
+          (expect 'message :to-have-been-called)))))
+
+  (describe "a search path entry that doesn't exist"
+    (it "says nothing during the automatic scan"
+      (let ((projectile-verbose nil))
+        (spy-on 'message)
+        (projectile-discover-projects-in-directory "/no/such/directory/")
+        (expect 'message :not :to-have-been-called)))
+
+    (it "still says so when you run the command"
+      (let ((projectile-verbose nil))
+        (spy-on 'message)
+        (spy-on 'called-interactively-p :and-return-value t)
+        (projectile-discover-projects-in-directory "/no/such/directory/")
+        (expect 'message :to-have-been-called))))
+
+  (describe "an indexing command that exits non-zero with output"
+    (it "keeps the note to itself, but still uses the output"
+      (projectile-test-with-sandbox
+       (projectile-test-with-files ("project/" "project/.projectile")
+         (let ((default-directory (projectile-test-project-root))
+               (projectile-verbose nil))
+           (spy-on 'message)
+           (expect (projectile-files-via-ext-command
+                    default-directory "printf 'a.el\\0'; echo boom >&2; exit 1")
+                   :to-equal '("a.el"))
+           (expect 'message :not :to-have-been-called)))))
+
+    (it "mentions it when asked to be verbose"
+      (projectile-test-with-sandbox
+       (projectile-test-with-files ("project/" "project/.projectile")
+         (let ((default-directory (projectile-test-project-root))
+               (projectile-verbose t))
+           (spy-on 'message)
+           (projectile-files-via-ext-command
+            default-directory "printf 'a.el\\0'; echo boom >&2; exit 1")
+           (expect 'message :to-have-been-called))))))
+
+  (describe "a session file from another format version"
+    (it "is skipped silently, since restore-all can meet a directory of them"
+      (projectile-test-with-temp-files ((file ".eld"))
+        (let ((projectile-verbose nil))
+          (projectile-serialize '(:projectile-session-version 0 :tabs nil) file)
+          (spy-on 'message)
+          (expect (projectile-session--read-file file) :to-be nil)
+          (expect 'message :not :to-have-been-called))))
+
+    (it "says which file it skipped when asked to be verbose"
+      (projectile-test-with-temp-files ((file ".eld"))
+        (let ((projectile-verbose t))
+          (projectile-serialize '(:projectile-session-version 0 :tabs nil) file)
+          (spy-on 'message)
+          (expect (projectile-session--read-file file) :to-be nil)
+          (expect 'message :to-have-been-called)))))
+
+  (describe "what it deliberately does not cover"
+    (it "leaves a command's own answer alone"
+      ;; `projectile-invalidate-cache' exists to be invoked; saying nothing
+      ;; would leave you wondering whether it ran.
+      (projectile-test-with-project (("main.el" . ";; x"))
+        (let ((projectile-verbose t)
+              (root (projectile-project-root)))
+          (puthash root '("main.el") projectile-projects-cache)
+          (spy-on 'message)
+          (projectile-invalidate-cache nil)
+          (expect 'message :to-have-been-called))))))
+
 ;;; projectile-core-test.el ends here
