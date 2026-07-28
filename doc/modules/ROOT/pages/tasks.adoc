@@ -279,6 +279,14 @@ Out of the box the following languages are supported:
 | `java-ts-mode`
 | methods annotated `@Test` (also `@ParameterizedTest`, `@RepeatedTest`)
 | `mvn test -Dtest=Class#NAME`, or the `./gradlew --tests` form in a Gradle project
+
+| `erlang-ts-mode`
+| functions whose name ends in `_test` or `_test_` (EUnit)
+| `rebar3 eunit --test=module:NAME`
+
+| `fsharp-ts-mode`
+| bindings attributed `[<Fact>]`, `[<Theory>]`, `[<Test>]`, `[<TestCase>]` or `[<Property>]`
+| `dotnet test --filter FullyQualifiedName~NAME`
 |===
 
 A few of these are decided at run time rather than by major mode. Ruby is
@@ -286,7 +294,9 @@ written the same way whichever framework you use, so the project type picks
 between RSpec and Minitest; Java's is picked the same way between Maven and
 Gradle, and the class name comes from the file, since Java requires them to
 match. ExUnit has no way to select a test by name from the command line, so
-Elixir tests are addressed by line instead.
+Elixir tests are addressed by line instead. Erlang takes the module from the
+file name, the way EUnit addresses a test, and F# unwraps a name written
+between double backticks, since that is what the test framework sees.
 
 The command runs from the same directory as `projectile-test-project`
 (normally the project root), with the same buffer-saving behavior, but
