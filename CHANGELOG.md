@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2138](https://github.com/bbatsov/projectile/pull/2138): Better support for OCaml, Erlang and F#.
+  - `projectile-run-test-at-point` learns `erlang-ts-mode` (EUnit's `_test`/`_test_` functions, run as `rebar3 eunit --test=module:name`) and `fsharp-ts-mode` (bindings attributed `[<Fact>]`, `[<Theory>]`, `[<Test>]`, `[<TestCase>]` or `[<Property>]`, run through `dotnet test --filter`).
+  - The `ocaml-dune` and `rebar` project types gained their run, install, package and source/test directory attributes, and a new `erlang-mk` type covers the other common Erlang build tool.
+  - OCaml deliberately gets no test-at-point rule: its tests are ordinary values registered with Alcotest or OUnit rather than anything the syntax marks out, so there is nothing to recognize.
 - [#2137](https://github.com/bbatsov/projectile/pull/2137): Ship `:file-kinds` tables for Phoenix, Laravel and Next.js, so `projectile-find-file-of-kind` (`s-p j`) and `projectile-toggle-related-file` (`s-p J`) work in those out of the box - Rails and Django were the only frameworks covered before.
   - Phoenix keys a resource's modules on the name they share (`user_controller.ex`, `user_html.ex`, `user_live.ex`), Laravel on the model's class name, Next.js on the app router's directory.
   - Adds a `nextjs` project type (`next.config.js` and friends) to hang the last of those on.

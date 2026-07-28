@@ -52,7 +52,9 @@
               (lambda (node n &optional _named)
                 (nth n (plist-get node :children))))
              ((symbol-function 'treesit-node-prev-sibling)
-              (lambda (node &optional _named) (plist-get node :prev))))
+              (lambda (node &optional _named) (plist-get node :prev)))
+             ((symbol-function 'treesit-node-children)
+              (lambda (node &optional _named) (plist-get node :children))))
      ,@body))
 
 (defun projectile-tap--function-node (type name)
@@ -466,5 +468,115 @@
              "addsToCart" "src/test/java/CartTest.java")
             :to-equal (format "./gradlew test --tests %s"
                               (shell-quote-argument "CartTest.addsToCart")))))
+
+(describe "projectile--test-at-point-annotated-p"
+  ;; `\_<'/`\_>' consult the syntax table, under which F#'s `[<Fact>]'
+  ;; has no symbol boundary around `Fact' - this is the replacement.
+  (it "matches a whole word whatever brackets it"
+    (expect (projectile--test-at-point-annotated-p "[<Fact>]" '("Fact"))
+            :to-be-truthy)
+    (expect (projectile--test-at-point-annotated-p "#[test]" '("test"))
+            :to-be-truthy)
+    (expect (projectile--test-at-point-annotated-p "@Test" '("Test"))
+            :to-be-truthy))
+
+  (it "does not match a longer word containing one of the names"
+    (expect (projectile--test-at-point-annotated-p "[<Factory>]" '("Fact"))
+            :to-be nil)
+    (expect (projectile--test-at-point-annotated-p "#[testable]" '("test"))
+            :to-be nil))
+
+  (it "picks the right alternative when one name prefixes another"
+    (expect (projectile--test-at-point-annotated-p
+             "[<TestCase(1)>]" '("Test" "TestCase"))
+            :to-be-truthy)))
+
+(describe "Erlang test-at-point"
+  (it "names a function EUnit would pick up"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (list :type "fun_decl"
+                        :fields
+                        (list (cons "clause"
+                                    (list :type "function_clause"
+                                          :fields (list (cons "name"
+                                                              (list :type "atom"
+                                                                    :text "adds_item_test")))))))))
+        (expect (projectile-test-at-point-erlang-name node)
+                :to-equal "adds_item_test"))))
+
+  (it "names a test generator too"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (list :type "fun_decl"
+                        :fields
+                        (list (cons "clause"
+                                    (list :type "function_clause"
+                                          :fields (list (cons "name"
+                                                              (list :type "atom"
+                                                                    :text "adds_test_")))))))))
+        (expect (projectile-test-at-point-erlang-name node)
+                :to-equal "adds_test_"))))
+
+  (it "ignores an ordinary function"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (list :type "fun_decl"
+                        :fields
+                        (list (cons "clause"
+                                    (list :type "function_clause"
+                                          :fields (list (cons "name"
+                                                              (list :type "atom"
+                                                                    :text "helper")))))))))
+        (expect (projectile-test-at-point-erlang-name node) :to-be nil))))
+
+  (it "addresses the test as module:function, taking the module from the file"
+    (expect (projectile-test-at-point-erlang-command
+             "adds_item_test" "test/cart_tests.erl")
+            :to-equal (format "rebar3 eunit --test=%s"
+                              (shell-quote-argument "cart_tests:adds_item_test")))))
+
+(describe "F# test-at-point"
+  (defun projectile-fs-test--node (attr-text name)
+    "Return a fake F# defn node under a declaration carrying ATTR-TEXT."
+    (let* ((left (list :type "function_declaration_left"
+                       :children (list (list :type "identifier" :text name))))
+           (defn (list :type "function_or_value_defn" :children (list left)))
+           (parent (list :type "declaration_expression"
+                         :children (append
+                                    (when attr-text
+                                      (list (list :type "attributes"
+                                                  :text attr-text)))
+                                    (list defn)))))
+      (append defn (list :parent parent))))
+
+  (it "names a binding carrying a test attribute"
+    (projectile-tap--with-fake-treesit nil
+      (expect (projectile-test-at-point-fsharp-name
+               (projectile-fs-test--node "[<Fact>]" "addsTwo"))
+              :to-equal "addsTwo")
+      (expect (projectile-test-at-point-fsharp-name
+               (projectile-fs-test--node "[<Theory>]" "addsMore"))
+              :to-equal "addsMore")))
+
+  (it "unwraps a name written between double backticks"
+    (projectile-tap--with-fake-treesit nil
+      (expect (projectile-test-at-point-fsharp-name
+               (projectile-fs-test--node "[<Fact>]" "``adds two numbers``"))
+              :to-equal "adds two numbers")))
+
+  (it "ignores a binding with no attributes at all"
+    (projectile-tap--with-fake-treesit nil
+      (expect (projectile-test-at-point-fsharp-name
+               (projectile-fs-test--node nil "helper"))
+              :to-be nil)))
+
+  (it "ignores a binding whose attribute isn't a test one"
+    (projectile-tap--with-fake-treesit nil
+      (expect (projectile-test-at-point-fsharp-name
+               (projectile-fs-test--node "[<Obsolete>]" "old"))
+              :to-be nil)))
+
+  (it "filters by name, since the .NET runners don't select by file"
+    (expect (projectile-test-at-point-fsharp-command "adds two" "Tests.fs")
+            :to-equal (format "dotnet test --filter %s"
+                              (shell-quote-argument "FullyQualifiedName~adds two")))))
 
 ;;; projectile-test-at-point-test.el ends here

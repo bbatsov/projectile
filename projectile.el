@@ -114,6 +114,7 @@
 (declare-function treesit-node-child "treesit.c")
 (declare-function treesit-node-child-by-field-name "treesit.c")
 (declare-function treesit-node-prev-sibling "treesit.c")
+(declare-function treesit-node-children "treesit")
 (declare-function treesit-node-text "treesit")
 
 
@@ -6711,6 +6712,20 @@ a manual COMMAND-TYPE command is created with
 (projectile-register-project-type 'rebar '("rebar.config")
                                   :compile "rebar3 compile"
                                   :test "rebar3 do eunit,ct"
+                                  :run "rebar3 shell"
+                                  :install "rebar3 release"
+                                  :package "rebar3 tar"
+                                  :src-dir "src/"
+                                  :test-dir "test/"
+                                  :test-suffix "_SUITE")
+;; erlang.mk is the other common Erlang build tool; it drives everything
+;; through make, so the commands are make targets.
+(projectile-register-project-type 'erlang-mk '("erlang.mk")
+                                  :compile "make"
+                                  :test "make tests"
+                                  :run "make run"
+                                  :src-dir "src/"
+                                  :test-dir "test/"
                                   :test-suffix "_SUITE")
 (projectile-register-project-type 'elixir '("mix.exs")
                                   :file-kinds projectile--phoenix-file-kinds
@@ -7087,7 +7102,12 @@ a manual COMMAND-TYPE command is created with
 ;; OCaml
 (projectile-register-project-type 'ocaml-dune '("dune-project")
                                   :compile "dune build"
-                                  :test "dune runtest")
+                                  :test "dune runtest"
+                                  :run "dune exec"
+                                  :install "dune install"
+                                  :package "dune build @install"
+                                  :src-dir "lib/"
+                                  :test-dir "test/")
 
 ;; Zig
 ;; `build.zig' is the build script; `build.zig.zon' only shows up once a
@@ -12201,7 +12221,8 @@ isn\\='t something `cargo test\\=' would run."
           (test nil))
       (while (and sibling
                   (equal (treesit-node-type sibling) "attribute_item"))
-        (when (string-match-p "\\_<test\\_>" (treesit-node-text sibling t))
+        (when (projectile--test-at-point-annotated-p
+               (treesit-node-text sibling t) '("test"))
           (setq test t))
         (setq sibling (treesit-node-prev-sibling sibling)))
       (when test name))))
@@ -12244,8 +12265,9 @@ Return nil unless the method carries a `@Test\\=' annotation (JUnit\\='s
               (name (treesit-node-text name-node t))
               (modifiers (treesit-node-child node 0 t)))
     (when (and (equal (treesit-node-type modifiers) "modifiers")
-               (string-match-p "@\\(Test\\|ParameterizedTest\\|RepeatedTest\\)\\_>"
-                               (treesit-node-text modifiers t)))
+               (projectile--test-at-point-annotated-p
+                (treesit-node-text modifiers t)
+                '("Test" "ParameterizedTest" "RepeatedTest")))
       name)))
 
 (defun projectile-test-at-point-java-command (test-name file-name)
@@ -12261,6 +12283,73 @@ decides which one to emit."
                 (shell-quote-argument (format "%s.%s" class test-name)))
       (format "mvn test -Dtest=%s"
               (shell-quote-argument (format "%s#%s" class test-name))))))
+
+(defun projectile--test-at-point-annotated-p (text names)
+  "Return non-nil when TEXT mentions one of NAMES as a whole word.
+
+Deliberately not the symbol-boundary operators: those consult the
+buffer's syntax table, under which the `<' and `>' of an F# `[<Fact>]'
+count as part of the symbol, so the boundary never matches.  Bracketing
+on non-alphanumerics is the same test without the dependency."
+  (string-match-p
+   (format "\\(?:^\\|[^[:alnum:]_]\\)\\(?:%s\\)\\(?:$\\|[^[:alnum:]_]\\)"
+           (mapconcat #'regexp-quote names "\\|"))
+   text))
+
+(defun projectile-test-at-point-erlang-name (node)
+  "Return the test name for the Erlang `fun_decl\\=' NODE.
+EUnit picks up functions whose name ends in `_test\\=' (a plain test) or
+`_test_\\=' (a test generator), which is the only thing marking one out
+from any other function."
+  (when-let* ((clause (treesit-node-child-by-field-name node "clause"))
+              (name-node (treesit-node-child-by-field-name clause "name"))
+              (name (treesit-node-text name-node t)))
+    (when (or (string-suffix-p "_test" name)
+              (string-suffix-p "_test_" name))
+      name)))
+
+(defun projectile-test-at-point-erlang-command (test-name file-name)
+  "Return a `rebar3 eunit\\=' command running TEST-NAME from FILE-NAME.
+EUnit addresses a test as `module:function\\=', and an Erlang module is
+named after its file, so the module comes from FILE-NAME."
+  (format "rebar3 eunit --test=%s"
+          (shell-quote-argument
+           (format "%s:%s" (file-name-base file-name) test-name))))
+
+(defun projectile-test-at-point-fsharp-name (node)
+  "Return the test name for the F# `function_or_value_defn\\=' NODE.
+
+Return nil unless the binding carries a test attribute - xUnit\\='s
+`[<Fact>]\\=' or `[<Theory>]\\=', NUnit\\='s `[<Test>]\\=' or FsCheck\\='s
+`[<Property>]\\='.  The attributes are a sibling of the definition under
+its enclosing `declaration_expression\\=', not a child of it.
+
+A name written between double backticks - which is how F# tests usually
+get readable names - is returned without them, since that is what the
+test framework sees."
+  (when-let* ((parent (treesit-node-parent node))
+              ;; `attributes' is a positional child of the enclosing
+              ;; `declaration_expression', not a field of it.
+              (attributes
+               (seq-find (lambda (child)
+                           (equal (treesit-node-type child) "attributes"))
+                         (treesit-node-children parent t))))
+    (when (projectile--test-at-point-annotated-p
+           (treesit-node-text attributes t)
+           '("Fact" "Theory" "Test" "TestCase" "Property"))
+      (when-let* ((left (treesit-node-child node 0 t))
+                  (name (treesit-node-text (treesit-node-child left 0 t) t)))
+        (if (and (string-prefix-p "``" name) (string-suffix-p "``" name))
+            (substring name 2 -2)
+          name)))))
+
+(defun projectile-test-at-point-fsharp-command (test-name _file-name)
+  "Return a `dotnet test\\=' command running TEST-NAME.
+The .NET test runners select by a filter expression rather than by file,
+so the file plays no part.  `FullyQualifiedName~\\=' matches on a
+substring, which keeps the filter working without the namespace."
+  (format "dotnet test --filter %s"
+          (shell-quote-argument (format "FullyQualifiedName~%s" test-name))))
 
 (defcustom projectile-test-at-point-rules
   (let ((jest-rule '(:node-types ("call_expression")
@@ -12293,7 +12382,15 @@ decides which one to emit."
       (java-ts-mode
        :node-types ("method_declaration")
        :name-fn projectile-test-at-point-java-name
-       :command-fn projectile-test-at-point-java-command)))
+       :command-fn projectile-test-at-point-java-command)
+      (erlang-ts-mode
+       :node-types ("fun_decl")
+       :name-fn projectile-test-at-point-erlang-name
+       :command-fn projectile-test-at-point-erlang-command)
+      (fsharp-ts-mode
+       :node-types ("function_or_value_defn")
+       :name-fn projectile-test-at-point-fsharp-name
+       :command-fn projectile-test-at-point-fsharp-command)))
   "Rules telling `projectile-run-test-at-point' how to run a single test.
 
 An alist keyed by major mode symbol.  The current buffer's mode is

@@ -118,6 +118,9 @@ are the configuration files of various build tools. Out of the box the following
 | `emacs-eldev`
 | `projectile-eldev-project-p` (predicate)
 
+| `erlang-mk`
+| `erlang.mk`
+
 | `flutter`
 | `projectile-flutter-project-p` (predicate)
 
