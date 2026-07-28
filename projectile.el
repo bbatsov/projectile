@@ -468,7 +468,13 @@ is set to `alien'."
   :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-verbose t
-  "Echo messages that are not errors."
+  "Whether to echo the messages Projectile emits without being asked.
+
+This covers what Projectile says as a side effect of something else -
+caching a file you just opened, a background index that had something to
+report, a session file it had to skip.  Commands you invoke still say
+what they did whatever this is set to: turning it off makes Projectile
+quieter, not mute."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "0.12.0"))
@@ -2348,9 +2354,10 @@ PROJECT-ROOT defaults to the current project."
             ;; UI immediately after the new file was created.
             (when (projectile-persistent-cache-p)
               (projectile--schedule-cache-flush current-project)))
-          (message "File %s added to project %s cache."
-                   (propertize current-file 'face 'font-lock-keyword-face)
-                   (propertize current-project 'face 'font-lock-keyword-face)))))))
+          (when (or projectile-verbose (called-interactively-p 'interactive))
+            (message "File %s added to project %s cache."
+                     (propertize current-file 'face 'font-lock-keyword-face)
+                     (propertize current-project 'face 'font-lock-keyword-face))))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook (&optional project-root)
@@ -2645,7 +2652,8 @@ discover projects there."
           (let ((dir (projectile--known-project-root (projectile-project-root directory))))
             (unless (member dir projectile-known-projects)
               (projectile-add-known-project dir)))))
-    (message "Project search path directory %s doesn't exist" directory)))
+    (when (or projectile-verbose (called-interactively-p 'interactive))
+      (message "Project search path directory %s doesn't exist" directory))))
 
 (defvar projectile--search-path-discovered nil
   "Non-nil once `projectile-project-search-path' has been auto-discovered.
@@ -3734,7 +3742,7 @@ Only text sent to standard output is taken into account."
                    ;; Non-zero exit but we still got a listing: trust it.  Only
                    ;; mention it (quietly) when there was stderr worth seeing.
                    (files
-                    (when had-stderr
+                    (when (and had-stderr projectile-verbose)
                       (message "Projectile: `%s' exited with code %d but produced output; using it (see *projectile-files-errors*)"
                                full-command exit-code)))
                    ;; Non-zero exit and nothing on stdout: a real failure.
@@ -16395,9 +16403,13 @@ with a message, so the user learns why nothing was restored."
                   projectile-session--format-version)
            data))
      ((and (consp data) (plist-member data :projectile-session-version))
-      (message "Ignoring session file %s: format version %s (expected %s)"
-               file (plist-get data :projectile-session-version)
-               projectile-session--format-version)
+      ;; `projectile-session-restore-all' can walk a directory full of these
+      ;; at startup, so this is exactly the kind of thing that shouldn't
+      ;; announce itself once per file.
+      (when projectile-verbose
+        (message "Ignoring session file %s: format version %s (expected %s)"
+                 file (plist-get data :projectile-session-version)
+                 projectile-session--format-version))
       nil))))
 
 (defun projectile-session--read (root)
