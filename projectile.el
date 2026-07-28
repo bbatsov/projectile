@@ -5539,6 +5539,118 @@ keys as \"apps/polls\" without colliding with a different \"polls\" app."
   (when-let* ((dir (file-name-directory rel-path)))
     (directory-file-name dir)))
 
+(defun projectile--parent-directory-key (rel-path)
+  "Return REL-PATH\\='s parent directory, without a trailing slash.
+A key for the frameworks that group a resource\\='s files in a directory
+rather than naming them after it, so \"polls/models.py\" keys as
+\"polls\" and a nested \"apps/polls/models.py\" as \"apps/polls\", without
+the two colliding."
+  (when-let* ((dir (file-name-directory rel-path)))
+    (directory-file-name dir)))
+
+(defalias 'projectile--django-app-key #'projectile--parent-directory-key
+  "Return the Django app directory of a path.
+An alias for `projectile--parent-directory-key\\=', kept because the
+Django reference table named it.")
+
+(defun projectile--basename-key (rel-path suffix)
+  "Return REL-PATH\\='s basename with SUFFIX removed, ignoring its directory.
+For the frameworks that name a resource\\='s files after it but scatter
+them across directories, so the directory can\\='t be part of the key."
+  (let ((name (file-name-nondirectory rel-path)))
+    (when (string-suffix-p suffix name)
+      (substring name 0 (- (length suffix))))))
+
+(defun projectile--phoenix-controller-key (rel-path)
+  "Return the Phoenix resource key of the controller REL-PATH."
+  (projectile--basename-key rel-path "_controller.ex"))
+
+(defun projectile--phoenix-html-key (rel-path)
+  "Return the Phoenix resource key of the HTML module REL-PATH."
+  (projectile--basename-key rel-path "_html.ex"))
+
+(defun projectile--phoenix-json-key (rel-path)
+  "Return the Phoenix resource key of the JSON module REL-PATH."
+  (projectile--basename-key rel-path "_json.ex"))
+
+(defun projectile--phoenix-view-key (rel-path)
+  "Return the Phoenix resource key of the view REL-PATH (Phoenix 1.6)."
+  (projectile--basename-key rel-path "_view.ex"))
+
+(defun projectile--phoenix-live-key (rel-path)
+  "Return the Phoenix resource key of the LiveView REL-PATH."
+  (projectile--basename-key rel-path "_live.ex"))
+
+(defvar projectile--phoenix-file-kinds
+  '((:controller . (:suffix "_controller.ex"
+                    :key-fn projectile--phoenix-controller-key))
+    (:html       . (:suffix "_html.ex"
+                    :key-fn projectile--phoenix-html-key))
+    (:json       . (:suffix "_json.ex"
+                    :key-fn projectile--phoenix-json-key))
+    (:view       . (:suffix "_view.ex"
+                    :key-fn projectile--phoenix-view-key))
+    (:live       . (:suffix "_live.ex"
+                    :key-fn projectile--phoenix-live-key)))
+  "Reference `:file-kinds\\=' table for Phoenix applications.
+Relates the modules of a resource by the name they share - user_controller.ex,
+user_html.ex, user_json.ex, user_live.ex - wherever under `lib/\\=' they
+live, since the web directory is named after the application.  `:view\\='
+is the Phoenix 1.6 spelling that `:html\\=' replaced in 1.7; a project
+will have one or the other.")
+
+(defun projectile--laravel-model-key (rel-path)
+  "Return the Laravel resource key of the model REL-PATH."
+  (projectile--basename-key rel-path ".php"))
+
+(defun projectile--laravel-controller-key (rel-path)
+  "Return the Laravel resource key of the controller REL-PATH."
+  (projectile--basename-key rel-path "Controller.php"))
+
+(defun projectile--laravel-factory-key (rel-path)
+  "Return the Laravel resource key of the factory REL-PATH."
+  (projectile--basename-key rel-path "Factory.php"))
+
+(defun projectile--laravel-seeder-key (rel-path)
+  "Return the Laravel resource key of the seeder REL-PATH."
+  (projectile--basename-key rel-path "Seeder.php"))
+
+(defun projectile--laravel-policy-key (rel-path)
+  "Return the Laravel resource key of the policy REL-PATH."
+  (projectile--basename-key rel-path "Policy.php"))
+
+(defvar projectile--laravel-file-kinds
+  '((:model      . (:path "app/Models/" :suffix ".php"
+                    :key-fn projectile--laravel-model-key))
+    (:controller . (:path "app/Http/Controllers/" :suffix "Controller.php"
+                    :key-fn projectile--laravel-controller-key))
+    (:factory    . (:path "database/factories/" :suffix "Factory.php"
+                    :key-fn projectile--laravel-factory-key))
+    (:seeder     . (:path "database/seeders/" :suffix "Seeder.php"
+                    :key-fn projectile--laravel-seeder-key))
+    (:policy     . (:path "app/Policies/" :suffix "Policy.php"
+                    :key-fn projectile--laravel-policy-key)))
+  "Reference `:file-kinds\\=' table for the Laravel project type.
+Relates the files named after an Eloquent model - User.php,
+UserController.php, UserFactory.php, UserSeeder.php, UserPolicy.php -
+by that class name.  Blade views are deliberately left out: they live in
+snake_case plural directories while the classes are StudlyCase singular,
+so relating them would need inflection and case conversion, and would
+guess wrong often enough not to be worth it.")
+
+(defvar projectile--nextjs-file-kinds
+  '((:page    . (:prefix "page." :key-fn projectile--parent-directory-key))
+    (:layout  . (:prefix "layout." :key-fn projectile--parent-directory-key))
+    (:loading . (:prefix "loading." :key-fn projectile--parent-directory-key))
+    (:error   . (:prefix "error." :key-fn projectile--parent-directory-key))
+    (:route   . (:prefix "route." :key-fn projectile--parent-directory-key)))
+  "Reference `:file-kinds\\=' table for Next.js applications.
+The app router gives a route\\='s files fixed names in a shared directory -
+page, layout, loading, error, route - so the directory is the key.  Each
+kind matches on the name plus its dot rather than a whole file name, so
+it covers whichever of .js, .jsx, .ts or .tsx the project uses without
+also matching something like `pageant.tsx\\='.")
+
 (defvar projectile--rails-file-kinds
   '((:model      . (:path "app/models/"))
     (:controller . (:path "app/controllers/"
@@ -6601,6 +6713,7 @@ a manual COMMAND-TYPE command is created with
                                   :test "rebar3 do eunit,ct"
                                   :test-suffix "_SUITE")
 (projectile-register-project-type 'elixir '("mix.exs")
+                                  :file-kinds projectile--phoenix-file-kinds
                                   :compile "mix compile"
                                   :src-dir "lib/"
                                   :test "mix test"
@@ -6661,6 +6774,14 @@ a manual COMMAND-TYPE command is created with
                                   :test-suffix ".spec")
 ;; JavaScript monorepo tools, which sit on top of one of the package
 ;; managers above and are what you actually build and test through.
+(projectile-register-project-type 'nextjs
+                                  '((:any "next.config.js" "next.config.mjs"
+                                          "next.config.ts"))
+                                  :compile "next build"
+                                  :test "npm test"
+                                  :run "next dev"
+                                  :test-suffix ".test"
+                                  :file-kinds projectile--nextjs-file-kinds)
 (projectile-register-project-type 'nx '("nx.json")
                                   :compile "npx nx run-many -t build"
                                   :test "npx nx run-many -t test"
@@ -6692,6 +6813,7 @@ a manual COMMAND-TYPE command is created with
                                   :test-dir "tests/"
                                   :test-suffix "Test")
 (projectile-register-project-type 'php-laravel '("composer.json" "artisan")
+                                  :file-kinds projectile--laravel-file-kinds
                                   :compile "composer install"
                                   :run "php artisan serve"
                                   :test "php artisan test"
