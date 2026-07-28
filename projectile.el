@@ -113,6 +113,7 @@
 (declare-function treesit-node-type "treesit.c")
 (declare-function treesit-node-child "treesit.c")
 (declare-function treesit-node-child-by-field-name "treesit.c")
+(declare-function treesit-node-prev-sibling "treesit.c")
 (declare-function treesit-node-text "treesit")
 
 
