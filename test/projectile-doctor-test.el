@@ -93,26 +93,31 @@
 
 (defun projectile-doctor-test--finding (data pattern)
   "Return DATA's finding whose text matches PATTERN, if any."
-  (seq-find (lambda (finding) (string-match-p pattern (cdr finding)))
+  (seq-find (lambda (finding)
+              (string-match-p pattern (plist-get finding :message)))
             (projectile-doctor--findings data)))
+
+(defun projectile-doctor-test--severity (finding)
+  "Return FINDING's severity."
+  (plist-get finding :severity))
 
 (describe "projectile-doctor findings"
   (it "suggests installing fd when it's missing under alien indexing"
     (let ((finding (projectile-doctor-test--finding
                     '(:indexing-method alien :fd missing :projectile-mode t)
                     "fd is not installed")))
-      (expect (car finding) :to-be 'warn))
+      (expect (projectile-doctor-test--severity finding) :to-be 'warn))
     (let ((finding (projectile-doctor-test--finding
                     '(:indexing-method alien :fd present :projectile-mode t)
                     "fd is installed")))
-      (expect (car finding) :to-be 'ok)))
+      (expect (projectile-doctor-test--severity finding) :to-be 'ok)))
 
   (it "flags a large project with caching disabled"
     (let ((finding (projectile-doctor-test--finding
                     '(:indexing-method native :file-count 20000
                       :caching nil :projectile-mode t)
                     "caching")))
-      (expect (car finding) :to-be 'warn))
+      (expect (projectile-doctor-test--severity finding) :to-be 'warn))
     (expect (projectile-doctor-test--finding
              '(:indexing-method native :file-count 20000
                :caching t :projectile-mode t)
@@ -124,14 +129,14 @@
                     '(:indexing-method alien :file-count 100000
                       :caching t :projectile-mode t)
                     "That's a lot")))
-      (expect (car finding) :to-be 'warn)))
+      (expect (projectile-doctor-test--severity finding) :to-be 'warn)))
 
   (it "flags a remote project indexed synchronously"
     (let ((finding (projectile-doctor-test--finding
                     '(:indexing-method alien :remote "/ssh:host:"
                       :async-indexing nil :projectile-mode t)
                     "Remote project")))
-      (expect (car finding) :to-be 'warn))
+      (expect (projectile-doctor-test--severity finding) :to-be 'warn))
     (expect (projectile-doctor-test--finding
              '(:indexing-method alien :remote "/ssh:host:"
                :async-indexing t :projectile-mode t)
@@ -144,20 +149,87 @@
                                            :prefixless-ignore '("tmp")))
            (data (list :indexing-method 'native :projectile-mode t
                        :dirconfig cfg)))
-      (expect (car (projectile-doctor-test--finding data "without a"))
+      (expect (projectile-doctor-test--severity (projectile-doctor-test--finding data "without a"))
               :to-be 'warn)
-      (expect (car (projectile-doctor-test--finding data "keep"))
+      (expect (projectile-doctor-test--severity (projectile-doctor-test--finding data "keep"))
               :to-be 'info)))
 
   (it "warns when the project type wasn't detected"
-    (expect (car (projectile-doctor-test--finding
+    (expect (projectile-doctor-test--severity (projectile-doctor-test--finding
                   '(:type generic :indexing-method native :projectile-mode t)
                   "type not detected"))
             :to-be 'warn)
-    (expect (car (projectile-doctor-test--finding
+    (expect (projectile-doctor-test--severity (projectile-doctor-test--finding
                   '(:type emacs-eldev :indexing-method native :projectile-mode t)
                   "type detected"))
             :to-be 'ok)))
+
+(describe "actionable findings"
+  (it "offers to enable projectile-mode when it is off"
+    (let ((finding (projectile-doctor-test--finding
+                    '(:indexing-method native :projectile-mode nil)
+                    "projectile-mode. is not enabled")))
+      (expect (plist-get finding :action-label) :to-equal "enable")
+      (spy-on 'projectile-mode)
+      (funcall (plist-get finding :action))
+      (expect 'projectile-mode :to-have-been-called-with 1)))
+
+  (it "offers to enable caching on a large uncached project"
+    (let ((finding (projectile-doctor-test--finding
+                    '(:indexing-method native :file-count 20000
+                      :caching nil :projectile-mode t)
+                    "caching")))
+      (expect (plist-get finding :action-label) :to-equal "enable caching")
+      (spy-on 'customize-set-variable)
+      (funcall (plist-get finding :action))
+      (expect 'customize-set-variable
+              :to-have-been-called-with 'projectile-enable-caching t)))
+
+  (it "offers to open the dirconfig behind a prefix-less-lines warning"
+    (projectile-test-with-stub-root "proj" (".projectile")
+      (let* ((cfg (make-projectile-dirconfig :prefixless-ignore t))
+             (finding (projectile-doctor-test--finding
+                       (list :indexing-method 'native :projectile-mode t
+                             :dirconfig cfg)
+                       "without a")))
+        (expect (plist-get finding :action-label) :to-equal "open dirconfig")
+        (spy-on 'find-file)
+        (funcall (plist-get finding :action))
+        (expect 'find-file :to-have-been-called-with
+                (expand-file-name ".projectile" (projectile-project-root))))))
+
+  (it "leaves a finding you cannot act on without a button"
+    ;; Projectile can't install fd for you, so that one stays advice.
+    (let ((finding (projectile-doctor-test--finding
+                    '(:indexing-method alien :fd missing :projectile-mode t)
+                    "fd is not installed")))
+      (expect (plist-get finding :action) :to-be nil))
+    (let ((finding (projectile-doctor-test--finding
+                    '(:indexing-method native :file-count 5 :projectile-mode t)
+                    "5 files indexed")))
+      (expect (plist-get finding :action) :to-be nil)))
+
+  (it "renders an action as a button and runs it on RET"
+    (let ((ran nil))
+      (spy-on 'projectile-doctor--findings :and-return-value
+              (list (projectile-doctor--finding
+                     'warn "something is off" "fix it"
+                     (lambda () (setq ran t)))))
+      (with-temp-buffer
+        (projectile-doctor-mode)
+        (let ((inhibit-read-only t))
+          (projectile-doctor--render '(:root "/proj/")))
+        (goto-char (point-min))
+        (expect (re-search-forward "\\[fix it\\]" nil t) :to-be-truthy)
+        ;; the label is part of the report text, so a pasted report still
+        ;; says what could be done about the finding
+        (goto-char (point-min))
+        (search-forward "fix it")
+        (spy-on 'revert-buffer)
+        (push-button (1- (point)))
+        (expect ran :to-be t)
+        ;; and the report regenerates, so the finding answers for itself
+        (expect 'revert-buffer :to-have-been-called)))))
 
 (describe "report rendering"
   (defun projectile-report-test--faces-at (regexp)
@@ -191,10 +263,14 @@
 
   (describe "projectile-doctor--sort-findings"
     (it "puts what wants action first, keeping each severity's own order"
-      (expect (projectile-doctor--sort-findings
-               '((ok . "a") (info . "b") (warn . "c") (ok . "d") (warn . "e")))
-              :to-equal '((warn . "c") (warn . "e") (info . "b")
-                          (ok . "a") (ok . "d")))))
+      (expect (mapcar (lambda (f) (plist-get f :message))
+                      (projectile-doctor--sort-findings
+                       (list (projectile-doctor--finding 'ok "a")
+                             (projectile-doctor--finding 'info "b")
+                             (projectile-doctor--finding 'warn "c")
+                             (projectile-doctor--finding 'ok "d")
+                             (projectile-doctor--finding 'warn "e"))))
+              :to-equal '("c" "e" "b" "a" "d"))))
 
   (describe "projectile-report-copy"
     (it "copies the report without its text properties"
@@ -220,7 +296,8 @@
   (describe "the doctor buffer"
     (it "renders its findings colored by severity"
       (spy-on 'projectile-doctor--findings :and-return-value
-              '((warn . "fd is not installed") (ok . "all good")))
+              (list (projectile-doctor--finding 'warn "fd is not installed")
+                    (projectile-doctor--finding 'ok "all good")))
       (with-temp-buffer
         (projectile-doctor--render '(:root "/proj/" :type 'npm))
         (expect (projectile-report-test--faces-at "^warn")

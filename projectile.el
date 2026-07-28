@@ -45,6 +45,7 @@
 (require 'grep)
 (require 'fileloop)
 (require 'filenotify)
+(require 'outline)
 (eval-when-compile
   ;; `transient' is bundled with Emacs 28.1+ (Projectile's minimum), but
   ;; it's only needed once `projectile-dispatch' is invoked, so it's
@@ -13417,10 +13418,38 @@ a nil `:root' and the rendering degrades to saying so."
 
 ;;;; Doctor findings
 
+(defun projectile-doctor--finding (severity message &optional action-label action)
+  "Return a finding of SEVERITY described by MESSAGE.
+SEVERITY is one of `ok\\=', `warn\\=' or `info\\='.
+
+ACTION, when given, is a function of no arguments that does something
+about the finding, and ACTION-LABEL is what to call it in the report.
+The report renders such a finding with a button, so the fix sits next to
+the diagnosis rather than in a sentence telling you what to go and type."
+  (list :severity severity :message message
+        :action-label action-label :action action))
+
+(defun projectile-doctor--enable-mode ()
+  "Turn `projectile-mode\\=' on."
+  (projectile-mode 1)
+  (message "Projectile: `projectile-mode' enabled"))
+
+(defun projectile-doctor--set-option (option value)
+  "Set OPTION to VALUE for this session, the way Customize would.
+Says so, since the change doesn\\='t outlive Emacs unless it\\='s saved."
+  (customize-set-variable option value)
+  (message "Projectile: `%s' set to %s for this session - use %s to keep it"
+           option value
+           (substitute-command-keys "\\[customize-save-variable]")))
+
+(defun projectile-doctor--visit-dirconfig ()
+  "Visit the current project\\='s dirconfig file, creating it if need be."
+  (find-file (expand-file-name projectile-dirconfig-file
+                               (projectile-acquire-root))))
+
 (defun projectile-doctor--findings (data)
   "Return the list of findings for the report DATA.
-Each finding is a cons of a status symbol (`ok', `warn' or `info') and
-a one-line description."
+Each finding is a plist built by `projectile-doctor--finding\\='."
   (let* ((remote (plist-get data :remote))
          (method (plist-get data :indexing-method))
          (external (memq method '(alien hybrid)))
@@ -13428,78 +13457,104 @@ a one-line description."
          (cfg (plist-get data :dirconfig))
          (findings nil))
     (push (if (eq (plist-get data :type) 'generic)
-              (cons 'warn (concat "Project type not detected (generic).  "
-                                  "Register a type with "
-                                  "`projectile-register-project-type', or set "
-                                  "`projectile-project-type' in .dir-locals.el."))
-            (cons 'ok (format "Project type detected: %s."
-                              (plist-get data :type))))
+              (projectile-doctor--finding
+               'warn (concat "Project type not detected (generic).  "
+                             "Register a type with "
+                             "`projectile-register-project-type', or set "
+                             "`projectile-project-type' in .dir-locals.el.")
+               "edit .dir-locals.el" #'projectile-edit-dir-locals)
+            (projectile-doctor--finding
+             'ok (format "Project type detected: %s." (plist-get data :type))))
           findings)
     (when (and external (eq (plist-get data :vcs) 'git))
       (push (pcase (plist-get data :git)
-              ('present (cons 'ok "git is installed and lists the project files."))
-              ('skipped (cons 'info "git availability not checked (remote project)."))
-              (_ (cons 'warn (concat "git is not installed, but this is a git "
-                                     "project - indexing falls back to `find'."))))
+              ('present (projectile-doctor--finding
+                         'ok "git is installed and lists the project files."))
+              ('skipped (projectile-doctor--finding
+                         'info "git availability not checked (remote project)."))
+              (_ (projectile-doctor--finding
+                  'warn (concat "git is not installed, but this is a git "
+                                "project - indexing falls back to `find'."))))
             findings))
     (when external
       (push (pcase (plist-get data :fd)
-              ('present (cons 'ok "fd is installed and used for fast indexing."))
-              ('skipped (cons 'info "fd availability not checked (remote project)."))
-              (_ (cons 'warn (concat "fd is not installed.  Installing it speeds "
-                                     "up indexing noticeably on large projects "
-                                     "(see `projectile-git-use-fd')."))))
+              ('present (projectile-doctor--finding
+                         'ok "fd is installed and used for fast indexing."))
+              ('skipped (projectile-doctor--finding
+                         'info "fd availability not checked (remote project)."))
+              (_ (projectile-doctor--finding
+                  'warn (concat "fd is not installed.  Installing it speeds "
+                                "up indexing noticeably on large projects "
+                                "(see `projectile-git-use-fd')."))))
             findings))
     (when (and (eq (plist-get data :rg) 'missing) (not remote))
-      (push (cons 'info (concat "ripgrep (rg) is not installed; "
-                                "`projectile-ripgrep' and the fast path of the "
-                                "search reviewer need it."))
+      (push (projectile-doctor--finding
+             'info (concat "ripgrep (rg) is not installed; "
+                           "`projectile-ripgrep' and the fast path of the "
+                           "search reviewer need it."))
             findings))
     (when (integerp count)
       (cond
        ((>= count projectile-doctor--huge-project)
-        (push (cons 'warn (format (concat "%d files indexed.  That's a lot - "
-                                          "check the ignore rules above, a "
-                                          "build or vendor directory may be "
-                                          "sneaking in.")
-                                  count))
+        (push (projectile-doctor--finding
+               'warn (format (concat "%d files indexed.  That's a lot - "
+                                     "check the ignore rules above, a "
+                                     "build or vendor directory may be "
+                                     "sneaking in.")
+                             count)
+               "edit ignores" #'projectile-doctor--visit-dirconfig)
               findings))
        ((and (>= count projectile-doctor--large-project)
              (not (plist-get data :caching)))
-        (push (cons 'warn (format (concat "%d files indexed with caching "
-                                          "disabled.  Set "
-                                          "`projectile-enable-caching' to t "
-                                          "(or `persistent').")
-                                  count))
+        (push (projectile-doctor--finding
+               'warn (format (concat "%d files indexed with caching "
+                                     "disabled.  Set "
+                                     "`projectile-enable-caching' to t "
+                                     "(or `persistent').")
+                             count)
+               "enable caching"
+               (lambda () (projectile-doctor--set-option
+                           'projectile-enable-caching t)))
               findings))
-       (t (push (cons 'ok (format "%d files indexed." count)) findings))))
+       (t (push (projectile-doctor--finding
+                 'ok (format "%d files indexed." count))
+                findings))))
     (when (and remote (not (plist-get data :async-indexing)))
-      (push (cons 'warn (concat "Remote project with `projectile-async-indexing' "
-                                "off - indexing will block Emacs for as long as "
-                                "the remote takes."))
+      (push (projectile-doctor--finding
+             'warn (concat "Remote project with `projectile-async-indexing' "
+                           "off - indexing will block Emacs for as long as "
+                           "the remote takes.")
+             "enable async indexing"
+             (lambda () (projectile-doctor--set-option
+                         'projectile-async-indexing t)))
             findings))
     (when cfg
       (when (projectile-dirconfig-keep cfg)
-        (push (cons 'info (format (concat "The dirconfig has %d `+' keep "
-                                          "entries, so the project is "
-                                          "restricted to those subdirectories "
-                                          "- everything else is invisible to "
-                                          "Projectile.")
-                                  (length (projectile-dirconfig-keep cfg))))
+        (push (projectile-doctor--finding
+               'info (format (concat "The dirconfig has %d `+' keep "
+                                     "entries, so the project is "
+                                     "restricted to those subdirectories "
+                                     "- everything else is invisible to "
+                                     "Projectile.")
+                             (length (projectile-dirconfig-keep cfg)))
+               "open dirconfig" #'projectile-doctor--visit-dirconfig)
               findings))
       (when (projectile-dirconfig-prefixless-ignore cfg)
-        (push (cons 'warn (concat "The dirconfig has lines without a "
-                                  "`+'/`-'/`!' prefix.  They are treated as "
-                                  "ignore rules for now, but the implicit form "
-                                  "is being phased out - prefix them with `-'."))
+        (push (projectile-doctor--finding
+               'warn (concat "The dirconfig has lines without a "
+                             "`+'/`-'/`!' prefix.  They are treated as "
+                             "ignore rules for now, but the implicit form "
+                             "is being phased out - prefix them with `-'.")
+               "open dirconfig" #'projectile-doctor--visit-dirconfig)
               findings)))
     (unless (plist-get data :projectile-mode)
-      (push (cons 'warn (concat "`projectile-mode' is not enabled; "
-                                "Projectile's keymap and mode line are "
-                                "inactive."))
+      (push (projectile-doctor--finding
+             'warn (concat "`projectile-mode' is not enabled; "
+                           "Projectile's keymap and mode line are "
+                           "inactive.")
+             "enable" #'projectile-doctor--enable-mode)
             findings))
     (nreverse findings)))
-
 
 ;;;; Doctor report rendering
 
@@ -13685,15 +13740,25 @@ in .dir-locals.el to pin a type, or register one with
     ;; lone warning shouldn't be buried among a dozen `ok' lines.
     (dolist (finding (projectile-doctor--sort-findings
                       (projectile-doctor--findings data)))
-      (pcase-let* ((`(,severity . ,message) finding)
-                   (`(,label . ,face)
-                    (pcase severity
+      (pcase-let* ((`(,label . ,face)
+                    (pcase (plist-get finding :severity)
                       ('ok '("ok" . projectile-report-ok))
                       ('warn '("warn" . projectile-report-warning))
                       (_ '("info" . projectile-report-info)))))
         (insert (projectile--report-face (format "%-6s" label) face)
-                message "\n")))
-    (projectile--report-hints '((revert-buffer . "refresh")
+                (plist-get finding :message)
+                "\n")
+        ;; Put the fix under the diagnosis rather than describing it.  Its
+        ;; own line, because findings are long and a button at the end of
+        ;; one sits past the window edge where nobody will find it.
+        (when-let* ((action (plist-get finding :action)))
+          (insert (make-string 6 ?\s))
+          (insert-text-button (format "[%s]" (plist-get finding :action-label))
+                              'type 'projectile-doctor-action
+                              'projectile-action action)
+          (insert "\n"))))
+    (projectile--report-hints '((forward-button . "next action")
+                                (revert-buffer . "refresh")
                                 (projectile-report-copy . "copy")
                                 (outline-toggle-children . "fold")
                                 (quit-window . "quit")))))
@@ -13703,14 +13768,35 @@ in .dir-locals.el to pin a type, or register one with
 The order within each severity is preserved, so the report still reads
 in the order the checks are written."
   (let ((rank (lambda (finding)
-                (pcase (car finding) ('warn 0) ('ok 2) (_ 1)))))
+                (pcase (plist-get finding :severity) ('warn 0) ('ok 2) (_ 1)))))
     (sort (copy-sequence findings)
           (lambda (a b) (< (funcall rank a) (funcall rank b))))))
+
+(defun projectile-doctor--run-action (button)
+  "Run the action BUTTON stands for, then regenerate the report.
+Regenerating is the point: the finding that prompted the action should
+answer for itself once it has been dealt with."
+  (let ((action (button-get button 'projectile-action)))
+    (funcall action)
+    (when (derived-mode-p 'projectile-doctor-mode)
+      (revert-buffer))))
+
+(define-button-type 'projectile-doctor-action
+  'action #'projectile-doctor--run-action
+  'follow-link t
+  'help-echo "mouse-1, RET: do something about this finding")
 
 (defvar projectile-doctor-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") #'quit-window)
     (define-key map (kbd "w") #'projectile-report-copy)
+    ;; The findings carry action buttons, so moving between them is worth
+    ;; a key - as is folding a report that runs past a screenful.
+    (define-key map (kbd "TAB") #'forward-button)
+    (define-key map (kbd "<backtab>") #'backward-button)
+    (define-key map (kbd "n") #'forward-button)
+    (define-key map (kbd "p") #'backward-button)
+    (define-key map (kbd "f") #'outline-toggle-children)
     map)
   "Keymap for `projectile-doctor-mode'.")
 
