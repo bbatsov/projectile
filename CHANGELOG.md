@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2136](https://github.com/bbatsov/projectile/pull/2136): `projectile-run-test-at-point` now knows Ruby (RSpec and Minitest), Rust, Elixir and Java, on top of the Python, Go and JS/TS rules it shipped with.
+  - Ruby is written the same way whichever framework you use, so the project type picks the runner; Java's picks between Maven and Gradle, and takes the class name from the file.
+  - ExUnit can't select a test by name from the command line, so Elixir tests are addressed as `FILE:LINE`.
 - [#2135](https://github.com/bbatsov/projectile/pull/2135): Add `projectile-ignored-project-patterns`, the regexp-matching sibling of `projectile-ignored-projects` (exact paths) and `projectile-ignored-project-function` (a predicate), so keeping whole areas of a machine out of the known projects doesn't need a lambda.
 - [#2134](https://github.com/bbatsov/projectile/pull/2134): Add `projectile-find-changed-file` (`s-p C`), which completes over the files git reports as staged, unstaged or untracked - or, with a prefix argument, over everything that differs from a revision you pick.
 - [#2133](https://github.com/bbatsov/projectile/pull/2133): `projectile-doctor` findings you can act on now carry a button that does it - `[enable]` for a disabled `projectile-mode`, `[enable caching]` on a large uncached project, `[open dirconfig]` for a `.projectile` with prefix-less lines, `[edit .dir-locals.el]` for an undetected project type. Pressing one regenerates the report, so the finding answers for itself; findings Projectile can't act on stay plain advice.
