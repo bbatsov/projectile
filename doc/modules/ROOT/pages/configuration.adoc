@@ -171,15 +171,29 @@ You can prevent certain projects from being added to the known projects list:
 (setq projectile-ignored-projects '("/tmp/" "~/.emacs.d/"))
 ----
 
-For more flexible filtering, set `projectile-ignored-project-function` to a
-predicate that receives a project root and returns non-nil if the project should
-be ignored:
+`projectile-ignored-project-patterns` takes regexps rather than exact paths,
+which is usually what you want for whole areas of a machine:
+
+[source,elisp]
+----
+;; Never remember anything under /tmp or in a Downloads directory
+(setq projectile-ignored-project-patterns '("\\`/tmp/" "/Downloads/"))
+----
+
+For anything the two lists can't express, set
+`projectile-ignored-project-function` to a predicate that receives a project
+root and returns non-nil if the project should be ignored:
 
 [source,elisp]
 ----
 ;; Ignore all remote (TRAMP) projects
 (setq projectile-ignored-project-function #'file-remote-p)
 ----
+
+NOTE: If Projectile can't read its known projects file - it has been seen
+happening when another package writes propertized strings into it - the file is
+moved aside with a `.corrupt` suffix and you get a warning, rather than the list
+being silently treated as empty and overwritten on the next save.
 
 === Automatic tracking
 

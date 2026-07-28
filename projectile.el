@@ -1164,6 +1164,21 @@ synchronized with `projectile-known-projects-file'.")
   :type '(repeat :tag "Project list" directory)
   :package-version '(projectile . "0.11.0"))
 
+(defcustom projectile-ignored-project-patterns nil
+  "Regexps matching projects not to be added to `projectile-known-projects'.
+
+The pattern-matching sibling of `projectile-ignored-projects', which
+takes exact paths, and `projectile-ignored-project-function', which takes
+a predicate.  Each entry is matched against the project root with
+`string-match-p', so keeping the scratch areas of a machine out of the
+known projects is a line of configuration rather than a lambda:
+
+    (setq projectile-ignored-project-patterns
+          \\='(\"\\\\`/tmp/\" \"/Downloads/\"))"
+  :group 'projectile
+  :type '(repeat :tag "Regexps" regexp)
+  :package-version '(projectile . "3.4.0"))
+
 (defcustom projectile-ignored-project-function nil
   "Function to decide if a project is added to `projectile-known-projects'.
 
@@ -1172,7 +1187,8 @@ project root as argument and returns non-nil if the project is to
 be ignored or nil otherwise.
 
 This function is only called if the project is not listed in
-the variable `projectile-ignored-projects'.
+the variable `projectile-ignored-projects' and matches none of
+`projectile-ignored-project-patterns'.
 
 A suitable candidate would be `file-remote-p' to ignore remote
 projects."
@@ -12752,6 +12768,8 @@ that requiring exact paths is acceptable.  Local behavior is unchanged."
                           project-root
                         (file-truename project-root))))
     (or (member project-root (projectile-ignored-projects))
+        (seq-some (lambda (pattern) (string-match-p pattern project-root))
+                  projectile-ignored-project-patterns)
         (and (functionp projectile-ignored-project-function)
              (funcall projectile-ignored-project-function project-root)))))
 
@@ -12775,23 +12793,75 @@ This combines `projectile-add-known-project' and
 
 (defun projectile-load-known-projects ()
   "Load saved projects from `projectile-known-projects-file'.
-Also set `projectile-known-projects'."
-  (let ((data (projectile-unserialize projectile-known-projects-file)))
-    (setq projectile-known-projects
-          (if (proper-list-p data) data nil))
-    (unless (equal data projectile-known-projects)
-      (message "Warning: Projectile known projects file was corrupted, ignoring saved data"))
+Also set `projectile-known-projects'.
+
+An unreadable file is moved aside rather than silently overwritten on
+the next save, and the fact is reported - losing a list of projects
+built up over years to a stray byte is worse than being told about it."
+  (let ((data (projectile--read-known-projects-file)))
+    (if (eq data 'unreadable)
+        (progn
+          (projectile--quarantine-known-projects-file)
+          (setq projectile-known-projects nil))
+      (setq projectile-known-projects data))
     (setq projectile-known-projects-on-file
           (and (sequencep projectile-known-projects)
                (copy-sequence projectile-known-projects)))))
 
 (defun projectile-save-known-projects ()
-  "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE."
-  (projectile-serialize projectile-known-projects
+  "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE.
+Text properties are stripped on the way out: a propertized string
+serializes to `#(\"...\" 0 3 (face ...))\\=', whose properties can hold
+objects that don\\='t read back, which is how the file gets corrupted in
+the first place (see issue #1927)."
+  (projectile-serialize (mapcar (lambda (project)
+                                  ;; Anything that isn't a string is left
+                                  ;; alone: refusing to save at all would be
+                                  ;; a worse failure than the one being
+                                  ;; guarded against.
+                                  (if (stringp project)
+                                      (substring-no-properties project)
+                                    project))
+                                projectile-known-projects)
                         projectile-known-projects-file)
   (setq projectile-known-projects-on-file
         (and (sequencep projectile-known-projects)
              (copy-sequence projectile-known-projects))))
+
+(defun projectile--quarantine-known-projects-file ()
+  "Move an unreadable known projects file aside and say so.
+Returns non-nil when a file was moved.  Overwriting it would throw away
+whatever it holds, and merging against \"nothing\" would look exactly
+like every project having been removed elsewhere - so the file is kept
+under a `.corrupt\\=' name and the list carries on from memory."
+  (let ((file projectile-known-projects-file))
+    (when (file-exists-p file)
+      (let ((backup (concat file ".corrupt")))
+        (ignore-errors (rename-file file backup t))
+        (display-warning
+         'projectile
+         (format "Couldn't read %s, so it was moved to %s.  \
+Projectile is carrying on with the projects known to this session; \
+the file will be written afresh."
+                 file backup)
+         :warning)
+        t))))
+
+(defun projectile--read-known-projects-file ()
+  "Return the known projects on disk, or the symbol `unreadable\\='.
+Distinguishing the two matters: an absent file legitimately means no
+projects, while an unreadable one means the list on disk is unknown -
+and treating unknown as empty is how a corrupt file used to take the
+known projects with it (see issue #1927)."
+  (let ((file projectile-known-projects-file))
+    (cond
+     ((not (file-exists-p file)) nil)
+     (t (condition-case nil
+            (let ((data (with-temp-buffer
+                          (insert-file-contents file)
+                          (read (buffer-string)))))
+              (if (proper-list-p data) data 'unreadable))
+          (error 'unreadable))))))
 
 (defun projectile-merge-known-projects ()
   "Merge any change from `projectile-known-projects-file' and save to disk.
@@ -12799,17 +12869,24 @@ Also set `projectile-known-projects'."
 This enables multiple Emacs processes to make changes without
 overwriting each other's changes."
   (let* ((known-now projectile-known-projects)
+         (known-on-file-raw (projectile--read-known-projects-file))
+         (unreadable (eq known-on-file-raw 'unreadable))
          (known-on-last-sync projectile-known-projects-on-file)
-         (known-on-file
-          (let ((data (projectile-unserialize projectile-known-projects-file)))
-            (if (proper-list-p data) data nil)))
+         (known-on-file (if unreadable nil known-on-file-raw))
          (removed-after-sync (seq-difference known-on-last-sync known-now))
+         ;; An unreadable file says nothing about what another process
+         ;; removed.  Reading it as "nothing is on disk" is precisely how a
+         ;; corrupt file used to look like every project having been removed
+         ;; elsewhere, taking the session's list down with it (issue #1927).
          (removed-in-other-process
-          (seq-difference known-on-last-sync known-on-file))
+          (unless unreadable
+            (seq-difference known-on-last-sync known-on-file)))
          (result (seq-uniq
                   (seq-difference
                    (append known-now known-on-file)
                    (append removed-after-sync removed-in-other-process)))))
+    (when unreadable
+      (projectile--quarantine-known-projects-file))
     (setq projectile-known-projects result)
     (projectile-save-known-projects)))
 
