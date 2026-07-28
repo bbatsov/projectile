@@ -50,7 +50,9 @@
                 (cdr (assoc field (plist-get node :fields)))))
              ((symbol-function 'treesit-node-child)
               (lambda (node n &optional _named)
-                (nth n (plist-get node :children)))))
+                (nth n (plist-get node :children))))
+             ((symbol-function 'treesit-node-prev-sibling)
+              (lambda (node &optional _named) (plist-get node :prev))))
      ,@body))
 
 (defun projectile-tap--function-node (type name)
@@ -339,5 +341,130 @@
       (expect (hash-table-count projectile-project-command-history) :to-equal 0))))
 
 (provide 'projectile-test-at-point-test)
+
+(describe "Ruby test-at-point"
+  (it "names an RSpec example by its description"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (list :type "call"
+                        :fields
+                        (list (cons "method" (list :type "identifier" :text "it"))
+                              (cons "arguments"
+                                    (list :type "argument_list"
+                                          :children
+                                          (list (list :type "string"
+                                                      :text "\"adds to the cart\""))))))))
+        (expect (projectile-test-at-point-ruby-name node)
+                :to-equal "adds to the cart"))))
+
+  (it "names a Minitest case by its method"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (projectile-tap--function-node "method" "test_adds_to_the_cart")))
+        (expect (projectile-test-at-point-ruby-name node)
+                :to-equal "test_adds_to_the_cart"))))
+
+  (it "ignores a method that isn't a test"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (projectile-tap--function-node "method" "helper")))
+        (expect (projectile-test-at-point-ruby-name node) :to-be nil))))
+
+  (it "ignores a call that isn't an example"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (list :type "call"
+                        :fields
+                        (list (cons "method" (list :type "identifier" :text "puts"))
+                              (cons "arguments"
+                                    (list :type "argument_list"
+                                          :children
+                                          (list (list :type "string" :text "\"hi\""))))))))
+        (expect (projectile-test-at-point-ruby-name node) :to-be nil))))
+
+  (it "runs rspec in an rspec project and minitest elsewhere"
+    (spy-on 'projectile-project-type :and-return-value 'rails-rspec)
+    (expect (projectile-test-at-point-ruby-command "adds it" "spec/cart_spec.rb")
+            :to-equal (format "bundle exec rspec spec/cart_spec.rb -e %s"
+                              (shell-quote-argument "adds it")))
+    (spy-on 'projectile-project-type :and-return-value 'rails-test)
+    (expect (projectile-test-at-point-ruby-command "test_adds" "test/cart_test.rb")
+            :to-equal "bundle exec ruby -Itest test/cart_test.rb -n test_adds"))
+
+  (it "quotes a name that would otherwise reach the shell"
+    (spy-on 'projectile-project-type :and-return-value 'ruby-rspec)
+    (expect (projectile-test-at-point-ruby-command "a; rm -rf /" "spec/a_spec.rb")
+            :not :to-match "; rm -rf /$")))
+
+(describe "Rust test-at-point"
+  (it "names a function carrying a #[test] attribute"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (append (projectile-tap--function-node "function_item" "adds_to_cart")
+                          (list :prev (list :type "attribute_item" :text "#[test]")))))
+        (expect (projectile-test-at-point-rust-name node) :to-equal "adds_to_cart"))))
+
+  (it "sees through the attributes stacked above a test"
+    (projectile-tap--with-fake-treesit nil
+      (let* ((test-attr (list :type "attribute_item" :text "#[test]"))
+             (ignore-attr (list :type "attribute_item" :text "#[ignore]"
+                                :prev test-attr))
+             (node (append (projectile-tap--function-node "function_item" "slow")
+                           (list :prev ignore-attr))))
+        (expect (projectile-test-at-point-rust-name node) :to-equal "slow"))))
+
+  (it "ignores a plain function"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (projectile-tap--function-node "function_item" "helper")))
+        (expect (projectile-test-at-point-rust-name node) :to-be nil))))
+
+  (it "selects the test by exact name, since cargo filters by substring"
+    (expect (projectile-test-at-point-rust-command "adds_to_cart" "src/cart.rs")
+            :to-equal "cargo test -- --exact adds_to_cart")))
+
+(describe "Elixir test-at-point"
+  (it "names a test by its description"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (list :type "call"
+                        :fields
+                        (list (cons "target" (list :type "identifier" :text "test"))
+                              (cons "arguments"
+                                    (list :type "arguments"
+                                          :children
+                                          (list (list :type "string"
+                                                      :text "\"adds to the cart\""))))))))
+        (expect (projectile-test-at-point-elixir-name node)
+                :to-equal "adds to the cart"))))
+
+  (it "addresses the test by line, which is all ExUnit accepts"
+    (with-temp-buffer
+      (insert "defmodule CartTest do\n  test \"adds\" do\n  end\nend\n")
+      (goto-char (point-min))
+      (forward-line 1)
+      (expect (projectile-test-at-point-elixir-command "adds" "test/cart_test.exs")
+              :to-equal (format "mix test %s"
+                                (shell-quote-argument "test/cart_test.exs:2"))))))
+
+(describe "Java test-at-point"
+  (it "names a method annotated @Test"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (append (projectile-tap--function-node "method_declaration" "addsToCart")
+                          (list :children (list (list :type "modifiers"
+                                                      :text "@Test"))))))
+        (expect (projectile-test-at-point-java-name node) :to-equal "addsToCart"))))
+
+  (it "ignores a method without a test annotation"
+    (projectile-tap--with-fake-treesit nil
+      (let ((node (append (projectile-tap--function-node "method_declaration" "helper")
+                          (list :children (list (list :type "modifiers"
+                                                      :text "@Override"))))))
+        (expect (projectile-test-at-point-java-name node) :to-be nil))))
+
+  (it "addresses the test as Class#method, taking the class from the file"
+    (spy-on 'projectile-project-type :and-return-value 'maven)
+    (expect (projectile-test-at-point-java-command
+             "addsToCart" "src/test/java/CartTest.java")
+            :to-equal (format "mvn test -Dtest=%s"
+                              (shell-quote-argument "CartTest#addsToCart")))
+    (spy-on 'projectile-project-type :and-return-value 'gradlew)
+    (expect (projectile-test-at-point-java-command
+             "addsToCart" "src/test/java/CartTest.java")
+            :to-equal (format "./gradlew test --tests %s"
+                              (shell-quote-argument "CartTest.addsToCart")))))
 
 ;;; projectile-test-at-point-test.el ends here

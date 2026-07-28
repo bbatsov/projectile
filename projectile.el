@@ -12029,6 +12029,116 @@ interpolation would let a hostile project inject shell code."
           (shell-quote-argument file-name)
           (shell-quote-argument test-name)))
 
+(defun projectile-test-at-point-ruby-name (node)
+  "Return the test name for the Ruby NODE at point.
+Handles both dialects: an RSpec `it'/`describe' call whose first
+argument is a string, and a Minitest `def test_foo' method."
+  (pcase (treesit-node-type node)
+    ("method"
+     (when-let* ((name-node (treesit-node-child-by-field-name node "name"))
+                 (name (treesit-node-text name-node t)))
+       (when (string-prefix-p "test_" name)
+         name)))
+    ((or "call" "method_call")
+     (when-let* ((method (treesit-node-child-by-field-name node "method"))
+                 (method-name (treesit-node-text method t)))
+       (when (member method-name '("it" "describe" "context" "specify"))
+         (when-let* ((args (treesit-node-child-by-field-name node "arguments"))
+                     (arg (treesit-node-child args 0 t)))
+           (when (equal (treesit-node-type arg) "string")
+             ;; Strip the surrounding quotes.
+             (let ((text (treesit-node-text arg t)))
+               (if (> (length text) 1) (substring text 1 -1) text)))))))))
+
+(defun projectile-test-at-point-ruby-command (test-name file-name)
+  "Return a command running Ruby\\='s TEST-NAME in FILE-NAME.
+
+Which runner to use is decided by the project type rather than by the
+buffer, since both dialects are written in the same major mode: an
+`rspec\\=' project gets `rspec -e\\=', anything else the Minitest
+invocation.  TEST-NAME and FILE-NAME are shell-quoted, as a test name is
+arbitrary source text."
+  (if (memq (projectile-project-type) '(rails-rspec ruby-rspec))
+      (format "bundle exec rspec %s -e %s"
+              (shell-quote-argument file-name)
+              (shell-quote-argument test-name))
+    (format "bundle exec ruby -Itest %s -n %s"
+            (shell-quote-argument file-name)
+            (shell-quote-argument test-name))))
+
+(defun projectile-test-at-point-rust-name (node)
+  "Return the test name for the Rust `function_item' NODE.
+Return nil unless the function carries a `#[test]\\=' (or
+`#[tokio::test]\\=', and friends) attribute, since an ordinary function
+isn\\='t something `cargo test\\=' would run."
+  (when-let* ((name-node (treesit-node-child-by-field-name node "name"))
+              (name (treesit-node-text name-node t)))
+    ;; Attributes are siblings preceding the function item.
+    (let ((sibling (treesit-node-prev-sibling node))
+          (test nil))
+      (while (and sibling
+                  (equal (treesit-node-type sibling) "attribute_item"))
+        (when (string-match-p "\\_<test\\_>" (treesit-node-text sibling t))
+          (setq test t))
+        (setq sibling (treesit-node-prev-sibling sibling)))
+      (when test name))))
+
+(defun projectile-test-at-point-rust-command (test-name _file-name)
+  "Return a `cargo test\\=' command running TEST-NAME.
+Cargo selects tests by name filter rather than by file, so the file
+isn\\='t part of the command.  `--\\=' separates the filter from cargo\\='s own
+arguments and `--exact\\=' keeps a short name from also matching longer
+ones."
+  (format "cargo test -- --exact %s" (shell-quote-argument test-name)))
+
+(defun projectile-test-at-point-elixir-name (node)
+  "Return the test name for the Elixir `call' NODE.
+Matches an ExUnit `test\\='/`describe\\=' call whose first argument is a
+string."
+  (when-let* ((target (treesit-node-child-by-field-name node "target"))
+              (target-name (treesit-node-text target t)))
+    (when (member target-name '("test" "describe"))
+      (when-let* ((args (treesit-node-child-by-field-name node "arguments"))
+                  (arg (treesit-node-child args 0 t)))
+        (when (equal (treesit-node-type arg) "string")
+          (let ((text (treesit-node-text arg t)))
+            (if (> (length text) 1) (substring text 1 -1) text)))))))
+
+(defun projectile-test-at-point-elixir-command (_test-name file-name)
+  "Return a `mix test\\=' command running the test at point in FILE-NAME.
+
+ExUnit has no way to select a test by name from the command line, so it
+is addressed by line instead - the `FILE:LINE\\=' form.  The line is the
+one point is on, which is where the test was found in the first place."
+  (format "mix test %s"
+          (shell-quote-argument (format "%s:%d" file-name (line-number-at-pos)))))
+
+(defun projectile-test-at-point-java-name (node)
+  "Return the test name for the Java `method_declaration' NODE.
+Return nil unless the method carries a `@Test\\=' annotation (JUnit\\='s
+`@ParameterizedTest\\=' and `@RepeatedTest\\=' count too)."
+  (when-let* ((name-node (treesit-node-child-by-field-name node "name"))
+              (name (treesit-node-text name-node t))
+              (modifiers (treesit-node-child node 0 t)))
+    (when (and (equal (treesit-node-type modifiers) "modifiers")
+               (string-match-p "@\\(Test\\|ParameterizedTest\\|RepeatedTest\\)\\_>"
+                               (treesit-node-text modifiers t)))
+      name)))
+
+(defun projectile-test-at-point-java-command (test-name file-name)
+  "Return a command running Java\\='s TEST-NAME from FILE-NAME.
+
+JUnit addresses a test as `Class#method\\=', and Java requires the public
+class to be named after its file, so the class comes from FILE-NAME.
+Gradle and Maven spell the selector differently, so the project type
+decides which one to emit."
+  (let ((class (file-name-base file-name)))
+    (if (memq (projectile-project-type) '(gradle gradlew))
+        (format "./gradlew test --tests %s"
+                (shell-quote-argument (format "%s.%s" class test-name)))
+      (format "mvn test -Dtest=%s"
+              (shell-quote-argument (format "%s#%s" class test-name))))))
+
 (defcustom projectile-test-at-point-rules
   (let ((jest-rule '(:node-types ("call_expression")
                      :name-fn projectile-test-at-point-jest-name
@@ -12043,7 +12153,24 @@ interpolation would let a hostile project inject shell code."
        :command-fn projectile-test-at-point-go-command)
       (js-ts-mode ,@jest-rule)
       (typescript-ts-mode ,@jest-rule)
-      (tsx-ts-mode ,@jest-rule)))
+      (tsx-ts-mode ,@jest-rule)
+      (ruby-ts-mode
+       ;; RSpec examples are calls, Minitest cases are methods.
+       :node-types ("call" "method_call" "method")
+       :name-fn projectile-test-at-point-ruby-name
+       :command-fn projectile-test-at-point-ruby-command)
+      (rust-ts-mode
+       :node-types ("function_item")
+       :name-fn projectile-test-at-point-rust-name
+       :command-fn projectile-test-at-point-rust-command)
+      (elixir-ts-mode
+       :node-types ("call")
+       :name-fn projectile-test-at-point-elixir-name
+       :command-fn projectile-test-at-point-elixir-command)
+      (java-ts-mode
+       :node-types ("method_declaration")
+       :name-fn projectile-test-at-point-java-name
+       :command-fn projectile-test-at-point-java-command)))
   "Rules telling `projectile-run-test-at-point' how to run a single test.
 
 An alist keyed by major mode symbol.  The current buffer's mode is

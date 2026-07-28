@@ -263,7 +263,30 @@ Out of the box the following languages are supported:
 | `js-ts-mode`, `typescript-ts-mode`, `tsx-ts-mode`
 | `it`/`test`/`describe` blocks (jest-style)
 | `npx jest FILE -t 'NAME'`
+
+| `ruby-ts-mode`
+| `it`/`describe` blocks (RSpec) and `test_`-prefixed methods (Minitest)
+| `bundle exec rspec FILE -e 'NAME'` or `bundle exec ruby -Itest FILE -n NAME`, whichever the project type calls for
+
+| `rust-ts-mode`
+| functions carrying a `#[test]` attribute
+| `cargo test -- --exact NAME`
+
+| `elixir-ts-mode`
+| `test`/`describe` blocks (ExUnit)
+| `mix test FILE:LINE`
+
+| `java-ts-mode`
+| methods annotated `@Test` (also `@ParameterizedTest`, `@RepeatedTest`)
+| `mvn test -Dtest=Class#NAME`, or the `./gradlew --tests` form in a Gradle project
 |===
+
+A few of these are decided at run time rather than by major mode. Ruby is
+written the same way whichever framework you use, so the project type picks
+between RSpec and Minitest; Java's is picked the same way between Maven and
+Gradle, and the class name comes from the file, since Java requires them to
+match. ExUnit has no way to select a test by name from the command line, so
+Elixir tests are addressed by line instead.
 
 The command runs from the same directory as `projectile-test-project`
 (normally the project root), with the same buffer-saving behavior, but
