@@ -515,13 +515,11 @@ Be aware of the trade-offs before enabling it:
 * Watched directories are derived from the cached file list, so a
   directory that contains no cached files (e.g. an empty directory) isn't
   watched until the next full re-index.
-* VCS-level ignores (e.g. `.gitignore`) are not consulted when adding
-  newly created files, only Projectile's own ignore settings and your
-  `.projectile` file. Under `alien` indexing a watched project may thus
-  temporarily pick up files your VCS would have excluded. (Opening such a
-  file doesn't cache it - that path does consult the VCS - but a watch
-  batch can cover hundreds of files at once, which is too many processes
-  to ask git about one at a time.)
+* Under `alien` and `hybrid` indexing the VCS is consulted too, so a
+  watched project doesn't gain files your `.gitignore` excludes. That's one
+  `git check-ignore` per batch of events rather than one per file, since a
+  batch can cover a whole directory that was moved in. Other version control
+  systems aren't asked, and `native` indexing lists such files anyway.
 
 Watches are dropped automatically when a project's cache is invalidated
 (and re-armed when it's next filled), when the option is disabled via
