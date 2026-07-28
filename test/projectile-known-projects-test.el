@@ -142,11 +142,10 @@
       (expect projectile-known-projects :to-equal '("~/b/" "~/project/")))))
 
 (describe "projectile-load-known-projects"
-  (it "loads known projects through serialization functions"
+  (it "loads known projects from the known projects file"
     (let ((projectile-known-projects-file (projectile-test-tmp-file-path)))
-      (spy-on 'projectile-unserialize :and-return-value '("a1" "a2"))
+      (spy-on 'projectile--read-known-projects-file :and-return-value '("a1" "a2"))
       (projectile-load-known-projects)
-      (expect 'projectile-unserialize :to-have-been-called-with projectile-known-projects-file)
       (expect projectile-known-projects :to-equal '("a1" "a2")))))
 
 (describe "projectile-merge-known-projects"
@@ -379,5 +378,99 @@
     ;; the switch is handed a directory-terminated root
     (expect 'projectile-switch-project-by-name
             :to-have-been-called-with "/tmp/some-project/")))
+
+(describe "a corrupted known projects file (#1927)"
+  (it "is moved aside rather than taken as an empty project list"
+    (projectile-test-with-temp-files ((file ".eld"))
+      (let ((projectile-known-projects-file file)
+            (projectile-known-projects nil)
+            (backup (concat file ".corrupt")))
+        (unwind-protect
+            (progn
+              ;; the shape helm-projectile used to leave behind: a
+              ;; propertized string whose properties don't read back
+              (write-region "(\"~/a/\" #(\"~/b/\" 0 5 (face #<subr foo>)))"
+                            nil file)
+              (projectile-load-known-projects)
+              ;; nothing was silently inherited from the unreadable file...
+              (expect projectile-known-projects :to-be nil)
+              ;; ...and its contents were kept rather than overwritten
+              (expect (file-exists-p backup) :to-be-truthy)
+              (expect (with-temp-buffer
+                        (insert-file-contents backup)
+                        (buffer-string))
+                      :to-match "~/a/"))
+          (dolist (f (list file backup))
+            (when (file-exists-p f) (delete-file f)))))))
+
+  (it "does not treat an unreadable file as every project having been removed"
+    ;; The bite of the old behaviour: a file that went bad after load looked
+    ;; like another Emacs had removed everything, so the merge dropped the
+    ;; session's projects too.
+    (projectile-test-with-temp-files ((file ".eld"))
+      (let ((projectile-known-projects-file file)
+            (backup (concat file ".corrupt")))
+        (unwind-protect
+            (progn
+              (projectile-serialize '("~/a/" "~/b/") file)
+              (projectile-load-known-projects)
+              (expect projectile-known-projects :to-equal '("~/a/" "~/b/"))
+              ;; something corrupts the file behind our back
+              (write-region "(\"~/a/\" #(garbage" nil file)
+              (projectile-merge-known-projects)
+              ;; the session's projects survive
+              (expect projectile-known-projects :to-contain "~/a/")
+              (expect projectile-known-projects :to-contain "~/b/")
+              (expect (file-exists-p backup) :to-be-truthy))
+          (dolist (f (list file backup))
+            (when (file-exists-p f) (delete-file f)))))))
+
+  (it "still reads a file that is merely absent as no projects"
+    (projectile-test-with-temp-files ((file ".eld"))
+      (let ((projectile-known-projects-file (concat file "-does-not-exist")))
+        (expect (projectile--read-known-projects-file) :to-be nil)
+        (projectile-load-known-projects)
+        (expect projectile-known-projects :to-be nil))))
+
+  (it "never writes propertized entries itself"
+    (projectile-test-with-temp-files ((file ".eld"))
+      (let ((projectile-known-projects-file file)
+            (projectile-known-projects
+             (list (propertize "~/a/" 'face 'bold) "~/b/")))
+        (projectile-save-known-projects)
+        (let ((written (with-temp-buffer
+                         (insert-file-contents file)
+                         (buffer-string))))
+          (expect written :not :to-match "#(")
+          (expect written :to-match "~/a/"))
+        ;; and it reads back cleanly
+        (expect (projectile--read-known-projects-file)
+                :to-equal '("~/a/" "~/b/"))))))
+
+(describe "projectile-ignored-project-patterns"
+  (it "keeps a matching project out of the known projects"
+    (let ((projectile-ignored-project-patterns '("/tmp/" "/Downloads/"))
+          (projectile-ignored-projects nil)
+          (projectile-ignored-project-function nil))
+      (expect (projectile-ignored-project-p "/tmp/scratch/") :to-be-truthy)
+      (expect (projectile-ignored-project-p "/home/me/Downloads/thing/")
+              :to-be-truthy)
+      (expect (projectile-ignored-project-p "/home/me/src/real/") :to-be nil)))
+
+  (it "leaves the exact list and the predicate working alongside it"
+    (let ((projectile-ignored-project-patterns '("/nope/"))
+          (projectile-ignored-projects (list (file-truename "/exact/")))
+          (projectile-ignored-project-function
+           (lambda (root) (string-suffix-p "generated/" root))))
+      (expect (projectile-ignored-project-p "/exact/") :to-be-truthy)
+      (expect (projectile-ignored-project-p "/x/generated/") :to-be-truthy)
+      (expect (projectile-ignored-project-p "/x/nope/y/") :to-be-truthy)
+      (expect (projectile-ignored-project-p "/x/fine/") :to-be nil)))
+
+  (it "is not consulted when it is empty"
+    (let ((projectile-ignored-project-patterns nil)
+          (projectile-ignored-projects nil)
+          (projectile-ignored-project-function nil))
+      (expect (projectile-ignored-project-p "/anything/") :to-be nil))))
 
 ;;; projectile-known-projects-test.el ends here

@@ -8,6 +8,7 @@
 
 ### New features
 
+- [#2135](https://github.com/bbatsov/projectile/pull/2135): Add `projectile-ignored-project-patterns`, the regexp-matching sibling of `projectile-ignored-projects` (exact paths) and `projectile-ignored-project-function` (a predicate), so keeping whole areas of a machine out of the known projects doesn't need a lambda.
 - [#2134](https://github.com/bbatsov/projectile/pull/2134): Add `projectile-find-changed-file` (`s-p C`), which completes over the files git reports as staged, unstaged or untracked - or, with a prefix argument, over everything that differs from a revision you pick.
 - [#2133](https://github.com/bbatsov/projectile/pull/2133): `projectile-doctor` findings you can act on now carry a button that does it - `[enable]` for a disabled `projectile-mode`, `[enable caching]` on a large uncached project, `[open dirconfig]` for a `.projectile` with prefix-less lines, `[edit .dir-locals.el]` for an undetected project type. Pressing one regenerates the report, so the finding answers for itself; findings Projectile can't act on stay plain advice.
 - [#2132](https://github.com/bbatsov/projectile/pull/2132): The dashboard gained a "Notable files" section linking the project's README, changelog, license, its type's own manifest and its `.projectile` (see `projectile-dashboard-link-files`), plus a count of its open buffers and a summary of the ignore rules in effect.
@@ -65,6 +66,8 @@
 - [#2099](https://github.com/bbatsov/projectile/pull/2099): Drop the standalone package headers (`Version`, `Package-Requires`) from `projectile-consult.el`, since the phantom `Package-Requires` made build tooling treat an in-package module as its own package.
 
 ### Bugs fixed
+
+- [#1927](https://github.com/bbatsov/projectile/issues/1927): A known projects file Projectile can't read is now moved aside with a `.corrupt` suffix and reported, instead of being read as an empty list - which made it look like another Emacs had removed every project, so the merge dropped the session's projects too and overwrote the file. Projectile also strips text properties when saving, since a propertized string whose properties don't read back is how the file gets corrupted in the first place.
 
 - [#2118](https://github.com/bbatsov/projectile/issues/2118): Fix `projectile-find-file` showing "Projectile is indexing" forever with `projectile-async-indexing` enabled: Projectile waited for the indexing process's sentinel, which Emacs doesn't guarantee to run while a command sits waiting on the process, and now collects the finished command's output itself instead (`projectile-async-index-sentinel-timeout`).
 - [#2097](https://github.com/bbatsov/projectile/issues/2097): Fix `projectile-compile-project` and `projectile-test-project` forgetting a command you edited at the prompt in a CMake project, where a command the project type registers as a function was never cached - the function's own answer still isn't, so a preset picker keeps prompting.
