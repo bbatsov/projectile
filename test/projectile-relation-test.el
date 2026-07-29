@@ -702,4 +702,66 @@
     (expect (projectile-group-file-candidates "src/foo/test.el" nil)
             :to-equal nil)))
 
+(describe "test files with an extension of their own (#1686)"
+  :var ((elixir-types
+         '((elixir test-suffix "_test" src-extension "ex" test-extension "exs")
+           (plain  test-suffix "_test"))))
+
+  (it "names the test with the type's test extension"
+    ;; ExUnit tests are scripts: lib/foo.ex is tested by test/foo_test.exs,
+    ;; not test/foo_test.ex, which mix would not run.
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda (&optional _d) 'elixir))
+              (projectile-project-types elixir-types))
+      (expect (projectile--test-name-for-impl-name "lib/foo.ex")
+              :to-equal "foo_test.exs")))
+
+  (it "names the implementation with the type's source extension"
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda (&optional _d) 'elixir))
+              (projectile-project-types elixir-types))
+      (expect (projectile--impl-name-for-test-name "test/foo_test.exs")
+              :to-equal "foo.ex")))
+
+  (it "still mirrors the file's own extension for a type that says nothing"
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda (&optional _d) 'plain))
+              (projectile-project-types elixir-types))
+      (expect (projectile--test-name-for-impl-name "src/foo.rb")
+              :to-equal "foo_test.rb")
+      (expect (projectile--impl-name-for-test-name "test/foo_test.rb")
+              :to-equal "foo.rb")))
+
+  (it "works with a test prefix as well as a suffix"
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda (&optional _d) 'prefixed))
+              (projectile-project-types
+               '((prefixed test-prefix "test_" src-extension "ex"
+                          test-extension "exs"))))
+      (expect (projectile--test-name-for-impl-name "lib/foo.ex")
+              :to-equal "test_foo.exs")
+      (expect (projectile--impl-name-for-test-name "test/test_foo.exs")
+              :to-equal "foo.ex")))
+
+  (it "is declared by the bundled elixir project type"
+    (expect (projectile-test-extension 'elixir) :to-equal "exs")
+    (expect (projectile-src-extension 'elixir) :to-equal "ex")
+    ;; and round-trips through it
+    (cl-letf (((symbol-function 'projectile-project-type) (lambda (&optional _d) 'elixir)))
+      (expect (projectile--test-name-for-impl-name "lib/shop/cart.ex")
+              :to-equal "cart_test.exs")
+      (expect (projectile--impl-name-for-test-name "test/shop/cart_test.exs")
+              :to-equal "cart.ex")))
+
+  (it "can be registered and updated like the other attributes"
+    (let ((projectile-project-types projectile-project-types)
+          (projectile-project-root-files projectile-project-root-files))
+      (projectile-register-project-type 'ext-demo '("Extfile")
+                                        :test-suffix "_test"
+                                        :src-extension "a"
+                                        :test-extension "b")
+      (expect (projectile-test-extension 'ext-demo) :to-equal "b")
+      (expect (projectile-src-extension 'ext-demo) :to-equal "a")
+      (projectile-update-project-type 'ext-demo :test-extension "c")
+      (expect (projectile-test-extension 'ext-demo) :to-equal "c")
+      ;; nil clears it, like every other updatable attribute
+      (projectile-update-project-type 'ext-demo :test-extension nil)
+      (expect (projectile-test-extension 'ext-demo) :to-be nil))))
+
 ;;; projectile-relation-test.el ends here

@@ -373,6 +373,21 @@ What this does is:
 . add _run-command_, in this case it is `npm start`.
 . add test files suffix for toggling between implementation/test files, in this case it is `.spec`, so the implementation/test file pair could be `service.js`/`service.spec.js` for example.
 
+Some languages give their tests a different extension from their sources - an
+Elixir module in `lib/foo.ex` is tested by the script `test/foo_test.exs`. Say so
+with `:src-extension` and `:test-extension`, and toggling between the two will
+name the file it offers to create correctly:
+
+[source,elisp]
+----
+(projectile-update-project-type 'elixir
+                                :src-extension "ex"
+                                :test-extension "exs")
+----
+
+When a type says nothing about them, a test keeps the extension of the file it
+belongs to, which is what most languages want.
+
 Let's see a couple of more complex examples.
 
 [source,elisp]

@@ -77,6 +77,7 @@
 
 ### Bugs fixed
 
+- [#2142](https://github.com/bbatsov/projectile/pull/2142): Project types can declare `:src-extension` and `:test-extension`, for the languages whose tests don't carry the same extension as their sources. The bundled `elixir` type sets them, so toggling from `lib/foo.ex` now offers to create `test/foo_test.exs` - a script ExUnit will actually run - rather than `test/foo_test.ex`.
 - [#2141](https://github.com/bbatsov/projectile/pull/2141): The messages Projectile emits without being asked are now prefixed with `[Projectile]`, so it's clear where they came from; the ones that answer a command you just invoked stay unprefixed. Five different conventions across the file (a `Projectile:` prefix, a bare `Projectile` one, the project name in brackets, plain passthrough, and no prefix at all) become one rule.
   - The indexing notice follows the manual's `Operating...`/`Operating...done` idiom, so a long index no longer leaves the echo area claiming to still be working.
   - `projectile-project-info` reads `Project: /path/ (npm, git)` rather than separating its three fields with `##`.
