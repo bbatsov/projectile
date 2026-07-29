@@ -605,4 +605,31 @@
         (projectile--message "Cleared the project root cache")
         (expect said :not :to-match "[.!]\\'")))))
 
+(describe "where Projectile keeps its state"
+  ;; `locate-user-emacs-file' honours `~/.config/emacs' when the configuration
+  ;; lives there, which a hand-rolled `user-emacs-directory' path does not.
+  (it "resolves the known projects file through locate-user-emacs-file"
+    (expect (eval (car (get 'projectile-known-projects-file 'standard-value)) t)
+            :to-equal (locate-user-emacs-file "projectile-bookmarks.eld")))
+
+  (it "resolves the frecency file through locate-user-emacs-file"
+    (expect (eval (car (get 'projectile-frecency-file 'standard-value)) t)
+            :to-equal (locate-user-emacs-file "projectile-frecency.eld")))
+
+  (it "resolves the session directory through locate-user-emacs-file"
+    (expect (eval (car (get 'projectile-session-directory 'standard-value)) t)
+            :to-equal (locate-user-emacs-file "projectile-sessions/")))
+
+  (it "keeps the session directory a directory name"
+    ;; It is expanded against, so losing the trailing slash would put the
+    ;; session files beside it rather than inside it.
+    (let ((dir (eval (car (get 'projectile-session-directory 'standard-value)) t)))
+      (expect (directory-name-p dir) :to-be-truthy)))
+
+  (it "still lands in user-emacs-directory for a stock configuration"
+    ;; The common case must be unchanged - this is a fix for the XDG one.
+    (let ((user-emacs-directory "~/.emacs.d/"))
+      (expect (locate-user-emacs-file "projectile-bookmarks.eld")
+              :to-equal "~/.emacs.d/projectile-bookmarks.eld"))))
+
 ;;; projectile-core-test.el ends here

@@ -1189,12 +1189,16 @@ Contains a copy of `projectile-known-projects' when it was last
 synchronized with `projectile-known-projects-file'.")
 
 (defcustom projectile-known-projects-file
-  (expand-file-name "projectile-bookmarks.eld"
-                    user-emacs-directory)
-  "Name and location of the Projectile's known projects file."
+  (locate-user-emacs-file "projectile-bookmarks.eld")
+  "Name and location of the Projectile's known projects file.
+
+Resolved with `locate-user-emacs-file\\=', so it lands beside the rest of
+your Emacs state wherever that is - including `~/.config/emacs\\=' for a
+configuration kept there, which a hand-rolled `user-emacs-directory\\='
+path would have missed."
   :group 'projectile
   :type 'string
-  :package-version '(projectile . "0.9.0"))
+  :package-version '(projectile . "3.4.0"))
 
 (defcustom projectile-ignored-projects nil
   "A list of projects not to be added to `projectile-known-projects'."
@@ -2447,11 +2451,11 @@ The history is persisted in `projectile-frecency-file'."
   :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-frecency-file
-  (expand-file-name "projectile-frecency.eld" user-emacs-directory)
+  (locate-user-emacs-file "projectile-frecency.eld")
   "File where Projectile persists the per-project file visit history."
   :group 'projectile
   :type 'file
-  :package-version '(projectile . "3.1.0"))
+  :package-version '(projectile . "3.4.0"))
 
 (defcustom projectile-frecency-max-files 200
   "Maximum number of files tracked per project.
@@ -15991,13 +15995,13 @@ component."
   :package-version '(projectile . "3.2.0"))
 
 (defcustom projectile-session-directory
-  (expand-file-name "projectile-sessions/" user-emacs-directory)
+  (locate-user-emacs-file "projectile-sessions/")
   "Directory under which per-project session files are stored.
 Each project's saved layout and buffers live in a single file here, named
 after the project (see `projectile-session--file')."
   :group 'projectile
   :type 'directory
-  :package-version '(projectile . "3.2.0"))
+  :package-version '(projectile . "3.4.0"))
 
 (defcustom projectile-session-restore-on-switch t
   "Whether switching to a project restores its saved session.

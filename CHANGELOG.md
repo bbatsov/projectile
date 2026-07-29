@@ -77,6 +77,7 @@
 
 ### Bugs fixed
 
+- [#2145](https://github.com/bbatsov/projectile/pull/2145): The known projects file, the frecency store and the session directory are resolved with `locate-user-emacs-file` rather than expanded against `user-emacs-directory` by hand, so they land beside the rest of your Emacs state when your configuration lives in `~/.config/emacs` instead of `~/.emacs.d`. Nothing moves for a configuration in the usual place.
 - [#2144](https://github.com/bbatsov/projectile/pull/2144): Internal: the two shapes a project type marker can take are decoded in one place now, rather than by each of the four consumers separately.
 - [#2142](https://github.com/bbatsov/projectile/pull/2142): Project types can declare `:src-extension` and `:test-extension`, for the languages whose tests don't carry the same extension as their sources. The bundled `elixir` type sets them, so toggling from `lib/foo.ex` now offers to create `test/foo_test.exs` - a script ExUnit will actually run - rather than `test/foo_test.ex`.
 - [#2141](https://github.com/bbatsov/projectile/pull/2141): The messages Projectile emits without being asked are now prefixed with `[Projectile]`, so it's clear where they came from; the ones that answer a command you just invoked stay unprefixed. Five different conventions across the file (a `Projectile:` prefix, a bare `Projectile` one, the project name in brackets, plain passthrough, and no prefix at all) become one rule.
