@@ -479,6 +479,36 @@ quieter, not mute."
   :type 'boolean
   :package-version '(projectile . "0.12.0"))
 
+(defconst projectile--message-prefix "[Projectile] "
+  "What Projectile puts in front of the messages it emits unprompted.
+
+Bracketed rather than `Projectile: \\=', which is the form eglot uses and
+which stays legible when the message itself contains a colon - several
+do.  Direct answers to a command you just invoked go unprefixed: you
+know who is talking, and the echo area is narrow.")
+
+(defun projectile--message (format-string &rest args)
+  "Report FORMAT-STRING with ARGS as coming from Projectile, if permitted.
+
+For what Projectile says off its own bat - a background index, a watch
+that gave up, a file cached behind a `find-file\\='.  Such a message is
+prefixed, so it is clear where it came from when nothing was asked of
+Projectile, and suppressed entirely when `projectile-verbose\\=' is nil.
+See `projectile--message-always\\=' for the messages that must not be
+suppressed."
+  (when projectile-verbose
+    (apply #'projectile--message-always format-string args)))
+
+(defun projectile--message-always (format-string &rest args)
+  "Report FORMAT-STRING with ARGS as coming from Projectile.
+
+The prefix without the `projectile-verbose\\=' gate, for the messages that
+answer for something you did ask for but arrive later, out of a process
+sentinel or a timer - by then the prefix is the only thing saying which
+package is talking."
+  (message "%s%s" projectile--message-prefix
+           (apply #'format format-string args)))
+
 (defcustom projectile-buffers-filter-function nil
   "A function used to filter the buffers in `projectile-project-buffers'.
 
@@ -1764,9 +1794,8 @@ argument)."
                                    (hash-table-keys projectile-projects-cache))
                 (projectile-project-root))))
     (projectile--invalidate-project-cache project-root)
-    (when projectile-verbose
-      (message "Invalidated Projectile cache for %s."
-               (propertize project-root 'face 'font-lock-keyword-face))))
+    (projectile--message "Invalidated cache for %s"
+                         (propertize project-root 'face 'font-lock-keyword-face)))
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
@@ -1792,9 +1821,7 @@ with `projectile-invalidate-cache'."
                                     (hash-table-keys projectile-projects-cache))))))
     (dolist (project-root roots)
       (projectile--invalidate-project-cache project-root))
-    (when projectile-verbose
-      (message "Invalidated the Projectile caches of %d project(s)."
-               (length roots))))
+    (projectile--message "Invalidated the caches of %d project(s)" (length roots)))
   (when (fboundp 'recentf-cleanup)
     (recentf-cleanup)))
 
@@ -1815,8 +1842,7 @@ the per-project file list and project-type caches."
   ;; visible until the entries time out (see
   ;; `projectile-file-exists-remote-cache-expire').
   (clrhash projectile-file-exists-cache)
-  (when projectile-verbose
-    (message "Cleared Projectile project root cache.")))
+  (projectile--message "Cleared the project root cache"))
 
 (defun projectile-time-seconds ()
   "Return the number of seconds since the unix epoch."
@@ -1871,8 +1897,7 @@ The cache is created both in memory and on the hard drive."
           ;; file's directory keeps being watched and a later create-event
           ;; there re-adds the entries we just removed.
           (projectile--maybe-watch-project project-root new-cache)
-          (when projectile-verbose
-            (message "%s removed from cache" file)))
+          (projectile--message "%s removed from cache" file))
       (user-error "%s is not in the cache" file))))
 
 ;;;###autoload
@@ -1963,8 +1988,7 @@ The message is only emitted when `projectile-verbose' is non-nil, and
 only once per project and session."
   (unless (gethash project projectile--watch-skipped-projects)
     (puthash project t projectile--watch-skipped-projects)
-    (when projectile-verbose
-      (apply #'message format-string args))))
+    (apply #'projectile--message format-string args)))
 
 (defun projectile--watch-project (project files)
   "Register file-notify watches for PROJECT, whose cached files are FILES.
@@ -1978,7 +2002,7 @@ usable file notification backend."
     (if (> (length dirs) projectile-watch-directory-limit)
         (projectile--watch-skipped-once
          project
-         "Projectile: not watching %s: %d directories exceed `projectile-watch-directory-limit' (%d)"
+         "Not watching %s: %d directories exceed `projectile-watch-directory-limit' (%d)"
          project (length dirs) projectile-watch-directory-limit)
       (let ((callback (projectile--watch-make-callback project))
             (failed nil)
@@ -1999,7 +2023,7 @@ usable file notification backend."
             (ignore-errors (file-notify-rm-watch (car entry))))
           (projectile--watch-skipped-once
            project
-           "Projectile: cannot watch %s (no file notification backend, or watch registration failed)"
+           "Cannot watch %s (no file notification backend, or watch registration failed)"
            project))))))
 
 (defun projectile--unwatch-project (project)
@@ -2129,9 +2153,8 @@ scheduled via `projectile--schedule-cache-flush'."
             (setq mutated t))
           (cond
            (fallback
-            (when projectile-verbose
-              (message "Projectile: invalidating the cache of %s (%s)"
-                       project fallback))
+            (projectile--message "Invalidating the cache of %s (%s)"
+                                 project fallback)
             ;; Also drops the watches (and any events queued meanwhile).
             (projectile--invalidate-project-cache project))
            ((and mutated (projectile-persistent-cache-p))
@@ -2354,10 +2377,14 @@ PROJECT-ROOT defaults to the current project."
             ;; UI immediately after the new file was created.
             (when (projectile-persistent-cache-p)
               (projectile--schedule-cache-flush current-project)))
-          (when (or projectile-verbose (called-interactively-p 'interactive))
-            (message "File %s added to project %s cache."
-                     (propertize current-file 'face 'font-lock-keyword-face)
-                     (propertize current-project 'face 'font-lock-keyword-face))))))))
+          (if (called-interactively-p 'interactive)
+              (message "Added %s to the cache of %s"
+                       (propertize current-file 'face 'font-lock-keyword-face)
+                       (propertize current-project 'face 'font-lock-keyword-face))
+            (projectile--message
+             "Added %s to the cache of %s"
+             (propertize current-file 'face 'font-lock-keyword-face)
+             (propertize current-project 'face 'font-lock-keyword-face))))))))
 
 ;; cache opened files automatically to reduce the need for cache invalidation
 (defun projectile-cache-files-find-file-hook (&optional project-root)
@@ -2652,8 +2679,9 @@ discover projects there."
           (let ((dir (projectile--known-project-root (projectile-project-root directory))))
             (unless (member dir projectile-known-projects)
               (projectile-add-known-project dir)))))
-    (when (or projectile-verbose (called-interactively-p 'interactive))
-      (message "Project search path directory %s doesn't exist" directory))))
+    (if (called-interactively-p 'interactive)
+        (message "Search path directory %s doesn't exist" directory)
+      (projectile--message "Search path directory %s doesn't exist" directory))))
 
 (defvar projectile--search-path-discovered nil
   "Non-nil once `projectile-project-search-path' has been auto-discovered.
@@ -3742,9 +3770,10 @@ Only text sent to standard output is taken into account."
                    ;; Non-zero exit but we still got a listing: trust it.  Only
                    ;; mention it (quietly) when there was stderr worth seeing.
                    (files
-                    (when (and had-stderr projectile-verbose)
-                      (message "Projectile: `%s' exited with code %d but produced output; using it (see *projectile-files-errors*)"
-                               full-command exit-code)))
+                    (when had-stderr
+                      (projectile--message
+                       "`%s' exited with code %d but produced output; using it (see *projectile-files-errors*)"
+                       full-command exit-code)))
                    ;; Non-zero exit and nothing on stdout: a real failure.
                    (t
                     (user-error
@@ -3851,8 +3880,9 @@ Remote ROOTs are handled via TRAMP (`make-process' is given a non-nil
                          ;; and mention it quietly when there's anything to see.
                          (files
                           (when (projectile--surface-ext-command-errors errors-file)
-                            (message "Projectile: `%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
-                                     command exit-code))
+                            (projectile--message
+                             "`%s' exited with code %s but produced output; using it (see *projectile-files-errors*)"
+                             command exit-code))
                           (funcall callback files nil))
                          ;; Non-zero exit and nothing on stdout: a real failure.
                          (t
@@ -3958,17 +3988,19 @@ indexing process, or nil when nothing was started."
   (let ((root (or project-root (projectile-acquire-root))))
     (cond
      ((eq projectile-indexing-method 'native)
-      (message "Projectile: async indexing needs the `alien'/`hybrid' method; `native' cannot be warmed")
+      (projectile--message-always
+       "Async indexing needs the `alien'/`hybrid' method; `native' cannot be warmed")
       nil)
      ((not projectile-enable-caching)
-      (message "Projectile: async indexing has no effect while caching is disabled")
+      (projectile--message-always
+       "Async indexing has no effect while caching is disabled")
       nil)
      ((let ((proc (gethash root projectile--async-index-processes)))
         (and proc (process-live-p proc)))
-      (message "Projectile: already indexing %s" root)
+      (projectile--message-always "Already indexing %s" root)
       nil)
      (t
-      (message "Projectile: indexing %s in the background..." root)
+      (projectile--message-always "Indexing %s in the background..." root)
       ;; The callback needs to know which process it belongs to so it can
       ;; tell whether it is still the active index for ROOT when it
       ;; finishes (a re-trigger or `projectile-invalidate-cache' replaces
@@ -3989,10 +4021,11 @@ indexing process, or nil when nothing was started."
                            (car proc-cell))
                    (remhash root projectile--async-index-processes)
                    (if err
-                       (message "Projectile: background indexing of %s failed: %s" root err)
+                       (projectile--message-always
+                        "Background indexing of %s failed: %s" root err)
                      (projectile-cache-project root files)
-                     (message "Projectile: finished indexing %s (%d files)"
-                              root (length files))))))))
+                     (projectile--message-always "Finished indexing %s (%d files)"
+                                                 root (length files))))))))
         (setcar proc-cell proc)
         (when (processp proc)
           (puthash root proc projectile--async-index-processes))
@@ -4826,7 +4859,7 @@ CALLER is accepted for backward compatibility but no longer used."
     ;; Calculate the list of files.
     (when (null files)
       (when projectile-enable-caching
-        (message "Projectile is initializing cache for %s ..." project-root))
+        (message "Indexing %s..." project-root))
       (setq files
             (if (eq projectile-indexing-method 'alien)
                 ;; In alien mode the external tool does the walking.  The
@@ -4883,7 +4916,11 @@ CALLER is accepted for backward compatibility but no longer used."
 
       ;; Save the cached list.
       (when projectile-enable-caching
-        (projectile-cache-project project-root files)))
+        (projectile-cache-project project-root files)
+        ;; Close the `Indexing...' notice opened above.  The manual asks
+        ;; for this pairing, and without it a long index leaves the echo
+        ;; area claiming to still be working.
+        (message "Indexing %s...done" project-root)))
 
     ;;; Sorting
     ;;
@@ -7286,10 +7323,10 @@ The project type is cached for improved performance."
 (defun projectile-project-info ()
   "Display info for current project."
   (interactive)
-  (message "Project dir: %s ## Project VCS: %s ## Project type: %s"
+  (message "Project: %s (%s, %s)"
            (projectile-acquire-root)
-           (projectile-project-vcs)
-           (projectile-project-type)))
+           (projectile-project-type)
+           (projectile-project-vcs)))
 
 (defun projectile-verify-files (files &optional dir entry-set)
   "Check whether all FILES exist in the project.
@@ -11185,8 +11222,9 @@ the prompt.  See also `projectile-discard-root-cache'."
             (remhash dir command-map)))))
     ;; Give feedback when invoked interactively; stay quiet when used
     ;; programmatically (e.g. from `after-save-hook') unless verbose.
-    (when (or projectile-verbose (called-interactively-p 'interactive))
-      (message "Discarded Projectile command cache for %s" root))))
+    (if (called-interactively-p 'interactive)
+        (message "Discarded the command cache for %s" root)
+      (projectile--message "Discarded the command cache for %s" root))))
 
 (defvar projectile-project-enable-cmd-caching t
   "Enables command caching for the project.  Set to nil to disable.
@@ -11552,9 +11590,8 @@ from `projectile-task-providers'; a provider that signals is skipped."
                     (condition-case err
                         (funcall provider root)
                       (error
-                       (when projectile-verbose
-                         (message "Projectile task provider %s failed: %s"
-                                  provider (error-message-string err)))
+                       (projectile--message "Task provider %s failed: %s"
+                                            provider (error-message-string err))
                        nil)))
                   projectile-task-providers))))
 
@@ -13150,8 +13187,7 @@ projects removed."
       (projectile--unwatch-project project)
       (projectile--unwatch-project (expand-file-name project)))
     (projectile-merge-known-projects)
-    (when projectile-verbose
-      (message "Project %s removed from the list of known projects." project))))
+    (projectile--message "Removed %s from the known projects" project)))
 
 ;;;###autoload
 (defun projectile-remove-current-project-from-known-projects ()
@@ -13920,15 +13956,15 @@ the diagnosis rather than in a sentence telling you what to go and type."
 (defun projectile-doctor--enable-mode ()
   "Turn `projectile-mode\\=' on."
   (projectile-mode 1)
-  (message "Projectile: `projectile-mode' enabled"))
+  (projectile--message-always "`projectile-mode' enabled"))
 
 (defun projectile-doctor--set-option (option value)
   "Set OPTION to VALUE for this session, the way Customize would.
 Says so, since the change doesn\\='t outlive Emacs unless it\\='s saved."
   (customize-set-variable option value)
-  (message "Projectile: `%s' set to %s for this session - use %s to keep it"
-           option value
-           (substitute-command-keys "\\[customize-save-variable]")))
+  (projectile--message-always
+   "`%s' set to %s for this session - use %s to keep it"
+   option value (substitute-command-keys "\\[customize-save-variable]")))
 
 (defun projectile-doctor--visit-dirconfig ()
   "Visit the current project\\='s dirconfig file, creating it if need be."
@@ -14771,8 +14807,9 @@ that the dashboard stays cheap enough to be a
   "Index the project BUTTON stands for, then refresh the dashboard."
   (let ((root (button-get button 'projectile-root)))
     (projectile-index-project-async root)
-    (message "Projectile: indexing %s - press %s to refresh when it finishes"
-             root (substitute-command-keys "\\[revert-buffer]"))))
+    (projectile--message-always
+     "Indexing %s - press %s to refresh when it finishes"
+     root (substitute-command-keys "\\[revert-buffer]"))))
 
 (define-button-type 'projectile-dashboard-file
   'action #'projectile-dashboard--visit-file
@@ -16406,10 +16443,9 @@ with a message, so the user learns why nothing was restored."
       ;; `projectile-session-restore-all' can walk a directory full of these
       ;; at startup, so this is exactly the kind of thing that shouldn't
       ;; announce itself once per file.
-      (when projectile-verbose
-        (message "Ignoring session file %s: format version %s (expected %s)"
-                 file (plist-get data :projectile-session-version)
-                 projectile-session--format-version))
+      (projectile--message "Ignoring session file %s: format version %s (expected %s)"
+                           file (plist-get data :projectile-session-version)
+                           projectile-session--format-version)
       nil))))
 
 (defun projectile-session--read (root)

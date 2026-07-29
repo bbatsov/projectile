@@ -540,6 +540,12 @@ suppress them:
 (setq projectile-verbose nil)
 ----
 
+Those messages are prefixed with `+[Projectile]+`, so it's clear who is talking
+when you didn't ask anything of it. Direct answers to a command you just
+invoked go unprefixed - you know who is talking, and the echo area is narrow -
+except for the ones that arrive later out of a background process, which are
+prefixed but never suppressed.
+
 What this covers is the things Projectile says *without being asked* - caching a
 file you have just opened, a background index that had something to report, a
 session file it had to skip, a search path entry that no longer exists, a

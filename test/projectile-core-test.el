@@ -525,4 +525,84 @@
           (projectile-invalidate-cache nil)
           (expect 'message :to-have-been-called))))))
 
+(describe "Projectile's message prefix"
+  (describe "projectile--message"
+    (it "marks the message as Projectile's"
+      (let ((projectile-verbose t))
+        (spy-on 'message)
+        (projectile--message "watch on %s stopped" "src/")
+        (expect 'message :to-have-been-called-with
+                "%s%s" "[Projectile] " "watch on src/ stopped")))
+
+    (it "says nothing at all when verbosity is off"
+      (let ((projectile-verbose nil))
+        (spy-on 'message)
+        (projectile--message "watch on %s stopped" "src/")
+        (expect 'message :not :to-have-been-called))))
+
+  (describe "projectile--message-always"
+    (it "marks the message and speaks regardless of verbosity"
+      ;; For what arrives out of a sentinel or a timer: you asked for it,
+      ;; so it must report - but by then only the prefix says who is talking.
+      (let ((projectile-verbose nil))
+        (spy-on 'message)
+        (projectile--message-always "finished indexing %s" "/proj/")
+        (expect 'message :to-have-been-called-with
+                "%s%s" "[Projectile] " "finished indexing /proj/"))))
+
+  (describe "the boundary it draws"
+    (it "prefixes what the watch layer reports unprompted"
+      (let ((projectile-verbose t)
+            (projectile--watch-skipped-projects (make-hash-table :test 'equal)))
+        (spy-on 'message)
+        (projectile--watch-skipped-once "/proj/" "cannot watch %s" "/proj/")
+        (expect (car (spy-calls-args-for 'message 0)) :to-equal "%s%s")
+        (expect (nth 1 (spy-calls-args-for 'message 0))
+                :to-equal "[Projectile] ")))
+
+    (it "leaves a command answering for itself unprefixed"
+      ;; You just pressed the key; the echo area is narrow.
+      (projectile-test-with-temp-files ((file ".eld"))
+        (let ((projectile-known-projects-file file)
+              (projectile-known-projects nil))
+          (spy-on 'message)
+          (projectile-cleanup-known-projects)
+          (expect (car (spy-calls-args-for 'message 0))
+                  :not :to-match "Projectile"))))
+
+    (it "keeps the project-name prefix, which says something else"
+      (spy-on 'projectile-project-name :and-return-value "webstore")
+      (spy-on 'projectile-project-buffers :and-return-value nil)
+      (spy-on 'message)
+      (projectile-save-project-buffers)
+      (expect (car (spy-calls-args-for 'message 0)) :to-match "\\[%s\\]")))
+
+  (describe "what the manual asks for"
+    (it "pairs the indexing notice with a done"
+      (projectile-test-with-sandbox
+       (projectile-test-with-files ("project/" "project/.projectile" "project/a.el")
+         (let* ((root (projectile-test-project-root))
+                (projectile-indexing-method 'native)
+                (projectile-enable-caching t)
+                (projectile-projects-cache (make-hash-table :test 'equal))
+                (projectile-projects-cache-time (make-hash-table :test 'equal))
+                seen)
+           (spy-on 'projectile-project-root :and-return-value root)
+           (spy-on 'message :and-call-fake
+                   (lambda (fmt &rest args) (push (apply #'format fmt args) seen)))
+           (projectile-project-files root)
+           (let ((msgs (nreverse seen)))
+             (expect (car msgs) :to-match "\\.\\.\\.\\'")
+             (expect (car (last msgs)) :to-match "\\.\\.\\.done\\'")
+             ;; no space before the ellipsis, which the manual calls out
+             (expect (car msgs) :not :to-match " \\.\\.\\."))))))
+
+    (it "leaves no terminal punctuation on a prefixed message"
+      (let ((projectile-verbose t)
+            said)
+        (spy-on 'message :and-call-fake
+                (lambda (fmt &rest args) (setq said (apply #'format fmt args))))
+        (projectile--message "Cleared the project root cache")
+        (expect said :not :to-match "[.!]\\'")))))
+
 ;;; projectile-core-test.el ends here
