@@ -6094,6 +6094,24 @@ Such a clause has the form (:any FILE...) and is satisfied by any one
 of its FILEs; see `projectile-register-project-type'."
   (and (consp marker) (eq (car marker) :any)))
 
+(defun projectile--marker-clauses (marker-files)
+  "Return MARKER-FILES as a plain list of alternative-lists.
+
+A marker specification mixes two shapes - a bare file name and an
+\\(:any FILE...) clause - and every consumer used to take that apart for
+itself, which is how the project-file derivation came to understand a
+clause only in the first position.  This is the one place that knows the
+shapes: it answers with a list whose every element is a list of names,
+any one of which satisfies that position.
+
+Returns nil for a predicate marker, which has no file names to give."
+  (unless (functionp marker-files)
+    (mapcar (lambda (clause)
+              (if (projectile--any-marker-p clause)
+                  (cdr clause)
+                (list clause)))
+            (ensure-list marker-files))))
+
 (cl-defun projectile--build-project-plist
     (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir src-extension test-extension related-files-fn file-kinds tasks)
   "Return a project type plist with the provided arguments.
@@ -6152,20 +6170,19 @@ TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
   ;; the symbol `none' opts out of both the derivation and the root-file
   ;; seeding below, for types (e.g. bloop) whose only marker also shows
   ;; up outside real projects and so must not anchor a project root.
-  (let* ((project-file (cond ((eq project-file 'none) nil)
-                             ;; An alternatives clause is a marker shape, so
-                             ;; accept it here too and keep the plain list of
-                             ;; file names the rest of the code expects.
-                             ((projectile--any-marker-p project-file)
-                              (cdr project-file))
-                             (project-file project-file)
-                             ((not (consp marker-files)) nil)
-                             ;; An alternatives clause contributes all of
-                             ;; its files, so each of them can anchor a root.
-                             ((projectile--any-marker-p (car marker-files))
-                              (cdar marker-files))
-                             ((stringp (car marker-files))
-                              (car marker-files))))
+  (let* ((project-file
+          (cond ((eq project-file 'none) nil)
+                ;; An alternatives clause is a marker shape, so accept it
+                ;; here too and keep the plain list of names the rest of
+                ;; the code expects.
+                ((projectile--any-marker-p project-file) (cdr project-file))
+                (project-file project-file)
+                ;; Otherwise the first marker position is the project file -
+                ;; all of its alternatives, so each can anchor a root.
+                (t (let ((first (car (projectile--marker-clauses marker-files))))
+                     (cond ((null first) nil)
+                           ((cdr first) first)
+                           ((stringp (car first)) (car first)))))))
          (project-plist (list 'marker-files marker-files
                               'project-file project-file
                               'compilation-dir compilation-dir
@@ -7361,13 +7378,11 @@ it acts on the current project.  ENTRY-SET, when non-nil, is a hash set
 of the project root's immediate entries (see
 `projectile--directory-entry-set') used to answer plain-name FILES
 without a filesystem round-trip each."
-  (seq-every-p (lambda (file)
-                 (if (projectile--any-marker-p file)
-                     (seq-some (lambda (alternative)
-                                 (projectile-verify-file alternative dir entry-set))
-                               (cdr file))
-                   (projectile-verify-file file dir entry-set)))
-               files))
+  (seq-every-p (lambda (alternatives)
+                 (seq-some (lambda (file)
+                             (projectile-verify-file file dir entry-set))
+                           alternatives))
+               (projectile--marker-clauses files)))
 
 (defun projectile-verify-file (file &optional dir entry-set)
   "Check whether FILE exists in the current project.
@@ -14234,11 +14249,11 @@ cached too.
      (when-let* ((marker (plist-get data :type-marker)))
        (if (functionp marker)
            (format "%s (predicate)" marker)
-         (mapconcat (lambda (clause)
-                      (if (projectile--any-marker-p clause)
-                          (string-join (cdr clause) "|")
-                        clause))
-                    (ensure-list marker)
+         ;; Every position is a list of alternatives once normalized, so
+         ;; rendering doesn't need to know the shapes: `|' separates what
+         ;; would satisfy one position, a space separates the positions.
+         (mapconcat (lambda (alternatives) (string-join alternatives "|"))
+                    (projectile--marker-clauses marker)
                     " "))))
     (projectile-doctor--field "vcs" (plist-get data :vcs))
     (when (eq (plist-get data :type) 'generic)

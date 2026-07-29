@@ -683,4 +683,50 @@
     (projectile-test-with-stub-root "proj" ("README")
       (expect (projectile-go-project-p) :to-be nil))))
 
+(describe "projectile--marker-clauses"
+  (it "gives every marker position as a list of what satisfies it"
+    (expect (projectile--marker-clauses '("Gemfile" "lib" "spec"))
+            :to-equal '(("Gemfile") ("lib") ("spec"))))
+
+  (it "unwraps an alternatives clause wherever it sits"
+    (expect (projectile--marker-clauses '((:any "a" "b")))
+            :to-equal '(("a" "b")))
+    ;; not only in the first position, which is what the old hand-rolled
+    ;; decoding in the project-file derivation understood
+    (expect (projectile--marker-clauses '("composer.json" (:any "bin/console" "app/console")))
+            :to-equal '(("composer.json") ("bin/console" "app/console"))))
+
+  (it "accepts a bare marker as well as a list of them"
+    (expect (projectile--marker-clauses "Cargo.toml") :to-equal '(("Cargo.toml"))))
+
+  (it "has nothing to say about a predicate marker"
+    (expect (projectile--marker-clauses #'projectile-go-project-p) :to-be nil)
+    (expect (projectile--marker-clauses (lambda (_root) t)) :to-be nil))
+
+  (it "describes every bundled project type without choking"
+    ;; the normalizer is what detection and the doctor both read through
+    (dolist (record projectile-project-types)
+      (let ((clauses (projectile--marker-clauses
+                      (plist-get (cdr record) 'marker-files))))
+        (dolist (clause clauses)
+          (expect (listp clause) :to-be-truthy)
+          (expect clause :not :to-be nil))))))
+
+(describe "the project-file derived from a marker list"
+  (it "is the first position, with all of its alternatives"
+    (let ((projectile-project-types nil)
+          (projectile-project-root-files nil))
+      (projectile-register-project-type 'norm-a '((:any "x.toml" "x.json") "src"))
+      (expect (projectile-project-type-attribute 'norm-a 'project-file)
+              :to-equal '("x.toml" "x.json"))
+      (projectile-register-project-type 'norm-b '("y.toml" "src"))
+      (expect (projectile-project-type-attribute 'norm-b 'project-file)
+              :to-equal "y.toml")))
+
+  (it "is nothing at all for a predicate marker"
+    (let ((projectile-project-types nil)
+          (projectile-project-root-files nil))
+      (projectile-register-project-type 'norm-c #'ignore)
+      (expect (projectile-project-type-attribute 'norm-c 'project-file) :to-be nil))))
+
 ;;; projectile-project-type-test.el ends here
