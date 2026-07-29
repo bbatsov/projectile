@@ -6095,7 +6095,7 @@ of its FILEs; see `projectile-register-project-type'."
   (and (consp marker) (eq (car marker) :any)))
 
 (cl-defun projectile--build-project-plist
-    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn file-kinds tasks)
+    (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir src-extension test-extension related-files-fn file-kinds tasks)
   "Return a project type plist with the provided arguments.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -6132,6 +6132,11 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
+SRC-EXTENSION which specifies the file extension implementation files use,
+    when it differs from the one their tests use.
+TEST-EXTENSION which specifies the file extension test files use, when it
+    differs from the implementation's (Elixir tests are scripts: `foo.ex\\='
+    is tested by `foo_test.exs\\=').
 RELATED-FILES-FN which specifies a custom function to find the related
 files such as test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and
@@ -6184,6 +6189,10 @@ TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
       (plist-put project-plist 'src-dir src-dir))
     (when test-dir
       (plist-put project-plist 'test-dir test-dir))
+    (when src-extension
+      (plist-put project-plist 'src-extension src-extension))
+    (when test-extension
+      (plist-put project-plist 'test-extension test-extension))
     (when related-files-fn
       (plist-put project-plist 'related-files-fn related-files-fn))
     (when file-kinds
@@ -6193,7 +6202,7 @@ TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
     project-plist))
 
 (cl-defun projectile-register-project-type
-    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir related-files-fn file-kinds tasks)
+    (project-type marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir src-extension test-extension related-files-fn file-kinds tasks)
   "Register a project type with projectile.
 
 A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
@@ -6231,6 +6240,11 @@ TEST-SUFFIX which specifies test file suffix, and
 TEST-PREFIX which specifies test file prefix.
 SRC-DIR which specifies the path to the source relative to the project root.
 TEST-DIR which specifies the path to the tests relative to the project root.
+SRC-EXTENSION which specifies the file extension implementation files use,
+    when it differs from the one their tests use.
+TEST-EXTENSION which specifies the file extension test files use, when it
+    differs from the implementation's (Elixir tests are scripts: `foo.ex\\='
+    is tested by `foo_test.exs\\=').
 RELATED-FILES-FN which specifies a custom function to find the related
 files such as test/impl/other files as below:
     CUSTOM-FUNCTION accepts FILE as relative path from the project root and
@@ -6266,6 +6280,8 @@ with the project name at execution time."
                                 :test-prefix test-prefix
                                 :src-dir src-dir
                                 :test-dir test-dir
+                                :src-extension src-extension
+                                :test-extension test-extension
                                 :related-files-fn related-files-fn
                                 :file-kinds file-kinds
                                 :tasks tasks))
@@ -6287,6 +6303,8 @@ with the project name at execution time."
      (test-prefix nil test-prefix-specified)
      (src-dir nil src-dir-specified)
      (test-dir nil test-dir-specified)
+     (src-extension nil src-extension-specified)
+     (test-extension nil test-extension-specified)
      (related-files-fn nil related-files-fn-specified)
      (file-kinds nil file-kinds-specified)
      (tasks nil tasks-specified))
@@ -6323,6 +6341,8 @@ arguments - have the same meaning as for
              (when test-prefix-specified `(test-prefix ,test-prefix))
              (when src-dir-specified `(src-dir ,src-dir))
              (when test-dir-specified `(test-dir ,test-dir))
+             (when src-extension-specified `(src-extension ,src-extension))
+             (when test-extension-specified `(test-extension ,test-extension))
              (when related-files-fn-specified
                `(related-files-fn ,related-files-fn))
              (when file-kinds-specified `(file-kinds ,file-kinds))
@@ -6833,7 +6853,11 @@ a manual COMMAND-TYPE command is created with
                                   :compile "mix compile"
                                   :src-dir "lib/"
                                   :test "mix test"
-                                  :test-suffix "_test")
+                                  :test-suffix "_test"
+                                  ;; ExUnit tests are scripts, so `lib/foo.ex'
+                                  ;; is tested by `test/foo_test.exs'.
+                                  :src-extension "ex"
+                                  :test-extension "exs")
 ;; Gleam
 (projectile-register-project-type 'gleam '("gleam.toml")
                                   :compile "gleam build"
@@ -7448,10 +7472,14 @@ IMPL-FILE-PATH may be an absolute path, relative path or a file name."
          (impl-file-name (file-name-sans-extension (file-name-nondirectory impl-file-path)))
          (impl-file-ext (file-name-extension impl-file-path))
          (test-prefix (funcall projectile-test-prefix-function project-type))
-         (test-suffix (funcall projectile-test-suffix-function project-type)))
+         (test-suffix (funcall projectile-test-suffix-function project-type))
+         ;; A test usually carries the implementation's extension; a type
+         ;; that says otherwise (Elixir's scripts) is taken at its word.
+         (test-file-ext (or (projectile-test-extension project-type)
+                            impl-file-ext)))
     (cond
-     (test-prefix (concat test-prefix impl-file-name "." impl-file-ext))
-     (test-suffix (concat impl-file-name test-suffix "." impl-file-ext))
+     (test-prefix (concat test-prefix impl-file-name "." test-file-ext))
+     (test-suffix (concat impl-file-name test-suffix "." test-file-ext))
      (t (user-error "Cannot determine a test file name, one of \"test-suffix\" or \"test-prefix\" must be set for project type `%s'" project-type)))))
 
 (defun projectile--impl-name-for-test-name (test-file-path)
@@ -7462,12 +7490,14 @@ TEST-FILE-PATH may be an absolute path, relative path or a file name."
          (test-file-name (file-name-sans-extension (file-name-nondirectory test-file-path)))
          (test-file-ext (file-name-extension test-file-path))
          (test-prefix (funcall projectile-test-prefix-function project-type))
-         (test-suffix (funcall projectile-test-suffix-function project-type)))
+         (test-suffix (funcall projectile-test-suffix-function project-type))
+         (impl-file-ext (or (projectile-src-extension project-type)
+                            test-file-ext)))
     (cond
      (test-prefix
-      (concat (string-remove-prefix test-prefix test-file-name) "." test-file-ext))
+      (concat (string-remove-prefix test-prefix test-file-name) "." impl-file-ext))
      (test-suffix
-      (concat (string-remove-suffix test-suffix test-file-name) "." test-file-ext))
+      (concat (string-remove-suffix test-suffix test-file-name) "." impl-file-ext))
      (t (user-error "Cannot determine an implementation file name, one of \"test-suffix\" or \"test-prefix\" must be set for project type `%s'" project-type)))))
 
 (defun projectile--test-to-impl-dir (test-dir-path)
@@ -7635,6 +7665,19 @@ Fallback to DEFAULT-VALUE for missing attributes."
   "Find default test files suffix based on PROJECT-TYPE."
   (or projectile-project-test-suffix
       (projectile-project-type-attribute project-type 'test-suffix)))
+
+(defun projectile-test-extension (project-type)
+  "Find the extension test files use in PROJECT-TYPE, or nil.
+Nil means a test file carries the same extension as the implementation
+it belongs to, which is true of most languages - Elixir, whose tests are
+scripts (`.exs\\=') beside sources (`.ex\\='), is why this exists."
+  (projectile-project-type-attribute project-type 'test-extension))
+
+(defun projectile-src-extension (project-type)
+  "Find the extension implementation files use in PROJECT-TYPE, or nil.
+The counterpart of `projectile-test-extension\\=', for naming the
+implementation belonging to a test."
+  (projectile-project-type-attribute project-type 'src-extension))
 
 (defun projectile-related-files-fn (project-type)
   "Find relative file based on PROJECT-TYPE.
