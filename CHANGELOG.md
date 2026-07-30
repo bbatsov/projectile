@@ -29,6 +29,19 @@
   - `projectile-report-copy` (`w` in either buffer) copies the buffer as plain text, without the faces and buttons - a doctor report usually ends up in an issue.
 - [#2130](https://github.com/bbatsov/projectile/pull/2130): `projectile-run-task` now also discovers rake tasks, read out of the project's `Rakefile` and its `.rake` files (in `rakelib`, `tasks` and `lib/tasks`) rather than by running `rake -T`, which would load the whole application. Tasks are qualified with their `namespace` (`rake:db:migrate`) and run through `bundle exec` when the project has a `Gemfile`.
 
+### Changes
+
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): The six `projectile-<cmd>-use-comint-mode` options fold into one `projectile-use-comint-mode`, taking `t` or a list of the phases to make interactive.
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): `projectile-per-project-compilation-buffer` and `projectile-per-command-compilation-buffer` fold into `projectile-compilation-buffer-scope`, a list of `project` and/or `command` - which is what setting both booleans already meant.
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): Rename the options that broke their own naming schemes: `projectile-global-ignore-file-patterns` to `projectile-globally-ignored-file-regexps`, `projectile-cmd-hist-ignoredups` to `projectile-command-history-ignore-duplicates`, `projectile-related-files-fn-function` to `projectile-related-files-function`, `projectile-auto-discover` to `projectile-auto-discover-projects`, and the three reviewable-search options named after replace (`projectile-replace-max-matches`, `-async` and `-scan-chunk-size`) to the `projectile-search-` prefix their siblings already used.
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): `projectile-tags-file-name` and `projectile-go-project-test-function` are obsolete; both were only ever read as Projectile loaded, so setting them from your init file afterwards did nothing. List the tags file in `projectile-globally-ignored-files`, and re-register the `go` project type to change how it's detected.
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): Every renamed or folded option is still honored under its old name, so existing configuration keeps working.
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): Make the options' Customize metadata uniform - seven options that document `nil` as meaningful had a `:type` that rejected it, so Customize refused to edit them, and the `:safe` predicates now cover all the ignore lists rather than four of the nine.
+
+### Bugs fixed
+
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): `projectile-svn-command` filtered directories out of `svn list -R` with `grep -v '$/'`, where the `$` is a literal rather than an anchor, so it never dropped anything and svn projects listed their directories among their files.
+
 ## 3.3.0 (2026-07-27)
 
 ### New features
