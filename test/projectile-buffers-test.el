@@ -71,7 +71,20 @@
     (let ((projectile-globally-ignored-buffers '("*nrepl messages*" "*something*")))
       (expect (projectile-ignored-buffer-p (get-buffer-create "*nrepl messages*")) :to-be-truthy)
       (expect (projectile-ignored-buffer-p (get-buffer-create "*something*")) :to-be-truthy)
-      (expect (projectile-ignored-buffer-p (get-buffer-create "test")) :not :to-be-truthy))))
+      (expect (projectile-ignored-buffer-p (get-buffer-create "test")) :not :to-be-truthy)))
+
+  ;; The entries are matched with `string-match-p', so a buffer name has to
+  ;; be spelled as a regexp - an unescaped `*scratch*' matched only by
+  ;; accident (leading `*' literal, trailing `h*' a repetition).
+  (it "ignores the buffers its default value names"
+    (expect (projectile-ignored-buffer-p (get-buffer-create "*scratch*")) :to-be-truthy)
+    (expect (projectile-ignored-buffer-p (get-buffer-create "*lsp-log*")) :to-be-truthy)
+    (expect (projectile-ignored-buffer-p (get-buffer-create "scratch.el"))
+            :not :to-be-truthy))
+
+  (it "has a default value of valid regexps"
+    (dolist (re projectile-globally-ignored-buffers)
+      (expect (ignore-errors (string-match-p re "") t) :to-be-truthy))))
 
 (describe "projectile-process-current-project-buffers-current"
   (it "expects projectile-process-current-project-buffers and

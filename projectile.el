@@ -835,8 +835,8 @@ family of them."
   :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-globally-ignored-buffers
-  '("*scratch*"
-    "*lsp-log*")
+  '("\\*scratch\\*"
+    "\\*lsp-log\\*")
   "A list of buffer names ignored by projectile.
 
 If a buffer matches one of these, projectile will ignore it for
@@ -844,7 +844,11 @@ functions working with buffers.
 
 Each entry is a regular expression, matched anywhere in the buffer
 name - unlike `projectile-globally-ignored-modes', which matches whole
-mode names.  Anchor an entry yourself when you mean an exact name."
+mode names.  Anchor an entry yourself when you mean an exact name.
+
+Note that the `*' of a buffer name like `*scratch*' has to be escaped
+to be matched literally, as in the default value; unescaped it is a
+repetition operator."
   :group 'projectile
   :type '(repeat regexp)
   :safe #'list-of-strings-p
