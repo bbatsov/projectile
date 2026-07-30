@@ -392,6 +392,19 @@
       (expect (projectile-compilation-buffer-name "compilation")
               :to-equal "*compilation*<test>")))
 
+  (it "reads t as naming both aspects"
+    (let ((projectile-compilation-buffer-scope t)
+          (projectile--compilation-command-type 'compile))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<my-project:compile>")))
+
+  (it "does not repeat an aspect the obsolete boolean also asks for"
+    (let ((projectile-compilation-buffer-scope '(project))
+          (projectile-per-project-compilation-buffer t)
+          (projectile--compilation-command-type 'test))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<my-project>")))
+
   (it "qualifies by project"
     (let ((projectile-compilation-buffer-scope '(project))
           (projectile--compilation-command-type 'test))
@@ -937,10 +950,6 @@
     (let ((projectile-use-comint-mode nil)
           (projectile-test-use-comint-mode t))
       (expect (projectile-use-comint-mode-p 'test) :to-be-truthy)
-      (expect (projectile-use-comint-mode-p 'compile) :to-be nil)))
-
-  (it "rejects a phase it doesn't know"
-    (let ((projectile-use-comint-mode nil))
-      (expect (projectile-use-comint-mode-p 'bogus) :to-throw))))
+      (expect (projectile-use-comint-mode-p 'compile) :to-be nil))))
 
 ;;; projectile-commands-test.el ends here

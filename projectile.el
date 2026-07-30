@@ -454,14 +454,11 @@ It's relative to the project root."
   :type 'string
   :package-version '(projectile . "2.9.0"))
 
+;; Remove in 4.0.  This was only ever read to seed the default of
+;; `projectile-globally-ignored-files' as this file loaded, so setting it
+;; from an init file never did anything; that list now names TAGS itself.
 (defvar projectile-tags-file-name "TAGS"
-  "The name of the tags file Projectile excludes from indexing.
-Listed in `projectile-globally-ignored-files' so a generated tags
-file doesn't show up among the project files.")
-
-;; Only ever read to seed `projectile-globally-ignored-files' below, which
-;; happens as this file loads - so setting it afterwards never did anything.
-;; Naming the file in the ignore list is the same thing said once.
+  "The name of the tags file Projectile excludes from indexing.")
 (make-obsolete-variable 'projectile-tags-file-name
                         "add the file name to `projectile-globally-ignored-files' instead."
                         "3.4.0")
@@ -665,16 +662,12 @@ such line, listing the offending entries."
   :type 'boolean
   :package-version '(projectile . "3.0.0"))
 
-(defun projectile-string-list-p (value)
-  "Return non-nil when VALUE is a list of strings.
-
-The `:safe' predicate of the options holding a list of names, patterns
-or regexps.  None of them can do more than widen or narrow a listing,
-so a project is free to set them from its .dir-locals.el."
-  (and (proper-list-p value) (seq-every-p #'stringp value)))
+;; The options below hold nothing but a list of names, patterns or regexps,
+;; and none of them can do more than widen or narrow a listing - so a project
+;; is free to set any of them from its .dir-locals.el.
 
 (defcustom projectile-globally-ignored-files
-  (list (with-no-warnings projectile-tags-file-name) projectile-cache-file)
+  (list "TAGS" projectile-cache-file)
   "A list of files globally ignored by projectile.
 
 Entries are gitignore patterns: a plain name matches a file with that
@@ -683,7 +676,7 @@ root, and `*', `**', `?' and `[...]' are the usual wildcards.  See
 `projectile-globally-ignored-directories' for the full pattern language."
   :group 'projectile
   :type '(repeat string)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-globally-unignored-files nil
@@ -693,7 +686,7 @@ Entries cancel out the matching `projectile-globally-ignored-files'
 entries."
   :group 'projectile
   :type '(repeat string)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-globally-ignored-file-suffixes
@@ -704,7 +697,7 @@ were the gitignore pattern `*SUFFIX' (e.g. \".elc\" ignores every
 `.elc' file in the project)."
   :group 'projectile
   :type '(repeat string)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-globally-ignored-directories
@@ -787,7 +780,7 @@ for that project only.
 See also `projectile-globally-ignored-file-regexps'."
   :group 'projectile
   :type '(repeat string)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "3.3.0"))
 
 (defcustom projectile-globally-unignored-directories nil
@@ -797,7 +790,7 @@ Entries cancel out the matching `projectile-globally-ignored-directories'
 entries."
   :group 'projectile
   :type '(repeat string)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "0.14.0"))
 
 (define-obsolete-variable-alias 'projectile-global-ignore-file-patterns
@@ -818,7 +811,7 @@ See also `projectile-ignored-file-p' and
 `projectile-ignored-directory-p'."
   :group 'projectile
   :type '(repeat string)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-globally-ignored-modes
@@ -838,7 +831,7 @@ ignores that mode and nothing else, while \"gnus-.*-mode\" ignores a
 family of them."
   :group 'projectile
   :type '(repeat regexp)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-globally-ignored-buffers
@@ -854,7 +847,7 @@ name - unlike `projectile-globally-ignored-modes', which matches whole
 mode names.  Anchor an entry yourself when you mean an exact name."
   :group 'projectile
   :type '(repeat regexp)
-  :safe #'projectile-string-list-p
+  :safe #'list-of-strings-p
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-find-file-hook nil
@@ -1567,25 +1560,27 @@ Qualifying the buffer name keeps them apart.  The value is a list of:
   and a test run don't overwrite each other.
 
 The two compose: with both, the buffer is `*compilation*<my-project:test>'.
-With nil there's a single shared compilation buffer, as in plain Emacs."
+Setting this to t is the same as naming both.  With nil there's a single
+shared compilation buffer, as in plain Emacs."
   :group 'projectile
-  :type '(set (const :tag "Project" project)
-              (const :tag "Lifecycle command" command))
+  :type '(choice (const :tag "One shared buffer" nil)
+                 (const :tag "Project and command" t)
+                 (set :tag "Selected aspects"
+                      (const :tag "Project" project)
+                      (const :tag "Lifecycle command" command)))
   :package-version '(projectile . "3.4.0"))
 
-;; Superseded by the single `projectile-compilation-buffer-scope', but still
-;; honored so that an existing configuration keeps working.
+;; Remove in 4.0.  Superseded by `projectile-compilation-buffer-scope', which
+;; folds them in - setting both booleans is what its two-element list means.
 (defvar projectile-per-project-compilation-buffer nil
   "When non-nil, each project gets its own compilation buffer.")
 (defvar projectile-per-command-compilation-buffer nil
   "When non-nil, each lifecycle command gets its own compilation buffer.")
 
-(make-obsolete-variable 'projectile-per-project-compilation-buffer
-                        "use `projectile-compilation-buffer-scope' instead."
-                        "3.4.0")
-(make-obsolete-variable 'projectile-per-command-compilation-buffer
-                        "use `projectile-compilation-buffer-scope' instead."
-                        "3.4.0")
+(dolist (var '(projectile-per-project-compilation-buffer
+               projectile-per-command-compilation-buffer))
+  (make-obsolete-variable var "use `projectile-compilation-buffer-scope' instead."
+                          "3.4.0"))
 
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
@@ -6541,12 +6536,11 @@ it acts on the current project."
   (or (projectile-verify-file "build.mill" dir)
       (projectile-verify-file "build.sc" dir)))
 
+;; Remove in 4.0.  The only project type with a detection hook of its own,
+;; and only read when the `go' type was registered as this file loaded.
+;; Re-registering the type is how every other type is customized.
 (defvar projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go.")
-
-;; The only project type with a detection hook of its own, and only read
-;; when the `go' type is registered as this file loads.  Registering the
-;; type again with your own predicate is the general way to do this.
 (make-obsolete-variable 'projectile-go-project-test-function
                         "re-register the `go' project type with your own predicate instead."
                         "3.4.0")
@@ -6923,7 +6917,7 @@ a manual COMMAND-TYPE command is created with
                                   :test "task test"
                                   :install "task install")
 ;; Go should take higher precedence than Make because Go projects often have a Makefile.
-(projectile-register-project-type 'go (with-no-warnings projectile-go-project-test-function)
+(projectile-register-project-type 'go #'projectile-go-project-p
                                   ;; The type is detected by predicate (a
                                   ;; project can be Go without a go.mod), but
                                   ;; the module file is still what marks a Go
@@ -11306,38 +11300,32 @@ Acts on the current project if not specified explicitly."
      :cmd-map projectile-configure-cmd-map
      :dir-local-var projectile-project-configure-cmd
      :default-fn projectile--expand-configure-command
-     :command-fn projectile-configure-command
-     :use-comint-var projectile-configure-use-comint-mode)
+     :command-fn projectile-configure-command)
     (:name compile :prompt "Compile command: " :save-buffers t
      :cmd-map projectile-compilation-cmd-map
      :dir-local-var projectile-project-compilation-cmd
      :default-fn projectile-default-compilation-command
-     :command-fn projectile-compilation-command
-     :use-comint-var projectile-compile-use-comint-mode)
+     :command-fn projectile-compilation-command)
     (:name test :prompt "Test command: " :save-buffers t
      :cmd-map projectile-test-cmd-map
      :dir-local-var projectile-project-test-cmd
      :default-fn projectile-default-test-command
-     :command-fn projectile-test-command
-     :use-comint-var projectile-test-use-comint-mode)
+     :command-fn projectile-test-command)
     (:name install :prompt "Install command: " :save-buffers t
      :cmd-map projectile-install-cmd-map
      :dir-local-var projectile-project-install-cmd
      :default-fn projectile-default-install-command
-     :command-fn projectile-install-command
-     :use-comint-var projectile-install-use-comint-mode)
+     :command-fn projectile-install-command)
     (:name package :prompt "Package command: " :save-buffers t
      :cmd-map projectile-package-cmd-map
      :dir-local-var projectile-project-package-cmd
      :default-fn projectile-default-package-command
-     :command-fn projectile-package-command
-     :use-comint-var projectile-package-use-comint-mode)
+     :command-fn projectile-package-command)
     (:name run :prompt "Run command: " :save-buffers nil
      :cmd-map projectile-run-cmd-map
      :dir-local-var projectile-project-run-cmd
      :default-fn projectile-default-run-command
-     :command-fn projectile-run-command
-     :use-comint-var projectile-run-use-comint-mode))
+     :command-fn projectile-run-command))
   "Descriptors for the project lifecycle phases.
 
 Each entry is a plist with the phase symbol (`:name', also used as the
@@ -11345,11 +11333,8 @@ command type for the per-type command history), the variable caching
 the last command per project (`:cmd-map'), the .dir-locals.el override
 variable (`:dir-local-var'), a function of the project type returning
 the default command (`:default-fn'), the public command resolver
-\(`:command-fn'), the obsolete option making the output buffer
-interactive (`:use-comint-var', superseded by
-`projectile-use-comint-mode'), the prompt prefix (`:prompt') and
-whether to save the project's buffers before running the command
-\(`:save-buffers').")
+\(`:command-fn'), the prompt prefix (`:prompt') and whether to save the
+project's buffers before running the command (`:save-buffers').")
 
 (defun projectile--phase-descriptor (phase)
   "Return the lifecycle descriptor for PHASE (a symbol like `compile')."
@@ -11848,15 +11833,20 @@ Bound by `projectile--run-project-cmd' for the duration of the call, so
 `projectile-compilation-buffer-name' - which `compile' calls with nothing
 but the mode name - can tell a test run from a build.")
 
-(defun projectile-compilation-buffer-scope-p (kind)
-  "Return non-nil when the compilation buffer name is qualified by KIND.
-KIND is `project' or `command'.  Reads
-`projectile-compilation-buffer-scope', falling back to the obsolete
-boolean it replaced for a configuration that still sets one."
-  (or (memq kind projectile-compilation-buffer-scope)
-      (pcase kind
-        ('project (with-no-warnings projectile-per-project-compilation-buffer))
-        ('command (with-no-warnings projectile-per-command-compilation-buffer)))))
+(defun projectile-compilation-buffer-scope ()
+  "Return the aspects a compilation buffer's name is qualified by.
+A list of `project' and/or `command'.  Normalizes the t shorthand of
+`projectile-compilation-buffer-scope' and folds in the two obsolete
+booleans it replaced, for a configuration that still sets one."
+  (let ((scope (if (eq projectile-compilation-buffer-scope t)
+                   '(project command)
+                 projectile-compilation-buffer-scope)))
+    (with-no-warnings
+      (append (unless (memq 'project scope)
+                (and projectile-per-project-compilation-buffer '(project)))
+              (unless (memq 'command scope)
+                (and projectile-per-command-compilation-buffer '(command)))
+              scope))))
 
 (defun projectile-compilation-buffer-name (compilation-mode)
   "Meant to be used for `compilation-buffer-name-function'.
@@ -11865,14 +11855,15 @@ compilation buffer.
 
 The name is qualified by the project and/or the lifecycle command type,
 according to `projectile-compilation-buffer-scope'."
-  (let ((qualifiers
-         (delq nil
-               (list (and (projectile-compilation-buffer-scope-p 'project)
-                          (projectile-project-p)
-                          (projectile-project-name))
-                     (and (projectile-compilation-buffer-scope-p 'command)
-                          projectile--compilation-command-type
-                          (symbol-name projectile--compilation-command-type))))))
+  (let* ((scope (projectile-compilation-buffer-scope))
+         (qualifiers
+          (delq nil
+                (list (and (memq 'project scope)
+                           (projectile-project-p)
+                           (projectile-project-name))
+                      (and (memq 'command scope)
+                           projectile--compilation-command-type
+                           (symbol-name projectile--compilation-command-type))))))
     (concat "*" (downcase compilation-mode) "*"
             (if qualifiers
                 (concat "<" (string-join qualifiers ":") ">")
@@ -12192,13 +12183,14 @@ The command actually run is returned."
                          (lambda ()
                            (projectile-project-buffer-p (current-buffer)
                                                         project-root))))
-    (when (projectile-compilation-buffer-scope-p 'project)
-      (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
-    (when (or (projectile-compilation-buffer-scope-p 'project)
-              (projectile-compilation-buffer-scope-p 'command))
-      (setq compilation-buffer-name-function #'projectile-compilation-buffer-name))
-    (when buffer-name-function
-      (setq compilation-buffer-name-function buffer-name-function))
+    (let ((scope (projectile-compilation-buffer-scope)))
+      (when (memq 'project scope)
+        (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
+      (cond (buffer-name-function
+             (setq compilation-buffer-name-function buffer-name-function))
+            (scope
+             (setq compilation-buffer-name-function
+                   #'projectile-compilation-buffer-name))))
     (unless command
       (user-error "No %scommand configured for project type `%s'"
                   (or prompt-prefix "") (projectile-project-type)))
@@ -12233,8 +12225,9 @@ list naming the ones that are - `configure', `compile', `test',
                       (const :tag "Run" run)))
   :package-version '(projectile . "3.4.0"))
 
-;; Superseded by the single `projectile-use-comint-mode', but still honored
-;; so that an existing configuration keeps working.
+;; Remove in 4.0, this block and the fallback in
+;; `projectile-use-comint-mode-p' together.  Superseded by the single
+;; `projectile-use-comint-mode', which folds them in.
 (defvar projectile-configure-use-comint-mode nil
   "Make the output buffer of `projectile-configure-project' interactive.")
 (defvar projectile-compile-use-comint-mode nil
@@ -12248,13 +12241,17 @@ list naming the ones that are - `configure', `compile', `test',
 (defvar projectile-run-use-comint-mode nil
   "Make the output buffer of `projectile-run-project' interactive.")
 
-(dolist (var '(projectile-configure-use-comint-mode
-               projectile-compile-use-comint-mode
-               projectile-test-use-comint-mode
-               projectile-install-use-comint-mode
-               projectile-package-use-comint-mode
-               projectile-run-use-comint-mode))
-  (make-obsolete-variable var "use `projectile-use-comint-mode' instead."
+(defconst projectile--obsolete-comint-vars
+  '((configure . projectile-configure-use-comint-mode)
+    (compile   . projectile-compile-use-comint-mode)
+    (test      . projectile-test-use-comint-mode)
+    (install   . projectile-install-use-comint-mode)
+    (package   . projectile-package-use-comint-mode)
+    (run       . projectile-run-use-comint-mode))
+  "The per-phase option `projectile-use-comint-mode' replaced, by phase.")
+
+(dolist (var projectile--obsolete-comint-vars)
+  (make-obsolete-variable (cdr var) "use `projectile-use-comint-mode' instead."
                           "3.4.0"))
 
 (defun projectile-use-comint-mode-p (phase)
@@ -12262,11 +12259,10 @@ list naming the ones that are - `configure', `compile', `test',
 PHASE is a lifecycle phase symbol such as `compile'.  Reads
 `projectile-use-comint-mode', falling back to the obsolete per-phase
 option it replaced for a configuration that still sets one."
-  (or (if (listp projectile-use-comint-mode)
-          (memq phase projectile-use-comint-mode)
-        projectile-use-comint-mode)
-      (symbol-value (plist-get (projectile--phase-descriptor phase)
-                               :use-comint-var))))
+  (or (eq projectile-use-comint-mode t)
+      (memq phase projectile-use-comint-mode)
+      (when-let* ((var (alist-get phase projectile--obsolete-comint-vars)))
+        (symbol-value var))))
 
 (defun projectile--phase-command-dynamic-p (phase)
   "Non-nil when PHASE's command comes from a function for the current project.
@@ -12313,8 +12309,7 @@ root (see `projectile-compilation-dir')."
                                  :prompt-prefix (projectile--lifecycle-prompt descriptor base)
                                  :save-buffers (plist-get descriptor :save-buffers)
                                  :no-cache (projectile--phase-command-dynamic-p phase)
-                                 :use-comint-mode (projectile-use-comint-mode-p
-                                                   (plist-get descriptor :name)))))
+                                 :use-comint-mode (projectile-use-comint-mode-p phase))))
 
 ;;;###autoload
 (defun projectile-configure-project (arg)
@@ -12885,7 +12880,7 @@ the `%p' placeholder still intact."
     ;; `projectile--run-project-cmd' from prompting a second time.
     (let ((compilation-read-command nil)
           (buffer-name (concat "*projectile-task: " task-name "*"
-                               (when (projectile-compilation-buffer-scope-p 'project)
+                               (when (memq 'project (projectile-compilation-buffer-scope))
                                  (concat "<" (projectile-project-name project-root) ">")))))
       (projectile--run-project-cmd command nil
                                    :save-buffers t
