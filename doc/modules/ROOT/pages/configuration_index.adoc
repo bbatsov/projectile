@@ -179,9 +179,6 @@ and the other reference pages.
 | `projectile-globally-unignored-files`
 | A list of files globally unignored by projectile.
 
-| `projectile-go-project-test-function`
-| Function to determine if project’s type is go.
-
 | `projectile-grep-finished-hook`
 | Hooks run when ‘projectile-grep’ finishes.
 
@@ -340,9 +337,6 @@ and the other reference pages.
 
 | `projectile-switch-project-other-window-action`
 | Action run by ‘projectile-switch-project-other-window’ after switching.
-
-| `projectile-tags-file-name`
-| The name of the tags file Projectile excludes from indexing.
 
 | `projectile-task-providers`
 | Functions that discover the tasks a project’s tooling defines.

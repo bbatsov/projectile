@@ -60,8 +60,10 @@ Modern code navigation is better served by `xref` (kbd:[M-.]) backed by a
 language server (Eglot/LSP) or `etags`/`ggtags` directly, plus
 `projectile-find-references` (kbd:[s-p s x]) for textual references.
 
-NOTE: `projectile-tags-file-name` is kept, but only so that a project's `TAGS`
-file can be excluded from the index. It no longer drives any command.
+NOTE: `projectile-tags-file-name` was kept, but only so that a project's
+`TAGS` file could be excluded from the index. It no longer drives any command,
+and as of 3.4 it's obsolete - `projectile-globally-ignored-files` lists `TAGS`
+directly, and that's where to name a different tags file.
 
 === The ido / ivy / helm completion systems
 

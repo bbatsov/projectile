@@ -111,7 +111,7 @@
 
 (describe "projectile-globally-ignored-files"
   (it "includes TAGS file by default"
-    (expect (member projectile-tags-file-name projectile-globally-ignored-files) :to-be-truthy))
+    (expect (member "TAGS" projectile-globally-ignored-files) :to-be-truthy))
   (it "includes cache file by default"
     (expect (member projectile-cache-file projectile-globally-ignored-files) :to-be-truthy))
   (it "causes cache file to be ignored via projectile-ignored-file-p"
