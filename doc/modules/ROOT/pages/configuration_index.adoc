@@ -53,14 +53,11 @@ and the other reference pages.
 | `projectile-cmd-hist-ignoredups`
 | Controls when inputs are added to projectile’s command history.
 
-| `projectile-compile-use-comint-mode`
-| Make the output buffer of ‘projectile-compile-project’ interactive.
+| `projectile-compilation-buffer-scope`
+| What a lifecycle command’s compilation buffer is named after.
 
 | `projectile-completion-system`
 | The completion system to be used by Projectile.
-
-| `projectile-configure-use-comint-mode`
-| Make the output buffer of ‘projectile-configure-project’ interactive.
 
 | `projectile-create-missing-test-files`
 | During toggling, if non-nil enables creating test files if not found.
@@ -70,6 +67,9 @@ and the other reference pages.
 
 | `projectile-darcs-command`
 | Command used by projectile to get the files in a darcs project.
+
+| `projectile-dashboard-link-files`
+| Base names the dashboard offers as links when the project has them.
 
 | `projectile-dashboard-recent-files`
 | How many recently visited files ‘projectile-dashboard’ lists.
@@ -99,7 +99,7 @@ and the other reference pages.
 | When t enables project files caching.
 
 | `projectile-enable-cmake-presets`
-| Enables configuration with CMake presets.
+| Whether CMake projects use presets for their lifecycle commands.
 
 | `projectile-enable-frecency`
 | When non-nil, rank project files by frecency in completion.
@@ -159,7 +159,7 @@ and the other reference pages.
 | A list of file regexp patterns ignored by Projectile.
 
 | `projectile-globally-ignored-buffers`
-| A list of buffer-names ignored by projectile.
+| A list of buffer names ignored by projectile.
 
 | `projectile-globally-ignored-directories`
 | A list of directories globally ignored by projectile.
@@ -194,20 +194,20 @@ and the other reference pages.
 | `projectile-ignored-project-function`
 | Function to decide if a project is added to ‘projectile-known-projects’.
 
+| `projectile-ignored-project-patterns`
+| Regexps matching projects not to be added to ‘projectile-known-projects’.
+
 | `projectile-ignored-projects`
 | A list of projects not to be added to ‘projectile-known-projects’.
 
 | `projectile-indexing-method`
 | Specifies the indexing method used by Projectile.
 
-| `projectile-install-use-comint-mode`
-| Make the output buffer of ‘projectile-install-project’ interactive.
-
 | `projectile-jj-command`
 | Command used by projectile to get the files in a Jujutsu project.
 
 | `projectile-keymap-prefix`
-| Projectile keymap prefix.
+| The key sequence ‘projectile-command-map’ is bound to, if any.
 
 | `projectile-kill-buffers-filter`
 | Determine which buffers are killed by ‘projectile-kill-buffers’.
@@ -231,16 +231,7 @@ and the other reference pages.
 | Mode line lighter prefix for Projectile.
 
 | `projectile-other-file-alist`
-| Alist of extensions for switching to file with the same name,
-
-| `projectile-package-use-comint-mode`
-| Make the output buffer of ‘projectile-package-project’ interactive.
-
-| `projectile-per-command-compilation-buffer`
-| When non-nil, each lifecycle command gets its own compilation buffer.
-
-| `projectile-per-project-compilation-buffer`
-| When non-nil, the compilation command makes the per-project compilation buffer.
+| Alist of extensions to try when switching to a file’s counterpart.
 
 | `projectile-pijul-command`
 | Command used by projectile to get the files in a pijul project.
@@ -283,9 +274,6 @@ and the other reference pages.
 
 | `projectile-require-project-root`
 | Require the presence of a project root to operate when true.
-
-| `projectile-run-use-comint-mode`
-| Make the output buffer of ‘projectile-run-project’ interactive.
 
 | `projectile-sapling-command`
 | Command used by projectile to get the files in a Sapling project.
@@ -371,17 +359,17 @@ and the other reference pages.
 | `projectile-test-suffix-function`
 | Function to find test files suffix based on PROJECT-TYPE.
 
-| `projectile-test-use-comint-mode`
-| Make the output buffer of ‘projectile-test-project’ interactive.
-
 | `projectile-todo-keywords`
 | Annotation keywords ‘projectile-todos’ collects across the project.
 
 | `projectile-track-known-projects-automatically`
 | Controls whether Projectile will automatically register known projects.
 
+| `projectile-use-comint-mode`
+| Which lifecycle commands get an interactive output buffer.
+
 | `projectile-use-git-grep`
-| If true, use ‘vc-git-grep’ in git projects.
+| Whether ‘projectile-grep’ delegates to ‘vc-git-grep’ in git projects.
 
 | `projectile-vcs-markers`
 | Alist of (MARKER . VCS) pairs probed by ‘projectile-project-vcs’.

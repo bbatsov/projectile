@@ -1536,33 +1536,40 @@ It assumes the test/ folder is at the same level as src/."
   :type 'boolean
   :package-version '(projectile . "0.13.0"))
 
-(defcustom projectile-per-project-compilation-buffer nil
-  "When non-nil, each project gets its own compilation buffer.
-
-Compiling, testing and running all use `compilation-mode' and so share
-one buffer across every project.  With this enabled the project name is
-part of the buffer name (`*compilation*<my-project>'), so working on two
-projects at once doesn't have them overwrite each other's output.
-
-Composes with `projectile-per-command-compilation-buffer'."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.6.0"))
-
-(defcustom projectile-per-command-compilation-buffer nil
-  "When non-nil, each lifecycle command gets its own compilation buffer.
+(defcustom projectile-compilation-buffer-scope nil
+  "What a lifecycle command's compilation buffer is named after.
 
 Compiling, testing and running a project all use `compilation-mode' and
 therefore share one buffer, so running the tests discards the build
-output and vice versa.  With this enabled the command type is part of the
-buffer name (`*compilation*<test>'), which keeps them apart.
+output and vice versa - across projects as well as within one.
+Qualifying the buffer name keeps them apart.  The value is a list of:
 
-Composes with `projectile-per-project-compilation-buffer': with both
-enabled the buffer is named after the project and the command
-\(`*compilation*<my-project:test>')."
+- `project' - the project name (`*compilation*<my-project>'), so two
+  projects don't overwrite each other's output.  This also narrows the
+  buffers offered for saving before a command runs to the project's own.
+- `command' - the lifecycle command (`*compilation*<test>'), so a build
+  and a test run don't overwrite each other.
+
+The two compose: with both, the buffer is `*compilation*<my-project:test>'.
+With nil there's a single shared compilation buffer, as in plain Emacs."
   :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "3.3.0"))
+  :type '(set (const :tag "Project" project)
+              (const :tag "Lifecycle command" command))
+  :package-version '(projectile . "3.4.0"))
+
+;; Superseded by the single `projectile-compilation-buffer-scope', but still
+;; honored so that an existing configuration keeps working.
+(defvar projectile-per-project-compilation-buffer nil
+  "When non-nil, each project gets its own compilation buffer.")
+(defvar projectile-per-command-compilation-buffer nil
+  "When non-nil, each lifecycle command gets its own compilation buffer.")
+
+(make-obsolete-variable 'projectile-per-project-compilation-buffer
+                        "use `projectile-compilation-buffer-scope' instead."
+                        "3.4.0")
+(make-obsolete-variable 'projectile-per-command-compilation-buffer
+                        "use `projectile-compilation-buffer-scope' instead."
+                        "3.4.0")
 
 (defcustom projectile-after-switch-project-hook nil
   "Hooks run right after project is switched."
@@ -11305,9 +11312,11 @@ command type for the per-type command history), the variable caching
 the last command per project (`:cmd-map'), the .dir-locals.el override
 variable (`:dir-local-var'), a function of the project type returning
 the default command (`:default-fn'), the public command resolver
-\(`:command-fn'), the option making the output buffer interactive
-\(`:use-comint-var'), the prompt prefix (`:prompt') and whether to save
-the project's buffers before running the command (`:save-buffers').")
+\(`:command-fn'), the obsolete option making the output buffer
+interactive (`:use-comint-var', superseded by
+`projectile-use-comint-mode'), the prompt prefix (`:prompt') and
+whether to save the project's buffers before running the command
+\(`:save-buffers').")
 
 (defun projectile--phase-descriptor (phase)
   "Return the lifecycle descriptor for PHASE (a symbol like `compile')."
@@ -11806,20 +11815,29 @@ Bound by `projectile--run-project-cmd' for the duration of the call, so
 `projectile-compilation-buffer-name' - which `compile' calls with nothing
 but the mode name - can tell a test run from a build.")
 
+(defun projectile-compilation-buffer-scope-p (kind)
+  "Return non-nil when the compilation buffer name is qualified by KIND.
+KIND is `project' or `command'.  Reads
+`projectile-compilation-buffer-scope', falling back to the obsolete
+boolean it replaced for a configuration that still sets one."
+  (or (memq kind projectile-compilation-buffer-scope)
+      (pcase kind
+        ('project (with-no-warnings projectile-per-project-compilation-buffer))
+        ('command (with-no-warnings projectile-per-command-compilation-buffer)))))
+
 (defun projectile-compilation-buffer-name (compilation-mode)
-  "Meant to be used for `compilation-buffer-name-function`.
+  "Meant to be used for `compilation-buffer-name-function'.
 Argument COMPILATION-MODE is the name of the major mode used for the
 compilation buffer.
 
 The name is qualified by the project and/or the lifecycle command type,
-according to `projectile-per-project-compilation-buffer' and
-`projectile-per-command-compilation-buffer'."
+according to `projectile-compilation-buffer-scope'."
   (let ((qualifiers
          (delq nil
-               (list (and projectile-per-project-compilation-buffer
+               (list (and (projectile-compilation-buffer-scope-p 'project)
                           (projectile-project-p)
                           (projectile-project-name))
-                     (and projectile-per-command-compilation-buffer
+                     (and (projectile-compilation-buffer-scope-p 'command)
                           projectile--compilation-command-type
                           (symbol-name projectile--compilation-command-type))))))
     (concat "*" (downcase compilation-mode) "*"
@@ -12098,8 +12116,7 @@ running the command.
 
 BUFFER-NAME-FUNCTION, when non-nil, is used as the
 `compilation-buffer-name-function' for the compilation, taking
-precedence over the `projectile-per-project-compilation-buffer'
-naming.
+precedence over the `projectile-compilation-buffer-scope' naming.
 
 The placeholder `%p' in COMMAND is replaced with the project name.
 
@@ -12141,10 +12158,10 @@ The command actually run is returned."
                          (lambda ()
                            (projectile-project-buffer-p (current-buffer)
                                                         project-root))))
-    (when projectile-per-project-compilation-buffer
+    (when (projectile-compilation-buffer-scope-p 'project)
       (setq compilation-save-buffers-predicate #'projectile-current-project-buffer-p))
-    (when (or projectile-per-project-compilation-buffer
-              projectile-per-command-compilation-buffer)
+    (when (or (projectile-compilation-buffer-scope-p 'project)
+              (projectile-compilation-buffer-scope-p 'command))
       (setq compilation-buffer-name-function #'projectile-compilation-buffer-name))
     (when buffer-name-function
       (setq compilation-buffer-name-function buffer-name-function))
@@ -12159,41 +12176,63 @@ The command actually run is returned."
     (projectile-run-compilation command use-comint-mode)
     command))
 
-(defcustom projectile-configure-use-comint-mode nil
-  "Make the output buffer of `projectile-configure-project' interactive."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.5.0"))
+(defcustom projectile-use-comint-mode nil
+  "Which lifecycle commands get an interactive output buffer.
 
-(defcustom projectile-compile-use-comint-mode nil
-  "Make the output buffer of `projectile-compile-project' interactive."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.5.0"))
+The lifecycle commands report through `compilation-mode', which is
+read-only.  For a command covered here Projectile uses `comint-mode'
+instead, so a build that asks a question, or a test runner that drops
+into a debugger, can be typed at.
 
-(defcustom projectile-test-use-comint-mode nil
-  "Make the output buffer of `projectile-test-project' interactive."
+The value is nil (no command is interactive), t (all of them), or a
+list naming the ones that are - `configure', `compile', `test',
+`install', `package' and `run'."
   :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.5.0"))
+  :type '(choice (const :tag "No command" nil)
+                 (const :tag "Every command" t)
+                 (set :tag "Selected commands"
+                      (const :tag "Configure" configure)
+                      (const :tag "Compile" compile)
+                      (const :tag "Test" test)
+                      (const :tag "Install" install)
+                      (const :tag "Package" package)
+                      (const :tag "Run" run)))
+  :package-version '(projectile . "3.4.0"))
 
-(defcustom projectile-install-use-comint-mode nil
-  "Make the output buffer of `projectile-install-project' interactive."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.5.0"))
+;; Superseded by the single `projectile-use-comint-mode', but still honored
+;; so that an existing configuration keeps working.
+(defvar projectile-configure-use-comint-mode nil
+  "Make the output buffer of `projectile-configure-project' interactive.")
+(defvar projectile-compile-use-comint-mode nil
+  "Make the output buffer of `projectile-compile-project' interactive.")
+(defvar projectile-test-use-comint-mode nil
+  "Make the output buffer of `projectile-test-project' interactive.")
+(defvar projectile-install-use-comint-mode nil
+  "Make the output buffer of `projectile-install-project' interactive.")
+(defvar projectile-package-use-comint-mode nil
+  "Make the output buffer of `projectile-package-project' interactive.")
+(defvar projectile-run-use-comint-mode nil
+  "Make the output buffer of `projectile-run-project' interactive.")
 
-(defcustom projectile-package-use-comint-mode nil
-  "Make the output buffer of `projectile-package-project' interactive."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.5.0"))
+(dolist (var '(projectile-configure-use-comint-mode
+               projectile-compile-use-comint-mode
+               projectile-test-use-comint-mode
+               projectile-install-use-comint-mode
+               projectile-package-use-comint-mode
+               projectile-run-use-comint-mode))
+  (make-obsolete-variable var "use `projectile-use-comint-mode' instead."
+                          "3.4.0"))
 
-(defcustom projectile-run-use-comint-mode nil
-  "Make the output buffer of `projectile-run-project' interactive."
-  :group 'projectile
-  :type 'boolean
-  :package-version '(projectile . "2.5.0"))
+(defun projectile-use-comint-mode-p (phase)
+  "Return non-nil when PHASE's output buffer should be interactive.
+PHASE is a lifecycle phase symbol such as `compile'.  Reads
+`projectile-use-comint-mode', falling back to the obsolete per-phase
+option it replaced for a configuration that still sets one."
+  (or (if (listp projectile-use-comint-mode)
+          (memq phase projectile-use-comint-mode)
+        projectile-use-comint-mode)
+      (symbol-value (plist-get (projectile--phase-descriptor phase)
+                               :use-comint-var))))
 
 (defun projectile--phase-command-dynamic-p (phase)
   "Non-nil when PHASE's command comes from a function for the current project.
@@ -12240,7 +12279,8 @@ root (see `projectile-compilation-dir')."
                                  :prompt-prefix (projectile--lifecycle-prompt descriptor base)
                                  :save-buffers (plist-get descriptor :save-buffers)
                                  :no-cache (projectile--phase-command-dynamic-p phase)
-                                 :use-comint-mode (symbol-value (plist-get descriptor :use-comint-var)))))
+                                 :use-comint-mode (projectile-use-comint-mode-p
+                                                   (plist-get descriptor :name)))))
 
 ;;;###autoload
 (defun projectile-configure-project (arg)
@@ -12700,7 +12740,7 @@ a prefix ARG you can edit the command before it's run."
                                      :show-prompt arg
                                      :prompt-prefix "Test at point command: "
                                      :save-buffers t
-                                     :use-comint-mode projectile-test-use-comint-mode)))))
+                                     :use-comint-mode (projectile-use-comint-mode-p 'test))))))
 
 ;;;###autoload
 (defun projectile-install-project (arg)
@@ -12811,7 +12851,7 @@ the `%p' placeholder still intact."
     ;; `projectile--run-project-cmd' from prompting a second time.
     (let ((compilation-read-command nil)
           (buffer-name (concat "*projectile-task: " task-name "*"
-                               (when projectile-per-project-compilation-buffer
+                               (when (projectile-compilation-buffer-scope-p 'project)
                                  (concat "<" (projectile-project-name project-root) ">")))))
       (projectile--run-project-cmd command nil
                                    :save-buffers t

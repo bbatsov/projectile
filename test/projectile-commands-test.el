@@ -298,7 +298,7 @@
     (let ((projectile-project-types projectile-project-types)
           (projectile-run-cmd-map (make-hash-table :test 'equal))
           (projectile-project-run-cmd nil)
-          (projectile-per-project-compilation-buffer nil)
+          (projectile-compilation-buffer-scope nil)
           (compilation-read-command nil))
       (defun projectile-test--dyn-run () "run-it")
       (projectile-register-project-type 'dyn-run-project '("dyn.marker")
@@ -316,7 +316,7 @@
   (it "re-runs CMake preset selection on every configure"
     (let ((projectile-configure-cmd-map (make-hash-table :test 'equal))
           (projectile-project-configure-cmd nil)
-          (projectile-per-project-compilation-buffer nil)
+          (projectile-compilation-buffer-scope nil)
           (compilation-read-command nil))
       (spy-on 'projectile-project-type :and-return-value 'cmake)
       (spy-on 'projectile--cmake-select-command
@@ -334,7 +334,7 @@
     (let ((projectile-project-types projectile-project-types)
           (projectile-compilation-cmd-map (make-hash-table :test 'equal))
           (projectile-project-compilation-cmd nil)
-          (projectile-per-project-compilation-buffer nil))
+          (projectile-compilation-buffer-scope nil))
       (defun projectile-test--dyn-compile () "cmake --build build")
       (projectile-register-project-type 'dyn-compile-project '("dyn.marker")
                                         :compile 'projectile-test--dyn-compile)
@@ -353,7 +353,7 @@
     (let ((projectile-project-types projectile-project-types)
           (projectile-compilation-cmd-map (make-hash-table :test 'equal))
           (projectile-project-compilation-cmd nil)
-          (projectile-per-project-compilation-buffer nil))
+          (projectile-compilation-buffer-scope nil))
       (defun projectile-test--dyn-compile2 () "cmake --build build")
       (projectile-register-project-type 'dyn-compile-project-2 '("dyn.marker")
                                         :compile 'projectile-test--dyn-compile2)
@@ -372,37 +372,46 @@
     (spy-on 'projectile-project-p :and-return-value t)
     (spy-on 'projectile-project-name :and-return-value "my-project"))
 
-  (it "is the plain compilation buffer when neither option is on"
-    (let ((projectile-per-project-compilation-buffer nil)
-          (projectile-per-command-compilation-buffer nil)
+  (it "is the plain compilation buffer when the scope is empty"
+    (let ((projectile-compilation-buffer-scope nil)
           (projectile--compilation-command-type 'test))
       (expect (projectile-compilation-buffer-name "compilation")
               :to-equal "*compilation*")))
 
-  (it "qualifies by project"
-    (let ((projectile-per-project-compilation-buffer t)
-          (projectile-per-command-compilation-buffer nil)
+  (it "still honors the obsolete per-project boolean"
+    (let ((projectile-compilation-buffer-scope nil)
+          (projectile-per-project-compilation-buffer t)
           (projectile--compilation-command-type 'test))
       (expect (projectile-compilation-buffer-name "compilation")
               :to-equal "*compilation*<my-project>")))
 
-  (it "qualifies by command type"
-    (let ((projectile-per-project-compilation-buffer nil)
+  (it "still honors the obsolete per-command boolean"
+    (let ((projectile-compilation-buffer-scope nil)
           (projectile-per-command-compilation-buffer t)
           (projectile--compilation-command-type 'test))
       (expect (projectile-compilation-buffer-name "compilation")
               :to-equal "*compilation*<test>")))
 
+  (it "qualifies by project"
+    (let ((projectile-compilation-buffer-scope '(project))
+          (projectile--compilation-command-type 'test))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<my-project>")))
+
+  (it "qualifies by command type"
+    (let ((projectile-compilation-buffer-scope '(command))
+          (projectile--compilation-command-type 'test))
+      (expect (projectile-compilation-buffer-name "compilation")
+              :to-equal "*compilation*<test>")))
+
   (it "qualifies by both, project first"
-    (let ((projectile-per-project-compilation-buffer t)
-          (projectile-per-command-compilation-buffer t)
+    (let ((projectile-compilation-buffer-scope '(project command))
           (projectile--compilation-command-type 'compile))
       (expect (projectile-compilation-buffer-name "compilation")
               :to-equal "*compilation*<my-project:compile>")))
 
   (it "omits the command type when there isn't one"
-    (let ((projectile-per-project-compilation-buffer nil)
-          (projectile-per-command-compilation-buffer t)
+    (let ((projectile-compilation-buffer-scope '(command))
           (projectile--compilation-command-type nil))
       (expect (projectile-compilation-buffer-name "compilation")
               :to-equal "*compilation*"))))
@@ -419,8 +428,7 @@
             (lambda (_arg default &rest _) default)))
 
   (it "sends compile and test output to different buffers"
-    (let ((projectile-per-command-compilation-buffer t)
-          (projectile-per-project-compilation-buffer nil)
+    (let ((projectile-compilation-buffer-scope '(command))
           names)
       (spy-on 'projectile-run-compilation :and-call-fake
               (lambda (&rest _)
@@ -431,8 +439,7 @@
               :to-equal '("*compilation*<compile>" "*compilation*<test>"))))
 
   (it "leaves them sharing a buffer when the option is off"
-    (let ((projectile-per-command-compilation-buffer nil)
-          (projectile-per-project-compilation-buffer t)
+    (let ((projectile-compilation-buffer-scope '(project))
           names)
       (spy-on 'projectile-run-compilation :and-call-fake
               (lambda (&rest _)
@@ -908,5 +915,32 @@
     (spy-on 'find-file)
     (projectile-find-changed-file t)
     (expect 'projectile-git-changed-files :to-have-been-called-with "/proj/" "main")))
+
+(describe "projectile-use-comint-mode-p"
+  (it "makes no command interactive when nil"
+    (let ((projectile-use-comint-mode nil))
+      (expect (projectile-use-comint-mode-p 'test) :to-be nil)
+      (expect (projectile-use-comint-mode-p 'compile) :to-be nil)))
+
+  (it "makes every command interactive when t"
+    (let ((projectile-use-comint-mode t))
+      (expect (projectile-use-comint-mode-p 'test) :to-be-truthy)
+      (expect (projectile-use-comint-mode-p 'run) :to-be-truthy)))
+
+  (it "makes only the listed commands interactive"
+    (let ((projectile-use-comint-mode '(test run)))
+      (expect (projectile-use-comint-mode-p 'test) :to-be-truthy)
+      (expect (projectile-use-comint-mode-p 'run) :to-be-truthy)
+      (expect (projectile-use-comint-mode-p 'compile) :to-be nil)))
+
+  (it "still honors the obsolete per-phase option"
+    (let ((projectile-use-comint-mode nil)
+          (projectile-test-use-comint-mode t))
+      (expect (projectile-use-comint-mode-p 'test) :to-be-truthy)
+      (expect (projectile-use-comint-mode-p 'compile) :to-be nil)))
+
+  (it "rejects a phase it doesn't know"
+    (let ((projectile-use-comint-mode nil))
+      (expect (projectile-use-comint-mode-p 'bogus) :to-throw))))
 
 ;;; projectile-commands-test.el ends here
