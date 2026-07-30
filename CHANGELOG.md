@@ -40,6 +40,7 @@
 
 ### Bugs fixed
 
+- [#2146](https://github.com/bbatsov/projectile/pull/2146): The default `projectile-globally-ignored-buffers` entries are matched as regexps, so `*scratch*` only matched by accident and `*scratchhh*` matched too; the asterisks are now escaped.
 - [#2146](https://github.com/bbatsov/projectile/pull/2146): `projectile-svn-command` filtered directories out of `svn list -R` with `grep -v '$/'`, where the `$` is a literal rather than an anchor, so it never dropped anything and svn projects listed their directories among their files.
 
 ## 3.3.0 (2026-07-27)
