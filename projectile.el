@@ -157,12 +157,12 @@ in Emacs Lisp only for the few tools that can't express them (see
 The disadvantage of the hybrid and alien methods is that they are not well
 supported on Windows systems.  That's why by default alien indexing is the
 default on all operating systems, except Windows."
-  :safe (lambda (x) (memq x '(native hybrid alien)))
   :group 'projectile
-  :type '(radio
+  :type '(choice
           (const :tag "Native" native)
           (const :tag "Hybrid" hybrid)
           (const :tag "Alien" alien))
+  :safe (lambda (x) (memq x '(native hybrid alien)))
   :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-alien-honors-ignores t
@@ -197,13 +197,13 @@ separate mechanism and remain `hybrid'/`native' only."
   "When t enables project files caching.
 
 Normally the cache lasts for the duration of your Emacs session.
-If you want to cache to persist between Emacs sessions you
-should set this option to `'persistent'.
+If you want the cache to persist between Emacs sessions you
+should set this option to `persistent'.
 
 Project caching is automatically enabled by default if you're
 using the native indexing method."
   :group 'projectile
-  :type '(radio
+  :type '(choice
           (const :tag "Disabled" nil)
           (const :tag "Transient" t)
           (const :tag "Persistent" persistent))
@@ -295,7 +295,7 @@ A value of nil disables this cache.
 See `projectile-file-exists-p' for details."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds"))
+                 (natnum :tag "Seconds"))
   :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-file-exists-remote-cache-expire (* 5 60)
@@ -306,7 +306,7 @@ A value of nil disables this cache.
 See `projectile-file-exists-p' for details."
   :group 'projectile
   :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds"))
+                 (natnum :tag "Seconds"))
   :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-files-cache-expire nil
@@ -314,8 +314,8 @@ See `projectile-file-exists-p' for details."
 
 A value of nil means the cache never expires."
   :group 'projectile
-  :type '(choice (const :tag "Disabled" nil)
-                 (integer :tag "Seconds"))
+  :type '(choice (const :tag "Never expires" nil)
+                 (natnum :tag "Seconds"))
   :package-version '(projectile . "1.0.0"))
 
 (defcustom projectile-auto-discover t
@@ -397,7 +397,7 @@ count against the same limit.
 Only relevant when `projectile-auto-update-cache-with-watches' is
 enabled."
   :group 'projectile
-  :type 'integer
+  :type 'natnum
   :package-version '(projectile . "3.1.0"))
 
 (defcustom projectile-require-project-root 'prompt
@@ -428,9 +428,20 @@ of those legacy values now behaves like `default'."
   :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-keymap-prefix nil
-  "Projectile keymap prefix."
+  "The key sequence `projectile-command-map' is bound to, if any.
+
+A key sequence in the form `kbd' returns, e.g. (kbd \"C-c p\").  There
+is no prefix by default - Projectile binds none of its commands until
+you ask for it.
+
+The value is read once, when `projectile-mode-map' is built as
+Projectile loads, so it has to be set before that - which rules out
+Customize and `setopt'.  Binding the map directly works whenever:
+
+  (define-key projectile-mode-map (kbd \"C-c p\") \\='projectile-command-map)"
   :group 'projectile
-  :type 'string
+  :type '(choice (const :tag "None" nil)
+                 (key-sequence :tag "Prefix"))
   :package-version '(projectile . "0.7"))
 
 (defcustom projectile-cache-file  ".projectile-cache.eld"
@@ -458,12 +469,11 @@ Note that files aren't sorted if `projectile-indexing-method'
 is set to `alien'."
   :group 'projectile
   :type '(choice
-          (radio
-           (const :tag "Default (no sorting)" default)
-           (const :tag "Recently opened files" recentf)
-           (const :tag "Recently active buffers, then recently opened files" recently-active)
-           (const :tag "Access time (atime)" access-time)
-           (const :tag "Modification time (mtime)" modification-time))
+          (const :tag "Default (no sorting)" default)
+          (const :tag "Recently opened files" recentf)
+          (const :tag "Recently active buffers, then recently opened files" recently-active)
+          (const :tag "Access time (atime)" access-time)
+          (const :tag "Modification time (mtime)" modification-time)
           (function :tag "Custom sort function"))
   :package-version '(projectile . "3.1.0"))
 
@@ -517,7 +527,8 @@ Two example filter functions are shipped by default -
 `projectile-buffers-with-file' and
 `projectile-buffers-with-file-or-process'."
   :group 'projectile
-  :type 'function
+  :type '(choice (const :tag "No filtering" nil)
+                 (function :tag "Filter function"))
   :package-version '(projectile . "0.11.0"))
 
 (defcustom projectile-project-name nil
@@ -525,7 +536,8 @@ Two example filter functions are shipped by default -
 
 It has precedence over function `projectile-project-name-function'."
   :group 'projectile
-  :type 'string
+  :type '(choice (const :tag "Derive from the project root" nil)
+                 (string :tag "Name"))
   :safe (lambda (v) (or (null v)
                         (and (stringp v)
                              (not (string-blank-p v)))))
@@ -626,12 +638,13 @@ This should _not_ be set via .dir-locals.el."
 
 (defcustom projectile-dirconfig-comment-prefix
   nil
-  "`projectile-dirconfig-file` comment start marker.
+  "`projectile-dirconfig-file' comment start marker.
 If specified, starting a line in a project's .projectile file with this
 character marks that line as a comment instead of a pattern.
 Similar to '#' in .gitignore files."
   :group 'projectile
-  :type 'character
+  :type '(choice (const :tag "No comment syntax" nil)
+                 (character :tag "Comment character"))
   :package-version '(projectile . "2.2.0"))
 
 (defcustom projectile-warn-on-prefixless-dirconfig-lines t
@@ -645,6 +658,14 @@ such line, listing the offending entries."
   :type 'boolean
   :package-version '(projectile . "3.0.0"))
 
+(defun projectile-string-list-p (value)
+  "Return non-nil when VALUE is a list of strings.
+
+The `:safe' predicate of the options holding a list of names, patterns
+or regexps.  None of them can do more than widen or narrow a listing,
+so a project is free to set them from its .dir-locals.el."
+  (and (proper-list-p value) (seq-every-p #'stringp value)))
+
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name projectile-cache-file)
   "A list of files globally ignored by projectile.
@@ -653,9 +674,9 @@ Entries are gitignore patterns: a plain name matches a file with that
 name at any depth, a name containing a slash is anchored at the project
 root, and `*', `**', `?' and `[...]' are the usual wildcards.  See
 `projectile-globally-ignored-directories' for the full pattern language."
-  :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-globally-unignored-files nil
@@ -665,6 +686,7 @@ Entries cancel out the matching `projectile-globally-ignored-files'
 entries."
   :group 'projectile
   :type '(repeat string)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-globally-ignored-file-suffixes
@@ -675,6 +697,7 @@ were the gitignore pattern `*SUFFIX' (e.g. \".elc\" ignores every
 `.elc' file in the project)."
   :group 'projectile
   :type '(repeat string)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-globally-ignored-directories
@@ -755,9 +778,9 @@ them back, or a `!' line to a project's `.projectile' to get it back
 for that project only.
 
 See also `projectile-global-ignore-file-patterns'."
-  :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "3.3.0"))
 
 (defcustom projectile-globally-unignored-directories nil
@@ -767,6 +790,7 @@ Entries cancel out the matching `projectile-globally-ignored-directories'
 entries."
   :group 'projectile
   :type '(repeat string)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-global-ignore-file-patterns
@@ -782,9 +806,9 @@ only applied by `native' indexing.
 
 See also `projectile-ignored-file-p' and
 `projectile-ignored-directory-p'."
-  :safe (lambda (x) (not (remq t (mapcar #'stringp x))))
   :group 'projectile
   :type '(repeat string)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "2.9.0"))
 
 (defcustom projectile-globally-ignored-modes
@@ -797,21 +821,30 @@ See also `projectile-ignored-file-p' and
   "A list of regular expressions for major modes ignored by projectile.
 
 If a buffer is using a given major mode, projectile will ignore
-it for functions working with buffers."
+it for functions working with buffers.
+
+Each entry is matched against the whole mode name, so \"occur-mode\"
+ignores that mode and nothing else, while \"gnus-.*-mode\" ignores a
+family of them."
   :group 'projectile
-  :type '(repeat string)
+  :type '(repeat regexp)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-globally-ignored-buffers
   '("*scratch*"
     "*lsp-log*")
-  "A list of buffer-names ignored by projectile.
+  "A list of buffer names ignored by projectile.
 
-You can use either exact buffer names or regular expressions.
-If a buffer is in the list projectile will ignore it for
-functions working with buffers."
+If a buffer matches one of these, projectile will ignore it for
+functions working with buffers.
+
+Each entry is a regular expression, matched anywhere in the buffer
+name - unlike `projectile-globally-ignored-modes', which matches whole
+mode names.  Anchor an entry yourself when you mean an exact name."
   :group 'projectile
-  :type '(repeat string)
+  :type '(repeat regexp)
+  :safe #'projectile-string-list-p
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-find-file-hook nil
@@ -887,15 +920,15 @@ Either a backend name registered in `projectile-shell-backends'
 you registered yourself with `projectile-register-shell-backend'), `auto'
 to pick the first available backend, or `prompt' to be asked each time."
   :group 'projectile
-  :type '(choice (const :tag "shell" shell)
+  :type '(choice (const :tag "Automatic" auto)
+                 (const :tag "Prompt each time" prompt)
+                 (const :tag "shell" shell)
                  (const :tag "eshell" eshell)
                  (const :tag "ielm" ielm)
                  (const :tag "term" term)
                  (const :tag "vterm" vterm)
                  (const :tag "eat" eat)
                  (const :tag "ghostel" ghostel)
-                 (const :tag "Automatic" auto)
-                 (const :tag "Prompt each time" prompt)
                  (symbol :tag "Other registered backend"))
   :package-version '(projectile . "3.0.0"))
 
@@ -1197,7 +1230,7 @@ your Emacs state wherever that is - including `~/.config/emacs\\=' for a
 configuration kept there, which a hand-rolled `user-emacs-directory\\='
 path would have missed."
   :group 'projectile
-  :type 'string
+  :type 'file
   :package-version '(projectile . "3.4.0"))
 
 (defcustom projectile-ignored-projects nil
@@ -1275,7 +1308,8 @@ projects on a TRAMP host fd is detected separately on the remote (and
 cached per host), since whatever is on the local box may not exist on
 the remote.  See `projectile-fd-executable-for'."
   :group 'projectile
-  :type 'string
+  :type '(choice (const :tag "Don't use fd" nil)
+                 (string :tag "Path or name"))
   :package-version '(projectile . "2.8.0"))
 
 (defvar projectile--remote-fd-executable-cache (make-hash-table :test 'equal)
@@ -1351,7 +1385,8 @@ default value the submodules are listed by running git directly, with
 no shell involved (see issue #1600).  Customizing the variable switches
 back to running it as a shell command."
   :group 'projectile
-  :type 'string
+  :type '(choice (const :tag "Don't list submodules" nil)
+                 (string :tag "Command"))
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-git-ignored-command "git ls-files -zcoi --exclude-standard"
@@ -1476,11 +1511,16 @@ fails with an authentication error.  See URL
     ("lock" . (""))
     ("gpg"  . (""))
     )
-  "Alist of extensions for switching to file with the same name,
-  using other extensions based on the extension of current
-  file."
+  "Alist of extensions to try when switching to a file's counterpart.
+
+Keys and values are extensions without the leading dot; the key nil
+stands for a file with no extension at all.  Each value lists the
+extensions `projectile-find-other-file' offers for a file with that
+key's extension, in the order they are tried."
   :group 'projectile
-  :type 'alist
+  :type '(alist :key-type (choice (string :tag "Extension")
+                                  (const :tag "No extension" nil))
+                :value-type (repeat (string :tag "Extension")))
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-create-missing-test-files nil
@@ -1548,7 +1588,7 @@ will display current project and the end of the list of known
 projects, `keep' will leave the current project at the default
 position."
   :group 'projectile
-  :type '(radio
+  :type '(choice
           (const :tag "Remove" remove)
           (const :tag "Move to end" move-to-end)
           (const :tag "Keep" keep))
@@ -1559,7 +1599,8 @@ position."
 
 If the value is nil, there is no limit to the opened buffers count."
   :group 'projectile
-  :type 'integer
+  :type '(choice (const :tag "No limit" nil)
+                 (natnum :tag "Buffers"))
   :package-version '(projectile . "2.2.0"))
 
 (defcustom projectile-cmd-hist-ignoredups t
