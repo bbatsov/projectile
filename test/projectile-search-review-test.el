@@ -430,7 +430,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
       (expect (member "--word-regexp" cmd) :to-be-truthy))))
 
 (describe "projectile-search--rg-ingest streaming and cap"
-  (it "honors projectile-replace-max-matches and marks the list truncated"
+  (it "honors projectile-search-max-matches and marks the list truncated"
     (projectile-test-with-project
         (("a.txt" . "foo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name))
@@ -445,7 +445,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (projectile-replace--seed buf #'projectile-search-mode
                                   default-directory "foo" "foo" nil t t)
         (with-current-buffer buf (setq projectile-replace--scanning t))
-        (let ((projectile-replace-max-matches 2))
+        (let ((projectile-search-max-matches 2))
           (let ((capped (projectile-search--rg-ingest
                          buf (list (funcall line 1)
                                    (funcall line 2)
@@ -585,13 +585,13 @@ REGEXP-P selects `projectile-search-regexp-review'."
                   :to-be-a-match-with '(:line 1 :column 5 :string "foo"
                                         :context "café foo bar"))))))
 
-  (it "honors projectile-replace-max-matches over a real ripgrep stream"
+  (it "honors projectile-search-max-matches over a real ripgrep stream"
     (assume (executable-find "rg") "ripgrep is not installed")
     (projectile-test-with-project
         (("a.txt" . "foo\nfoo\nfoo\n"))
       (let ((buf (get-buffer-create projectile-search-buffer-name))
             (root default-directory)
-            (projectile-replace-max-matches 1))
+            (projectile-search-max-matches 1))
         (projectile-replace--seed buf #'projectile-search-mode
                                   root "foo" "foo" nil t t)
         (projectile-search--gather-rg buf "foo" nil)

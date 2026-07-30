@@ -238,7 +238,7 @@
 (describe "projectile-known-projects auto-discovery"
   (it "auto-discovers only once per session"
     (let ((projectile-known-projects '("/p/"))
-          (projectile-auto-discover t)
+          (projectile-auto-discover-projects t)
           (projectile-auto-cleanup-known-projects nil)
           (projectile-project-search-path '("/search/"))
           (projectile--search-path-discovered nil))
@@ -251,7 +251,7 @@
 
   (it "does not auto-discover without a search path"
     (let ((projectile-known-projects '("/p/"))
-          (projectile-auto-discover t)
+          (projectile-auto-discover-projects t)
           (projectile-auto-cleanup-known-projects nil)
           (projectile-project-search-path nil)
           (projectile--search-path-discovered nil))

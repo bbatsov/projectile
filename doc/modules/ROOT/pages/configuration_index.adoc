@@ -26,7 +26,7 @@ and the other reference pages.
 | `projectile-auto-cleanup-known-projects`
 | Whether to cleanup projects when project switching commands are invoked.
 
-| `projectile-auto-discover`
+| `projectile-auto-discover-projects`
 | Whether to discover projects under ‘projectile-project-search-path’.
 
 | `projectile-auto-update-cache`
@@ -50,7 +50,7 @@ and the other reference pages.
 | `projectile-cache-file`
 | The name of Projectile’s cache.
 
-| `projectile-cmd-hist-ignoredups`
+| `projectile-command-history-ignore-duplicates`
 | Controls when inputs are added to projectile’s command history.
 
 | `projectile-compilation-buffer-scope`
@@ -155,14 +155,14 @@ and the other reference pages.
 | `projectile-git-use-fd`
 | Non-nil means use fd to implement git ls-files.
 
-| `projectile-global-ignore-file-patterns`
-| A list of file regexp patterns ignored by Projectile.
-
 | `projectile-globally-ignored-buffers`
 | A list of buffer names ignored by projectile.
 
 | `projectile-globally-ignored-directories`
 | A list of directories globally ignored by projectile.
+
+| `projectile-globally-ignored-file-regexps`
+| A list of regexps matching files ignored by Projectile.
 
 | `projectile-globally-ignored-file-suffixes`
 | A list of file suffixes globally ignored by projectile.
@@ -260,17 +260,8 @@ and the other reference pages.
 | `projectile-project-search-path`
 | List of folders where projectile is automatically going to look for projects.
 
-| `projectile-related-files-fn-function`
+| `projectile-related-files-function`
 | Function to find related files based on PROJECT-TYPE.
-
-| `projectile-replace-async`
-| Whether the reviewable search/replace commands scan asynchronously.
-
-| `projectile-replace-max-matches`
-| Upper bound on how many matches ‘projectile-replace-review’ collects.
-
-| `projectile-replace-scan-chunk-size`
-| Number of candidate files scanned per async chunk before yielding.
 
 | `projectile-require-project-root`
 | Require the presence of a project root to operate when true.
@@ -278,8 +269,17 @@ and the other reference pages.
 | `projectile-sapling-command`
 | Command used by projectile to get the files in a Sapling project.
 
+| `projectile-search-async`
+| Whether the reviewable search/replace commands scan asynchronously.
+
 | `projectile-search-backend`
 | The backend ‘projectile-search’ uses to search the project.
+
+| `projectile-search-max-matches`
+| Upper bound on how many matches a review buffer collects.
+
+| `projectile-search-scan-chunk-size`
+| Number of candidate files scanned per async chunk before yielding.
 
 | `projectile-search-use-ripgrep`
 | Whether ‘projectile-search-review’ accelerates literal search with ripgrep.

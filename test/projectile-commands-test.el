@@ -202,10 +202,10 @@
       (projectile--run-project-cmd "make" command-map :command-type 'compile)
       (expect (hash-table-count command-map) :to-equal 1)))
 
-  (it "projectile-cmd-hist-ignoredups set to t"
+  (it "projectile-command-history-ignore-duplicates set to t"
 
     (let ((command-map (make-hash-table :test 'equal))
-          (projectile-cmd-hist-ignoredups t)
+          (projectile-command-history-ignore-duplicates t)
           ;; history is based on the project root, so we set it to a random
           ;; path to ensure there are no existing commands in history
           (projectile-project-root "/a/random/path"))
@@ -218,9 +218,9 @@
                (projectile--get-command-history projectile-project-root))
               :to-equal '("foo" "bar" "foo"))))
 
-  (it "projectile-cmd-hist-ignoredups set to erase"
+  (it "projectile-command-history-ignore-duplicates set to erase"
     (let ((command-map (make-hash-table :test 'equal))
-          (projectile-cmd-hist-ignoredups 'erase)
+          (projectile-command-history-ignore-duplicates 'erase)
           (projectile-project-root "/a/random/path"))
       (projectile--run-project-cmd "foo" command-map)
       (projectile--run-project-cmd "bar" command-map)
@@ -233,7 +233,7 @@
 
   (it "keeps a separate history per command type without bleeding"
     (let ((command-map (make-hash-table :test 'equal))
-          (projectile-cmd-hist-ignoredups t)
+          (projectile-command-history-ignore-duplicates t)
           (projectile-project-command-history (make-hash-table :test 'equal))
           (projectile-project-root "/a/random/path"))
       (projectile--run-project-cmd "make" command-map :command-type 'compile)
@@ -254,7 +254,7 @@
 
   (it "does not record a per-type history when command-type is nil"
     (let ((command-map (make-hash-table :test 'equal))
-          (projectile-cmd-hist-ignoredups t)
+          (projectile-command-history-ignore-duplicates t)
           (projectile-project-command-history (make-hash-table :test 'equal))
           (projectile-project-root "/a/random/path"))
       (projectile--run-project-cmd "foo" command-map)
