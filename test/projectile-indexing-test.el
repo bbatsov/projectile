@@ -411,6 +411,19 @@
     (expect (projectile-get-ext-command 'none) :to-equal projectile-generic-command)
     (expect (projectile-get-ext-command nil) :to-equal projectile-generic-command)))
 
+(describe "projectile-svn-command"
+  ;; `svn list -R' lists directories too, with a trailing slash.  The
+  ;; filter meant to drop them read `grep -v '$/'', where the `$' is
+  ;; literal rather than an anchor, so it dropped nothing at all.
+  (it "drops the directory entries from an svn listing"
+    (let* ((filter (nth 1 (split-string projectile-svn-command "|" nil "[ \t]+")))
+           (out (with-temp-buffer
+                  (insert "src/\nsrc/main.c\ndoc/\nREADME\n")
+                  (shell-command-on-region (point-min) (point-max) filter
+                                           (current-buffer) t)
+                  (buffer-string))))
+      (expect (split-string out "\n" t) :to-equal '("src/main.c" "README")))))
+
 (describe "projectile-fd-executable-for"
   (it "returns the local fd executable for a local directory"
     (let ((projectile-fd-executable "fd"))

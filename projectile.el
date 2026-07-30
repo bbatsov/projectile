@@ -1449,8 +1449,11 @@ back to running it as a shell command."
   :type 'string
   :package-version '(projectile . "2.6.0"))
 
-(defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
+(defcustom projectile-svn-command "svn list -R . | grep -v '/$' | tr '\\n' '\\0'"
   "Command used by projectile to get the files in a svn project.
+
+`svn list -R' reports directories too, with a trailing slash, so they
+are filtered out - the project files are what Projectile is after.
 
 The command runs non-interactively (its output is piped), so `svn'
 can't prompt for credentials.  For projects on an authenticated remote
