@@ -121,7 +121,7 @@ Recursive discovery is configured by specifying the search depth in a cons cell:
 (setq projectile-project-search-path '("~/projects/" "~/work/" ("~/github" . 1)))
 ----
 
-Automatic discovery is controlled by `projectile-auto-discover`, which
+Automatic discovery is controlled by `projectile-auto-discover-projects`, which
 is enabled by default. The search path is scanned the first time a
 project-switching command runs in an Emacs session (not on every switch),
 so pointing `projectile-project-search-path` at your projects directory
@@ -129,7 +129,7 @@ is all you need. To turn the automatic scan off:
 
 [source,elisp]
 ----
-(setq projectile-auto-discover nil)
+(setq projectile-auto-discover-projects nil)
 ----
 
 You can always trigger a fresh scan manually with `M-x
@@ -306,7 +306,7 @@ disturb later ones, edits already-open buffers in place under a single undo
 step (and saves them), and writes closed files back to disk preserving their
 coding system. A buffer that was modified after the search is skipped rather
 than risk a bad edit; re-run the search (kbd:[g]) to pick up its current
-state. Very large searches are capped at `projectile-replace-max-matches`.
+state. Very large searches are capped at `projectile-search-max-matches`.
 
 The project is scanned asynchronously: the `+*projectile-replace*+` buffer
 opens right away and matches stream in as they are found (the status line
@@ -315,7 +315,7 @@ freezes Emacs. The scan is cancelable with kbd:[q], kbd:[C-g], or by killing
 the buffer. While it is still running, kbd:[!] and kbd:[e] refuse until it
 finishes, so the write-back never runs against a partial match set; starting a
 new scan (kbd:[g], kbd:[c], kbd:[x]) first cancels any in-flight one. Set
-`projectile-replace-async` to nil to force the old synchronous single-pass
+`projectile-search-async` to nil to force the old synchronous single-pass
 scan instead; batch (`noninteractive`) runs always scan synchronously.
 
 kbd:[!] applies the enabled matches with no external dependency. If you'd
@@ -408,14 +408,14 @@ The results buffer supports these keys:
 |===
 
 The status line, the case/regexp toggles, the filter keys, the grep export
-and the asynchronous, cancelable scanning (including `projectile-replace-async`)
+and the asynchronous, cancelable scanning (including `projectile-search-async`)
 behave exactly as in the replace reviewer above; only the preview, per-match
 toggle and apply are absent. kbd:[r] is the search-to-replace
 bridge: it carries over the same term, literal-ness and case setting and
 opens the `+*projectile-replace*+` reviewer, prompting only for the
 replacement. It re-runs the search from scratch, so any filtering you did
 in the search buffer is not carried into the replacement. Very large
-searches are capped at `projectile-replace-max-matches`.
+searches are capped at `projectile-search-max-matches`.
 
 When `projectile-search-use-ripgrep` is non-nil (the default) and the
 `rg` (ripgrep) executable is installed, a *literal* `projectile-search-review`

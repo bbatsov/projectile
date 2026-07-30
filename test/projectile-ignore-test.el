@@ -62,8 +62,8 @@
   (it "lets an ensure pattern rescue an ignored file"
     (spy-on 'projectile--dirconfig-ensure :and-return-value '("TAGS"))
     (expect (projectile-ignored-file-p "/path/to/project/TAGS") :not :to-be-truthy))
-  (it "applies projectile-global-ignore-file-patterns to the absolute name"
-    (let ((projectile-global-ignore-file-patterns '("\\.min\\.js\\'")))
+  (it "applies projectile-globally-ignored-file-regexps to the absolute name"
+    (let ((projectile-globally-ignored-file-regexps '("\\.min\\.js\\'")))
       (expect (projectile-ignored-file-p "/path/to/project/a.min.js") :to-be-truthy)
       (expect (projectile-ignored-file-p "/path/to/project/a.js") :not :to-be-truthy))))
 
@@ -477,15 +477,15 @@
 (describe "projectile--global-ignore-regexp-p"
   (it "matches the regexps case-sensitively"
     ;; `string-match-p' folds case by default
-    (let ((projectile-global-ignore-file-patterns '("build")))
+    (let ((projectile-globally-ignored-file-regexps '("build")))
       (expect (projectile--global-ignore-regexp-p "/r/build/a.o") :to-be-truthy)
       (expect (projectile--global-ignore-regexp-p "/r/BUILD/a.o") :not :to-be-truthy)))
   (it "matches against the absolute file name"
-    (let ((projectile-global-ignore-file-patterns '("\\.min\\.js\\'")))
+    (let ((projectile-globally-ignored-file-regexps '("\\.min\\.js\\'")))
       (expect (projectile--global-ignore-regexp-p "/r/foo.min.js") :to-be-truthy)
       (expect (projectile--global-ignore-regexp-p "/r/foo.js") :not :to-be-truthy)))
   (it "returns nil when there are no patterns"
-    (let ((projectile-global-ignore-file-patterns nil))
+    (let ((projectile-globally-ignored-file-regexps nil))
       (expect (projectile--global-ignore-regexp-p "/r/foo.js") :not :to-be-truthy))))
 
 (describe "projectile--ignore-patterns"

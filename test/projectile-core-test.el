@@ -632,4 +632,27 @@
       (expect (locate-user-emacs-file "projectile-bookmarks.eld")
               :to-equal "~/.emacs.d/projectile-bookmarks.eld"))))
 
+(describe "renamed configuration options"
+  ;; The old names are obsolete aliases, so a configuration written against
+  ;; them keeps working.  Setting one must reach the new option.
+  (it "keeps the old name working as an alias for the new one"
+    (dolist (pair '((projectile-auto-discover . projectile-auto-discover-projects)
+                    (projectile-global-ignore-file-patterns
+                     . projectile-globally-ignored-file-regexps)
+                    (projectile-related-files-fn-function
+                     . projectile-related-files-function)
+                    (projectile-cmd-hist-ignoredups
+                     . projectile-command-history-ignore-duplicates)
+                    (projectile-replace-max-matches . projectile-search-max-matches)
+                    (projectile-replace-async . projectile-search-async)
+                    (projectile-replace-scan-chunk-size
+                     . projectile-search-scan-chunk-size)))
+      (expect (indirect-variable (car pair)) :to-be (cdr pair))
+      (expect (get (car pair) 'byte-obsolete-variable) :not :to-be nil)))
+
+  (it "routes a value set under the old name to the new option"
+    (let ((projectile-search-max-matches 5000))
+      (with-no-warnings (setq projectile-replace-max-matches 42))
+      (expect projectile-search-max-matches :to-equal 42))))
+
 ;;; projectile-core-test.el ends here

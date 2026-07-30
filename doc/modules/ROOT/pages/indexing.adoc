@@ -207,7 +207,7 @@ below summarises which configuration knobs take effect under which mode:
 | Yes
 | Yes
 
-| Honors `projectile-global-ignore-file-patterns` (Emacs regexps)
+| Honors `projectile-globally-ignored-file-regexps` (Emacs regexps)
 | Yes
 | No
 | No

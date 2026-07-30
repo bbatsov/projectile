@@ -63,7 +63,9 @@ xref:projects.adoc[the Projects page]).
 
 == Automatic project discovery is on by default
 
-`projectile-auto-discover` now defaults to `t`. It has no effect unless you've
+`projectile-auto-discover` now defaults to `t` (the option was renamed to
+`projectile-auto-discover-projects` in 3.4; the old name still works). It has
+no effect unless you've
 also set `projectile-project-search-path`, so nothing changes out of the box -
 but if you _had_ set a search path and deliberately left auto-discovery off,
 you'll now get it.
@@ -77,7 +79,7 @@ To keep the old behavior:
 
 [source,elisp]
 ----
-(setq projectile-auto-discover nil)
+(setq projectile-auto-discover-projects nil)
 ----
 
 == `projectile-find-file` orders by frecency

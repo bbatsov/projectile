@@ -231,7 +231,7 @@ way to further adjust what you want to see in Projectile.
 
 In addition to per-project ignores, Projectile provides several variables for
 globally ignoring files and directories.  Except for
-`projectile-global-ignore-file-patterns` (see below) their entries are the
+`projectile-globally-ignored-file-regexps` (see below) their entries are the
 gitignore patterns described xref:pattern-language[above], and they take effect
 with every indexing method; under `alien` they are pushed down into the external
 indexing tool.
@@ -263,7 +263,7 @@ that project's `.projectile` to get it back for that project alone.
         "*.egg-info"))  ; any directory whose name ends in .egg-info
 ----
 
-`projectile-global-ignore-file-patterns` is the odd one out: its entries are
+`projectile-globally-ignored-file-regexps` is the odd one out: its entries are
 Emacs regexps, matched against absolute file names, not patterns. They can't be
 handed to an external tool or expressed as a glob, so they only apply under
 `native` indexing.
@@ -271,7 +271,7 @@ handed to an external tool or expressed as a glob, so they only apply under
 [source,elisp]
 ----
 ;; Ignore files matching regexp patterns (native indexing only)
-(setq projectile-global-ignore-file-patterns '("\\.min\\.js$" "\\.map$"))
+(setq projectile-globally-ignored-file-regexps '("\\.min\\.js$" "\\.map$"))
 ----
 
 NOTE: Before Projectile 3.3 a leading `*` in

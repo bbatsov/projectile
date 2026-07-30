@@ -318,7 +318,10 @@ A value of nil means the cache never expires."
                  (natnum :tag "Seconds"))
   :package-version '(projectile . "1.0.0"))
 
-(defcustom projectile-auto-discover t
+(define-obsolete-variable-alias 'projectile-auto-discover
+  'projectile-auto-discover-projects "3.4.0")
+
+(defcustom projectile-auto-discover-projects t
   "Whether to discover projects under `projectile-project-search-path'.
 When non-nil, the projects under the search path are discovered and
 remembered the first time a project-switching command runs in an Emacs
@@ -777,7 +780,7 @@ an entry to `projectile-globally-unignored-directories' to get one of
 them back, or a `!' line to a project's `.projectile' to get it back
 for that project only.
 
-See also `projectile-global-ignore-file-patterns'."
+See also `projectile-globally-ignored-file-regexps'."
   :group 'projectile
   :type '(repeat string)
   :safe #'projectile-string-list-p
@@ -793,9 +796,12 @@ entries."
   :safe #'projectile-string-list-p
   :package-version '(projectile . "0.14.0"))
 
-(defcustom projectile-global-ignore-file-patterns
+(define-obsolete-variable-alias 'projectile-global-ignore-file-patterns
+  'projectile-globally-ignored-file-regexps "3.4.0")
+
+(defcustom projectile-globally-ignored-file-regexps
   nil
-  "A list of file regexp patterns ignored by Projectile.
+  "A list of regexps matching files ignored by Projectile.
 
 Unlike `projectile-globally-ignored-files' and
 `projectile-globally-ignored-directories', which speak gitignore
@@ -953,7 +959,10 @@ to pick the first available backend, or `prompt' to be asked each time."
   :type 'function
   :package-version '(projectile . "0.11.0"))
 
-(defcustom projectile-related-files-fn-function 'projectile-related-files-fn
+(define-obsolete-variable-alias 'projectile-related-files-fn-function
+  'projectile-related-files-function "3.4.0")
+
+(defcustom projectile-related-files-function 'projectile-related-files-fn
   "Function to find related files based on PROJECT-TYPE."
   :group 'projectile
   :type 'function
@@ -1623,7 +1632,10 @@ If the value is nil, there is no limit to the opened buffers count."
                  (natnum :tag "Buffers"))
   :package-version '(projectile . "2.2.0"))
 
-(defcustom projectile-cmd-hist-ignoredups t
+(define-obsolete-variable-alias 'projectile-cmd-hist-ignoredups
+  'projectile-command-history-ignore-duplicates "3.4.0")
+
+(defcustom projectile-command-history-ignore-duplicates t
   "Controls when inputs are added to projectile's command history.
 
 A value of t means consecutive duplicates are ignored.
@@ -2756,7 +2768,7 @@ project-switch command.")
 (defun projectile-discover-projects-in-search-path ()
   "Discover projects in `projectile-project-search-path'.
 When called interactively, always re-scans; the automatic scan (see
-`projectile-auto-discover') runs this once per session."
+`projectile-auto-discover-projects') runs this once per session."
   (interactive)
   (setq projectile--search-path-discovered t)
   (dolist (path projectile-project-search-path)
@@ -3148,13 +3160,13 @@ Files are returned as relative paths to DIRECTORY."
                                         progress-reporter))))
 
 (defun projectile--global-ignore-regexp-p (path)
-  "Return non-nil when PATH matches `projectile-global-ignore-file-patterns'.
+  "Return non-nil when PATH matches `projectile-globally-ignored-file-regexps'.
 PATH is an absolute file name.  Those patterns are Emacs regexps rather
 than globs, which is why they are a separate mechanism from the ignore
 patterns proper; matching is case-sensitive."
   (seq-some (lambda (re) (let ((case-fold-search nil))
                            (string-match-p re path)))
-            projectile-global-ignore-file-patterns))
+            projectile-globally-ignored-file-regexps))
 
 (defun projectile--glob-to-regexp (glob)
   "Translate the dirconfig GLOB into a regexp fragment.
@@ -4554,7 +4566,7 @@ slash) can match it.  ROOT defaults to the current project's root.
 
 The check is the one indexing performs: PATH's root-relative name is
 matched against `projectile--ignore-patterns', `!' ensure patterns
-rescue it, and `projectile-global-ignore-file-patterns' is applied to
+rescue it, and `projectile-globally-ignored-file-regexps' is applied to
 the absolute name.  Because an ignored directory covers its whole
 subtree, a path inside one is reported as ignored too."
   (let* ((path (expand-file-name path))
@@ -4670,7 +4682,7 @@ list, so they all apply the same rules the same way.  It merges
   written in this language
 
 The `projectile-globally-unignored-*' options cancel out the matching
-entries.  `projectile-global-ignore-file-patterns' is deliberately not
+entries.  `projectile-globally-ignored-file-regexps' is deliberately not
 part of this: those are Emacs regexps, not patterns, and can't be handed
 to an external tool.
 
@@ -5460,7 +5472,7 @@ PROJECT-ROOT is the project root."
   (if-let* ((rel-path (if (file-name-absolute-p file)
                          (file-relative-name file project-root)
                        file))
-           (custom-function (funcall projectile-related-files-fn-function (projectile-project-type))))
+           (custom-function (funcall projectile-related-files-function (projectile-project-type))))
       (funcall (cond ((functionp custom-function)
                       custom-function)
                      ((consp custom-function)
@@ -9060,10 +9072,14 @@ to run the replacement."
 ;; place under a single `atomic-change-group', and buffers modified since the
 ;; scan are skipped rather than corrupted.
 
-(defcustom projectile-replace-max-matches 5000
-  "Upper bound on how many matches `projectile-replace-review' collects.
-When a search would exceed this, only the first that many matches are
-shown and a note is displayed."
+(define-obsolete-variable-alias 'projectile-replace-max-matches
+  'projectile-search-max-matches "3.4.0")
+
+(defcustom projectile-search-max-matches 5000
+  "Upper bound on how many matches a review buffer collects.
+Applies to `projectile-search-review' and `projectile-replace-review'
+alike.  When a search would exceed this, only the first that many
+matches are shown and a note is displayed."
   :group 'projectile
   :type 'natnum
   :package-version '(projectile . "3.2.0"))
@@ -9078,7 +9094,10 @@ binds it for a single invocation."
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
 
-(defcustom projectile-replace-async t
+(define-obsolete-variable-alias 'projectile-replace-async
+  'projectile-search-async "3.4.0")
+
+(defcustom projectile-search-async t
   "Whether the reviewable search/replace commands scan asynchronously.
 When non-nil (the default) `projectile-replace-review',
 `projectile-search-review' and their in-buffer re-scan commands (`g',
@@ -9144,7 +9163,10 @@ string or in prose is reported too."
   :type '(repeat string)
   :package-version '(projectile . "3.3.0"))
 
-(defcustom projectile-replace-scan-chunk-size 24
+(define-obsolete-variable-alias 'projectile-replace-scan-chunk-size
+  'projectile-search-scan-chunk-size "3.4.0")
+
+(defcustom projectile-search-scan-chunk-size 24
   "Number of candidate files scanned per async chunk before yielding.
 Each chunk scans this many files, delivers the matches into the results
 buffer and re-renders, then yields to redisplay via a zero-delay timer
@@ -9241,7 +9263,7 @@ search has no known ripgrep equivalent.")
 (defvar-local projectile-replace--matches nil
   "List of `projectile-replace--match' structs shown in the results buffer.")
 (defvar-local projectile-replace--truncated nil
-  "Non-nil when the match list was capped at `projectile-replace-max-matches'.")
+  "Non-nil when the match list was capped at `projectile-search-max-matches'.")
 (defvar-local projectile-replace--filtered nil
   "Non-nil when the shown match list was pruned by a filter command.
 Re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]) gathers from scratch and clears this.")
@@ -9387,11 +9409,11 @@ Binary-looking and unreadable files are skipped."
         (error nil)))))
 
 (defun projectile-replace--gather (candidates regexp)
-  "Scan CANDIDATES for REGEXP, capped at `projectile-replace-max-matches'.
+  "Scan CANDIDATES for REGEXP, capped at `projectile-search-max-matches'.
 Return a plist with `:matches' (the collected structs, in file order)
 and `:truncated' (non-nil when the cap was hit)."
   (let ((all nil)
-        (budget projectile-replace-max-matches)
+        (budget projectile-search-max-matches)
         (truncated nil))
     (dolist (file candidates)
       (if (> budget 0)
@@ -9417,10 +9439,10 @@ and `:truncated' (non-nil when the cap was hit)."
 
 (defun projectile-replace--async-p ()
   "Return non-nil when scanning should run asynchronously.
-True when `projectile-replace-async' is set and we are interactive;
+True when `projectile-search-async' is set and we are interactive;
 batch (`noninteractive') always scans synchronously so scripted runs stay
 deterministic."
-  (and projectile-replace-async (not noninteractive)))
+  (and projectile-search-async (not noninteractive)))
 
 (defun projectile-replace--cancel-scan ()
   "Cancel any in-flight async scan in the current results buffer.
@@ -9443,11 +9465,11 @@ on re-scan, on quit, and from `kill-buffer-hook'."
 (defun projectile-replace--gather-async (candidates regexp buffer on-done)
   "Scan CANDIDATES for REGEXP into BUFFER incrementally, then call ON-DONE.
 Resets BUFFER's match list and scanning state, then processes CANDIDATES
-in `projectile-replace-scan-chunk-size' batches, each batch delivering
+in `projectile-search-scan-chunk-size' batches, each batch delivering
 its matches and re-rendering before yielding to redisplay via a
 zero-delay timer.  Matches accumulate in file order, so the final list is
 identical to `projectile-replace--gather' over the same CANDIDATES and
-REGEXP; `projectile-replace-max-matches' and the `:truncated' note are
+REGEXP; `projectile-search-max-matches' and the `:truncated' note are
 honored the same way.  ON-DONE (or nil) is called in BUFFER once the scan
 finishes.  A scan already running in BUFFER should be canceled first (see
 `projectile-replace--cancel-scan')."
@@ -9460,7 +9482,7 @@ finishes.  A scan already running in BUFFER should be canceled first (see
                  projectile-replace--scan-timer nil)
            (cl-incf projectile-replace--scan-generation))))
     (projectile-replace--scan-step
-     buffer candidates regexp projectile-replace-max-matches on-done generation)))
+     buffer candidates regexp projectile-search-max-matches on-done generation)))
 
 (defun projectile-replace--scan-step (buffer remaining regexp budget on-done generation)
   "Scan one chunk of REMAINING candidates for REGEXP into BUFFER.
@@ -9486,7 +9508,7 @@ killed BUFFER (leaving no work behind) and against \\`C-g' during a chunk
           ;; a file is scanned while budget remains; the first file reached
           ;; with the budget exhausted marks the list truncated and stops.
           (while (and remaining (not stop)
-                      (< count projectile-replace-scan-chunk-size))
+                      (< count projectile-search-scan-chunk-size))
             (if (> budget 0)
                 (let ((ms (let ((case-fold-search fold))
                             (projectile-replace--scan-file
@@ -9671,7 +9693,7 @@ async scan streams matches in."
           (insert (projectile-replace--render-line m replacement literal)))))
     (when projectile-replace--truncated
       (insert (format "\n(showing the first %d matches)\n"
-                      projectile-replace-max-matches)))
+                      projectile-search-max-matches)))
     (goto-char (point-min))))
 
 (defun projectile-replace--render-preserve ()
@@ -10482,7 +10504,7 @@ submatches yields one struct per submatch, in order."
 
 (defun projectile-search--rg-ingest (buffer lines root)
   "Parse rg NDJSON LINES into BUFFER's match list, render, honor the cap.
-Appends up to `projectile-replace-max-matches' matches in arrival order;
+Appends up to `projectile-search-max-matches' matches in arrival order;
 when the cap is reached the surplus is dropped and the truncated flag is
 set.  Returns non-nil when the cap has been reached, so the caller can
 finish the scan."
@@ -10493,7 +10515,7 @@ finish the scan."
         (dolist (l lines)
           (unless (string-empty-p l)
             (setq new (nconc new (projectile-search--rg-parse-line l root)))))
-        (let ((room (- projectile-replace-max-matches
+        (let ((room (- projectile-search-max-matches
                        (length projectile-replace--matches))))
           (when (> (length new) room)
             (setq new (take (max 0 room) new)
@@ -10527,7 +10549,7 @@ ripgrep-syntax regexp is searched for instead of the literal TERM.
 Resets BUFFER's match list and scanning state, launches `rg' as a
 subprocess reading ROOT, CASE-FOLD and the ignore globs from BUFFER's
 buffer-locals, and streams parsed matches into the buffer as ripgrep
-emits them, re-rendering per output chunk.  `projectile-replace-max-matches'
+emits them, re-rendering per output chunk.  `projectile-search-max-matches'
 is honored (the process is killed when the cap is hit) and the scan is
 cancelable and kill-safe exactly like the elisp async engine: the process
 is registered in `projectile-replace--scan-process' so
@@ -10652,7 +10674,7 @@ plain regexp search always take the elisp path below."
       (message "%s"
                (projectile-prepend-project-name
                 (format "showing the first %d matches"
-                        projectile-replace-max-matches))))))
+                        projectile-search-max-matches))))))
 
 (defun projectile-replace--open (mode buf-name root term regexp replacement
                                       literal case-fold candidates no-match-msg
@@ -10672,7 +10694,7 @@ state."
   (if (or (projectile-replace--async-p)
           ;; the read-only search reviewer's ripgrep fast-path is inherently
           ;; async, so it opens the streaming buffer even when the elisp async
-          ;; engine is off (`projectile-replace-async' nil); `--start' then
+          ;; engine is off (`projectile-search-async' nil); `--start' then
           ;; dispatches it to ripgrep
           (and (eq mode #'projectile-search-mode)
                (projectile-search--rg-fastpath-p literal rg-pattern)))
@@ -10706,7 +10728,7 @@ state."
             (message "%s"
                      (projectile-prepend-project-name
                       (format "showing the first %d matches"
-                              projectile-replace-max-matches))))
+                              projectile-search-max-matches))))
           (pop-to-buffer buf)
           buf)))))
 
@@ -10863,7 +10885,7 @@ property so the shared navigation, visit and filter commands find it."
           (insert (projectile-search--render-line m)))))
     (when projectile-replace--truncated
       (insert (format "\n(showing the first %d matches)\n"
-                      projectile-replace-max-matches)))
+                      projectile-search-max-matches)))
     (goto-char (point-min))))
 
 (defun projectile-search--to-replace ()
@@ -12076,12 +12098,13 @@ reads."
 
 (defun projectile--command-history-insert (history command)
   "Insert COMMAND into the ring HISTORY.
-Duplicates are handled according to `projectile-cmd-hist-ignoredups'."
+Duplicates are handled according to
+`projectile-command-history-ignore-duplicates'."
   (cond
-   ((eq projectile-cmd-hist-ignoredups t)
+   ((eq projectile-command-history-ignore-duplicates t)
     (unless (string= (car-safe (ring-elements history)) command)
       (ring-insert history command)))
-   ((eq projectile-cmd-hist-ignoredups 'erase)
+   ((eq projectile-command-history-ignore-duplicates 'erase)
     (let ((idx (ring-member history command)))
       (while idx
         (ring-remove history idx)
@@ -12974,15 +12997,15 @@ An open project is a project with any open buffers."
 (defun projectile-known-projects ()
   "Initialize the known projects.
 
-This might potentially clean up redundant projects and discover new ones if
-`projectile-auto-cleanup-known-projects' or `projectile-auto-discover' are
-enabled."
+This might potentially clean up redundant projects and discover new ones
+if `projectile-auto-cleanup-known-projects' or
+`projectile-auto-discover-projects' are enabled."
   ;; load the known projects
   (unless projectile-known-projects
     (projectile-load-known-projects))
   (when projectile-auto-cleanup-known-projects
     (projectile--cleanup-known-projects))
-  (when (and projectile-auto-discover
+  (when (and projectile-auto-discover-projects
              projectile-project-search-path
              (not projectile--search-path-discovered))
     (projectile-discover-projects-in-search-path))
