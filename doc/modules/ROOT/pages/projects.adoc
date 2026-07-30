@@ -1257,16 +1257,22 @@ your project, you could customize it with the following:
 ----
 
 By default, compilation buffers are not writable, which allows you to
-e.g.  press `g` to restart the last command. Setting
-`projectile-<cmd>-use-comint-mode` (where `<cmd>` is `configure`,
-`compile`, `test`, `install`, `package`, or `run`) to a non-nil value
-allows you to make projectile compilation buffers interactive, letting
-you e.g. test a command-line program with `projectile-run-project`.
+e.g.  press `g` to restart the last command. `projectile-use-comint-mode`
+makes them interactive instead, letting you e.g. test a command-line
+program with `projectile-run-project`. Set it to `t` for every lifecycle
+command, or to a list of the ones you want:
 
 [source,elisp]
 ----
-(setq projectile-compile-use-comint-mode t)
+;; only the compile buffer is interactive
+(setq projectile-use-comint-mode '(compile))
+
+;; all of them are
+(setq projectile-use-comint-mode t)
 ----
+
+The phases you can name are `configure`, `compile`, `test`, `install`,
+`package` and `run`.
 
 == Project buffers
 

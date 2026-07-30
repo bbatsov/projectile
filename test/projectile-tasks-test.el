@@ -485,12 +485,12 @@ main.o: main.c
       (spy-on 'projectile-completing-read :and-return-value "lint")
       (let ((projectile-project-command-history (make-hash-table :test 'equal))
             (projectile-last-task-map (make-hash-table :test 'equal))
-            (projectile-per-project-compilation-buffer nil)
+            (projectile-compilation-buffer-scope nil)
             (projectile-tasks '(("lint" . "make lint"))))
         (projectile-run-task nil)
         (expect buffer-name :to-equal "*projectile-task: lint*"))))
 
-  (it "appends the project name to the task buffer with per-project compilation buffers"
+  (it "appends the project name to the task buffer when the scope includes the project"
     (let ((buffer-name nil))
       (spy-on 'projectile-run-compilation :and-call-fake
               (lambda (&rest _)
@@ -499,7 +499,7 @@ main.o: main.c
       (spy-on 'projectile-completing-read :and-return-value "lint")
       (let ((projectile-project-command-history (make-hash-table :test 'equal))
             (projectile-last-task-map (make-hash-table :test 'equal))
-            (projectile-per-project-compilation-buffer t)
+            (projectile-compilation-buffer-scope '(project))
             (projectile-tasks '(("lint" . "make lint"))))
         (projectile-run-task nil)
         (expect buffer-name :to-equal "*projectile-task: lint*<myproj>")))))

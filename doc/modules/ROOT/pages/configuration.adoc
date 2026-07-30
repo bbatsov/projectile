@@ -343,29 +343,30 @@ This affects all commands built on top of `projectile--run-project-cmd` like:
 - `projectile-package-project`
 
 Normally, the buffers created by those commands would be shared (overwritten)
-between projects, but it's also possible to make the compilation buffer names
-project-specific. This requires that the user set:
+between projects, and within a project they'd also overwrite each other since
+they all use `compilation-mode` - so running the tests discards the build
+output. `projectile-compilation-buffer-scope` says what the buffer name should
+be qualified by:
 
 [source,elisp]
 ----
-(setq projectile-per-project-compilation-buffer t)
+;; *compilation*<my-project>
+(setq projectile-compilation-buffer-scope '(project))
+
+;; *compilation*<test> and *compilation*<compile>
+(setq projectile-compilation-buffer-scope '(command))
+
+;; *compilation*<my-project:test>
+(setq projectile-compilation-buffer-scope '(project command))
 ----
 
-Both of these degrade properly when not inside a project.
-
-Within one project those commands still share a buffer, since they all use
-`compilation-mode` - so running the tests discards the build output. To keep
-them apart, name the buffer after the command as well:
-
-[source,elisp]
-----
-(setq projectile-per-command-compilation-buffer t)
-----
-
-That gives you `+*compilation*<test>+` and `+*compilation*<compile>+`, or
-`+*compilation*<my-project:test>+` with both options enabled. Running the test
-at point shares the test buffer. Named tasks already get a buffer each, named
+All of these degrade properly when not inside a project. Running the test at
+point shares the test buffer. Named tasks already get a buffer each, named
 after the task.
+
+NOTE: This replaces the older `projectile-per-project-compilation-buffer` and
+`projectile-per-command-compilation-buffer`, which are obsolete but still
+honored.
 
 == Limit the number of project file buffers
 
