@@ -454,13 +454,17 @@ It's relative to the project root."
   :type 'string
   :package-version '(projectile . "2.9.0"))
 
-(defcustom projectile-tags-file-name "TAGS"
+(defvar projectile-tags-file-name "TAGS"
   "The name of the tags file Projectile excludes from indexing.
 Listed in `projectile-globally-ignored-files' so a generated tags
-file doesn't show up among the project files."
-  :group 'projectile
-  :type 'string
-  :package-version '(projectile . "0.12.0"))
+file doesn't show up among the project files.")
+
+;; Only ever read to seed `projectile-globally-ignored-files' below, which
+;; happens as this file loads - so setting it afterwards never did anything.
+;; Naming the file in the ignore list is the same thing said once.
+(make-obsolete-variable 'projectile-tags-file-name
+                        "add the file name to `projectile-globally-ignored-files' instead."
+                        "3.4.0")
 
 (defcustom projectile-sort-order 'default
   "The sort order used for a project's files.
@@ -670,7 +674,7 @@ so a project is free to set them from its .dir-locals.el."
   (and (proper-list-p value) (seq-every-p #'stringp value)))
 
 (defcustom projectile-globally-ignored-files
-  (list projectile-tags-file-name projectile-cache-file)
+  (list (with-no-warnings projectile-tags-file-name) projectile-cache-file)
   "A list of files globally ignored by projectile.
 
 Entries are gitignore patterns: a plain name matches a file with that
@@ -6537,11 +6541,15 @@ it acts on the current project."
   (or (projectile-verify-file "build.mill" dir)
       (projectile-verify-file "build.sc" dir)))
 
-(defcustom projectile-go-project-test-function #'projectile-go-project-p
-  "Function to determine if project's type is go."
-  :group 'projectile
-  :type 'function
-  :package-version '(projectile . "1.0.0"))
+(defvar projectile-go-project-test-function #'projectile-go-project-p
+  "Function to determine if project's type is go.")
+
+;; The only project type with a detection hook of its own, and only read
+;; when the `go' type is registered as this file loads.  Registering the
+;; type again with your own predicate is the general way to do this.
+(make-obsolete-variable 'projectile-go-project-test-function
+                        "re-register the `go' project type with your own predicate instead."
+                        "3.4.0")
 
 (defun projectile-terraform-project-p (&optional dir)
   "Check if a project contains Terraform configuration files.
@@ -6915,7 +6923,7 @@ a manual COMMAND-TYPE command is created with
                                   :test "task test"
                                   :install "task install")
 ;; Go should take higher precedence than Make because Go projects often have a Makefile.
-(projectile-register-project-type 'go projectile-go-project-test-function
+(projectile-register-project-type 'go (with-no-warnings projectile-go-project-test-function)
                                   ;; The type is detected by predicate (a
                                   ;; project can be Go without a go.mod), but
                                   ;; the module file is still what marks a Go
