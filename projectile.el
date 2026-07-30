@@ -892,7 +892,10 @@ Any function that does not take arguments will do."
   :package-version '(projectile . "0.10.0"))
 
 (defcustom projectile-use-git-grep nil
-  "If true, use `vc-git-grep' in git projects."
+  "Whether `projectile-grep' delegates to `vc-git-grep' in git projects.
+
+Only affects `projectile-grep'; the other search commands and the
+backends of `projectile-search' ignore this."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "0.11.0"))
@@ -1073,7 +1076,7 @@ project cache was invalidated while it was still running.")
      (remhash project-root projectile--async-index-processes))))
 
 (defvar projectile-project-root-cache (make-hash-table :test 'equal)
-  "Cached value of function `projectile-project-root`.")
+  "Cached value of function `projectile-project-root'.")
 
 ;;; Project path spelling helpers
 ;;
@@ -1434,16 +1437,16 @@ back to running it as a shell command."
   :type 'string
   :package-version '(projectile . "0.9.0"))
 
-(defcustom projectile-darcs-command "darcs show files -0 . "
+(defcustom projectile-darcs-command "darcs show files -0 ."
   "Command used by projectile to get the files in a darcs project."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.9.0"))
 
 (defcustom projectile-pijul-command "pijul list | tr '\\n' '\\0'"
-   "Command used by projectile to get the files in a pijul project."
-   :group 'projectile
-   :type 'string
+  "Command used by projectile to get the files in a pijul project."
+  :group 'projectile
+  :type 'string
   :package-version '(projectile . "2.6.0"))
 
 (defcustom projectile-svn-command "svn list -R . | grep -v '$/' | tr '\\n' '\\0'"
@@ -1534,7 +1537,14 @@ It assumes the test/ folder is at the same level as src/."
   :package-version '(projectile . "0.13.0"))
 
 (defcustom projectile-per-project-compilation-buffer nil
-  "When non-nil, the compilation command makes the per-project compilation buffer."
+  "When non-nil, each project gets its own compilation buffer.
+
+Compiling, testing and running all use `compilation-mode' and so share
+one buffer across every project.  With this enabled the project name is
+part of the buffer name (`*compilation*<my-project>'), so working on two
+projects at once doesn't have them overwrite each other's output.
+
+Composes with `projectile-per-command-compilation-buffer'."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.6.0"))
@@ -2887,7 +2897,7 @@ Return the first (topmost) matched directory or nil if not found."
      (lambda (dir) (projectile--directory-marker dir markers 'files-only)))))
 
 (defun projectile-root-marked (dir)
-  "Identify a project root in DIR by search for `projectile-dirconfig-file`."
+  "Identify a project root in DIR by search for `projectile-dirconfig-file'."
   (projectile-root-bottom-up dir (list projectile-dirconfig-file)))
 
 (defun projectile-root-bottom-up (dir &optional list)
@@ -6621,10 +6631,11 @@ it acts on the current project."
           (projectile--cmake-all-command-presets command-type)))
 
 (defcustom projectile-enable-cmake-presets nil
-  "Enables configuration with CMake presets.
+  "Whether CMake projects use presets for their lifecycle commands.
 
-When `projectile-enable-cmake-presets' is non-nil, CMake projects can
-be configured, built and tested using presets."
+When non-nil, CMake projects are configured, built and tested through
+the presets their `CMakePresets.json' and `CMakeUserPresets.json'
+declare, rather than through Projectile's own default commands."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.4.0"))
