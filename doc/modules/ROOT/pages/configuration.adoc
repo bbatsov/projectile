@@ -358,6 +358,9 @@ be qualified by:
 
 ;; *compilation*<my-project:test>
 (setq projectile-compilation-buffer-scope '(project command))
+
+;; the same, spelled shorter
+(setq projectile-compilation-buffer-scope t)
 ----
 
 All of these degrade properly when not inside a project. Running the test at

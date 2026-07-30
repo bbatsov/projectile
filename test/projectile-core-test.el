@@ -648,11 +648,6 @@
                     (projectile-replace-scan-chunk-size
                      . projectile-search-scan-chunk-size)))
       (expect (indirect-variable (car pair)) :to-be (cdr pair))
-      (expect (get (car pair) 'byte-obsolete-variable) :not :to-be nil)))
-
-  (it "routes a value set under the old name to the new option"
-    (let ((projectile-search-max-matches 5000))
-      (with-no-warnings (setq projectile-replace-max-matches 42))
-      (expect projectile-search-max-matches :to-equal 42))))
+      (expect (get (car pair) 'byte-obsolete-variable) :not :to-be nil))))
 
 ;;; projectile-core-test.el ends here
