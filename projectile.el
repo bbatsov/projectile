@@ -1132,6 +1132,12 @@ trailing slash so that membership and removal checks compare equal
 regardless of how the root was originally obtained."
   (file-name-as-directory (abbreviate-file-name root)))
 
+(defun projectile--directory-key (path)
+  "Return PATH in a spelling two references to one directory always share.
+Symlink-resolved and slash-terminated, so it can be compared with `equal'
+or used as a hash key regardless of how each reference was spelled."
+  (file-truename (file-name-as-directory path)))
+
 (projectile-define-project-cache projectile-project-type-cache
   "A hashmap used to cache project type to speed up related operations.")
 
@@ -1711,6 +1717,33 @@ just return nil."
      version)))
 
 ;;; Misc utility functions
+
+(defun projectile--collect-from-functions (functions root key-function what)
+  "Call each of FUNCTIONS with ROOT and collect their results.
+
+The lists come back concatenated in the order FUNCTIONS were given,
+de-duplicated by KEY-FUNCTION, so the first function to report an item
+is the one whose version of it survives and the earlier functions'
+findings are offered first.  Items KEY-FUNCTION returns nil for are
+dropped.
+
+A function that signals is reported and skipped rather than taking the
+whole lookup down with it; WHAT names the kind of function in that
+message."
+  (let ((seen (make-hash-table :test 'equal))
+        results)
+    (dolist (fn functions)
+      (dolist (item (condition-case err
+                        (funcall fn root)
+                      (error
+                       (projectile--message "%s function %s failed: %s"
+                                            what fn (error-message-string err))
+                       nil)))
+        (when-let* ((key (funcall key-function item))
+                    ((not (gethash key seen))))
+          (puthash key t seen)
+          (push item results))))
+    (nreverse results)))
 
 (defun projectile-unixy-system-p ()
   "Check to see if unixy text utilities are installed."
@@ -13551,10 +13584,14 @@ overwriting each other's changes."
 ;;            scp-like and URL spellings of one remote compare equal.
 ;;            Equal `:remote' means separate clones of one project - the
 ;;            hand-rolled version of worktrees, and just as common.
+;;   :owner   the account, organization or directory that upstream hangs
+;;            off.  Equal `:owner' means nothing about the code, but it's
+;;            the strongest signal there is that two projects belong to
+;;            one effort (see `projectile-sibling-projects').
 ;;
-;; Both are needed: `:repo' alone would miss separate clones entirely, and
-;; `:remote' alone would miss the worktrees of a repository that doesn't
-;; have a remote at all.
+;; The first two are both needed: `:repo' alone would miss separate clones
+;; entirely, and `:remote' alone would miss the worktrees of a repository
+;; that doesn't have a remote at all.
 
 (projectile-define-project-cache projectile-repo-identity-cache
   "Cache of `projectile-repo-identity' results keyed by project root.
@@ -13605,6 +13642,17 @@ systems are not reliably case-insensitive."
                           (projectile--normalize-repo-path
                            (replace-regexp-in-string "\\`/+" "" (match-string 2 url))))))
        (t (projectile--normalize-repo-path (expand-file-name url)))))))
+
+(defun projectile--repo-url-owner (remote)
+  "Return the owner of the normalized REMOTE, or nil when it has none.
+
+That's everything but the last segment: the account or organization a
+forge hangs the repository off, or the directory a local repository sits
+in.  A remote with a single path segment (`host/repo') has no owner worth
+the name - the host isn't one - so it gets nil rather than something that
+would put every repository on that host in one group."
+  (when (and remote (string-match "\\`\\(.*/.+\\)/[^/]+\\'" remote))
+    (match-string 1 remote)))
 
 ;; Everything below reads git's own files rather than running git.  Identity
 ;; is computed for every known project when looking for the other checkouts
@@ -13749,8 +13797,14 @@ Results are cached in `projectile-repo-identity-cache' (cleared by
             ;; An identity with nothing in it says as little as no identity
             ;; at all, and storing it as nil keeps the callers from having
             ;; to test both.
-            (unless (or (plist-get identity :repo) (plist-get identity :remote))
-              (setq identity nil))
+            (if (not (or (plist-get identity :repo) (plist-get identity :remote)))
+                (setq identity nil)
+              ;; The owner falls out of the remote, so derive it here rather
+              ;; than in every backend.
+              (setq identity
+                    (plist-put identity :owner
+                               (projectile--repo-url-owner
+                                (plist-get identity :remote)))))
             (puthash root identity projectile-repo-identity-cache)
             identity))))))
 
@@ -13881,22 +13935,13 @@ both git and the known projects report is listed once - the first
 function to report it wins, which is why the one that knows the most
 about a checkout should come first.  The plists that come back carry
 `:path', and `:branch'/`:prunable' when whoever found them knew."
-  (let ((root (or project-root (projectile-acquire-root)))
-        (seen (make-hash-table :test 'equal))
-        worktrees)
-    (dolist (fn projectile-worktree-functions)
-      (dolist (worktree (condition-case err
-                            (funcall fn root)
-                          (error
-                           (projectile--message "Worktree function %s failed: %s"
-                                                fn (error-message-string err))
-                           nil)))
-        (when-let* ((path (plist-get worktree :path))
-                    (key (file-truename path))
-                    ((not (gethash key seen))))
-          (puthash key t seen)
-          (push worktree worktrees))))
-    (nreverse worktrees)))
+  (projectile--collect-from-functions
+   projectile-worktree-functions
+   (or project-root (projectile-acquire-root))
+   (lambda (worktree)
+     (when-let* ((path (plist-get worktree :path)))
+       (projectile--directory-key path)))
+   "Worktree"))
 
 (defun projectile--worktree-annotation (worktree)
   "Return the completion annotation describing WORKTREE, or nil.
@@ -13943,6 +13988,245 @@ switch.  With a prefix ARG invokes `projectile-dispatch' instead."
                             (projectile--worktree-annotation
                              (cdr (assoc path by-path))))
      :category 'projectile-worktree)))
+
+
+;;; Sibling projects
+;;
+;; Plenty of work spans several repositories: a library and the app using
+;; it, a tool and its documentation site, the handful of packages that make
+;; up one project.  They're separate projects and should stay that way, but
+;; moving between them shouldn't mean going through every project on the
+;; machine.  `projectile-switch-sibling-project' offers just the ones
+;; related to the project you're in.
+;;
+;; Which ones those are comes from `projectile-sibling-project-functions',
+;; consulted in order, from the most reliable signal to the least:
+;;
+;;   1. Groups you configured yourself, which are always right.
+;;   2. The owner of the upstream remote - the account or organization the
+;;      repositories hang off.  This is by far the best of the inferred
+;;      signals: it relates projects whose names have nothing in common,
+;;      which no amount of looking at directory names ever will.
+;;   3. The leading word of the directory name, which is all that's left
+;;      for a repository with no remote at all.
+;;
+;; Inference is a heuristic, so it's bounded: a group covering more than
+;; `projectile-sibling-max-group-share' of the known projects is dropped
+;; rather than offered.  A group that most of your projects belong to isn't
+;; telling you anything - if everything you own lives under one account,
+;; "same account" doesn't relate anything to anything.
+
+(defcustom projectile-project-groups nil
+  "Named groups of projects that belong together.
+
+An alist mapping a group name to the list of project directories in it.
+A project may appear in several groups, and the groups of every one it
+belongs to are offered together by
+`projectile-switch-sibling-project'.
+
+This is the one signal that's never guessed, so it's consulted first.
+Use it for the projects that belong together for reasons nothing about
+them can reveal:
+
+  (setq projectile-project-groups
+        \\='((\"editor\" . (\"~/src/editor\" \"~/src/editor-docs\"))
+          (\"infra\"  . (\"~/src/deploy\" \"~/src/terraform\"))))
+
+To describe a single project's siblings from its own directory, set
+`projectile-project-siblings' in its `.dir-locals.el' instead."
+  :group 'projectile
+  :type '(alist :key-type (string :tag "Group")
+                :value-type (repeat directory))
+  :package-version '(projectile . "3.4.0"))
+
+(defvar projectile-project-siblings nil
+  "Projects to treat as siblings of the current one.
+A list of project directories.  Use this to describe one project's
+siblings from the project itself; it should be set via .dir-locals.el.
+`projectile-project-groups' is the equivalent for describing whole
+groups centrally.")
+(put 'projectile-project-siblings 'safe-local-variable
+     (lambda (value) (and (listp value) (seq-every-p #'stringp value))))
+
+(defcustom projectile-sibling-max-group-share 0.25
+  "How much of the known projects an inferred sibling group may cover.
+
+A number between 0 and 1, or nil to never discard a group.  Inference
+that relates most of your projects to each other has found nothing: if
+every repository you own lives under one account then \"same account\"
+tells you nothing, and offering that group is just
+`projectile-switch-project' with extra steps.  Such a group is dropped
+so the next signal gets its turn.
+
+Groups of two always survive, and the cap doesn't apply at all until
+there are `projectile--sibling-cap-min-projects' known projects to take
+a share of.  Configured groups (`projectile-project-groups') are never
+subject to this - you meant those."
+  :group 'projectile
+  :type '(choice (const :tag "Never discard a group" nil)
+                 (number :tag "Share of known projects"))
+  :package-version '(projectile . "3.4.0"))
+
+(defcustom projectile-sibling-project-functions
+  '(projectile-siblings-from-groups
+    projectile-siblings-from-owner
+    projectile-siblings-from-name)
+  "Functions consulted by `projectile-sibling-projects'.
+
+Each is called with a project root and should return a list of project
+directories related to it.  They're consulted in order and their results
+concatenated, so the most trustworthy signal should come first; a project
+found by more than one is offered once, in the position the first
+function to report it put it."
+  :group 'projectile
+  :type '(repeat function)
+  :package-version '(projectile . "3.4.0"))
+
+(defconst projectile--sibling-cap-min-projects 10
+  "How many known projects there must be before the share cap applies.
+Below this `projectile-sibling-max-group-share' is ignored: a share of a
+handful of projects measures nothing, and relating three of your four
+projects to each other is a fine answer.")
+
+(defvar projectile--sibling-project-pool nil
+  "The known projects a sibling lookup is choosing from.
+Bound by `projectile-sibling-projects' so that every signal function
+shares one walk of the known projects and one pass of the ignore
+filtering, instead of each of them paying for both.")
+
+(defun projectile--sibling-candidate-projects ()
+  "Return the known projects a sibling signal may draw on."
+  (or projectile--sibling-project-pool
+      (let ((projects (projectile-known-projects)))
+        ;; Only filter when there's ignore configuration to apply, so the
+        ;; common case doesn't pay for a `file-truename' per known project.
+        (if (or projectile-ignored-projects
+                projectile-ignored-project-patterns
+                projectile-ignored-project-function)
+            (seq-remove #'projectile-ignored-project-p projects)
+          projects))))
+
+(defun projectile--siblings-by-key (root key-function)
+  "Return the known projects KEY-FUNCTION gives the same answer for as ROOT.
+
+Nil when ROOT has no key, and nil when so many projects share it that
+the answer says nothing - see `projectile-sibling-max-group-share'.  This
+is the shape every inferred signal takes: some property of a project
+root, and everything else that has it too."
+  (when-let* ((key (funcall key-function root)))
+    (let* ((projects (projectile--sibling-candidate-projects))
+           (matches (seq-filter (lambda (project)
+                                  (equal key (funcall key-function project)))
+                                projects)))
+      (unless (and projectile-sibling-max-group-share
+                   ;; A share of a handful of projects isn't a measurement
+                   ;; of anything, and the switch list is short enough not
+                   ;; to need narrowing, so the cap only starts applying
+                   ;; once "most of them" means something.
+                   (>= (length projects) projectile--sibling-cap-min-projects)
+                   (> (length matches)
+                      (max 2 (floor (* projectile-sibling-max-group-share
+                                       (length projects))))))
+        matches))))
+
+(defun projectile-siblings-from-groups (root)
+  "Return the projects grouped with ROOT by configuration.
+
+That's the groups in `projectile-project-groups' that ROOT is a member
+of, plus whatever `projectile-project-siblings' names.  The latter is a
+buffer-local setting describing the project you're in, so it's only
+consulted when that's the project being asked about.
+
+Configured groups are never subject to
+`projectile-sibling-max-group-share': however many projects you put in a
+group, you meant to."
+  (let ((key (projectile--directory-key root)))
+    (append
+     (when-let* ((current (ignore-errors (projectile-project-root)))
+                 ((equal key (projectile--directory-key current))))
+       projectile-project-siblings)
+     (seq-mapcat
+      #'cdr
+      (seq-filter (lambda (group)
+                    (seq-some (lambda (member)
+                                (equal key (projectile--directory-key member)))
+                              (cdr group)))
+                  projectile-project-groups)))))
+
+(defun projectile-siblings-from-owner (root)
+  "Return the known projects whose upstream has the same owner as ROOT\\='s.
+
+The account or organization a repository hangs off is the strongest hint
+there is that two projects are part of one effort, and the only one that
+relates projects whose names have nothing in common."
+  (projectile--siblings-by-key
+   root (lambda (project)
+          (plist-get (projectile-repo-identity project) :owner))))
+
+(defun projectile--project-leading-token (path)
+  "Return the first word of PATH\\='s directory name, or nil.
+Single characters aren't words worth grouping on, so they're skipped."
+  (seq-find (lambda (token) (>= (length token) 2))
+            (split-string (downcase (file-name-nondirectory
+                                     (directory-file-name path)))
+                          "[-_. ]+" t)))
+
+(defun projectile-siblings-from-name (root)
+  "Return the known projects whose directory name starts like ROOT\\='s.
+
+Only the leading word counts.  Matching on any shared word instead reads
+far more into a name than is there - it relates every `*-mode' to every
+other, and every `docs.*' site to the rest - whereas a shared first word
+is nearly always a deliberate family (`rubocop', `rubocop-ast').
+
+This is the signal of last resort: it's the only one left for a
+repository with no remote at all, and the only one that will ever relate
+two projects belonging to different owners."
+  (projectile--siblings-by-key root #'projectile--project-leading-token))
+
+(defun projectile-sibling-projects (&optional project-root)
+  "Return the projects related to PROJECT-ROOT, including itself.
+
+Every function in `projectile-sibling-project-functions' is consulted in
+turn and their results concatenated, de-duplicated by resolved path, so
+the ordering runs from the most trustworthy signal to the least.  The
+projects come back in the spelling the other switch commands use."
+  (let* ((root (or project-root (projectile-acquire-root)))
+         ;; Walk the known projects once for all the signal functions.
+         (projectile--sibling-project-pool (projectile--sibling-candidate-projects)))
+    (mapcar #'projectile--known-project-root
+            (projectile--collect-from-functions
+             projectile-sibling-project-functions root
+             #'projectile--directory-key "Sibling"))))
+
+;;;###autoload
+(defun projectile-switch-sibling-project (&optional arg)
+  "Switch to a project related to the current one.
+
+Related means grouped with it in `projectile-project-groups', or sharing
+the owner of its upstream remote, or - failing both - starting with the
+same word.  See `projectile-sibling-project-functions'.
+
+Invokes the command referenced by `projectile-switch-project-action' on
+switch.  With a prefix ARG invokes `projectile-dispatch' instead."
+  (interactive "P")
+  (let* ((root (projectile-acquire-root))
+         (siblings (seq-remove
+                    (lambda (project)
+                      ;; The project we're in isn't somewhere to switch to,
+                      ;; and a configured group can name one that has since
+                      ;; been moved away.
+                      (or (file-equal-p project root)
+                          (not (file-directory-p project))))
+                    (projectile-sibling-projects root))))
+    (unless siblings
+      (user-error "No projects related to %s found"
+                  (projectile-project-name root)))
+    (projectile-completing-read
+     "Switch to sibling project: " siblings
+     :action (lambda (project)
+               (projectile-switch-project-by-name project arg))
+     :category 'projectile-project)))
 
 
 ;;; Project bookmarks
@@ -15807,6 +16091,8 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "k") #'projectile-kill-buffers)
     (define-key map (kbd "l") #'projectile-find-file-in-directory)
     (define-key map (kbd "m") #'projectile-dispatch)
+    ;; projects related to this one, in other repositories
+    (define-key map (kbd "n") #'projectile-switch-sibling-project)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
@@ -16161,6 +16447,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
       ("W" "switch worktree" projectile-switch-worktree)
+      ("n" "switch sibling project" projectile-switch-sibling-project)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)
       ("P" "dashboard" projectile-dashboard)

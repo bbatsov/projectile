@@ -8,6 +8,9 @@
 
 ### New features
 
+- [#2148](https://github.com/bbatsov/projectile/pull/2148): Add `projectile-switch-sibling-project` (`s-p n`), which offers only the projects related to the one you're in, rather than every project on the machine.
+  - Relatedness comes from `projectile-project-groups` if you've configured it, then from the owner of the upstream remote, then from the leading word of the directory name - see `projectile-sibling-project-functions`.
+  - The remote's owner is what relates projects whose names have nothing in common; an inferred group covering more than `projectile-sibling-max-group-share` of your projects is dropped, since "we're all under the same account" relates nothing.
 - [#2147](https://github.com/bbatsov/projectile/pull/2147): Add `projectile-switch-worktree` (`s-p W`), which offers the other checkouts of the current project's repository, each annotated with the branch it has checked out.
   - Git worktrees and separate clones of the same upstream both count as checkouts, since they're the same workflow with and without the plumbing; `projectile-worktree-functions` is where other ways of finding them plug in.
 - [#2138](https://github.com/bbatsov/projectile/pull/2138): Better support for OCaml, Erlang and F#.
