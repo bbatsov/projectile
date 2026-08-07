@@ -13525,6 +13525,240 @@ overwriting each other's changes."
     (projectile-save-known-projects)))
 
 
+;;; Repository identity
+;;
+;; Projectile treats every checkout as a project of its own: a git worktree
+;; and the checkout it was linked from have their own roots, their own file
+;; listings and usually their own branches, so that's the right call.  It
+;; does mean that "take me to my other checkout of this" needs a notion of
+;; identity that outlives any single root, which is what
+;; `projectile-repo-identity' provides.  Its two keys answer progressively
+;; weaker questions:
+;;
+;;   :repo    the directory the checkouts share - git's common dir, the
+;;            store an `hg share' points at.  Equal `:repo' means one
+;;            repository checked out more than once, which is what a
+;;            worktree is.
+;;   :remote  the upstream they were cloned from, normalized so that the
+;;            scp-like and URL spellings of one remote compare equal.
+;;            Equal `:remote' means separate clones of one project - the
+;;            hand-rolled version of worktrees, and just as common.
+;;
+;; Both are needed: `:repo' alone would miss separate clones entirely, and
+;; `:remote' alone would miss the worktrees of a repository that doesn't
+;; have a remote at all.
+
+(projectile-define-project-cache projectile-repo-identity-cache
+  "Cache of `projectile-repo-identity' results keyed by project root.
+Cleared by `projectile-invalidate-cache'.")
+
+(defconst projectile--repo-url-scheme-regexp
+  "\\`[a-zA-Z][a-zA-Z0-9+.-]*://\\(?:[^@/]*@\\)?\\([^/:]+\\)\\(?::[0-9]+\\)?/+\\(.+\\)\\'"
+  "Match a `scheme://[user@]host[:port]/path' remote URL.
+Group 1 is the host, group 2 the path.")
+
+(defconst projectile--repo-url-scp-regexp
+  "\\`\\(?:[^@/]*@\\)?\\([^/:]\\{2,\\}\\):\\(.+\\)\\'"
+  "Match git's scp-like `[user@]host:path' remote syntax.
+Group 1 is the host, group 2 the path.  The host has to be at least two
+characters long so that a Windows path like `c:/src/repo' isn't read as
+one; that's the same ambiguity, resolved the same way, as in git itself.")
+
+(defun projectile--normalize-repo-path (path)
+  "Return PATH without its trailing slashes or its `.git' suffix.
+Those are the two ways one repository path gets spelled differently."
+  (string-remove-suffix ".git" (string-trim-right path "/+")))
+
+(defun projectile--normalize-repo-url (url)
+  "Return a canonical identity for the remote URL, or nil when there's none.
+
+One repository can be addressed in several ways - `git@host:owner/repo.git',
+`https://host/owner/repo', `ssh://git@host:22/owner/repo/' - and all of
+them have to compare equal for two clones of it to be recognized as
+checkouts of the same thing.  The identity is `HOST/PATH' without the
+user, port, trailing slashes or `.git' suffix, downcased because hosts
+are case-insensitive and so, in practice, are the forges' paths.
+
+A URL that addresses a local repository (a bare path, or a `file://'
+URL) normalizes to that path, left in its original case since local file
+systems are not reliably case-insensitive."
+  (when (and url (not (string-blank-p url)))
+    (let ((url (string-trim url)))
+      (cond
+       ;; A `file://' URL addresses a local repository, same as a bare path.
+       ((string-prefix-p "file:///" url)
+        (projectile--normalize-repo-path (string-remove-prefix "file://" url)))
+       ((or (string-match projectile--repo-url-scheme-regexp url)
+            ;; The scp-like syntax has no scheme, so anything carrying one
+            ;; has already had its chance above and isn't a host:path.
+            (and (not (string-match-p "://" url))
+                 (string-match projectile--repo-url-scp-regexp url)))
+        (downcase (concat (match-string 1 url) "/"
+                          (projectile--normalize-repo-path
+                           (replace-regexp-in-string "\\`/+" "" (match-string 2 url))))))
+       (t (projectile--normalize-repo-path (expand-file-name url)))))))
+
+;; Everything below reads git's own files rather than running git.  Identity
+;; is computed for every known project when looking for the other checkouts
+;; of one, and a subprocess apiece would be seconds of latency on a machine
+;; with a hundred projects - the same reason `projectile--hg-default-path'
+;; parses `.hg/hgrc' directly.  The layout being read is stable and
+;; documented in gitrepository-layout(5).
+
+(defun projectile--git-dir (root)
+  "Return the git directory belonging to the checkout at ROOT, or nil.
+
+That's `<root>/.git' when it is a directory, and the directory named by
+the `gitdir:' line when it is the file a linked worktree gets instead.
+
+Nil when ROOT holds no `.git' at all, which is what distinguishes a
+checkout from a directory inside one: `projectile-project-vcs'
+deliberately answers `git' for a project below a repository root too, so
+that file listing can still go through git, but the worktrees of the
+enclosing repository are not other copies of such a project."
+  (let ((dot-git (expand-file-name ".git" root)))
+    (cond
+     ((file-directory-p dot-git) (file-name-as-directory dot-git))
+     ((file-readable-p dot-git)
+      (with-temp-buffer
+        (insert-file-contents dot-git)
+        (goto-char (point-min))
+        (when (looking-at "gitdir:[ \t]*\\(.+?\\)[ \t]*$")
+          (file-name-as-directory
+           (expand-file-name (match-string 1) root))))))))
+
+(defun projectile--git-common-dir (git-dir)
+  "Return the directory GIT-DIR shares with the repository's other checkouts.
+
+A linked worktree's git directory carries a `commondir' file naming that
+shared directory; the main checkout's git directory is the shared
+directory itself."
+  (let ((commondir (expand-file-name "commondir" git-dir)))
+    (if (file-readable-p commondir)
+        (file-name-as-directory
+         (expand-file-name
+          (with-temp-buffer
+            (insert-file-contents commondir)
+            (string-trim (buffer-string)))
+          git-dir))
+      git-dir)))
+
+(defun projectile--git-config-remote-url (config-file)
+  "Return the URL of the upstream remote configured in CONFIG-FILE, or nil.
+
+That's `origin' when it's there, since it's what cloning sets up and what
+two checkouts of one repository will therefore agree on; a repository
+wired up by hand may use another name, so fall back to whichever remote
+comes first rather than giving up."
+  (when (file-readable-p config-file)
+    (with-temp-buffer
+      (insert-file-contents config-file)
+      (goto-char (point-min))
+      (let (remotes)
+        (while (re-search-forward "^[ \t]*\\[remote[ \t]+\"\\([^\"]+\\)\"\\]" nil t)
+          (let ((name (match-string 1))
+                (section-end (save-excursion
+                               (if (re-search-forward "^[ \t]*\\[" nil t)
+                                   (match-beginning 0)
+                                 (point-max)))))
+            (when (re-search-forward "^[ \t]*url[ \t]*=[ \t]*\\(.+?\\)[ \t]*$"
+                                     section-end t)
+              (push (cons name (match-string 1)) remotes))))
+        (setq remotes (nreverse remotes))
+        (or (cdr (assoc "origin" remotes)) (cdar remotes))))))
+
+(defun projectile--git-head-branch (git-dir)
+  "Return the branch checked out in GIT-DIR, or nil when HEAD is detached."
+  (let ((head (expand-file-name "HEAD" git-dir)))
+    (when (file-readable-p head)
+      (with-temp-buffer
+        (insert-file-contents head)
+        (goto-char (point-min))
+        (when (looking-at "ref:[ \t]*refs/heads/\\(.+?\\)[ \t]*$")
+          (match-string 1))))))
+
+(defun projectile--git-repo-identity (root)
+  "Return the repository identity plist for the git checkout at ROOT."
+  (when-let* ((git-dir (projectile--git-dir root))
+              (common-dir (projectile--git-common-dir git-dir)))
+    (list :repo (file-truename common-dir)
+          :remote (projectile--normalize-repo-url
+                   (projectile--git-config-remote-url
+                    (expand-file-name "config" common-dir))))))
+
+(defun projectile--hg-repo-identity (root)
+  "Return the repository identity plist for the Mercurial project at ROOT.
+
+A working directory created by `hg share' keeps its store elsewhere and
+records where in `.hg/sharedpath', which makes that path the Mercurial
+equivalent of git\\='s common dir."
+  (let* ((hg-dir (expand-file-name ".hg" root))
+         (sharedpath (expand-file-name "sharedpath" hg-dir))
+         (store (if (file-readable-p sharedpath)
+                    (with-temp-buffer
+                      (insert-file-contents sharedpath)
+                      (string-trim (buffer-string)))
+                  hg-dir)))
+    (list :repo (when (file-exists-p store) (file-truename store))
+          :remote (projectile--normalize-repo-url
+                   (projectile--hg-default-path root)))))
+
+(defun projectile--hg-default-path (root)
+  "Return the Mercurial `default' path configured for ROOT, or nil.
+That's the upstream a repository was cloned from, so it plays the same
+role as git\\='s `origin' remote.  Read out of `.hg/hgrc' directly rather
+than by running hg, which would cost a process launch per project."
+  (let ((hgrc (expand-file-name ".hg/hgrc" root)))
+    (when (file-readable-p hgrc)
+      (with-temp-buffer
+        (insert-file-contents hgrc)
+        (goto-char (point-min))
+        (when (re-search-forward "^[ \t]*default[ \t]*=[ \t]*\\(.+?\\)[ \t]*$" nil t)
+          (match-string 1))))))
+
+(defun projectile-repo-identity (&optional project-root)
+  "Return a plist identifying the repository PROJECT-ROOT is a checkout of.
+
+The plist has two keys, either of which may be nil: `:repo', the
+directory every checkout of this very repository shares, and `:remote',
+a canonical identity for the upstream it was cloned from.  See
+`projectile-same-repo-p' for comparing two of these.
+
+Returns nil for a project that isn't under a version control system
+Projectile can answer this for (only git and Mercurial carry the notion),
+and for a remote project, where every probe would be a TRAMP round trip.
+
+Results are cached in `projectile-repo-identity-cache' (cleared by
+`projectile-invalidate-cache')."
+  (let ((root (or project-root (projectile-acquire-root))))
+    (unless (file-remote-p root)
+      (let ((cached (gethash root projectile-repo-identity-cache 'unset)))
+        (if (not (eq cached 'unset))
+            cached
+          (let ((identity (pcase (projectile-project-vcs root)
+                            ('git (projectile--git-repo-identity root))
+                            ('hg (projectile--hg-repo-identity root)))))
+            ;; An identity with nothing in it says as little as no identity
+            ;; at all, and storing it as nil keeps the callers from having
+            ;; to test both.
+            (unless (or (plist-get identity :repo) (plist-get identity :remote))
+              (setq identity nil))
+            (puthash root identity projectile-repo-identity-cache)
+            identity))))))
+
+(defun projectile-same-repo-p (a b)
+  "Return non-nil when identities A and B describe one repository.
+
+Either sharing the repository directory (worktrees of each other) or
+sharing an upstream (clones of each other) is enough.  Missing keys never
+match, so two projects that Projectile knows nothing about aren't
+silently declared identical."
+  (or (when-let* ((repo (plist-get a :repo)))
+        (equal repo (plist-get b :repo)))
+      (when-let* ((remote (plist-get a :remote)))
+        (equal remote (plist-get b :remote)))))
+
+
 ;;; Project bookmarks
 ;;
 ;; Project-scoped bookmarks on top of the built-in `bookmark.el'.  There's
