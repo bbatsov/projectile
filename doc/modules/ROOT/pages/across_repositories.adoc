@@ -126,9 +126,10 @@ It works on the *normalized* remote, so the spelling doesn't matter:
 
 === The leading word of the directory name
 
-The signal of last resort, and the only one available for a repository
-with no remote at all. `rubocop`, `rubocop-ast` and `rubocop-rails` are
-related because they start with the same word.
+The signal of last resort, and the only one that works with no version
+control at all - a plain directory with a `.projectile` in it still gets
+siblings. `rubocop`, `rubocop-ast` and `rubocop-rails` are related
+because they start with the same word.
 
 Only the *leading* word counts. Matching on any shared word relates every
 `-mode` package to every other one and every `docs.` site to the rest,
@@ -190,11 +191,19 @@ Worth knowing before you file a bug:
   to group on.
 * *Only a repository's own top level has an identity.* A project defined
   by a `.projectile` file inside a larger repository is a directory in a
-  checkout, not a checkout of its own, so it has no worktrees. Projectile
-  cannot yet map such a project to the matching subdirectory of another
-  worktree.
+  checkout, not a checkout of its own, so it has no worktrees - the
+  enclosing repository's worktrees are not other copies of it, and aren't
+  offered as though they were. Projectile cannot yet map such a project to
+  the matching subdirectory of another worktree.
 * *Remote (TRAMP) projects are skipped.* Every probe would be a network
   round trip, so a remote project has no identity and no worktrees.
+
+When kbd:[s-p W] has nothing to offer it distinguishes the two reasons:
+having looked and found no other checkout, and not being able to look at
+all because the project isn't the top level of a git or Mercurial
+repository. Only the first means "there aren't any". kbd:[s-p n] needs
+none of this, so it's the one to reach for when Projectile can't identify
+the repository.
 * *Sibling clones must already be known projects.* Real git worktrees are
   found without that, since git registers them itself.
 

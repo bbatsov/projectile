@@ -13890,6 +13890,14 @@ Git registers them itself, so this finds worktrees that have never been
 visited in this Emacs session - which the known projects can't do."
   (when-let* (((eq (projectile-project-vcs root) 'git))
               ((not (file-remote-p root)))
+              ;; Only a checkout's own top level has worktrees.  ROOT can
+              ;; just as well be a directory *inside* one - a project marked
+              ;; out by its own `.projectile' in a corner of a bigger
+              ;; repository, say, which `projectile-project-vcs' still calls
+              ;; git because it walks up to find the repository.  Git would
+              ;; happily list the enclosing repository's worktrees, but none
+              ;; of them is another copy of *this* project.
+              ((projectile--git-dir root))
               (output (projectile--git root "worktree" "list" "--porcelain")))
     (projectile--parse-git-worktree-list output)))
 
@@ -13978,8 +13986,17 @@ switch.  With a prefix ARG invokes `projectile-dispatch' instead."
                                   worktree))
                           worktrees)))
     (unless worktrees
-      (user-error "No other checkout of %s found"
-                  (projectile-project-name root)))
+      ;; Say which of the two it is: nothing to switch to, or nothing
+      ;; Projectile is able to look at.  They call for different responses
+      ;; and the same message for both sends people hunting for a bug.
+      (cond
+       ((file-remote-p root)
+        (user-error "Projectile doesn't look for the checkouts of a remote project"))
+       ((projectile-repo-identity root)
+        (user-error "No other checkout of %s found" (projectile-project-name root)))
+       (t
+        (user-error "Cannot tell what %s is a checkout of - only git and Mercurial say.  Try `projectile-switch-sibling-project'"
+                    (projectile-project-name root)))))
     (projectile-completing-read
      "Switch to worktree: " (mapcar #'car by-path)
      :action (lambda (path)
@@ -14220,7 +14237,10 @@ switch.  With a prefix ARG invokes `projectile-dispatch' instead."
                           (not (file-directory-p project))))
                     (projectile-sibling-projects root))))
     (unless siblings
-      (user-error "No projects related to %s found"
+      ;; Nothing inferred is a perfectly ordinary outcome - it's what the
+      ;; share cap does when a signal relates too much - so point at the
+      ;; setting that always works rather than just reporting the miss.
+      (user-error "No projects related to %s found - see `projectile-project-groups'"
                   (projectile-project-name root)))
     (projectile-completing-read
      "Switch to sibling project: " siblings

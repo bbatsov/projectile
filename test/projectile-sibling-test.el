@@ -288,7 +288,26 @@
   (it "errors when nothing is related to the current project"
     (let ((projectile-sibling-project-functions nil))
       (spy-on 'projectile-acquire-root :and-return-value "/src/lonely/")
-      (expect (projectile-switch-sibling-project) :to-throw 'user-error)))
+      (spy-on 'projectile-project-name :and-return-value "lonely")
+      ;; Finding nothing is an ordinary outcome - it's what the share cap
+      ;; does - so the message points at the setting that always works.
+      (expect (condition-case err (projectile-switch-sibling-project)
+                (user-error (error-message-string err)))
+              :to-match "projectile-project-groups")))
+
+  (it "still relates projects when there's no version control at all"
+    ;; The name signal needs no repository, so a project Projectile can say
+    ;; nothing else about still gets siblings.
+    (projectile-test-with-sandbox
+     (projectile-test-with-files
+      ("aaa/" "aaa/.projectile" "aaa-two/" "aaa-two/.projectile")
+      (let* ((root (file-name-as-directory (expand-file-name "aaa")))
+             (projectile-known-projects
+              (list root (file-name-as-directory (expand-file-name "aaa-two")))))
+        (spy-on 'projectile-repo-identity)
+        (expect (projectile-sibling-test--names
+                 (projectile-sibling-projects root))
+                :to-have-same-items-as '("aaa" "aaa-two"))))))
 
   (it "does not offer the project we're already in"
     (projectile-test-with-sandbox

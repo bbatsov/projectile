@@ -103,7 +103,22 @@
 
   (it "returns nothing for a project that isn't under git"
     (spy-on 'projectile-project-vcs :and-return-value 'hg)
-    (expect (projectile-worktrees-from-git "/src/repo/") :to-be nil)))
+    (expect (projectile-worktrees-from-git "/src/repo/") :to-be nil))
+
+  (it "returns nothing for a project sitting below a repository's root"
+    ;; `projectile-project-vcs' answers `git' for a project inside a
+    ;; checkout, because it walks up to find the repository - but the
+    ;; enclosing repository's worktrees are not other copies of that
+    ;; project, and offering them would switch somewhere unrelated.
+    (projectile-test-with-sandbox
+     (let ((repo (projectile-test-init-git-repo "repo")))
+       (projectile-test-add-git-worktree
+        repo (expand-file-name "feature") "feature")
+       (let ((sub (file-name-as-directory (expand-file-name "sub" repo))))
+         (make-directory sub t)
+         (expect (projectile-project-vcs sub) :to-equal 'git)
+         (expect (projectile-worktrees-from-git sub) :to-be nil)
+         (expect (projectile-project-worktrees sub) :to-be nil))))))
 
 (describe "projectile-worktrees-from-known-projects"
   (it "finds another clone of the same upstream"
@@ -201,6 +216,23 @@
             (projectile-known-projects (list repo)))
        (spy-on 'projectile-acquire-root :and-return-value repo)
        (expect (projectile-switch-worktree) :to-throw 'user-error))))
+
+  (it "says so when it can't tell what the project is a checkout of"
+    ;; Distinct from having looked and found nothing: this project's version
+    ;; control system can't answer the question at all, which calls for a
+    ;; different response from the user.
+    (spy-on 'projectile-acquire-root :and-return-value "/src/plain/")
+    (spy-on 'projectile-project-vcs :and-return-value 'svn)
+    (spy-on 'projectile-project-name :and-return-value "plain")
+    (expect (condition-case err (projectile-switch-worktree)
+              (user-error (error-message-string err)))
+            :to-match "Cannot tell what plain is a checkout of"))
+
+  (it "says so for a remote project rather than reaching over TRAMP"
+    (spy-on 'projectile-acquire-root :and-return-value "/ssh:host:/src/repo/")
+    (expect (condition-case err (projectile-switch-worktree)
+              (user-error (error-message-string err)))
+            :to-match "remote project"))
 
   (it "switches to the chosen worktree"
     (projectile-test-with-sandbox
