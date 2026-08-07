@@ -4878,7 +4878,7 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
-(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function (category 'project-file))
+(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function annotation-function (category 'project-file))
   "Present a project tailored PROMPT with CHOICES.
 
 Reads with `completing-read', unless `projectile-completion-system' is a
@@ -4889,6 +4889,12 @@ called on the selected candidate and its result returned.  SORT-FUNCTION,
 when non-nil, is exposed as the completion metadata's
 `display-sort-function' and `cycle-sort-function', so completion UIs
 that honor metadata present the candidates in that order.
+
+ANNOTATION-FUNCTION, when non-nil, is exposed as the metadata's
+`annotation-function', so UIs that honor metadata show a suffix next to
+each candidate.  Use it when the candidate string alone doesn't identify
+what's being picked - a worktree's path doesn't say which branch it has
+checked out, say.
 
 CATEGORY is the completion metadata category advertised to UIs like
 marginalia and embark so they annotate and act on the candidates
@@ -4908,6 +4914,8 @@ CALLER is accepted for backward compatibility but no longer used."
                    ;; and embark enhance how candidates are presented.
                    (if (eq action 'metadata)
                        `(metadata ,@(when category `((category . ,category)))
+                                  ,@(when annotation-function
+                                      `((annotation-function . ,annotation-function)))
                                   ,@(when sort-function
                                       `((display-sort-function . ,sort-function)
                                         (cycle-sort-function . ,sort-function))))
@@ -13759,6 +13767,184 @@ silently declared identical."
         (equal remote (plist-get b :remote)))))
 
 
+;;; Worktrees
+;;
+;; A worktree, in the sense this section means it, is another directory
+;; holding the same repository: a real `git worktree', or simply a second
+;; clone, which is how the same workflow gets done without the plumbing.
+;; `projectile-switch-worktree' offers both, because from where the user
+;; sits they're the same thing - the other place this project is checked
+;; out, on another branch.
+;;
+;; Worktrees are found by `projectile-worktree-functions', which is a list
+;; so that a version control system Projectile can enumerate directly
+;; doesn't have to go through the generic fallback.  Each entry takes a
+;; project root and returns a list of plists with `:path' (mandatory),
+;; `:branch' and `:prunable'.
+
+(defcustom projectile-worktree-functions
+  '(projectile-worktrees-from-git
+    projectile-worktrees-from-known-projects)
+  "Functions consulted by `projectile-project-worktrees'.
+
+Each is called with a project root and should return a list of plists,
+one per checkout of that project\\='s repository, with the keys `:path'
+(the checkout\\='s directory, mandatory), `:branch' (what it has checked
+out, if that\\='s known) and `:prunable' (non-nil when the checkout is
+registered but no longer on disk).  Results from all the functions are
+merged and de-duplicated by path, so a checkout found twice is listed
+once, and a function that has nothing to say should return nil.
+
+The default pair covers git worktrees, which git enumerates itself, and
+anything else via the known projects (see
+`projectile-worktrees-from-known-projects')."
+  :group 'projectile
+  :type '(repeat function)
+  :package-version '(projectile . "3.4.0"))
+
+(defun projectile--parse-git-worktree-list (output)
+  "Parse the `git worktree list --porcelain' OUTPUT into worktree plists.
+
+Records are separated by blank lines and each opens with a `worktree'
+line.  Bare repositories are skipped: they have no working tree, so
+there\\='s nothing there to switch to."
+  (delq nil
+        (mapcar
+         (lambda (record)
+           (let ((lines (split-string record "\n" t)))
+             (unless (member "bare" lines)
+               (let ((worktree (list :path (file-name-as-directory
+                                            (string-remove-prefix
+                                             "worktree " (car lines))))))
+                 ;; `HEAD' and `detached' say nothing a switch needs, and
+                 ;; `locked' doesn't stop one, so they're all skipped here.
+                 (dolist (line (cdr lines) worktree)
+                   (cond
+                    ((string-prefix-p "branch " line)
+                     (plist-put worktree :branch
+                                (string-remove-prefix
+                                 "refs/heads/"
+                                 (string-remove-prefix "branch " line))))
+                    ((string-prefix-p "prunable" line)
+                     (plist-put worktree :prunable t))))))))
+         (split-string output "\n\n" t))))
+
+(defun projectile-worktrees-from-git (root)
+  "Return the git worktrees of the project at ROOT.
+
+Git registers them itself, so this finds worktrees that have never been
+visited in this Emacs session - which the known projects can't do."
+  (when-let* (((eq (projectile-project-vcs root) 'git))
+              ((not (file-remote-p root)))
+              (output (projectile--git root "worktree" "list" "--porcelain")))
+    (projectile--parse-git-worktree-list output)))
+
+(defun projectile-worktrees-from-known-projects (root)
+  "Return the known projects that are checkouts of ROOT\\='s repository.
+
+This is how everything git can\\='t enumerate gets found: a Mercurial
+working directory sharing another\\='s store, and - the case that turns up
+far more often than the plumbing suggests - a second clone of the same
+upstream, which is the same workflow done by hand.
+
+Only projects Projectile already knows about can be found this way, since
+there\\='s nothing else to enumerate."
+  (when-let* ((identity (projectile-repo-identity root)))
+    (delq nil
+          (mapcar (lambda (project)
+                    (let ((project (file-name-as-directory
+                                    (expand-file-name project))))
+                      (when (and (not (file-remote-p project))
+                                 (file-directory-p project)
+                                 (not (projectile-ignored-project-p project))
+                                 (projectile-same-repo-p
+                                  identity (projectile-repo-identity project)))
+                        (list :path project
+                              :branch (projectile--checkout-branch project)))))
+                  (projectile-known-projects)))))
+
+(defun projectile--checkout-branch (root)
+  "Return the branch checked out at ROOT, or nil when that isn't knowable.
+
+Read out of the checkout's own files rather than by running the version
+control system, since this is asked once per candidate checkout."
+  (pcase (projectile-project-vcs root)
+    ('git (when-let* ((git-dir (projectile--git-dir root)))
+            (projectile--git-head-branch git-dir)))))
+
+(defun projectile-project-worktrees (&optional project-root)
+  "Return the checkouts of PROJECT-ROOT\\='s repository, including itself.
+
+Every function in `projectile-worktree-functions' is consulted in turn and
+their results merged, de-duplicated by resolved path so that a worktree
+both git and the known projects report is listed once - the first
+function to report it wins, which is why the one that knows the most
+about a checkout should come first.  The plists that come back carry
+`:path', and `:branch'/`:prunable' when whoever found them knew."
+  (let ((root (or project-root (projectile-acquire-root)))
+        (seen (make-hash-table :test 'equal))
+        worktrees)
+    (dolist (fn projectile-worktree-functions)
+      (dolist (worktree (condition-case err
+                            (funcall fn root)
+                          (error
+                           (projectile--message "Worktree function %s failed: %s"
+                                                fn (error-message-string err))
+                           nil)))
+        (when-let* ((path (plist-get worktree :path))
+                    (key (file-truename path))
+                    ((not (gethash key seen))))
+          (puthash key t seen)
+          (push worktree worktrees))))
+    (nreverse worktrees)))
+
+(defun projectile--worktree-annotation (worktree)
+  "Return the completion annotation describing WORKTREE, or nil.
+That's the branch it has checked out, which is the thing a path alone
+doesn't say and the whole reason for picking one worktree over another."
+  (when-let* ((branch (plist-get worktree :branch)))
+    (format " (%s)" branch)))
+
+;;;###autoload
+(defun projectile-switch-worktree (&optional arg)
+  "Switch to another checkout of the current project\\='s repository.
+
+That's the project\\='s git worktrees, plus any other clone of the same
+upstream that Projectile already knows about - both are the same thing in
+practice, the place this project is checked out on another branch.
+
+Invokes the command referenced by `projectile-switch-project-action' on
+switch.  With a prefix ARG invokes `projectile-dispatch' instead."
+  (interactive "P")
+  (let* ((root (projectile-acquire-root))
+         (worktrees (seq-remove
+                     (lambda (worktree)
+                       ;; The checkout we're already in is not somewhere to
+                       ;; switch to, and one that's been deleted from under
+                       ;; its registration can't be switched to at all.
+                       (or (plist-get worktree :prunable)
+                           (file-equal-p (plist-get worktree :path) root)))
+                     (projectile-project-worktrees root)))
+         ;; Offered in the spelling every other switch command uses, so a
+         ;; worktree looks the same here as in `projectile-switch-project'.
+         (by-path (mapcar (lambda (worktree)
+                            (cons (projectile--known-project-root
+                                   (plist-get worktree :path))
+                                  worktree))
+                          worktrees)))
+    (unless worktrees
+      (user-error "No other checkout of %s found"
+                  (projectile-project-name root)))
+    (projectile-completing-read
+     "Switch to worktree: " (mapcar #'car by-path)
+     :action (lambda (path)
+               (projectile-switch-project-by-name path arg))
+     :annotation-function (lambda (path)
+                            (projectile--worktree-annotation
+                             (cdr (assoc path by-path))))
+     :category 'projectile-worktree)))
+
+
 ;;; Project bookmarks
 ;;
 ;; Project-scoped bookmarks on top of the built-in `bookmark.el'.  There's
@@ -15646,6 +15832,8 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "w R") #'projectile-session-restore-all)
     (define-key map (kbd "w f") #'projectile-session-forget)
     (define-key map (kbd "w b") #'projectile-session-switch-to-buffer)
+    ;; other checkouts of the current project's repository
+    (define-key map (kbd "W") #'projectile-switch-worktree)
     ;; project lifecycle external commands
     (define-key map (kbd "c o") #'projectile-configure-project)
     (define-key map (kbd "c c") #'projectile-compile-project)
@@ -15972,6 +16160,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
     [["Project"
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
+      ("W" "switch worktree" projectile-switch-worktree)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)
       ("P" "dashboard" projectile-dashboard)
@@ -17174,6 +17363,11 @@ existing tabs untouched."
 ;;    offers project operations (switch, vc, dired, remove) instead of only
 ;;    generic file actions.  Marginalia keeps annotating those candidates via
 ;;    the built-in file annotator (they are directory paths).
+;;
+;; The `projectile-worktree' category gets the same Embark actions but is
+;; deliberately left out of the Marginalia registry: those candidates carry
+;; their own `annotation-function' naming the branch each worktree has
+;; checked out, and a registered annotator would take precedence over it.
 
 (defun projectile--embark-project-file-target (target)
   "Resolve a `project-file' TARGET to an absolute path under the Projectile root.
@@ -17242,7 +17436,11 @@ Projectile again doesn't stack wrappers."
       (setf (alist-get 'project-file embark-transformer-alist)
             #'projectile--embark-project-file-transform)))
   (add-to-list 'embark-keymap-alist
-               '(projectile-project . projectile-embark-project-map)))
+               '(projectile-project . projectile-embark-project-map))
+  ;; A worktree candidate is a project directory too, so the same actions
+  ;; apply to it.
+  (add-to-list 'embark-keymap-alist
+               '(projectile-worktree . projectile-embark-project-map)))
 
 (with-eval-after-load 'embark (projectile--embark-setup))
 

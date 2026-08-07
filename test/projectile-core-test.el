@@ -380,6 +380,10 @@
       (expect projectile--embark-project-file-prev-transform :to-be prev)
       (expect (alist-get 'projectile-project embark-keymap-alist)
               :to-be 'projectile-embark-project-map)
+      ;; Worktree candidates are project directories too, so they get the
+      ;; same actions.
+      (expect (alist-get 'projectile-worktree embark-keymap-alist)
+              :to-be 'projectile-embark-project-map)
       (expect (keymap-parent projectile-embark-project-map)
               :to-be embark-general-map)))
 
@@ -390,9 +394,10 @@
            (embark-keymap-alist nil)
            (projectile--embark-project-file-prev-transform nil))
       (projectile--embark-setup)
-      (projectile--embark-setup)
-      (expect projectile--embark-project-file-prev-transform :to-be prev)
-      (expect (length embark-keymap-alist) :to-equal 1))))
+      (let ((registered (length embark-keymap-alist)))
+        (projectile--embark-setup)
+        (expect projectile--embark-project-file-prev-transform :to-be prev)
+        (expect (length embark-keymap-alist) :to-equal registered)))))
 
 (describe "Marginalia integration"
   (it "registers the file annotator for project candidates"

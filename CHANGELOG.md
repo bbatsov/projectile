@@ -8,6 +8,8 @@
 
 ### New features
 
+- [#2147](https://github.com/bbatsov/projectile/pull/2147): Add `projectile-switch-worktree` (`s-p W`), which offers the other checkouts of the current project's repository, each annotated with the branch it has checked out.
+  - Git worktrees and separate clones of the same upstream both count as checkouts, since they're the same workflow with and without the plumbing; `projectile-worktree-functions` is where other ways of finding them plug in.
 - [#2138](https://github.com/bbatsov/projectile/pull/2138): Better support for OCaml, Erlang and F#.
   - `projectile-run-test-at-point` learns `erlang-ts-mode` (EUnit's `_test`/`_test_` functions, run as `rebar3 eunit --test=module:name`) and `fsharp-ts-mode` (bindings attributed `[<Fact>]`, `[<Theory>]`, `[<Test>]`, `[<TestCase>]` or `[<Property>]`, run through `dotnet test --filter`).
   - The `ocaml-dune` and `rebar` project types gained their run, install, package and source/test directory attributes, and a new `erlang-mk` type covers the other common Erlang build tool.
