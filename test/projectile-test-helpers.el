@@ -380,6 +380,32 @@ specs' smart-case settings) can wrap BODY in its own `let'."
            (progn ,@body)
          (projectile-test-kill-project-buffers default-directory)))))
 
+;;; Git sandbox helpers
+
+(defun projectile-test-git (&rest args)
+  "Run git with ARGS in `default-directory', discarding its output."
+  (apply #'call-process "git" nil nil nil args))
+
+(defun projectile-test-init-git-repo (dir &optional remote)
+  "Create a git repository in DIR with a single empty commit.
+REMOTE, when non-nil, is added as the `origin' remote.  Returns DIR as a
+directory name."
+  (make-directory dir t)
+  (let ((default-directory (file-name-as-directory (expand-file-name dir))))
+    (projectile-test-git "init" "-q")
+    (projectile-test-git "config" "user.email" "test@test.com")
+    (projectile-test-git "config" "user.name" "Test")
+    (projectile-test-git "commit" "-q" "--allow-empty" "-m" "init")
+    (when remote
+      (projectile-test-git "remote" "add" "origin" remote))
+    default-directory))
+
+(defun projectile-test-add-git-worktree (repo path branch)
+  "Add a worktree of REPO at PATH, checked out on a new BRANCH."
+  (let ((default-directory repo))
+    (projectile-test-git "worktree" "add" "-q" path "-b" branch))
+  (file-name-as-directory (expand-file-name path)))
+
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
 Just delegates OPERATION and ARGS for all operations except for
