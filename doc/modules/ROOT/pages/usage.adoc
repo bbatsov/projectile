@@ -625,8 +625,9 @@ visited, which is the right default and the wrong tool when you know roughly
 where you're headed. Two commands narrow it down:
 
 * `projectile-switch-worktree` (kbd:[s-p W]) offers the other checkouts of the
-  current project's repository - its git worktrees, or another clone of the
-  same upstream - each labelled with the branch it has checked out.
+  current project's repository - its git worktrees, its Jujutsu workspaces, or
+  another clone of the same upstream - each labelled with whatever tells it
+  apart: the branch, or the workspace name.
 * `projectile-switch-sibling-project` (kbd:[s-p n]) offers the projects related
   to this one: grouped with it in your configuration, sharing the owner of its
   remote, or named after the same thing.
