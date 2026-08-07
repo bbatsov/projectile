@@ -406,6 +406,34 @@ directory name."
     (projectile-test-git "worktree" "add" "-q" path "-b" branch))
   (file-name-as-directory (expand-file-name path)))
 
+;;; Jujutsu sandbox helpers
+;;
+;; Every one of these needs the `jj' binary, so the specs using them guard
+;; with `(assume (executable-find "jj"))'.  CI installs it alongside ripgrep.
+
+(defun projectile-test-jj (&rest args)
+  "Run jj with ARGS in `default-directory', discarding its output.
+The identity is supplied through the environment so a sandbox repository
+doesn't depend on the machine having a jj user configured."
+  (let ((process-environment (append '("JJ_USER=Test" "JJ_EMAIL=test@test.com")
+                                     process-environment)))
+    (apply #'call-process "jj" nil nil nil args)))
+
+(defun projectile-test-init-jj-repo (dir)
+  "Create a Jujutsu repository in DIR.
+Returns DIR as a directory name."
+  (make-directory dir t)
+  (let ((default-directory (file-name-as-directory (expand-file-name dir))))
+    (projectile-test-jj "git" "init")
+    default-directory))
+
+(defun projectile-test-add-jj-workspace (repo path)
+  "Add a Jujutsu workspace of REPO at PATH.
+Returns PATH as a directory name."
+  (let ((default-directory repo))
+    (projectile-test-jj "workspace" "add" path))
+  (file-name-as-directory (expand-file-name path)))
+
 (defun file-handler-for-tests (operation &rest args)
   "Handler for # files.
 Just delegates OPERATION and ARGS for all operations except for

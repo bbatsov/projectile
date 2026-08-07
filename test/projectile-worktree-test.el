@@ -37,15 +37,15 @@
                               "worktree /src/feature\nHEAD abc\nbranch refs/heads/feature\n\n"))))
       (expect (length worktrees) :to-equal 2)
       (expect (plist-get (nth 0 worktrees) :path) :to-equal "/src/main/")
-      (expect (plist-get (nth 0 worktrees) :branch) :to-equal "master")
+      (expect (plist-get (nth 0 worktrees) :label) :to-equal "master")
       (expect (plist-get (nth 1 worktrees) :path) :to-equal "/src/feature/")
-      (expect (plist-get (nth 1 worktrees) :branch) :to-equal "feature")))
+      (expect (plist-get (nth 1 worktrees) :label) :to-equal "feature")))
 
   (it "leaves a detached worktree without a branch"
     (let ((worktrees (projectile--parse-git-worktree-list
                       "worktree /src/detached\nHEAD abc\ndetached\n\n")))
       (expect (length worktrees) :to-equal 1)
-      (expect (plist-get (car worktrees) :branch) :to-be nil)))
+      (expect (plist-get (car worktrees) :label) :to-be nil)))
 
   (it "skips a bare repository, which has no working tree to switch to"
     (let ((worktrees (projectile--parse-git-worktree-list
@@ -63,13 +63,13 @@
     (let ((worktrees (projectile--parse-git-worktree-list
                       "worktree /src/locked\nHEAD abc\nbranch refs/heads/locked\nlocked\n\n")))
       (expect (length worktrees) :to-equal 1)
-      (expect (plist-get (car worktrees) :branch) :to-equal "locked")))
+      (expect (plist-get (car worktrees) :label) :to-equal "locked")))
 
   (it "parses a final record that isn't followed by a blank line"
     (let ((worktrees (projectile--parse-git-worktree-list
                       "worktree /src/main\nHEAD abc\nbranch refs/heads/master")))
       (expect (length worktrees) :to-equal 1)
-      (expect (plist-get (car worktrees) :branch) :to-equal "master")))
+      (expect (plist-get (car worktrees) :label) :to-equal "master")))
 
   (it "returns nothing for empty output"
     (expect (projectile--parse-git-worktree-list "") :to-be nil)))
@@ -99,7 +99,7 @@
               (feature (seq-find (lambda (w)
                                    (string-match-p "feature" (plist-get w :path)))
                                  worktrees)))
-         (expect (plist-get feature :branch) :to-equal "feature")))))
+         (expect (plist-get feature :label) :to-equal "feature")))))
 
   (it "returns nothing for a project that isn't under git"
     (spy-on 'projectile-project-vcs :and-return-value 'hg)
@@ -119,6 +119,72 @@
          (expect (projectile-project-vcs sub) :to-equal 'git)
          (expect (projectile-worktrees-from-git sub) :to-be nil)
          (expect (projectile-project-worktrees sub) :to-be nil))))))
+
+(describe "projectile-worktrees-from-jj"
+  (it "lists the workspaces of the repository, labelled by name"
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-jj-repo "repo"))
+            (second (projectile-test-add-jj-workspace
+                     repo (expand-file-name "second")))
+            (workspaces (projectile-worktrees-from-jj second)))
+       (expect (mapcar (lambda (w) (file-truename (plist-get w :path))) workspaces)
+               :to-have-same-items-as
+               (list (file-truename repo) (file-truename second)))
+       (expect (mapcar (lambda (w) (plist-get w :label)) workspaces)
+               :to-have-same-items-as '("default" "second")))))
+
+  (it "works from the first workspace too, which is reported as git"
+    ;; `jj git init' leaves a `.git' at the root, so the first workspace
+    ;; detects as git - the jj lookup keys off `.jj' rather than the
+    ;; detected system precisely so it still runs there.
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let ((repo (projectile-test-init-jj-repo "repo")))
+       (projectile-test-add-jj-workspace repo (expand-file-name "second"))
+       (expect (length (projectile-worktrees-from-jj repo)) :to-equal 2))))
+
+  (it "returns nothing for a project that isn't a workspace"
+    (expect (projectile-worktrees-from-jj "/src/plain/") :to-be nil))
+
+  (it "reads paths correctly for a user who has jj colorize everything"
+    ;; jj colorizes template output too, so `ui.color = \"always\"' would
+    ;; otherwise wrap every path in escape sequences and make each one a
+    ;; candidate that doesn't exist.
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let ((repo (projectile-test-init-jj-repo "repo")))
+       (projectile-test-add-jj-workspace repo (expand-file-name "second"))
+       (let ((default-directory repo))
+         (projectile-test-jj "config" "set" "--repo" "ui.color" "always"))
+       (dolist (workspace (projectile-worktrees-from-jj repo))
+         (expect (file-directory-p (plist-get workspace :path)) :to-be-truthy)))))
+
+  (it "gives up on a remote project before touching the file system"
+    (spy-on 'file-directory-p)
+    (expect (projectile-worktrees-from-jj "/ssh:host:/src/repo/") :to-be nil)
+    (expect 'file-directory-p :not :to-have-been-called))
+
+  (it "returns nothing when jj isn't installed"
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let ((repo (projectile-test-init-jj-repo "repo")))
+       (spy-on 'executable-find :and-return-value nil)
+       (expect (projectile-worktrees-from-jj repo) :to-be nil))))
+
+  (it "still relates the workspaces via the known projects without jj"
+    ;; The identity is read from files, so a user who has jj repositories
+    ;; but no jj on PATH still gets the other workspaces offered.
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-jj-repo "repo"))
+            (second (projectile-test-add-jj-workspace
+                     repo (expand-file-name "second")))
+            (projectile-known-projects (list repo second)))
+       (expect (mapcar (lambda (w) (file-truename (plist-get w :path)))
+                       (projectile-worktrees-from-known-projects second))
+               :to-have-same-items-as
+               (list (file-truename repo) (file-truename second)))))))
 
 (describe "projectile-worktrees-from-known-projects"
   (it "finds another clone of the same upstream"
@@ -143,7 +209,7 @@
        (let ((found (seq-find (lambda (w)
                                 (string-match-p "two" (plist-get w :path)))
                               (projectile-worktrees-from-known-projects one))))
-         (expect (plist-get found :branch) :to-equal "topic")))))
+         (expect (plist-get found :label) :to-equal "topic")))))
 
   (it "does not launch a git process per known project"
     ;; The scan runs over every known project, so it reads git's own files
@@ -194,7 +260,7 @@
               (found (seq-find (lambda (w)
                                  (string-match-p "feature" (plist-get w :path)))
                                (projectile-project-worktrees repo))))
-         (expect (plist-get found :branch) :to-equal "feature")))))
+         (expect (plist-get found :label) :to-equal "feature")))))
 
   (it "survives a worktree function that throws"
     (projectile-test-with-sandbox
@@ -278,7 +344,7 @@
             (projectile-worktree-functions
              (list (lambda (_root)
                      (list (list :path "/src/gone/" :prunable t)
-                           (list :path "/src/here/" :branch "here"))))))
+                           (list :path "/src/here/" :label "here"))))))
        (spy-on 'projectile-acquire-root :and-return-value repo)
        (spy-on 'projectile-completing-read :and-call-fake
                (lambda (_prompt choices &rest _args) (car choices)))
@@ -287,7 +353,7 @@
                :to-contain '("/src/here/")))))
 
   (it "annotates candidates with their branch"
-    (expect (projectile--worktree-annotation '(:path "/src/x/" :branch "feature"))
+    (expect (projectile--worktree-annotation '(:path "/src/x/" :label "feature"))
             :to-equal " (feature)")
     (expect (projectile--worktree-annotation '(:path "/src/x/")) :to-be nil)))
 

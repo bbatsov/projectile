@@ -4927,7 +4927,7 @@ ANNOTATION-FUNCTION, when non-nil, is exposed as the metadata's
 `annotation-function', so UIs that honor metadata show a suffix next to
 each candidate.  Use it when the candidate string alone doesn't identify
 what's being picked - a worktree's path doesn't say which branch it has
-checked out, say.
+checked out, for instance.
 
 CATEGORY is the completion metadata category advertised to UIs like
 marginalia and embark so they annotate and act on the candidates
@@ -13689,15 +13689,10 @@ enclosing repository are not other copies of such a project."
 A linked worktree's git directory carries a `commondir' file naming that
 shared directory; the main checkout's git directory is the shared
 directory itself."
-  (let ((commondir (expand-file-name "commondir" git-dir)))
-    (if (file-readable-p commondir)
-        (file-name-as-directory
-         (expand-file-name
-          (with-temp-buffer
-            (insert-file-contents commondir)
-            (string-trim (buffer-string)))
-          git-dir))
-      git-dir)))
+  (if-let* ((common (projectile--file-contents-trimmed
+                     (expand-file-name "commondir" git-dir))))
+      (file-name-as-directory (expand-file-name common git-dir))
+    git-dir))
 
 (defun projectile--git-config-remote-url (config-file)
   "Return the URL of the upstream remote configured in CONFIG-FILE, or nil.
@@ -13733,14 +13728,67 @@ comes first rather than giving up."
         (when (looking-at "ref:[ \t]*refs/heads/\\(.+?\\)[ \t]*$")
           (match-string 1))))))
 
-(defun projectile--git-repo-identity (root)
-  "Return the repository identity plist for the git checkout at ROOT."
-  (when-let* ((git-dir (projectile--git-dir root))
-              (common-dir (projectile--git-common-dir git-dir)))
-    (list :repo (file-truename common-dir)
+(defun projectile--git-dir-identity (git-dir)
+  "Return the repository identity plist for the repository at GIT-DIR."
+  (let ((git-dir (file-name-as-directory git-dir)))
+    (list :repo (file-truename git-dir)
           :remote (projectile--normalize-repo-url
                    (projectile--git-config-remote-url
-                    (expand-file-name "config" common-dir))))))
+                    (expand-file-name "config" git-dir))))))
+
+(defun projectile--git-repo-identity (root)
+  "Return the repository identity plist for the git checkout at ROOT."
+  (when-let* ((git-dir (projectile--git-dir root)))
+    (projectile--git-dir-identity (projectile--git-common-dir git-dir))))
+
+(defun projectile--file-contents-trimmed (file)
+  "Return the trimmed contents of FILE, or nil when it can't be read.
+The version control systems all record their cross-references as a path
+on a line of its own in a small file, so this is the shape of every one
+of those reads."
+  (when (file-readable-p file)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (string-trim (buffer-string)))))
+
+(defun projectile--jj-repo-dir (root)
+  "Return the `.jj/repo' directory the Jujutsu workspace at ROOT uses, or nil.
+
+Jujutsu lays its workspaces out the way git lays out worktrees: the first
+one holds the directory itself, and every one added later holds a file
+naming it."
+  (let ((repo (expand-file-name ".jj/repo" root)))
+    (if (file-directory-p repo)
+        (file-name-as-directory repo)
+      (when-let* ((target (projectile--file-contents-trimmed repo))
+                  ((not (string-empty-p target))))
+        (file-name-as-directory
+         (expand-file-name target (file-name-directory repo)))))))
+
+(defun projectile--jj-repo-identity (root)
+  "Return the repository identity plist for the Jujutsu workspace at ROOT."
+  (when-let* ((repo-dir (projectile--jj-repo-dir root)))
+    ;; A git-backed repository - which is every one `jj git init' makes -
+    ;; names the git directory holding its commits, relative to the store
+    ;; rather than to the repository.  Resolving to that instead of to
+    ;; `.jj' makes a workspace and the colocated git checkout agree on
+    ;; which repository they are, rather than each insisting on its own
+    ;; answer, and it gets the remote for free.
+    (let ((store (expand-file-name "store/" repo-dir)))
+      (if-let* ((target (projectile--file-contents-trimmed
+                         (expand-file-name "git_target" store)))
+                (path (expand-file-name target store)))
+          (projectile--git-dir-identity
+           ;; The target is usually a git directory, but a submodule
+           ;; checkout or a linked worktree has a `.git' *file* pointing at
+           ;; the real one, and either can be a linked worktree's git
+           ;; directory rather than the shared one.
+           (projectile--git-common-dir
+            (if (file-directory-p path)
+                (file-name-as-directory path)
+              (or (projectile--git-dir (file-name-directory path))
+                  (file-name-as-directory path)))))
+        (list :repo (file-truename repo-dir))))))
 
 (defun projectile--hg-repo-identity (root)
   "Return the repository identity plist for the Mercurial project at ROOT.
@@ -13749,12 +13797,9 @@ A working directory created by `hg share' keeps its store elsewhere and
 records where in `.hg/sharedpath', which makes that path the Mercurial
 equivalent of git\\='s common dir."
   (let* ((hg-dir (expand-file-name ".hg" root))
-         (sharedpath (expand-file-name "sharedpath" hg-dir))
-         (store (if (file-readable-p sharedpath)
-                    (with-temp-buffer
-                      (insert-file-contents sharedpath)
-                      (string-trim (buffer-string)))
-                  hg-dir)))
+         (store (or (projectile--file-contents-trimmed
+                     (expand-file-name "sharedpath" hg-dir))
+                    hg-dir)))
     (list :repo (when (file-exists-p store) (file-truename store))
           :remote (projectile--normalize-repo-url
                    (projectile--hg-default-path root)))))
@@ -13781,7 +13826,8 @@ a canonical identity for the upstream it was cloned from.  See
 `projectile-same-repo-p' for comparing two of these.
 
 Returns nil for a project that isn't under a version control system
-Projectile can answer this for (only git and Mercurial carry the notion),
+Projectile can answer this for (only git, Mercurial and Jujutsu carry
+the notion),
 and for a remote project, where every probe would be a TRAMP round trip.
 
 Results are cached in `projectile-repo-identity-cache' (cleared by
@@ -13793,7 +13839,8 @@ Results are cached in `projectile-repo-identity-cache' (cleared by
             cached
           (let ((identity (pcase (projectile-project-vcs root)
                             ('git (projectile--git-repo-identity root))
-                            ('hg (projectile--hg-repo-identity root)))))
+                            ('hg (projectile--hg-repo-identity root))
+                            ('jj (projectile--jj-repo-identity root)))))
             ;; An identity with nothing in it says as little as no identity
             ;; at all, and storing it as nil keeps the callers from having
             ;; to test both.
@@ -13834,24 +13881,26 @@ silently declared identical."
 ;; so that a version control system Projectile can enumerate directly
 ;; doesn't have to go through the generic fallback.  Each entry takes a
 ;; project root and returns a list of plists with `:path' (mandatory),
-;; `:branch' and `:prunable'.
+;; `:label' and `:prunable'.
 
 (defcustom projectile-worktree-functions
   '(projectile-worktrees-from-git
+    projectile-worktrees-from-jj
     projectile-worktrees-from-known-projects)
   "Functions consulted by `projectile-project-worktrees'.
 
 Each is called with a project root and should return a list of plists,
 one per checkout of that project\\='s repository, with the keys `:path'
-(the checkout\\='s directory, mandatory), `:branch' (what it has checked
-out, if that\\='s known) and `:prunable' (non-nil when the checkout is
-registered but no longer on disk).  Results from all the functions are
+(the checkout\\='s directory, mandatory), `:label' (what tells this
+checkout apart from the others - a branch, a workspace name - if that\\='s
+known) and `:prunable' (non-nil when the checkout is registered but no
+longer on disk).  Results from all the functions are
 merged and de-duplicated by path, so a checkout found twice is listed
 once, and a function that has nothing to say should return nil.
 
-The default pair covers git worktrees, which git enumerates itself, and
-anything else via the known projects (see
-`projectile-worktrees-from-known-projects')."
+The default set covers git worktrees and Jujutsu workspaces, both of
+which the version control system enumerates itself, and anything else via
+the known projects (see `projectile-worktrees-from-known-projects')."
   :group 'projectile
   :type '(repeat function)
   :package-version '(projectile . "3.4.0"))
@@ -13875,7 +13924,7 @@ there\\='s nothing there to switch to."
                  (dolist (line (cdr lines) worktree)
                    (cond
                     ((string-prefix-p "branch " line)
-                     (plist-put worktree :branch
+                     (plist-put worktree :label
                                 (string-remove-prefix
                                  "refs/heads/"
                                  (string-remove-prefix "branch " line))))
@@ -13901,6 +13950,57 @@ visited in this Emacs session - which the known projects can't do."
               (output (projectile--git root "worktree" "list" "--porcelain")))
     (projectile--parse-git-worktree-list output)))
 
+(defun projectile--jj (root &rest args)
+  "Run jj with ARGS in ROOT and return its output, or nil when it fails.
+`--no-pager' because a pager would hang a batch invocation,
+`--ignore-working-copy' so that merely listing workspaces doesn\\='t snapshot
+the working copy behind the user\\='s back, and `--color=never' because jj
+colorizes template output too and a user with `ui.color = \"always\"' would
+otherwise get paths wrapped in escape sequences."
+  (let ((default-directory root))
+    (with-temp-buffer
+      (when (eql 0 (ignore-errors
+                     (apply #'process-file "jj" nil '(t nil) nil
+                            "--no-pager" "--color=never"
+                            "--ignore-working-copy" args)))
+        (buffer-string)))))
+
+(defun projectile-worktrees-from-jj (root)
+  "Return the Jujutsu workspaces of the project at ROOT.
+
+Gated on a `.jj' directory rather than on `projectile-project-vcs'
+answering `jj', because a colocated repository (`jj git init --colocate')
+holds both markers and is reported as git by default - see
+`projectile-vcs-markers'.  Such a repository has git worktrees *and*
+Jujutsu workspaces, and both belong on the list.
+
+The workspace root is asked for through a template.  Jujutsu only started
+recording it in 0.38: an older *workspace* renders as nothing and is
+skipped rather than becoming a bogus candidate, while an older *binary*
+rejects the template outright and simply reports nothing.
+
+The remote check comes first, before anything touches the file system,
+so that a remote project costs no TRAMP round trip."
+  (when-let* (((not (file-remote-p root)))
+              ((file-directory-p (expand-file-name ".jj" root)))
+              ((executable-find "jj"))
+              (output (projectile--jj root "workspace" "list"
+                                      "-T" "self.name() ++ \"\\t\" ++ self.root() ++ \"\\n\"")))
+    (delq nil
+          (mapcar (lambda (line)
+                    ;; Only the name is escaped and quoted by jj, so a tab
+                    ;; in the output can only have come from the path -
+                    ;; hence splitting once, at the first one.
+                    (let* ((parts (split-string line "\t"))
+                           (name (car parts))
+                           (path (string-join (cdr parts) "\t")))
+                      (unless (string-empty-p path)
+                        (list :path (file-name-as-directory path)
+                              ;; A name that isn't a bare identifier comes
+                              ;; back quoted; the quotes aren't part of it.
+                              :label (string-trim name "\"" "\"")))))
+                  (split-string output "\n" t)))))
+
 (defun projectile-worktrees-from-known-projects (root)
   "Return the known projects that are checkouts of ROOT\\='s repository.
 
@@ -13922,7 +14022,7 @@ there\\='s nothing else to enumerate."
                                  (projectile-same-repo-p
                                   identity (projectile-repo-identity project)))
                         (list :path project
-                              :branch (projectile--checkout-branch project)))))
+                              :label (projectile--checkout-branch project)))))
                   (projectile-known-projects)))))
 
 (defun projectile--checkout-branch (root)
@@ -13942,7 +14042,7 @@ their results merged, de-duplicated by resolved path so that a worktree
 both git and the known projects report is listed once - the first
 function to report it wins, which is why the one that knows the most
 about a checkout should come first.  The plists that come back carry
-`:path', and `:branch'/`:prunable' when whoever found them knew."
+`:path', and `:label'/`:prunable' when whoever found them knew."
   (projectile--collect-from-functions
    projectile-worktree-functions
    (or project-root (projectile-acquire-root))
@@ -13953,10 +14053,12 @@ about a checkout should come first.  The plists that come back carry
 
 (defun projectile--worktree-annotation (worktree)
   "Return the completion annotation describing WORKTREE, or nil.
-That's the branch it has checked out, which is the thing a path alone
-doesn't say and the whole reason for picking one worktree over another."
-  (when-let* ((branch (plist-get worktree :branch)))
-    (format " (%s)" branch)))
+That's whatever tells this checkout apart from the others - the branch
+for git and Mercurial, the workspace name for Jujutsu - which is the
+thing a path alone doesn't say and the whole reason for picking one
+checkout over another."
+  (when-let* ((label (plist-get worktree :label)))
+    (format " (%s)" label)))
 
 ;;;###autoload
 (defun projectile-switch-worktree (&optional arg)
@@ -13995,7 +14097,7 @@ switch.  With a prefix ARG invokes `projectile-dispatch' instead."
        ((projectile-repo-identity root)
         (user-error "No other checkout of %s found" (projectile-project-name root)))
        (t
-        (user-error "Cannot tell what %s is a checkout of - only git and Mercurial say.  Try `projectile-switch-sibling-project'"
+        (user-error "Cannot tell what %s is a checkout of - only git, Mercurial and Jujutsu say.  Try `projectile-switch-sibling-project'"
                     (projectile-project-name root)))))
     (projectile-completing-read
      "Switch to worktree: " (mapcar #'car by-path)
@@ -17673,8 +17775,8 @@ existing tabs untouched."
 ;;
 ;; The `projectile-worktree' category gets the same Embark actions but is
 ;; deliberately left out of the Marginalia registry: those candidates carry
-;; their own `annotation-function' naming the branch each worktree has
-;; checked out, and a registered annotator would take precedence over it.
+;; their own `annotation-function' naming what each worktree has checked
+;; out, and a registered annotator would take precedence over it.
 
 (defun projectile--embark-project-file-target (target)
   "Resolve a `project-file' TARGET to an absolute path under the Projectile root.
