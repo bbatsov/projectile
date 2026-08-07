@@ -185,6 +185,83 @@
       (expect (projectile--git-head-branch git-dir) :to-be nil))))
 
 
+;;; Reading Jujutsu's own files
+
+(describe "projectile--jj-repo-dir"
+  (it "returns the repo directory of the first workspace"
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let ((repo (projectile-test-init-jj-repo "repo")))
+       (expect (file-truename (projectile--jj-repo-dir repo))
+               :to-equal (file-name-as-directory
+                          (file-truename (expand-file-name ".jj/repo" repo)))))))
+
+  (it "follows the file a workspace added later gets instead"
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-jj-repo "repo"))
+            (second (projectile-test-add-jj-workspace
+                     repo (expand-file-name "second"))))
+       ;; The added workspace's `.jj/repo' is a file, not a directory.
+       (expect (file-directory-p (expand-file-name ".jj/repo" second)) :to-be nil)
+       (expect (file-truename (projectile--jj-repo-dir second))
+               :to-equal (file-truename (projectile--jj-repo-dir repo))))))
+
+  (it "returns nil for a directory that is not a workspace"
+    (expect (projectile--jj-repo-dir "/src/plain/") :to-be nil)))
+
+(describe "projectile-repo-identity for Jujutsu"
+  (it "agrees with the git checkout backing the same repository"
+    ;; `jj git init' keeps the commits in a git directory, and the first
+    ;; workspace is reported as git while a workspace added later is
+    ;; reported as jj.  They have to come out as the same repository
+    ;; regardless, or the known projects can't relate them.
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-jj-repo "repo"))
+            (second (projectile-test-add-jj-workspace
+                     repo (expand-file-name "second"))))
+       (expect (plist-get (projectile-repo-identity second) :repo)
+               :to-equal (plist-get (projectile-repo-identity repo) :repo))
+       (expect (projectile-same-repo-p (projectile-repo-identity repo)
+                                       (projectile-repo-identity second))
+               :to-be-truthy))))
+
+  (it "agrees with a colocated checkout whose git dir is named by a file"
+    ;; A submodule's `.git' is a file pointing at the real git directory
+    ;; under the superproject, and that is what jj records as its backing
+    ;; store.  Taking it for a directory used to give the workspace and the
+    ;; checkout two different answers about which repository they are.
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (projectile-test-init-git-repo "lib")
+     (let ((super (projectile-test-init-git-repo "super")))
+       (let ((default-directory super))
+         (projectile-test-git "-c" "protocol.file.allow=always"
+                              "submodule" "add" "-q" "../lib" "vendor/lib")
+         (projectile-test-git "commit" "-qm" "add submodule"))
+       (let* ((sub (file-name-as-directory
+                    (expand-file-name "vendor/lib" super)))
+              (default-directory sub))
+         (expect (file-directory-p (expand-file-name ".git" sub)) :to-be nil)
+         (projectile-test-jj "git" "init" "--colocate")
+         (let ((workspace (projectile-test-add-jj-workspace
+                           sub (expand-file-name "lib-ws"))))
+           (expect (plist-get (projectile-repo-identity workspace) :repo)
+                   :to-equal
+                   (plist-get (projectile-repo-identity sub) :repo)))))))
+
+  (it "picks up the remote through the git backing store"
+    (assume (executable-find "jj") "jj is not available")
+    (projectile-test-with-sandbox
+     (let ((repo (projectile-test-init-jj-repo "repo")))
+       (let ((default-directory repo))
+         (projectile-test-jj "git" "remote" "add" "origin"
+                             "git@github.com:bbatsov/projectile.git"))
+       (expect (plist-get (projectile-repo-identity repo) :remote)
+               :to-equal "github.com/bbatsov/projectile")))))
+
+
 ;;; Repository identity
 
 (describe "projectile-repo-identity"

@@ -34,7 +34,8 @@ other switch commands.
 == Other checkouts of this project
 
 kbd:[s-p W] lists the other directories holding the same repository, each
-annotated with the branch it has checked out:
+annotated with whatever tells it apart - the branch for git and
+Mercurial, the workspace name for Jujutsu:
 
 ....
 Switch to worktree:
@@ -42,8 +43,8 @@ Switch to worktree:
 ~/src/myapp-hotfix/   (hotfix/crash-on-open)
 ....
 
-Two quite different things end up on that list, because from where you're
-sitting they're the same thing.
+Several quite different mechanisms end up on that list, because from
+where you're sitting they're the same thing.
 
 *Git worktrees* are the built-in mechanism:
 
@@ -54,6 +55,18 @@ git worktree add ../myapp-hotfix -b hotfix/crash-on-open
 
 Projectile asks git for these, so a worktree you have never opened in
 Emacs still shows up.
+
+*Jujutsu workspaces* are the same idea under `jj`:
+
+[source,shell]
+----
+jj workspace add ../myapp-hotfix
+----
+
+These are enumerated too, so an unvisited one shows up as well, labelled
+with its workspace name. A colocated repository (`jj git init --colocate`,
+and in recent versions plain `jj git init` too) has both git worktrees and
+Jujutsu workspaces, and both are offered.
 
 *Separate clones* of the same upstream are the hand-rolled version of the
 same workflow, and plenty of people work that way:
@@ -75,8 +88,8 @@ and run `M-x projectile-discover-projects-in-search-path`.
 
 Where checkouts come from is controlled by `projectile-worktree-functions`,
 a list of functions each taking a project root and returning what it
-found. The default pair covers git and the known projects; add your own if
-you have another way of tracking checkouts.
+found. The default set covers git, Jujutsu and the known projects; add
+your own if you have another way of tracking checkouts.
 
 [#siblings]
 == Related projects
@@ -200,8 +213,8 @@ Worth knowing before you file a bug:
 
 When kbd:[s-p W] has nothing to offer it distinguishes the two reasons:
 having looked and found no other checkout, and not being able to look at
-all because the project isn't the top level of a git or Mercurial
-repository. Only the first means "there aren't any". kbd:[s-p n] needs
+all because the project isn't the top level of a git, Mercurial or
+Jujutsu repository. Only the first means "there aren't any". kbd:[s-p n] needs
 none of this, so it's the one to reach for when Projectile can't identify
 the repository.
 * *Sibling clones must already be known projects.* Real git worktrees are
@@ -223,9 +236,20 @@ the repository.
   `.hg/hgrc` acts as the remote. Mercurial has no way to enumerate shares,
   so one you've never visited won't be found.
 
+| Jujutsu
+| Workspaces come from `jj workspace list`, so one you've never visited is
+  found too. Jujutsu only started recording a workspace's path in 0.38: a
+  workspace created by an older version is skipped rather than guessed at,
+  and an older `jj` binary rejects the query outright, so nothing is
+  enumerated and the known projects take over. A
+  repository is identified through its git backing store, so a workspace
+  and the colocated git checkout agree on being the same thing, and jj
+  repositories get a remote (and therefore siblings) like any other.
+  Enumeration needs `jj` on `PATH`; without it the workspaces are still
+  related through the known projects, since that reads files rather than
+  running anything.
+
 | Everything else
-| No worktree support. Jujutsu workspaces, Fossil check-outs, Subversion,
-  Bazaar and Darcs are all treated as ordinary projects. `jj` only learned
-  to report workspace paths in 0.38, so support for it is waiting on being
-  able to test it properly.
+| No worktree support. Fossil check-outs, Subversion, Bazaar, Darcs and
+  Sapling are all treated as ordinary projects.
 |===
