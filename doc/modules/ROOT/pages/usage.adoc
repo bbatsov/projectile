@@ -618,6 +618,21 @@ The command is git-only and says so on any other version control system. Paths
 are reported relative to the project even when it sits below the repository
 root, and files outside it are left out.
 
+== Switching to a nearby project
+
+`projectile-switch-project` (kbd:[s-p p]) offers every project you've ever
+visited, which is the right default and the wrong tool when you know roughly
+where you're headed. Two commands narrow it down:
+
+* `projectile-switch-worktree` (kbd:[s-p W]) offers the other checkouts of the
+  current project's repository - its git worktrees, or another clone of the
+  same upstream - each labelled with the branch it has checked out.
+* `projectile-switch-sibling-project` (kbd:[s-p n]) offers the projects related
+  to this one: grouped with it in your configuration, sharing the owner of its
+  remote, or named after the same thing.
+
+Both are covered in xref:across_repositories.adoc[Working across repositories].
+
 [[dashboard]]
 == Project dashboard
 

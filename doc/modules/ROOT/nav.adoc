@@ -5,6 +5,7 @@
 * Guides
 ** xref:usage.adoc[Usage]
 ** xref:tasks.adoc[Project commands, tasks & tests]
+** xref:across_repositories.adoc[Working across repositories]
 ** xref:sessions.adoc[Per-project sessions]
 * Reference
 ** xref:cheatsheet.adoc[Command reference]

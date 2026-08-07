@@ -236,6 +236,9 @@ and the other reference pages.
 | `projectile-project-changed-functions`
 | Functions to run when the current project changes.
 
+| `projectile-project-groups`
+| Named groups of projects that belong together.
+
 | `projectile-project-name`
 | If this value is non-nil, it will be used as project name.
 
@@ -317,6 +320,12 @@ and the other reference pages.
 | `projectile-show-menu`
 | Controls whether to display Projectile’s menu.
 
+| `projectile-sibling-max-group-share`
+| How much of the known projects an inferred sibling group may cover.
+
+| `projectile-sibling-project-functions`
+| Functions consulted to find the projects related to one another.
+
 | `projectile-sort-order`
 | The sort order used for a project’s files.
 
@@ -376,5 +385,8 @@ and the other reference pages.
 
 | `projectile-watch-directory-limit`
 | Maximum number of file-notify watches to register per project.
+
+| `projectile-worktree-functions`
+| Functions consulted to find the other checkouts of a project.
 
 |===

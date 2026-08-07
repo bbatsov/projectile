@@ -235,6 +235,12 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p q]
 | Display a list of open projects you can switch to.
 
+| kbd:[s-p W]
+| Switch to another checkout of the current project's repository - a git worktree, or another clone of the same upstream - showing the branch each has checked out (see xref:across_repositories.adoc[Working across repositories]).
+
+| kbd:[s-p n]
+| Switch to a project related to the current one, rather than to any known project (see xref:across_repositories.adoc[Working across repositories]).
+
 | kbd:[s-p S]
 | Save all project buffers.
 

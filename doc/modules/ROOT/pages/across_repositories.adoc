@@ -1,0 +1,222 @@
+= Working across repositories
+
+Not all work fits in one directory. There are two shapes of "somewhere
+else" that come up constantly, and Projectile has a command for each:
+
+* The *same project, checked out twice* - you're on a feature branch here
+  and want the copy that still has `main` in it.
+  <<worktrees,`projectile-switch-worktree`>>
+  (kbd:[s-p W]).
+* *Different projects that belong together* - a library and the app using
+  it, a tool and its documentation site.
+  <<siblings,`projectile-switch-sibling-project`>>
+  (kbd:[s-p n]).
+
+Both are narrowed versions of `projectile-switch-project` (kbd:[s-p p]).
+That command offers every project you've ever visited; these two offer
+the handful you're likely to actually want, which is the difference
+between typing a few characters and remembering which of your 90
+directories is the right one.
+
+[cols="1,4"]
+|===
+| Keybinding | Command
+
+| kbd:[s-p W] | `projectile-switch-worktree`
+| kbd:[s-p n] | `projectile-switch-sibling-project`
+|===
+
+Both honour `projectile-switch-project-action` on switch, and both take a
+prefix argument to run `projectile-dispatch` instead, exactly like the
+other switch commands.
+
+[#worktrees]
+== Other checkouts of this project
+
+kbd:[s-p W] lists the other directories holding the same repository, each
+annotated with the branch it has checked out:
+
+....
+Switch to worktree:
+~/src/myapp-main/     (main)
+~/src/myapp-hotfix/   (hotfix/crash-on-open)
+....
+
+Two quite different things end up on that list, because from where you're
+sitting they're the same thing.
+
+*Git worktrees* are the built-in mechanism:
+
+[source,shell]
+----
+git worktree add ../myapp-hotfix -b hotfix/crash-on-open
+----
+
+Projectile asks git for these, so a worktree you have never opened in
+Emacs still shows up.
+
+*Separate clones* of the same upstream are the hand-rolled version of the
+same workflow, and plenty of people work that way:
+
+[source,shell]
+----
+git clone git@github.com:me/myapp.git myapp
+git clone git@github.com:me/myapp.git myapp-experiment
+----
+
+Projectile can't enumerate these from the repository - nothing records
+them anywhere - so it finds them among the
+xref:usage.adoc[known projects]. A clone you have never visited won't be
+offered until Projectile knows about it.
+
+TIP: If your clones aren't turning up, it's almost always because they
+aren't known projects yet. Add `~/src` to `projectile-project-search-path`
+and run `M-x projectile-discover-projects-in-search-path`.
+
+Where checkouts come from is controlled by `projectile-worktree-functions`,
+a list of functions each taking a project root and returning what it
+found. The default pair covers git and the known projects; add your own if
+you have another way of tracking checkouts.
+
+[#siblings]
+== Related projects
+
+kbd:[s-p n] offers the projects related to the one you're in. Three
+signals decide what "related" means, consulted in the order listed by
+`projectile-sibling-project-functions` - from the one you can trust
+completely to the one that's a guess.
+
+=== Groups you configure
+
+The only signal that is never wrong, so it comes first:
+
+[source,elisp]
+----
+(setq projectile-project-groups
+      '(("myapp"  . ("~/src/myapp" "~/src/myapp-docs" "~/src/myapp-cli"))
+        ("infra"  . ("~/src/deploy" "~/src/terraform"))))
+----
+
+A project can be in several groups; you get the members of all of them.
+Configured groups are never subject to the
+<<share-cap,share cap>> - however many projects you put
+in a group, you meant to.
+
+To describe one project's siblings from the project itself, put
+`projectile-project-siblings` in its `.dir-locals.el` instead:
+
+[source,elisp]
+----
+;;; ~/src/myapp/.dir-locals.el
+((nil . ((projectile-project-siblings . ("~/src/myapp-docs")))))
+----
+
+=== The owner of the upstream remote
+
+This is by far the best of the guessed signals, and the only one that can
+relate projects whose names have nothing in common. Projectile takes the
+account or organization out of the remote URL, so everything under
+`github.com/clojure-emacs` is related to everything else under it:
+`cider`, `orchard`, `haystack`, `sayid` and `port` are one family, which
+no amount of comparing directory names would ever discover.
+
+It works on the *normalized* remote, so the spelling doesn't matter:
+`git@github.com:me/app.git`, `https://github.com/me/app` and
+`ssh://git@github.com:22/me/app/` are all the same repository.
+
+=== The leading word of the directory name
+
+The signal of last resort, and the only one available for a repository
+with no remote at all. `rubocop`, `rubocop-ast` and `rubocop-rails` are
+related because they start with the same word.
+
+Only the *leading* word counts. Matching on any shared word relates every
+`-mode` package to every other one and every `docs.` site to the rest,
+which reads far more into a name than is actually there. The cost of that
+choice is that `helm-projectile` is not offered as a sibling of
+`projectile` - put them in a group if you want that.
+
+[#share-cap]
+=== When a group is too big
+
+Inference that relates most of your projects to each other has found
+nothing. If every repository you own is under your own account, "same
+account" doesn't distinguish anything, and offering that group is
+`projectile-switch-project` with extra steps.
+
+So an inferred group covering more than
+`projectile-sibling-max-group-share` (a quarter by default) of your known
+projects is dropped, and the next signal gets its turn. The cap doesn't
+apply until you have at least ten known projects, because a share of a
+handful measures nothing, and a group of two always survives.
+
+The visible consequence: if most of your projects share one account, that
+signal goes quiet and you fall back to name matching. When a project you
+care about ends up with no siblings, that's what `projectile-project-groups`
+is for.
+
+== How Projectile decides two projects are the same repository
+
+Both commands rest on `projectile-repo-identity`, which describes what
+repository a project root is a checkout of:
+
+`:repo`:: The directory the checkouts share - git's common dir, the store
+an `hg share` points at. Two roots with the same `:repo` are worktrees of
+each other.
+`:remote`:: A canonical spelling of the upstream, so the scp-like and URL
+forms of one remote compare equal. Two roots with the same `:remote` are
+separate clones.
+`:owner`:: The account, organization or containing directory that upstream
+hangs off. This is what the sibling owner signal groups on.
+
+It reads the version control system's own files rather than running it, so
+comparing every known project costs file reads instead of a process
+launch apiece.
+
+== Limitations
+
+Worth knowing before you file a bug:
+
+* *The guessed signals are guesses.* The share cap will sometimes leave a
+  project with no siblings at all - that's the design working, not a
+  failure. Configure a group for that project.
+* *Name matching only looks at the first word.* `helm-projectile` will not
+  be offered as a sibling of `projectile`.
+* *Identity comes from the remote, not the directory name.* A directory
+  called `emacs-fsharp-ts` whose remote is `me/fsharp-ts-mode` is related
+  to whatever else lives under `me`, and is not related to other
+  directories starting with `emacs`.
+* *A repository with no remote* gets name matching only - there's no owner
+  to group on.
+* *Only a repository's own top level has an identity.* A project defined
+  by a `.projectile` file inside a larger repository is a directory in a
+  checkout, not a checkout of its own, so it has no worktrees. Projectile
+  cannot yet map such a project to the matching subdirectory of another
+  worktree.
+* *Remote (TRAMP) projects are skipped.* Every probe would be a network
+  round trip, so a remote project has no identity and no worktrees.
+* *Sibling clones must already be known projects.* Real git worktrees are
+  found without that, since git registers them itself.
+
+=== Version control support
+
+[cols="1,4", options="header"]
+|===
+| System | What works
+
+| Git
+| Everything. Worktrees come from `git worktree list`; clones are matched
+  on the normalized remote.
+
+| Mercurial
+| A working directory created by `hg share` is matched against the other
+  known projects via its `.hg/sharedpath`, and the `default` path in
+  `.hg/hgrc` acts as the remote. Mercurial has no way to enumerate shares,
+  so one you've never visited won't be found.
+
+| Everything else
+| No worktree support. Jujutsu workspaces, Fossil check-outs, Subversion,
+  Bazaar and Darcs are all treated as ordinary projects. `jj` only learned
+  to report workspace paths in 0.38, so support for it is waiting on being
+  able to test it properly.
+|===
