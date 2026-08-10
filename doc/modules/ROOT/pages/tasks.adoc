@@ -58,6 +58,34 @@ only cycle through previous *test* commands instead of a mix of every command
 you've run in the project. `projectile-repeat-last-command` still re-runs the
 most recent command of any type.
 
+[#history-scope]
+=== History across checkouts
+
+Those per-type histories belong to the *repository*, not to the directory. Press
+kbd:[M-p] at the test prompt in a git worktree you made this morning - or in a
+second clone of the same upstream - and you get the commands the project is
+actually tested with, instead of an empty history. They're the same project on
+another branch, after all, and you build them the same way.
+
+Set `projectile-command-history-scope` to `project` to go back to a history per
+directory. Either way a project whose repository Projectile can't identify (see
+xref:across_repositories.adoc[Working across repositories]) keeps its own.
+
+Two things deliberately stay local to the checkout you're in, because both act
+without asking and a remembered command can carry absolute paths back into the
+checkout it was typed in:
+
+* what a command prompt is *pre-filled* with, which is still whatever this
+  checkout last ran;
+* what `projectile-repeat-last-command` replays, so in a fresh worktree it still
+  says nothing has been run yet rather than rebuilding a sibling.
+
+One more thing worth knowing: the history is a ring of a fixed size, so several
+checkouts sharing one means their commands interleave in it. If you keep clones
+of a repository that are built in genuinely different ways - sparse checkouts of
+a monorepo, say - set the option to `project` for those, which works from a
+`.dir-locals.el` since the variable is marked safe.
+
 [#project-tasks]
 == Project tasks
 

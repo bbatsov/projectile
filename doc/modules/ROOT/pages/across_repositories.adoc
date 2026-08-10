@@ -169,6 +169,25 @@ signal goes quiet and you fall back to name matching. When a project you
 care about ends up with no siblings, that's what `projectile-project-groups`
 is for.
 
+== What else checkouts share
+
+Knowing that two roots are one repository is useful beyond switching between
+them: the *command history* you browse at a compile or test prompt is shared
+across checkouts, so a worktree made this morning already offers the commands
+the project is built with. See
+xref:tasks.adoc#history-scope[History across checkouts].
+
+The line elsewhere is drawn at anything that acts without asking, which stays
+local to the checkout you're in: the command a prompt is pre-filled with, what
+`projectile-repeat-last-command` replays, and the task
+`projectile-repeat-last-task` re-runs. A remembered command can carry absolute
+paths back into the checkout it was typed in, and being handed somebody else's
+build unasked is no fun.
+
+Per-project *sessions* aren't shared either, for a different reason: a window
+layout is a set of files in a particular directory, and the whole point of a
+second checkout is that its files differ.
+
 == How Projectile decides two projects are the same repository
 
 Both commands rest on `projectile-repo-identity`, which describes what

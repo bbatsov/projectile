@@ -265,6 +265,117 @@
                (projectile--get-command-history projectile-project-root 'compile))
               :to-equal '()))))
 
+(describe "command history shared across checkouts (#1786)"
+  (defun projectile-history-test--record (root command)
+    "Put COMMAND into ROOT's `compile' command history."
+    (ring-insert (projectile--get-command-history root 'compile) command))
+
+  (defun projectile-history-test--commands (root)
+    "Return ROOT's `compile' command history as a list."
+    (ring-elements (projectile--get-command-history root 'compile)))
+
+  (it "gives the worktrees of one repository a single history"
+    ;; The point of the issue: pressing M-p in a worktree made this morning
+    ;; offers the commands the project is actually built with.
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-git-repo "repo"))
+            (worktree (projectile-test-add-git-worktree
+                       repo (expand-file-name "feature") "feature"))
+            (projectile-project-command-history (make-hash-table :test 'equal)))
+       (projectile-history-test--record repo "make test")
+       (expect (projectile-history-test--commands worktree)
+               :to-equal '("make test")))))
+
+  (it "gives two clones of one upstream a single history"
+    (projectile-test-with-sandbox
+     (let* ((remote "git@github.com:bbatsov/projectile.git")
+            (one (projectile-test-init-git-repo "one" remote))
+            (two (projectile-test-init-git-repo "two" remote))
+            (projectile-project-command-history (make-hash-table :test 'equal)))
+       (projectile-history-test--record one "make test")
+       (expect (projectile-history-test--commands two)
+               :to-equal '("make test")))))
+
+  (it "keeps unrelated projects apart"
+    (projectile-test-with-sandbox
+     (let* ((one (projectile-test-init-git-repo
+                  "one" "git@github.com:bbatsov/projectile.git"))
+            (other (projectile-test-init-git-repo
+                    "other" "git@github.com:bbatsov/crux.git"))
+            (projectile-project-command-history (make-hash-table :test 'equal)))
+       (projectile-history-test--record one "make test")
+       (expect (projectile-history-test--commands other) :to-equal nil))))
+
+  (it "does not share what projectile-repeat-last-command replays"
+    ;; The combined history is replayed without asking, so it stays this
+    ;; checkout's own however widely the browsable history is shared - a
+    ;; command typed elsewhere can carry absolute paths back into it.
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-git-repo "repo"))
+            (worktree (projectile-test-add-git-worktree
+                       repo (expand-file-name "feature") "feature"))
+            (projectile-project-command-history (make-hash-table :test 'equal)))
+       (ring-insert (projectile--get-command-history repo) "make -C /abs/path")
+       (expect (ring-elements (projectile--get-command-history worktree))
+               :to-equal nil))))
+
+  (it "keeps a history per root when the scope says so"
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-git-repo "repo"))
+            (worktree (projectile-test-add-git-worktree
+                       repo (expand-file-name "feature") "feature"))
+            (projectile-command-history-scope 'project)
+            (projectile-project-command-history (make-hash-table :test 'equal)))
+       (projectile-history-test--record repo "make test")
+       (expect (projectile-history-test--commands worktree) :to-equal nil))))
+
+  (it "still separates the per-type histories of a shared repository"
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-git-repo "repo"))
+            (worktree (projectile-test-add-git-worktree
+                       repo (expand-file-name "feature") "feature"))
+            (projectile-project-command-history (make-hash-table :test 'equal)))
+       (ring-insert (projectile--get-command-history repo 'compile) "make")
+       (ring-insert (projectile--get-command-history repo 'test) "make test")
+       (expect (ring-elements
+                (projectile--get-command-history worktree 'compile))
+               :to-equal '("make"))
+       (expect (ring-elements
+                (projectile--get-command-history worktree 'test))
+               :to-equal '("make test")))))
+
+  (it "adopts a history saved under the old per-root key"
+    ;; The per-type histories are persisted, so upgrading must not walk into
+    ;; a project you have been building for years with nothing in hand.
+    (projectile-test-with-sandbox
+     (let* ((repo (projectile-test-init-git-repo
+                   "repo" "git@github.com:bbatsov/projectile.git"))
+            (projectile-project-command-history (make-hash-table :test 'equal))
+            (saved (make-ring 16)))
+       (ring-insert saved "make from before the upgrade")
+       (puthash (cons repo 'compile) saved projectile-project-command-history)
+       (expect (projectile-history-test--commands repo)
+               :to-equal '("make from before the upgrade"))
+       ;; and it moved, rather than being left behind as a second copy
+       (expect (gethash (cons repo 'compile) projectile-project-command-history)
+               :to-be nil))))
+
+  (it "falls back to the project root when there's no repository to key on"
+    (spy-on 'projectile-repo-identity)
+    (expect (projectile--command-history-key "/src/plain/")
+            :to-equal "/src/plain/"))
+
+  (it "prefers the upstream, which relates clones as well as worktrees"
+    (spy-on 'projectile-repo-identity
+            :and-return-value '(:repo "/src/one/.git/" :remote "host/o/r"))
+    (expect (projectile--command-history-key "/src/one/") :to-equal "host/o/r"))
+
+  (it "falls back to the shared directory for a repository with no upstream"
+    (spy-on 'projectile-repo-identity
+            :and-return-value '(:repo "/src/one/.git/" :remote nil))
+    (expect (projectile--command-history-key "/src/one/")
+            :to-equal "/src/one/.git/")))
+
 (describe "projectile-default-generic-command"
   (it "returns a string command as-is"
     (let ((projectile-project-types '((test-type compile-command "make"))))
