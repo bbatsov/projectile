@@ -37,6 +37,9 @@
 
 ### Changes
 
+- [#2152](https://github.com/bbatsov/projectile/pull/2152): The per-command-type histories now belong to the repository rather than the directory, so pressing `M-p` at a compile or test prompt in a fresh git worktree - or in a second clone of the same upstream - offers the commands the project is actually built with instead of nothing ([#1786](https://github.com/bbatsov/projectile/issues/1786)).
+  - What a prompt is pre-filled with, and what `projectile-repeat-last-command` replays, stay local to the checkout you're in: both act without asking, and a remembered command can carry absolute paths back into the checkout it was typed in.
+  - Existing histories are adopted rather than dropped, and `projectile-command-history-scope` set to `project` restores a history per directory.
 - [#2146](https://github.com/bbatsov/projectile/pull/2146): The six `projectile-<cmd>-use-comint-mode` options fold into one `projectile-use-comint-mode`, taking `t` or a list of the phases to make interactive.
 - [#2146](https://github.com/bbatsov/projectile/pull/2146): `projectile-per-project-compilation-buffer` and `projectile-per-command-compilation-buffer` fold into `projectile-compilation-buffer-scope`, a list of `project` and/or `command` - which is what setting both booleans already meant.
 - [#2146](https://github.com/bbatsov/projectile/pull/2146): Rename the options that broke their own naming schemes: `projectile-global-ignore-file-patterns` to `projectile-globally-ignored-file-regexps`, `projectile-cmd-hist-ignoredups` to `projectile-command-history-ignore-duplicates`, `projectile-related-files-fn-function` to `projectile-related-files-function`, `projectile-auto-discover` to `projectile-auto-discover-projects`, and the three reviewable-search options named after replace (`projectile-replace-max-matches`, `-async` and `-scan-chunk-size`) to the `projectile-search-` prefix their siblings already used.

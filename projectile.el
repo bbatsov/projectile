@@ -1656,6 +1656,35 @@ A value of nil means nothing is ignored."
                  (const :tag "Only keep last duplicate" erase))
   :package-version '(projectile . "2.9.0"))
 
+(defcustom projectile-command-history-scope 'repository
+  "How widely a project's command history is shared.
+
+- `repository' - every checkout of one repository shares a history.  Two
+  git worktrees, or two clones of the same upstream, are the same project
+  on two branches: the commands you build and test it with are the same
+  ones, so a worktree made this morning already knows them (issue #1786).
+
+- `project' - each project root keeps its own history, so checkouts of one
+  repository start empty and learn separately.
+
+This is a single choice, not a list of aspects like the other options
+whose names end in `-scope': one value replaces the other.
+
+What gets shared is the history you browse - the list behind \\[previous-history-element]
+at a command prompt.  Two things stay this checkout's own, because both
+act without asking and a remembered command can carry absolute paths back
+into the checkout it was typed in: what a prompt is pre-filled with, and
+what `projectile-repeat-last-command' replays.
+
+Sharing needs the repository to be identifiable (see
+`projectile-repo-identity'); a project Projectile can say nothing about
+keeps its own history whatever this is set to."
+  :group 'projectile
+  :type '(choice (const :tag "Share across checkouts of one repository" repository)
+                 (const :tag "Keep a history per project root" project))
+  :safe (lambda (value) (memq value '(repository project)))
+  :package-version '(projectile . "3.4.0"))
+
 (defvar projectile-project-test-suffix nil
   "Use this variable to override the current project's test-suffix property.
 It takes precedence over the test-suffix for the project type when set.
@@ -12122,7 +12151,36 @@ per-type command history."
 (defvar projectile-project-command-history (make-hash-table :test 'equal)
   "The history of last executed project commands, per project.
 
-Projects are indexed by their project-root value.")
+Indexed by whatever `projectile--command-history-key' makes of a project
+root, which is the repository the project is a checkout of when that can
+be established and the root itself otherwise.")
+
+(defun projectile--command-history-key (project-root)
+  "Return the key PROJECT-ROOT's command history is stored under.
+
+That's PROJECT-ROOT itself, unless `projectile-command-history-scope' asks
+for a repository-wide history and the repository can be identified - then
+it's a spelling of the repository, so that every checkout of it reaches the
+same history.
+
+The upstream is preferred over the repository directory because it is the
+broader of the two: worktrees of one repository agree on it, and so do
+separate clones, which is the same arrangement done by hand.  A repository
+with no upstream falls back to the directory its checkouts share, which
+still covers its worktrees.
+
+Two consequences worth knowing.  The key follows the remote, so pointing a
+repository at a new upstream moves it to a fresh history.  And this picks
+one of the two keys where `projectile-same-repo-p' accepts either, so
+checkouts that disagree about having a remote at all - an `hg share'
+working directory whose source configures a `default' path and which
+doesn't - are one repository for switching purposes but keep separate
+histories."
+  (or (and (eq projectile-command-history-scope 'repository)
+           (let ((identity (projectile-repo-identity project-root)))
+             (or (plist-get identity :remote)
+                 (plist-get identity :repo))))
+      project-root))
 
 (defun projectile--get-command-history (project-root &optional command-type)
   "Return the command history ring for PROJECT-ROOT.
@@ -12131,11 +12189,33 @@ With COMMAND-TYPE non-nil (one of the lifecycle command type
 symbols, e.g. `compile' or `test', or a (task . TASK-NAME) cons
 for named tasks) return the history specific to that command
 type, so histories of different types don't bleed into each
-other's prompts.  With COMMAND-TYPE nil return the combined
-per-project history, which is what `projectile-repeat-last-command'
-reads."
-  (let ((key (if command-type (cons project-root command-type) project-root)))
+other's prompts.  With COMMAND-TYPE nil return the combined history,
+which is what `projectile-repeat-last-command' reads.
+
+Which history that is depends on `projectile--command-history-key' - by
+default the repository's rather than this one checkout's."
+  (let* ((root-key (if command-type (cons project-root command-type) project-root))
+         (key (if command-type
+                  ;; The per-type histories are the ones you browse at a
+                  ;; prompt, so sharing them is all upside: pressing M-p in
+                  ;; a fresh worktree offers the commands this project is
+                  ;; actually built with.
+                  (cons (projectile--command-history-key project-root) command-type)
+                ;; The combined history stays this checkout's own.
+                ;; `projectile-repeat-last-command' replays its most recent
+                ;; entry without asking, and a command typed in another
+                ;; checkout can carry absolute paths back into it - being
+                ;; handed somebody else's build unasked is no fun.
+                project-root)))
     (or (gethash key projectile-project-command-history)
+        ;; The per-type histories used to be keyed by root, and they're
+        ;; persisted, so an upgrade would otherwise walk into a project you
+        ;; have been building for years with nothing in hand.  Adopt this
+        ;; root's history as the repository's instead.
+        (unless (equal key root-key)
+          (when-let* ((inherited (gethash root-key projectile-project-command-history)))
+            (remhash root-key projectile-project-command-history)
+            (puthash key inherited projectile-project-command-history)))
         (puthash key
                  (make-ring 16)
                  projectile-project-command-history))))

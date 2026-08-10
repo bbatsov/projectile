@@ -53,6 +53,9 @@ and the other reference pages.
 | `projectile-command-history-ignore-duplicates`
 | Controls when inputs are added to projectile’s command history.
 
+| `projectile-command-history-scope`
+| How widely a project’s command history is shared.
+
 | `projectile-compilation-buffer-scope`
 | What a lifecycle command’s compilation buffer is named after.
 
