@@ -591,6 +591,8 @@ Toggle one (or more), then trigger a command:
 
 * kbd:[-i] *invalidate cache* - rebuild the file cache first (the find file/dir commands)
 * kbd:[-r] *regexp search* - treat the search term as a regexp (the `search`, `ripgrep` and `ag` commands)
+* kbd:[-c] *case-sensitive search* - seed the reviewable search and replace case-sensitive
+* kbd:[-w] *whole-word search* - match whole words only
 * kbd:[-n] *new process* - start a fresh process instead of reusing one (the shells / REPLs)
 * kbd:[-d] *display in* - cycle the display target through this window / other window / other frame (the file, buffer and project commands)
 

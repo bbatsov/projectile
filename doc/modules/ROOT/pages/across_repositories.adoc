@@ -15,7 +15,7 @@ else" that come up constantly, and Projectile has a command for each:
 Both are narrowed versions of `projectile-switch-project` (kbd:[s-p p]).
 That command offers every project you've ever visited; these two offer
 the handful you're likely to actually want, which is the difference
-between typing a few characters and remembering which of your 90
+between typing a few characters and remembering which of a hundred
 directories is the right one.
 
 [cols="1,4"]
@@ -34,8 +34,8 @@ other switch commands.
 == Other checkouts of this project
 
 kbd:[s-p W] lists the other directories holding the same repository, each
-annotated with whatever tells it apart - the branch for git and
-Mercurial, the workspace name for Jujutsu:
+annotated with whatever tells it apart - the branch for git, the
+workspace name for Jujutsu:
 
 ....
 Switch to worktree:
@@ -88,8 +88,10 @@ and run `M-x projectile-discover-projects-in-search-path`.
 
 Where checkouts come from is controlled by `projectile-worktree-functions`,
 a list of functions each taking a project root and returning what it
-found. The default set covers git, Jujutsu and the known projects; add
-your own if you have another way of tracking checkouts.
+found. The default set covers git, Jujutsu and the known projects. To add
+another way of tracking checkouts, write a function returning a list of
+plists with `:path` (mandatory), `:label` and `:prunable` - see that
+option's docstring for the details.
 
 [#siblings]
 == Related projects
@@ -194,8 +196,8 @@ Both commands rest on `projectile-repo-identity`, which describes what
 repository a project root is a checkout of:
 
 `:repo`:: The directory the checkouts share - git's common dir, the store
-an `hg share` points at. Two roots with the same `:repo` are worktrees of
-each other.
+an `hg share` points at, the git directory a Jujutsu repository keeps its
+commits in. Two roots with the same `:repo` are worktrees of each other.
 `:remote`:: A canonical spelling of the upstream, so the scp-like and URL
 forms of one remote compare equal. Two roots with the same `:remote` are
 separate clones.
@@ -229,15 +231,19 @@ Worth knowing before you file a bug:
   the matching subdirectory of another worktree.
 * *Remote (TRAMP) projects are skipped.* Every probe would be a network
   round trip, so a remote project has no identity and no worktrees.
+* *Sibling clones must already be known projects.* Real git worktrees and
+  Jujutsu workspaces are found without that, since the version control
+  system registers them itself.
+* *Only git and Jujutsu checkouts carry a label.* A Mercurial share is
+  offered without one, since Projectile would have to run `hg` to learn
+  its branch and the whole point of the lookup is that it doesn't.
 
 When kbd:[s-p W] has nothing to offer it distinguishes the two reasons:
 having looked and found no other checkout, and not being able to look at
 all because the project isn't the top level of a git, Mercurial or
-Jujutsu repository. Only the first means "there aren't any". kbd:[s-p n] needs
-none of this, so it's the one to reach for when Projectile can't identify
-the repository.
-* *Sibling clones must already be known projects.* Real git worktrees are
-  found without that, since git registers them itself.
+Jujutsu repository. Only the first means "there aren't any". kbd:[s-p n]
+needs none of this, so it's the one to reach for when Projectile can't
+identify the repository.
 
 === Version control support
 
@@ -253,7 +259,8 @@ the repository.
 | A working directory created by `hg share` is matched against the other
   known projects via its `.hg/sharedpath`, and the `default` path in
   `.hg/hgrc` acts as the remote. Mercurial has no way to enumerate shares,
-  so one you've never visited won't be found.
+  so one you've never visited won't be found, and a share is listed
+  without a branch label.
 
 | Jujutsu
 | Workspaces come from `jj workspace list`, so one you've never visited is

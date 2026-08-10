@@ -313,6 +313,13 @@ any other keymap:
 Project candidates keep their Marginalia annotations under the new category -
 they're directory paths, so Marginalia's file annotator handles them.
 
+`projectile-switch-worktree` (see
+xref:across_repositories.adoc[Working across repositories]) uses a category of
+its own, `projectile-worktree`, bound to the same action keymap - a worktree is
+a project directory too. It is deliberately *not* registered with Marginalia:
+those candidates carry their own annotation naming the branch or workspace each
+checkout has, and a registered annotator would take precedence over it.
+
 === Custom completion function
 
 You can also set `projectile-completion-system` to a function that accepts a
