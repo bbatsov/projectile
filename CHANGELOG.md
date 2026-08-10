@@ -6,6 +6,8 @@
 
 ## master (unreleased)
 
+## 3.4.0 (2026-08-10)
+
 ### New features
 
 - [#2148](https://github.com/bbatsov/projectile/pull/2148): Add `projectile-switch-sibling-project` (`s-p n`), which offers only the projects related to the one you're in, rather than every project on the machine.
