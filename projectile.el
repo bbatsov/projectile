@@ -6279,55 +6279,14 @@ Returns nil for a predicate marker, which has no file names to give."
 
 (cl-defun projectile--build-project-plist
     (marker-files &key project-file compilation-dir configure compile install package test run test-suffix test-prefix src-dir test-dir src-extension test-extension related-files-fn file-kinds tasks)
-  "Return a project type plist with the provided arguments.
+  "Return a project type plist built from MARKER-FILES and the keyword arguments.
 
-A project type is defined by PROJECT-TYPE, a set of MARKER-FILES,
-and optional keyword arguments.
-
-MARKER-FILES is either a list of files or a predicate function.  When it
-is a list, ALL of the listed files must be present in the project root for
-the type to match (logical AND) - so a single-file marker like `(\"Foo\")'
-is the common case.  A list element may itself be an alternatives clause
-of the form (:any FILE...), which is satisfied when any one of its FILEs
-is present, so `((:any \"build.gradle\" \"build.gradle.kts\"))' matches a
-project with either of them.  For anything more involved, don't pass a
-list; use a predicate function instead.  The predicate is called with the
-project root as its single argument and should return non-nil when the
-project is of this type.
-
-The optional keyword arguments are:
-PROJECT-FILE the main project file in the root project directory.  It may be a
-             single file or a list of possible files.  When omitted it
-             defaults to the first marker file.  Pass the symbol `none'
-             to opt out, so the type is detected but contributes no
-             project-root marker (e.g. when its marker also appears
-             outside real projects).
-COMPILATION-DIR the directory to run the tests- and compilations in,
-CONFIGURE which specifies a command that configures the project
-          `%s' in the command will be substituted with (projectile-project-root)
-          before the command is run,
-COMPILE which specifies a command that builds the project,
-INSTALL which specifies a command to install the project.
-PACKAGE which specifies a command to package the project.
-TEST which specifies a command that tests the project,
-RUN which specifies a command that runs the project,
-TEST-SUFFIX which specifies test file suffix, and
-TEST-PREFIX which specifies test file prefix.
-SRC-DIR which specifies the path to the source relative to the project root.
-TEST-DIR which specifies the path to the tests relative to the project root.
-SRC-EXTENSION which specifies the file extension implementation files use,
-    when it differs from the one their tests use.
-TEST-EXTENSION which specifies the file extension test files use, when it
-    differs from the implementation's (Elixir tests are scripts: `foo.ex\\='
-    is tested by `foo_test.exs\\=').
-RELATED-FILES-FN which specifies a custom function to find the related
-files such as test/impl/other files as below:
-    CUSTOM-FUNCTION accepts FILE as relative path from the project root and
-    returns a plist containing :test, :impl or :other as key and the
-    relative path/paths or predicate as value.  PREDICATE accepts a
-    relative path as the input.
-TASKS an alist of named tasks of the form (TASK-NAME . COMMAND); see
-    `projectile-tasks' for the exact shape."
+This is the shape a registered project type takes; the arguments, and what
+each of them means, are documented on `projectile-register-project-type',
+which is the entry point users call and where the description belongs.
+Both take the same keywords, so keeping a second copy here only bought two
+descriptions that could disagree - and by the time this was written, they
+already did."
   ;; When PROJECT-FILE isn't given explicitly, derive it from the first
   ;; marker file - that's the project's primary manifest in every
   ;; file-based registration, so callers needn't repeat it.  Function
