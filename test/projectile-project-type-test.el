@@ -241,30 +241,23 @@
 (describe "JavaScript project types"
   (it "falls back to node for a package.json with no lock file"
     (projectile-test-with-stub-root "project" ("package.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'node))))
+      (expect (projectile-detect-project-type) :to-equal 'node)))
   (it "prefers the package manager that owns the lock file"
     (projectile-test-with-stub-root "project" ("package.json" "pnpm-lock.yaml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'pnpm))))
+      (expect (projectile-detect-project-type) :to-equal 'pnpm)))
   (it "detects a bun project by either spelling of its lock file"
     (projectile-test-with-stub-root "project" ("package.json" "bun.lock")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'bun)))
+      (expect (projectile-detect-project-type) :to-equal 'bun))
     (projectile-test-with-stub-root "project" ("package.json" "bun.lockb")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'bun))))
+      (expect (projectile-detect-project-type) :to-equal 'bun)))
   (it "detects a deno project"
     (projectile-test-with-stub-root "project" ("deno.jsonc")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'deno))))
+      (expect (projectile-detect-project-type) :to-equal 'deno)))
   (it "prefers the monorepo tool over the package manager underneath it"
     (projectile-test-with-stub-root "project" ("package.json" "package-lock.json" "turbo.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'turborepo)))
+      (expect (projectile-detect-project-type) :to-equal 'turborepo))
     (projectile-test-with-stub-root "project" ("package.json" "pnpm-lock.yaml" "nx.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'nx)))))
+      (expect (projectile-detect-project-type) :to-equal 'nx))))
 
 (describe "single-language project types"
   (it "detects each language by its manifest"
@@ -279,8 +272,7 @@
                     ("platformio.ini" . platformio)))
       (projectile-test-with-sandbox
         (projectile-test-with-files ("project/")
-          (let ((projectile-project-type-cache (make-hash-table :test 'equal))
-                (root (file-truename (expand-file-name "project/"))))
+          (let ((root (file-truename (expand-file-name "project/"))))
             (write-region "" nil (expand-file-name (car case) root))
             (spy-on 'projectile-project-root :and-return-value root)
             (expect (projectile-detect-project-type) :to-equal (cdr case))))))))
@@ -288,111 +280,85 @@
 (describe "static site project types"
   (it "detects a Hugo site by any of its config file spellings"
     (projectile-test-with-stub-root "project" ("hugo.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'hugo)))
+      (expect (projectile-detect-project-type) :to-equal 'hugo))
     (projectile-test-with-stub-root "project" ("hugo.yaml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'hugo))))
+      (expect (projectile-detect-project-type) :to-equal 'hugo)))
   (it "detects Jekyll, MkDocs and Quarto"
     (projectile-test-with-stub-root "project" ("_config.yml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'jekyll)))
+      (expect (projectile-detect-project-type) :to-equal 'jekyll))
     (projectile-test-with-stub-root "project" ("mkdocs.yml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'mkdocs)))
+      (expect (projectile-detect-project-type) :to-equal 'mkdocs))
     (projectile-test-with-stub-root "project" ("_quarto.yml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'quarto))))
+      (expect (projectile-detect-project-type) :to-equal 'quarto)))
   (it "detects a Zola site without letting config.toml anchor a root"
     (projectile-test-with-stub-root "project" ("config.toml" "content/")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'zola)))
+      (expect (projectile-detect-project-type) :to-equal 'zola))
     (expect (member "config.toml" projectile-project-root-files) :to-be nil))
   (it "prefers the site generator over the package.json of its asset pipeline"
     (projectile-test-with-stub-root "project" ("hugo.toml" "package.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'hugo)))))
+      (expect (projectile-detect-project-type) :to-equal 'hugo))))
 
 (describe "task runner project types"
   (it "detects a just project by any spelling of the justfile"
     (projectile-test-with-stub-root "project" ("justfile")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'just)))
+      (expect (projectile-detect-project-type) :to-equal 'just))
     (projectile-test-with-stub-root "project" (".justfile")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'just))))
+      (expect (projectile-detect-project-type) :to-equal 'just)))
   (it "detects a mise project"
     (projectile-test-with-stub-root "project" ("mise.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'mise))))
+      (expect (projectile-detect-project-type) :to-equal 'mise)))
   (it "yields to the project's own build tool"
     (projectile-test-with-stub-root "project" ("justfile" "Cargo.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'rust-cargo))))
+      (expect (projectile-detect-project-type) :to-equal 'rust-cargo)))
   (it "detects buck2 and pants projects"
     (projectile-test-with-stub-root "project" (".buckconfig")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'buck2)))
+      (expect (projectile-detect-project-type) :to-equal 'buck2))
     (projectile-test-with-stub-root "project" ("pants.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'pants)))))
+      (expect (projectile-detect-project-type) :to-equal 'pants))))
 
 (describe "infrastructure project types"
   (it "detects a Terraform project"
     (projectile-test-with-stub-root "project" ("main.tf")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'terraform))))
+      (expect (projectile-detect-project-type) :to-equal 'terraform)))
   (it "detects a Helm chart"
     (projectile-test-with-stub-root "project" ("Chart.yaml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'helm))))
+      (expect (projectile-detect-project-type) :to-equal 'helm)))
   (it "detects a Pulumi project"
     (projectile-test-with-stub-root "project" ("Pulumi.yaml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'pulumi))))
+      (expect (projectile-detect-project-type) :to-equal 'pulumi)))
   (it "detects a Compose project by any of the file's four spellings"
     (projectile-test-with-stub-root "project" ("compose.yaml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'docker-compose)))
+      (expect (projectile-detect-project-type) :to-equal 'docker-compose))
     (projectile-test-with-stub-root "project" ("docker-compose.yml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'docker-compose))))
+      (expect (projectile-detect-project-type) :to-equal 'docker-compose)))
   (it "yields to the project's own build tool when it merely ships a Compose file"
     (projectile-test-with-stub-root "project" ("compose.yaml" "Cargo.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'rust-cargo)))))
+      (expect (projectile-detect-project-type) :to-equal 'rust-cargo))))
 
 (describe "python project types"
   ;; Nearly every Python project has a pyproject.toml, so the more
   ;; specific types have to win over it.
   (it "prefers django over the packaging manifests"
     (projectile-test-with-stub-root "project" ("manage.py" "pyproject.toml" "requirements.txt")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'django))))
+      (expect (projectile-detect-project-type) :to-equal 'django)))
   (it "prefers poetry over the bare pyproject.toml"
     (projectile-test-with-stub-root "project" ("poetry.lock" "pyproject.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'python-poetry))))
+      (expect (projectile-detect-project-type) :to-equal 'python-poetry)))
   (it "prefers pipenv over the bare pyproject.toml"
     (projectile-test-with-stub-root "project" ("Pipfile" "pyproject.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'python-pipenv))))
+      (expect (projectile-detect-project-type) :to-equal 'python-pipenv)))
   (it "prefers tox over the bare pyproject.toml"
     (projectile-test-with-stub-root "project" ("tox.ini" "pyproject.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'python-tox))))
+      (expect (projectile-detect-project-type) :to-equal 'python-tox)))
   (it "detects a uv project"
     (projectile-test-with-stub-root "project" ("uv.lock" "pyproject.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'python-uv))))
+      (expect (projectile-detect-project-type) :to-equal 'python-uv)))
   (it "detects a pdm project"
     (projectile-test-with-stub-root "project" ("pdm.lock" "pyproject.toml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'python-pdm))))
+      (expect (projectile-detect-project-type) :to-equal 'python-pdm)))
   (it "prefers pyproject.toml over setup.py and requirements.txt"
     (projectile-test-with-stub-root "project" ("pyproject.toml" "setup.py" "requirements.txt")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'python-toml))))
+      (expect (projectile-detect-project-type) :to-equal 'python-toml)))
   (it "runs the django server as the run command, not as the compile command"
     (expect (projectile-default-run-command 'django)
             :to-equal "python manage.py runserver")))
@@ -401,27 +367,22 @@
   (it "detects a modern Symfony layout, which has no app directory"
     (projectile-test-with-stub-root "project"
         ("composer.json" "src/" "bin/" "bin/console")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'php-symfony))))
+      (expect (projectile-detect-project-type) :to-equal 'php-symfony)))
   (it "still detects the legacy app/console layout"
     (projectile-test-with-stub-root "project"
         ("composer.json" "src/" "app/" "app/console")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'php-symfony))))
+      (expect (projectile-detect-project-type) :to-equal 'php-symfony)))
   (it "detects a Laravel project"
     (projectile-test-with-stub-root "project" ("composer.json" "artisan")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'php-laravel))))
+      (expect (projectile-detect-project-type) :to-equal 'php-laravel)))
   (it "falls back to plain composer for any other PHP project"
     (projectile-test-with-stub-root "project" ("composer.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'php-composer))))
+      (expect (projectile-detect-project-type) :to-equal 'php-composer)))
   (it "is not mistaken for a Node project because of its front-end assets"
     ;; A PHP application ships a package.json for its asset pipeline.
     (projectile-test-with-stub-root "project"
         ("composer.json" "artisan" "package.json" "package-lock.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'php-laravel)))))
+      (expect (projectile-detect-project-type) :to-equal 'php-laravel))))
 
 (describe "projectile-project-type"
   :var ((dir default-directory))
@@ -431,8 +392,7 @@
     (expect (gethash (projectile-project-root) projectile-project-type-cache) :to-equal 'emacs-eldev))
   (it "detects the type of Projectile's project when it is passed as args"
     (projectile-test-with-sandbox
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-project-type dir) :to-equal 'emacs-eldev))))
+      (expect (projectile-project-type dir) :to-equal 'emacs-eldev)))
   (describe "override by projectile-project-type"
     (it "is respected when no DIR is passed"
       (let ((projectile-project-type 'python-poetry))
@@ -443,11 +403,10 @@
           (expect (projectile-project-type dir) :to-equal 'emacs-eldev)))))
   (it "passes project-root to detect-project-type to avoid redundant resolution"
     (projectile-test-with-sandbox
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-detect-project-type :and-call-through)
-        (projectile-project-type dir)
-        (expect 'projectile-detect-project-type
-                :to-have-been-called-with dir (projectile-project-root dir))))))
+      (spy-on 'projectile-detect-project-type :and-call-through)
+      (projectile-project-type dir)
+      (expect 'projectile-detect-project-type
+              :to-have-been-called-with dir (projectile-project-root dir)))))
 
 (describe "projectile-detect-project-type"
   (it "detects project-type for rails-like npm tests"
@@ -509,36 +468,29 @@
         (expect (projectile-detect-project-type) :to-equal 'zig)))))
   (it "detects a Zig project that has only a build.zig"
     (projectile-test-with-stub-root "project" ("build.zig")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'zig))))
+      (expect (projectile-detect-project-type) :to-equal 'zig)))
   (it "detects a bzlmod Bazel project (MODULE.bazel)"
     (projectile-test-with-stub-root "project" ("MODULE.bazel")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'bazel))))
+      (expect (projectile-detect-project-type) :to-equal 'bazel)))
   (it "detects a legacy WORKSPACE Bazel project"
     (projectile-test-with-stub-root "project" ("WORKSPACE")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'bazel))))
+      (expect (projectile-detect-project-type) :to-equal 'bazel)))
   (it "detects a Gradle project using the Kotlin DSL"
     (projectile-test-with-stub-root "project" ("build.gradle.kts")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'gradle))))
+      (expect (projectile-detect-project-type) :to-equal 'gradle)))
   (it "detects an Angular project (its two markers are alternatives, not both)"
     (projectile-test-with-stub-root "project" ("angular.json" "package.json")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'angular))))
+      (expect (projectile-detect-project-type) :to-equal 'angular)))
   (it "detects a Taskfile.yaml go-task project"
     (projectile-test-with-stub-root "project" ("Taskfile.yaml")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (expect (projectile-detect-project-type) :to-equal 'go-task))))
+      (expect (projectile-detect-project-type) :to-equal 'go-task)))
   (it "does not match a project type whose marker-files are empty"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/"
        "project/foo")
       (let ((projectile-project-types '((empty marker-files nil)
-                                        (real marker-files ("foo"))))
-            (projectile-project-type-cache (make-hash-table :test 'equal)))
+                                        (real marker-files ("foo")))))
         (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'real)))))
   (it "falls back to generic when the only type has empty marker-files"
@@ -546,8 +498,7 @@
      (projectile-test-with-files
       ("project/"
        "project/foo")
-      (let ((projectile-project-types '((empty marker-files nil)))
-            (projectile-project-type-cache (make-hash-table :test 'equal)))
+      (let ((projectile-project-types '((empty marker-files nil))))
         (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
         (expect (projectile-detect-project-type) :to-equal 'generic)))))
   (it "detects a marker that sits in a subdirectory of the root"
@@ -559,25 +510,22 @@
       ("project/"
        "project/debian/"
        "project/debian/control")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
-        (expect (projectile-detect-project-type) :to-equal 'debian)))))
+      (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
+      (expect (projectile-detect-project-type) :to-equal 'debian))))
   (it "detects project-type for lowercase makefile projects"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/"
        "project/makefile")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
-        (expect (projectile-detect-project-type) :to-equal 'make)))))
+      (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
+      (expect (projectile-detect-project-type) :to-equal 'make))))
   (it "detects project-type for GNUmakefile projects"
     (projectile-test-with-sandbox
      (projectile-test-with-files
       ("project/"
        "project/GNUmakefile")
-      (let ((projectile-project-type-cache (make-hash-table :test 'equal)))
-        (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
-        (expect (projectile-detect-project-type) :to-equal 'gnumake)))))
+      (spy-on 'projectile-project-root :and-return-value (projectile-test-project-root))
+      (expect (projectile-detect-project-type) :to-equal 'gnumake))))
   (it "passes the project root to a function marker (#1909)"
     (let ((projectile-project-types
            (list (list 'custom 'marker-files

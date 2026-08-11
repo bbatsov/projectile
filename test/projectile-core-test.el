@@ -589,7 +589,6 @@
          (let* ((root (projectile-test-project-root))
                 (projectile-indexing-method 'native)
                 (projectile-enable-caching t)
-                (projectile-projects-cache (make-hash-table :test 'equal))
                 (projectile-projects-cache-time (make-hash-table :test 'equal))
                 seen)
            (spy-on 'projectile-project-root :and-return-value root)

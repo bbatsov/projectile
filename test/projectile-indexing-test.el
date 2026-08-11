@@ -513,6 +513,9 @@
          (let ((projectile-vcs-markers
                 (cons '(".jj" . jj)
                       (assoc-delete-all ".jj" (copy-alist projectile-vcs-markers))))
+               ;; Not redundant with the sandbox's fresh caches: the same
+               ;; directory was asked about above, so the answer has to be
+               ;; forgotten before asking again under different markers.
                (projectile-project-vcs-cache (make-hash-table :test 'equal)))
            (expect (projectile-project-vcs dir) :to-equal 'jj))))))
 
@@ -785,10 +788,7 @@
              (root-b (file-truename (expand-file-name "projectB/")))
              (roots (list root-a root-b))
              (projectile-enable-caching 'transient)
-             (projectile-projects-cache (make-hash-table :test 'equal))
              (projectile-projects-cache-time (make-hash-table :test 'equal))
-             (projectile-project-type-cache (make-hash-table :test 'equal))
-             (projectile--dirconfig-cache (make-hash-table :test 'equal))
              (projectile-file-exists-cache (make-hash-table :test 'equal)))
         (spy-on 'projectile-known-projects :and-return-value roots)
         (spy-on 'recentf-cleanup)
@@ -822,7 +822,6 @@
       (let* ((root-a (file-truename (expand-file-name "projectA/")))
              (root-b (file-truename (expand-file-name "projectB/")))
              (projectile-enable-caching 'persistent)
-             (projectile-projects-cache (make-hash-table :test 'equal))
              (projectile-projects-cache-time (make-hash-table :test 'equal))
              (cache-a (projectile-project-cache-file root-a))
              (cache-b (projectile-project-cache-file root-b)))
@@ -1225,7 +1224,6 @@
              (default-directory root)
              (projectile-indexing-method 'alien)
              (projectile-enable-caching t)
-             (projectile-projects-cache (make-hash-table :test 'equal))
              (projectile-projects-cache-time (make-hash-table :test 'equal)))
         (write-region "build/\n" nil ".gitignore")
         (call-process "git" nil nil nil "init")
@@ -1246,7 +1244,6 @@
              (default-directory root)
              (projectile-indexing-method 'alien)
              (projectile-enable-caching t)
-             (projectile-projects-cache (make-hash-table :test 'equal))
              (projectile-projects-cache-time (make-hash-table :test 'equal)))
         (write-region "build/\n" nil ".gitignore")
         (call-process "git" nil nil nil "init")
@@ -1267,8 +1264,7 @@
       ("project/" "project/.projectile" "project/build/" "project/build/main.o")
       (let* ((root (projectile-test-project-root))
              (projectile-indexing-method 'native)
-             (projectile-enable-caching t)
-             (projectile-projects-cache (make-hash-table :test 'equal)))
+             (projectile-enable-caching t))
         (spy-on 'projectile-project-root :and-return-value root)
         (puthash root '("main.c") projectile-projects-cache)
         (with-temp-buffer

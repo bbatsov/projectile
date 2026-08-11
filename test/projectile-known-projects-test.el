@@ -351,7 +351,6 @@
       (projectile-test-with-files
        ("project/")
        (let ((cache-file (expand-file-name "project/.projectile-cache.eld"))
-             (projectile-projects-cache (make-hash-table :test 'equal))
              (projectile-projects-cache-time (make-hash-table :test 'equal)))
          (with-temp-file cache-file
            (insert (prin1-to-string '("file1.el" "file2.el"))))
