@@ -4364,6 +4364,13 @@ this case unignored files will be absent from FILES."
   (seq-filter (lambda (b) (or (buffer-file-name b)
                                     (get-buffer-process b))) buffers))
 
+;;; Project buffers
+;;
+;; Which of Emacs's buffers belong to the project, and the filtering that
+;; decides it.  Consumed by the buffer-switching, killing and saving
+;; commands, and by the ibuffer integration.
+
+
 (defun projectile-project-buffers (&optional project)
   "Get a list of a project's buffers.
 If PROJECT is not specified the command acts on the current project."
@@ -6219,6 +6226,14 @@ for the kind, and repeated invocations cycle through them in table order."
   "Return a list of test files for the current project."
   (projectile-test-files (projectile-current-project-files)))
 
+;;; Project types
+;;
+;; What a project type is - a set of markers that recognise it plus the
+;; commands and conventions that follow - and the machinery for declaring
+;; one.  The types Projectile ships with are registered further down, in
+;; their own section.
+
+
 (defvar projectile-project-types nil
   "An alist holding all project types that are known to Projectile.
 The project types are symbols and they are linked to plists holding
@@ -6849,7 +6864,7 @@ a manual COMMAND-TYPE command is created with
 (defconst projectile--bun-lock-names '("bun.lock" "bun.lockb")
   "The lock file names Bun writes - the text one and the older binary one.")
 
-;;; Project type registration
+;;; The project types Projectile ships with
 ;;
 ;; Project type detection happens in a reverse order with respect to
 ;; project type registration (invocations of `projectile-register-project-type').
@@ -7633,6 +7648,130 @@ Results are cached in `projectile-project-vcs-cache' (cleared by
         (puthash project-root vcs projectile-project-vcs-cache)
         vcs))))
 
+
+;;; Git helpers
+;;
+;; Reading git for things other than the file listing: which files differ,
+;; which branch a checkout is on, where the repository's shared directory
+;; is.  These are consumed by the repository identity, the worktree lookup,
+;; the dashboard and `projectile-find-changed-file' alike, which is why they
+;; live next to the VCS detection rather than inside any one of them.
+
+(defun projectile--git (root &rest args)
+  "Run git with ARGS in ROOT and return its output, or nil when it fails.
+No shell is involved, and the call would go through TRAMP for a remote
+ROOT - which is why the callers make sure never to reach here with one.
+
+`--no-optional-locks' keeps a dashboard opened on project switch from
+taking the index lock and rewriting the index behind the user's back."
+  (let ((default-directory root))
+    (with-temp-buffer
+      (when (eql 0 (ignore-errors
+                     (apply #'process-file "git" nil '(t nil) nil
+                            "--no-optional-locks" args)))
+        (buffer-string)))))
+
+(defun projectile--git-toplevel (root)
+  "Return the toplevel of the git repository containing ROOT, or nil."
+  (when-let* ((top (projectile--git root "rev-parse" "--show-toplevel")))
+    (file-name-as-directory (file-truename (string-trim top)))))
+
+(defun projectile--git-relativize (paths root toplevel)
+  "Return PATHS, given relative to TOPLEVEL, relative to ROOT instead.
+Git reports porcelain and diff paths relative to the repository root
+regardless of where it was run, so a project sitting below that root
+needs them translated - and anything outside the project dropped."
+  (if (equal (file-truename root) toplevel)
+      paths
+    (delq nil
+          (mapcar (lambda (path)
+                    (let ((absolute (expand-file-name path toplevel))
+                          (root (file-truename root)))
+                      (when (string-prefix-p root absolute)
+                        (file-relative-name absolute root))))
+                  paths))))
+
+(defun projectile--git-status-changed-files (root)
+  "Return the paths git reports as changed in ROOT\\='s working tree.
+Covers staged, unstaged and untracked files, as repository-relative
+paths.  A rename occupies two NUL-separated fields - the new name and
+then the old one - so those are consumed in step rather than the old
+name being mistaken for another changed file."
+  (when-let* ((output (projectile--git root "status" "--porcelain" "-z"
+                                       "--untracked-files=all")))
+    (let ((records (split-string output "\0" t))
+          files)
+      (while records
+        (let ((record (pop records)))
+          ;; "XY PATH", with X and Y the index and worktree status codes.
+          (when (> (length record) 3)
+            (let ((status (substring record 0 2))
+                  (path (substring record 3)))
+              (push path files)
+              ;; A rename or copy carries the source path in the next field.
+              (when (string-match-p "[RC]" status)
+                (pop records))))))
+      (nreverse files))))
+
+(defun projectile-git-changed-files (root &optional base)
+  "Return the files changed in the project at ROOT, relative to it.
+
+Without BASE that is the working tree: everything staged, unstaged or
+untracked.  With BASE - a branch, tag or any other revision - it is
+everything that differs from it, plus the files not yet tracked at all,
+which is what \"show me what this branch changed\" usually means.
+
+Only git is supported; any other version control system returns nil."
+  (when (eq (projectile-project-vcs root) 'git)
+    (when-let* ((toplevel (projectile--git-toplevel root)))
+      (let ((paths
+             (if base
+                 (append
+                  (when-let* ((diff (projectile--git root "diff" "--name-only"
+                                                     "-z" base)))
+                    (split-string diff "\0" t))
+                  (when-let* ((new (projectile--git root "ls-files" "-z"
+                                                    "--others" "--exclude-standard")))
+                    (split-string new "\0" t)))
+               (projectile--git-status-changed-files root))))
+        (seq-uniq (projectile--git-relativize paths root toplevel))))))
+
+(defun projectile--read-git-ref (root)
+  "Read a git revision to compare against, completing over ROOT\\='s branches."
+  (let ((branches (when-let* ((output (projectile--git
+                                       root "for-each-ref" "--format=%(refname:short)"
+                                       "refs/heads" "refs/remotes")))
+                    (split-string output "\n" t))))
+    (completing-read "Compare against: " branches nil nil nil nil
+                     (car (member "main" branches)))))
+
+;;;###autoload
+(defun projectile-find-changed-file (&optional arg)
+  "Jump to a file changed in the current project.
+
+That is everything git reports as staged, unstaged or untracked.  With a
+prefix ARG you are asked for a revision to compare against instead - a
+branch, say - and the candidates become everything that differs from it,
+which is the \"what did this branch touch\" list.
+
+Only git projects are supported."
+  (interactive "P")
+  (let* ((root (projectile-acquire-root))
+         (base (when arg (projectile--read-git-ref root))))
+    (unless (eq (projectile-project-vcs root) 'git)
+      (user-error "`projectile-find-changed-file' needs a git project"))
+    (let ((files (projectile-git-changed-files root base)))
+      (unless files
+        (user-error "No changed files in %s%s" root
+                    (if base (format " compared to %s" base) "")))
+      (find-file (expand-file-name
+                  (projectile-completing-read
+                   (if base (format "Changed vs %s: " base) "Changed file: ")
+                   files :caller 'projectile-find-changed-file)
+                  root))
+      (run-hooks 'projectile-find-file-hook))))
+
+
 (defun projectile--test-name-for-impl-name (impl-file-path)
   "Determine the name of the test file for IMPL-FILE-PATH.
 
@@ -8140,6 +8279,12 @@ is appended and faced as `(default VALUE)'."
                                   (propertize default-value
                                               'face 'projectile-search-prompt-default)))))
     (read-string (format "%s%s: " prompt-label default-label) nil nil default-value)))
+
+;;; Grep command construction
+;;
+;; Turning Projectile's ignore rules into the arguments `rgrep' and friends
+;; expect, which is fiddly enough to be worth keeping in one place.
+
 
 (defvar projectile-grep-find-ignored-paths)
 (defvar projectile-grep-find-unignored-paths)
@@ -11901,6 +12046,12 @@ supplied via .dir-locals.el and finally the default configure command
 for a project of that type."
   (projectile--phase-command 'configure compile-dir))
 
+;;; Compilation buffers, and resolving a command
+;;
+;; Where a lifecycle command's output goes and what it's called, plus the
+;; per-phase readers that resolve which command to run.
+
+
 (defvar projectile--compilation-command-type nil
   "Lifecycle command type of the compilation being started, or nil.
 Bound by `projectile--run-project-cmd' for the duration of the call, so
@@ -12117,6 +12268,16 @@ that part of the repository."
                                              :caller 'projectile-read-file)))
       (find-file (expand-file-name file project-root))
       (run-hooks 'projectile-find-file-hook))))
+
+;;; Lifecycle commands
+;;
+;; Configure, compile, test, install, package and run: the six phases a
+;; project is driven through from Projectile.  Each resolves its command
+;; the same way (cache, then .dir-locals.el, then the project type's
+;; default), remembers what you ran, and hands it to `compile'.  The
+;; subproject variants at the end of the section are the same six, scoped
+;; to the part of a monorepo you're in.
+
 
 (defun projectile-compilation-dir (&optional base)
   "Retrieve the compilation directory for this project.
@@ -12467,6 +12628,36 @@ with a prefix ARG."
   (interactive "P")
   (projectile--run-lifecycle-phase 'test arg))
 
+;;;###autoload
+(defun projectile-install-project (arg)
+  "Run project install command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (projectile--run-lifecycle-phase 'install arg))
+
+;;;###autoload
+(defun projectile-package-project (arg)
+  "Run project package command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (projectile--run-lifecycle-phase 'package arg))
+
+;;;###autoload
+(defun projectile-run-project (arg)
+  "Run project run command.
+
+Normally you'll be prompted for a compilation command, unless
+variable `compilation-read-command'.  You can force the prompt
+with a prefix ARG."
+  (interactive "P")
+  (projectile--run-lifecycle-phase 'run arg))
+
 (defun projectile--run-subproject-phase (phase show-prompt)
   "Run lifecycle PHASE in the nearest subproject of the current file.
 SHOW-PROMPT is as in `projectile--run-lifecycle-phase', which does the
@@ -12506,6 +12697,14 @@ Normally you will be prompted for the command, unless variable
 ;;;###autoload (autoload 'projectile-package-subproject "projectile" nil t)
 ;;;###autoload (autoload 'projectile-run-subproject "projectile" nil t)
 (projectile--define-subproject-commands configure compile test install package run)
+
+;;; Running the test at point
+;;
+;; Run just the test the cursor is in, rather than the whole suite.  A rule
+;; per major mode says how to recognise a test in that language's syntax
+;; tree and how to name it on the command line; `projectile-test-at-point-rules'
+;; ties them together and is where a language gets added.
+
 
 (defun projectile-test-at-point-python-name (node)
   "Return the test name for the Python `function_definition' NODE.
@@ -12896,35 +13095,13 @@ a prefix ARG you can edit the command before it's run."
                                      :save-buffers t
                                      :use-comint-mode (projectile-use-comint-mode-p 'test))))))
 
-;;;###autoload
-(defun projectile-install-project (arg)
-  "Run project install command.
+;;; Tasks, and repeating what you ran last
+;;
+;; Tasks are the commands a project's own tooling defines - npm scripts,
+;; rake tasks, a Makefile's targets - discovered rather than configured.
+;; `projectile-repeat-last-command' sits here too: it re-runs the last
+;; command of any kind, lifecycle phase or task alike.
 
-Normally you'll be prompted for a compilation command, unless
-variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
-  (interactive "P")
-  (projectile--run-lifecycle-phase 'install arg))
-
-;;;###autoload
-(defun projectile-package-project (arg)
-  "Run project package command.
-
-Normally you'll be prompted for a compilation command, unless
-variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
-  (interactive "P")
-  (projectile--run-lifecycle-phase 'package arg))
-
-;;;###autoload
-(defun projectile-run-project (arg)
-  "Run project run command.
-
-Normally you'll be prompted for a compilation command, unless
-variable `compilation-read-command'.  You can force the prompt
-with a prefix ARG."
-  (interactive "P")
-  (projectile--run-lifecycle-phase 'run arg))
 
 ;;;###autoload
 (defun projectile-repeat-last-command (show-prompt)
@@ -13092,6 +13269,13 @@ directories."
                   dirs)
               compilation-search-path)))
       (apply orig-fun `(,marker ,filename ,directory ,@formats)))))
+
+;;; Known projects, and switching between them
+;;
+;; The list of projects Projectile has seen, how it's kept (loaded, merged
+;; between Emacsen, pruned of directories that have gone away) and the
+;; commands that move you from one to another.
+
 
 (defun projectile-open-projects ()
   "Return a list of all open projects.
@@ -15540,122 +15724,7 @@ Used by the buffer's `revert-buffer' to regenerate it.")
   "Return non-nil when SECTION is enabled in `projectile-dashboard-sections'."
   (memq section projectile-dashboard-sections))
 
-
 ;;;; Dashboard data collection
-
-(defun projectile--git (root &rest args)
-  "Run git with ARGS in ROOT and return its output, or nil when it fails.
-No shell is involved, and the call would go through TRAMP for a remote
-ROOT - which is why the callers make sure never to reach here with one.
-
-`--no-optional-locks' keeps a dashboard opened on project switch from
-taking the index lock and rewriting the index behind the user's back."
-  (let ((default-directory root))
-    (with-temp-buffer
-      (when (eql 0 (ignore-errors
-                     (apply #'process-file "git" nil '(t nil) nil
-                            "--no-optional-locks" args)))
-        (buffer-string)))))
-
-(defun projectile--git-toplevel (root)
-  "Return the toplevel of the git repository containing ROOT, or nil."
-  (when-let* ((top (projectile--git root "rev-parse" "--show-toplevel")))
-    (file-name-as-directory (file-truename (string-trim top)))))
-
-(defun projectile--git-relativize (paths root toplevel)
-  "Return PATHS, given relative to TOPLEVEL, relative to ROOT instead.
-Git reports porcelain and diff paths relative to the repository root
-regardless of where it was run, so a project sitting below that root
-needs them translated - and anything outside the project dropped."
-  (if (equal (file-truename root) toplevel)
-      paths
-    (delq nil
-          (mapcar (lambda (path)
-                    (let ((absolute (expand-file-name path toplevel))
-                          (root (file-truename root)))
-                      (when (string-prefix-p root absolute)
-                        (file-relative-name absolute root))))
-                  paths))))
-
-(defun projectile--git-status-changed-files (root)
-  "Return the paths git reports as changed in ROOT\\='s working tree.
-Covers staged, unstaged and untracked files, as repository-relative
-paths.  A rename occupies two NUL-separated fields - the new name and
-then the old one - so those are consumed in step rather than the old
-name being mistaken for another changed file."
-  (when-let* ((output (projectile--git root "status" "--porcelain" "-z"
-                                       "--untracked-files=all")))
-    (let ((records (split-string output "\0" t))
-          files)
-      (while records
-        (let ((record (pop records)))
-          ;; "XY PATH", with X and Y the index and worktree status codes.
-          (when (> (length record) 3)
-            (let ((status (substring record 0 2))
-                  (path (substring record 3)))
-              (push path files)
-              ;; A rename or copy carries the source path in the next field.
-              (when (string-match-p "[RC]" status)
-                (pop records))))))
-      (nreverse files))))
-
-(defun projectile-git-changed-files (root &optional base)
-  "Return the files changed in the project at ROOT, relative to it.
-
-Without BASE that is the working tree: everything staged, unstaged or
-untracked.  With BASE - a branch, tag or any other revision - it is
-everything that differs from it, plus the files not yet tracked at all,
-which is what \"show me what this branch changed\" usually means.
-
-Only git is supported; any other version control system returns nil."
-  (when (eq (projectile-project-vcs root) 'git)
-    (when-let* ((toplevel (projectile--git-toplevel root)))
-      (let ((paths
-             (if base
-                 (append
-                  (when-let* ((diff (projectile--git root "diff" "--name-only"
-                                                     "-z" base)))
-                    (split-string diff "\0" t))
-                  (when-let* ((new (projectile--git root "ls-files" "-z"
-                                                    "--others" "--exclude-standard")))
-                    (split-string new "\0" t)))
-               (projectile--git-status-changed-files root))))
-        (seq-uniq (projectile--git-relativize paths root toplevel))))))
-
-(defun projectile--read-git-ref (root)
-  "Read a git revision to compare against, completing over ROOT\\='s branches."
-  (let ((branches (when-let* ((output (projectile--git
-                                       root "for-each-ref" "--format=%(refname:short)"
-                                       "refs/heads" "refs/remotes")))
-                    (split-string output "\n" t))))
-    (completing-read "Compare against: " branches nil nil nil nil
-                     (car (member "main" branches)))))
-
-;;;###autoload
-(defun projectile-find-changed-file (&optional arg)
-  "Jump to a file changed in the current project.
-
-That is everything git reports as staged, unstaged or untracked.  With a
-prefix ARG you are asked for a revision to compare against instead - a
-branch, say - and the candidates become everything that differs from it,
-which is the \"what did this branch touch\" list.
-
-Only git projects are supported."
-  (interactive "P")
-  (let* ((root (projectile-acquire-root))
-         (base (when arg (projectile--read-git-ref root))))
-    (unless (eq (projectile-project-vcs root) 'git)
-      (user-error "`projectile-find-changed-file' needs a git project"))
-    (let ((files (projectile-git-changed-files root base)))
-      (unless files
-        (user-error "No changed files in %s%s" root
-                    (if base (format " compared to %s" base) "")))
-      (find-file (expand-file-name
-                  (projectile-completing-read
-                   (if base (format "Changed vs %s: " base) "Changed file: ")
-                   files :caller 'projectile-find-changed-file)
-                  root))
-      (run-hooks 'projectile-find-file-hook))))
 
 (defun projectile-dashboard--git-status (root)
   "Return the git branch and working tree counts for ROOT as a plist.
