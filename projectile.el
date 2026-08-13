@@ -12448,26 +12448,28 @@ The command actually run is returned."
     command))
 
 (defcustom projectile-use-comint-mode nil
-  "Which lifecycle commands get an interactive output buffer.
+  "Which of the commands Projectile runs get an interactive output buffer.
 
-The lifecycle commands report through `compilation-mode', which is
-read-only.  For a command covered here Projectile uses `comint-mode'
-instead, so a build that asks a question, or a test runner that drops
-into a debugger, can be typed at.
+Projectile reports through `compilation-mode', which is read-only.  For a
+command covered here it uses `comint-mode' instead, so a build that asks a
+question, a test runner that drops into a debugger, or a task that wants a
+sudo password can be typed at.
 
-The value is nil (no command is interactive), t (all of them), or a
-list naming the ones that are - `configure', `compile', `test',
-`install', `package' and `run'."
+The value is nil (nothing is interactive), t (everything is), or a list
+naming what is - the lifecycle phases `configure', `compile', `test',
+`install', `package' and `run', and `task' for the named tasks run by
+`projectile-run-task'."
   :group 'projectile
-  :type '(choice (const :tag "No command" nil)
-                 (const :tag "Every command" t)
+  :type '(choice (const :tag "Nothing" nil)
+                 (const :tag "Everything" t)
                  (set :tag "Selected commands"
                       (const :tag "Configure" configure)
                       (const :tag "Compile" compile)
                       (const :tag "Test" test)
                       (const :tag "Install" install)
                       (const :tag "Package" package)
-                      (const :tag "Run" run)))
+                      (const :tag "Run" run)
+                      (const :tag "Tasks" task)))
   :package-version '(projectile . "3.4.0"))
 
 ;; Remove in 4.0, this block and the fallback in
@@ -12501,13 +12503,19 @@ list naming the ones that are - `configure', `compile', `test',
 
 (defun projectile-use-comint-mode-p (phase)
   "Return non-nil when PHASE's output buffer should be interactive.
-PHASE is a lifecycle phase symbol such as `compile'.  Reads
-`projectile-use-comint-mode', falling back to the obsolete per-phase
-option it replaced for a configuration that still sets one."
-  (or (eq projectile-use-comint-mode t)
-      (memq phase projectile-use-comint-mode)
-      (when-let* ((var (alist-get phase projectile--obsolete-comint-vars)))
-        (symbol-value var))))
+PHASE is a lifecycle phase symbol such as `compile', or `task' for the
+named tasks - which run through the same machinery and are covered by the
+same option (see issue #2156).  Reads `projectile-use-comint-mode',
+falling back to the obsolete per-phase option it replaced for a
+configuration that still sets one; the tasks never had one of those."
+  ;; Normalized to a boolean: `memq' would otherwise hand the caller the
+  ;; tail of the option's list, which then travels all the way into
+  ;; `compile' as its COMINT argument.
+  (and (or (eq projectile-use-comint-mode t)
+           (memq phase projectile-use-comint-mode)
+           (when-let* ((var (alist-get phase projectile--obsolete-comint-vars)))
+             (symbol-value var)))
+       t))
 
 (defun projectile--phase-command-dynamic-p (phase)
   "Non-nil when PHASE's command comes from a function for the current project.
@@ -13145,6 +13153,7 @@ the `%p' placeholder still intact."
                                  (concat "<" (projectile-project-name project-root) ">")))))
       (projectile--run-project-cmd command nil
                                    :save-buffers t
+                                   :use-comint-mode (projectile-use-comint-mode-p 'task)
                                    :buffer-name-function (lambda (_mode) buffer-name)))
     ;; `command-map' is nil above, so `projectile--run-project-cmd' records
     ;; nothing; record the command - before `%p' expansion, like the other

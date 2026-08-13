@@ -6,6 +6,10 @@
 
 ## master (unreleased)
 
+### Bugs fixed
+
+- [#2157](https://github.com/bbatsov/projectile/pull/2157): `projectile-use-comint-mode` now covers the named tasks run by `projectile-run-task`, which were always given a read-only compilation buffer however it was set - so a task that needs to ask for a sudo password had nowhere to type one ([#2156](https://github.com/bbatsov/projectile/issues/2156)). Name `task` in the list, or set the option to `t`.
+
 ## 3.4.0 (2026-08-10)
 
 ### New features

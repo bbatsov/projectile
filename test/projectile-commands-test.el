@@ -1061,6 +1061,19 @@
     (let ((projectile-use-comint-mode nil)
           (projectile-test-use-comint-mode t))
       (expect (projectile-use-comint-mode-p 'test) :to-be-truthy)
-      (expect (projectile-use-comint-mode-p 'compile) :to-be nil))))
+      (expect (projectile-use-comint-mode-p 'compile) :to-be nil)))
+
+  (it "covers the named tasks too"
+    ;; Tasks run through the same machinery as the lifecycle phases, so
+    ;; `t' has to mean them as well (issue #2156).
+    (let ((projectile-use-comint-mode t))
+      (expect (projectile-use-comint-mode-p 'task) :to-be-truthy))
+    (let ((projectile-use-comint-mode '(task)))
+      (expect (projectile-use-comint-mode-p 'task) :to-be-truthy)
+      (expect (projectile-use-comint-mode-p 'compile) :to-be nil))
+    (let ((projectile-use-comint-mode '(compile)))
+      (expect (projectile-use-comint-mode-p 'task) :to-be nil))
+    (let ((projectile-use-comint-mode nil))
+      (expect (projectile-use-comint-mode-p 'task) :to-be nil))))
 
 ;;; projectile-commands-test.el ends here
