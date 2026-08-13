@@ -372,7 +372,7 @@ and the other reference pages.
 | Controls whether Projectile will automatically register known projects.
 
 | `projectile-use-comint-mode`
-| Which lifecycle commands get an interactive output buffer.
+| Which of the commands Projectile runs get an interactive output buffer.
 
 | `projectile-use-git-grep`
 | Whether ‘projectile-grep’ delegates to ‘vc-git-grep’ in git projects.

@@ -388,6 +388,42 @@ main.o: main.c
       (expect (ring-elements (projectile--get-command-history "/proj/"))
               :to-equal '("make lint"))))
 
+  (it "gives a task an interactive buffer when comint mode covers everything"
+    ;; A task can be something like a sudo rebuild, which is unusable in a
+    ;; read-only compilation buffer - there's nowhere to type the password
+    ;; (issue #2156).
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-completing-read :and-return-value "rebuild")
+    (let ((projectile-use-comint-mode t)
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-last-task-map (make-hash-table :test 'equal))
+          (projectile-tasks '(("rebuild" . "sudo make install"))))
+      (projectile-run-task nil)
+      (expect 'projectile-run-compilation
+              :to-have-been-called-with "sudo make install" t)))
+
+  (it "gives a task an interactive buffer when the list names `task'"
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-completing-read :and-return-value "rebuild")
+    (let ((projectile-use-comint-mode '(task))
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-last-task-map (make-hash-table :test 'equal))
+          (projectile-tasks '(("rebuild" . "sudo make install"))))
+      (projectile-run-task nil)
+      (expect 'projectile-run-compilation
+              :to-have-been-called-with "sudo make install" t)))
+
+  (it "leaves a task alone when the list names only lifecycle phases"
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-completing-read :and-return-value "rebuild")
+    (let ((projectile-use-comint-mode '(compile test))
+          (projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-last-task-map (make-hash-table :test 'equal))
+          (projectile-tasks '(("rebuild" . "sudo make install"))))
+      (projectile-run-task nil)
+      (expect 'projectile-run-compilation
+              :to-have-been-called-with "sudo make install" nil)))
+
   (it "confirms the command before running by default"
     ;; Task commands can come from a checked-out .dir-locals.el, so the
     ;; run-time confirmation (like compile's) is a security requirement,
