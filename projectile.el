@@ -9610,7 +9610,7 @@ and `:truncated' (non-nil when the cap was hit)."
 ;; batch runs and the tests drive.  The async driver below reuses the very same
 ;; per-file `projectile-replace--scan-file', so the structs it produces are
 ;; identical to what `--gather' would produce over the same candidate list and
-;; regexp -- only the DELIVERY changes: files are scanned in timer-yielded
+;; regexp - only the DELIVERY changes: files are scanned in timer-yielded
 ;; chunks, matches stream into the results buffer as they are found, and the
 ;; scan can be canceled.  The `case-fold-search' that `--scan-file' reads is
 ;; re-established from the buffer's `projectile-replace--case-fold' inside each
@@ -10813,7 +10813,7 @@ otherwise returns REGEXP unchanged."
 Cancels any in-flight scan in BUFFER first, then scans with the async
 chunked driver when `projectile-replace--async-p' holds and otherwise
 synchronously (always in batch), so the final match list is identical
-either way -- only delivery differs.  BUFFER is re-rendered when done and
+either way - only delivery differs.  BUFFER is re-rendered when done and
 ON-DONE (or nil) is called in it.
 
 As an optional accelerator, a read-only search-reviewer BUFFER doing a
@@ -10863,7 +10863,7 @@ plain regexp search always take the elisp path below."
 When scanning is asynchronous the buffer is shown immediately and matches
 stream in; when synchronous (always in batch) the scan completes first
 and, to preserve the pre-async behavior, no buffer is shown when nothing
-matched -- NO-MATCH-MSG is issued instead.  Returns the results buffer,
+matched - NO-MATCH-MSG is issued instead.  Returns the results buffer,
 or nil on the synchronous no-match path.  ROOT, TERM, REGEXP,
 REPLACEMENT, LITERAL, CASE-FOLD, WORD and RG-PATTERN seed the buffer
 state."
@@ -11153,8 +11153,8 @@ Emacs regexp.  There is no replacement prompt."
          (word projectile-search-whole-word)
          (candidates (projectile-replace--candidates term literal case-fold root)))
     ;; SEAM: everything above computes the candidate file list; the shared
-    ;; opener below seeds the buffer and scans -- synchronously in batch,
-    ;; asynchronously (streaming) when interactive -- then renders whatever
+    ;; opener below seeds the buffer and scans - synchronously in batch,
+    ;; asynchronously (streaming) when interactive - then renders whatever
     ;; matches come back.
     (projectile-replace--open
      #'projectile-search-mode projectile-search-buffer-name
