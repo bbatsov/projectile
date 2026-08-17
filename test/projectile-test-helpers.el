@@ -295,6 +295,16 @@ regardless of the order they were collected in."
                 matches)
         (lambda (a b) (string< (format "%S" a) (format "%S" b)))))
 
+(defun projectile-test-match-files (buf)
+  "Return the sorted set of files with matches in BUF, relative to its root."
+  (with-current-buffer buf
+    (sort (seq-uniq
+           (mapcar (lambda (m)
+                     (file-relative-name (projectile-replace--match-file m)
+                                         projectile-replace--root))
+                   projectile-replace--matches))
+          #'string<)))
+
 ;;; Sandbox project helpers
 
 (defun projectile-test-project-root ()
