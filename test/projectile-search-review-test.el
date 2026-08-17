@@ -41,16 +41,6 @@ REGEXP-P selects `projectile-search-regexp-review'."
                             #'projectile-search-review)))
     (get-buffer projectile-search-buffer-name)))
 
-(defun projectile-search-review-test--files (buf)
-  "Return the sorted set of project-relative files with matches in BUF."
-  (with-current-buffer buf
-    (let ((root projectile-replace--root)
-          (files nil))
-      (dolist (m projectile-replace--matches)
-        (cl-pushnew (file-relative-name (projectile-replace--match-file m) root)
-                    files :test #'equal))
-      (sort files #'string<))))
-
 (describe "projectile-search-review (literal)"
   (it "finds every literal match grouped by file, read-only, no apply keys"
     (projectile-test-with-project
@@ -61,7 +51,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (with-current-buffer buf
           (expect major-mode :to-equal 'projectile-search-mode)
           (expect (length projectile-replace--matches) :to-equal 3)
-          (expect (projectile-search-review-test--files buf)
+          (expect (projectile-test-match-files buf)
                   :to-equal '("a.txt" "lib/b.txt"))
           ;; the buffer is genuinely read-only
           (expect buffer-read-only :to-be-truthy)
@@ -91,7 +81,8 @@ REGEXP-P selects `projectile-search-regexp-review'."
 
 (describe "projectile-search-review prompt tool tag"
   (before-each
-    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    ;; a real directory: the search refuses a project that is not on disk
+    (spy-on 'projectile-acquire-root :and-return-value temporary-file-directory)
     (spy-on 'projectile-replace--candidates :and-return-value nil)
     (spy-on 'projectile-replace--open))
 
@@ -578,7 +569,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (projectile-search-review-test--wait buf)
         (with-current-buffer buf
           (expect projectile-replace--scanning :to-be nil)
-          (expect (projectile-search-review-test--files buf)
+          (expect (projectile-test-match-files buf)
                   :to-equal '("mb.txt" "plain.txt"))
           ;; character column 5 ("café " is 5 chars), NOT the byte offset 6
           (expect (projectile-test-find-match projectile-replace--matches "mb.txt")
@@ -616,7 +607,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (with-current-buffer buf
           ;; the `-/vendor' dirconfig ignore must be honored by the rg path,
           ;; just as it is by the elisp path
-          (expect (projectile-search-review-test--files buf)
+          (expect (projectile-test-match-files buf)
                   :to-equal '("keep.txt"))
           (expect (cl-some (lambda (m)
                              (string-match-p
