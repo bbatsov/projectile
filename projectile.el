@@ -14428,7 +14428,13 @@ Each is called with a project root and should return a list of project
 directories related to it.  They're consulted in order and their results
 concatenated, so the most trustworthy signal should come first; a project
 found by more than one is offered once, in the position the first
-function to report it put it."
+function to report it put it.
+
+Adding your own is the intended way to teach Projectile a grouping it
+can't infer - a workspace manifest, say.  Note that
+`projectile-sibling-max-group-share' is applied inside the two built-in
+inferred signals rather than to this list, so a function you add is never
+capped: it is trusted the way a configured group is."
   :group 'projectile
   :type '(repeat function)
   :package-version '(projectile . "3.4.0"))
