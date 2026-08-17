@@ -171,6 +171,37 @@ signal goes quiet and you fall back to name matching. When a project you
 care about ends up with no siblings, that's what `projectile-project-groups`
 is for.
 
+=== Signals of your own
+
+The three above are only the default value of
+`projectile-sibling-project-functions`, which is a plain list of functions.
+Each is called with a project root and should return a list of project
+directories related to it; the results are concatenated in the order the
+list gives, and a project found by more than one function is offered once,
+in the position the first one to report it put it.
+
+So you can add a signal of your own - reading a workspace manifest, asking
+a service, consulting whatever your organization uses to say which
+repositories belong together:
+
+[source,elisp]
+----
+(defun my-siblings-from-manifest (root)
+  "Return the projects listed beside ROOT in our workspace manifest."
+  ...)
+
+;; ahead of the built-ins, so it wins where it has an opinion
+(add-to-list 'projectile-sibling-project-functions #'my-siblings-from-manifest)
+----
+
+Put yours before the built-ins to have it take precedence, after them to
+act as a fallback, or replace the list outright to use nothing else.
+
+NOTE: The share cap applies inside the two inferred signals, not to the
+list as a whole, so a function of your own is never capped - it behaves
+like a configured group. That's usually what you want, but it does mean a
+function that accidentally matches everything will offer you everything.
+
 == What else checkouts share
 
 Knowing that two roots are one repository is useful beyond switching between
