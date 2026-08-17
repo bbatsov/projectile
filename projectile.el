@@ -9145,7 +9145,9 @@ files in the project."
                         ((executable-find "ack")
                          (projectile--ack-construct-command search-term file-ext))
                         ((and (executable-find "git")
-                              (eq (projectile-project-vcs) 'git))
+                              ;; DIRECTORY's VCS, not the current project's -
+                              ;; a group search asks about each member in turn
+                              (eq (projectile-project-vcs directory) 'git))
                          (projectile--git-grep-construct-command search-term file-ext))
                         (t
                          (projectile--grep-construct-command search-term file-ext)))))
@@ -9414,7 +9416,15 @@ often; smaller values keep Emacs more responsive."
 
 ;; Buffer-local state of a `*projectile-replace*' buffer.
 (defvar-local projectile-replace--root nil
-  "Project root the current results buffer was gathered from.")
+  "Directory the current results buffer's file names are shown relative to.
+For an ordinary search that is the project root; for a search over a
+group of projects it is the innermost directory containing all of them,
+so each match is labelled with the project it came from.")
+(defvar-local projectile-replace--projects nil
+  "Project roots the current results buffer was gathered from.
+Always a list - a one-element one for an ordinary single-project search.
+This, not `projectile-replace--root', is what a re-scan re-reads, so
+re-searching a group of projects covers the same group again.")
 (defvar-local projectile-replace--term nil
   "Raw search term the current results buffer was gathered with.")
 (defvar-local projectile-replace--search nil
@@ -9732,8 +9742,14 @@ The write-back and export must never run against a partial match set."
   (when projectile-replace--scanning
     (user-error "Still searching; wait for the scan to finish")))
 
-(defun projectile-replace--candidates (term literal case-fold directory)
-  "Return the files under DIRECTORY worth scanning for TERM.
+(defun projectile-replace--candidates (term literal case-fold directories)
+  "Return the files under DIRECTORIES worth scanning for TERM.
+DIRECTORIES is a project root, or a list of them for a search spanning a
+group of projects, in which case each contributes its own file list and
+the result is de-duplicated - two members of a group can nest (a
+monorepo and a project inside it), and a file scanned twice would be
+replaced twice, corrupting it.
+
 For a case-sensitive LITERAL search this narrows to files that contain
 TERM, via `projectile-files-with-string' - which matches
 case-insensitively, so the narrowed set is a safe superset that the scan
@@ -9741,13 +9757,18 @@ then filters exactly - intersected with the project's ignore-aware file
 list.  For a regexp search, or a case-insensitive literal search, it
 returns the whole ignore-aware file list, since those can't be narrowed
 by an external grep this way."
-  (let ((project-files (mapcar (lambda (f) (expand-file-name f directory))
-                               (projectile-dir-files directory))))
-    (if (and literal (not case-fold))
-        (seq-filter (lambda (f) (member f project-files))
-                    (projectile-files-with-string term directory))
-      (seq-remove (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
-                  project-files))))
+  (delete-dups
+   (mapcan
+    (lambda (directory)
+      (let ((project-files (mapcar (lambda (f) (expand-file-name f directory))
+                                   (projectile-dir-files directory))))
+        (if (and literal (not case-fold))
+            (seq-filter (lambda (f) (member f project-files))
+                        (projectile-files-with-string term directory))
+          (seq-remove (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
+                      project-files))))
+    ;; a recorded group can name a directory that has since been moved away
+    (seq-filter #'projectile--directory-p (ensure-list directories)))))
 
 ;;; Results buffer rendering
 
@@ -10002,7 +10023,7 @@ state.  The re-render happens from the (streaming) scan, so callers need
 not render again."
   (let ((candidates (projectile-replace--candidates
                      projectile-replace--term projectile-replace--literal
-                     projectile-replace--case-fold projectile-replace--root)))
+                     projectile-replace--case-fold projectile-replace--projects)))
     (setq projectile-replace--filtered nil)
     (projectile-replace--start (current-buffer) candidates
                                projectile-replace--search nil)))
@@ -10549,14 +10570,16 @@ write back to the files.
 
 (defun projectile-replace--seed (buf mode root term regexp replacement
                                      literal case-fold &optional word
-                                     rg-pattern)
+                                     rg-pattern projects)
   "Put BUF in MODE and seed its results-buffer state, with no matches yet.
 ROOT, TERM, REGEXP, REPLACEMENT, LITERAL, CASE-FOLD, WORD and RG-PATTERN
 seed the search parameters; the match list starts empty, ready for a
-\(sync or async) scan to fill it."
+\(sync or async) scan to fill it.  PROJECTS is the list of project roots
+searched, defaulting to just ROOT."
   (with-current-buffer buf
     (funcall mode)
-    (setq projectile-replace--root root
+    (setq projectile-replace--projects (or projects (list root))
+          projectile-replace--root root
           projectile-replace--term term
           projectile-replace--search regexp
           projectile-replace--replacement replacement
@@ -10820,12 +10843,15 @@ As an optional accelerator, a read-only search-reviewer BUFFER doing a
 literal search (or one carrying a `projectile-replace--rg-pattern') takes
 the ripgrep fast-path (`projectile-search--gather-rg') when
 `projectile-search--rg-fastpath-p' holds; the replace reviewer and the
-plain regexp search always take the elisp path below."
+plain regexp search always take the elisp path below.  So does a search
+spanning several projects: the fast-path runs one `rg' over one directory
+tree, and a group of projects is not one tree."
   (with-current-buffer buffer
     (projectile-replace--cancel-scan))
   (cond
    ((with-current-buffer buffer
       (and (derived-mode-p 'projectile-search-mode)
+           (null (cdr projectile-replace--projects))
            (projectile-search--rg-fastpath-p projectile-replace--literal
                                              projectile-replace--rg-pattern)))
     (projectile-search--gather-rg
@@ -10858,15 +10884,15 @@ plain regexp search always take the elisp path below."
 
 (defun projectile-replace--open (mode buf-name root term regexp replacement
                                       literal case-fold candidates no-match-msg
-                                      &optional word rg-pattern)
+                                      &optional word rg-pattern projects)
   "Open BUF-NAME in MODE and scan CANDIDATES for REGEXP into it.
 When scanning is asynchronous the buffer is shown immediately and matches
 stream in; when synchronous (always in batch) the scan completes first
 and, to preserve the pre-async behavior, no buffer is shown when nothing
 matched - NO-MATCH-MSG is issued instead.  Returns the results buffer,
 or nil on the synchronous no-match path.  ROOT, TERM, REGEXP,
-REPLACEMENT, LITERAL, CASE-FOLD, WORD and RG-PATTERN seed the buffer
-state."
+REPLACEMENT, LITERAL, CASE-FOLD, WORD, RG-PATTERN and PROJECTS seed the
+buffer state."
   ;; re-running the command must not orphan a scan still filling an earlier
   ;; instance of the buffer (re-seeding resets its buffer-locals)
   (when-let* ((existing (get-buffer buf-name)))
@@ -10877,10 +10903,11 @@ state."
           ;; engine is off (`projectile-search-async' nil); `--start' then
           ;; dispatches it to ripgrep
           (and (eq mode #'projectile-search-mode)
+               (null (cdr projects))
                (projectile-search--rg-fastpath-p literal rg-pattern)))
       (let ((buf (get-buffer-create buf-name)))
         (projectile-replace--seed buf mode root term regexp replacement
-                                  literal case-fold word rg-pattern)
+                                  literal case-fold word rg-pattern projects)
         (with-current-buffer buf
           (setq projectile-replace--scanning t)
           (funcall projectile-replace--render-function))
@@ -10899,7 +10926,7 @@ state."
           (progn (when no-match-msg (message "%s" no-match-msg)) nil)
         (let ((buf (get-buffer-create buf-name)))
           (projectile-replace--seed buf mode root term regexp replacement
-                                    literal case-fold word rg-pattern)
+                                    literal case-fold word rg-pattern projects)
           (with-current-buffer buf
             (setq projectile-replace--matches matches
                   projectile-replace--truncated truncated)
@@ -11076,6 +11103,7 @@ any filtering is undone and every match comes back enabled), mirroring
 `projectile-replace-review'."
   (interactive)
   (let* ((root projectile-replace--root)
+         (projects projectile-replace--projects)
          (term projectile-replace--term)
          (literal projectile-replace--literal)
          (case-fold projectile-replace--case-fold)
@@ -11084,12 +11112,12 @@ any filtering is undone and every match comes back enabled), mirroring
          (replacement (read-string
                        (projectile-prepend-project-name
                         (format "Replace %s with: " term))))
-         (candidates (projectile-replace--candidates term literal case-fold root)))
+         (candidates (projectile-replace--candidates term literal case-fold projects)))
     (projectile-replace--open
      #'projectile-replace-mode projectile-replace-buffer-name
      root term regexp replacement literal case-fold candidates
      (projectile-prepend-project-name (format "No matches for %s" term))
-     word)))
+     word nil projects)))
 
 (defvar projectile-search-mode-map
   (let ((map (make-sparse-keymap)))
@@ -11140,27 +11168,18 @@ matches to a `grep-mode' buffer for wgrep or Emacs 31's `grep-edit-mode'.
 (defun projectile-search--review (literal)
   "Gather matches for a project-wide search and pop the read-only results buffer.
 LITERAL non-nil searches for a literal string; otherwise the term is an
-Emacs regexp.  There is no replacement prompt."
-  (let* ((root (projectile-acquire-root))
-         (term (projectile--read-search-string-with-default
-                (format "Search %s%s for"
-                        (projectile--search-tool-tag
-                         (if (and literal (projectile-search--rg-fastpath-p t))
-                             "ripgrep" "elisp"))
-                        (if literal "" " regexp"))))
-         (regexp (if literal (regexp-quote term) term))
-         (case-fold case-fold-search)
-         (word projectile-search-whole-word)
-         (candidates (projectile-replace--candidates term literal case-fold root)))
-    ;; SEAM: everything above computes the candidate file list; the shared
-    ;; opener below seeds the buffer and scans - synchronously in batch,
-    ;; asynchronously (streaming) when interactive - then renders whatever
-    ;; matches come back.
-    (projectile-replace--open
-     #'projectile-search-mode projectile-search-buffer-name
-     root term regexp nil literal case-fold candidates
-     (projectile-prepend-project-name (format "No matches for %s" term))
-     word)))
+Emacs regexp.  There is no replacement prompt.
+
+This is `projectile-search-in-projects' over the one project you are in;
+the prompt is built here because only the single-project case can name
+the tool that will do the scanning."
+  (projectile-search-in-projects
+   (list (projectile-acquire-root)) literal
+   (format "Search %s%s for"
+           (projectile--search-tool-tag
+            (if (and literal (projectile-search--rg-fastpath-p t))
+                "ripgrep" "elisp"))
+           (if literal "" " regexp"))))
 
 ;;;###autoload
 (defun projectile-search-review ()
@@ -13517,20 +13536,16 @@ This command will first prompt for the directory the file is in."
 
 (defun projectile-all-project-files ()
   "Get a list of all files in all projects."
-  (mapcan
-   (lambda (project)
-     (when (file-exists-p project)
-       (mapcar (lambda (file)
-                 (expand-file-name file project))
-               (projectile-project-files project))))
-   projectile-known-projects))
+  (projectile-project-group-files projectile-known-projects))
 
 ;;;###autoload
 (defun projectile-find-file-in-known-projects ()
-  "Jump to a file in any of the known projects."
+  "Jump to a file in any of the known projects.
+This is `projectile-find-file-in-projects' over every project you have
+ever visited."
   (interactive)
-  (find-file (projectile-completing-read "Find file in projects: " (projectile-all-project-files)
-                                         :caller 'projectile-read-file)))
+  (projectile-find-file-in-projects projectile-known-projects
+                                    "Find file in projects: "))
 
 (defun projectile-keep-project-p (project)
   "Determine whether we should cleanup (remove) PROJECT or not.
@@ -14587,6 +14602,135 @@ switch.  With a prefix ARG invokes `projectile-dispatch' instead."
      :action (lambda (project)
                (projectile-switch-project-by-name project arg))
      :category 'projectile-project)))
+
+
+;;; Commands over a group of projects
+;;
+;; Everything above works on the project you're in.  These two work on a set
+;; of projects handed to them, because those are the two questions a group
+;; actually raises: which of them was that file in, and which of them mention
+;; this string.
+;;
+;; They're plain functions taking the list, so a command for a new kind of
+;; group is a two-line wrapper.  The known-projects and sibling commands are
+;; exactly that, and so is anything you write yourself.
+
+(defun projectile--common-parent (directories)
+  "Return the innermost directory containing every one of DIRECTORIES.
+
+Nil when they share no ancestor at all: a group mixing local and remote
+\(TRAMP) projects has none, and neither do two remote projects on
+different hosts.  Nil for an empty DIRECTORIES too."
+  (when directories
+    (let ((parent (file-name-as-directory (expand-file-name (car directories)))))
+      (dolist (dir (cdr directories) parent)
+        (let ((other (file-name-as-directory (expand-file-name dir))))
+          (while (and parent (not (string-prefix-p parent other)))
+            ;; climb until PARENT contains OTHER too, giving up at the root
+            (let ((up (file-name-directory (directory-file-name parent))))
+              (setq parent (unless (equal up parent) up)))))))))
+
+(defun projectile--project-group (projects what)
+  "Return the members of PROJECTS that are still on disk.
+WHAT names the kind of group in the error signalled when none are."
+  (or (seq-filter #'projectile--directory-p projects)
+      (user-error "No %s to search" what)))
+
+(defun projectile-project-group-files (projects)
+  "Return every file in PROJECTS, as absolute paths.
+
+Projects that no longer exist are skipped rather than erroring: a group
+can name a directory that has since been moved away.  The result is
+de-duplicated, since two members of a group can nest."
+  (delete-dups
+   (mapcan
+    (lambda (project)
+      (mapcar (lambda (file) (expand-file-name file project))
+              (projectile-project-files project)))
+    (seq-filter #'projectile--directory-p projects))))
+
+;;;###autoload
+(defun projectile-find-file-in-projects (projects &optional prompt)
+  "Jump to a file in any of PROJECTS.
+PROMPT overrides the completion prompt."
+  (find-file (projectile-completing-read
+              (or prompt "Find file in projects: ")
+              (projectile-project-group-files
+               (projectile--project-group projects "projects"))
+              :caller 'projectile-read-file)))
+
+;;;###autoload
+(defun projectile-search-in-projects (projects &optional literal prompt)
+  "Search PROJECTS for a term and review the matches read-only.
+LITERAL non-nil searches for a literal string, otherwise the term is an
+Emacs regexp.  PROMPT overrides the label the term is read with.
+
+This is `projectile-search-review' widened to a group, and that command
+is the single-project case of it: matches from every project land in one
+`*projectile-search*' buffer, grouped by file and named relative to the
+innermost directory containing the group, so each one is labelled with
+the project it came from.  Everything that buffer does - filtering,
+re-search, the hand-off to the replace reviewer - then covers the whole
+group.
+
+Searching more than one project skips the ripgrep fast-path, which runs
+one `rg' over one directory tree.  Note also that a project's own
+dirconfig ignores are only applied while you are inside it -
+`projectile-project-files' resolves them against the current project
+rather than the one it was handed - so the other members of a group are
+filtered by the global ignore rules alone.  That is long-standing
+behaviour, shared with `projectile-find-file-in-known-projects'."
+  (let* ((projects (projectile--project-group projects "projects"))
+         (term (projectile--read-search-string-with-default
+                (or prompt (format "Search %d project%s%s for"
+                                   (length projects)
+                                   (if (cdr projects) "s" "")
+                                   (if literal "" " regexp")))))
+         (regexp (if literal (regexp-quote term) term))
+         (case-fold case-fold-search)
+         (candidates (projectile-replace--candidates
+                      term literal case-fold projects)))
+    (projectile-replace--open
+     #'projectile-search-mode projectile-search-buffer-name
+     (or (projectile--common-parent projects) "/")
+     term regexp nil literal case-fold candidates
+     (projectile-prepend-project-name (format "No matches for %s" term))
+     projectile-search-whole-word nil projects)))
+
+(defun projectile--sibling-group ()
+  "Return the projects to treat as a group with the current one.
+
+That is `projectile-sibling-projects', which includes the project you are
+in - unlike switching, working across a family of projects is something
+you want the project at hand to be part of - minus any member that has
+been moved away, so a prompt never counts projects it cannot search."
+  (let ((root (projectile-acquire-root)))
+    (or (seq-filter #'projectile--directory-p (projectile-sibling-projects root))
+        (user-error "No projects related to %s found - see `projectile-project-groups'"
+                    (projectile-project-name root)))))
+
+;;;###autoload
+(defun projectile-find-file-in-sibling-projects ()
+  "Jump to a file in the current project or any related to it.
+Related is what `projectile-switch-sibling-project' means by it."
+  (interactive)
+  (projectile-find-file-in-projects (projectile--sibling-group)
+                                    "Find file in sibling projects: "))
+
+;;;###autoload
+(defun projectile-search-in-sibling-projects (&optional regexp)
+  "Search the current project and the ones related to it, reviewing the matches.
+
+Related is what `projectile-switch-sibling-project' means by it.  With a
+prefix argument REGEXP the search term is an Emacs regexp rather than a
+literal string."
+  (interactive "P")
+  (let ((siblings (projectile--sibling-group)))
+    (projectile-search-in-projects
+     siblings (not regexp)
+     (format "Search %d sibling project%s%s for"
+             (length siblings) (if (cdr siblings) "s" "")
+             (if regexp " regexp" "")))))
 
 
 ;;; Project bookmarks
@@ -16338,6 +16482,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "m") #'projectile-dispatch)
     ;; projects related to this one, in other repositories
     (define-key map (kbd "n") #'projectile-switch-sibling-project)
+    (define-key map (kbd "N") #'projectile-find-file-in-sibling-projects)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
@@ -16351,6 +16496,7 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "s x") #'projectile-find-references)
     (define-key map (kbd "s R") #'projectile-search-review)
     (define-key map (kbd "s X") #'projectile-search-regexp-review)
+    (define-key map (kbd "s n") #'projectile-search-in-sibling-projects)
     (define-key map (kbd "s t") #'projectile-todos)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
@@ -16683,6 +16829,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("sR" "search (review)" projectile-dispatch-search-review)
+      ("sn" "search siblings" projectile-search-in-sibling-projects)
       ("st" "todos" projectile-todos)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
@@ -16693,6 +16840,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("q" "switch open project" projectile-switch-open-project)
       ("W" "switch worktree" projectile-switch-worktree)
       ("n" "switch sibling project" projectile-switch-sibling-project)
+      ("N" "file in sibling projects" projectile-find-file-in-sibling-projects)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)
       ("P" "dashboard" projectile-dashboard)
@@ -16772,6 +16920,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Find file" projectile-find-file]
          ["Find file (all, ignoring rules)" projectile-find-file-all]
          ["Find file in known projects" projectile-find-file-in-known-projects]
+         ["Find file in sibling projects" projectile-find-file-in-sibling-projects]
          ["Find test file" projectile-find-test-file]
          ["Find directory" projectile-find-dir]
          ["Find file in directory" projectile-find-file-in-directory]
@@ -16822,6 +16971,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Search with grep" projectile-grep]
          ["Search with ripgrep" projectile-ripgrep]
          ["Search with ag" projectile-ag]
+         ["Search in sibling projects" projectile-search-in-sibling-projects]
          ["Project TODOs (review)" projectile-todos]
          ["Replace in project" projectile-replace]
          ["Replace in project (review)" projectile-replace-review]

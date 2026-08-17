@@ -6,6 +6,12 @@
 
 ## master (unreleased)
 
+### New features
+
+- [#2160](https://github.com/bbatsov/projectile/pull/2160): Add `projectile-find-file-in-sibling-projects` (`s-p N`) and `projectile-search-in-sibling-projects` (`s-p s n`), which work across the family of related projects rather than just the one you're in.
+  - Both are built on `projectile-find-file-in-projects` and `projectile-search-in-projects`, which take any list of projects, so a command for a group of your own is a two-line wrapper.
+  - A group search puts every match in one `*projectile-search*` buffer, named relative to the directory containing the group, so each one is labelled with the project it came from.
+
 ### Bugs fixed
 
 - [#2157](https://github.com/bbatsov/projectile/pull/2157): `projectile-use-comint-mode` now covers the named tasks run by `projectile-run-task`, which were always given a read-only compilation buffer however it was set - so a task that needs to ask for a sudo password had nowhere to type one ([#2156](https://github.com/bbatsov/projectile/issues/2156)). Name `task` in the list, or set the option to `t`.

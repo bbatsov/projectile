@@ -24,11 +24,16 @@ directories is the right one.
 
 | kbd:[s-p W] | `projectile-switch-worktree`
 | kbd:[s-p n] | `projectile-switch-sibling-project`
+| kbd:[s-p N] | `projectile-find-file-in-sibling-projects`
+| kbd:[s-p s n] | `projectile-search-in-sibling-projects`
 |===
 
-Both honour `projectile-switch-project-action` on switch, and both take a
-prefix argument to run `projectile-dispatch` instead, exactly like the
+The two switch commands honour `projectile-switch-project-action`, and both
+take a prefix argument to run `projectile-dispatch` instead, exactly like the
 other switch commands.
+
+The other two don't switch anywhere - see <<working-across,Working across a
+group>> below.
 
 [#worktrees]
 == Other checkouts of this project
@@ -201,6 +206,58 @@ NOTE: The share cap applies inside the two inferred signals, not to the
 list as a whole, so a function of your own is never capped - it behaves
 like a configured group. That's usually what you want, but it does mean a
 function that accidentally matches everything will offer you everything.
+
+[#working-across]
+== Working across a group
+
+Switching isn't the only thing you want a family of projects for. Two
+commands work on the whole group at once, the current project included:
+
+* kbd:[s-p N] (`projectile-find-file-in-sibling-projects`) completes over
+  the files of every related project. It's kbd:[s-p F] narrowed from "every
+  project I have ever visited" to "the handful this one belongs with",
+  which is the difference between a useful completion list and a hopeless
+  one.
+* kbd:[s-p s n] (`projectile-search-in-sibling-projects`) searches them all
+  and collects the matches in one `*projectile-search*` buffer. A prefix
+  argument makes the term an Emacs regexp.
+
+The search results are named relative to the innermost directory holding
+the group, so each match says which project it came from:
+
+....
+Search "defcustom"
+1261 matches in 191 files  [literal] [ignore-case]
+
+cider/lisp/cider-eval.el (4)
+orchard/src/orchard/info.clj (2)
+....
+
+Everything the buffer does then covers the whole group - filtering,
+re-search, exporting to `grep-mode`, and kbd:[r] to turn it into a
+reviewable replacement across all of them. See
+xref:usage.adoc[the search and replace reviewers].
+
+Both commands take a plain list of projects underneath, so a command for
+a group of your own is a two-line wrapper:
+
+[source,elisp]
+----
+(defun my-find-file-in-infra-projects ()
+  (interactive)
+  (projectile-find-file-in-projects
+   (cdr (assoc "infra" projectile-project-groups))
+   "Find file in infra: "))
+----
+
+`projectile-search-in-projects` is the same shape for searching.
+
+NOTE: A group search skips the ripgrep fast-path, which runs one `rg` over
+one directory tree, so it's slower than searching a single project. And a
+project's own `.projectile` ignore rules only apply while you're inside it,
+so the other members of a group are filtered by the global ignore rules
+alone - long-standing behaviour that
+`projectile-find-file-in-known-projects` shares.
 
 == What else checkouts share
 
