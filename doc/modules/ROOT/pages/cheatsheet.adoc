@@ -88,6 +88,15 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p n s]
 | Search the current project and the ones related to it, collecting every match in one reviewable buffer. With a prefix argument the term is an Emacs regexp (see xref:across_repositories.adoc[Working across repositories]).
 
+| kbd:[s-p n t]
+| Collect the `TODO`/`FIXME`-style annotations of the current project and the ones related to it into the reviewable search buffer.
+
+| kbd:[s-p n b]
+| Switch to a buffer open in the current project or in any related to it.
+
+| kbd:[s-p n o]
+| Do a `multi-occur` in the buffers open in the current project and the ones related to it. With a prefix argument, show that many lines of context.
+
 | kbd:[s-p v]
 | Run `vc-dir` on the root directory of the project.
 

@@ -11296,7 +11296,15 @@ in the results buffer.  The keyword does not have to sit in a comment.
 With a prefix argument ARG, prompt for which keywords to search for
 instead of using all of them."
   (interactive "P")
-  (let* ((root (projectile-acquire-root))
+  (projectile--todos (list (projectile-acquire-root)) arg))
+
+(defun projectile--todos (projects &optional arg)
+  "Collect the TODO-style annotations of PROJECTS into the search reviewer.
+With ARG non-nil, prompt for which keywords to search for.  PROJECTS is a
+list of project roots, so one project and a whole group take the same
+path; see `projectile-search-in-projects' for what changes when there is
+more than one."
+  (let* ((projects (projectile--project-group projects "projects"))
          (keywords (or (if arg
                            (projectile-todos--read-keywords)
                          projectile-todo-keywords)
@@ -11305,15 +11313,16 @@ instead of using all of them."
          (rg-pattern (projectile-todos--rg-pattern keywords))
          ;; the term IS the regexp, so the in-buffer toggles keep working
          (case-fold nil)
-         (candidates (projectile-replace--candidates regexp nil case-fold root)))
+         (candidates (projectile-replace--candidates regexp nil case-fold projects)))
     (projectile-replace--open
      #'projectile-search-mode projectile-search-buffer-name
-     root regexp regexp nil nil case-fold candidates
+     (or (projectile--common-parent projects) "/")
+     regexp regexp nil nil case-fold candidates
      (projectile-prepend-project-name
       (format "No %s annotations found" (string-join keywords "/")))
      ;; The pattern is already word-fenced and ends in a delimiter, so the
      ;; whole-word fence could never match; whole-word mode is not seeded here.
-     nil rg-pattern)))
+     nil rg-pattern projects)))
 
 (defun projectile--buffer-matches-conditions (buffer conditions)
   "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
@@ -14711,6 +14720,25 @@ by its own ignore rules, wherever you happen to be sitting."
      (projectile-prepend-project-name (format "No matches for %s" term))
      projectile-search-whole-word nil projects)))
 
+(defun projectile-project-group-buffers (projects)
+  "Return the live buffers belonging to any of PROJECTS.
+De-duplicated, since two members of a group can nest and a buffer under
+both would otherwise be offered twice."
+  (delete-dups (mapcan #'projectile-project-buffers projects)))
+
+;;;###autoload
+(defun projectile-switch-to-buffer-in-projects (projects &optional prompt)
+  "Switch to a buffer belonging to any of PROJECTS.
+PROMPT overrides the completion prompt.  The current buffer is left out
+of the choices, as `projectile-switch-to-buffer' does."
+  (switch-to-buffer
+   (projectile-completing-read
+    (or prompt "Switch to buffer: ")
+    (delete (buffer-name (current-buffer))
+            (mapcar #'buffer-name (projectile-project-group-buffers projects)))
+    :category 'buffer
+    :caller 'projectile-read-buffer)))
+
 (defun projectile--sibling-group ()
   "Return the projects to treat as a group with the current one.
 
@@ -14745,6 +14773,35 @@ literal string."
      (format "Search %d sibling project%s%s for"
              (length siblings) (if (cdr siblings) "s" "")
              (if regexp " regexp" "")))))
+
+;;;###autoload
+(defun projectile-switch-to-buffer-in-sibling-projects ()
+  "Switch to a buffer of the current project or of one related to it.
+Related is what `projectile-switch-sibling-project' means by it."
+  (interactive)
+  (projectile-switch-to-buffer-in-projects
+   (projectile--sibling-group) "Switch to sibling buffer: "))
+
+;;;###autoload
+(defun projectile-multi-occur-in-sibling-projects (&optional nlines)
+  "Do a `multi-occur' in the buffers of the current project and related ones.
+Related is what `projectile-switch-sibling-project' means by it.  With a
+prefix argument, show NLINES of context.
+
+Note this searches the buffers you have open, not the projects on disk -
+`projectile-search-in-sibling-projects' is the one that reads files."
+  (interactive "P")
+  (multi-occur (projectile-project-group-buffers (projectile--sibling-group))
+               (car (occur-read-primary-args))
+               nlines))
+
+;;;###autoload
+(defun projectile-todos-in-sibling-projects ()
+  "Collect TODO-style annotations across the current project and related ones.
+Related is what `projectile-switch-sibling-project' means by it.  See
+`projectile-todos' for what counts as an annotation."
+  (interactive)
+  (projectile--todos (projectile--sibling-group)))
 
 
 ;;; Project bookmarks
@@ -16499,6 +16556,9 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "n p") #'projectile-switch-sibling-project)
     (define-key map (kbd "n f") #'projectile-find-file-in-sibling-projects)
     (define-key map (kbd "n s") #'projectile-search-in-sibling-projects)
+    (define-key map (kbd "n b") #'projectile-switch-to-buffer-in-sibling-projects)
+    (define-key map (kbd "n o") #'projectile-multi-occur-in-sibling-projects)
+    (define-key map (kbd "n t") #'projectile-todos-in-sibling-projects)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
@@ -16843,6 +16903,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("J" "toggle related" projectile-toggle-related-file)]
      ["Buffers"
       ("b" "switch buffer" projectile-dispatch-switch-to-buffer)
+      ("nb" "buffer in siblings" projectile-switch-to-buffer-in-sibling-projects)
       ("C-o" "display buffer" projectile-display-buffer)
       ("I" "ibuffer" projectile-ibuffer)
       ("k" "kill buffers" projectile-kill-buffers)
@@ -16859,6 +16920,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("sx" "references" projectile-find-references)
       ("sR" "search (review)" projectile-dispatch-search-review)
       ("ns" "search siblings" projectile-dispatch-search-siblings)
+      ("no" "multi-occur siblings" projectile-multi-occur-in-sibling-projects)
+      ("nt" "todos in siblings" projectile-todos-in-sibling-projects)
       ("st" "todos" projectile-todos)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
@@ -16960,6 +17023,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Toggle between related files" projectile-toggle-related-file])
         ("Buffers"
          ["Switch to buffer" projectile-switch-to-buffer]
+         ["Switch to buffer in sibling projects" projectile-switch-to-buffer-in-sibling-projects]
          ["Kill project buffers" projectile-kill-buffers]
          ["Save project buffers" projectile-save-project-buffers]
          ["Recent files" projectile-recentf]
@@ -17002,6 +17066,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Search with ripgrep" projectile-ripgrep]
          ["Search with ag" projectile-ag]
          ["Search in sibling projects" projectile-search-in-sibling-projects]
+         ["TODOs in sibling projects" projectile-todos-in-sibling-projects]
+         ["Multi-occur in sibling projects" projectile-multi-occur-in-sibling-projects]
          ["Project TODOs (review)" projectile-todos]
          ["Replace in project" projectile-replace]
          ["Replace in project (review)" projectile-replace-review]
