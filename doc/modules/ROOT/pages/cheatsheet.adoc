@@ -16,7 +16,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p F]
 | Display a list of all files in all known projects.
 
-| kbd:[s-p N]
+| kbd:[s-p n f]
 | Display a list of all files in the projects related to this one - kbd:[s-p F] narrowed to the family the current project belongs to (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p g]
@@ -85,7 +85,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p s t]
 | Collect the project's `TODO`/`FIXME`-style annotations into the reviewable search buffer. With a prefix argument it prompts for which keywords to search for.
 
-| kbd:[s-p s n]
+| kbd:[s-p n s]
 | Search the current project and the ones related to it, collecting every match in one reviewable buffer. With a prefix argument the term is an Emacs regexp (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p v]
@@ -244,7 +244,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p W]
 | Switch to another checkout of the current project's repository - a git worktree, a Jujutsu workspace, or another clone of the same upstream - showing what tells each apart (see xref:across_repositories.adoc[Working across repositories]).
 
-| kbd:[s-p n]
+| kbd:[s-p n p]
 | Switch to a project related to the current one, rather than to any known project (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p S]

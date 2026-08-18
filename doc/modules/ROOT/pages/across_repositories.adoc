@@ -10,7 +10,7 @@ else" that come up constantly, and Projectile has a command for each:
 * *Different projects that belong together* - a library and the app using
   it, a tool and its documentation site.
   <<siblings,`projectile-switch-sibling-project`>>
-  (kbd:[s-p n]).
+  (kbd:[s-p n p]).
 
 Both are narrowed versions of `projectile-switch-project` (kbd:[s-p p]).
 That command offers every project you've ever visited; these two offer
@@ -23,9 +23,9 @@ directories is the right one.
 | Keybinding | Command
 
 | kbd:[s-p W] | `projectile-switch-worktree`
-| kbd:[s-p n] | `projectile-switch-sibling-project`
-| kbd:[s-p N] | `projectile-find-file-in-sibling-projects`
-| kbd:[s-p s n] | `projectile-search-in-sibling-projects`
+| kbd:[s-p n p] | `projectile-switch-sibling-project`
+| kbd:[s-p n f] | `projectile-find-file-in-sibling-projects`
+| kbd:[s-p n s] | `projectile-search-in-sibling-projects`
 |===
 
 The two switch commands honour `projectile-switch-project-action`, and both
@@ -101,7 +101,7 @@ option's docstring for the details.
 [#siblings]
 == Related projects
 
-kbd:[s-p n] offers the projects related to the one you're in. Three
+kbd:[s-p n p] offers the projects related to the one you're in. Three
 signals decide what "related" means, consulted in the order listed by
 `projectile-sibling-project-functions` - from the one you can trust
 completely to the one that's a guess.
@@ -213,12 +213,12 @@ function that accidentally matches everything will offer you everything.
 Switching isn't the only thing you want a family of projects for. Two
 commands work on the whole group at once, the current project included:
 
-* kbd:[s-p N] (`projectile-find-file-in-sibling-projects`) completes over
+* kbd:[s-p n f] (`projectile-find-file-in-sibling-projects`) completes over
   the files of every related project. It's kbd:[s-p F] narrowed from "every
   project I have ever visited" to "the handful this one belongs with",
   which is the difference between a useful completion list and a hopeless
   one.
-* kbd:[s-p s n] (`projectile-search-in-sibling-projects`) searches them all
+* kbd:[s-p n s] (`projectile-search-in-sibling-projects`) searches them all
   and collects the matches in one `*projectile-search*` buffer. A prefix
   argument makes the term an Emacs regexp.
 
@@ -329,7 +329,7 @@ Worth knowing before you file a bug:
 When kbd:[s-p W] has nothing to offer it distinguishes the two reasons:
 having looked and found no other checkout, and not being able to look at
 all because the project isn't the top level of a git, Mercurial or
-Jujutsu repository. Only the first means "there aren't any". kbd:[s-p n]
+Jujutsu repository. Only the first means "there aren't any". kbd:[s-p n p]
 needs none of this, so it's the one to reach for when Projectile can't
 identify the repository.
 
