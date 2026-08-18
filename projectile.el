@@ -16480,9 +16480,11 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "k") #'projectile-kill-buffers)
     (define-key map (kbd "l") #'projectile-find-file-in-directory)
     (define-key map (kbd "m") #'projectile-dispatch)
-    ;; projects related to this one, in other repositories
-    (define-key map (kbd "n") #'projectile-switch-sibling-project)
-    (define-key map (kbd "N") #'projectile-find-file-in-sibling-projects)
+    ;; projects related to this one, in other repositories - the keys
+    ;; mirror the project-wide ones a level down, as `c m' does
+    (define-key map (kbd "n p") #'projectile-switch-sibling-project)
+    (define-key map (kbd "n f") #'projectile-find-file-in-sibling-projects)
+    (define-key map (kbd "n s") #'projectile-search-in-sibling-projects)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
     (define-key map (kbd "q") #'projectile-switch-open-project)
@@ -16496,7 +16498,6 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "s x") #'projectile-find-references)
     (define-key map (kbd "s R") #'projectile-search-review)
     (define-key map (kbd "s X") #'projectile-search-regexp-review)
-    (define-key map (kbd "s n") #'projectile-search-in-sibling-projects)
     (define-key map (kbd "s t") #'projectile-todos)
     (define-key map (kbd "S") #'projectile-save-project-buffers)
     (define-key map (kbd "t") #'projectile-toggle-between-implementation-and-test)
@@ -16817,7 +16818,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("l" "file in dir" projectile-find-file-in-directory)
       ("C" "changed file" projectile-find-changed-file)
       ("F" "file in known projects" projectile-find-file-in-known-projects)
-      ("N" "file in sibling projects" projectile-find-file-in-sibling-projects)
+      ("nf" "file in sibling projects" projectile-find-file-in-sibling-projects)
       ("d" "dir" projectile-dispatch-find-dir)
       ("D" "dired" projectile-dispatch-dired)
       ("e" "recentf" projectile-recentf)
@@ -16843,7 +16844,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("sR" "search (review)" projectile-dispatch-search-review)
-      ("sn" "search siblings" projectile-dispatch-search-siblings)
+      ("ns" "search siblings" projectile-dispatch-search-siblings)
       ("st" "todos" projectile-todos)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
@@ -16853,7 +16854,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("p" "switch project" projectile-dispatch-switch-project)
       ("q" "switch open project" projectile-switch-open-project)
       ("W" "switch worktree" projectile-switch-worktree)
-      ("n" "switch sibling project" projectile-switch-sibling-project)
+      ("np" "switch sibling project" projectile-switch-sibling-project)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)
       ("P" "dashboard" projectile-dashboard)
@@ -16960,6 +16961,8 @@ search/replace case-sensitive, `--word' makes it match whole words,
          "--"
          ["Switch to project" projectile-switch-project]
          ["Switch to open project" projectile-switch-open-project]
+         ["Switch to sibling project" projectile-switch-sibling-project]
+         ["Switch to worktree" projectile-switch-worktree]
          "--"
          ["Discover projects in directory" projectile-discover-projects-in-directory]
          ["Discover projects in search path" projectile-discover-projects-in-search-path]
