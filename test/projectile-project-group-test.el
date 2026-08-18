@@ -285,6 +285,66 @@ the two truename'd roots and `parent' to the directory holding them."
                (get-buffer projectile-search-buffer-name))
               :to-equal '("alpha/src/a.txt" "beta/lib/b.txt")))))
 
+
+;;; Buffers across a group
+
+(describe "projectile-project-group-buffers"
+  (it "collects the buffers of every project in the group"
+    (projectile-group-test--with-projects
+      (let ((ba (find-file-noselect (expand-file-name "src/a.txt" alpha)))
+            (bb (find-file-noselect (expand-file-name "lib/b.txt" beta))))
+        (expect (projectile-project-group-buffers (list alpha beta))
+                :to-contain ba)
+        (expect (projectile-project-group-buffers (list alpha beta))
+                :to-contain bb))))
+
+  (it "offers a buffer once when two members of the group nest"
+    (projectile-group-test--with-projects
+      (find-file-noselect (expand-file-name "src/a.txt" alpha))
+      (let ((buffers (projectile-project-group-buffers (list parent alpha))))
+        (expect buffers :to-equal (delete-dups (copy-sequence buffers)))))))
+
+(describe "projectile-switch-to-buffer-in-projects"
+  (it "offers the group's buffers, minus the one you are in"
+    (projectile-group-test--with-projects
+      (let ((ba (find-file-noselect (expand-file-name "src/a.txt" alpha))))
+        (find-file-noselect (expand-file-name "lib/b.txt" beta))
+        (spy-on 'projectile-completing-read :and-return-value (buffer-name ba))
+        (spy-on 'switch-to-buffer)
+        (with-current-buffer ba
+          (projectile-switch-to-buffer-in-projects (list alpha beta)))
+        (let ((offered (cadr (spy-calls-args-for 'projectile-completing-read 0))))
+          (expect offered :to-contain "b.txt")
+          (expect offered :not :to-contain (buffer-name ba)))))))
+
+
+;;; TODOs across a group
+
+(describe "projectile-todos-in-sibling-projects"
+  (it "collects annotations from every project in the group"
+    (projectile-group-test--with-projects
+      (with-temp-file (expand-file-name "src/todo.txt" alpha)
+        (insert "TODO: alpha thing\n"))
+      (with-temp-file (expand-file-name "lib/todo.txt" beta)
+        (insert "FIXME: beta thing\n"))
+      (spy-on 'projectile-sibling-projects :and-return-value (list alpha beta))
+      (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
+        (projectile-todos-in-sibling-projects))
+      (expect (projectile-test-match-files
+               (get-buffer projectile-search-buffer-name))
+              :to-equal '("alpha/src/todo.txt" "beta/lib/todo.txt"))))
+
+  (it "still works on a single project, unchanged"
+    (projectile-group-test--with-projects
+      (with-temp-file (expand-file-name "src/todo.txt" alpha)
+        (insert "TODO: alpha thing\n"))
+      (spy-on 'projectile-acquire-root :and-return-value alpha)
+      (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
+        (projectile-todos))
+      (expect (projectile-test-match-files
+               (get-buffer projectile-search-buffer-name))
+              :to-equal '("src/todo.txt")))))
+
 (provide 'projectile-project-group-test)
 
 ;;; projectile-project-group-test.el ends here
