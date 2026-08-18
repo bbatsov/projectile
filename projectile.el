@@ -3174,7 +3174,7 @@ To enable, set `uniquify-dirname-transform' to this function:
   "Get the list of PROJECT-DIR directories that are of interest to the user.
 When the dirconfig file has no `+' keep entries, return a single-
 element list with PROJECT-DIR itself."
-  (let* ((cfg (projectile-parse-dirconfig-file))
+  (let* ((cfg (projectile-parse-dirconfig-file (expand-file-name project-dir)))
          (keep (and cfg (projectile-dirconfig-keep cfg))))
     (if keep
         (mapcar (lambda (subdir) (concat project-dir subdir)) keep)
@@ -3184,9 +3184,12 @@ element list with PROJECT-DIR itself."
   "Checks if DIRECTORY is a string designating a valid directory."
   (and (stringp directory) (file-directory-p directory)))
 
-(defun projectile-dir-files (directory)
+(defun projectile-dir-files (directory &optional root)
   "List the files in DIRECTORY and in its sub-directories.
-Files are returned as relative paths to DIRECTORY."
+Files are returned as relative paths to DIRECTORY.
+ROOT names the project whose ignore rules apply, defaulting to
+DIRECTORY itself - pass it when DIRECTORY is a subdirectory of the
+project being listed."
   (unless (projectile--directory-p directory)
     (user-error "Directory %S does not exist" directory))
   ;; check for a cache hit first if caching is enabled
@@ -3195,10 +3198,10 @@ Files are returned as relative paths to DIRECTORY."
     ;; cache disabled or cache miss
     (or files-list
         (pcase projectile-indexing-method
-          ('native (projectile-dir-files-native directory))
+          ('native (projectile-dir-files-native directory root))
           ;; use external tools to get the project files
           ('hybrid (let ((vcs (projectile-project-vcs directory)))
-                     (projectile-adjust-files directory vcs
+                     (projectile-adjust-files (or root directory) vcs
                                               (projectile-dir-files-alien directory vcs))))
           ('alien (projectile-dir-files-alien directory))
           (_ (user-error "Unsupported indexing method `%S'" projectile-indexing-method))))))
@@ -3206,8 +3209,10 @@ Files are returned as relative paths to DIRECTORY."
 ;;; Native Project Indexing
 ;;
 ;; This corresponds to `projectile-indexing-method' being set to native.
-(defun projectile-dir-files-native (directory)
-  "Get the files under DIRECTORY using just Emacs Lisp."
+(defun projectile-dir-files-native (directory &optional root)
+  "Get the files under DIRECTORY using just Emacs Lisp.
+ROOT names the project whose ignore rules apply, defaulting to
+DIRECTORY itself."
   (let ((progress-reporter
          (make-progress-reporter
           (format "Projectile is indexing %s"
@@ -3221,7 +3226,9 @@ Files are returned as relative paths to DIRECTORY."
         (prefix-len (length (file-name-as-directory (expand-file-name directory)))))
     ;; we need the files with paths relative to the project root
     (mapcar (lambda (file) (substring file prefix-len))
-            (projectile-index-directory directory (projectile-filtering-patterns)
+            (projectile-index-directory directory
+                                        (projectile-filtering-patterns
+                                         (expand-file-name (or root directory)))
                                         progress-reporter))))
 
 (defun projectile--global-ignore-regexp-p (path)
@@ -4297,19 +4304,25 @@ PROJECT-ROOT defaults to the current project."
 
 (defun projectile-adjust-files (project vcs files)
   "First remove ignored files from FILES, then add back unignored files."
-  (projectile-add-unignored project vcs (projectile-remove-ignored files)))
+  (projectile-add-unignored project vcs (projectile-remove-ignored files project)))
 
-(defun projectile-remove-ignored (files)
+(defun projectile-remove-ignored (files &optional root)
   "Remove ignored files and folders from FILES.
 
 FILES are paths relative to the project root.  They are matched against
 the project's ignore patterns (see `projectile--ignore-patterns'), the
 same gitignore-style rules the native indexer and the alien push-down
-apply; `!' ensure patterns rescue files from them."
+apply; `!' ensure patterns rescue files from them.
+
+ROOT names the project whose rules apply, defaulting to the current one.
+Pass it whenever the files being filtered belong to a project other than
+the one you are visiting - listing another project's files otherwise
+filters them by the rules of the project you happen to be in, and with
+caching on stores that wrong answer under the other project's key."
   (let* (;; Ignore matching is case-sensitive; `string-match-p' would
          ;; otherwise fold case, since `case-fold-search' defaults to t.
          (case-fold-search nil)
-         (filtering-patterns (projectile-filtering-patterns))
+         (filtering-patterns (projectile-filtering-patterns root))
          (ignore-re (projectile--compile-ignore-patterns
                      (car filtering-patterns)))
          (ensure-re (projectile--compile-ignore-patterns
@@ -4352,7 +4365,8 @@ this case unignored files will be absent from FILES."
                           (projectile-keep-ignored-directories
                            project
                            vcs
-                           (projectile-unignored-directories-rel)))))
+                           (projectile-unignored-directories-rel))
+                          project)))
     (append files unignored-files unignored-paths)))
 
 (defun projectile-buffers-with-file (buffers)
@@ -4682,14 +4696,14 @@ directory counts as ignored."
    projectile-globally-ignored-directories
    projectile-globally-unignored-directories))
 
-(defun projectile--dirconfig-ignore ()
-  "Return the IGNORE entries from the project's dirconfig, or nil."
-  (when-let* ((cfg (projectile-parse-dirconfig-file)))
+(defun projectile--dirconfig-ignore (&optional root)
+  "Return the IGNORE entries from ROOT's dirconfig, or nil."
+  (when-let* ((cfg (projectile-parse-dirconfig-file root)))
     (projectile-dirconfig-ignore cfg)))
 
-(defun projectile--dirconfig-ensure ()
-  "Return the ENSURE entries from the project's dirconfig, or nil."
-  (when-let* ((cfg (projectile-parse-dirconfig-file)))
+(defun projectile--dirconfig-ensure (&optional root)
+  "Return the ENSURE entries from ROOT's dirconfig, or nil."
+  (when-let* ((cfg (projectile-parse-dirconfig-file root)))
     (projectile-dirconfig-ensure cfg)))
 
 (defun projectile-unignored-files ()
@@ -4762,21 +4776,19 @@ ROOT defaults to the current project's root and only matters for the
 dirconfig entries; outside a project the global patterns are returned on
 their own.  See `projectile--ignore-pattern-to-regexp' for the matching
 rules."
-  (let ((default-directory (or root default-directory)))
-    (append
-     (mapcar (lambda (name) (concat (directory-file-name name) "/"))
-             (projectile-globally-ignored-directory-names))
-     (seq-difference projectile-globally-ignored-files
-                     projectile-globally-unignored-files)
-     (projectile--globally-ignored-file-suffixes-glob)
-     (projectile--dirconfig-ignore))))
+  (append
+   (mapcar (lambda (name) (concat (directory-file-name name) "/"))
+           (projectile-globally-ignored-directory-names))
+   (seq-difference projectile-globally-ignored-files
+                   projectile-globally-unignored-files)
+   (projectile--globally-ignored-file-suffixes-glob)
+   (projectile--dirconfig-ignore root)))
 
 (defun projectile--ensure-patterns (&optional root)
   "Return ROOT's ensure rules as a list of gitignore-style patterns.
 These are the `!' entries of the project's dirconfig; a path they match
 is kept even when `projectile--ignore-patterns' also matches it."
-  (let ((default-directory (or root default-directory)))
-    (projectile--dirconfig-ensure)))
+  (projectile--dirconfig-ensure root))
 
 (defun projectile-filtering-patterns (&optional root)
   "Return ROOT's ignore and ensure patterns as a cons cell."
@@ -4789,9 +4801,11 @@ is kept even when `projectile--ignore-patterns' also matches it."
                     (projectile-expand-paths (projectile-files-to-ensure)))))
 
 
-(defun projectile-dirconfig-file ()
-  "Return the absolute path to the project's dirconfig file."
-  (expand-file-name projectile-dirconfig-file (projectile-project-root)))
+(defun projectile-dirconfig-file (&optional root)
+  "Return the absolute path to ROOT's dirconfig file.
+ROOT defaults to the current project's root."
+  (expand-file-name projectile-dirconfig-file
+                    (or root (projectile-project-root))))
 
 (cl-defstruct projectile-dirconfig
   "Parsed contents of a project's dirconfig file.
@@ -4864,10 +4878,11 @@ compatibility but are tracked separately so callers can warn."
      :ensure            (nreverse ensure)
      :prefixless-ignore (nreverse prefixless))))
 
-(defun projectile--parse-dirconfig-file-uncached ()
-  "Parse the dirconfig file without caching.
-Return a `projectile-dirconfig' or nil if the file doesn't exist."
-  (let ((dirconfig (projectile-dirconfig-file)))
+(defun projectile--parse-dirconfig-file-uncached (&optional root)
+  "Parse ROOT's dirconfig file without caching.
+Return a `projectile-dirconfig' or nil if the file doesn't exist.
+ROOT defaults to the current project."
+  (let ((dirconfig (projectile-dirconfig-file root)))
     (when (projectile-file-exists-p dirconfig)
       (projectile--parse-dirconfig-string
        (with-temp-buffer
@@ -4896,8 +4911,11 @@ to nil to silence this warning."
                         ", "))
      :warning)))
 
-(defun projectile-parse-dirconfig-file ()
-  "Parse project ignore file and return its rules.
+(defun projectile-parse-dirconfig-file (&optional root)
+  "Parse ROOT's ignore file and return its rules.
+ROOT defaults to the current project; pass it to read the rules of a
+project you are not visiting, which is what listing the files of several
+projects at once needs.
 
 The return value is a `projectile-dirconfig' struct with three
 slots: KEEP (subdirectories to restrict the project to), IGNORE
@@ -4918,8 +4936,8 @@ are treated as comments.
 
 Results are cached per project root and invalidated when the
 dirconfig file's modification time changes."
-  (let* ((dirconfig (projectile-dirconfig-file))
-         (project-root (projectile-project-root))
+  (let* ((project-root (or root (projectile-project-root)))
+         (dirconfig (projectile-dirconfig-file project-root))
          (cached (gethash project-root projectile--dirconfig-cache))
          (attrs (file-attributes dirconfig))
          (mtime (when attrs (file-attribute-modification-time attrs)))
@@ -4928,7 +4946,7 @@ dirconfig file's modification time changes."
                             (equal cached-dirconfig dirconfig)
                             (equal cached-mtime mtime))
                        cached-result
-                     (let ((parsed (projectile--parse-dirconfig-file-uncached)))
+                     (let ((parsed (projectile--parse-dirconfig-file-uncached project-root)))
                        (when mtime
                          (puthash project-root
                                   (list dirconfig mtime parsed)
@@ -5056,7 +5074,7 @@ CALLER is accepted for backward compatibility but no longer used."
                   ;; equivalent to the batched call above.
                   (mapcan
                    (lambda (dir)
-                     (let ((files (projectile-dir-files dir)))
+                     (let ((files (projectile-dir-files dir project-root)))
                        ;; `projectile-dir-files' already returns paths
                        ;; relative to DIR, so when DIR is the project root
                        ;; itself (the single-directory case - native, or
@@ -14674,12 +14692,8 @@ re-search, the hand-off to the replace reviewer - then covers the whole
 group.
 
 Searching more than one project skips the ripgrep fast-path, which runs
-one `rg' over one directory tree.  Note also that a project's own
-dirconfig ignores are only applied while you are inside it -
-`projectile-project-files' resolves them against the current project
-rather than the one it was handed - so the other members of a group are
-filtered by the global ignore rules alone.  That is long-standing
-behaviour, shared with `projectile-find-file-in-known-projects'."
+one `rg' over one directory tree.  Each member of the group is filtered
+by its own ignore rules, wherever you happen to be sitting."
   (let* ((projects (projectile--project-group projects "projects"))
          (term (projectile--read-search-string-with-default
                 (or prompt (format "Search %d project%s%s for"

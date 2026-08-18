@@ -104,25 +104,36 @@ the two truename'd roots and `parent' to the directory holding them."
         (expect (seq-filter #'file-name-absolute-p files) :to-equal files)
         (expect (sort (mapcar (lambda (f) (file-relative-name f parent)) files)
                       #'string<)
-                :to-equal '("alpha/.projectile" "alpha/skip.log"
-                            "alpha/src/a.txt"
+                :to-equal '("alpha/.projectile" "alpha/src/a.txt"
                             "beta/.projectile" "beta/lib/b.txt")))))
 
-  (it "applies a member's own dirconfig ignores only while you are in it"
-    ;; Long-standing behaviour, not a property of grouping:
-    ;; `projectile-project-files' resolves dirconfig against the current
-    ;; project rather than the one it was handed, so alpha's `-/skip.log'
-    ;; only bites from inside alpha.  `projectile-find-file-in-known-projects'
-    ;; has always worked this way.  This spec pins it so a fix is a
-    ;; deliberate change rather than a surprise.
+  (it "applies each member's own dirconfig ignores, wherever you are"
+    ;; alpha's `-/skip.log' has to bite from outside alpha too.  It used
+    ;; not to: `projectile-project-files' resolved dirconfig against the
+    ;; current project rather than the one it was handed, so listing a
+    ;; group filtered every member by the rules of whichever project you
+    ;; happened to be visiting - and, with caching on, stored that wrong
+    ;; answer under the member's own key.
     (projectile-group-test--with-projects
       (let ((skipped (expand-file-name "skip.log" alpha)))
         (expect (projectile-project-group-files (list alpha beta))
-                :to-contain skipped)
+                :not :to-contain skipped)
         (let ((default-directory alpha))
           (spy-on 'projectile-project-root :and-return-value alpha)
           (expect (projectile-project-group-files (list alpha beta))
                   :not :to-contain skipped)))))
+
+  (it "does not cache a member's files under the rules of another project"
+    ;; The damaging half: the wrong list used to be stored under the other
+    ;; project's key, so an ordinary find-file in it offered ignored files
+    ;; afterwards - and with persistent caching that survived a restart.
+    (projectile-group-test--with-projects
+      (let ((projectile-enable-caching t))
+        (spy-on 'projectile-project-root :and-return-value beta)
+        (let ((default-directory beta))
+          (projectile-project-group-files (list alpha beta)))
+        (expect (gethash alpha projectile-projects-cache)
+                :not :to-contain "skip.log"))))
 
   (it "skips a project that has been moved away"
     (projectile-group-test--with-projects
@@ -157,8 +168,7 @@ the two truename'd roots and `parent' to the directory holding them."
       (projectile-test-use-plain-grep)
       (let ((buf (projectile-group-test--search (list alpha beta) "needle")))
         (expect (projectile-test-match-files buf)
-                :to-equal '("alpha/skip.log" "alpha/src/a.txt"
-                            "beta/lib/b.txt")))))
+                :to-equal '("alpha/src/a.txt" "beta/lib/b.txt")))))
 
   (it "names the matches relative to the directory holding the group"
     (projectile-group-test--with-projects
@@ -181,8 +191,7 @@ the two truename'd roots and `parent' to the directory holding them."
             (projectile-replace--regather)
             (expect (length projectile-replace--matches) :to-equal before)
             (expect (projectile-test-match-files buf)
-                    :to-equal '("alpha/skip.log" "alpha/src/a.txt"
-                                "beta/lib/b.txt")))))))
+                    :to-equal '("alpha/src/a.txt" "beta/lib/b.txt")))))))
 
   (it "scopes back to one project when the buffer is reused for a plain search"
     (projectile-group-test--with-projects
@@ -221,7 +230,7 @@ the two truename'd roots and `parent' to the directory holding them."
           ;; `g' must re-scan what is left, not abort on the missing member
           (projectile-replace--regather)
           (expect (projectile-test-match-files buf)
-                  :to-equal '("alpha/skip.log" "alpha/src/a.txt"))))))
+                  :to-equal '("alpha/src/a.txt"))))))
 
   (it "refuses an empty group instead of searching the whole filesystem"
     (projectile-group-test--with-projects
@@ -244,8 +253,7 @@ the two truename'd roots and `parent' to the directory holding them."
         (expect (sort (mapcar (lambda (f) (file-relative-name f parent))
                               (cadr (spy-calls-args-for 'projectile-completing-read 0)))
                       #'string<)
-                :to-equal '("alpha/.projectile" "alpha/skip.log"
-                            "alpha/src/a.txt"
+                :to-equal '("alpha/.projectile" "alpha/src/a.txt"
                             "beta/.projectile" "beta/lib/b.txt"))))))
 
 (describe "projectile-find-file-in-sibling-projects"
@@ -257,7 +265,7 @@ the two truename'd roots and `parent' to the directory holding them."
       (spy-on 'find-file)
       (projectile-find-file-in-sibling-projects)
       (expect (length (cadr (spy-calls-args-for 'projectile-completing-read 0)))
-              :to-equal 5)))
+              :to-equal 4)))
 
   (it "says so when the project has no siblings"
     (projectile-group-test--with-projects
@@ -275,8 +283,7 @@ the two truename'd roots and `parent' to the directory holding them."
         (projectile-search-in-sibling-projects))
       (expect (projectile-test-match-files
                (get-buffer projectile-search-buffer-name))
-              :to-equal '("alpha/skip.log" "alpha/src/a.txt"
-                          "beta/lib/b.txt")))))
+              :to-equal '("alpha/src/a.txt" "beta/lib/b.txt")))))
 
 (provide 'projectile-project-group-test)
 

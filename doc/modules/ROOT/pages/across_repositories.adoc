@@ -253,11 +253,9 @@ a group of your own is a two-line wrapper:
 `projectile-search-in-projects` is the same shape for searching.
 
 NOTE: A group search skips the ripgrep fast-path, which runs one `rg` over
-one directory tree, so it's slower than searching a single project. And a
-project's own `.projectile` ignore rules only apply while you're inside it,
-so the other members of a group are filtered by the global ignore rules
-alone - long-standing behaviour that
-`projectile-find-file-in-known-projects` shares.
+one directory tree, so it's slower than searching a single project. Each
+project in the group is filtered by its own ignore rules, wherever you
+happen to be sitting.
 
 == What else checkouts share
 
