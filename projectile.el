@@ -16457,14 +16457,35 @@ remote project, or under any other VCS, that section says so instead.
 
 ;;; Projectile Minor mode
 
+(defvar-local projectile--mode-line nil
+  "The mode-line lighter Projectile shows in this buffer.
+Seeded from `projectile-mode-line-prefix' and replaced by
+`projectile-update-mode-line' once the buffer's project is known.  A
+buffer that never gets that far keeps the prefix: that is every buffer
+when `projectile-dynamic-mode-line' is off, and remote ones always,
+since both update paths skip them to avoid a TRAMP round trip.")
+
 (defcustom projectile-mode-line-prefix
   " Projectile"
   "Mode line lighter prefix for Projectile.
 It's used by `projectile-default-mode-line'
 when using dynamic mode line lighter and is the only
-thing shown in the mode line otherwise."
+thing shown in the mode line otherwise.
+
+Change the value via Customize or `setopt' so it takes effect
+immediately; a plain `setq' only reaches buffers whose lighter is
+recomputed later, and none are when `projectile-dynamic-mode-line' is
+off."
   :group 'projectile
   :type 'string
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         ;; The lighter is a variable, not a computation, so buffers that
+         ;; never recompute it - all of them with `projectile-dynamic-mode-line'
+         ;; off - would otherwise keep displaying whatever the prefix was
+         ;; when Projectile loaded.
+         (setq-default projectile--mode-line value)
+         (force-mode-line-update t))
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-show-menu t
@@ -16472,8 +16493,6 @@ thing shown in the mode line otherwise."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.6.0"))
-
-(defvar-local projectile--mode-line projectile-mode-line-prefix)
 
 (defun projectile-default-mode-line ()
   "Report project name and type in the modeline."
