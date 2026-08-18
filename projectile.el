@@ -16735,6 +16735,19 @@ buffer."
                               #'projectile-search-regexp-review
                             #'projectile-search-review)))))
 
+(defun projectile-dispatch-search-siblings ()
+  "Sibling-project search honouring the search switches.
+`--regexp' reads the term as an Emacs regexp, `--case-sensitive' seeds
+the search case-sensitive and `--word' matches whole words; all can still
+be flipped (`x'/`c'/`w') in the results buffer."
+  (interactive)
+  (let* ((switches (projectile-dispatch--args))
+         (case-fold-search (if (member "--case-sensitive" switches)
+                               nil case-fold-search))
+         (projectile-search-whole-word
+          (if (member "--word" switches) t projectile-search-whole-word)))
+    (projectile-search-in-sibling-projects (and (member "--regexp" switches) t))))
+
 (defun projectile-dispatch-replace-review ()
   "Reviewable replace honouring the `--regexp' and `--case-sensitive' switches.
 Like `projectile-dispatch-search-review', but for the replace reviewer."
@@ -16804,6 +16817,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("l" "file in dir" projectile-find-file-in-directory)
       ("C" "changed file" projectile-find-changed-file)
       ("F" "file in known projects" projectile-find-file-in-known-projects)
+      ("N" "file in sibling projects" projectile-find-file-in-sibling-projects)
       ("d" "dir" projectile-dispatch-find-dir)
       ("D" "dired" projectile-dispatch-dired)
       ("e" "recentf" projectile-recentf)
@@ -16829,7 +16843,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("sa" "ag" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("sR" "search (review)" projectile-dispatch-search-review)
-      ("sn" "search siblings" projectile-search-in-sibling-projects)
+      ("sn" "search siblings" projectile-dispatch-search-siblings)
       ("st" "todos" projectile-todos)
       ("o" "multi-occur" projectile-multi-occur)
       ("r" "replace" projectile-replace)
@@ -16840,7 +16854,6 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("q" "switch open project" projectile-switch-open-project)
       ("W" "switch worktree" projectile-switch-worktree)
       ("n" "switch sibling project" projectile-switch-sibling-project)
-      ("N" "file in sibling projects" projectile-find-file-in-sibling-projects)
       ("A" "add known project" projectile-add-known-project)
       ("v" "vc" projectile-vc)
       ("P" "dashboard" projectile-dashboard)
