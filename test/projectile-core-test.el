@@ -145,6 +145,25 @@
     (let ((projectile-mode-line-prefix " Pro"))
       (expect (projectile-default-mode-line) :to-equal " Pro[foo:bar]"))))
 
+(describe "projectile-mode-line-prefix"
+  ;; The minor-mode lighter is the variable `projectile--mode-line', not a
+  ;; computation, so a buffer that never recomputes it shows whatever the
+  ;; prefix was when Projectile loaded.  That is every buffer when
+  ;; `projectile-dynamic-mode-line' is off - precisely the configuration the
+  ;; option's docstring is about - so customizing it has to move the lighter
+  ;; too.
+  (after-each
+    (customize-set-variable 'projectile-mode-line-prefix " Projectile"))
+
+  (it "is what a buffer that never recomputes its lighter displays"
+    (with-temp-buffer
+      (expect projectile--mode-line :to-equal projectile-mode-line-prefix)))
+
+  (it "moves the lighter of such buffers when customized"
+    (customize-set-variable 'projectile-mode-line-prefix " Prj")
+    (with-temp-buffer
+      (expect projectile--mode-line :to-equal " Prj"))))
+
 (describe "projectile-purge-file-from-cache"
   (it "serializes the updated cache without the purged file"
     (let ((projectile-projects-cache (make-hash-table :test 'equal))

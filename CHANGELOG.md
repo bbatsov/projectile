@@ -21,6 +21,7 @@
 ### Bugs fixed
 
 - [#2162](https://github.com/bbatsov/projectile/pull/2162): Listing another project's files now applies that project's own ignore rules instead of the rules of whichever project you happen to be visiting. `projectile-find-file-in-known-projects` and the sibling commands used to filter every other project by the current one's dirconfig, and with caching on they stored that wrong list under the other project's key - so an ordinary `projectile-find-file` there kept offering ignored files, and with persistent caching it survived a restart.
+- [#2161](https://github.com/bbatsov/projectile/pull/2161): Customizing `projectile-mode-line-prefix` now reaches buffers whose lighter is never recomputed - every buffer when `projectile-dynamic-mode-line` is off, which is the case its docstring describes, and remote ones always. The prefix used to be frozen at whatever it was when Projectile loaded.
 - [#2157](https://github.com/bbatsov/projectile/pull/2157): `projectile-use-comint-mode` now covers the named tasks run by `projectile-run-task`, which were always given a read-only compilation buffer however it was set - so a task that needs to ask for a sudo password had nowhere to type one ([#2156](https://github.com/bbatsov/projectile/issues/2156)). Name `task` in the list, or set the option to `t`.
 
 ## 3.4.0 (2026-08-10)
