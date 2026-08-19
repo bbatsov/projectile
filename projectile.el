@@ -10039,9 +10039,13 @@ resets any per-match include or exclude toggles you had set.  Use the
 filter commands instead to prune the list while preserving the survivors'
 state.  The re-render happens from the (streaming) scan, so callers need
 not render again."
-  (let ((candidates (projectile-replace--candidates
-                     projectile-replace--term projectile-replace--literal
-                     projectile-replace--case-fold projectile-replace--projects)))
+  (let* ((term projectile-replace--term)
+         (literal projectile-replace--literal)
+         (case-fold projectile-replace--case-fold)
+         (projects projectile-replace--projects)
+         (candidates (lambda ()
+                       (projectile-replace--candidates
+                        term literal case-fold projects))))
     (setq projectile-replace--filtered nil)
     (projectile-replace--start (current-buffer) candidates
                                projectile-replace--search nil)))
@@ -10767,72 +10771,104 @@ against a killed BUFFER."
   "Scan for literal TERM into BUFFER via `rg --json', then call ON-DONE.
 When BUFFER carries a `projectile-replace--rg-pattern', that
 ripgrep-syntax regexp is searched for instead of the literal TERM.
-Resets BUFFER's match list and scanning state, launches `rg' as a
-subprocess reading ROOT, CASE-FOLD and the ignore globs from BUFFER's
-buffer-locals, and streams parsed matches into the buffer as ripgrep
-emits them, re-rendering per output chunk.  `projectile-search-max-matches'
-is honored (the process is killed when the cap is hit) and the scan is
-cancelable and kill-safe exactly like the elisp async engine: the process
-is registered in `projectile-replace--scan-process' so
-`projectile-replace--cancel-scan' (re-search, quit, kill-buffer) can kill
-it, leaving no orphan.  ON-DONE (or nil) is called in BUFFER when the scan
-finishes."
-  (let* ((root (buffer-local-value 'projectile-replace--root buffer))
-         (case-fold (buffer-local-value 'projectile-replace--case-fold buffer))
-         (word (buffer-local-value 'projectile-replace--word buffer))
-         (pattern (buffer-local-value 'projectile-replace--rg-pattern buffer))
-         (globs (projectile--project-ignore-globs root))
-         (command (projectile-search--rg-command term case-fold word globs
-                                                 pattern))
-         (pending ""))
-    (with-current-buffer buffer
-      (setq projectile-replace--matches nil
-            projectile-replace--truncated nil
-            projectile-replace--filtered nil
-            projectile-replace--scanning t
-            projectile-replace--scan-timer nil
-            projectile-replace--scan-process nil))
-    (let* (;; run rg IN the project root so the relative `./' search path and
-           ;; the `/'-anchored ignore globs resolve against it
-           (default-directory root)
-           ;; keep rg's stderr out of the JSON stream, so a diagnostic line
-           ;; (e.g. an unreadable directory) can't split a match across filter
-           ;; chunks and get silently dropped
-           (stderr-buffer (get-buffer-create " *projectile-search-rg-stderr*"))
-           (_ (with-current-buffer stderr-buffer (erase-buffer)))
-           (proc
-           (make-process
-            :name "projectile-search-rg"
-            :buffer nil
-            :command command
-            :connection-type 'pipe
-            :noquery t
-            :stderr stderr-buffer
-            :coding 'utf-8-unix
-            :filter
-            (lambda (_proc output)
-              (when (buffer-live-p buffer)
-                (with-current-buffer buffer
-                  (unless projectile-replace--truncated
-                    (setq pending (concat pending output))
-                    (let ((parts (split-string pending "\n")))
-                      ;; the last element is the (possibly empty) partial line
-                      (setq pending (car (last parts)))
-                      (when (projectile-search--rg-ingest
-                             buffer (butlast parts) root)
-                        (projectile-search--rg-finish buffer on-done)))))))
-            :sentinel
-            (lambda (proc _event)
-              (when (and (buffer-live-p buffer)
-                         (memq (process-status proc) '(exit signal)))
-                (with-current-buffer buffer
-                  (when (eq proc projectile-replace--scan-process)
-                    (unless projectile-replace--truncated
-                      (projectile-search--rg-ingest buffer (list pending) root))
-                    (projectile-search--rg-finish buffer on-done))))))))
-      (with-current-buffer buffer
-        (setq projectile-replace--scan-process proc))
-      proc)))
+Resets BUFFER's match list and scanning state, then walks
+`projectile-replace--projects' one project at a time, streaming parsed
+matches into the buffer as ripgrep emits them and re-rendering per output
+chunk.
+
+One `rg' per project rather than one `rg' over the group, because the
+ignore globs are root-anchored: they only mean what they say when ripgrep
+runs inside the project that wrote them.  The runs are sequential, so a
+single process is live at a time and cancellation stays as simple as it
+was for one project.
+
+`projectile-search-max-matches' is honored across the whole group (the
+run stops when the cap is hit) and the scan is cancelable and kill-safe
+exactly like the elisp async engine: the live process is registered in
+`projectile-replace--scan-process' so `projectile-replace--cancel-scan'
+\(re-search, quit, kill-buffer) can kill it, leaving no orphan.  ON-DONE
+\(or nil) is called in BUFFER when the last project has been scanned."
+  (with-current-buffer buffer
+    (setq projectile-replace--matches nil
+          projectile-replace--truncated nil
+          projectile-replace--filtered nil
+          projectile-replace--scanning t
+          projectile-replace--scan-timer nil
+          projectile-replace--scan-process nil))
+  (projectile-search--rg-scan-roots
+   buffer term
+   (buffer-local-value 'projectile-replace--projects buffer)
+   (buffer-local-value 'projectile-replace--scan-generation buffer)
+   on-done))
+
+(defun projectile-search--rg-scan-roots (buffer term roots generation on-done)
+  "Run `rg' for TERM over the first of ROOTS, chaining to the rest on exit.
+Matches accumulate in BUFFER across the whole of ROOTS.  GENERATION is
+`projectile-replace--scan-generation' as it stood when the scan began, so
+a process outliving a cancelled scan cannot resume the chain.  Calls
+`projectile-search--rg-finish' with ON-DONE once ROOTS is exhausted or
+the match cap is hit."
+  (if (or (null roots) (not (buffer-live-p buffer)))
+      (projectile-search--rg-finish buffer on-done)
+    (let* (;; a group may be spelled with `~'; ripgrep needs a real working
+           ;; directory, and the parsed paths have to carry the absolute
+           ;; spelling the results buffer relativises against
+           (root (file-name-as-directory (expand-file-name (car roots))))
+           (case-fold (buffer-local-value 'projectile-replace--case-fold buffer))
+           (word (buffer-local-value 'projectile-replace--word buffer))
+           (pattern (buffer-local-value 'projectile-replace--rg-pattern buffer))
+           (globs (projectile--project-ignore-globs root))
+           (command (projectile-search--rg-command term case-fold word globs
+                                                   pattern))
+           (pending "")
+           (continue
+            (lambda ()
+              (projectile-search--rg-scan-roots buffer term (cdr roots)
+                                                generation on-done))))
+      (let* (;; run rg IN the project root so the relative `./' search path and
+             ;; the `/'-anchored ignore globs resolve against it
+             (default-directory root)
+             ;; keep rg's stderr out of the JSON stream, so a diagnostic line
+             ;; (e.g. an unreadable directory) can't split a match across filter
+             ;; chunks and get silently dropped
+             (stderr-buffer (get-buffer-create " *projectile-search-rg-stderr*"))
+             (_ (with-current-buffer stderr-buffer (erase-buffer)))
+             (proc
+              (make-process
+               :name "projectile-search-rg"
+               :buffer nil
+               :command command
+               :connection-type 'pipe
+               :noquery t
+               :stderr stderr-buffer
+               :coding 'utf-8-unix
+               :filter
+               (lambda (_proc output)
+                 (when (buffer-live-p buffer)
+                   (with-current-buffer buffer
+                     (unless projectile-replace--truncated
+                       (setq pending (concat pending output))
+                       (let ((parts (split-string pending "\n")))
+                         ;; the last element is the (possibly empty) partial line
+                         (setq pending (car (last parts)))
+                         (when (projectile-search--rg-ingest
+                                buffer (butlast parts) root)
+                           (projectile-search--rg-finish buffer on-done)))))))
+               :sentinel
+               (lambda (proc _event)
+                 (when (and (buffer-live-p buffer)
+                            (memq (process-status proc) '(exit signal)))
+                   (with-current-buffer buffer
+                     (when (and (eq proc projectile-replace--scan-process)
+                                (= generation projectile-replace--scan-generation))
+                       (if (or projectile-replace--truncated
+                               (projectile-search--rg-ingest
+                                buffer (list pending) root))
+                           (projectile-search--rg-finish buffer on-done)
+                         (funcall continue)))))))))
+        (with-current-buffer buffer
+          (setq projectile-replace--scan-process proc))
+        proc))))
 
 (defun projectile-replace--word-boundary-regexp (regexp)
   "Fence REGEXP with word boundaries so it only matches whole words.
@@ -10849,6 +10885,15 @@ otherwise returns REGEXP unchanged."
       (projectile-replace--word-boundary-regexp regexp)
     regexp))
 
+(defun projectile-replace--resolve-candidates (candidates)
+  "Return CANDIDATES as a list, calling it first when it is a function.
+Only the elisp scanner reads the candidate list; the ripgrep fast-path
+asks ripgrep to walk the tree itself and never looks at it.  Callers that
+might take either path therefore pass a function, so the walk - which
+shells out per project - is paid for only when something is going to scan
+its result."
+  (if (functionp candidates) (funcall candidates) candidates))
+
 (defun projectile-replace--start (buffer candidates regexp on-done)
   "Fill BUFFER's match list by scanning CANDIDATES for REGEXP.
 Cancels any in-flight scan in BUFFER first, then scans with the async
@@ -10861,29 +10906,29 @@ As an optional accelerator, a read-only search-reviewer BUFFER doing a
 literal search (or one carrying a `projectile-replace--rg-pattern') takes
 the ripgrep fast-path (`projectile-search--gather-rg') when
 `projectile-search--rg-fastpath-p' holds; the replace reviewer and the
-plain regexp search always take the elisp path below.  So does a search
-spanning several projects: the fast-path runs one `rg' over one directory
-tree, and a group of projects is not one tree."
+plain regexp search always take the elisp path below.  A search spanning
+several projects takes it too - `projectile-search--gather-rg' runs one
+`rg' per project in turn."
   (with-current-buffer buffer
     (projectile-replace--cancel-scan))
   (cond
    ((with-current-buffer buffer
       (and (derived-mode-p 'projectile-search-mode)
-           (null (cdr projectile-replace--projects))
            (projectile-search--rg-fastpath-p projectile-replace--literal
                                              projectile-replace--rg-pattern)))
     (projectile-search--gather-rg
      buffer (buffer-local-value 'projectile-replace--term buffer) on-done))
    ((projectile-replace--async-p)
     (projectile-replace--gather-async
-     candidates
+     (projectile-replace--resolve-candidates candidates)
      (with-current-buffer buffer (projectile-replace--effective-regexp regexp))
      buffer on-done))
    (t
     (with-current-buffer buffer
       (let* ((case-fold-search projectile-replace--case-fold)
              (result (projectile-replace--gather
-                      candidates (projectile-replace--effective-regexp regexp))))
+                      (projectile-replace--resolve-candidates candidates)
+                      (projectile-replace--effective-regexp regexp))))
         (setq projectile-replace--matches (plist-get result :matches)
               projectile-replace--truncated (plist-get result :truncated)
               projectile-replace--scanning nil
@@ -10921,7 +10966,6 @@ buffer state."
           ;; engine is off (`projectile-search-async' nil); `--start' then
           ;; dispatches it to ripgrep
           (and (eq mode #'projectile-search-mode)
-               (null (cdr projects))
                (projectile-search--rg-fastpath-p literal rg-pattern)))
       (let ((buf (get-buffer-create buf-name)))
         (projectile-replace--seed buf mode root term regexp replacement
@@ -10937,7 +10981,8 @@ buffer state."
            (scan-regexp (if word
                             (projectile-replace--word-boundary-regexp regexp)
                           regexp))
-           (result (projectile-replace--gather candidates scan-regexp))
+           (result (projectile-replace--gather
+                    (projectile-replace--resolve-candidates candidates) scan-regexp))
            (matches (plist-get result :matches))
            (truncated (plist-get result :truncated)))
       (if (null matches)
@@ -11313,7 +11358,8 @@ more than one."
          (rg-pattern (projectile-todos--rg-pattern keywords))
          ;; the term IS the regexp, so the in-buffer toggles keep working
          (case-fold nil)
-         (candidates (projectile-replace--candidates regexp nil case-fold projects)))
+         (candidates (lambda ()
+                       (projectile-replace--candidates regexp nil case-fold projects))))
     (projectile-replace--open
      #'projectile-search-mode projectile-search-buffer-name
      (or (projectile--common-parent projects) "/")
@@ -14700,9 +14746,9 @@ the project it came from.  Everything that buffer does - filtering,
 re-search, the hand-off to the replace reviewer - then covers the whole
 group.
 
-Searching more than one project skips the ripgrep fast-path, which runs
-one `rg' over one directory tree.  Each member of the group is filtered
-by its own ignore rules, wherever you happen to be sitting."
+Each member of the group is filtered by its own ignore rules, wherever
+you happen to be sitting, and a literal search runs `rg' over each of
+them in turn when ripgrep is available."
   (let* ((projects (projectile--project-group projects "projects"))
          (term (projectile--read-search-string-with-default
                 (or prompt (format "Search %d project%s%s for"
@@ -14711,8 +14757,9 @@ by its own ignore rules, wherever you happen to be sitting."
                                    (if literal "" " regexp")))))
          (regexp (if literal (regexp-quote term) term))
          (case-fold case-fold-search)
-         (candidates (projectile-replace--candidates
-                      term literal case-fold projects)))
+         (candidates (lambda ()
+                       (projectile-replace--candidates
+                        term literal case-fold projects))))
     (projectile-replace--open
      #'projectile-search-mode projectile-search-buffer-name
      (or (projectile--common-parent projects) "/")
