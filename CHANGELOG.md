@@ -17,6 +17,7 @@
 ### Changes
 
 - [#2160](https://github.com/bbatsov/projectile/pull/2160): `projectile-switch-sibling-project` moved from `s-p n` to `s-p n p`. `s-p n` is now the prefix for every command that works across related projects, with each key mirroring the project-wide one a level down, the way `c m` does for subprojects.
+- [#2164](https://github.com/bbatsov/projectile/pull/2164): A search across several projects now uses ripgrep, one run per project, instead of falling back to the Emacs Lisp scanner. The candidate file list is also only computed when something is going to scan it, so the ripgrep path no longer pays for a directory walk it never reads.
 
 ### Bugs fixed
 

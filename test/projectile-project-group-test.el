@@ -345,6 +345,76 @@ the two truename'd roots and `parent' to the directory holding them."
                (get-buffer projectile-search-buffer-name))
               :to-equal '("src/todo.txt")))))
 
+
+;;; Ripgrep across a group
+
+(defun projectile-group-test--seed-rg (buf root projects term)
+  "Seed BUF as a search over PROJECTS for literal TERM, anchored at ROOT."
+  (projectile-replace--seed buf #'projectile-search-mode
+                            root term term nil t t nil nil projects))
+
+(defun projectile-group-test--wait (buf)
+  "Pump events until BUF's scan finishes."
+  (projectile-test-wait-for
+   (lambda () (not (buffer-local-value 'projectile-replace--scanning buf)))))
+
+(describe "ripgrep over a group of projects"
+  (it "collects matches from every project in the group"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-group-test--with-projects
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-group-test--seed-rg buf parent (list alpha beta) "needle")
+        (projectile-search--gather-rg buf "needle" nil)
+        (projectile-group-test--wait buf)
+        (with-current-buffer buf
+          (expect projectile-replace--scanning :to-be nil)
+          (expect (projectile-test-match-files buf)
+                  :to-equal '("alpha/src/a.txt" "beta/lib/b.txt"))))))
+
+  (it "applies each project's own ignore rules, not the first one's"
+    ;; This is why it is one `rg' per project rather than one over the
+    ;; group: the globs are root-anchored, so alpha's `-/skip.log' only
+    ;; means what it says when ripgrep runs inside alpha.
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-group-test--with-projects
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-group-test--seed-rg buf parent (list alpha beta) "needle")
+        (projectile-search--gather-rg buf "needle" nil)
+        (projectile-group-test--wait buf)
+        (expect (projectile-test-match-files buf)
+                :not :to-contain "alpha/skip.log"))))
+
+  (it "honors the match cap across the group and stops early"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-group-test--with-projects
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (projectile-search-max-matches 1))
+        (projectile-group-test--seed-rg buf parent (list alpha beta) "needle")
+        (projectile-search--gather-rg buf "needle" nil)
+        (projectile-group-test--wait buf)
+        (with-current-buffer buf
+          (expect (length projectile-replace--matches) :to-equal 1)
+          (expect projectile-replace--truncated :to-be-truthy)
+          (expect projectile-replace--scanning :to-be nil)
+          ;; the queue must not have carried on into the next project
+          (expect projectile-replace--scan-process :to-be nil)))))
+
+  (it "leaves no process behind when the scan is cancelled mid-group"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-group-test--with-projects
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-group-test--seed-rg buf parent (list alpha beta) "needle")
+        (projectile-search--gather-rg buf "needle" nil)
+        (with-current-buffer buf
+          (projectile-replace--cancel-scan)
+          (expect projectile-replace--scan-process :to-be nil)
+          (expect projectile-replace--scanning :to-be nil))
+        ;; and the chain does not resume behind our back
+        (projectile-test-wait-for (lambda () nil) 0.3)
+        (with-current-buffer buf
+          (expect projectile-replace--scanning :to-be nil)
+          (expect projectile-replace--scan-process :to-be nil))))))
+
 (provide 'projectile-project-group-test)
 
 ;;; projectile-project-group-test.el ends here

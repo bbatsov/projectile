@@ -274,10 +274,12 @@ your own is a two-line wrapper:
 `projectile-switch-to-buffer-in-projects` are the same shape for
 searching and for buffers.
 
-NOTE: A group search skips the ripgrep fast-path, which runs one `rg` over
-one directory tree, so it's slower than searching a single project. Each
-project in the group is filtered by its own ignore rules, wherever you
-happen to be sitting.
+NOTE: A literal group search runs `rg` over each project in turn when
+ripgrep is installed - one per project rather than one over the lot,
+because ignore globs are anchored to the project that wrote them. Each
+project is therefore filtered by its own rules, wherever you happen to be
+sitting. Without ripgrep the search falls back to the Emacs Lisp scanner,
+which is noticeably slower on a large group.
 
 == What else checkouts share
 
