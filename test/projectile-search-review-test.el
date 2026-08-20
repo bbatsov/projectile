@@ -555,6 +555,59 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (expect 'projectile-search--gather-rg :not :to-have-been-called)
         (expect 'projectile-replace--gather-async :to-have-been-called)))))
 
+(describe "projectile-replace--render-progress"
+  ;; The results buffer is redrawn from scratch, so a redraw costs time
+  ;; proportional to the matches found so far; drawing on every chunk of a
+  ;; streaming scan is most of the run on a large search.
+  (before-each
+    (set-buffer (get-buffer-create projectile-search-buffer-name))
+    (projectile-replace--seed (current-buffer) #'projectile-search-mode
+                              default-directory "foo" "foo" nil t t)
+    (spy-on 'projectile-search--render))
+
+  (it "draws the first time, since a fresh buffer has never been drawn"
+    (let ((projectile-search-render-interval 3600))
+      (projectile-replace--render-progress)
+      (expect 'projectile-search--render :to-have-been-called-times 1)))
+
+  (it "suppresses a redraw that comes too soon after the last"
+    (let ((projectile-search-render-interval 3600))
+      (projectile-replace--render-progress)
+      (projectile-replace--render-progress)
+      (projectile-replace--render-progress)
+      (expect 'projectile-search--render :to-have-been-called-times 1)))
+
+  (it "draws again once the interval has passed"
+    (let ((projectile-search-render-interval 0.05))
+      (projectile-replace--render-progress)
+      ;; rather than sleeping, age the buffer's last-draw stamp
+      (setq projectile-replace--last-render (- (float-time) 10))
+      (projectile-replace--render-progress)
+      (expect 'projectile-search--render :to-have-been-called-times 2)))
+
+  (it "draws on every call when the interval is nil"
+    (let ((projectile-search-render-interval nil))
+      (dotimes (_ 5) (projectile-replace--render-progress))
+      (expect 'projectile-search--render :to-have-been-called-times 5))))
+
+(describe "streaming redraw throttling"
+  (it "always redraws when a scan finishes, however long the interval"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.txt" . "foo bar\n"))
+      (let* ((projectile-search-render-interval 3600)
+             (buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil t t)
+        (projectile-search--gather-rg buf "foo" nil)
+        (projectile-search-review-test--wait buf)
+        (with-current-buffer buf
+          ;; the redraw that settles a finished scan is unconditional, so a
+          ;; long interval cannot leave the buffer showing an empty result
+          (expect projectile-replace--scanning :to-be nil)
+          (expect (buffer-string) :to-match "a\\.txt")
+          (expect (buffer-string) :to-match "foo bar"))))))
+
 (describe "projectile-search-review ripgrep end-to-end"
   (it "finds matches with a correct character column on a multibyte line"
     (assume (executable-find "rg") "ripgrep is not installed")
