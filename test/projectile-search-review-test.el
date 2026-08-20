@@ -590,6 +590,57 @@ REGEXP-P selects `projectile-search-regexp-review'."
       (dotimes (_ 5) (projectile-replace--render-progress))
       (expect 'projectile-search--render :to-have-been-called-times 5))))
 
+(describe "point while results stream in"
+  (it "keeps point where the user put it across a streaming redraw"
+    ;; The buffer is redrawn from scratch, and the redraw ends by going to
+    ;; point-min - so navigating while a scan was still running used to be
+    ;; undone by the next chunk.
+    (projectile-test-with-project
+        (("a.txt" . "foo\nfoo\nfoo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (dir default-directory))
+        (with-current-buffer buf
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    dir "foo" "foo" nil t t)
+          (setq projectile-replace--matches
+                (mapcar (lambda (i)
+                          (projectile-replace--match-create
+                           :file (expand-file-name "a.txt" dir)
+                           :line i :column 0 :string "foo"
+                           :context "foo here" :enabled t))
+                        (number-sequence 1 6)))
+          (projectile-search--render)
+          (goto-char (point-min))
+          (dotimes (_ 3) (projectile-replace--goto-next-match))
+          (let ((line (line-number-at-pos))
+                (match (projectile-replace--match-at-point)))
+            (expect match :to-be-truthy)
+            ;; another chunk lands and the buffer is redrawn
+            (setq projectile-replace--matches
+                  (append projectile-replace--matches
+                          (list (projectile-replace--match-create
+                                 :file (expand-file-name "a.txt" dir)
+                                 :line 7 :column 0 :string "foo"
+                                 :context "foo here" :enabled t))))
+            (let ((projectile-search-render-interval nil))
+              (projectile-replace--render-progress))
+            (expect (line-number-at-pos) :to-equal line)
+            (expect (projectile-replace--match-line
+                     (projectile-replace--match-at-point))
+                    :to-equal (projectile-replace--match-line match)))))))
+
+  (it "leaves point at the top when the user has not moved it"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.txt" . "foo bar\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil t t)
+        (projectile-search--gather-rg buf "foo" nil)
+        (projectile-search-review-test--wait buf)
+        (with-current-buffer buf
+          (expect (line-number-at-pos) :to-equal 1))))))
+
 (describe "streaming redraw throttling"
   (it "always redraws when a scan finishes, however long the interval"
     (assume (executable-find "rg") "ripgrep is not installed")

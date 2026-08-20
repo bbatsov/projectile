@@ -325,6 +325,9 @@ results stream in rather than happening on every chunk. The redraw that
 settles a finished scan is unconditional, so throttling only ever delays an
 intermediate state. Set the option to nil to redraw on every chunk.
 
+A redraw keeps point where you left it, so you can start reading and
+navigating the results while the rest of them are still arriving.
+
 kbd:[!] applies the enabled matches with no external dependency. If you'd
 rather edit the results as text, kbd:[e] exports the enabled matches (the
 same set kbd:[!] would act on) to a `+*projectile-grep*+` buffer in `grep-mode`,
