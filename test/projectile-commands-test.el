@@ -875,7 +875,11 @@
            "repo/test/fixtures/broken/package.json")
         (with-temp-file "repo/package.json"
           (insert "{\"workspaces\": [\"packages/*\"]}"))
-        (let ((repo (file-truename (expand-file-name "repo/"))))
+        (let ((repo (file-truename (expand-file-name "repo/")))
+              (projectile-indexing-method 'native)
+              (projectile-projects-cache (make-hash-table :test 'equal))
+              (projectile-projects-cache-time (make-hash-table :test 'equal))
+              (projectile-enable-caching nil))
           (spy-on 'projectile-project-root :and-return-value repo)
           ;; the fixture carries a package.json but is not a member
           (expect (projectile-project-subprojects repo)
@@ -888,7 +892,11 @@
       (projectile-test-with-files
           ("repo/.projectile" "repo/settings.gradle.kts"
            "repo/mod/pom.xml")
-        (let ((repo (file-truename (expand-file-name "repo/"))))
+        (let ((repo (file-truename (expand-file-name "repo/")))
+              (projectile-indexing-method 'native)
+              (projectile-projects-cache (make-hash-table :test 'equal))
+              (projectile-projects-cache-time (make-hash-table :test 'equal))
+              (projectile-enable-caching nil))
           (spy-on 'projectile-project-root :and-return-value repo)
           (expect (projectile-project-subprojects repo) :to-equal '("mod/")))))))
 
