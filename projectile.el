@@ -12269,18 +12269,163 @@ See `projectile-subproject-markers'."
               (push file markers))))
         markers)))
 
-(defun projectile-project-subprojects (&optional project-root)
-  "Return the subprojects of the project at PROJECT-ROOT.
+(defcustom projectile-subproject-functions
+  '(projectile-subprojects-from-manifest
+    projectile-subprojects-from-scan)
+  "Functions consulted by `projectile-project-subprojects'.
 
-A subproject is a directory below the root that holds a project manifest
-of its own (see `projectile-subproject-markers').  The result is a sorted
-list of directory names relative to the root, each ending in a slash.
+Each is called with a project root and should return the project's
+subprojects as directory names relative to it, each ending in a slash.
+They are tried in order and the first non-empty answer wins - so the
+list runs from the most authoritative source to the most general, the
+way `projectile-project-root-functions' does.
 
-The project's own file listing is what gets scanned, so the ignore rules
-apply as usual - the manifest of a vendored dependency doesn't turn it
-into a subproject."
-  (let* ((root (or project-root (projectile-acquire-root)))
-         (markers (projectile--subproject-markers))
+The default asks the workspace manifest first and falls back to scanning
+for manifests.  Put `projectile-subprojects-from-scan' first to always
+scan, or add your own function for a workspace format Projectile cannot
+read."
+  :group 'projectile
+  :type '(repeat function)
+  :package-version '(projectile . "3.5.0"))
+
+(defun projectile--expand-member-globs (root patterns)
+  "Expand PATTERNS relative to ROOT into a list of relative directory names.
+PATTERNS are workspace member globs (`packages/*', `crates/core').  Only
+existing directories survive, and each comes back with a trailing slash.
+Negated patterns - pnpm allows a leading `!' - are dropped rather than
+subtracted, which can only leave the answer too generous, never too
+narrow."
+  (let ((default-directory root)
+        (dirs nil))
+    (dolist (pattern patterns)
+      (unless (string-prefix-p "!" pattern)
+        ;; Two arguments only: the third is REGEXP, not a dotfile flag, and
+        ;; passing it makes a glob be read as a regular expression.
+        (dolist (hit (file-expand-wildcards (directory-file-name pattern)))
+          (when (file-directory-p (expand-file-name hit root))
+            (push (file-name-as-directory hit) dirs)))))
+    (sort (delete-dups dirs) #'string<)))
+
+(defun projectile--workspace-member-patterns (root)
+  "Return ROOT's declared workspace member patterns, or nil.
+Reads the manifest of the workspace formats Projectile can parse
+statically - pnpm, npm/yarn/bun, Cargo and Go - and returns the raw
+globs.  Formats whose member list is computed rather than declared
+\(Gradle builds it in a Kotlin or Groovy program, Bazel in Starlark) have
+no answer here and fall through to scanning."
+  (let ((pnpm (expand-file-name "pnpm-workspace.yaml" root))
+        (npm (expand-file-name "package.json" root))
+        (cargo (expand-file-name "Cargo.toml" root))
+        (gowork (expand-file-name "go.work" root)))
+    (cond
+     ((file-readable-p pnpm) (projectile--pnpm-workspace-patterns pnpm))
+     ((file-readable-p npm) (projectile--npm-workspace-patterns npm))
+     ((file-readable-p cargo) (projectile--cargo-workspace-patterns cargo))
+     ((file-readable-p gowork) (projectile--go-work-patterns gowork)))))
+
+(defun projectile--file-contents (file)
+  "Return the contents of FILE as a string."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (buffer-string)))
+
+(defun projectile--pnpm-workspace-patterns (file)
+  "Return the `packages:' entries of the pnpm workspace manifest FILE.
+A deliberately small YAML reader: it takes the list items under the
+top-level `packages:' key and stops at the next top-level key, which is
+all this file shape needs (`catalog:' and friends live alongside it)."
+  (let ((lines (split-string (projectile--file-contents file) "\n"))
+        (in-packages nil)
+        (patterns nil))
+    (dolist (line lines)
+      (cond
+       ((string-match "\\`packages:[[:space:]]*\\'" line)
+        (setq in-packages t))
+       ;; any other unindented, non-comment line ends the block
+       ((and in-packages (string-match-p "\\`[^[:space:]#-]" line))
+        (setq in-packages nil))
+       ((and in-packages
+             (string-match "\\`[[:space:]]*-[[:space:]]*['\"]?\\([^'\"#]+?\\)['\"]?[[:space:]]*\\'" line))
+        (push (match-string 1 line) patterns))))
+    (nreverse patterns)))
+
+(defun projectile--npm-workspace-patterns (file)
+  "Return the `workspaces' globs declared by the package.json at FILE.
+Both the plain array form and the `{\"packages\": [...]}' form yarn uses
+are understood."
+  (when (fboundp 'json-parse-string)
+    (let* ((json (ignore-errors
+                   (json-parse-string (projectile--file-contents file)
+                                      :object-type 'alist
+                                      :array-type 'list)))
+           (workspaces (alist-get 'workspaces json)))
+      (cond
+       ((and (listp workspaces) (stringp (car workspaces))) workspaces)
+       ((listp workspaces) (alist-get 'packages workspaces))))))
+
+(defun projectile--toml-string-array (text key)
+  "Return the strings of the TOML array assigned to KEY in TEXT, or nil.
+Comments are stripped first, so the `# Internal' notes Cargo manifests
+carry inside their member list don't end up in the result."
+  (when (string-match (concat "^[[:space:]]*" (regexp-quote key)
+                              "[[:space:]]*=[[:space:]]*\\[\\(\\(?:.\\|\n\\)*?\\)\\]")
+                      text)
+    (let ((body (replace-regexp-in-string "#[^\n]*" "" (match-string 1 text)))
+          (out nil)
+          (start 0))
+      (while (string-match "\"\\([^\"]*\\)\"" body start)
+        (push (match-string 1 body) out)
+        (setq start (match-end 0)))
+      (nreverse out))))
+
+(defun projectile--cargo-workspace-patterns (file)
+  "Return the `[workspace]' members declared by the Cargo manifest at FILE.
+`exclude' entries are removed, so a fuzzing crate the workspace keeps out
+of the build is not reported as a member."
+  (let* ((text (projectile--file-contents file))
+         (members (projectile--toml-string-array text "members"))
+         (excluded (projectile--toml-string-array text "exclude")))
+    (seq-remove (lambda (m) (member m excluded)) members)))
+
+(defun projectile--go-work-patterns (file)
+  "Return the module directories a Go workspace file FILE puts to use.
+Both the parenthesised `use (...)' block and single-line `use ./dir' are
+understood."
+  (let ((text (projectile--file-contents file))
+        (out nil))
+    (when (string-match "use[[:space:]]*(\\([^)]*\\))" text)
+      (dolist (line (split-string (match-string 1 text) "\n" t))
+        (let ((entry (string-trim (replace-regexp-in-string "//.*" "" line))))
+          (unless (string-empty-p entry) (push entry out)))))
+    (let ((start 0))
+      (while (string-match "^[[:space:]]*use[[:space:]]+\\([^(\n]+\\)$" text start)
+        (push (string-trim (match-string 1 text)) out)
+        (setq start (match-end 0))))
+    (nreverse out)))
+
+(defun projectile-subprojects-from-manifest (root)
+  "Return the subprojects ROOT's workspace manifest declares, or nil.
+
+The member list a workspace declares is the workspace's own answer to
+what its parts are, so it is preferred over looking for manifests: it
+leaves out the ones that are deliberately not members - test fixtures
+carrying a package.json, a scaffolding template, an excluded fuzzing
+crate - which scanning cannot tell apart from the real thing."
+  (when-let* ((patterns (projectile--workspace-member-patterns root)))
+    (projectile--expand-member-globs root patterns)))
+
+(defun projectile-subprojects-from-scan (root)
+  "Return the directories below ROOT that hold a project manifest.
+
+What counts as a manifest comes from `projectile-subproject-markers'.
+The file listing of ROOT is what gets scanned, so the ignore rules apply
+as usual - the manifest of a vendored dependency does not turn it into a
+subproject.
+
+This finds every manifest there is, which is the right answer when
+nothing declares the members and too generous when something does; see
+`projectile-subprojects-from-manifest'."
+  (let* ((markers (projectile--subproject-markers))
          (marker-set (make-hash-table :test 'equal))
          (dirs (make-hash-table :test 'equal)))
     (dolist (marker markers)
@@ -12295,6 +12440,19 @@ into a subproject."
         (when-let* ((dir (file-name-directory file)))
           (puthash dir t dirs))))
     (sort (hash-table-keys dirs) #'string<)))
+
+(defun projectile-project-subprojects (&optional project-root)
+  "Return the subprojects of the project at PROJECT-ROOT.
+
+A subproject is a part of a monorepo that has a project of its own - a
+crate, a package, a module.  The result is a sorted list of directory
+names relative to the root, each ending in a slash.
+
+Where the list comes from is `projectile-subproject-functions': by
+default the workspace manifest if there is one Projectile can read, and
+otherwise a scan for manifests."
+  (let ((root (or project-root (projectile-acquire-root))))
+    (run-hook-with-args-until-success 'projectile-subproject-functions root)))
 
 (defun projectile-subproject-type (&optional subproject-root)
   "Return the project type of the subproject at SUBPROJECT-ROOT.

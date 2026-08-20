@@ -233,17 +233,31 @@ finding files or searching covers all of it. But its parts usually have
 manifests of their own (a crate, a package, a Maven module), and building or
 testing the whole repository when you're working on one of them is wasteful.
 
-Projectile calls those parts *subprojects*: any directory below the project
-root that holds a project manifest. What counts as a manifest comes from
+Projectile calls those parts *subprojects*, and finds them in one of two
+ways - `projectile-subproject-functions` decides which, trying each in turn
+until one has an answer.
+
+*The workspace's own member list*, when the repository declares one in a form
+Projectile can read: pnpm (`pnpm-workspace.yaml`), npm, yarn and bun
+(`workspaces` in `package.json`), Cargo (`[workspace] members`, minus
+`exclude`) and Go (`go.work`). This is the better answer where it exists,
+because a workspace knows which of its directories are members and which are
+not - a test fixture that happens to carry a `package.json`, a scaffolding
+template, a fuzzing crate kept out of the build. In Babel's repository that is
+the difference between 162 members and 205 directories holding a manifest.
+
+*A scan for manifests*, otherwise. What counts as a manifest comes from
 `projectile-subproject-markers`, which by default is derived from the
 registered project types, so every type Projectile knows about - including the
-ones you register yourself - is recognized inside a monorepo. A polyglot
-repository works out of the box: a `Cargo.toml` under a `package.json` project
-is still a subproject.
+ones you register yourself - is recognized. The scan reads the project's own
+file listing, so the xref:ignoring.adoc[ignore rules] apply and a vendored
+dependency's manifest doesn't count.
 
-`projectile-project-subprojects` returns them, scanning the project's own file
-listing (so the xref:ignoring.adoc[ignore rules] apply, and a vendored
-dependency's manifest doesn't count as a subproject).
+The scan is the fallback rather than a legacy path, because some build tools
+compute their member list instead of declaring it: Gradle assembles it in a
+Kotlin or Groovy program and Bazel in Starlark, and neither can be read
+without running the tool. A polyglot repository works either way: a
+`Cargo.toml` under a `package.json` project is still a subproject.
 
 * `projectile-find-file-in-subproject` (kbd:[s-p c m f]) prompts for a
   subproject and then completes over just its files.

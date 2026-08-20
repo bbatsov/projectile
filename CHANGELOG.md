@@ -13,6 +13,8 @@
   - A group search puts every match in one `*projectile-search*` buffer, named relative to the directory containing the group, so each one is labelled with the project it came from.
 - [#2165](https://github.com/bbatsov/projectile/pull/2165): A subproject now has its own project type, so the `s-p c m` lifecycle commands build a monorepo member with the member's own toolchain - a Rust crate or Go module under a JavaScript repository runs `cargo test` or `go test` rather than the repository's `npm test`. New `projectile-subproject-type`.
   - A member identified by the same manifest as the repository keeps the repository's type: a pnpm or yarn workspace member holds only a `package.json` and would otherwise fall back to plain `npm`.
+- [#2166](https://github.com/bbatsov/projectile/pull/2166): Subprojects now come from the workspace's own member list when the repository declares one - pnpm, npm/yarn/bun, Cargo and `go.work` - instead of from scanning for manifests, so test fixtures and excluded crates stop showing up as subprojects. Babel's repository goes from 205 to its declared 162. New `projectile-subproject-functions`.
+  - Build tools that compute their members rather than declaring them (Gradle, Bazel) keep using the scan, which is why it remains the fallback.
 - [#2163](https://github.com/bbatsov/projectile/pull/2163): Add `projectile-switch-to-buffer-in-sibling-projects` (`s-p n b`), `projectile-multi-occur-in-sibling-projects` (`s-p n o`) and `projectile-todos-in-sibling-projects` (`s-p n t`), so buffers and annotations follow the same family as files and searches.
   - `projectile-switch-to-buffer-in-projects` joins the two existing generic commands, and `projectile-todos` now shares one implementation with its group form.
 
