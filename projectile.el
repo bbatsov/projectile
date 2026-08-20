@@ -9799,7 +9799,7 @@ killed BUFFER (leaving no work behind) and against \\`C-g' during a chunk
             (with-current-buffer buffer
               (setq projectile-replace--scanning nil
                     projectile-replace--scan-timer nil)
-              (funcall projectile-replace--render-function)
+              (projectile-replace--render-preserve)
               (when on-done (funcall on-done buffer)))))
       (quit
        (when (buffer-live-p buffer)
@@ -9969,9 +9969,13 @@ async scan streams matches in."
     (goto-char (point-min))))
 
 (defun projectile-replace--render-preserve ()
-  "Redraw the results buffer, keeping point on the same line."
+  "Redraw the results buffer, keeping point on the same line.
+
+Restoring by line rather than by position is what makes this safe while a
+scan is streaming: matches are appended and a file header keeps its line
+count when its tally grows, so the lines already on screen do not move."
   (let ((line (line-number-at-pos)))
-    (projectile-replace--render)
+    (funcall projectile-replace--render-function)
     (goto-char (point-min))
     (forward-line (1- line))))
 
@@ -10817,7 +10821,7 @@ against a killed BUFFER."
       (setq projectile-replace--scanning nil
             projectile-replace--scan-process nil
             projectile-replace--scan-timer nil)
-      (funcall projectile-replace--render-function)
+      (projectile-replace--render-preserve)
       (when on-done (funcall on-done buffer)))))
 
 (defun projectile-search--gather-rg (buffer term on-done)
@@ -10957,7 +10961,7 @@ unconditional, so a skipped intermediate draw is never the last word."
               (>= (- now projectile-replace--last-render)
                   projectile-search-render-interval))
       (setq projectile-replace--last-render now)
-      (funcall projectile-replace--render-function))))
+      (projectile-replace--render-preserve))))
 
 (defun projectile-replace--start (buffer candidates regexp on-done)
   "Fill BUFFER's match list by scanning CANDIDATES for REGEXP.
