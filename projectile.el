@@ -9631,7 +9631,19 @@ Binary-looking and unreadable files are skipped."
             (projectile-replace--scan-region file buffer regexp budget)))
       (condition-case nil
           (with-temp-buffer
-            (insert-file-contents file)
+            ;; Read what is on disk.  `insert-file-contents' dispatches
+            ;; through `file-name-handler-alist', so jka-compr decompresses
+            ;; every archive in the candidate set and EPA decrypts every
+            ;; `.gpg' - work thrown away a line later when the result is
+            ;; classified as binary, and which on an encrypted file can stop
+            ;; the whole search on a passphrase prompt.  Only those two
+            ;; handlers are inhibited, so a remote project still reads
+            ;; through TRAMP.
+            (let ((inhibit-file-name-handlers
+                   (append '(jka-compr-handler epa-file-handler)
+                           inhibit-file-name-handlers))
+                  (inhibit-file-name-operation 'insert-file-contents))
+              (insert-file-contents file))
             (unless (projectile-replace--binary-p)
               (let ((case-fold-search fold))
                 (projectile-replace--scan-region file nil regexp budget))))

@@ -184,6 +184,36 @@ REGEXP-P selects `projectile-replace-regexp-review'."
                 :to-equal
                 "PREPENDED LINE\nhello foo world\nsecond foo line\n"))))
 
+  (it "does not decompress the files it scans"
+    ;; `insert-file-contents' dispatches through `file-name-handler-alist',
+    ;; so without inhibiting the decoding handlers the scan runs gzip over
+    ;; every archive in the candidate set - and hands every `.gpg' to EPA,
+    ;; which on a genuinely encrypted file means a passphrase prompt in the
+    ;; middle of a project search.  (Only the gzip half is exercised here: a
+    ;; `.gpg' fixture cannot be written without EPA trying to encrypt it.)
+    (assume (executable-find "gzip") "gzip is not installed")
+    (projectile-test-with-project
+        (("plain.txt" . "foo here\n")
+         ("inner.txt" . "foo in an archive\n"))
+      (call-process "gzip" nil nil nil (expand-file-name "inner.txt"))
+      (let* ((calls 0)
+             (count (lambda (&rest _) (setq calls (1+ calls)))))
+        (advice-add 'call-process :before count)
+        (unwind-protect
+            (let* ((result (projectile-replace--gather
+                            (list (expand-file-name "plain.txt")
+                                  (expand-file-name "inner.txt.gz"))
+                            "foo"))
+                   (files (mapcar (lambda (m)
+                                    (file-name-nondirectory
+                                     (projectile-replace--match-file m)))
+                                  (plist-get result :matches))))
+              (expect calls :to-equal 0)
+              ;; the archive's contents are not searched, which is what the
+              ;; ripgrep path already did
+              (expect files :to-equal '("plain.txt")))
+          (advice-remove 'call-process count)))))
+
   (it "does not hang scanning a regexp that matches empty at end of buffer"
     (projectile-test-with-project
         (("z.txt" . "aaa\nbbb\n"))
