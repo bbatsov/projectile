@@ -863,6 +863,48 @@
     (expect (projectile-compilation-dir "/proj/sub/") :to-equal "/proj/sub/")
     (expect (projectile-compilation-dir) :to-equal "/proj/")))
 
+(describe "projectile-subproject-type"
+  (it "gives a member of a different toolchain its own type"
+    ;; A Rust crate inside a JavaScript monorepo is a Rust crate.  Before
+    ;; this, every member inherited the repository's type, so `c m t' in the
+    ;; crate ran the repository's `npm test'.
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/.projectile" "repo/package.json"
+           "repo/crates/engine/Cargo.toml")
+        (let* ((repo (file-truename (expand-file-name "repo/")))
+               (member (expand-file-name "crates/engine/" repo)))
+          (let ((default-directory member))
+            (expect (projectile-subproject-type member) :to-equal 'rust-cargo))))))
+
+  (it "keeps the repository's type when the member is the same kind of project"
+    ;; A pnpm workspace member holds only a `package.json', so on its own it
+    ;; reads as plain `node' - and `npm test' inside a pnpm workspace is
+    ;; worse than what the repository would have run.
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/.projectile" "repo/package.json" "repo/pnpm-lock.yaml"
+           "repo/packages/core/package.json")
+        (let* ((repo (file-truename (expand-file-name "repo/")))
+               (member (expand-file-name "packages/core/" repo)))
+          (let ((default-directory member))
+            (expect (projectile-project-type repo) :to-equal 'pnpm)
+            (expect (projectile-subproject-type member) :to-equal 'pnpm))))))
+
+  (it "detects a member whose type identifies itself with a predicate"
+    ;; `go', `make', `terraform' and eight other types use a function marker
+    ;; instead of a list of file names, and those predicates resolve paths
+    ;; through `projectile-expand-root', which walks up to the repository.
+    ;; Without pinning the root the member would be asked whether the *repo*
+    ;; has a go.mod.
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/.projectile" "repo/package.json" "repo/services/api/go.mod")
+        (let* ((repo (file-truename (expand-file-name "repo/")))
+               (member (expand-file-name "services/api/" repo)))
+          (let ((default-directory member))
+            (expect (projectile-subproject-type member) :to-equal 'go)))))))
+
 (describe "the subproject lifecycle commands"
   (before-each
     (spy-on 'projectile-acquire-root :and-return-value "/proj/")

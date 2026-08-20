@@ -1139,7 +1139,11 @@ or used as a hash key regardless of how each reference was spelled."
   (file-truename (file-name-as-directory path)))
 
 (projectile-define-project-cache projectile-project-type-cache
-  "A hashmap used to cache project type to speed up related operations.")
+  "A hashmap used to cache project type to speed up related operations.
+Keyed by project root, and also by subproject root for the types
+`projectile-subproject-type' detects - hence `:prefix-keyed', so
+invalidating a repository drops its members' entries along with its own."
+  :prefix-keyed t)
 
 (projectile-define-project-cache projectile-project-vcs-cache
   "Cache of `projectile-project-vcs' results keyed by directory.
@@ -3022,9 +3026,25 @@ topmost sequence of matched directories.  Nil otherwise."
                  (not (projectile-file-exists-p (projectile-expand-file-name-wildcard f (projectile-parent dir)))))))))
    (or list projectile-project-root-files-top-down-recurring)))
 
+(defvar projectile--root-override nil
+  "Directory `projectile-project-root' answers with while this is non-nil.
+
+Bound while detecting a subproject's type (see
+`projectile-subproject-type').  Eleven of the registered project types -
+`go', `make', `terraform', `xcode' and the rest - identify themselves
+with a predicate rather than a list of marker file names, and those
+predicates resolve their paths through `projectile-expand-root', which
+walks up to the enclosing project.  Inside a monorepo that walk lands on
+the repository, so a Go module in a subdirectory would be asked whether
+the *repository* has a `go.mod'.  Pinning the root for the duration of
+the detection asks the question about the member instead.")
+
 (defun projectile-project-root (&optional dir)
   "Return the root directory of the project containing DIR, or nil.
 If DIR is not supplied it defaults to `default-directory'.
+
+While `projectile--root-override' is non-nil that directory is returned
+instead, whatever DIR is.
 
 Each function in `projectile-project-root-functions' is tried in order;
 the first non-nil result wins.  Results - including failures - are
@@ -3041,7 +3061,8 @@ Special cases:
   ;; `default-directory' can be nil in some buffers; short-circuit to nil so
   ;; callers get "no project" instead of a `(wrong-type-argument stringp nil)'
   ;; from `file-remote-p' and friends below (#1829).
-  (when-let* ((dir (or dir default-directory)))
+  (or projectile--root-override
+      (when-let* ((dir (or dir default-directory)))
     ;; Back out of any archives, the project will live on the outside and
     ;; searching them is slow.
     (when (and (fboundp 'tramp-archive-file-name-p)
@@ -3105,7 +3126,7 @@ Special cases:
        ;; conventional means, and we assume the failure isn't transient
        ;; / network related, so cache the failure
        (puthash (cons 'none dir) 'none projectile-project-root-cache))))
-      (unless (eq result 'none) result))))
+      (unless (eq result 'none) result)))))
 
 (defun projectile-ensure-project (dir)
   "Ensure that DIR is non-nil.
@@ -12275,6 +12296,48 @@ into a subproject."
           (puthash dir t dirs))))
     (sort (hash-table-keys dirs) #'string<)))
 
+(defun projectile-subproject-type (&optional subproject-root)
+  "Return the project type of the subproject at SUBPROJECT-ROOT.
+
+Detection is rooted at the subproject instead of at the repository, so a
+crate inside a JavaScript monorepo comes back as `rust-cargo' rather than
+as one more `node' directory.  SUBPROJECT-ROOT defaults to the subproject
+containing the current file (see `projectile-subproject-root').
+
+This is what separates a subproject from a plain subdirectory: the
+repository stays the project - find-file, search and switching are still
+repository-wide - while the lifecycle commands under the `c m' prefix run
+the member's own build.  Promoting members to projects
+outright (by adding their manifests to
+`projectile-project-root-files-bottom-up') is the other way to get their
+commands right, at the cost of the repository no longer being a project."
+  (let* ((root (or subproject-root (projectile-subproject-root)))
+         ;; Resolve the repository's own type first, before the override is
+         ;; in force.
+         (repo-type (projectile-project-type))
+         (detected (let ((projectile--root-override root))
+                     (or (gethash root projectile-project-type-cache)
+                         (projectile-detect-project-type root root)))))
+    ;; A member of a JavaScript workspace holds a `package.json' and nothing
+    ;; else, so on its own it looks like a plain `node' project - and running
+    ;; `npm test' inside a pnpm or yarn workspace is worse than what the
+    ;; repository would have run.  The repository's type is the more specific
+    ;; one whenever both are identified by the same manifest, so keep it and
+    ;; only switch when the member is genuinely a different toolchain.
+    (if (projectile--same-manifest-type-p detected repo-type)
+        repo-type
+      detected)))
+
+(defun projectile--same-manifest-type-p (a b)
+  "Return non-nil when project types A and B are declared by the same manifest.
+Both `node' and `pnpm' are identified by `package.json', for instance, so
+one is a less specific reading of the other rather than a different kind
+of project."
+  (and a b
+       (let ((fa (projectile-project-type-attribute a 'project-file))
+             (fb (projectile-project-type-attribute b 'project-file)))
+         (and fa fb (equal fa fb)))))
+
 (defun projectile-subproject-root (&optional dir)
   "Find the root of the nearest subproject containing DIR.
 Walk up from DIR (the current file's directory by default) looking for
@@ -12722,7 +12785,14 @@ with a prefix ARG."
 SHOW-PROMPT is as in `projectile--run-lifecycle-phase', which does the
 actual work - the subproject is just the directory the phase resolves
 its compilation directory against."
-  (projectile--run-lifecycle-phase phase show-prompt (projectile-subproject-root)))
+  (let* ((subproject (projectile-subproject-root))
+         ;; `projectile--phase-command' falls back to the default command
+         ;; for `(projectile-project-type)'; bind it to the member's own
+         ;; type so a Rust crate in a JavaScript repo runs `cargo test'
+         ;; rather than the repository's `npm test'.  The dir-local
+         ;; override and the per-directory command cache still win over it.
+         (projectile-project-type (projectile-subproject-type subproject)))
+    (projectile--run-lifecycle-phase phase show-prompt subproject)))
 
 (defmacro projectile--define-subproject-commands (&rest phases)
   "Define a subproject variant of the lifecycle command of each of PHASES.
