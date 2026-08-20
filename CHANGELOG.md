@@ -26,7 +26,7 @@
 
 ### Bugs fixed
 
-- [#2169](https://github.com/bbatsov/projectile/pull/2169): Navigating a search results buffer while the scan is still running is no longer undone by the next chunk. Each redraw ended by going to the top of the buffer, so point jumped back on every batch of matches; it now stays where you left it.
+- [#2170](https://github.com/bbatsov/projectile/pull/2170): Navigating a search results buffer while the scan is still running is no longer undone by the next chunk. Each redraw ended by going to the top of the buffer, so point jumped back on every batch of matches; it now stays where you left it.
 - [#2167](https://github.com/bbatsov/projectile/pull/2167): The Emacs Lisp search scanner no longer decompresses or decrypts the files it reads. It went through `file-name-handler-alist`, so every archive in the candidate set was run through gzip and every `.gpg` handed to EPA - work discarded a moment later as binary, and on an encrypted file a passphrase prompt in the middle of a project search.
   - Matches inside compressed files are no longer reported by that scanner, which is what the ripgrep path already did.
 - [#2162](https://github.com/bbatsov/projectile/pull/2162): Listing another project's files now applies that project's own ignore rules instead of the rules of whichever project you happen to be visiting. `projectile-find-file-in-known-projects` and the sibling commands used to filter every other project by the current one's dirconfig, and with caching on they stored that wrong list under the other project's key - so an ordinary `projectile-find-file` there kept offering ignored files, and with persistent caching it survived a restart.
