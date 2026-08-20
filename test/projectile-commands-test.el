@@ -821,6 +821,77 @@
     (let ((projectile-subproject-markers '("Cargo.toml")))
       (expect (projectile-project-subprojects "/proj/") :to-equal '("crates/parser/")))))
 
+(describe "projectile-subprojects-from-manifest"
+  (it "reads the members a pnpm workspace declares"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/packages/core/" "repo/packages/runtime/" "repo/tools/scratch/")
+        (with-temp-file "repo/pnpm-workspace.yaml"
+          (insert "packages:\n  - 'packages/*'\n\ncatalog:\n  vite: ^8.0.0\n"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          ;; `tools/scratch/' is not a member, and the `catalog:' key that
+          ;; follows the list must not be read as one either
+          (expect (projectile-subprojects-from-manifest repo)
+                  :to-equal '("packages/core/" "packages/runtime/"))))))
+
+  (it "reads the workspaces a package.json declares, globs and literals alike"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/packages/a/" "repo/packages/b/" "repo/benchmark/" "repo/other/")
+        (with-temp-file "repo/package.json"
+          (insert "{\"workspaces\": [\"packages/*\", \"benchmark\"]}"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          (expect (projectile-subprojects-from-manifest repo)
+                  :to-equal '("benchmark/" "packages/a/" "packages/b/"))))))
+
+  (it "drops the crates a Cargo workspace excludes"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/core/" "repo/util/" "repo/fuzz/")
+        (with-temp-file "repo/Cargo.toml"
+          (insert "[workspace]\nmembers = [\n  \"core\",\n  # internal\n  \"util\",\n]\n"
+                  "exclude = [\"fuzz\"]\n"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          ;; the comment inside the array is not a member, and `fuzz' is
+          ;; deliberately kept out of the workspace
+          (expect (projectile-subprojects-from-manifest repo)
+                  :to-equal '("core/" "util/"))))))
+
+  (it "has no answer when the members are not declared statically"
+    ;; Gradle builds its module list in a Kotlin program and Bazel in
+    ;; Starlark; neither can be read without running the tool, so the scan
+    ;; has to stay the fallback.
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/settings.gradle.kts" "repo/documentation/build.gradle.kts")
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          (expect (projectile-subprojects-from-manifest repo) :to-be nil))))))
+
+(describe "projectile-project-subprojects"
+  (it "prefers the declared members over a scan for manifests"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/.projectile" "repo/packages/a/package.json"
+           "repo/test/fixtures/broken/package.json")
+        (with-temp-file "repo/package.json"
+          (insert "{\"workspaces\": [\"packages/*\"]}"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          (spy-on 'projectile-project-root :and-return-value repo)
+          ;; the fixture carries a package.json but is not a member
+          (expect (projectile-project-subprojects repo)
+                  :to-equal '("packages/a/"))
+          (expect (projectile-subprojects-from-scan repo)
+                  :to-contain "test/fixtures/broken/")))))
+
+  (it "falls back to scanning when nothing declares the members"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/.projectile" "repo/settings.gradle.kts"
+           "repo/mod/pom.xml")
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          (spy-on 'projectile-project-root :and-return-value repo)
+          (expect (projectile-project-subprojects repo) :to-equal '("mod/")))))))
+
 (describe "projectile-find-file-in-subproject"
   (it "completes over just the chosen subproject's files, from the project's listing"
     (spy-on 'projectile-acquire-root :and-return-value "/proj/")
