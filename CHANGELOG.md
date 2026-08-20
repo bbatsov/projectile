@@ -11,6 +11,8 @@
 - [#2160](https://github.com/bbatsov/projectile/pull/2160): Add `projectile-find-file-in-sibling-projects` (`s-p n f`) and `projectile-search-in-sibling-projects` (`s-p n s`), which work across the family of related projects rather than just the one you're in.
   - Both are built on `projectile-find-file-in-projects` and `projectile-search-in-projects`, which take any list of projects, so a command for a group of your own is a two-line wrapper.
   - A group search puts every match in one `*projectile-search*` buffer, named relative to the directory containing the group, so each one is labelled with the project it came from.
+- [#2165](https://github.com/bbatsov/projectile/pull/2165): A subproject now has its own project type, so the `s-p c m` lifecycle commands build a monorepo member with the member's own toolchain - a Rust crate or Go module under a JavaScript repository runs `cargo test` or `go test` rather than the repository's `npm test`. New `projectile-subproject-type`.
+  - A member identified by the same manifest as the repository keeps the repository's type: a pnpm or yarn workspace member holds only a `package.json` and would otherwise fall back to plain `npm`.
 - [#2163](https://github.com/bbatsov/projectile/pull/2163): Add `projectile-switch-to-buffer-in-sibling-projects` (`s-p n b`), `projectile-multi-occur-in-sibling-projects` (`s-p n o`) and `projectile-todos-in-sibling-projects` (`s-p n t`), so buffers and annotations follow the same family as files and searches.
   - `projectile-switch-to-buffer-in-projects` joins the two existing generic commands, and `projectile-todos` now shares one implementation with its group form.
 

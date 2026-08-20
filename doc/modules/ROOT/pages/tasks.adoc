@@ -254,9 +254,7 @@ image::projectile-find-file-in-subproject.png[The subproject prompt, listing the
   `-compile-` (kbd:[s-p c m c]), `-test-` (kbd:[s-p c m t]), `-install-`
   (kbd:[s-p c m i]), `-package-` (kbd:[s-p c m p]) and `-run-`
   (kbd:[s-p c m r]). They run in the *nearest* subproject - the one containing
-  the file you're visiting - rather than at the project root. The command
-  itself is the project's, only the directory changes, which is what
-  workspace-aware tools like Cargo, npm and Maven need to scope their work.
+  the file you're visiting - rather than at the project root.
 
 The prompt tells you where the command will run (`Test command in
 services/api/:`), so a subproject build is never mistaken for a whole-project
@@ -266,6 +264,39 @@ the subproject: in a Meson monorepo kbd:[s-p c m c] runs ninja in
 
 If there's no manifest between the current file and the project root, those
 commands say so rather than silently building the whole repository.
+
+=== Which command a subproject runs
+
+A subproject gets its *own* project type, so a Rust crate under a JavaScript
+repository is built with Cargo rather than with the repository's npm. Type
+detection is rooted at the member, which is what
+`projectile-subproject-type` reports.
+
+There is one deliberate exception. A member of a JavaScript workspace holds
+nothing but a `package.json`, so on its own it reads as a plain `node`
+project - and running `npm test` inside a pnpm or yarn workspace is worse
+than what the repository would have run. When the member and the repository
+are identified by the same manifest, the repository's type is the more
+specific reading and it wins. In practice: a pnpm workspace keeps running
+`pnpm test` in its packages, while a `Cargo.toml` or `go.mod` under that same
+repository switches to `cargo` or `go`.
+
+The usual overrides still come first, so a member that needs something else
+can say so in its own `.dir-locals.el`:
+
+[source,elisp]
+----
+;;; packages/legacy/.dir-locals.el
+((nil . ((projectile-project-test-cmd . "make check"))))
+----
+
+TIP: If you would rather each member be a project in its own right - its own
+find-file, its own switch target - add its manifest to
+`projectile-project-root-files-bottom-up`. That is the trade the other way:
+the members get everything a project has, and the repository stops being one,
+so finding a file across the whole monorepo is no longer possible. Emacs's
+built-in `project.el` offers the same choice through
+`project-vc-extra-root-markers`.
 
 == Running the test at point
 
