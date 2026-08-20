@@ -9454,6 +9454,26 @@ often; smaller values keep Emacs more responsive."
   enabled)    ; non-nil when the match will be applied
 
 ;; Buffer-local state of a `*projectile-replace*' buffer.
+(defcustom projectile-search-render-interval 0.1
+  "Seconds to leave between redraws while search results stream in.
+
+The results buffer is redrawn from scratch, so a redraw costs time
+proportional to the matches found so far - about 1 ms at a hundred
+matches and 70 ms at five thousand.  Redrawing on every chunk therefore
+costs roughly the number of chunks times the number of matches, which on
+a large search is most of the run rather than a detail of it.
+
+The redraw at the end of a scan is unconditional, so this only delays
+intermediate states.  Set it to nil to redraw on every chunk."
+  :group 'projectile
+  :type '(choice (const :tag "Redraw on every chunk" nil)
+                 (number :tag "Seconds between redraws"))
+  :package-version '(projectile . "3.5.0"))
+
+(defvar-local projectile-replace--last-render 0.0
+  "When this results buffer was last redrawn, as a `float-time'.
+Zero in a freshly seeded buffer, so the first chunk always draws.")
+
 (defvar-local projectile-replace--root nil
   "Directory the current results buffer's file names are shown relative to.
 For an ordinary search that is the project root; for a search over a
@@ -9774,7 +9794,7 @@ killed BUFFER (leaving no work behind) and against \\`C-g' during a chunk
                       (run-with-timer 0 nil
                                       #'projectile-replace--scan-step
                                       buffer remaining regexp budget on-done generation))
-                (funcall projectile-replace--render-function))
+                (projectile-replace--render-progress))
             ;; finished (or budget-truncated): settle and hand off
             (with-current-buffer buffer
               (setq projectile-replace--scanning nil
@@ -10781,7 +10801,7 @@ finish the scan."
           (when new
             (setq projectile-replace--matches
                   (append projectile-replace--matches new)))
-          (funcall projectile-replace--render-function)
+          (projectile-replace--render-progress)
           projectile-replace--truncated)))))
 
 (defun projectile-search--rg-finish (buffer on-done)
@@ -10926,6 +10946,18 @@ might take either path therefore pass a function, so the walk - which
 shells out per project - is paid for only when something is going to scan
 its result."
   (if (functionp candidates) (funcall candidates) candidates))
+
+(defun projectile-replace--render-progress ()
+  "Redraw the current results buffer, subject to throttling.
+Redraws no more often than `projectile-search-render-interval'.  For use
+while a scan is streaming; the redraw that settles a finished scan is
+unconditional, so a skipped intermediate draw is never the last word."
+  (let ((now (float-time)))
+    (when (or (null projectile-search-render-interval)
+              (>= (- now projectile-replace--last-render)
+                  projectile-search-render-interval))
+      (setq projectile-replace--last-render now)
+      (funcall projectile-replace--render-function))))
 
 (defun projectile-replace--start (buffer candidates regexp on-done)
   "Fill BUFFER's match list by scanning CANDIDATES for REGEXP.

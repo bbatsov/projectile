@@ -318,6 +318,13 @@ new scan (kbd:[g], kbd:[c], kbd:[x]) first cancels any in-flight one. Set
 `projectile-search-async` to nil to force the old synchronous single-pass
 scan instead; batch (`noninteractive`) runs always scan synchronously.
 
+The buffer is redrawn from scratch each time, so a redraw costs time in
+proportion to the matches found so far - which is why redrawing is throttled
+to `projectile-search-render-interval` (a tenth of a second by default) while
+results stream in rather than happening on every chunk. The redraw that
+settles a finished scan is unconditional, so throttling only ever delays an
+intermediate state. Set the option to nil to redraw on every chunk.
+
 kbd:[!] applies the enabled matches with no external dependency. If you'd
 rather edit the results as text, kbd:[e] exports the enabled matches (the
 same set kbd:[!] would act on) to a `+*projectile-grep*+` buffer in `grep-mode`,

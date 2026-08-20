@@ -281,6 +281,9 @@ and the other reference pages.
 | `projectile-search-max-matches`
 | Upper bound on how many matches a review buffer collects.
 
+| `projectile-search-render-interval`
+| Seconds to leave between redraws while search results stream in.
+
 | `projectile-search-scan-chunk-size`
 | Number of candidate files scanned per async chunk before yielding.
 
