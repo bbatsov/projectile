@@ -37,6 +37,10 @@
 
 ;;; Code:
 
+;; Buttercup is a test-time dependency, not a build one, so its functions are
+;; not known when this file is byte-compiled.
+(declare-function buttercup-spec-full-name "buttercup" (spec))
+
 (defun projectile-buffer-leaks--check (orig spec &rest args)
   "Run SPEC via ORIG with ARGS, reporting if it changes the current buffer."
   (let ((before (current-buffer)))
