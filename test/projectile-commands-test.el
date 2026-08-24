@@ -1218,4 +1218,87 @@
     (let ((projectile-use-comint-mode nil))
       (expect (projectile-use-comint-mode-p 'task) :to-be nil))))
 
+;;; The commands themselves, not the machinery under them
+
+;; Every layer beneath these was covered and the commands were not, which is
+;; how two wiring bugs shipped in one month: `s-p F' completing over an empty
+;; list because it read a variable instead of its accessor, and
+;; find-file-in-subproject offering nothing in a Go workspace.  One spec each,
+;; asking only whether the command reaches its destination.
+
+(describe "projectile-find-file"
+  (it "opens the chosen file, resolved against the project root"
+    (projectile-test-with-project
+        (("src/a.txt" . "x") ("b.txt" . "y"))
+      (let ((root default-directory))
+        (spy-on 'projectile-completing-read :and-return-value "src/a.txt")
+        (spy-on 'find-file)
+        (projectile-find-file)
+        (expect 'find-file :to-have-been-called-with
+                (expand-file-name "src/a.txt" root)))))
+
+  (it "offers the project's files and runs the find-file hook"
+    (projectile-test-with-project
+        (("src/a.txt" . "x") ("b.txt" . "y"))
+      (let ((ran nil))
+        (spy-on 'projectile-completing-read :and-return-value "b.txt")
+        (spy-on 'find-file)
+        (let ((projectile-find-file-hook (list (lambda () (setq ran t)))))
+          (projectile-find-file))
+        (expect ran :to-be-truthy)
+        (let ((offered (cadr (spy-calls-args-for 'projectile-completing-read 0))))
+          (expect offered :to-contain "src/a.txt")
+          (expect offered :to-contain "b.txt")))))
+
+  (it "does nothing when the completion is declined"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (spy-on 'projectile-completing-read :and-return-value nil)
+      (spy-on 'find-file)
+      (projectile-find-file)
+      (expect 'find-file :not :to-have-been-called)))
+
+  (it "invalidates the cache first when given a prefix argument"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (spy-on 'projectile-completing-read :and-return-value "a.txt")
+      (spy-on 'find-file)
+      (spy-on 'projectile-invalidate-cache)
+      (let ((projectile-enable-caching t))
+        (projectile-find-file '(4)))
+      (expect 'projectile-invalidate-cache :to-have-been-called))))
+
+(describe "projectile-find-file-all"
+  (it "offers what the generic listing command returns, ignore rules and all"
+    (projectile-test-with-project
+        ((".projectile" . "-/vendor\n")
+         ("keep.txt" . "x")
+         ("vendor/hidden.txt" . "y"))
+      (let ((root default-directory))
+        (spy-on 'projectile-files-via-ext-command
+                :and-return-value '("keep.txt" "vendor/hidden.txt"))
+        (spy-on 'projectile-completing-read :and-return-value "vendor/hidden.txt")
+        (spy-on 'find-file)
+        (projectile-find-file-all)
+        ;; the ignored file is reachable - that is the point of the command
+        (expect (cadr (spy-calls-args-for 'projectile-completing-read 0))
+                :to-contain "vendor/hidden.txt")
+        (expect 'find-file :to-have-been-called-with
+                (expand-file-name "vendor/hidden.txt" root))))))
+
+(describe "projectile-switch-open-project"
+  (it "offers the open projects and switches to the chosen one"
+    (spy-on 'projectile-relevant-open-projects :and-return-value '("/a/" "/b/"))
+    (spy-on 'projectile-switch-project-by-name)
+    (spy-on 'projectile-completing-read :and-call-fake
+            (lambda (_prompt _choices &rest args)
+              (funcall (plist-get args :action) "/b/")))
+    (projectile-switch-open-project)
+    (expect 'projectile-switch-project-by-name
+            :to-have-been-called-with "/b/" nil))
+
+  (it "says so when nothing is open"
+    (spy-on 'projectile-relevant-open-projects :and-return-value nil)
+    (expect (projectile-switch-open-project) :to-throw 'user-error)))
+
 ;;; projectile-commands-test.el ends here

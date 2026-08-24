@@ -233,4 +233,62 @@ projectile-process-current-project-buffers-current to have similar behaviour"
 ;; A bunch of tests that make sure Projectile commands handle
 ;; gracefully the case of being run outside of a project.
 
+;;; The buffer commands themselves
+
+(describe "projectile-kill-buffers"
+  (it "kills the project's buffers once confirmed"
+    (projectile-test-with-project
+        (("a.txt" . "x") ("b.txt" . "y"))
+      (let ((ba (find-file-noselect (expand-file-name "a.txt")))
+            (bb (find-file-noselect (expand-file-name "b.txt"))))
+        (spy-on 'yes-or-no-p :and-return-value t)
+        (projectile-kill-buffers)
+        (expect (buffer-live-p ba) :to-be nil)
+        (expect (buffer-live-p bb) :to-be nil))))
+
+  (it "kills nothing when the confirmation is declined"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (let ((ba (find-file-noselect (expand-file-name "a.txt"))))
+        (spy-on 'yes-or-no-p :and-return-value nil)
+        (projectile-kill-buffers)
+        (expect (buffer-live-p ba) :to-be-truthy))))
+
+  (it "counts the buffers it is about to kill in the prompt"
+    (projectile-test-with-project
+        (("a.txt" . "x") ("b.txt" . "y"))
+      (find-file-noselect (expand-file-name "a.txt"))
+      (find-file-noselect (expand-file-name "b.txt"))
+      (spy-on 'yes-or-no-p :and-return-value nil)
+      (projectile-kill-buffers)
+      (expect (car (spy-calls-args-for 'yes-or-no-p 0)) :to-match "kill 2 buffers"))))
+
+(describe "projectile-next-project-buffer"
+  (it "keeps calling next-buffer until it lands on another project buffer"
+    (projectile-test-with-project
+        (("a.txt" . "x") ("b.txt" . "y"))
+      (let* ((ba (find-file-noselect (expand-file-name "a.txt")))
+             (bb (find-file-noselect (expand-file-name "b.txt")))
+             (visited nil))
+        (spy-on 'projectile-project-buffers :and-return-value (list ba bb))
+        (set-buffer ba)
+        ;; a stand-in for `next-buffer': step through a fixed rotation that
+        ;; passes an unrelated buffer before reaching the project's other one
+        (let ((rotation (list (get-buffer-create "*unrelated*") bb)))
+          (cl-letf (((symbol-function 'next-buffer)
+                     (lambda (&rest _)
+                       (let ((next (or (pop rotation) bb)))
+                         (push next visited)
+                         (set-buffer next)))))
+            (projectile-next-project-buffer)))
+        (expect (current-buffer) :to-be bb)
+        ;; it did not stop at the unrelated buffer on the way
+        (expect (length visited) :to-equal 2))))
+
+  (it "falls back to plain next-buffer outside a project"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (spy-on 'next-buffer)
+    (projectile-next-project-buffer)
+    (expect 'next-buffer :to-have-been-called)))
+
 ;;; projectile-buffers-test.el ends here

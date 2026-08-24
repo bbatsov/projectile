@@ -869,4 +869,122 @@ REGEXP-P selects `projectile-replace-regexp-review'."
     (expect (lookup-key projectile-command-map (kbd "u"))
             :to-be #'projectile-replace-undo)))
 
+;;; The keys the results buffer is driven with
+
+(describe "the results buffer's own commands"
+  ;; The reviewer's machinery is covered exhaustively elsewhere; these are the
+  ;; commands the keymap actually invokes, which nothing was exercising.
+
+  (it "toggles a single match in and out of the batch"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\nfoo two\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (projectile-replace--goto-next-match)
+          (let ((m (projectile-replace--match-at-point)))
+            (expect (projectile-replace--match-enabled m) :to-be-truthy)
+            (projectile-replace--toggle)
+            (expect (projectile-replace--match-enabled m) :to-be nil)
+            (projectile-replace--toggle)
+            (expect (projectile-replace--match-enabled m) :to-be-truthy))))))
+
+  (it "refuses to toggle when point is not on a match"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))          ; the header, not a match
+          (expect (projectile-replace--toggle) :to-throw 'user-error)))))
+
+  (it "toggles a whole file at once, and back"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\nfoo two\n")
+         ("b.txt" . "foo three\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (projectile-replace--goto-next-match)
+          (let* ((file (projectile-replace--match-file
+                        (projectile-replace--match-at-point)))
+                 (of-file (lambda ()
+                            (cl-remove-if-not
+                             (lambda (m) (equal (projectile-replace--match-file m) file))
+                             projectile-replace--matches))))
+            (expect (length (funcall of-file)) :to-equal 2)
+            ;; any enabled -> all disabled
+            (projectile-replace--toggle-file)
+            (expect (cl-some #'projectile-replace--match-enabled (funcall of-file))
+                    :to-be nil)
+            ;; none enabled -> all enabled
+            (projectile-replace--toggle-file)
+            (expect (cl-every #'projectile-replace--match-enabled (funcall of-file))
+                    :to-be-truthy)
+            ;; and the other file is untouched
+            (expect (cl-every #'projectile-replace--match-enabled
+                              projectile-replace--matches)
+                    :to-be-truthy))))))
+
+  (it "walks between files and back between matches"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\nfoo two\n")
+         ("b.txt" . "foo three\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (projectile-replace--goto-next-file)
+          (let ((first-file (get-text-property (line-beginning-position)
+                                               'projectile-replace-file)))
+            (expect first-file :to-be-truthy)
+            (projectile-replace--goto-next-file)
+            (expect (get-text-property (line-beginning-position)
+                                       'projectile-replace-file)
+                    :not :to-equal first-file)
+            ;; and back the other way
+            (projectile-replace--goto-prev-file)
+            (expect (get-text-property (line-beginning-position)
+                                       'projectile-replace-file)
+                    :to-equal first-file))))))
+
+  (it "says so rather than moving when there is no further match"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (projectile-replace--goto-next-match)
+          (let ((here (point)))
+            (spy-on 'message)
+            (projectile-replace--goto-prev-match)
+            (expect (point) :to-equal here)
+            (expect 'message :to-have-been-called))))))
+
+  (it "re-reads the replacement and re-renders the previews"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (expect (buffer-string) :to-match "bar")
+          (spy-on 'read-string :and-return-value "baz")
+          (projectile-replace--set-replacement)
+          (expect projectile-replace--replacement :to-equal "baz")
+          (expect (buffer-string) :to-match "baz")))))
+
+  (it "cancels an in-flight scan on quit"
+    (projectile-test-with-project
+        (("a.txt" . "foo one\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (setq projectile-replace--scanning t)
+          (cl-letf (((symbol-function 'quit-window) #'ignore))
+            (projectile-replace--quit))
+          (expect projectile-replace--scanning :to-be nil))))))
+
 ;;; projectile-replace-review-test.el ends here
