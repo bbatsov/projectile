@@ -472,4 +472,21 @@
           (projectile-ignored-project-function nil))
       (expect (projectile-ignored-project-p "/anything/") :to-be nil))))
 
+(describe "commands that list the known projects"
+  ;; `projectile-known-projects' the variable is nil until the same-named
+  ;; accessor loads it from disk, and nothing loads it at startup.  Reading
+  ;; the variable therefore handed an empty list to whichever command asked
+  ;; first in a session - `s-p F' completed over nothing at all.
+  (it "loads the persisted list rather than reading the empty variable"
+    (let ((projectile-known-projects nil)
+          (loaded nil))
+      (spy-on 'projectile-load-known-projects :and-call-fake
+              (lambda () (setq loaded t
+                               projectile-known-projects '("/a/" "/b/"))))
+      (spy-on 'projectile-project-group-files :and-return-value '("/a/x"))
+      (projectile-all-project-files)
+      (expect loaded :to-be-truthy)
+      (expect 'projectile-project-group-files
+              :to-have-been-called-with '("/a/" "/b/")))))
+
 ;;; projectile-known-projects-test.el ends here

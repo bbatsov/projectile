@@ -3138,7 +3138,7 @@ See also `projectile-acquire-root'."
       dir
     (cond
      ((eq projectile-require-project-root 'prompt) (projectile-completing-read
-                                                    "Switch to project: " projectile-known-projects
+                                                    "Switch to project: " (projectile-known-projects)
                                                     :category 'projectile-project
                                                     :caller 'projectile-read-project))
      (projectile-require-project-root (user-error "Projectile cannot find a project definition in %s" default-directory))
@@ -11561,7 +11561,7 @@ directory to open."
                     (list
                      (projectile-completing-read
                       "Open project VC in: "
-                      projectile-known-projects
+                      (projectile-known-projects)
                       :category 'projectile-project
                       :caller 'projectile-read-project))))
   (unless project-root
@@ -13885,7 +13885,7 @@ This command will first prompt for the directory the file is in."
 
 (defun projectile-all-project-files ()
   "Get a list of all files in all projects."
-  (projectile-project-group-files projectile-known-projects))
+  (projectile-project-group-files (projectile-known-projects)))
 
 ;;;###autoload
 (defun projectile-find-file-in-known-projects ()
@@ -13893,7 +13893,7 @@ This command will first prompt for the directory the file is in."
 This is `projectile-find-file-in-projects' over every project you have
 ever visited."
   (interactive)
-  (projectile-find-file-in-projects projectile-known-projects
+  (projectile-find-file-in-projects (projectile-known-projects)
                                     "Find file in projects: "))
 
 (defun projectile-keep-project-p (project)
@@ -13996,7 +13996,7 @@ projects removed."
 (defun projectile-remove-known-project (&optional project)
   "Remove PROJECT from the list of known projects."
   (interactive (list (projectile-completing-read
-                      "Remove from known projects: " projectile-known-projects
+                      "Remove from known projects: " (projectile-known-projects)
                       :action 'projectile-remove-known-project
                       :category 'projectile-project
                       :caller 'projectile-read-project)))
