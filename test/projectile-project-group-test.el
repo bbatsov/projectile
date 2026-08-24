@@ -346,6 +346,46 @@ the two truename'd roots and `parent' to the directory holding them."
               :to-equal '("src/todo.txt")))))
 
 
+;;; The sibling wrappers themselves
+
+(describe "projectile-switch-to-buffer-in-sibling-projects"
+  (it "offers the buffers of the whole family"
+    (projectile-group-test--with-projects
+      (let ((ba (find-file-noselect (expand-file-name "src/a.txt" alpha)))
+            (bb (find-file-noselect (expand-file-name "lib/b.txt" beta))))
+        (ignore ba)
+        (spy-on 'projectile-sibling-projects :and-return-value (list alpha beta))
+        (spy-on 'projectile-completing-read :and-return-value (buffer-name bb))
+        (spy-on 'switch-to-buffer)
+        (projectile-switch-to-buffer-in-sibling-projects)
+        (let ((offered (cadr (spy-calls-args-for 'projectile-completing-read 0))))
+          (expect offered :to-contain "a.txt")
+          (expect offered :to-contain "b.txt"))
+        (expect 'switch-to-buffer :to-have-been-called-with (buffer-name bb)))))
+
+  (it "says so when the project has no siblings"
+    (projectile-group-test--with-projects
+      (spy-on 'projectile-sibling-projects :and-return-value nil)
+      (spy-on 'projectile-acquire-root :and-return-value alpha)
+      (expect (projectile-switch-to-buffer-in-sibling-projects)
+              :to-throw 'user-error))))
+
+(describe "projectile-multi-occur-in-sibling-projects"
+  (it "runs multi-occur over the family's buffers, not over files on disk"
+    (projectile-group-test--with-projects
+      (let ((ba (find-file-noselect (expand-file-name "src/a.txt" alpha)))
+            (bb (find-file-noselect (expand-file-name "lib/b.txt" beta))))
+        (spy-on 'projectile-sibling-projects :and-return-value (list alpha beta))
+        (spy-on 'occur-read-primary-args :and-return-value '("needle"))
+        (spy-on 'multi-occur)
+        (projectile-multi-occur-in-sibling-projects 3)
+        (let ((args (spy-calls-args-for 'multi-occur 0)))
+          (expect (nth 0 args) :to-contain ba)
+          (expect (nth 0 args) :to-contain bb)
+          (expect (nth 1 args) :to-equal "needle")
+          ;; the prefix argument is passed through as the context line count
+          (expect (nth 2 args) :to-equal 3))))))
+
 ;;; Ripgrep across a group
 
 (defun projectile-group-test--seed-rg (buf root projects term)

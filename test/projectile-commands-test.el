@@ -857,6 +857,27 @@
           (expect (projectile-subprojects-from-manifest repo)
                   :to-equal '("core/" "util/"))))))
 
+  (it "reads the modules a Go workspace puts to use"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/api/" "repo/worker/" "repo/scratch/")
+        (with-temp-file "repo/go.work"
+          (insert "go 1.22\n\nuse (\n\t./api\n\t// not this one\n\t./worker\n)\n"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          ;; the comment inside the block is not a module, and `scratch' is
+          ;; simply not listed
+          (expect (projectile-subprojects-from-manifest repo)
+                  :to-equal '("api/" "worker/"))))))
+
+  (it "reads a single-line Go workspace use directive"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/only/")
+        (with-temp-file "repo/go.work" (insert "go 1.22\n\nuse ./only\n"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          (expect (projectile-subprojects-from-manifest repo)
+                  :to-equal '("only/"))))))
+
   (it "has no answer when the members are not declared statically"
     ;; Gradle builds its module list in a Kotlin program and Bazel in
     ;; Starlark; neither can be read without running the tool, so the scan
