@@ -136,6 +136,48 @@
     ;; dispatch menu is always available.
     (expect (get 'projectile-dispatch 'transient--prefix) :to-be-truthy)))
 
+(describe "projectile-dispatch-search-siblings"
+  ;; The sibling search is not a `projectile--define-display-variants' wrapper
+  ;; like its neighbours - it translates the switches itself - so it needs its
+  ;; own coverage.
+  :var (captured)
+  (before-each
+    (setq captured nil)
+    (spy-on 'projectile-dispatch--args :and-return-value nil)
+    (spy-on 'projectile-search-in-sibling-projects :and-call-fake
+            (lambda (&optional regexp)
+              (setq captured (list :regexp regexp
+                                   :case-fold case-fold-search
+                                   :word projectile-search-whole-word)))))
+
+  (it "searches for a literal term with no switches active"
+    (projectile-dispatch-search-siblings)
+    (expect (plist-get captured :regexp) :to-be nil))
+
+  (it "reads the term as a regexp when --regexp is active"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--regexp"))
+    (projectile-dispatch-search-siblings)
+    (expect (plist-get captured :regexp) :to-be t))
+
+  (it "seeds the search case-sensitive when --case-sensitive is active"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--case-sensitive"))
+    (let ((case-fold-search t))
+      (projectile-dispatch-search-siblings))
+    (expect (plist-get captured :case-fold) :to-be nil))
+
+  (it "seeds whole-word matching when --word is active"
+    (spy-on 'projectile-dispatch--args :and-return-value '("--word"))
+    (let ((projectile-search-whole-word nil))
+      (projectile-dispatch-search-siblings))
+    (expect (plist-get captured :word) :to-be t))
+
+  (it "leaves the search settings alone when the switches are off"
+    (let ((case-fold-search t)
+          (projectile-search-whole-word nil))
+      (projectile-dispatch-search-siblings))
+    (expect (plist-get captured :case-fold) :to-be t)
+    (expect (plist-get captured :word) :to-be nil)))
+
 (provide 'projectile-dispatch-test)
 
 ;;; projectile-dispatch-test.el ends here

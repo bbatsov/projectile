@@ -12407,7 +12407,14 @@ narrow."
         ;; passing it makes a glob be read as a regular expression.
         (dolist (hit (file-expand-wildcards (directory-file-name pattern)))
           (when (file-directory-p (expand-file-name hit root))
-            (push (file-name-as-directory hit) dirs)))))
+            ;; Re-spell the hit relative to ROOT rather than keeping it as
+            ;; written.  A `go.work' says `./api', and the leading `./' would
+            ;; otherwise survive into a subproject name that matches none of
+            ;; the project's file paths - leaving find-file-in-subproject
+            ;; with nothing to offer.
+            (push (file-name-as-directory
+                   (file-relative-name (expand-file-name hit root) root))
+                  dirs)))))
     (sort (delete-dups dirs) #'string<)))
 
 (defun projectile--workspace-member-patterns (root)
