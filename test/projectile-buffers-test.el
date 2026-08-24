@@ -271,17 +271,22 @@ projectile-process-current-project-buffers-current to have similar behaviour"
              (bb (find-file-noselect (expand-file-name "b.txt")))
              (visited nil))
         (spy-on 'projectile-project-buffers :and-return-value (list ba bb))
-        (set-buffer ba)
-        ;; a stand-in for `next-buffer': step through a fixed rotation that
-        ;; passes an unrelated buffer before reaching the project's other one
-        (let ((rotation (list (get-buffer-create "*unrelated*") bb)))
-          (cl-letf (((symbol-function 'next-buffer)
-                     (lambda (&rest _)
-                       (let ((next (or (pop rotation) bb)))
-                         (push next visited)
-                         (set-buffer next)))))
-            (projectile-next-project-buffer)))
-        (expect (current-buffer) :to-be bb)
+        ;; `save-current-buffer' matters: the command works on whatever buffer
+        ;; is current, and leaving a foreign one current leaks into every spec
+        ;; that runs afterwards.
+        (save-current-buffer
+          (set-buffer ba)
+          ;; a stand-in for `next-buffer': step through a fixed rotation that
+          ;; passes an unrelated buffer before reaching the project's other one
+          (let ((rotation (list (get-buffer-create "*unrelated*") bb)))
+            (cl-letf (((symbol-function 'next-buffer)
+                       (lambda (&rest _)
+                         (let ((next (or (pop rotation) bb)))
+                           (push next visited)
+                           (set-buffer next)))))
+              (projectile-next-project-buffer)))
+          (expect (current-buffer) :to-be bb))
+        (kill-buffer "*unrelated*")
         ;; it did not stop at the unrelated buffer on the way
         (expect (length visited) :to-equal 2))))
 

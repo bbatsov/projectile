@@ -559,36 +559,44 @@ REGEXP-P selects `projectile-search-regexp-review'."
   ;; The results buffer is redrawn from scratch, so a redraw costs time
   ;; proportional to the matches found so far; drawing on every chunk of a
   ;; streaming scan is most of the run on a large search.
+  ;; `before-each' runs outside any `save-current-buffer', so seeding the
+  ;; results buffer here would leave it current for every spec that follows.
+  ;; Hand it to the specs instead and let them enter it.
+  :var (buf)
   (before-each
-    (set-buffer (get-buffer-create projectile-search-buffer-name))
-    (projectile-replace--seed (current-buffer) #'projectile-search-mode
+    (setq buf (get-buffer-create projectile-search-buffer-name))
+    (projectile-replace--seed buf #'projectile-search-mode
                               default-directory "foo" "foo" nil t t)
     (spy-on 'projectile-search--render))
 
   (it "draws the first time, since a fresh buffer has never been drawn"
-    (let ((projectile-search-render-interval 3600))
-      (projectile-replace--render-progress)
-      (expect 'projectile-search--render :to-have-been-called-times 1)))
+    (with-current-buffer buf
+      (let ((projectile-search-render-interval 3600))
+        (projectile-replace--render-progress)
+        (expect 'projectile-search--render :to-have-been-called-times 1))))
 
   (it "suppresses a redraw that comes too soon after the last"
-    (let ((projectile-search-render-interval 3600))
-      (projectile-replace--render-progress)
-      (projectile-replace--render-progress)
-      (projectile-replace--render-progress)
-      (expect 'projectile-search--render :to-have-been-called-times 1)))
+    (with-current-buffer buf
+      (let ((projectile-search-render-interval 3600))
+        (projectile-replace--render-progress)
+        (projectile-replace--render-progress)
+        (projectile-replace--render-progress)
+        (expect 'projectile-search--render :to-have-been-called-times 1))))
 
   (it "draws again once the interval has passed"
-    (let ((projectile-search-render-interval 0.05))
-      (projectile-replace--render-progress)
-      ;; rather than sleeping, age the buffer's last-draw stamp
-      (setq projectile-replace--last-render (- (float-time) 10))
-      (projectile-replace--render-progress)
-      (expect 'projectile-search--render :to-have-been-called-times 2)))
+    (with-current-buffer buf
+      (let ((projectile-search-render-interval 0.05))
+        (projectile-replace--render-progress)
+        ;; rather than sleeping, age the buffer's last-draw stamp
+        (setq projectile-replace--last-render (- (float-time) 10))
+        (projectile-replace--render-progress)
+        (expect 'projectile-search--render :to-have-been-called-times 2))))
 
   (it "draws on every call when the interval is nil"
-    (let ((projectile-search-render-interval nil))
-      (dotimes (_ 5) (projectile-replace--render-progress))
-      (expect 'projectile-search--render :to-have-been-called-times 5))))
+    (with-current-buffer buf
+      (let ((projectile-search-render-interval nil))
+        (dotimes (_ 5) (projectile-replace--render-progress))
+        (expect 'projectile-search--render :to-have-been-called-times 5)))))
 
 (describe "point while results stream in"
   (it "keeps point where the user put it across a streaming redraw"
