@@ -4634,6 +4634,13 @@ With a prefix argument, show NLINES of context."
                  (car (occur-read-primary-args))
                  nlines)))
 
+;;; Ignore and ensure rules
+;;
+;; Which paths a project's commands may touch.  The rules come from the
+;; globally ignored lists and from the `-'/`!' entries of the dirconfig, and
+;; are normalised here into the gitignore-style patterns every indexing
+;; method and every external tool Projectile drives is configured from.
+
 (defun projectile-normalise-paths (patterns)
   "Remove leading `/' from the elements of PATTERNS."
   ;; TODO: Replace delq+mapcar with seq-keep when Emacs 29.1 is the minimum version
@@ -4822,6 +4829,12 @@ is kept even when `projectile--ignore-patterns' also matches it."
                     (projectile-expand-paths (projectile-files-to-ensure)))))
 
 
+;;; The dirconfig file
+;;
+;; Reading and parsing a project's `.projectile': classifying its lines into
+;; keep/ignore/ensure entries, caching the parse against the file's mtime,
+;; and warning about the entry forms that no longer mean what they look like.
+
 (defun projectile-dirconfig-file (&optional root)
   "Return the absolute path to ROOT's dirconfig file.
 ROOT defaults to the current project's root."
@@ -4977,6 +4990,8 @@ dirconfig file's modification time changes."
     (projectile--maybe-warn-glob-keep-entries project-root result)
     result))
 
+;;; Path expansion and completion
+
 (defun projectile-expand-root (name &optional dir)
   "Expand NAME to project root.
 When DIR is specified it uses DIR's project, otherwise it acts
@@ -5030,6 +5045,8 @@ CALLER is accepted for backward compatibility but no longer used."
                      (complete-with-action action choices string pred)))
                  nil nil initial-input))))
     (if action (funcall action res) res)))
+
+;;; Listing a project's files and directories
 
 (defun projectile-project-files (project-root)
   "Return a list of files for the PROJECT-ROOT."
@@ -7770,6 +7787,13 @@ Only git projects are supported."
       (run-hooks 'projectile-find-file-hook))))
 
 
+;;; Implementation and test counterparts
+;;
+;; Finding the test that goes with a source file and back again.  A project
+;; type can describe the correspondence by prefix/suffix, by source and test
+;; directories, or with a `:related-files-fn' of its own; the fallbacks below
+;; are what runs when it describes nothing.
+
 (defun projectile--test-name-for-impl-name (impl-file-path)
   "Determine the name of the test file for IMPL-FILE-PATH.
 
@@ -8211,6 +8235,12 @@ The precedence for determining implementation files to return is:
   "Compute the name of a file matching TEST-FILE."
   (when-let* ((candidates (projectile--find-matching-file test-file)))
     (projectile--choose-from-candidates candidates :caller 'projectile-read-file)))
+
+;;; Search prompt and file-spec helpers
+;;
+;; Odds and ends the search and grep commands need: the default file
+;; specification `projectile-grep' offers, the ignored-suffix globs, and the
+;; faces and reader behind the search prompt.
 
 (defun projectile-grep-default-files ()
   "Try to find a default pattern for `projectile-grep'.
@@ -11439,6 +11469,12 @@ more than one."
      ;; whole-word fence could never match; whole-word mode is not seeded here.
      nil rg-pattern projects)))
 
+;;; Project buffer commands
+;;
+;; Acting on the buffers that belong to the project - killing them, saving
+;; them - and the condition language `projectile-kill-buffers-filter' uses to
+;; decide which ones are in scope.
+
 (defun projectile--buffer-matches-conditions (buffer conditions)
   "Return non-nil if BUFFER satisfies any condition in CONDITIONS.
 
@@ -11518,6 +11554,13 @@ The buffers are killed according to the value of
         (with-current-buffer buf
           (save-buffer)))
       (message "[%s] Saved %d buffers" project-name (length modified-buffers)))))
+
+;;; Dired, version control and recent files
+;;
+;; Commands that hand the project root to something else: Dired, the VC
+;; interface, and `recentf' filtered down to the project.  The path of a
+;; project's on-disk cache file is worked out at the end of it, having
+;; nowhere better to live.
 
 (defun projectile--dired (dired-fn &optional arg)
   "Open the project root in dired using DIRED-FN.
@@ -11609,6 +11652,13 @@ Acts on the current project if not specified explicitly."
   (if project-root
       (expand-file-name projectile-cache-file project-root)
     (projectile-expand-root projectile-cache-file)))
+
+;;; Lifecycle command plumbing
+;;
+;; What the configure/compile/test/install/package/run commands are made of,
+;; as opposed to the commands themselves (see `;;; Lifecycle commands'): the
+;; per-project caches of the last command used, the dirconfig overrides, and
+;; the phase descriptors that tie the two together.
 
 (defvar projectile-configure-cmd-map
   (make-hash-table :test 'equal)
@@ -11759,6 +11809,12 @@ Should be set via .dir-locals.el.")
 It takes precedence over the default command for the project type when set.
 Should be set via .dir-locals.el.")
 (put 'projectile-project-run-cmd 'safe-local-variable #'stringp)
+
+;;; Project tasks
+;;
+;; A project's named tasks, both the ones configured in `projectile-tasks'
+;; and the ones discovered from the build tool.  Running them lives in
+;; `;;; Tasks, and repeating what you ran last'.
 
 (defun projectile-tasks-safe-p (value)
   "Return non-nil if VALUE is a safe directory-local `projectile-tasks'.
