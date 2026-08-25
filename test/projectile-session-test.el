@@ -28,6 +28,21 @@
 (require 'projectile-test-helpers)
 (require 'tab-bar)
 
+(defvar projectile-session-test--entry-buffer nil
+  "The buffer that was current when the running spec began.")
+
+(defun projectile-session-test--remember-buffer ()
+  "Record the current buffer, for `projectile-session-test--restore-buffer'."
+  (setq projectile-session-test--entry-buffer (current-buffer)))
+
+(defun projectile-session-test--restore-buffer ()
+  "Return to the buffer recorded when the spec began.
+These specs lay out windows, switch between file buffers and rearrange
+tabs, so without this they leave one of their own buffers current for
+everything that runs afterwards - see `dev/buffer-leaks.el'."
+  (when (buffer-live-p projectile-session-test--entry-buffer)
+    (set-buffer projectile-session-test--entry-buffer)))
+
 (defun projectile-session-test--reset-tabs ()
   "Reset the selected frame to a single, unowned tab."
   (set-frame-parameter nil 'tabs nil)
@@ -44,12 +59,14 @@
 
 (describe "projectile-session-mode"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
     (when projectile-session-mode
       (projectile-session-mode -1))
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (describe "wiring"
     (it "installs and restores the switch-project action"
@@ -98,10 +115,12 @@
 
 (describe "projectile-session-switch-project-action"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (it "creates and populates a new tab on first switch"
     (let ((projectile-session-default-action 'projectile-session-test--populate))
@@ -146,10 +165,12 @@
 
 (describe "projectile-session tab naming"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (it "names a lone project tab after the project"
     (projectile-session--make-project-tab "/solo/bar/")
@@ -192,10 +213,12 @@
 
 (describe "projectile-session-switch-to-buffer"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (it "completes over just the current tab's project buffers"
     (let ((buf-a (get-buffer-create "session-a"))
@@ -422,6 +445,7 @@
 
 (describe "projectile-session save and restore"
   (before-each
+    (projectile-session-test--remember-buffer)
     (setq projectile-session-test--dir (projectile-session-test--make-dir))
     (projectile-session-test--reset-tabs))
 
@@ -429,7 +453,8 @@
     (projectile-session-test--reset-tabs)
     (when (and projectile-session-test--dir
                (file-directory-p projectile-session-test--dir))
-      (delete-directory projectile-session-test--dir t)))
+      (delete-directory projectile-session-test--dir t))
+    (projectile-session-test--restore-buffer))
 
   (it "writes a readable versioned sexp and restores the layout"
     (let ((tmp1 (make-temp-file "projectile-session-a" nil ".txt"))
@@ -589,6 +614,7 @@
 
 (describe "projectile-session restore-on-switch"
   (before-each
+    (projectile-session-test--remember-buffer)
     (setq projectile-session-test--dir (projectile-session-test--make-dir))
     (projectile-session-test--reset-tabs))
 
@@ -596,7 +622,8 @@
     (projectile-session-test--reset-tabs)
     (when (and projectile-session-test--dir
                (file-directory-p projectile-session-test--dir))
-      (delete-directory projectile-session-test--dir t)))
+      (delete-directory projectile-session-test--dir t))
+    (projectile-session-test--restore-buffer))
 
   (it "restores instead of populating when a session exists on disk"
     (let ((projectile-session-directory projectile-session-test--dir)
@@ -637,12 +664,14 @@
 
 (describe "projectile-session autosave wiring"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
     (when projectile-session-mode
       (projectile-session-mode -1))
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (it "adds and removes the autosave hooks with the mode"
     (let ((projectile-switch-project-action 'projectile-find-file)
@@ -708,6 +737,7 @@
 
 (describe "projectile-session-save-all"
   (before-each
+    (projectile-session-test--remember-buffer)
     (setq projectile-session-test--dir (projectile-session-test--make-dir))
     (projectile-session-test--reset-tabs))
 
@@ -715,7 +745,8 @@
     (projectile-session-test--reset-tabs)
     (when (and projectile-session-test--dir
                (file-directory-p projectile-session-test--dir))
-      (delete-directory projectile-session-test--dir t)))
+      (delete-directory projectile-session-test--dir t))
+    (projectile-session-test--restore-buffer))
 
   ;; Real-tab test: each project tab must be saved with ITS OWN layout, and
   ;; the user restored to the tab they started on.  This is what a mocked spec
@@ -789,10 +820,12 @@
 
 (describe "projectile-session survivor re-simplify"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (it "reverts a survivor's name when its clashing sibling tab is closed"
     (let ((tab-bar-tab-pre-close-functions
@@ -839,12 +872,14 @@
 
 (describe "projectile-session--saved-roots"
   (before-each
+    (projectile-session-test--remember-buffer)
     (setq projectile-session-test--dir (projectile-session-test--make-dir)))
 
   (after-each
     (when (and projectile-session-test--dir
                (file-directory-p projectile-session-test--dir))
-      (delete-directory projectile-session-test--dir t)))
+      (delete-directory projectile-session-test--dir t))
+    (projectile-session-test--restore-buffer))
 
   (it "collects saved roots in a stable order, skipping junk files"
     (let ((tmp (make-temp-file "projectile-session-roots" nil ".txt")))
@@ -883,6 +918,7 @@
 
 (describe "projectile-session-restore-all"
   (before-each
+    (projectile-session-test--remember-buffer)
     (setq projectile-session-test--dir (projectile-session-test--make-dir))
     (projectile-session-test--reset-tabs))
 
@@ -890,7 +926,8 @@
     (projectile-session-test--reset-tabs)
     (when (and projectile-session-test--dir
                (file-directory-p projectile-session-test--dir))
-      (delete-directory projectile-session-test--dir t)))
+      (delete-directory projectile-session-test--dir t))
+    (projectile-session-test--restore-buffer))
 
   ;; Real-tab test: restore-all must reopen each saved session into its own
   ;; tab, land the user on the first restored project, and put the right
@@ -1042,12 +1079,14 @@
 
 (describe "projectile-session restore-on-startup"
   (before-each
+    (projectile-session-test--remember-buffer)
     (projectile-session-test--reset-tabs))
 
   (after-each
     (when projectile-session-mode
       (projectile-session-mode -1))
-    (projectile-session-test--reset-tabs))
+    (projectile-session-test--reset-tabs)
+    (projectile-session-test--restore-buffer))
 
   (it "runs restore-all only when restore-on-startup is set"
     (let ((projectile-session-restore-on-startup nil))

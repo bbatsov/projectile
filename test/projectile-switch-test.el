@@ -252,10 +252,15 @@
          (projectile-test-with-files
           ("project/"
            "project/file")
-          (projectile-add-known-project (file-name-as-directory (expand-file-name "project")))
-          (projectile-switch-project-by-name (file-name-as-directory (expand-file-name "project")))
-
-          (expect (current-buffer) :to-be (get-file-buffer "project/file"))))))
+          (let ((project (file-name-as-directory (expand-file-name "project")))
+                ;; Resolve the file before switching: `switch-to-buffer'
+                ;; makes the visited buffer current, and `default-directory'
+                ;; is buffer-local, so a relative name would be resolved
+                ;; against the wrong directory afterwards.
+                (file (expand-file-name "project/file")))
+            (projectile-add-known-project project)
+            (projectile-switch-project-by-name project)
+            (expect (current-buffer) :to-be (get-file-buffer file)))))))
 
   (it "recognizes Mercurial project roots when switching known projects"
       (defvar switch-project-root)
