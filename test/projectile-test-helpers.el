@@ -99,8 +99,15 @@ answer from a previous test would otherwise still be live."
        (when (file-directory-p sandbox)
          (delete-directory sandbox t))
        (make-directory sandbox t)
-       (let ((default-directory sandbox))
-         ,@body))))
+       ;; Restore whatever buffer was current.  A spec that visits a file, or
+       ;; whose cleanup kills the buffer that was current when it started,
+       ;; otherwise leaves a foreign buffer current for everything that runs
+       ;; afterwards - which is invisible until a later spec reads ambient
+       ;; buffer state and fails on one Emacs version only.  See
+       ;; `dev/buffer-leaks.el'.
+       (save-current-buffer
+         (let ((default-directory sandbox))
+           ,@body)))))
 
 (defmacro projectile-test-with-files (files &rest body)
   "Evaluate BODY in the presence of FILES.
