@@ -601,4 +601,59 @@ main.o: main.c
       (expect (projectile-repeat-last-task nil) :to-throw 'user-error))))
 
 (provide 'projectile-tasks-test)
+;;; The lifecycle commands themselves
+
+(describe "the lifecycle commands"
+  ;; Each is a one-line wrapper over `projectile--run-lifecycle-phase', but
+  ;; nothing was checking that each passes its own phase - a copy-paste slip
+  ;; between them would have gone unnoticed.
+  (it "runs the phase named after the command"
+    (dolist (spec '((projectile-test-project    . test)
+                    (projectile-install-project . install)
+                    (projectile-package-project . package)))
+      (let (seen)
+        (spy-on 'projectile--run-lifecycle-phase :and-call-fake
+                (lambda (phase &rest _) (setq seen phase)))
+        (funcall (car spec) nil)
+        (expect seen :to-equal (cdr spec)))))
+
+  (it "passes the prefix argument through as the show-prompt flag"
+    (let (args)
+      (spy-on 'projectile--run-lifecycle-phase :and-call-fake
+              (lambda (&rest a) (setq args a)))
+      (projectile-test-project '(4))
+      (expect (nth 0 args) :to-equal 'test)
+      (expect (nth 1 args) :to-equal '(4)))))
+
+(describe "projectile-repeat-last-command"
+  (it "re-runs the newest command in the project's history"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (let ((history (make-ring 4))
+            (ran nil))
+        (ring-insert history "make old")
+        (ring-insert history "make check")
+        (spy-on 'projectile--get-command-history :and-return-value history)
+        (spy-on 'projectile--run-project-cmd :and-call-fake
+                (lambda (cmd &rest _) (setq ran cmd) cmd))
+        (projectile-repeat-last-command nil)
+        (expect ran :to-equal "make check"))))
+
+  (it "records an edited command back into the history"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (let ((history (make-ring 4)))
+        (ring-insert history "make check")
+        (spy-on 'projectile--get-command-history :and-return-value history)
+        ;; the user edited the command at the prompt
+        (spy-on 'projectile--run-project-cmd :and-return-value "make check -j8")
+        (projectile-repeat-last-command '(4))
+        (expect (car (ring-elements history)) :to-equal "make check -j8"))))
+
+  (it "says so when the project has nothing to repeat"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (spy-on 'projectile--get-command-history :and-return-value (make-ring 4))
+      (expect (projectile-repeat-last-command nil) :to-throw 'user-error))))
+
 ;;; projectile-tasks-test.el ends here
