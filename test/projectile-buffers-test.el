@@ -296,4 +296,17 @@ projectile-process-current-project-buffers-current to have similar behaviour"
     (projectile-next-project-buffer)
     (expect 'next-buffer :to-have-been-called)))
 
+(describe "projectile-previous-project-buffer"
+  (it "walks the other way, through the same repeat-until helper"
+    (spy-on 'projectile--repeat-until-project-buffer)
+    (projectile-previous-project-buffer)
+    (expect 'projectile--repeat-until-project-buffer
+            :to-have-been-called-with #'previous-buffer))
+
+  (it "falls back to plain previous-buffer outside a project"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (spy-on 'previous-buffer)
+    (projectile-previous-project-buffer)
+    (expect 'previous-buffer :to-have-been-called)))
+
 ;;; projectile-buffers-test.el ends here

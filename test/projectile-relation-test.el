@@ -764,4 +764,24 @@
       (projectile-update-project-type 'ext-demo :test-extension nil)
       (expect (projectile-test-extension 'ext-demo) :to-be nil))))
 
+(describe "projectile-toggle-between-implementation-and-test"
+  (it "opens the counterpart of the file being visited"
+    (spy-on 'projectile-find-implementation-or-test :and-return-value "/proj/test/a_test.rb")
+    (spy-on 'find-file)
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/lib/a.rb")
+      (projectile-toggle-between-implementation-and-test)
+      (setq buffer-file-name nil))
+    (expect 'find-file :to-have-been-called-with "/proj/test/a_test.rb"))
+
+  (it "asks about the file being visited, not about the project root"
+    (spy-on 'projectile-find-implementation-or-test :and-return-value "/proj/x")
+    (spy-on 'find-file)
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/lib/a.rb")
+      (projectile-toggle-between-implementation-and-test)
+      (setq buffer-file-name nil))
+    (expect 'projectile-find-implementation-or-test
+            :to-have-been-called-with "/proj/lib/a.rb")))
+
 ;;; projectile-relation-test.el ends here

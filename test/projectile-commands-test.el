@@ -1301,4 +1301,93 @@
     (spy-on 'projectile-relevant-open-projects :and-return-value nil)
     (expect (projectile-switch-open-project) :to-throw 'user-error)))
 
+(describe "projectile-find-dir"
+  (it "opens the chosen directory in dired, resolved against the root"
+    (projectile-test-with-project
+        (("src/nested/a.txt" . "x"))
+      (let ((root default-directory))
+        (spy-on 'projectile-completing-read :and-return-value "src/")
+        (spy-on 'dired)
+        (projectile-find-dir)
+        (expect 'dired :to-have-been-called-with
+                (expand-file-name "src/" root))))))
+
+(describe "projectile-find-file-dwim"
+  (it "opens the single file the name at point resolves to, without prompting"
+    (projectile-test-with-project
+        (("src/unique-name.txt" . "x") ("other.txt" . "y"))
+      (let ((root default-directory))
+        (spy-on 'projectile-select-files :and-return-value '("src/unique-name.txt"))
+        (spy-on 'find-file)
+        (spy-on 'projectile-completing-read)
+        (projectile-find-file-dwim)
+        (expect 'find-file :to-have-been-called-with
+                (expand-file-name "src/unique-name.txt" root))
+        ;; one candidate means no completion is needed
+        (expect 'projectile-completing-read :not :to-have-been-called))))
+
+  (it "prompts when the name at point matches more than one file"
+    (projectile-test-with-project
+        (("a-one.txt" . "x") ("a-two.txt" . "y"))
+      (spy-on 'projectile-select-files :and-return-value '("a-one.txt" "a-two.txt"))
+      (spy-on 'projectile-completing-read :and-return-value "a-two.txt")
+      (spy-on 'find-file)
+      (projectile-find-file-dwim)
+      (expect 'projectile-completing-read :to-have-been-called))))
+
+(describe "projectile-recentf"
+  (it "opens a recent file of the project, resolved against the root"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      ;; the command gates on `(boundp 'recentf-list)', and a `let' cannot
+      ;; make an unbound, non-special symbol bound - load recentf instead
+      (require 'recentf)
+      (let ((root default-directory))
+        (spy-on 'projectile-recentf-files :and-return-value '("a.txt"))
+        (spy-on 'projectile-completing-read :and-return-value "a.txt")
+        (spy-on 'find-file)
+        (projectile-recentf)
+        (expect 'find-file :to-have-been-called-with
+                (expand-file-name "a.txt" root)))))
+
+  (it "says so when recentf is not enabled"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (spy-on 'message)
+      (spy-on 'find-file)
+      ;; `recentf-list' being unbound is how the command detects it
+      (cl-letf (((symbol-function 'boundp)
+                 (lambda (sym) (not (eq sym 'recentf-list)))))
+        (projectile-recentf))
+      (expect 'find-file :not :to-have-been-called)
+      (expect (car (spy-calls-args-for 'message 0)) :to-match "recentf"))))
+
+(describe "projectile-version"
+  (it "returns a version string"
+    (expect (projectile-version) :to-be-truthy)
+    (expect (stringp (projectile-version)) :to-be-truthy)))
+
+(describe "projectile-run-command-in-root"
+  (it "runs the next command from the project root"
+    (projectile-test-with-project
+        (("a.txt" . "x"))
+      (let ((root default-directory)
+            (seen nil))
+        (spy-on 'execute-extended-command :and-call-fake
+                (lambda (&rest _) (setq seen default-directory)))
+        (cl-letf (((symbol-function 'call-interactively)
+                   (lambda (cmd &rest _) (funcall cmd))))
+          (projectile-run-command-in-root))
+        (expect (file-truename seen) :to-equal (file-truename root))))))
+
+(describe "projectile-edit-dir-locals"
+  (it "opens the project's .dir-locals.el"
+    (projectile-test-with-project
+        ((".dir-locals.el" . "((nil . ((a . 1))))\n"))
+      (let ((root default-directory))
+        (spy-on 'find-file)
+        (projectile-edit-dir-locals)
+        (expect 'find-file :to-have-been-called-with
+                (expand-file-name ".dir-locals.el" root))))))
+
 ;;; projectile-commands-test.el ends here
