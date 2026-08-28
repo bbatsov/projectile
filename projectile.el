@@ -1442,6 +1442,14 @@ back to running it as a shell command."
   :type 'string
   :package-version '(projectile . "2.9.0"))
 
+(defcustom projectile-sapling-ignored-command "sl status -in0 ."
+  "Command used by projectile to get the ignored files in a Sapling project.
+Sapling is a Mercurial fork and kept `status' flags, so this mirrors
+`projectile-hg-ignored-command'."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "3.5.0"))
+
 (defcustom projectile-fossil-command (concat "fossil ls | "
                                              (when (eq system-type 'windows-nt)
                                                "dos2unix | ")
@@ -1456,6 +1464,13 @@ back to running it as a shell command."
   :group 'projectile
   :type 'string
   :package-version '(projectile . "0.9.0"))
+
+(defcustom projectile-bzr-ignored-command "bzr ls -R --ignored -0"
+  "Command used by projectile to get the ignored files in a bazaar project.
+`--ignored' in place of the `--versioned' of `projectile-bzr-command'."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "3.5.0"))
 
 (defcustom projectile-darcs-command "darcs show files -0 ."
   "Command used by projectile to get the files in a darcs project."
@@ -3658,6 +3673,8 @@ sub-modules there)."
   (pcase vcs
     ('git projectile-git-ignored-command)
     ('hg projectile-hg-ignored-command)
+    ('sapling projectile-sapling-ignored-command)
+    ('bzr projectile-bzr-ignored-command)
     ('svn projectile-svn-ignored-command)
     (_ nil)))
 

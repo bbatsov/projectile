@@ -712,4 +712,23 @@
       (expect (string-match-p re "vendor/z.js") :to-be-truthy)
       (expect (string-match-p re "src/main.c") :not :to-be-truthy))))
 
+(describe "projectile-get-ext-ignored-command"
+  (it "knows the VCSes that can list their own ignored files"
+    (expect (projectile-get-ext-ignored-command 'git)
+            :to-equal projectile-git-ignored-command)
+    (expect (projectile-get-ext-ignored-command 'hg)
+            :to-equal projectile-hg-ignored-command)
+    (expect (projectile-get-ext-ignored-command 'sapling)
+            :to-equal projectile-sapling-ignored-command)
+    (expect (projectile-get-ext-ignored-command 'bzr)
+            :to-equal projectile-bzr-ignored-command)
+    (expect (projectile-get-ext-ignored-command 'svn)
+            :to-equal projectile-svn-ignored-command))
+
+  (it "returns nil for the ones with no way to list them"
+    ;; jj, fossil, darcs and pijul have no equivalent of `hg status -i',
+    ;; so the caller filters in Emacs Lisp instead.
+    (dolist (vcs '(jj fossil darcs pijul none))
+      (expect (projectile-get-ext-ignored-command vcs) :to-be nil))))
+
 ;;; projectile-ignore-test.el ends here

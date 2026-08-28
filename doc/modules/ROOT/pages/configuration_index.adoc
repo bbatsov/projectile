@@ -47,6 +47,9 @@ and the other reference pages.
 | `projectile-bzr-command`
 | Command used by projectile to get the files in a bazaar project.
 
+| `projectile-bzr-ignored-command`
+| Command used by projectile to get the ignored files in a bazaar project.
+
 | `projectile-cache-file`
 | The name of Projectile’s cache.
 
@@ -271,6 +274,9 @@ and the other reference pages.
 
 | `projectile-sapling-command`
 | Command used by projectile to get the files in a Sapling project.
+
+| `projectile-sapling-ignored-command`
+| Command used by projectile to get the ignored files in a Sapling project.
 
 | `projectile-search-async`
 | Whether the reviewable search/replace commands scan asynchronously.
