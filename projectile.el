@@ -8844,40 +8844,59 @@ Projectile project too when `projectile-mode' is enabled."
 
 ;;;; Engines for the built-in shells (always available)
 
-(defun projectile--run-shell (new-process &optional _other-window)
+(defmacro projectile--displaying-in-other-window (other-window &rest body)
+  "Run BODY, popping whatever buffer it displays elsewhere when OTHER-WINDOW.
+
+The built-in shells (`shell', `eshell', `ielm') display their buffer
+themselves and have no `-other-window' flavour to call, the way `vterm'
+and `eat' do.  They all go through `display-buffer' though, and
+`display-buffer-overriding-action' outranks the action they pass, so
+binding it around the call is what redirects them."
+  (declare (indent 1) (debug t))
+  `(let ((display-buffer-overriding-action
+          (when ,other-window
+            '((display-buffer-pop-up-window) (inhibit-same-window . t)))))
+     ,@body))
+
+(defun projectile--run-shell (new-process &optional other-window)
   "Invoke `shell' in the project's root.
 NEW-PROCESS forces creation of a new process instead of reusing an
-existing buffer."
+existing buffer.  OTHER-WINDOW displays it in another window."
   (let ((project (projectile-acquire-root)))
     (projectile-with-default-dir project
-      (shell (projectile-generate-process-name "shell" new-process project)))))
+      (projectile--displaying-in-other-window other-window
+        (shell (projectile-generate-process-name "shell" new-process project))))))
 
-(defun projectile--run-eshell (new-process &optional _other-window)
+(defun projectile--run-eshell (new-process &optional other-window)
   "Invoke `eshell' in the project's root.
 NEW-PROCESS forces creation of a new process instead of reusing an
-existing buffer."
+existing buffer.  OTHER-WINDOW displays it in another window."
   (let ((project (projectile-acquire-root)))
     (projectile-with-default-dir project
       (let ((eshell-buffer-name (projectile-generate-process-name "eshell" new-process project)))
-        (eshell)))))
+        (projectile--displaying-in-other-window other-window
+          (eshell))))))
 
-(defun projectile--run-ielm (new-process &optional _other-window)
+(defun projectile--run-ielm (new-process &optional other-window)
   "Invoke `ielm' in the project's root.
 NEW-PROCESS forces creation of a new process instead of reusing an
-existing buffer."
+existing buffer.  OTHER-WINDOW displays it in another window."
   (let* ((project (projectile-acquire-root))
          (ielm-buffer-name (projectile-generate-process-name "ielm" new-process project)))
     (if (get-buffer ielm-buffer-name)
-        (switch-to-buffer ielm-buffer-name)
+        (if other-window
+            (switch-to-buffer-other-window ielm-buffer-name)
+          (switch-to-buffer ielm-buffer-name))
       (projectile-with-default-dir project
-        (ielm))
+        (projectile--displaying-in-other-window other-window
+          (ielm)))
       ;; ielm's buffer name is hardcoded, so we have to rename it after creation
       (rename-buffer ielm-buffer-name))))
 
-(defun projectile--run-term (new-process &optional _other-window)
+(defun projectile--run-term (new-process &optional other-window)
   "Invoke `term' in the project's root.
 NEW-PROCESS forces creation of a new process instead of reusing an
-existing buffer."
+existing buffer.  OTHER-WINDOW displays it in another window."
   (let* ((project (projectile-acquire-root))
          (buffer-name (projectile-generate-process-name "term" new-process project))
          (default-program (or explicit-shell-file-name
@@ -8891,7 +8910,9 @@ existing buffer."
           (set-buffer (term-ansi-make-term buffer-name program))
           (term-mode)
           (term-char-mode))))
-    (switch-to-buffer buffer-name)))
+    (if other-window
+        (switch-to-buffer-other-window buffer-name)
+      (switch-to-buffer buffer-name))))
 
 ;;;; Engines for the package-backed terminals
 
@@ -9021,12 +9042,27 @@ one."
   (interactive "P")
   (projectile--run projectile-shell-backend arg nil))
 
+;;;###autoload (autoload 'projectile-run-other-window "projectile" nil t)
+(projectile--define-display-variants projectile-run (&optional arg)
+  "Run a shell, REPL or terminal in the project root, in another %s.
+The backend is chosen the same way `projectile-run' chooses it.  With a
+prefix ARG, start a fresh process instead of reusing an existing one."
+  :places (window)
+  (projectile--run projectile-shell-backend arg t))
+
 ;;;###autoload
 (defun projectile-run-shell (&optional arg)
   "Invoke `shell' in the project's root (the shell `projectile-run' backend).
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--run 'shell arg nil))
+
+;;;###autoload (autoload 'projectile-run-shell-other-window "projectile" nil t)
+(projectile--define-display-variants projectile-run-shell (&optional arg)
+  "Invoke `shell' in the project's root, displayed in another %s.
+Use a prefix argument ARG to indicate creation of a new process instead."
+  :places (window)
+  (projectile--run 'shell arg t))
 
 ;;;###autoload
 (defun projectile-run-eshell (&optional arg)
@@ -9035,6 +9071,13 @@ Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--run 'eshell arg nil))
 
+;;;###autoload (autoload 'projectile-run-eshell-other-window "projectile" nil t)
+(projectile--define-display-variants projectile-run-eshell (&optional arg)
+  "Invoke `eshell' in the project's root, displayed in another %s.
+Use a prefix argument ARG to indicate creation of a new process instead."
+  :places (window)
+  (projectile--run 'eshell arg t))
+
 ;;;###autoload
 (defun projectile-run-ielm (&optional arg)
   "Invoke `ielm' in the project's root (the ielm `projectile-run' backend).
@@ -9042,12 +9085,26 @@ Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--run 'ielm arg nil))
 
+;;;###autoload (autoload 'projectile-run-ielm-other-window "projectile" nil t)
+(projectile--define-display-variants projectile-run-ielm (&optional arg)
+  "Invoke `ielm' in the project's root, displayed in another %s.
+Use a prefix argument ARG to indicate creation of a new process instead."
+  :places (window)
+  (projectile--run 'ielm arg t))
+
 ;;;###autoload
 (defun projectile-run-term (&optional arg)
   "Invoke `term' in the project's root (the term `projectile-run' backend).
 Use a prefix argument ARG to indicate creation of a new process instead."
   (interactive "P")
   (projectile--run 'term arg nil))
+
+;;;###autoload (autoload 'projectile-run-term-other-window "projectile" nil t)
+(projectile--define-display-variants projectile-run-term (&optional arg)
+  "Invoke `term' in the project's root, displayed in another %s.
+Use a prefix argument ARG to indicate creation of a new process instead."
+  :places (window)
+  (projectile--run 'term arg t))
 
 ;;;###autoload
 (defun projectile-run-vterm (&optional arg)
@@ -17039,10 +17096,15 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "c X") #'projectile-repeat-last-task)
     ;; integration with utilities
     (define-key map (kbd "x r") #'projectile-run)
+    (define-key map (kbd "x 4 r") #'projectile-run-other-window)
     (define-key map (kbd "x e") #'projectile-run-eshell)
+    (define-key map (kbd "x 4 e") #'projectile-run-eshell-other-window)
     (define-key map (kbd "x i") #'projectile-run-ielm)
+    (define-key map (kbd "x 4 i") #'projectile-run-ielm-other-window)
     (define-key map (kbd "x t") #'projectile-run-term)
+    (define-key map (kbd "x 4 t") #'projectile-run-term-other-window)
     (define-key map (kbd "x s") #'projectile-run-shell)
+    (define-key map (kbd "x 4 s") #'projectile-run-shell-other-window)
     (define-key map (kbd "x g") #'projectile-run-gdb)
     (define-key map (kbd "x v") #'projectile-run-vterm)
     (define-key map (kbd "x 4 v") #'projectile-run-vterm-other-window)

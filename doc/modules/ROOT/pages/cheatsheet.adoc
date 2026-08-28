@@ -295,6 +295,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p x G]
 | Start or visit a `ghostel` terminal for the project.
 
+| kbd:[s-p x 4 <key>]
+| Any of the above in another window, e.g. kbd:[s-p x 4 s] for a `shell`. Every backend supports this except `gdb`.
+
 | kbd:[s-p B s]
 | Set a bookmark at point, named after the current project.
 
