@@ -52,7 +52,50 @@
       (expect (projectile--ripgrep-ignore-globs)
               :to-equal '("--glob=!.git/" "--glob=!.svn/"
                           "--glob=!TAGS" "--glob=!GTAGS"
-                          "--glob=!*.log")))))
+                          "--glob=!*.log"))))
+
+  (it "quotes the exclusions for the shell on request (#2176)"
+    (spy-on 'projectile--dirconfig-ignore :and-return-value nil)
+    (let ((projectile-globally-ignored-files nil)
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-ignored-file-suffixes nil)
+          (projectile-globally-unignored-directories nil)
+          (projectile-globally-ignored-directories '("*.egg-info")))
+      (expect (projectile--ripgrep-ignore-globs t)
+              :to-equal (list (shell-quote-argument "--glob=!*.egg-info/")))))
+
+  (it "quotes so that the shell hands ripgrep back the original pattern"
+    ;; The point of the quoting isn't its spelling, it's that the glob
+    ;; survives the shell intact.  Run it through one and see.
+    (assume (not (memq system-type '(windows-nt ms-dos))) "POSIX shell")
+    (spy-on 'projectile--dirconfig-ignore :and-return-value nil)
+    (let ((projectile-globally-ignored-files nil)
+          (projectile-globally-unignored-files nil)
+          (projectile-globally-ignored-file-suffixes nil)
+          (projectile-globally-unignored-directories nil)
+          (projectile-globally-ignored-directories '("*.egg-info")))
+      (let ((arg (car (projectile--ripgrep-ignore-globs t))))
+        (expect (shell-command-to-string (concat "printf %s " arg))
+                :to-equal "--glob=!*.egg-info/")))))
+
+(describe "projectile--ripgrep"
+  (before-each
+    (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
+    (spy-on 'projectile--ripgrep-ignore-globs :and-return-value '("--glob=!x")))
+
+  (it "asks for shell-quoted globs on the `ripgrep' path (#2176)"
+    (cl-letf (((symbol-function 'require)
+               (lambda (feature &rest _) (eq feature 'ripgrep)))
+              ((symbol-function 'ripgrep-regexp) #'ignore))
+      (projectile--ripgrep "foo" t))
+    (expect 'projectile--ripgrep-ignore-globs :to-have-been-called-with t))
+
+  (it "asks for unquoted globs on the `rg' path, which quotes them itself"
+    (cl-letf (((symbol-function 'require)
+               (lambda (feature &rest _) (eq feature 'rg)))
+              ((symbol-function 'rg-run) #'ignore))
+      (projectile--ripgrep "foo" t))
+    (expect 'projectile--ripgrep-ignore-globs :to-have-been-called-with)))
 
 (describe "projectile--ag-ignore-patterns"
   (it "strips the gitignore markers ag can't make sense of"

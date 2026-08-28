@@ -8589,7 +8589,7 @@ Requires the `ag' Emacs package."
         (current-prefix-arg nil))
     (funcall ag-command search-term (projectile-acquire-root))))
 
-(defun projectile--ripgrep-ignore-globs ()
+(defun projectile--ripgrep-ignore-globs (&optional quote)
   "Return ripgrep `--glob' exclusions for the project's ignore patterns.
 
 The patterns come from `projectile--ignore-patterns' and are passed to
@@ -8598,30 +8598,42 @@ ripgrep as they are - ripgrep's globs follow gitignore rules too.
 Uses the `--glob=!PATTERN' form rather than `--glob \\='!PATTERN\\='', whose
 surrounding single quotes are only stripped by POSIX shells - on Windows
 `cmd' they become part of the pattern and the exclusion silently fails
-\(see #1946)."
-  (mapcar (lambda (val) (concat "--glob=!" val))
+\(see #1946).
+
+With QUOTE, quote each argument for the shell.  The `ripgrep' package
+joins these into a command line and hands it to `shell-file-name', so a
+pattern carrying a glob character arrives unprotected: zsh treats an
+unmatched glob as an error rather than passing it through, and aborts
+the whole search on `--glob=!*.egg-info/' (see #2176).  The `rg' package
+quotes the flags it is given itself, so its caller has to leave them
+alone."
+  (mapcar (lambda (val)
+            (let ((arg (concat "--glob=!" val)))
+              (if quote (shell-quote-argument arg) arg)))
           (projectile--ignore-patterns)))
 
 (defun projectile--ripgrep (search-term &optional regexp)
   "Run a ripgrep (rg) search for SEARCH-TERM in the project.
 When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
 Requires the `ripgrep' or `rg' Emacs package."
-  (let ((args (projectile--ripgrep-ignore-globs)))
-    ;; we rely on the external packages ripgrep and rg for the actual search
-    (cond ((require 'ripgrep nil 'noerror)
+  ;; we rely on the external packages ripgrep and rg for the actual search
+  (cond ((require 'ripgrep nil 'noerror)
+         ;; `ripgrep' runs its command line through the shell, so quote
+         (let ((args (projectile--ripgrep-ignore-globs t)))
            (ripgrep-regexp search-term
                            (projectile-acquire-root)
                            (if regexp
                                args
-                             (cons "--fixed-strings --hidden" args))))
-          ((require 'rg nil 'noerror)
-           (rg-run search-term
-                   "*"                       ;; all files
-                   (projectile-acquire-root)
-                   (not regexp)              ;; literal search?
-                   nil                       ;; no need to confirm
-                   args))
-          (t (user-error "Packages `ripgrep' and `rg' are not available")))))
+                             (cons "--fixed-strings --hidden" args)))))
+        ((require 'rg nil 'noerror)
+         (rg-run search-term
+                 "*"                       ;; all files
+                 (projectile-acquire-root)
+                 (not regexp)              ;; literal search?
+                 nil                       ;; no need to confirm
+                 ;; `rg' quotes these itself
+                 (projectile--ripgrep-ignore-globs)))
+        (t (user-error "Packages `ripgrep' and `rg' are not available"))))
 
 ;;;; Search backends registry
 
