@@ -11541,9 +11541,10 @@ in the results buffer.  The keyword does not have to sit in a comment.
 With a prefix argument ARG, prompt for which keywords to search for
 instead of using all of them."
   (interactive "P")
-  (projectile--todos (list (projectile-acquire-root)) arg))
+  (projectile-todos-in-projects (list (projectile-acquire-root)) arg))
 
-(defun projectile--todos (projects &optional arg)
+;;;###autoload
+(defun projectile-todos-in-projects (projects &optional arg)
   "Collect the TODO-style annotations of PROJECTS into the search reviewer.
 With ARG non-nil, prompt for which keywords to search for.  PROJECTS is a
 list of project roots, so one project and a whole group take the same
@@ -15290,17 +15291,23 @@ Related is what `projectile-switch-sibling-project' means by it."
    (projectile--sibling-group) "Switch to sibling buffer: "))
 
 ;;;###autoload
+(defun projectile-multi-occur-in-projects (projects &optional nlines)
+  "Do a `multi-occur' in the buffers of any of PROJECTS.
+NLINES is the number of context lines `multi-occur' shows.
+
+Note this searches the buffers you have open, not the projects on disk -
+`projectile-search-in-projects' is the one that reads files."
+  (multi-occur (projectile-project-group-buffers projects)
+               (car (occur-read-primary-args))
+               nlines))
+
+;;;###autoload
 (defun projectile-multi-occur-in-sibling-projects (&optional nlines)
   "Do a `multi-occur' in the buffers of the current project and related ones.
 Related is what `projectile-switch-sibling-project' means by it.  With a
-prefix argument, show NLINES of context.
-
-Note this searches the buffers you have open, not the projects on disk -
-`projectile-search-in-sibling-projects' is the one that reads files."
+prefix argument, show NLINES of context."
   (interactive "P")
-  (multi-occur (projectile-project-group-buffers (projectile--sibling-group))
-               (car (occur-read-primary-args))
-               nlines))
+  (projectile-multi-occur-in-projects (projectile--sibling-group) nlines))
 
 ;;;###autoload
 (defun projectile-todos-in-sibling-projects ()
@@ -15308,7 +15315,7 @@ Note this searches the buffers you have open, not the projects on disk -
 Related is what `projectile-switch-sibling-project' means by it.  See
 `projectile-todos' for what counts as an annotation."
   (interactive)
-  (projectile--todos (projectile--sibling-group)))
+  (projectile-todos-in-projects (projectile--sibling-group)))
 
 
 ;;; Project bookmarks

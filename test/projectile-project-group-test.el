@@ -386,6 +386,37 @@ the two truename'd roots and `parent' to the directory holding them."
           ;; the prefix argument is passed through as the context line count
           (expect (nth 2 args) :to-equal 3))))))
 
+;; Every sibling command is a wrapper over a generic that takes any list of
+;; projects, so a group of your own drives them the same way.  `todos' and
+;; `multi-occur' were the two that had no such generic to call.
+(describe "the generic group commands"
+  (it "projectile-multi-occur-in-projects takes the projects it is given"
+    (projectile-group-test--with-projects
+      (let ((ba (find-file-noselect (expand-file-name "src/a.txt" alpha)))
+            (bb (find-file-noselect (expand-file-name "lib/b.txt" beta))))
+        (spy-on 'occur-read-primary-args :and-return-value '("needle"))
+        (spy-on 'multi-occur)
+        ;; no sibling lookup involved
+        (spy-on 'projectile-sibling-projects :and-throw-error 'error)
+        (projectile-multi-occur-in-projects (list alpha beta) 2)
+        (let ((args (spy-calls-args-for 'multi-occur 0)))
+          (expect (nth 0 args) :to-contain ba)
+          (expect (nth 0 args) :to-contain bb)
+          (expect (nth 2 args) :to-equal 2)))))
+
+  (it "projectile-todos-in-projects takes the projects it is given"
+    (projectile-group-test--with-projects
+      (with-temp-file (expand-file-name "src/todo.txt" alpha)
+        (insert "TODO: alpha thing\n"))
+      (with-temp-file (expand-file-name "lib/todo.txt" beta)
+        (insert "FIXME: beta thing\n"))
+      (spy-on 'projectile-sibling-projects :and-throw-error 'error)
+      (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
+        (projectile-todos-in-projects (list alpha beta)))
+      (expect (projectile-test-match-files
+               (get-buffer projectile-search-buffer-name))
+              :to-equal '("alpha/src/todo.txt" "beta/lib/todo.txt")))))
+
 ;;; Ripgrep across a group
 
 (defun projectile-group-test--seed-rg (buf root projects term)

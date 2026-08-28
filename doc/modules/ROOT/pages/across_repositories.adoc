@@ -247,9 +247,10 @@ reviewable replacement across all of them. See
 xref:usage.adoc[the search and replace reviewers].
 
 These all take a plain list of projects underneath -
-`projectile-find-file-in-projects`, `projectile-search-in-projects` and
-`projectile-switch-to-buffer-in-projects` - so a command for a group of
-your own is a two-line wrapper:
+`projectile-find-file-in-projects`, `projectile-search-in-projects`,
+`projectile-switch-to-buffer-in-projects`,
+`projectile-multi-occur-in-projects` and `projectile-todos-in-projects` -
+so a command for a group of your own is a two-line wrapper:
 
 [source,elisp]
 ----
@@ -260,9 +261,9 @@ your own is a two-line wrapper:
    "Find file in infra: "))
 ----
 
-`projectile-search-in-projects` and
-`projectile-switch-to-buffer-in-projects` are the same shape for
-searching and for buffers.
+The others are the same shape: each takes the project list first, and the
+sibling commands are nothing more than these with
+`projectile-sibling-projects` filled in.
 
 NOTE: A literal group search runs `rg` over each project in turn when
 ripgrep is installed - one per project rather than one over the lot,
