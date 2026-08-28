@@ -624,12 +624,55 @@
     (expect (fboundp 'projectile-run-eat-other-frame) :to-be nil)
     (expect (fboundp 'projectile-run-ghostel-other-frame) :to-be nil))
 
+  (it "every shell backend has an other-window command that asks for one"
+    ;; The built-in shells used to ignore the flag, so only the three
+    ;; package-backed terminals had a variant at all.
+    (spy-on 'projectile--run)
+    (dolist (backend '(shell eshell ielm term vterm eat ghostel))
+      (let ((cmd (intern (format "projectile-run-%s-other-window" backend))))
+        (expect (commandp cmd) :to-be-truthy)
+        (funcall cmd)
+        (expect 'projectile--run :to-have-been-called-with backend nil t))))
+
+  (it "projectile-run itself gets one, dispatching through the configured backend"
+    (spy-on 'projectile--run)
+    (let ((projectile-shell-backend 'eshell))
+      (projectile-run-other-window)
+      (expect 'projectile--run :to-have-been-called-with 'eshell nil t)))
+
   (it "the generated variants are interactive and take the prefix argument"
     (expect (commandp #'projectile-find-file-other-window) :to-be-truthy)
     (expect (interactive-form 'projectile-find-file-other-frame)
             :to-equal '(interactive "P"))
     (expect (cadr (interactive-form 'projectile-switch-to-buffer-other-window))
             :to-be nil)))
+
+(describe "projectile--displaying-in-other-window"
+  ;; `shell', `eshell' and `ielm' display their own buffer and have no
+  ;; `-other-window' flavour to call, so the flag is honoured by overriding
+  ;; the display action they pass rather than by picking a different command.
+  (it "redirects a same-window pop into another window"
+    (let ((buf (get-buffer-create " *projectile-ow-probe*")))
+      (unwind-protect
+          (save-current-buffer
+            (save-window-excursion
+              (delete-other-windows)
+              (projectile--displaying-in-other-window t
+                (pop-to-buffer-same-window buf))
+              (expect (> (length (window-list)) 1) :to-be-truthy)
+              (expect (window-buffer) :to-be buf)))
+        (kill-buffer buf))))
+
+  (it "leaves the display alone when the flag is off"
+    (let ((buf (get-buffer-create " *projectile-ow-probe*")))
+      (unwind-protect
+          (save-current-buffer
+            (save-window-excursion
+              (delete-other-windows)
+              (projectile--displaying-in-other-window nil
+                (pop-to-buffer-same-window buf))
+              (expect (length (window-list)) :to-equal 1)))
+        (kill-buffer buf)))))
 
 (describe "projectile-other-window-command"
   ;; Tear down whatever the prefix command armed (the display override
