@@ -704,6 +704,15 @@ everything that runs afterwards - see `dev/buffer-leaks.el'."
                                  projectile-before-switch-project-hook)))
               :to-equal 1)))
 
+  (it "ships defaults that record the sessions they restore"
+    ;; `projectile-session-restore-on-switch' reads what autosave writes.
+    ;; Shipping the restore on and the save off left the mode restoring
+    ;; layouts it had never recorded, so it did nothing until you saved
+    ;; one by hand.
+    (expect (or (not (default-value 'projectile-session-restore-on-switch))
+                (default-value 'projectile-session-autosave))
+            :to-be-truthy))
+
   (it "autosaves the outgoing project only when enabled"
     (let ((projectile-session-autosave nil))
       (spy-on 'projectile-session-save)

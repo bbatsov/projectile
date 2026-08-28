@@ -90,14 +90,17 @@ With `projectile-session-restore-on-switch` (on by default), switching to a
 project that has no open tab but does have a saved session restores that
 session instead of running `projectile-session-default-action`.
 
-Set `projectile-session-autosave` to save automatically: the outgoing
-project's session is saved when you switch away from it, and every open
-project's session is saved when Emacs exits. Layouts with no serializable
-buffer are skipped.
+`projectile-session-autosave` (on by default) does the saving for you: the
+outgoing project's session is saved when you switch away from it, and every
+open project's session is saved when Emacs exits. Layouts with no
+serializable buffer are skipped. It's what gives
+`projectile-session-restore-on-switch` something to restore, so turn it off
+only if you'd rather pick which layouts are worth keeping and save those
+yourself.
 
 [source,elisp]
 ----
-(setq projectile-session-autosave t)
+(setq projectile-session-autosave nil)
 ----
 
 === Restoring every session at once
