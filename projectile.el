@@ -9148,17 +9148,19 @@ Returns a list of expanded filenames."
 ;;   :ext-regexp  when non-nil, the extension glob is turned into an
 ;;                anchored regexp via `projectile--search-glob-to-regexp'
 ;;                (ag, ack) rather than passed through verbatim.
+;;   :ext-anchor  appended to the extension before it is quoted (the
+;;                trailing "$" that anchors ag's and ack's regexp).
 ;;   :ext-open    text emitted just before the extension.
 ;;   :ext-close   text emitted just after the extension.
 ;;   :term-format when non-nil, the base command is a format string whose
 ;;                %s is the search term (grep) rather than a prefix the
 ;;                term is concatenated onto.
 (defvar projectile--search-tool-descriptors
-  '((rg   . (:kind prefix :ext-open "-g '" :ext-close "' "))
-    (ag   . (:kind prefix :ext-regexp t :ext-open "-G " :ext-close "$ "))
-    (ack  . (:kind pipe :ext-regexp t))
-    (git  . (:kind suffix :ext-open "  -- '" :ext-close "'"))
-    (grep . (:kind suffix :term-format t :ext-open " --include '" :ext-close "'"))))
+  '((rg   . (:kind prefix :ext-open "-g " :ext-close " "))
+    (ag   . (:kind prefix :ext-regexp t :ext-anchor "$" :ext-open "-G " :ext-close " "))
+    (ack  . (:kind pipe :ext-regexp t :ext-anchor "$"))
+    (git  . (:kind suffix :ext-open "  -- "))
+    (grep . (:kind suffix :term-format t :ext-open " --include "))))
 
 (defun projectile--search-glob-to-regexp (file-ext)
   "Turn extension glob FILE-EXT into the regexp body used by ag/ack.
@@ -9167,6 +9169,23 @@ Dots are escaped and \"*\" wildcards dropped, e.g. \"*.el\" becomes
   (replace-regexp-in-string
    "\\*" ""
    (replace-regexp-in-string "\\." "\\\\." file-ext)))
+
+(defun projectile--search-ext-argument (desc file-ext)
+  "Return FILE-EXT as one shell-quoted argument for the tool described by DESC.
+
+DESC is an entry of `projectile--search-tool-descriptors'.  The glob is
+turned into a regexp and anchored first when the tool wants one, and the
+result is quoted as a whole: these commands are handed to a shell, so an
+extension holding a glob character, a quote or a space has to arrive as
+a single argument.  Quoting it here rather than wrapping it in literal
+quotes in the descriptor is also what protects the backslash in ag's
+anchored regexp: bare, the shell eats it, and ag ends up matching any
+character where a literal dot was meant."
+  (shell-quote-argument
+   (concat (if (plist-get desc :ext-regexp)
+               (projectile--search-glob-to-regexp file-ext)
+             file-ext)
+           (plist-get desc :ext-anchor))))
 
 (defun projectile--construct-files-with-string-command (tool search-term &optional file-ext)
   "Build TOOL's files-with-string command for SEARCH-TERM.
@@ -9181,15 +9200,13 @@ and, when FILE-EXT is a string, the extension filter described by
                  (concat base search-term))))
     (if (not (stringp file-ext))
         core
-      (let ((ext (if (plist-get desc :ext-regexp)
-                     (projectile--search-glob-to-regexp file-ext)
-                   file-ext))
+      (let ((ext (projectile--search-ext-argument desc file-ext))
             (open (plist-get desc :ext-open))
             (close (plist-get desc :ext-close)))
         (pcase (plist-get desc :kind)
           ('prefix (concat base open ext close search-term))
           ('suffix (concat core open ext close))
-          ('pipe (concat "ack -g '" ext "$' | " base "-x " search-term)))))))
+          ('pipe (concat "ack -g " ext " | " base "-x " search-term)))))))
 
 (defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."

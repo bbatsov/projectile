@@ -212,19 +212,60 @@ modify buffers without saving them."
   (describe "with a file-extension filter"
     (it "builds the rg command with a glob"
       (expect (projectile--rg-construct-command "foo" "*.el")
-              :to-equal "rg -liF --no-heading --color never -g '*.el' foo"))
+              :to-equal "rg -liF --no-heading --color never -g \\*.el foo"))
     (it "builds the ag command with an anchored regexp"
       (expect (projectile--ag-construct-command "foo" "*.el")
-              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\.el$ foo"))
+              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\\\.el\\$ foo"))
     (it "builds the ack command as a piped listing"
       (expect (projectile--ack-construct-command "foo" "*.el")
-              :to-equal "ack -g '\\.el$' | ack --literal --ignore-case --nocolor -l -x foo"))
+              :to-equal "ack -g \\\\.el\\$ | ack --literal --ignore-case --nocolor -l -x foo"))
     (it "builds the git-grep command with a pathspec"
       (expect (projectile--git-grep-construct-command "foo" "*.el")
-              :to-equal "git grep -HlIiF foo  -- '*.el'"))
+              :to-equal "git grep -HlIiF foo  -- \\*.el"))
     (it "builds the grep command with an include"
       (expect (projectile--grep-construct-command "foo" "*.el")
-              :to-equal "grep -rHlIiF foo . --include '*.el'"))))
+              :to-equal "grep -rHlIiF foo . --include \\*.el")))
+
+  ;; The extension reaches these commands from `read-string', so it can
+  ;; carry anything the user typed.  What matters isn't how it's escaped
+  ;; but what the tool ends up receiving, so run it through a shell.
+  (describe "quoting the extension"
+    (before-each
+      (assume (not (memq system-type '(windows-nt ms-dos))) "POSIX shell"))
+
+    (it "hands ag the anchored regexp with its backslash intact"
+      ;; Unquoted, the shell ate the backslash and ag matched any
+      ;; character where a literal dot was meant.
+      (let ((arg (projectile--search-ext-argument
+                  (alist-get 'ag projectile--search-tool-descriptors) "*.el")))
+        (expect (shell-command-to-string (concat "printf %s " arg))
+                :to-equal "\\.el$")))
+
+    (it "hands rg the glob as one literal argument"
+      (let ((arg (projectile--search-ext-argument
+                  (alist-get 'rg projectile--search-tool-descriptors) "*.el")))
+        (expect (shell-command-to-string (concat "printf %s " arg))
+                :to-equal "*.el")))
+
+    (it "survives an extension holding a quote"
+      (let ((arg (projectile--search-ext-argument
+                  (alist-get 'rg projectile--search-tool-descriptors) "a'b")))
+        (expect (shell-command-to-string (concat "printf %s " arg))
+                :to-equal "a'b")))
+
+    (it "leaves an extension holding shell syntax inert"
+      ;; Typed into the prompt, `; touch ...' used to run on the ag path.
+      (let* ((evidence (make-temp-name
+                        (expand-file-name "projectile-quoting-"
+                                          temporary-file-directory)))
+             (arg (projectile--search-ext-argument
+                   (alist-get 'ag projectile--search-tool-descriptors)
+                   (concat "*.el; touch " evidence "; echo "))))
+        (unwind-protect
+            (progn
+              (shell-command-to-string (concat "printf %s " arg))
+              (expect (file-exists-p evidence) :to-be nil))
+          (when (file-exists-p evidence) (delete-file evidence)))))))
 
 (describe "projectile-files-with-string"
   (it "lists files case-insensitively, leaving case handling to the replace itself (#1115)"
