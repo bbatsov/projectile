@@ -8417,7 +8417,6 @@ which it shares its arglist."
     (and grep-find-ignored-directories
          (concat "-type d "
                  (shell-quote-argument "(")
-                 ;; we should use shell-quote-argument here
                  " -path "
                  (mapconcat
                   #'identity
@@ -8439,7 +8438,6 @@ which it shares its arglist."
     (and grep-find-ignored-files
          (concat (shell-quote-argument "!") " -type d "
                  (shell-quote-argument "(")
-                 ;; we should use shell-quote-argument here
                  " -name "
                  (mapconcat
                   #'(lambda (ignore)
