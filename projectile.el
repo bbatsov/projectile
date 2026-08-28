@@ -17783,14 +17783,19 @@ mode *after* Emacs has finished starting never triggers a restore."
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
 
-(defcustom projectile-session-autosave nil
+(defcustom projectile-session-autosave t
   "Whether `projectile-session-mode' saves sessions automatically.
-When non-nil, the outgoing project's session is saved when you switch
-away from it, and every open project's session is saved when Emacs exits.
-Degenerate layouts with no serializable buffer are skipped."
+When non-nil (the default), the outgoing project's session is saved when
+you switch away from it, and every open project's session is saved when
+Emacs exits.  Degenerate layouts with no serializable buffer are skipped.
+
+Sessions are what `projectile-session-restore-on-switch' reads, so with
+this off the mode restores layouts it never records: nothing comes back
+until you save one yourself with `projectile-session-save'.  Turn it off
+if you would rather decide which layouts are worth keeping."
   :group 'projectile
   :type 'boolean
-  :package-version '(projectile . "3.2.0"))
+  :package-version '(projectile . "3.5.0"))
 
 (defcustom projectile-session-buffer-serializers
   '((dired-mode
