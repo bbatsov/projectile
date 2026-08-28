@@ -8,6 +8,7 @@
 
 ### New features
 
+- [#2181](https://github.com/bbatsov/projectile/pull/2181): Sapling and Bazaar projects can now list their own ignored files, via the new `projectile-sapling-ignored-command` and `projectile-bzr-ignored-command`.
 - [#2180](https://github.com/bbatsov/projectile/pull/2180): Every shell backend can now open in another window (`s-p x 4 <key>`), not just vterm, eat and ghostel: `shell`, `eshell`, `ielm`, `term` and the backend-dispatching `projectile-run` gained `-other-window` commands.
 - [#2160](https://github.com/bbatsov/projectile/pull/2160): Add `projectile-find-file-in-sibling-projects` (`s-p n f`) and `projectile-search-in-sibling-projects` (`s-p n s`), which work across the family of related projects rather than just the one you're in.
   - Both are built on `projectile-find-file-in-projects` and `projectile-search-in-projects`, which take any list of projects, so a command for a group of your own is a two-line wrapper.
