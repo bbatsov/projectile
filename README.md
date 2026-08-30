@@ -49,7 +49,7 @@ project to work on, it still requires a lot of time and energy to maintain.
 
 ## Projectile in Action
 
-Here's a glimpse of Projectile in action (using `ivy`):
+Here's a glimpse of Projectile in action (using `vertico` and `marginalia`):
 
 ![Projectile Demo](doc/modules/ROOT/assets/images/projectile-demo.gif)
 
@@ -57,7 +57,13 @@ In this short demo you can see:
 
 * finding files in a project
 * switching between implementation and test
+* reviewing a project-wide replacement before applying it
+* picking from the project's named tasks
+* the project dashboard and the doctor report
 * switching between projects
+
+The strip across the top of the frame shows the keys being pressed and the
+commands they invoked.
 
 ## Quickstart
 

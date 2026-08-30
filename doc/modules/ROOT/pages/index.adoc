@@ -61,19 +61,23 @@ There's also a rich ecosystem of third-party xref:extensions.adoc[Projectile ext
 
 == Projectile in Action
 
-Here's a glimpse of Projectile in action (using `ivy` for minibuffer completion):
+Here's a glimpse of Projectile in action (using `vertico` and `marginalia` for
+minibuffer completion):
 
-image::projectile-demo.gif[Projectile Screenshot]
+image::projectile-demo.gif["A tour of Projectile: finding a file, toggling to its implementation, a reviewed project-wide replace, the project's tasks, the dashboard and doctor reports, and a switch to another project"]
 
 In this short demo you can see:
 
 * finding files in a project
 * switching between implementation and test
+* reviewing a project-wide replacement before applying it
+* picking from the project's named tasks
+* the project dashboard and the doctor report
 * switching between projects
 
-TIP: You can see in the modeline the keybindings that are used in the demo and
-the commands that they invoked.footnote:[Courtesy of
-https://metaredux.com/posts/2019/12/07/dead-simple-emacs-screencasts.html[keycast-mode].]
+TIP: The strip across the top of the frame shows the keybindings used in the
+demo and the commands that they invoked.footnote:[Courtesy of
+https://metaredux.com/posts/2019/12/07/dead-simple-emacs-screencasts.html[keycast].]
 
 == Supporting Projectile
 
