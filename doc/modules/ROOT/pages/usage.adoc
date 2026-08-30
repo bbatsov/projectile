@@ -376,7 +376,7 @@ buffer, grouped by file, one `LINE:COL: CONTEXT` line per match with the
 matched span highlighted. There is no replacement, no per-match toggle and
 no apply: the buffer never edits your files.
 
-image::projectile-search-review.png[The projectile-search results buffer, grouped by file]
+image::projectile-search-review.png["The projectile-search results buffer, grouped by file"]
 
 The results buffer supports these keys:
 
@@ -652,7 +652,7 @@ Both are covered in xref:across_repositories.adoc[Working across repositories].
 `projectile-dashboard` (kbd:[s-p P]) opens a buffer that sums up the project
 you're in:
 
-image::projectile-dashboard.png[The Projectile dashboard: project info, version control status, recent files and tasks]
+image::projectile-dashboard.png["The Projectile dashboard: project info, version control status, recent files and tasks"]
 
 * the project's name, root, type, file count, how many of its buffers are
 open, and a summary of the ignore rules in effect

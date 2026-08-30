@@ -22,7 +22,7 @@ menu)
 This opens a plain-text report in a `+*projectile-doctor*+` buffer describing
 the project around `default-directory`:
 
-image::projectile-doctor.png[The Projectile doctor report: project root, type, indexing method and available tools]
+image::projectile-doctor.png["The Projectile doctor report: project root, type, indexing method and available tools"]
 
 The report is meant to be pasted into a bug report, so kbd:[w]
 (`projectile-report-copy`) copies it as plain text with the faces and buttons

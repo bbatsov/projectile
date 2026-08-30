@@ -262,7 +262,7 @@ without running the tool. A polyglot repository works either way: a
 * `projectile-find-file-in-subproject` (kbd:[s-p c m f]) prompts for a
   subproject and then completes over just its files.
 +
-image::projectile-find-file-in-subproject.png[The subproject prompt, listing the parts of a monorepo]
+image::projectile-find-file-in-subproject.png["The subproject prompt, listing the parts of a monorepo"]
 * Every lifecycle command has a subproject variant, bound one level down from
   the project-wide one: `projectile-configure-subproject` (kbd:[s-p c m o]),
   `-compile-` (kbd:[s-p c m c]), `-test-` (kbd:[s-p c m t]), `-install-`

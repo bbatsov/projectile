@@ -298,7 +298,7 @@ a `projectile-project` completion category bound to
 
 Acting on a project from the switch prompt, then opening it in Dired:
 
-image::projectile-embark-project.gif[embark-act on a project candidate, showing the project action keymap]
+image::projectile-embark-project.gif["embark-act on a project candidate, showing the project action keymap"]
 
 The keymap inherits from `embark-general-map`, so Embark's generic actions
 (collect, export, insert, and so on) are available too. Rebind or extend it like
