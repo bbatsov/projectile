@@ -342,6 +342,40 @@
       (expect (hash-table-count projectile-test-cmd-map) :to-equal 0)
       (expect (hash-table-count projectile-project-command-history) :to-equal 0))))
 
+(describe "projectile--test-at-point-file-name"
+  (it "spells the file relative to the compilation directory"
+    (expect (projectile--test-at-point-file-name
+             "/home/me/app/test/foo_test.go" "/home/me/app/")
+            :to-equal "test/foo_test.go"))
+
+  (it "keeps the spelling as given when the file is under a symlinked subdirectory"
+    ;; `file-truename' would send this outside the project; the name as
+    ;; spelled is both correct and what the runner can open.
+    (spy-on 'file-truename :and-call-fake
+            (lambda (f) (if (string-prefix-p "/home/me/app/vendor/" f)
+                            (replace-regexp-in-string
+                             "\\`/home/me/app/vendor/" "/elsewhere/" f)
+                          f)))
+    (expect (projectile--test-at-point-file-name
+             "/home/me/app/vendor/lib/foo_test.go" "/home/me/app/")
+            :to-equal "vendor/lib/foo_test.go"))
+
+  (it "resolves both when the project root itself is reached through a symlink"
+    ;; `projectile-compilation-dir' resolves the root, `buffer-file-name'
+    ;; does not, so the spelled name climbs out of the project and the
+    ;; runner is handed a path it rejects.
+    (spy-on 'file-truename :and-call-fake
+            (lambda (f) (replace-regexp-in-string "\\`/tmp/" "/private/tmp/" f)))
+    (expect (projectile--test-at-point-file-name
+             "/tmp/app/cart_test.go" "/private/tmp/app/")
+            :to-equal "cart_test.go"))
+
+  (it "keeps the spelled name when resolving does not help either"
+    (spy-on 'file-truename :and-call-fake #'identity)
+    (expect (projectile--test-at-point-file-name
+             "/somewhere/else/foo_test.go" "/home/me/app/")
+            :to-equal "../../../somewhere/else/foo_test.go")))
+
 (provide 'projectile-test-at-point-test)
 
 (describe "Ruby test-at-point"
