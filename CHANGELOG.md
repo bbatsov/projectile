@@ -29,6 +29,7 @@
 
 ### Bugs fixed
 
+- [#2183](https://github.com/bbatsov/projectile/pull/2183): `projectile-run-test-at-point` now builds a usable file path when the project is reached through a symlink (anything under `/tmp` on macOS, or a symlinked `~/src`), instead of one that climbs out of the project and gets rejected by the test runner.
 - [#2178](https://github.com/bbatsov/projectile/pull/2178): The file-extension filter of `projectile-replace` and friends is now shell-quoted. ag received it unquoted, so a `*.el` filter reached it as the regexp `.el$` and also matched files ending in `model` or `panel`; on the other tools an extension containing a quote broke the command outright.
 - [#2177](https://github.com/bbatsov/projectile/pull/2177): `projectile-ripgrep` no longer dies under zsh with `no matches found`. The `ripgrep` package runs its command line through the shell, and the ignore exclusions went in unquoted - harmless until the generated-directory defaults introduced a pattern with a `*` in it.
 - [#2172](https://github.com/bbatsov/projectile/pull/2172): Fix subproject detection in a Go workspace. A `go.work` names its modules as `./api`, and the leading `./` survived into the subproject name, which then matched none of the project's file paths - so `projectile-find-file-in-subproject` offered nothing at all in a Go monorepo. Members are now spelled relative to the project root whatever the manifest wrote.
