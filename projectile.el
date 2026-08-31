@@ -13543,6 +13543,28 @@ enclosing node whose type is in RULE's `:node-types', call the rule's
     name))
 
 ;;;###autoload
+(defun projectile--test-at-point-file-name (file dir)
+  "Return FILE spelled relative to DIR for a test-at-point command.
+
+Prefer the name as spelled.  A file under a symlinked subdirectory of
+the project resolves to somewhere outside it, so running it through
+`file-truename' would produce a `../..' path for a file that is really
+sitting right there.
+
+The spelled name is the wrong one in the mirror-image case: the project
+itself reached through a symlink that `projectile-compilation-dir' has
+already resolved.  Then the two spellings disagree about the root, the
+relative name climbs out of the project, and the test runner is handed a
+path it rejects - which is what every project under /tmp looks like on
+macOS.  Fall back to resolving both, and keep that only if it does stay
+inside DIR."
+  (let ((spelled (file-relative-name file dir)))
+    (if (not (string-prefix-p ".." spelled))
+        spelled
+      (let ((resolved (file-relative-name (file-truename file)
+                                          (file-truename dir))))
+        (if (string-prefix-p ".." resolved) spelled resolved)))))
+
 (defun projectile-run-test-at-point (arg)
   "Run the test around point, if any.
 
@@ -13570,13 +13592,11 @@ a prefix ARG you can edit the command before it's run."
     (let ((test-name (projectile--test-at-point-name rule)))
       (unless test-name
         (user-error "No test found at point"))
-      ;; The command runs in the compilation directory, so the file
-      ;; name is made relative to it as spelled - not through
-      ;; `file-truename', which would escape the project for a file
-      ;; under a symlinked subdirectory and yield a useless `../..' path.
+      ;; The command runs in the compilation directory, so the file name
+      ;; is made relative to it.
       (let ((command (funcall (plist-get rule :command-fn)
                               test-name
-                              (file-relative-name
+                              (projectile--test-at-point-file-name
                                buffer-file-name
                                (projectile-compilation-dir))))
             ;; The command was derived from the test at point, so the
