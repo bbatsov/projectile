@@ -457,6 +457,8 @@ buffer, so all the keys in the table above apply - navigate them, filter
 them down with kbd:[k]/kbd:[d]/kbd:[K]/kbd:[D], export them to
 `grep-mode`, or hand them to the replace reviewer.
 
+image::projectile-todos.png["The projectile-todos results buffer, listing every TODO and FIXME in the project grouped by file"]
+
 The keywords are `projectile-todo-keywords`, which defaults to:
 
 [source,elisp]

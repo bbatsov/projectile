@@ -50,11 +50,7 @@ kbd:[s-p W] lists the other directories holding the same repository, each
 annotated with whatever tells it apart - the branch for git, the
 workspace name for Jujutsu:
 
-....
-Switch to worktree:
-~/src/myapp-main/     (main)
-~/src/myapp-hotfix/   (hotfix/crash-on-open)
-....
+image::projectile-switch-worktree.gif["projectile-switch-worktree listing the repository's other checkouts, each labelled with its branch, and switching to one of them"]
 
 Several quite different mechanisms end up on that list, because from
 where you're sitting they're the same thing.
@@ -243,13 +239,7 @@ commands work on the whole group at once, the current project included:
 The search results are named relative to the innermost directory holding
 the group, so each match says which project it came from:
 
-....
-Search "defcustom"
-1261 matches in 191 files  [literal] [ignore-case]
-
-cider/lisp/cider-eval.el (4)
-orchard/src/orchard/info.clj (2)
-....
+image::projectile-search-siblings.png["One search across a group of projects, its matches grouped by file and each path prefixed with the project it came from"]
 
 Everything the buffer does then covers the whole group - filtering,
 re-search, exporting to `grep-mode`, and kbd:[r] to turn it into a

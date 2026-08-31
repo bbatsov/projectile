@@ -23,6 +23,11 @@ tab-aware:
 If you enable the mode while already visiting a project, the tab you're
 on is adopted for that project instead of being left unowned.
 
+Both halves of that in one go - switching away opens a tab of its own,
+switching back selects the tab that was already there, layout and all:
+
+image::projectile-sessions.gif["Switching from one project to another opens a second tab, and switching back selects the first tab again with its two-window layout intact"]
+
 Tabs are named after their project. Two checkouts that share a name
 (e.g. two `foo` directories) are disambiguated by prepending a
 parent-directory component, so you get `work/foo` and `home/foo`. You can

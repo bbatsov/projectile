@@ -371,6 +371,11 @@ Elixir tests are addressed by line instead. Erlang takes the module from the
 file name, the way EUnit addresses a test, and F# unwraps a name written
 between double backticks, since that is what the test framework sees.
 
+The cursor decides which test runs - here it sits in the second of the
+file's two tests, and only that one is handed to `go test`:
+
+image::projectile-test-at-point.gif["With the cursor inside one test function, projectile-run-test-at-point runs just that test and the compilation buffer reports it passing"]
+
 The command runs from the same directory as `projectile-test-project`
 (normally the project root), with the same buffer-saving behavior, but
 it doesn't overwrite the project's remembered test command or command
