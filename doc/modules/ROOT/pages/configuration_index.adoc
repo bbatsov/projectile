@@ -344,6 +344,9 @@ and the other reference pages.
 | `projectile-sort-order`
 | The sort order used for a project’s files.
 
+| `projectile-subproject-functions`
+| Functions consulted by ‘projectile-project-subprojects’.
+
 | `projectile-subproject-markers`
 | File names that mark a subproject inside a project.
 
