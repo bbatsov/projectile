@@ -362,7 +362,7 @@ removing the need for manual `projectile-invalidate-cache' calls.
 
 Emacs file notifications are not recursive, so this costs one watch per
 directory; projects spanning more directories than
-`projectile-watch-directory-limit' are not watched.  Remote (TRAMP)
+`projectile-watch-max-directories' are not watched.  Remote (TRAMP)
 projects are never watched.  When an event cannot be applied
 incrementally the project's cache is invalidated instead and rebuilt
 lazily on the next file listing, which also re-arms the watches.
@@ -387,7 +387,10 @@ takes effect the next time a project's file list is cached."
              (projectile--teardown-all-watches))))
   :package-version '(projectile . "3.1.0"))
 
-(defcustom projectile-watch-directory-limit 512
+(define-obsolete-variable-alias 'projectile-watch-directory-limit
+  'projectile-watch-max-directories "3.5.0")
+
+(defcustom projectile-watch-max-directories 512
   "Maximum number of file-notify watches to register per project.
 
 File notifications are not recursive, so watching a project costs one
@@ -1222,7 +1225,7 @@ a single pass over the project's cached file list.")
 
 (defvar projectile--watch-skipped-projects (make-hash-table :test 'equal)
   "Set of project roots already reported as too big (or unable) to watch.
-Used to emit the `projectile-watch-directory-limit' message only once
+Used to emit the `projectile-watch-max-directories' message only once
 per project and session.")
 
 (defvar projectile--prefixless-dirconfig-warned-projects (make-hash-table :test 'equal)
@@ -1262,16 +1265,19 @@ path would have missed."
   :type '(repeat :tag "Project list" directory)
   :package-version '(projectile . "0.11.0"))
 
-(defcustom projectile-ignored-project-patterns nil
+(define-obsolete-variable-alias 'projectile-ignored-project-patterns
+  'projectile-ignored-project-regexps "3.5.0")
+
+(defcustom projectile-ignored-project-regexps nil
   "Regexps matching projects not to be added to `projectile-known-projects'.
 
-The pattern-matching sibling of `projectile-ignored-projects', which
+The regexp sibling of `projectile-ignored-projects', which
 takes exact paths, and `projectile-ignored-project-function', which takes
 a predicate.  Each entry is matched against the project root with
 `string-match-p', so keeping the scratch areas of a machine out of the
 known projects is a line of configuration rather than a lambda:
 
-    (setq projectile-ignored-project-patterns
+    (setq projectile-ignored-project-regexps
           \\='(\"\\\\`/tmp/\" \"/Downloads/\"))"
   :group 'projectile
   :type '(repeat :tag "Regexps" regexp)
@@ -1286,7 +1292,7 @@ be ignored or nil otherwise.
 
 This function is only called if the project is not listed in
 the variable `projectile-ignored-projects' and matches none of
-`projectile-ignored-project-patterns'.
+`projectile-ignored-project-regexps'.
 
 A suitable candidate would be `file-remote-p' to ignore remote
 projects."
@@ -1297,8 +1303,11 @@ projects."
           function)
   :package-version '(projectile . "0.13.0"))
 
-(defcustom projectile-track-known-projects-automatically t
-  "Controls whether Projectile will automatically register known projects.
+(define-obsolete-variable-alias 'projectile-track-known-projects-automatically
+  'projectile-auto-track-known-projects "3.5.0")
+
+(defcustom projectile-auto-track-known-projects t
+  "Whether visiting a file in a project adds it to the known projects.
 
 When set to nil you'll always have to add projects explicitly with
 `projectile-add-known-project'."
@@ -2108,7 +2117,7 @@ and the write always uses the latest in-memory contents."
 ;; keeps `projectile-projects-cache' in sync with the filesystem.  Emacs
 ;; file notifications are not recursive, so a watched project gets one
 ;; watch per directory, derived from the cached file list and bounded by
-;; `projectile-watch-directory-limit'.  Events are debounced per project
+;; `projectile-watch-max-directories'.  Events are debounced per project
 ;; and applied incrementally; anything that can't be applied safely falls
 ;; back to invalidating the project's cache, which rebuilds lazily and
 ;; re-arms the watches on the next cache fill.
@@ -2156,15 +2165,15 @@ only once per project and session."
 One watch per directory, into `projectile--project-watches'.  Any
 watches already registered for PROJECT are replaced.  Does nothing
 beyond a one-time message when the project spans more directories than
-`projectile-watch-directory-limit' or when the platform provides no
+`projectile-watch-max-directories' or when the platform provides no
 usable file notification backend."
   (projectile--unwatch-project project)
   (let ((dirs (projectile--watch-directories project files)))
-    (if (> (length dirs) projectile-watch-directory-limit)
+    (if (> (length dirs) projectile-watch-max-directories)
         (projectile--watch-skipped-once
          project
-         "Not watching %s: %d directories exceed `projectile-watch-directory-limit' (%d)"
-         project (length dirs) projectile-watch-directory-limit)
+         "Not watching %s: %d directories exceed `projectile-watch-max-directories' (%d)"
+         project (length dirs) projectile-watch-max-directories)
       (let ((callback (projectile--watch-make-callback project))
             (failed nil)
             watches)
@@ -2417,9 +2426,9 @@ was reached, or the backend refused)."
      ((let ((default-directory project))
         (null (projectile-remove-ignored (list relative))))
       nil)
-     ((>= (length watches) projectile-watch-directory-limit)
+     ((>= (length watches) projectile-watch-max-directories)
       (throw 'projectile--watch-fallback
-             (format "new directory %s would exceed `projectile-watch-directory-limit'"
+             (format "new directory %s would exceed `projectile-watch-max-directories'"
                      relative)))
      (t
       (let ((descriptor
@@ -2560,7 +2569,7 @@ PROJECT-ROOT defaults to the current project."
 (defun projectile-track-known-projects-find-file-hook (&optional project-root)
   "Function for caching projects with `find-file-hook'.
 PROJECT-ROOT defaults to the current project."
-  (when projectile-track-known-projects-automatically
+  (when projectile-auto-track-known-projects
     (when-let* ((project-root (or project-root (projectile-project-p))))
       (projectile-add-known-project project-root))))
 
@@ -14224,8 +14233,8 @@ that requiring exact paths is acceptable.  Local behavior is unchanged."
                           project-root
                         (file-truename project-root))))
     (or (member project-root (projectile-ignored-projects))
-        (seq-some (lambda (pattern) (string-match-p pattern project-root))
-                  projectile-ignored-project-patterns)
+        (seq-some (lambda (regexp) (string-match-p regexp project-root))
+                  projectile-ignored-project-regexps)
         (and (functionp projectile-ignored-project-function)
              (funcall projectile-ignored-project-function project-root)))))
 
@@ -15007,7 +15016,7 @@ filtering, instead of each of them paying for both.")
         ;; Only filter when there's ignore configuration to apply, so the
         ;; common case doesn't pay for a `file-truename' per known project.
         (if (or projectile-ignored-projects
-                projectile-ignored-project-patterns
+                projectile-ignored-project-regexps
                 projectile-ignored-project-function)
             (seq-remove #'projectile-ignored-project-p projects)
           projects))))
@@ -16404,7 +16413,10 @@ it in."
                          (const :tag "Lifecycle commands" commands)))
   :package-version '(projectile . "3.3.0"))
 
-(defcustom projectile-dashboard-recent-files 10
+(define-obsolete-variable-alias 'projectile-dashboard-recent-files
+  'projectile-dashboard-max-recent-files "3.5.0")
+
+(defcustom projectile-dashboard-max-recent-files 10
   "How many recently visited files `projectile-dashboard' lists.
 The files are ranked by frecency, so this is the length of the \"what
 was I working on\" list, not a history limit - that's
@@ -16478,7 +16490,7 @@ we can't vouch for; everything else degrades to the bare VCS name."
   "Return ROOT's most frecent files, best first.
 This is the ranking `projectile-find-file' completion uses (see
 `projectile--frecency-score'), capped at
-`projectile-dashboard-recent-files'.
+`projectile-dashboard-max-recent-files'.
 
 The history outlives the files it tracks, so candidates are checked for
 existence as they are taken - which normally means one check per file
@@ -16497,7 +16509,7 @@ tracked for remote projects in the first place)."
               (remote (file-remote-p root))
               (taken 0)
               recent)
-          (while (and ranked (< taken projectile-dashboard-recent-files))
+          (while (and ranked (< taken projectile-dashboard-max-recent-files))
             (let ((entry (pop ranked)))
               (when (or remote
                         (file-exists-p (expand-file-name (car entry) root)))
@@ -17889,7 +17901,10 @@ mode *after* Emacs has finished starting never triggers a restore."
   :type 'boolean
   :package-version '(projectile . "3.2.0"))
 
-(defcustom projectile-session-autosave t
+(define-obsolete-variable-alias 'projectile-session-autosave
+  'projectile-session-auto-save "3.5.0")
+
+(defcustom projectile-session-auto-save t
   "Whether `projectile-session-mode' saves sessions automatically.
 When non-nil (the default), the outgoing project's session is saved when
 you switch away from it, and every open project's session is saved when
@@ -18506,7 +18521,7 @@ PROJECT defaults to the current project's root."
   "Save the current project's session when autosave is enabled.
 Wired onto `projectile-before-switch-project-hook', where the current
 project is still the one being switched away from."
-  (when projectile-session-autosave
+  (when projectile-session-auto-save
     (ignore-errors (projectile-session-save))))
 
 (defun projectile-session--save-all-tabs ()
@@ -18538,7 +18553,7 @@ session was actually written."
 Every open project tab's window layout and buffers are saved (see
 `projectile-session-save'); a tab whose layout has no serializable buffer
 is skipped.  Unlike autosave, this runs regardless of
-`projectile-session-autosave'.  When called interactively, report how many
+`projectile-session-auto-save'.  When called interactively, report how many
 sessions were saved."
   (interactive)
   ;; `--save-all-tabs' selects each project tab in turn and restores the
@@ -18593,7 +18608,7 @@ restored.  Return that count."
   "Save every open project's session when autosave is enabled.
 Wired onto `kill-emacs-hook'; the frame is going away, so the tab left
 selected by `projectile-session--save-all-tabs' does not matter."
-  (when projectile-session-autosave
+  (when projectile-session-auto-save
     (projectile-session--save-all-tabs)))
 
 (defun projectile-session--maybe-restore-on-startup ()
@@ -18638,7 +18653,7 @@ existing tabs untouched."
     (setq projectile-switch-project-action #'projectile-session-switch-project-action)
     ;; Autosave wiring.  `add-hook' is idempotent for an `eq' function, so a
     ;; double enable can't stack duplicates; the actual saving is gated on
-    ;; `projectile-session-autosave' inside the hook functions.
+    ;; `projectile-session-auto-save' inside the hook functions.
     (add-hook 'projectile-before-switch-project-hook
               #'projectile-session--maybe-autosave)
     (add-hook 'kill-emacs-hook #'projectile-session--autosave-on-kill)

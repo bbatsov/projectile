@@ -171,13 +171,13 @@ You can prevent certain projects from being added to the known projects list:
 (setq projectile-ignored-projects '("/tmp/" "~/.emacs.d/"))
 ----
 
-`projectile-ignored-project-patterns` takes regexps rather than exact paths,
+`projectile-ignored-project-regexps` takes regexps rather than exact paths,
 which is usually what you want for whole areas of a machine:
 
 [source,elisp]
 ----
 ;; Never remember anything under /tmp or in a Downloads directory
-(setq projectile-ignored-project-patterns '("\\`/tmp/" "/Downloads/"))
+(setq projectile-ignored-project-regexps '("\\`/tmp/" "/Downloads/"))
 ----
 
 For anything the two lists can't express, set
@@ -202,7 +202,7 @@ whenever you visit a file in a project.  You can disable this:
 
 [source,elisp]
 ----
-(setq projectile-track-known-projects-automatically nil)
+(setq projectile-auto-track-known-projects nil)
 ----
 
 == Completion options

@@ -114,12 +114,12 @@ watch bookkeeping into each other, caching is on (transient) and
       (expect 'file-notify-add-watch :not :to-have-been-called)
       (expect (hash-table-count projectile--project-watches) :to-equal 0)))
 
-  (it "skips projects with more directories than projectile-watch-directory-limit"
+  (it "skips projects with more directories than projectile-watch-max-directories"
     (projectile-test-with-stub-root "project" ("a.el" "src/b.el")
       (projectile-watch-test-env
         (projectile-watch-test--spy-file-notify)
         (spy-on 'message)
-        (let ((projectile-watch-directory-limit 1)
+        (let ((projectile-watch-max-directories 1)
               (projectile-verbose t)
               (root (projectile-project-root)))
           (projectile-cache-project root '("a.el" "src/b.el"))
@@ -384,7 +384,7 @@ watch bookkeeping into each other, caching is on (transient) and
     (projectile-test-with-stub-root "project" ("a.el")
       (projectile-watch-test-env
         (projectile-watch-test--spy-file-notify)
-        (let ((projectile-watch-directory-limit 1)
+        (let ((projectile-watch-max-directories 1)
               (root (projectile-project-root)))
           (projectile-cache-project root '("a.el"))
           (make-directory (expand-file-name "newdir" root))

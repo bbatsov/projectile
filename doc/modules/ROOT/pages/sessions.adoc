@@ -78,7 +78,7 @@ to disk and restore it in a later Emacs:
 * `projectile-session-save-all` saves every open project's session in one
   go, selecting each project tab in turn (and returning you to the tab you
   started on). Unlike autosave below, it runs regardless of
-  `projectile-session-autosave`.
+  `projectile-session-auto-save`.
 * `projectile-session-restore` recreates that project's buffers and puts
   the saved layout back.
 * `projectile-session-restore-all` reopens every saved project's session,
@@ -95,7 +95,7 @@ With `projectile-session-restore-on-switch` (on by default), switching to a
 project that has no open tab but does have a saved session restores that
 session instead of running `projectile-session-default-action`.
 
-`projectile-session-autosave` (on by default) does the saving for you: the
+`projectile-session-auto-save` (on by default) does the saving for you: the
 outgoing project's session is saved when you switch away from it, and every
 open project's session is saved when Emacs exits. Layouts with no
 serializable buffer are skipped. It's what gives
@@ -105,7 +105,7 @@ yourself.
 
 [source,elisp]
 ----
-(setq projectile-session-autosave nil)
+(setq projectile-session-auto-save nil)
 ----
 
 === Restoring every session at once

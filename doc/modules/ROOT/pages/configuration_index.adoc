@@ -29,6 +29,9 @@ and the other reference pages.
 | `projectile-auto-discover-projects`
 | Whether to discover projects under ‘projectile-project-search-path’.
 
+| `projectile-auto-track-known-projects`
+| Whether visiting a file in a project adds it to the known projects.
+
 | `projectile-auto-update-cache`
 | Whether cache is automatically updated when files are opened or deleted.
 
@@ -77,7 +80,7 @@ and the other reference pages.
 | `projectile-dashboard-link-files`
 | Base names the dashboard offers as links when the project has them.
 
-| `projectile-dashboard-recent-files`
+| `projectile-dashboard-max-recent-files`
 | How many recently visited files ‘projectile-dashboard’ lists.
 
 | `projectile-dashboard-sections`
@@ -197,7 +200,7 @@ and the other reference pages.
 | `projectile-ignored-project-function`
 | Function to decide if a project is added to ‘projectile-known-projects’.
 
-| `projectile-ignored-project-patterns`
+| `projectile-ignored-project-regexps`
 | Regexps matching projects not to be added to ‘projectile-known-projects’.
 
 | `projectile-ignored-projects`
@@ -299,7 +302,7 @@ and the other reference pages.
 | `projectile-search-whole-word`
 | Whether the reviewable search/replace start in whole-word mode.
 
-| `projectile-session-autosave`
+| `projectile-session-auto-save`
 | Whether ‘projectile-session-mode’ saves sessions automatically.
 
 | `projectile-session-buffer-serializers`
@@ -377,9 +380,6 @@ and the other reference pages.
 | `projectile-todo-keywords`
 | Annotation keywords ‘projectile-todos’ collects across the project.
 
-| `projectile-track-known-projects-automatically`
-| Controls whether Projectile will automatically register known projects.
-
 | `projectile-use-comint-mode`
 | Which of the commands Projectile runs get an interactive output buffer.
 
@@ -395,7 +395,7 @@ and the other reference pages.
 | `projectile-warn-on-prefixless-dirconfig-lines`
 | Whether to warn about deprecated prefix-less ignore entries.
 
-| `projectile-watch-directory-limit`
+| `projectile-watch-max-directories`
 | Maximum number of file-notify watches to register per project.
 
 | `projectile-worktree-functions`

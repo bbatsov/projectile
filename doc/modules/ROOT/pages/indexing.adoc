@@ -508,7 +508,7 @@ Be aware of the trade-offs before enabling it:
 
 * Emacs file notifications are not recursive, so a watched project costs
   one watch, and typically one file descriptor, per directory. Projects
-  spanning more directories than `projectile-watch-directory-limit`
+  spanning more directories than `projectile-watch-max-directories`
   (512 by default) are not watched at all; set `projectile-verbose` to be
   told when that happens.
 * Remote (TRAMP) projects are never watched.
