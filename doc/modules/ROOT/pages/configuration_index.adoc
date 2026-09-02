@@ -402,3 +402,82 @@ and the other reference pages.
 | Functions consulted to find the other checkouts of a project.
 
 |===
+
+== Former names
+
+Options renamed or folded since 3.4 keep working under their old names, and
+the byte-compiler points at the replacement. The old names go away in
+Projectile 4.0. This is where each one leads now.
+
+[cols="3,3,1", options="header"]
+|===
+| Former name | Current name | Since
+
+| `projectile-auto-discover`
+| `projectile-auto-discover-projects`
+| 3.4
+
+| `projectile-global-ignore-file-patterns`
+| `projectile-globally-ignored-file-regexps`
+| 3.4
+
+| `projectile-related-files-fn-function`
+| `projectile-related-files-function`
+| 3.4
+
+| `projectile-cmd-hist-ignoredups`
+| `projectile-command-history-ignore-duplicates`
+| 3.4
+
+| `projectile-replace-max-matches`
+| `projectile-search-max-matches`
+| 3.4
+
+| `projectile-replace-async`
+| `projectile-search-async`
+| 3.4
+
+| `projectile-replace-scan-chunk-size`
+| `projectile-search-scan-chunk-size`
+| 3.4
+
+| `projectile-configure-use-comint-mode`, `projectile-compile-use-comint-mode`,
+  `projectile-test-use-comint-mode`, `projectile-install-use-comint-mode`,
+  `projectile-package-use-comint-mode`, `projectile-run-use-comint-mode`
+| `projectile-use-comint-mode`, which takes a list of the commands to make
+  interactive
+| 3.4
+
+| `projectile-per-project-compilation-buffer`,
+  `projectile-per-command-compilation-buffer`
+| `projectile-compilation-buffer-scope`, a list of `project` and/or `command`
+| 3.4
+
+| `projectile-tags-file-name`
+| None. List the tags file in `projectile-globally-ignored-files`.
+| 3.4
+
+| `projectile-go-project-test-function`
+| None. Re-register the `go` project type with your own predicate.
+| 3.4
+
+| `projectile-track-known-projects-automatically`
+| `projectile-auto-track-known-projects`
+| 3.5
+
+| `projectile-ignored-project-patterns`
+| `projectile-ignored-project-regexps`
+| 3.5
+
+| `projectile-watch-directory-limit`
+| `projectile-watch-max-directories`
+| 3.5
+
+| `projectile-dashboard-recent-files`
+| `projectile-dashboard-max-recent-files`
+| 3.5
+
+| `projectile-session-autosave`
+| `projectile-session-auto-save`
+| 3.5
+|===
