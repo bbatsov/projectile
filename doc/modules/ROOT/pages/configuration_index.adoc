@@ -165,7 +165,7 @@ and the other reference pages.
 | Whether to list a git project’s files with fd instead of git ls-files.
 
 | `projectile-globally-ignored-buffers`
-| A list of buffer names ignored by projectile.
+| A list of regular expressions for buffer names ignored by projectile.
 
 | `projectile-globally-ignored-directories`
 | A list of directories globally ignored by projectile.

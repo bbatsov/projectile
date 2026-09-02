@@ -840,7 +840,7 @@ family of them."
 (defcustom projectile-globally-ignored-buffers
   '("\\*scratch\\*"
     "\\*lsp-log\\*")
-  "A list of buffer names ignored by projectile.
+  "A list of regular expressions for buffer names ignored by projectile.
 
 If a buffer matches one of these, projectile will ignore it for
 functions working with buffers.
