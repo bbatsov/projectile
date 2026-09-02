@@ -177,7 +177,7 @@
              (files (make-hash-table :test 'equal))
              (projectile--frecency-table (make-hash-table :test 'equal))
              (projectile-enable-frecency t)
-             (projectile-dashboard-recent-files 2))
+             (projectile-dashboard-max-recent-files 2))
         (puthash root files projectile--frecency-table)
         ;; The top-ranked file is gone, so it has to be filtered out
         ;; rather than merely fall off the end of the cap.

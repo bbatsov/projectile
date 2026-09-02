@@ -669,7 +669,16 @@
                     (projectile-replace-max-matches . projectile-search-max-matches)
                     (projectile-replace-async . projectile-search-async)
                     (projectile-replace-scan-chunk-size
-                     . projectile-search-scan-chunk-size)))
+                     . projectile-search-scan-chunk-size)
+                    (projectile-track-known-projects-automatically
+                     . projectile-auto-track-known-projects)
+                    (projectile-ignored-project-patterns
+                     . projectile-ignored-project-regexps)
+                    (projectile-watch-directory-limit
+                     . projectile-watch-max-directories)
+                    (projectile-dashboard-recent-files
+                     . projectile-dashboard-max-recent-files)
+                    (projectile-session-autosave . projectile-session-auto-save)))
       (expect (indirect-variable (car pair)) :to-be (cdr pair))
       (expect (get (car pair) 'byte-obsolete-variable) :not :to-be nil))))
 

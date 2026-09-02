@@ -446,9 +446,9 @@
         (expect (projectile--read-known-projects-file)
                 :to-equal '("~/a/" "~/b/"))))))
 
-(describe "projectile-ignored-project-patterns"
+(describe "projectile-ignored-project-regexps"
   (it "keeps a matching project out of the known projects"
-    (let ((projectile-ignored-project-patterns '("/tmp/" "/Downloads/"))
+    (let ((projectile-ignored-project-regexps '("/tmp/" "/Downloads/"))
           (projectile-ignored-projects nil)
           (projectile-ignored-project-function nil))
       (expect (projectile-ignored-project-p "/tmp/scratch/") :to-be-truthy)
@@ -457,7 +457,7 @@
       (expect (projectile-ignored-project-p "/home/me/src/real/") :to-be nil)))
 
   (it "leaves the exact list and the predicate working alongside it"
-    (let ((projectile-ignored-project-patterns '("/nope/"))
+    (let ((projectile-ignored-project-regexps '("/nope/"))
           (projectile-ignored-projects (list (file-truename "/exact/")))
           (projectile-ignored-project-function
            (lambda (root) (string-suffix-p "generated/" root))))
@@ -467,7 +467,7 @@
       (expect (projectile-ignored-project-p "/x/fine/") :to-be nil)))
 
   (it "is not consulted when it is empty"
-    (let ((projectile-ignored-project-patterns nil)
+    (let ((projectile-ignored-project-regexps nil)
           (projectile-ignored-projects nil)
           (projectile-ignored-project-function nil))
       (expect (projectile-ignored-project-p "/anything/") :to-be nil))))

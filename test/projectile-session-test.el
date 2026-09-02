@@ -710,20 +710,20 @@ everything that runs afterwards - see `dev/buffer-leaks.el'."
     ;; layouts it had never recorded, so it did nothing until you saved
     ;; one by hand.
     (expect (or (not (default-value 'projectile-session-restore-on-switch))
-                (default-value 'projectile-session-autosave))
+                (default-value 'projectile-session-auto-save))
             :to-be-truthy))
 
   (it "autosaves the outgoing project only when enabled"
-    (let ((projectile-session-autosave nil))
+    (let ((projectile-session-auto-save nil))
       (spy-on 'projectile-session-save)
       (projectile-session--maybe-autosave)
       (expect 'projectile-session-save :not :to-have-been-called)
-      (setq projectile-session-autosave t)
+      (setq projectile-session-auto-save t)
       (projectile-session--maybe-autosave)
       (expect 'projectile-session-save :to-have-been-called)))
 
   (it "keeps saving the other tabs when one can't be selected on kill"
-    (let ((projectile-session-autosave t)
+    (let ((projectile-session-auto-save t)
           (saved '()))
       (spy-on 'projectile-session--current-tab-index :and-return-value 1)
       (spy-on 'tab-bar-select-tab)

@@ -23,7 +23,7 @@
 
 ### Changes
 
-- [#2179](https://github.com/bbatsov/projectile/pull/2179): `projectile-session-autosave` now defaults to `t`. `projectile-session-restore-on-switch` reads what autosave writes, so with the save off by default `projectile-session-mode` restored layouts it had never recorded and did nothing until you saved one by hand.
+- [#2179](https://github.com/bbatsov/projectile/pull/2179): `projectile-session-auto-save` now defaults to `t`. `projectile-session-restore-on-switch` reads what autosave writes, so with the save off by default `projectile-session-mode` restored layouts it had never recorded and did nothing until you saved one by hand.
 - [#2160](https://github.com/bbatsov/projectile/pull/2160): `projectile-switch-sibling-project` moved from `s-p n` to `s-p n p`. `s-p n` is now the prefix for every command that works across related projects, with each key mirroring the project-wide one a level down, the way `c m` does for subprojects.
 - [#2168](https://github.com/bbatsov/projectile/pull/2168): Search results are redrawn at most every `projectile-search-render-interval` while streaming, instead of on every chunk. The buffer is redrawn from scratch, so drawing per chunk cost roughly chunks times matches - two thirds of a sibling-group search went on redrawing. A search across 18 projects drops from 0.32s to 0.18s, and across 122 from 4.8s to 2.8s.
 - [#2164](https://github.com/bbatsov/projectile/pull/2164): A search across several projects now uses ripgrep, one run per project, instead of falling back to the Emacs Lisp scanner. The candidate file list is also only computed when something is going to scan it, so the ripgrep path no longer pays for a directory walk it never reads.

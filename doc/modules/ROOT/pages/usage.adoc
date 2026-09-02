@@ -684,12 +684,12 @@ A project with nothing cached yet says so rather than indexing itself, but it
 offers an `[index now]` button that warms the cache in the background.
 
 `projectile-dashboard-sections` picks which sections show up and in what order,
-and `projectile-dashboard-recent-files` how many recent files are listed:
+and `projectile-dashboard-max-recent-files` how many recent files are listed:
 
 [source,elisp]
 ----
 (setq projectile-dashboard-sections '(project vcs recent))
-(setq projectile-dashboard-recent-files 20)
+(setq projectile-dashboard-max-recent-files 20)
 ----
 
 The dashboard is deliberately cheap, so that it works as a
