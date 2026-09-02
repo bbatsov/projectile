@@ -351,7 +351,7 @@ See also `projectile-cleanup-known-projects'."
   :package-version '(projectile . "2.0.0"))
 
 (defcustom projectile-auto-update-cache-with-watches nil
-  "When non-nil, watch project directories to keep the files cache fresh.
+  "Whether to watch project directories to keep the files cache fresh.
 
 Experimental.  When enabled (and `projectile-enable-caching' is
 non-nil), Projectile registers filesystem notification watches (via
@@ -896,7 +896,7 @@ Any function that does not take arguments will do."
   :package-version '(projectile . "3.0.0"))
 
 (defcustom projectile-find-dir-includes-top-level nil
-  "If true, add top-level dir to options offered by `projectile-find-dir'."
+  "Whether `projectile-find-dir' also offers the top-level directory."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "0.10.0"))
@@ -973,7 +973,7 @@ to pick the first available backend, or `prompt' to be asked each time."
   :package-version '(projectile . "2.1.0"))
 
 (defcustom projectile-dynamic-mode-line t
-  "If true, update the mode-line dynamically.
+  "Whether to update the mode-line dynamically.
 The mode-line is updated when files are opened via `find-file-hook'
 and when the window configuration changes.
 
@@ -1378,7 +1378,7 @@ returns the bare program name, or nil when fd is not available there."
     projectile-fd-executable))
 
 (defcustom projectile-git-use-fd (when projectile-fd-executable t)
-  "Non-nil means use fd to implement git ls-files.
+  "Whether to list a git project's files with fd instead of git ls-files.
 This may change Projectile's performance in large Git repositories
 depending on your system, but it will also work around the Git behavior
 that causes deleted files to still be shown in Projectile listings until
@@ -1574,7 +1574,7 @@ key's extension, in the order they are tried."
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-create-missing-test-files nil
-  "During toggling, if non-nil enables creating test files if not found.
+  "Whether toggling to a test file that does not exist yet creates it.
 
 When not-nil, every call to projectile-find-implementation-or-test-*
 creates test files if not found on the file system.  Defaults to nil.
@@ -2605,7 +2605,7 @@ is tracked in `projectile--current-project'."
 ;; under every indexing method, including `alien'.
 
 (defcustom projectile-enable-frecency t
-  "When non-nil, rank project files by frecency in completion.
+  "Whether to rank project files by frecency in completion.
 Projectile records file visits per project and sorts completion
 candidates by a combination of visit frequency and recency, so the
 files you work with the most show up first in `projectile-find-file'
@@ -17015,7 +17015,7 @@ off."
   :package-version '(projectile . "0.12.0"))
 
 (defcustom projectile-show-menu t
-  "Controls whether to display Projectile's menu."
+  "Whether to display Projectile's menu."
   :group 'projectile
   :type 'boolean
   :package-version '(projectile . "2.6.0"))

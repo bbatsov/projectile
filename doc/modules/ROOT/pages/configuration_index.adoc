@@ -36,7 +36,7 @@ and the other reference pages.
 | Whether cache is automatically updated when files are opened or deleted.
 
 | `projectile-auto-update-cache-with-watches`
-| When non-nil, watch project directories to keep the files cache fresh.
+| Whether to watch project directories to keep the files cache fresh.
 
 | `projectile-before-switch-project-hook`
 | Hooks run right before project is switched.
@@ -69,7 +69,7 @@ and the other reference pages.
 | The completion system to be used by Projectile.
 
 | `projectile-create-missing-test-files`
-| During toggling, if non-nil enables creating test files if not found.
+| Whether toggling to a test file that does not exist yet creates it.
 
 | `projectile-current-project-on-switch`
 | Determines whether to display current project when switching projects.
@@ -102,7 +102,7 @@ and the other reference pages.
 | Whether to offer the tasks a project’s own tooling defines.
 
 | `projectile-dynamic-mode-line`
-| If true, update the mode-line dynamically.
+| Whether to update the mode-line dynamically.
 
 | `projectile-enable-caching`
 | When t enables project files caching.
@@ -111,7 +111,7 @@ and the other reference pages.
 | Whether CMake projects use presets for their lifecycle commands.
 
 | `projectile-enable-frecency`
-| When non-nil, rank project files by frecency in completion.
+| Whether to rank project files by frecency in completion.
 
 | `projectile-fd-executable`
 | Path or name of fd executable used by Projectile if enabled.
@@ -129,7 +129,7 @@ and the other reference pages.
 | Hooks run when a directory is opened with ‘projectile-find-dir’.
 
 | `projectile-find-dir-includes-top-level`
-| If true, add top-level dir to options offered by ‘projectile-find-dir’.
+| Whether ‘projectile-find-dir’ also offers the top-level directory.
 
 | `projectile-find-file-hook`
 | Hooks run when a file is opened with ‘projectile-find-file’.
@@ -162,7 +162,7 @@ and the other reference pages.
 | Command used by projectile to list submodules of a given git repository.
 
 | `projectile-git-use-fd`
-| Non-nil means use fd to implement git ls-files.
+| Whether to list a git project’s files with fd instead of git ls-files.
 
 | `projectile-globally-ignored-buffers`
 | A list of buffer names ignored by projectile.
@@ -333,7 +333,7 @@ and the other reference pages.
 | The backend ‘projectile-run’ uses to open a shell/REPL/terminal.
 
 | `projectile-show-menu`
-| Controls whether to display Projectile’s menu.
+| Whether to display Projectile’s menu.
 
 | `projectile-sibling-max-group-share`
 | How much of the known projects an inferred sibling group may cover.
