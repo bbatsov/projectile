@@ -17853,7 +17853,7 @@ Otherwise behave as if called interactively.
 
 ;;; savehist-mode - When `savehist-mode' is t, projectile-project-command-history will be saved.
 ;; See https://github.com/bbatsov/projectile/issues/1637 for more details
-(defvar savehist-additional-variables nil)
+(defvar savehist-additional-variables)
 
 (defun projectile--register-savehist-variables ()
   "Add Projectile's persistable history variables to savehist."
