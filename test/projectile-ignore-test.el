@@ -232,85 +232,69 @@
     (clrhash projectile--glob-keep-warned-projects)
     (clrhash projectile--prefixless-dirconfig-warned-projects))
   (it "parses dirconfig and returns directories to ignore and keep"
-    (spy-on 'file-exists-p :and-return-value t)
-    (spy-on 'file-truename :and-call-fake (lambda (filename) filename))
-    (spy-on 'insert-file-contents :and-call-fake
-            (lambda (filename)
-              (save-excursion (insert "\n-exclude\n+include\n#may-be-a-comment\nno-prefix\n left-wspace\nright-wspace\t\n"))))
-    (expect (projectile-parse-dirconfig-file)
-            :to-equal (make-projectile-dirconfig
-                       :keep '("include/")
-                       :ignore '("exclude"
-                                 "#may-be-a-comment"
-                                 "no-prefix"
-                                 "left-wspace"
-                                 "right-wspace")
-                       :prefixless-ignore '("#may-be-a-comment"
-                                            "no-prefix"
-                                            "left-wspace"
-                                            "right-wspace")))
-    ;; same test - but with comment lines enabled using prefix '#'
-    (let ((projectile-dirconfig-comment-prefix ?#))
+    (projectile-test-with-project
+        ((".projectile" . "\n-exclude\n+include\n#may-be-a-comment\nno-prefix\n left-wspace\nright-wspace\t\n"))
       (expect (projectile-parse-dirconfig-file)
               :to-equal (make-projectile-dirconfig
                          :keep '("include/")
                          :ignore '("exclude"
+                                   "#may-be-a-comment"
                                    "no-prefix"
                                    "left-wspace"
                                    "right-wspace")
-                         :prefixless-ignore '("no-prefix"
+                         :prefixless-ignore '("#may-be-a-comment"
+                                              "no-prefix"
                                               "left-wspace"
                                               "right-wspace")))))
+  (it "drops comment lines when a comment prefix is set"
+    (projectile-test-with-project
+        ((".projectile" . "\n-exclude\n+include\n#may-be-a-comment\nno-prefix\n left-wspace\nright-wspace\t\n"))
+      (let ((projectile-dirconfig-comment-prefix ?#))
+        (expect (projectile-parse-dirconfig-file)
+                :to-equal (make-projectile-dirconfig
+                           :keep '("include/")
+                           :ignore '("exclude"
+                                     "no-prefix"
+                                     "left-wspace"
+                                     "right-wspace")
+                           :prefixless-ignore '("no-prefix"
+                                                "left-wspace"
+                                                "right-wspace"))))))
   (it "skips leading whitespace before dispatching on the prefix"
-    (spy-on 'file-exists-p :and-return-value t)
-    (spy-on 'insert-file-contents :and-call-fake
-            (lambda (_filename)
-              (save-excursion
-                (insert "  -indented-exclude\n"
-                        "\t+indented-include\n"
-                        " !indented-ensure\n"
-                        "  no-prefix-indented\n"))))
-    (expect (projectile-parse-dirconfig-file)
-            :to-equal (make-projectile-dirconfig
-                       :keep '("indented-include/")
-                       :ignore '("indented-exclude" "no-prefix-indented")
-                       :ensure '("indented-ensure")
-                       :prefixless-ignore '("no-prefix-indented"))))
-  (it "treats indented comment-prefix lines as comments"
-    (spy-on 'file-exists-p :and-return-value t)
-    (spy-on 'insert-file-contents :and-call-fake
-            (lambda (_filename)
-              (save-excursion
-                (insert "  # indented comment\n"
-                        "-keep-this\n"))))
-    (let ((projectile-dirconfig-comment-prefix ?#))
+    (projectile-test-with-project
+        ((".projectile" . (concat "  -indented-exclude\n"
+                                  "\t+indented-include\n"
+                                  " !indented-ensure\n"
+                                  "  no-prefix-indented\n")))
       (expect (projectile-parse-dirconfig-file)
-              :to-equal (make-projectile-dirconfig :ignore '("keep-this")))))
+              :to-equal (make-projectile-dirconfig
+                         :keep '("indented-include/")
+                         :ignore '("indented-exclude" "no-prefix-indented")
+                         :ensure '("indented-ensure")
+                         :prefixless-ignore '("no-prefix-indented")))))
+  (it "treats indented comment-prefix lines as comments"
+    (projectile-test-with-project
+        ((".projectile" . "  # indented comment\n-keep-this\n"))
+      (let ((projectile-dirconfig-comment-prefix ?#))
+        (expect (projectile-parse-dirconfig-file)
+                :to-equal (make-projectile-dirconfig :ignore '("keep-this"))))))
   (it "warns once per project even when multiple + entries contain globs"
-    (spy-on 'file-exists-p :and-return-value t)
-    (spy-on 'insert-file-contents :and-call-fake
-            (lambda (_filename)
-              (save-excursion (insert "+/*.json\n+/src\n+/[abc]/lib\n"))))
-    (spy-on 'display-warning)
-    (projectile-parse-dirconfig-file)
-    (projectile-parse-dirconfig-file)
-    (expect 'display-warning :to-have-been-called-times 1))
+    (projectile-test-with-project
+        ((".projectile" . "+/*.json\n+/src\n+/[abc]/lib\n"))
+      (spy-on 'display-warning)
+      (projectile-parse-dirconfig-file)
+      (projectile-parse-dirconfig-file)
+      (expect 'display-warning :to-have-been-called-times 1)))
   (it "does not warn for plain + subdirectory entries"
-    (spy-on 'file-exists-p :and-return-value t)
-    (spy-on 'insert-file-contents :and-call-fake
-            (lambda (_filename)
-              (save-excursion (insert "+/src\n+/tests/foo\n"))))
-    (spy-on 'display-warning)
-    (projectile-parse-dirconfig-file)
-    (expect 'display-warning :not :to-have-been-called))
+    (projectile-test-with-project ((".projectile" . "+/src\n+/tests/foo\n"))
+      (spy-on 'display-warning)
+      (projectile-parse-dirconfig-file)
+      (expect 'display-warning :not :to-have-been-called)))
   (it "does not warn for - ignore entries that contain globs"
-    (spy-on 'file-exists-p :and-return-value t)
-    (spy-on 'insert-file-contents :and-call-fake
-            (lambda (_filename)
-              (save-excursion (insert "-*.json\n-build/*.tmp\n"))))
-    (spy-on 'display-warning)
-    (projectile-parse-dirconfig-file)
-    (expect 'display-warning :not :to-have-been-called)))
+    (projectile-test-with-project ((".projectile" . "-*.json\n-build/*.tmp\n"))
+      (spy-on 'display-warning)
+      (projectile-parse-dirconfig-file)
+      (expect 'display-warning :not :to-have-been-called))))
 
 (describe "projectile-parse-dirconfig-file with a real file"
   (before-each
