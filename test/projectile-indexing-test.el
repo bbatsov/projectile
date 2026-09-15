@@ -551,7 +551,10 @@
             :to-equal "fd . -0 --type f --color=never --search-path src/"))
   (it "handles fd's --strip-cwd-prefix=<when> value form"
     (expect (projectile--ext-command-line "fd . --strip-cwd-prefix=always" '("src/"))
-            :to-equal "fd . --search-path src/")))
+            :to-equal "fd . --search-path src/"))
+  (it "passes fd dirs via --search-path when the command lacks --strip-cwd-prefix (#2187)"
+    (expect (projectile--ext-command-line "fd -H -0 -E .git -tf -c never" '("src/"))
+            :to-equal "fd -H -0 -E .git -tf -c never --search-path src/")))
 
 (describe "projectile-files-via-ext-command"
           (it "returns nil when command is nil or empty"
@@ -1069,6 +1072,20 @@
             :to-be nil)
     (expect (projectile--alien-command-excludes-p 'git projectile-git-command)
             :to-be-truthy))
+
+  (it "tells the tool apart by the program the command runs (#2187)"
+    ;; `projectile-git-fd-args' customised without `--strip-cwd-prefix'
+    ;; used to be taken for `git ls-files' and handed pathspecs
+    (expect (projectile--alien-exclude-style 'git "fd -H -0 -E .git -tf -c never")
+            :to-be 'fd)
+    (expect (projectile--alien-exclude-style 'none "/usr/bin/fdfind . -0 --type f")
+            :to-be 'fd)
+    (expect (projectile--alien-exclude-style 'git "git.exe ls-files -zco")
+            :to-be 'git)
+    ;; anything else set as `projectile-git-command' is filtered in Lisp
+    (expect (projectile--alien-exclude-style 'git "rg --files --null") :to-be nil)
+    (expect (projectile--alien-command-excludes-p 'git "rg --files --null")
+            :to-be nil))
 
   (it "declines for a project with dirconfig ensure entries"
     ;; an exclusion argument can't be taken back, so a project with `!'

@@ -3439,12 +3439,37 @@ for the regexps matched below."
 ;; alien keeps doing no Lisp-side filtering.  Only the tools that can't express
 ;; exclusions fall back to filtering in Emacs.
 
+(defun projectile--ext-command-program (command)
+  "Return the name of the program COMMAND runs.
+The name loses its directory and a Windows `.exe' suffix, so `git.exe'
+and `/usr/bin/git' both come back as \"git\".  COMMAND may be nil, in
+which case so is the result."
+  (when-let* ((command)
+              (program (car (split-string command))))
+    (string-remove-suffix ".exe" (file-name-nondirectory program))))
+
 (defun projectile--fd-command-p (command)
-  "Return non-nil when COMMAND is one of Projectile's `fd' recipes.
-Recognised by the `--strip-cwd-prefix' flag Projectile puts in them, the
-same way `projectile--ext-command-line' does.  COMMAND may be nil, which
-is how Projectile spells \"external-command indexing is disabled\"."
-  (and command (string-match-p "--strip-cwd-prefix\\b" command)))
+  "Return non-nil when COMMAND runs `fd'.
+Recognised by the program it runs (`fd', or `fdfind' as Debian names it),
+or by the `--strip-cwd-prefix' flag Projectile puts in its `fd' recipes,
+which also catches an `fd' installed under some other name.  COMMAND may
+be nil, which is how Projectile spells \"external-command indexing is
+disabled\"."
+  (and command
+       (or (member (projectile--ext-command-program command) '("fd" "fdfind"))
+           (string-match-p "--strip-cwd-prefix\\b" command))))
+
+(defun projectile--alien-exclude-style (vcs command)
+  "Return the kind of exclusion arguments COMMAND for VCS accepts, or nil.
+The result is `fd' for an `fd' command, `git' for a `git' command in a
+git project, and nil for a command with no way to express exclusions.
+It goes by the program COMMAND runs rather than by VCS alone, since a
+git project may well be listed by `fd' or something else (see #2187)."
+  (cond
+   ((projectile--fd-command-p command) 'fd)
+   ((and (eq vcs 'git)
+         (equal (projectile--ext-command-program command) "git"))
+    'git)))
 
 (defun projectile--alien-exclude-glob (glob style)
   "Translate GLOB into an exclusion pattern of the given STYLE.
@@ -3480,25 +3505,23 @@ Lisp instead (see `projectile--maybe-remove-ignored').
 VCS is the project's version-control system as returned by
 `projectile-project-vcs'."
   (when globs
-    (cond
-     ;; `fd' takes repeated `--exclude' globs.  Checked before VCS because
-     ;; git projects use fd too when `projectile-git-use-fd' is on.
-     ((projectile--fd-command-p command)
-      (mapconcat (lambda (glob)
-                   (concat "-E " (shell-quote-argument
-                                  (projectile--alien-exclude-glob glob 'fd))))
-                 globs " "))
-     ;; `git ls-files' takes exclude pathspecs.  A pathspec list made up
-     ;; entirely of exclusions still lists everything else, so there's no
-     ;; need to add a positive pathspec alongside them.
-     ((eq vcs 'git)
-      (concat "-- "
-              (mapconcat (lambda (glob)
-                           (shell-quote-argument
-                            (concat ":(exclude,glob)"
-                                    (projectile--alien-exclude-glob glob 'git))))
-                         globs " ")))
-     (t nil))))
+    (pcase (projectile--alien-exclude-style vcs command)
+      ;; `fd' takes repeated `--exclude' globs.
+      ('fd
+       (mapconcat (lambda (glob)
+                    (concat "-E " (shell-quote-argument
+                                   (projectile--alien-exclude-glob glob 'fd))))
+                  globs " "))
+      ;; `git ls-files' takes exclude pathspecs.  A pathspec list made up
+      ;; entirely of exclusions still lists everything else, so there's no
+      ;; need to add a positive pathspec alongside them.
+      ('git
+       (concat "-- "
+               (mapconcat (lambda (glob)
+                            (shell-quote-argument
+                             (concat ":(exclude,glob)"
+                                     (projectile--alien-exclude-glob glob 'git))))
+                          globs " "))))))
 
 (defun projectile--alien-ext-command (vcs directory)
   "Return the external listing command for DIRECTORY, honoring ignore rules.
@@ -3530,7 +3553,7 @@ nor `fd --exclude' has a way to un-exclude a path), so such a project is
 filtered in Lisp, where the ensure patterns can rescue the files the
 ignore patterns matched.  DIRECTORY is the project root the ensure
 entries are read from; it defaults to `default-directory'."
-  (and (or (projectile--fd-command-p command) (eq vcs 'git))
+  (and (projectile--alien-exclude-style vcs command)
        (null (projectile--ensure-patterns directory))
        t))
 
@@ -3873,11 +3896,11 @@ would be taken as the search pattern, and `fd' 9+ additionally rejects
 for `fd' commands we drop `--strip-cwd-prefix' (Projectile strips the
 `./' prefix from the output anyway) and pass the directories via
 `--search-path', which is unambiguous regardless of whether the command
-already carries a search pattern.  `fd' commands are recognised by the
-`--strip-cwd-prefix' flag Projectile puts in its default `fd' recipes."
+already carries a search pattern.  `fd' commands are recognised by
+`projectile--fd-command-p'."
   (if (not pathspecs)
       command
-    (if (string-match-p "--strip-cwd-prefix\\b" command)
+    (if (projectile--fd-command-p command)
         (concat (projectile--strip-fd-cwd-prefix-flag command) " "
                 (mapconcat (lambda (path)
                              (concat "--search-path " (shell-quote-argument path)))
