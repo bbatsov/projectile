@@ -178,6 +178,25 @@
     (expect (plist-get captured :case-fold) :to-be t)
     (expect (plist-get captured :word) :to-be nil)))
 
+(describe "projectile-dispatch definition"
+  (it "is the real transient prefix once transient is loaded"
+    (require 'transient)
+    (expect (transient-prefix-p (get 'projectile-dispatch 'transient--prefix))
+            :to-be-truthy))
+
+  (it "can be extended with transient-insert-suffix before its first use"
+    (require 'transient)
+    (unwind-protect
+        (progn
+          (transient-insert-suffix 'projectile-dispatch "f"
+            '("RET" "find-file" find-file))
+          ;; The layout entry's shape varies across transient versions,
+          ;; but looking up a missing key signals an error.
+          (expect (transient-get-suffix 'projectile-dispatch "RET")
+                  :to-be-truthy))
+      ;; Put the stock layout back for the specs that follow.
+      (projectile--dispatch-define))))
+
 (provide 'projectile-dispatch-test)
 
 ;;; projectile-dispatch-test.el ends here

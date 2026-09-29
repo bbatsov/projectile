@@ -17430,10 +17430,12 @@ Like `projectile-dispatch-search-review', but for the replace reviewer."
 ;; The menu keys deliberately match the `projectile-command-map' bindings.
 ;; The transient prefix is defined lazily: loading `transient' costs a few
 ;; milliseconds and some memory for every session, while the menu is only
-;; needed once invoked.  `projectile-dispatch' below is a stub that loads
-;; `transient', evaluates the real definition (replacing itself), and
-;; re-invokes it; `transient' is required at compile time (see the top of
-;; the file) so the macro still expands during byte-compilation.
+;; needed once invoked.  `projectile-dispatch' below is a stub; the real
+;; definition replaces it as soon as `transient' is loaded, whether by the
+;; stub itself or by anything else, so user code can extend the menu with
+;; `transient-append-suffix' right after `(require 'transient)'.
+;; `transient' is required at compile time (see the top of the file) so the
+;; macro still expands during byte-compilation.
 (defun projectile--dispatch-define ()
   "Define the `projectile-dispatch' transient prefix, replacing the stub."
   (transient-define-prefix projectile-dispatch ()
@@ -17562,16 +17564,23 @@ search/replace case-sensitive, `--word' makes it match whole words,
 (shells), and `--display' opens the result in another window or frame
 (file/buffer/project commands)."
   (interactive)
-  ;; Loading `transient' is deferred until the menu is first used; this
-  ;; stub is replaced by the real transient prefix on that first call.
+  ;; Loading `transient' is deferred until the menu is first used.  Loading
+  ;; it defines the real menu (see the `with-eval-after-load' below); the
+  ;; stub's marker property still being there means that didn't happen.
   (require 'transient)
-  (projectile--dispatch-define)
+  (when (eq (get 'projectile-dispatch 'transient--prefix) t)
+    (projectile--dispatch-define))
   (call-interactively 'projectile-dispatch))
 
 ;; Mark the stub as a transient prefix so `projectile--transient-command-p'
-;; recognizes it before the first invocation replaces the stub (and this
-;; property) with the real definition.
+;; recognizes it before the real definition replaces the stub (and this
+;; property).
 (put 'projectile-dispatch 'transient--prefix t)
+
+;; Replace the stub once `transient' is loaded.  This must come after the
+;; stub: it runs immediately when `transient' is already loaded.
+(with-eval-after-load 'transient
+  (projectile--dispatch-define))
 
 (defvar projectile-mode-map
   (let ((map (make-sparse-keymap)))
