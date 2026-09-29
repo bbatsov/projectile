@@ -617,6 +617,37 @@ NOTE: `projectile-dispatch` is powered by `transient`, which is bundled with
 Emacs 28.1+ (Projectile's minimum), so the menu is always available. It's bound
 to kbd:[s-p m], and kbd:[C-u s-p p] opens it when switching projects.
 
+=== Extending the dispatch menu
+
+`projectile-dispatch` is an ordinary transient prefix, so you can add your own
+entries with `transient-insert-suffix` (before an existing entry) or
+`transient-append-suffix` (after one), naming the existing entry by its key:
+
+[source,elisp]
+----
+(with-eval-after-load 'projectile
+  (require 'transient)
+  ;; RET runs a plain `find-file', listed before the "file" entry (f)
+  (transient-insert-suffix 'projectile-dispatch "f"
+    '("RET" "find-file" find-file)))
+----
+
+The suffix is any interactive command. It runs with the project current, so
+`default-directory` is the project root when you open the menu from project
+switching (kbd:[C-u s-p p]).
+
+The `(require 'transient)` is there because Projectile defers loading
+`transient` until the menu is first opened, and the menu only exists once
+`transient` is loaded. If you'd rather keep `transient` out of your startup, put
+the customization in `(with-eval-after-load 'transient ...)` inside the
+`with-eval-after-load 'projectile` form instead; it then runs whenever
+something first loads `transient`.
+
+NOTE: Before Projectile 3.5 loading `transient` wasn't enough; the menu was only
+defined on its first use. On 3.1 through 3.4 call
+`(projectile--dispatch-define)` after `(require 'transient)` and before
+changing the menu.
+
 == Finding changed files
 
 `projectile-find-changed-file` (kbd:[s-p C]) completes over the files you have
