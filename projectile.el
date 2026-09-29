@@ -2588,10 +2588,28 @@ is tracked in `projectile--current-project'."
           (run-hook-with-args 'projectile-project-changed-functions
                               project-root previous))))))
 
+(defun projectile--dirconfig-newer-than-cache-p (project-root)
+  "Return non-nil if PROJECT-ROOT's dirconfig changed after its files were cached.
+When the files are cached in memory, what counts is when that cache was
+filled; otherwise it's the persistent cache file, if there is one.  With
+no cache at all there is nothing to be stale."
+  (let ((dirconfig (projectile-dirconfig-file project-root))
+        (cache-time (gethash project-root projectile-projects-cache-time)))
+    (if cache-time
+        ;; The cache time is in whole seconds, so an edit in the second the
+        ;; cache was filled counts as newer: re-indexing once too often
+        ;; beats serving a file list that ignores the edit.
+        (when-let* ((attributes (file-attributes dirconfig)))
+          (time-less-p cache-time (file-attribute-modification-time attributes)))
+      (let ((cache-file (projectile-project-cache-file project-root)))
+        (and (file-exists-p cache-file)
+             (file-newer-than-file-p dirconfig cache-file))))))
+
 (defun projectile-maybe-invalidate-cache (force)
   "Invalidate if FORCE or project's dirconfig newer than cache."
-  (when (or force (file-newer-than-file-p (projectile-dirconfig-file)
-                                          (projectile-project-cache-file)))
+  (when (or force
+            (when-let* ((project-root (projectile-project-root)))
+              (projectile--dirconfig-newer-than-cache-p project-root)))
     (projectile-invalidate-cache nil)))
 
 

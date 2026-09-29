@@ -56,8 +56,54 @@
     (expect (projectile-maybe-invalidate-cache t) :to-be-truthy))
   (it "should invalidate cache if dirconfig is newer than cache"
     (spy-on 'projectile-invalidate-cache :and-return-value t)
-    (spy-on 'file-newer-than-file-p :and-return-value t)
-    (expect (projectile-maybe-invalidate-cache nil) :to-be-truthy)))
+    (spy-on 'projectile--dirconfig-newer-than-cache-p :and-return-value t)
+    (expect (projectile-maybe-invalidate-cache nil) :to-be-truthy))
+  (it "leaves an in-memory cache alone when the dirconfig predates it (#2193)"
+    (projectile-test-with-stub-root "project" (".projectile")
+      (let ((root (projectile-project-root)))
+        (set-file-times (projectile-dirconfig-file root) (seconds-to-time 1000))
+        (puthash root 2000 projectile-projects-cache-time)
+        (spy-on 'projectile-invalidate-cache)
+        (projectile-maybe-invalidate-cache nil)
+        (expect 'projectile-invalidate-cache :not :to-have-been-called)))))
+
+(describe "projectile--dirconfig-newer-than-cache-p"
+  :var (root)
+  (it "keeps an in-memory cache filled after the dirconfig was written"
+    (projectile-test-with-stub-root "project" (".projectile")
+      (setq root (projectile-project-root))
+      (set-file-times (projectile-dirconfig-file root) (seconds-to-time 1000))
+      (puthash root 2000 projectile-projects-cache-time)
+      ;; No cache file: the in-memory cache never writes one.
+      (expect (file-exists-p (projectile-project-cache-file root)) :to-be nil)
+      (expect (projectile--dirconfig-newer-than-cache-p root) :to-be nil)))
+
+  (it "detects a dirconfig edited after the in-memory cache was filled"
+    (projectile-test-with-stub-root "project" (".projectile")
+      (setq root (projectile-project-root))
+      (set-file-times (projectile-dirconfig-file root) (seconds-to-time 3000))
+      (puthash root 2000 projectile-projects-cache-time)
+      (expect (projectile--dirconfig-newer-than-cache-p root) :to-be-truthy)))
+
+  (it "falls back to the cache file when nothing is cached in memory"
+    (projectile-test-with-stub-root "project" (".projectile" ".projectile-cache.eld")
+      (setq root (projectile-project-root))
+      (set-file-times (projectile-project-cache-file root) (seconds-to-time 2000))
+      (set-file-times (projectile-dirconfig-file root) (seconds-to-time 3000))
+      (expect (projectile--dirconfig-newer-than-cache-p root) :to-be-truthy)
+      (set-file-times (projectile-dirconfig-file root) (seconds-to-time 1000))
+      (expect (projectile--dirconfig-newer-than-cache-p root) :to-be nil)))
+
+  (it "has nothing to invalidate when there is no cache at all"
+    (projectile-test-with-stub-root "project" (".projectile")
+      (setq root (projectile-project-root))
+      (expect (projectile--dirconfig-newer-than-cache-p root) :to-be nil)))
+
+  (it "has nothing to invalidate when there is no dirconfig"
+    (projectile-test-with-stub-root "project" ("a.el")
+      (setq root (projectile-project-root))
+      (puthash root 2000 projectile-projects-cache-time)
+      (expect (projectile--dirconfig-newer-than-cache-p root) :to-be nil))))
 
 (describe "projectile-root-top-down"
   (it "identifies the root directory of a project by top-down search"
