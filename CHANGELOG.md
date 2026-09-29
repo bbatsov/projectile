@@ -31,6 +31,7 @@
 
 ### Bugs fixed
 
+- [#2195](https://github.com/bbatsov/projectile/pull/2195): `projectile-dispatch` can be extended with `transient-insert-suffix`/`transient-append-suffix` as soon as `transient` is loaded, instead of failing with "Not a transient prefix command" until the menu had been opened once ([#2194](https://github.com/bbatsov/projectile/discussions/2194)).
 - [#2191](https://github.com/bbatsov/projectile/pull/2191): The test suite passes under native compilation with an empty eln cache, as in distro package builds, instead of failing two dirconfig specs with `native-lisp-load-failed` ([#2100](https://github.com/bbatsov/projectile/issues/2100)).
 - [#2190](https://github.com/bbatsov/projectile/pull/2190): Alien indexing no longer hands git exclude pathspecs to an `fd` whose `projectile-git-fd-args` lacks `--strip-cwd-prefix`, which made it fail with `No valid search paths given` ([#2187](https://github.com/bbatsov/projectile/issues/2187)).
 - [#2183](https://github.com/bbatsov/projectile/pull/2183): `projectile-run-test-at-point` now builds a usable file path when the project is reached through a symlink (anything under `/tmp` on macOS, or a symlinked `~/src`), instead of one that climbs out of the project and gets rejected by the test runner.
