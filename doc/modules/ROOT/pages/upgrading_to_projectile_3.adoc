@@ -26,8 +26,48 @@ The single-key "Commander" (`projectile-commander` and
 `projectile-dispatch`, a `transient` menu bound to kbd:[s-p m]. A prefix
 argument on project switch (kbd:[C-u s-p p]) also opens it.
 
-If you defined your own commander methods, add them to the dispatch transient
-instead (see `transient-append-suffix` and the `projectile-dispatch` definition).
+If you defined your own commander methods, add them to the dispatch menu
+instead. Say you had this:
+
+[source,elisp]
+----
+(def-projectile-commander-method ?\C-m
+  "Find file in project."
+  (call-interactively #'find-file))
+----
+
+The dispatch version is:
+
+[source,elisp]
+----
+(with-eval-after-load 'projectile
+  (require 'transient)
+  (transient-insert-suffix 'projectile-dispatch "f"
+    '("RET" "find-file" find-file)))
+----
+
+`projectile-dispatch` is a transient prefix, so the standard
+`transient-insert-suffix` and `transient-append-suffix` work on it. The second
+argument says where the new entry goes: the key of an existing entry (`"f"`
+here, the menu's "file" entry). `transient-insert-suffix` puts it before that
+entry and `transient-append-suffix` after it. A commander method's body becomes
+a command of its own:
+
+[source,elisp]
+----
+(defun my-projectile-magit-log ()
+  "Show the log of the current project."
+  (interactive)
+  (magit-log-head))
+
+(with-eval-after-load 'projectile
+  (require 'transient)
+  (transient-append-suffix 'projectile-dispatch "v"
+    '("L" "magit log" my-projectile-magit-log)))
+----
+
+See xref:usage.adoc#extending-the-dispatch-menu[Extending the dispatch menu]
+for more on how this works.
 
 === The idle timer
 
