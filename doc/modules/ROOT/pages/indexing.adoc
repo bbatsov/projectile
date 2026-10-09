@@ -302,6 +302,36 @@ TIP: For the details of each ignore mechanism (`.projectile`, the indexing
 tools, and the global ignore/unignore variables), see
 xref:ignoring.adoc[Ignoring files].
 
+== Transforming file names
+
+On some platforms file names containing non-ASCII characters (for
+example Cyrillic or Turkish) are collected as raw byte escapes like
+`\305\264\303\251`, when the file-name coding system doesn't cover
+them - a common case is Emacs on Windows with a legacy system code
+page.  Both the file list and the persistent cache then show the
+escapes instead of the actual names.
+
+The `projectile-files-transform-functions` option applies a list of
+functions to every file name Projectile collects for a project.  The
+functions run when the project is (re)indexed - before the list is
+cached or presented - so commands such as `projectile-find-file` and
+the persistent cache hold the transformed, readable names:
+
+[source,elisp]
+----
+;; Decode raw-byte file names as UTF-8.
+(setq projectile-files-transform-functions
+      (list (lambda (file) (decode-coding-string file 'utf-8))))
+----
+
+The default value is nil: file names are used as collected and no
+extra work is done.
+
+NOTE: The transforms run only during (re)indexing.  Already cached
+file lists keep their previous representation, so after changing the
+option clear the cache with `M-x projectile-invalidate-cache`
+(`s-p i`).
+
 == Sorting
 
 You can choose how Projectile sorts files by customizing `projectile-sort-order`.

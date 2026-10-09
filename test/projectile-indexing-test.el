@@ -1377,4 +1377,30 @@
                (projectile-alien-honors-ignores nil))
           (expect (projectile-project-files root) :to-contain "docs/a.text")))))))
 
+(describe "projectile-files-transform-functions"
+  (it "passes file names through when no transform is configured"
+    (let (projectile-files-transform-functions)
+      (expect (projectile--transform-file-names '("a.txt" "b/c.txt"))
+              :to-equal '("a.txt" "b/c.txt"))))
+  (it "applies the configured functions in order"
+    (let ((projectile-files-transform-functions
+           (list (lambda (file) (concat "x/" file))
+                 #'upcase)))
+      (expect (projectile--transform-file-names '("a.txt" "b/c.txt"))
+              :to-equal '("X/A.TXT" "X/B/C.TXT"))))
+  (it "transforms collected file names before they are cached"
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'projectile-get-project-directories :and-return-value '("/my/root/"))
+    (spy-on 'projectile--dir-files-alien-maybe-async :and-return-value '("a.txt" "b.txt"))
+    (spy-on 'projectile--alien-apply-ignores :and-call-fake
+            (lambda (_root _vcs files) files))
+    (spy-on 'projectile-cache-project)
+    (let ((projectile-indexing-method 'alien)
+          (projectile-enable-caching t)
+          (projectile-files-transform-functions (list #'upcase)))
+      (expect (projectile-project-files "/my/root/") :to-equal '("A.TXT" "B.TXT"))
+      (expect 'projectile-cache-project :to-have-been-called-times 1)
+      (expect 'projectile-cache-project
+              :to-have-been-called-with "/my/root/" '("A.TXT" "B.TXT")))))
+
 ;;; projectile-indexing-test.el ends here

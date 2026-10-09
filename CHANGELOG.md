@@ -8,6 +8,7 @@
 
 ### New features
 
+- [#2199](https://github.com/bbatsov/projectile/pull/2199): Add `projectile-files-transform-functions`, a list of functions applied to every file name a project index produces, so names collected as raw byte escapes (non-ASCII characters under a legacy `file-name-coding-system`, e.g. Cyrillic or Turkish on Windows) can be decoded before they are cached and presented.
 - [#2182](https://github.com/bbatsov/projectile/pull/2182): Add `projectile-todos-in-projects` and `projectile-multi-occur-in-projects`, so every sibling command now has a public generic taking any list of projects behind it and a command for a group of your own is a two-line wrapper for all five.
 - [#2181](https://github.com/bbatsov/projectile/pull/2181): Sapling and Bazaar projects can now list their own ignored files, via the new `projectile-sapling-ignored-command` and `projectile-bzr-ignored-command`.
 - [#2180](https://github.com/bbatsov/projectile/pull/2180): Every shell backend can now open in another window (`s-p x 4 <key>`), not just vterm, eat and ghostel: `shell`, `eshell`, `ielm`, `term` and the backend-dispatching `projectile-run` gained `-other-window` commands.

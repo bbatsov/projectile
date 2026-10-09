@@ -318,6 +318,33 @@ A value of nil means the cache never expires."
                  (natnum :tag "Seconds"))
   :package-version '(projectile . "1.0.0"))
 
+(defcustom projectile-files-transform-functions nil
+  "Functions applied to each file name produced by project indexing.
+
+Each function is called with a file name and must return a file
+name.  The functions are applied, in the order they appear in the
+list, to every file name Projectile collects for the current
+project - before the list is cached and presented in commands such
+as `projectile-find-file'.
+
+This is useful on platforms where file names containing non-ASCII
+characters (e.g. Cyrillic or Turkish) are collected as raw byte
+escapes like \"\\305\\264\\303\\251\", because the file-name coding
+system doesn't cover them - for instance Emacs on Windows with a
+legacy system code page.  Decoding on collection keeps both the
+file list and the persistent cache readable:
+
+    (setq projectile-files-transform-functions
+          (list (lambda (file) (decode-coding-string file 'utf-8))))
+
+The default value is nil - file names are used as collected and no
+extra work is done.  The functions run only when a project is
+(re)indexed, so after changing this option clear the cache with
+`projectile-invalidate-cache' to re-index with the new transforms."
+  :group 'projectile
+  :type 'hook
+  :package-version '(projectile . "3.5.0"))
+
 (define-obsolete-variable-alias 'projectile-auto-discover
   'projectile-auto-discover-projects "3.4.0")
 
@@ -5115,6 +5142,19 @@ CALLER is accepted for backward compatibility but no longer used."
 
 ;;; Listing a project's files and directories
 
+(defun projectile--transform-file-names (files)
+  "Apply `projectile-files-transform-functions' to every name in FILES.
+Return FILES unchanged when no transform is configured."
+  (if (null projectile-files-transform-functions)
+      files
+    (mapcar
+     (lambda (file)
+       (let ((result file))
+         (dolist (fun projectile-files-transform-functions)
+           (setq result (funcall fun result)))
+         result))
+     files)))
+
 (defun projectile-project-files (project-root)
   "Return a list of files for the PROJECT-ROOT."
   (let (files)
@@ -5193,6 +5233,10 @@ CALLER is accepted for backward compatibility but no longer used."
                                                        project-root))
                                  files))))
                    dirs))))))
+
+      ;; Apply the user-configured transforms to every collected name,
+      ;; so both the cache and the callers see the final representation.
+      (setq files (projectile--transform-file-names files))
 
       ;; Save the cached list.
       (when projectile-enable-caching
