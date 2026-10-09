@@ -715,4 +715,60 @@
     (dolist (vcs '(jj fossil darcs pijul none))
       (expect (projectile-get-ext-ignored-command vcs) :to-be nil))))
 
+(describe "projectile-dirconfig-parsers"
+  (before-each
+    (clrhash projectile--dirconfig-cache)
+    (clrhash projectile--glob-keep-warned-projects)
+    (clrhash projectile--prefixless-dirconfig-warned-projects))
+  (it "prefers .projectile over custom configuration files"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files ("project/")
+      (with-temp-file "project/.projectile"
+        (insert "-exclude\n"))
+      (with-temp-file "project/.project"
+        (insert "<projectDescription/>\n"))
+      (let* ((custom-called nil)
+             (projectile-dirconfig-parsers
+              (list (cons ".project"
+                          (lambda (_path)
+                            (setq custom-called t)
+                            (make-projectile-dirconfig :keep '("custom/")))))))
+        (expect (projectile-parse-dirconfig-file (expand-file-name "project/"))
+                :to-equal (make-projectile-dirconfig :ignore '("exclude")))
+        (expect custom-called :to-be nil)))))
+  (it "uses the first custom parser whose file exists"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files ("project/")
+      (with-temp-file "project/.project"
+        (insert "<projectDescription/>\n"))
+      (let* ((seen-path nil)
+             (projectile-dirconfig-parsers
+              (list (cons ".missing" #'ignore)
+                    (cons ".project"
+                          (lambda (path)
+                            (setq seen-path path)
+                            (make-projectile-dirconfig :ignore '("xml-source")))))))
+        (expect (projectile-parse-dirconfig-file (expand-file-name "project/"))
+                :to-equal (make-projectile-dirconfig :ignore '("xml-source")))
+        (expect seen-path
+                :to-equal (expand-file-name ".project" (expand-file-name "project/")))))))
+  (it "returns nil when no configuration file exists"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files ("project/")
+      (let ((projectile-dirconfig-parsers
+             (list (cons ".project"
+                         (lambda (_path)
+                           (make-projectile-dirconfig :keep '("custom/")))))))
+        (expect (projectile-parse-dirconfig-file (expand-file-name "project/"))
+                :to-be nil)))))
+  (it "reads the built-in syntax via projectile-read-dirconfig-file"
+    (projectile-test-with-sandbox
+     (projectile-test-with-files ("project/")
+      (with-temp-file "project/custom.txt"
+        (insert "+keep-me\n-drop-me\n"))
+      (expect (projectile-read-dirconfig-file (expand-file-name "project/custom.txt"))
+              :to-equal (make-projectile-dirconfig
+                         :keep '("keep-me/")
+                         :ignore '("drop-me")))))))
+
 ;;; projectile-ignore-test.el ends here

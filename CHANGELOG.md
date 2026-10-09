@@ -8,6 +8,7 @@
 
 ### New features
 
+- [#2200](https://github.com/bbatsov/projectile/pull/2200): Add `projectile-dirconfig-parsers`, an alist of configuration file names and parser functions consulted when a project root has no `projectile-dirconfig-file`, so the ignore/keep/ensure settings can be sourced from another tool's configuration file, e.g. an Eclipse `.project` XML. Custom parsers can delegate to the new `projectile-read-dirconfig-file`.
 - [#2182](https://github.com/bbatsov/projectile/pull/2182): Add `projectile-todos-in-projects` and `projectile-multi-occur-in-projects`, so every sibling command now has a public generic taking any list of projects behind it and a command for a group of your own is a two-line wrapper for all five.
 - [#2181](https://github.com/bbatsov/projectile/pull/2181): Sapling and Bazaar projects can now list their own ignored files, via the new `projectile-sapling-ignored-command` and `projectile-bzr-ignored-command`.
 - [#2180](https://github.com/bbatsov/projectile/pull/2180): Every shell backend can now open in another window (`s-p x 4 <key>`), not just vterm, eat and ghostel: `shell`, `eshell`, `ielm`, `term` and the backend-dispatching `projectile-run` gained `-other-window` commands.

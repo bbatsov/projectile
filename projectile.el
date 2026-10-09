@@ -665,6 +665,39 @@ such line, listing the offending entries."
   :type 'boolean
   :package-version '(projectile . "3.0.0"))
 
+(defcustom projectile-dirconfig-parsers nil
+  "Alist of project configuration files and their parser functions.
+
+Each element is a cons (FILE-NAME . PARSER).  When a project root
+doesn't contain `projectile-dirconfig-file', Projectile looks for
+the first FILE-NAME from this list that exists in the root and
+calls PARSER with the file's absolute path.  PARSER must return a
+`projectile-dirconfig' structure, or nil when the file turns out
+to hold no configuration.  Results are cached per project root and
+invalidated when the parsed file's modification time changes, just
+like the built-in dirconfig handling.
+
+This makes it possible to source a project's ignore/keep/ensure
+settings from a configuration file of another tool, e.g. an
+Eclipse `.project' XML file:
+
+    (setq projectile-dirconfig-parsers
+          '((\".project\" . my-eclipse-project-parser)))
+
+    (defun my-eclipse-project-parser (path)
+      \"Parse the Eclipse XML at PATH into a `projectile-dirconfig'.\"
+      ...)
+
+Custom parsers that only need to fall back to the built-in syntax
+can delegate to `projectile-read-dirconfig-file'.  Note that
+`projectile-dirconfig-file' takes precedence when it exists, and
+that treating a configuration file as a project root marker is
+governed separately by `projectile-project-root-files'."
+  :group 'projectile
+  :type '(alist :key-type (string :tag "Configuration file name")
+                :value-type (function :tag "Parser function"))
+  :package-version '(projectile . "3.5.0"))
+
 ;; The options below hold nothing but a list of names, patterns or regexps,
 ;; and none of them can do more than widen or narrow a listing - so a project
 ;; is free to set any of them from its .dir-locals.el.
@@ -2593,16 +2626,17 @@ is tracked in `projectile--current-project'."
 When the files are cached in memory, what counts is when that cache was
 filled; otherwise it's the persistent cache file, if there is one.  With
 no cache at all there is nothing to be stale."
-  (let ((dirconfig (projectile-dirconfig-file project-root))
-        (cache-time (gethash project-root projectile-projects-cache-time)))
+  (let* ((dirconfig (car (projectile--dirconfig-entry project-root)))
+         (cache-time (gethash project-root projectile-projects-cache-time)))
     (if cache-time
         ;; The cache time is in whole seconds, so an edit in the second the
         ;; cache was filled counts as newer: re-indexing once too often
         ;; beats serving a file list that ignores the edit.
-        (when-let* ((attributes (file-attributes dirconfig)))
+        (when-let* ((attributes (and dirconfig (file-attributes dirconfig))))
           (time-less-p cache-time (file-attribute-modification-time attributes)))
       (let ((cache-file (projectile-project-cache-file project-root)))
-        (and (file-exists-p cache-file)
+        (and dirconfig
+             (file-exists-p cache-file)
              (file-newer-than-file-p dirconfig cache-file))))))
 
 (defun projectile-maybe-invalidate-cache (force)
@@ -4919,12 +4953,13 @@ are accepted for backward compatibility but recorded separately so
 callers can flag the deprecated syntax.  All slots default to nil."
   (keep nil) (ignore nil) (ensure nil) (prefixless-ignore nil))
 
-(defun projectile--maybe-warn-glob-keep-entries (project-root cfg)
+(defun projectile--maybe-warn-glob-keep-entries (project-root dirconfig cfg)
   "Warn once per session about glob patterns in + keep entries.
-PROJECT-ROOT identifies the warned-projects set; CFG is the parsed
-`projectile-dirconfig' struct.  The `+' prefix is for subdirectories
-only; the parser silently coerces each entry to a directory, so a
-glob pattern would never match."
+PROJECT-ROOT identifies the warned-projects set, DIRCONFIG is the
+configuration file the CFG `projectile-dirconfig' was parsed from.
+The `+' prefix is for subdirectories only; the parser silently
+coerces each entry to a directory, so a glob pattern would never
+match."
   (when (and cfg
              (not (gethash project-root projectile--glob-keep-warned-projects)))
     (when-let* ((globbed (seq-filter
@@ -4937,7 +4972,7 @@ glob pattern would never match."
 The `+' prefix is for subdirectory paths only; globs are not expanded \
 and the entries are silently coerced to directory names.  Use a plain \
 directory or move the pattern to a `-'/`!' rule."
-               (expand-file-name projectile-dirconfig-file project-root)
+               dirconfig
                (mapconcat (lambda (s) (format "`%s'" s)) globbed ", "))
        :warning))))
 
@@ -4979,20 +5014,44 @@ compatibility but are tracked separately so callers can warn."
      :ensure            (nreverse ensure)
      :prefixless-ignore (nreverse prefixless))))
 
+(defun projectile--dirconfig-entry (&optional root)
+  "Return ROOT's dirconfig entry as (PATH . PARSER), or nil.
+The built-in `projectile-dirconfig-file' is checked first; when it
+doesn't exist, `projectile-dirconfig-parsers' is consulted in
+order for the first configuration file present in the root.  ROOT
+defaults to the current project's root."
+  (let* ((project-root (or root (projectile-project-root)))
+         (builtin (projectile-dirconfig-file project-root)))
+    (if (projectile-file-exists-p builtin)
+        (cons builtin #'projectile-read-dirconfig-file)
+      (cl-some (lambda (entry)
+                 (let ((path (expand-file-name (car entry) project-root)))
+                   (and (projectile-file-exists-p path)
+                        (cons path (cdr entry)))))
+               projectile-dirconfig-parsers))))
+
+(defun projectile-read-dirconfig-file (path)
+  "Parse the dirconfig file at PATH into a `projectile-dirconfig'.
+Return nil when PATH doesn't exist.  This is the parser used for
+the built-in `projectile-dirconfig-file'; it is exposed so custom
+`projectile-dirconfig-parsers' entries can delegate to it."
+  (when (projectile-file-exists-p path)
+    (projectile--parse-dirconfig-string
+     (with-temp-buffer
+       (insert-file-contents path)
+       (buffer-string)))))
+
 (defun projectile--parse-dirconfig-file-uncached (&optional root)
   "Parse ROOT's dirconfig file without caching.
 Return a `projectile-dirconfig' or nil if the file doesn't exist.
 ROOT defaults to the current project."
-  (let ((dirconfig (projectile-dirconfig-file root)))
-    (when (projectile-file-exists-p dirconfig)
-      (projectile--parse-dirconfig-string
-       (with-temp-buffer
-         (insert-file-contents dirconfig)
-         (buffer-string))))))
+  (when-let* ((entry (projectile--dirconfig-entry root)))
+    (funcall (cdr entry) (car entry))))
 
-(defun projectile--maybe-warn-prefixless-entries (project-root cfg)
+(defun projectile--maybe-warn-prefixless-entries (project-root dirconfig cfg)
   "Warn once per session about prefix-less ignore entries in CFG for PROJECT-ROOT.
-CFG is a `projectile-dirconfig' struct."
+DIRCONFIG is the configuration file CFG was parsed from; CFG is a
+`projectile-dirconfig' struct."
   (when (and projectile-warn-on-prefixless-dirconfig-lines
              cfg
              (projectile-dirconfig-prefixless-ignore cfg)
@@ -5003,10 +5062,10 @@ CFG is a `projectile-dirconfig' struct."
      'projectile
      (format "%s contains entries without a `+'/`-'/`!' prefix: %s.  \
 The implicit form is treated as an ignore rule for backward \
-compatibility but is being phased out — please prefix the lines \
+compatibility but is being phased out - please prefix the lines \
 explicitly.  Set `projectile-warn-on-prefixless-dirconfig-lines' \
 to nil to silence this warning."
-             (expand-file-name projectile-dirconfig-file project-root)
+             dirconfig
              (mapconcat (lambda (s) (format "`%s'" s))
                         (projectile-dirconfig-prefixless-ignore cfg)
                         ", "))
@@ -5036,9 +5095,14 @@ is non-nil, lines whose first non-whitespace character matches it
 are treated as comments.
 
 Results are cached per project root and invalidated when the
-dirconfig file's modification time changes."
+dirconfig file's modification time changes.
+
+When the root has no `projectile-dirconfig-file', the parser for
+the first configuration file from `projectile-dirconfig-parsers'
+found there is used instead."
   (let* ((project-root (or root (projectile-project-root)))
-         (dirconfig (projectile-dirconfig-file project-root))
+         (entry (projectile--dirconfig-entry project-root))
+         (dirconfig (car entry))
          (cached (gethash project-root projectile--dirconfig-cache))
          (attrs (file-attributes dirconfig))
          (mtime (when attrs (file-attribute-modification-time attrs)))
@@ -5053,8 +5117,8 @@ dirconfig file's modification time changes."
                                   (list dirconfig mtime parsed)
                                   projectile--dirconfig-cache))
                        parsed)))))
-    (projectile--maybe-warn-prefixless-entries project-root result)
-    (projectile--maybe-warn-glob-keep-entries project-root result)
+    (projectile--maybe-warn-prefixless-entries project-root dirconfig result)
+    (projectile--maybe-warn-glob-keep-entries project-root dirconfig result)
     result))
 
 ;;; Path expansion and completion
