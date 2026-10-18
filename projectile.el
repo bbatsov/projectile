@@ -12141,17 +12141,76 @@ duplicates dropped."
               (push name names))))))
     (nreverse names)))
 
+(defun projectile--just-modules (file)
+  "Return the modules the justfile FILE declares, as (NAME . PATH) pairs.
+PATH is the module's explicit source path, or nil when it has none."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (let ((case-fold-search nil)
+          modules)
+      ;; `mod NAME' or `mod? NAME', optionally followed by a quoted path
+      ;; and a comment.  Anchoring at the end of the line keeps a recipe
+      ;; called `mod' that takes a parameter from reading as a module.
+      (while (re-search-forward
+              (concat "^mod\\??[ \t]+\\([a-zA-Z_][a-zA-Z0-9_-]*\\)"
+                      "\\(?:[ \t]+\\(?:'\\([^'\n]*\\)'\\|\"\\([^\"\n]*\\)\"\\)\\)?"
+                      "[ \t]*\\(?:#.*\\)?$")
+              nil t)
+        (push (cons (match-string 1) (or (match-string 2) (match-string 3)))
+              modules))
+      (nreverse modules))))
+
+(defun projectile--just-module-file (directory name path)
+  "Return the source file of the just module NAME declared in DIRECTORY.
+PATH is the module's explicit path, or nil.  Like just itself, look for
+NAME.just, then for `mod.just' or a justfile in the NAME directory; an
+explicit PATH that names a directory is searched the same way."
+  (let* ((names (cons "mod.just" projectile--justfile-names))
+         (candidates
+          (if path
+              (let ((file (expand-file-name path directory)))
+                (if (file-directory-p file)
+                    (mapcar (lambda (name) (expand-file-name name file)) names)
+                  (list file)))
+            (cons (expand-file-name (concat name ".just") directory)
+                  (let ((module-directory (expand-file-name name directory)))
+                    (mapcar (lambda (name) (expand-file-name name module-directory))
+                            names))))))
+    (seq-find (lambda (file)
+                (and (file-readable-p file) (not (file-directory-p file))))
+              candidates)))
+
+(defun projectile--just-recipes (file &optional prefix seen)
+  "Return the recipes of the justfile FILE and of the modules it declares.
+The recipes of a module are qualified with its path the way just names
+them (`foo::build').  PREFIX is the module path of FILE itself, and SEEN
+lists the files already read, so a module that loops back is skipped."
+  (let ((seen (cons file seen))
+        (directory (file-name-directory file)))
+    (append
+     ;; A recipe starts in column zero, may be marked quiet with `@' and
+     ;; may take parameters.  The lookahead keeps `:=', which is an
+     ;; assignment, from reading as a recipe.
+     (mapcar (lambda (recipe) (concat prefix recipe))
+             (projectile--matches-in-file
+              file "^@?\\([a-zA-Z_][a-zA-Z0-9_-]*\\)[^:\n]*:\\(?:[^=\n]\\|$\\)"))
+     (mapcan (lambda (module)
+               (when-let* ((module-file (projectile--just-module-file
+                                         directory (car module) (cdr module)))
+                           ((not (member module-file seen))))
+                 (projectile--just-recipes module-file
+                                           (concat prefix (car module) "::")
+                                           seen)))
+             (projectile--just-modules file)))))
+
 (defun projectile-tasks-from-just (project-root)
-  "Return the recipes of the justfile in PROJECT-ROOT as tasks."
+  "Return the recipes of the justfile in PROJECT-ROOT as tasks.
+The recipes of the modules it declares with `mod' are included too,
+qualified with the module's name (`just:foo::build')."
   (when-let* ((file (projectile--first-task-file
                      project-root projectile--justfile-names)))
-    ;; A recipe starts in column zero, may be marked quiet with `@' and
-    ;; may take parameters.  The lookahead keeps `:=', which is an
-    ;; assignment, from reading as a recipe.
-    (projectile--tasks-named
-     (projectile--matches-in-file
-      file "^@?\\([a-zA-Z_][a-zA-Z0-9_-]*\\)[^:\n]*:\\(?:[^=\n]\\|$\\)")
-     "just" "just %s")))
+    (projectile--tasks-named (projectile--just-recipes file) "just" "just %s")))
 
 (defun projectile--taskfile-task-names (file)
   "Return the keys of the top-level `tasks:' mapping in the Taskfile FILE.

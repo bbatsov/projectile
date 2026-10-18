@@ -188,8 +188,8 @@ image::projectile-discovered-tasks.png[projectile-run-task offering npm scripts 
 | `composer:lint`
 
 | just recipes
-| `justfile`, `.justfile`, `Justfile`
-| `just:build`
+| `justfile`, `.justfile`, `Justfile`, plus the modules it declares with `mod`
+| `just:build`, `just:foo::build`
 
 | go-task tasks
 | `Taskfile.yml` and friends
@@ -215,6 +215,11 @@ completion prompt. Tasks are qualified with the `namespace` blocks they sit in
 (`rake:db:migrate`), and run through `bundle exec` when the project has a
 `Gemfile`. A task whose name is computed at runtime (`task type, [:id]`) can't
 be known without running rake, so it isn't listed.
+
+The recipes of a just module are qualified with its path the way just itself
+names them (`just:foo::build` runs `just foo::build`). Modules are found where
+just looks for them - `foo.just`, or `mod.just` or a justfile in the `foo`
+directory - or at the path given in the `mod` statement.
 
 Set `projectile-discover-tasks` to nil to turn this off, or customize
 `projectile-task-providers` to add your own. A provider is a function taking
