@@ -12584,16 +12584,19 @@ Reads the manifest of the workspace formats Projectile can parse
 statically - pnpm, npm/yarn/bun, Cargo and Go - and returns the raw
 globs.  Formats whose member list is computed rather than declared
 \(Gradle builds it in a Kotlin or Groovy program, Bazel in Starlark) have
-no answer here and fall through to scanning."
+no answer here and fall through to scanning.
+
+The first manifest that declares members wins, not the first one that
+exists: a Cargo or Go workspace often keeps a plain package.json at its
+root for tooling, and that one declares nothing."
   (let ((pnpm (expand-file-name "pnpm-workspace.yaml" root))
         (npm (expand-file-name "package.json" root))
         (cargo (expand-file-name "Cargo.toml" root))
         (gowork (expand-file-name "go.work" root)))
-    (cond
-     ((file-readable-p pnpm) (projectile--pnpm-workspace-patterns pnpm))
-     ((file-readable-p npm) (projectile--npm-workspace-patterns npm))
-     ((file-readable-p cargo) (projectile--cargo-workspace-patterns cargo))
-     ((file-readable-p gowork) (projectile--go-work-patterns gowork)))))
+    (or (and (file-readable-p pnpm) (projectile--pnpm-workspace-patterns pnpm))
+        (and (file-readable-p npm) (projectile--npm-workspace-patterns npm))
+        (and (file-readable-p cargo) (projectile--cargo-workspace-patterns cargo))
+        (and (file-readable-p gowork) (projectile--go-work-patterns gowork)))))
 
 (defun projectile--file-contents (file)
   "Return the contents of FILE as a string."

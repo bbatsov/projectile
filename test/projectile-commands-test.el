@@ -921,6 +921,19 @@
           (expect (projectile-subprojects-from-manifest repo)
                   :to-equal '("only/"))))))
 
+  (it "looks past a package.json that declares no workspaces"
+    ;; a Cargo or Go workspace often has one at its root, for tooling
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("repo/api/" "repo/worker/" "repo/scratch/")
+        (with-temp-file "repo/package.json"
+          (insert "{\"name\": \"repo\", \"devDependencies\": {}}"))
+        (with-temp-file "repo/go.work"
+          (insert "go 1.22\n\nuse (\n\t./api\n\t./worker\n)\n"))
+        (let ((repo (file-truename (expand-file-name "repo/"))))
+          (expect (projectile-subprojects-from-manifest repo)
+                  :to-equal '("api/" "worker/"))))))
+
   (it "has no answer when the members are not declared statically"
     ;; Gradle builds its module list in a Kotlin program and Bazel in
     ;; Starlark; neither can be read without running the tool, so the scan
