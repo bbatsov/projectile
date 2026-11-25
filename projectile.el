@@ -14190,7 +14190,11 @@ This command will first prompt for the directory the file is in."
         ;; target directory is in a project
         (let ((file (projectile-completing-read "Find file: "
                                                 (projectile-dir-files directory)
-                                                :caller 'projectile-read-file)))
+                                                :caller 'projectile-read-file
+                                                ;; relative to DIRECTORY, which
+                                                ;; need not be the project root
+                                                ;; `project-file' implies
+                                                :category 'file)))
           (find-file (expand-file-name file directory))
           (run-hooks 'projectile-find-file-hook))
       ;; target directory is not in a project
@@ -15344,7 +15348,9 @@ PROMPT overrides the completion prompt."
               (or prompt "Find file in projects: ")
               (projectile-project-group-files
                (projectile--project-group projects "projects"))
-              :caller 'projectile-read-file)))
+              :caller 'projectile-read-file
+              ;; absolute paths, not names relative to one project
+              :category 'file)))
 
 ;;;###autoload
 (defun projectile-search-in-projects (projects &optional literal prompt)
@@ -18355,7 +18361,8 @@ When the current tab holds no project, fall back to the plain
         (switch-to-buffer
          (projectile-completing-read
           "Switch to project buffer: "
-          (mapcar #'buffer-name (projectile-project-buffers root))))
+          (mapcar #'buffer-name (projectile-project-buffers root))
+          :category 'buffer))
       (call-interactively #'switch-to-buffer))))
 
 ;;; Session persistence

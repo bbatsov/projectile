@@ -157,7 +157,13 @@ the two truename'd roots and `parent' to the directory holding them."
         (spy-on 'projectile-completing-read :and-return-value wanted)
         (projectile-find-file-in-projects (list alpha beta))
         (expect (file-truename (buffer-file-name))
-                :to-equal (file-truename wanted))))))
+                :to-equal (file-truename wanted))
+        ;; the candidates are absolute, which is the `file' category and
+        ;; not the root-relative `project-file' one
+        (expect (plist-get (cddr (spy-calls-args-for
+                                  'projectile-completing-read 0))
+                           :category)
+                :to-be 'file)))))
 
 
 ;;; Searching a group

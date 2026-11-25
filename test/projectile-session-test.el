@@ -234,7 +234,12 @@ everything that runs afterwards - see `dev/buffer-leaks.el'."
             (spy-on 'switch-to-buffer)
             (projectile-session-switch-to-buffer)
             (expect 'projectile-project-buffers :to-have-been-called-with "/proj/")
-            (expect 'switch-to-buffer :to-have-been-called-with "session-a"))
+            (expect 'switch-to-buffer :to-have-been-called-with "session-a")
+            ;; buffer names, not the project files the default category means
+            (expect (plist-get (cddr (spy-calls-args-for
+                                      'projectile-completing-read 0))
+                               :category)
+                    :to-be 'buffer))
         (kill-buffer buf-a)
         (kill-buffer buf-b))))
 

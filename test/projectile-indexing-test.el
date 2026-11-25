@@ -895,7 +895,26 @@
 
 (describe "projectile-find-file-in-directory"
   (it "fails when called in a non-existing directory"
-    (expect (projectile-find-file-in-directory "asdf") :to-throw)))
+    (expect (projectile-find-file-in-directory "asdf") :to-throw))
+
+  (it "offers names relative to the directory under the file category"
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("project/.projectile" "project/sub/a.txt")
+        (let ((sub (expand-file-name "project/sub/"))
+              ;; the sandbox sits in an ignored corner of Projectile's own
+              ;; checkout, where git has no files to list
+              (projectile-indexing-method 'native)
+              category)
+          (spy-on 'projectile-completing-read :and-call-fake
+                  (lambda (_prompt choices &rest args)
+                    (setq category (plist-get args :category))
+                    (car choices)))
+          (spy-on 'find-file)
+          (projectile-find-file-in-directory sub)
+          (expect 'find-file
+                  :to-have-been-called-with (expand-file-name "a.txt" sub))
+          (expect category :to-be 'file))))))
 
 (describe "projectile-dir-files-native"
   (it "calculates ignored files and directories only once during recursion"
