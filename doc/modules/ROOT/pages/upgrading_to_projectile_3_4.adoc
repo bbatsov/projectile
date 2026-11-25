@@ -1,0 +1,87 @@
+= Upgrading to Projectile 3.4
+
+Projectile 3.4 cleaned up the names of the configuration options. Quite a few
+were renamed and a few groups of related options were folded into one.
+
+Nothing here will break your configuration: every old name is still honored.
+You'll only see a note about it when you byte-compile your init file or look
+the option up. Still, it's a good idea to move to the new names at some
+point, as the old ones will be removed in a future major release.
+
+== Renamed options
+
+|===
+| Old name | New name
+
+| `projectile-global-ignore-file-patterns` | `projectile-globally-ignored-file-regexps`
+| `projectile-cmd-hist-ignoredups` | `projectile-command-history-ignore-duplicates`
+| `projectile-related-files-fn-function` | `projectile-related-files-function`
+| `projectile-auto-discover` | `projectile-auto-discover-projects`
+| `projectile-replace-max-matches` | `projectile-search-max-matches`
+| `projectile-replace-async` | `projectile-search-async`
+| `projectile-replace-scan-chunk-size` | `projectile-search-scan-chunk-size`
+|===
+
+The last three were named after the replace reviewer, but the search reviewer
+reads them as well.
+
+== Options folded into one
+
+The six `projectile-<command>-use-comint-mode` options became
+`projectile-use-comint-mode`. It takes `t` for everything, or a list of the
+commands that should get an interactive buffer:
+
+[source,elisp]
+----
+;; before
+(setq projectile-test-use-comint-mode t
+      projectile-run-use-comint-mode t)
+
+;; after
+(setq projectile-use-comint-mode '(test run))
+----
+
+`projectile-per-project-compilation-buffer` and
+`projectile-per-command-compilation-buffer` became
+`projectile-compilation-buffer-scope`, a list of `project` and/or `command`:
+
+[source,elisp]
+----
+;; before
+(setq projectile-per-project-compilation-buffer t)
+
+;; after
+(setq projectile-compilation-buffer-scope '(project))
+----
+
+See xref:tasks.adoc[Project commands, tasks & tests] for what these do.
+
+== Obsolete options
+
+`projectile-tags-file-name` and `projectile-go-project-test-function` are
+obsolete. Both were only read while Projectile was loading, so setting them
+from your init file afterwards never did anything.
+
+* To keep a tags file out of the file listing, add it to
+  `projectile-globally-ignored-files`.
+* To change how Go projects are detected, re-register the `go` project type
+  (see xref:projects.adoc[Projects]).
+
+== Command history is shared between checkouts
+
+This is the one change in behavior. The history behind kbd:[M-p] at a
+compile, test or run prompt now belongs to the repository rather than to the
+directory. A fresh git worktree, or a second clone of the same upstream,
+offers the commands you've already used to build the project instead of
+starting empty.
+
+Your existing histories are carried over. What a prompt is pre-filled with,
+and what `projectile-repeat-last-command` replays, are still local to the
+checkout you're in.
+
+To go back to a history per directory:
+
+[source,elisp]
+----
+(setq projectile-command-history-scope 'project)
+----

@@ -20,6 +20,8 @@
 ** xref:migrating_from_project_el.adoc[Migrating from project.el]
 ** xref:upgrading_to_projectile_3.adoc[Upgrading to Projectile 3.0]
 ** xref:upgrading_to_projectile_3_1.adoc[Upgrading to Projectile 3.1]
+** xref:upgrading_to_projectile_3_3.adoc[Upgrading to Projectile 3.3]
+** xref:upgrading_to_projectile_3_4.adoc[Upgrading to Projectile 3.4]
 * Help
 ** xref:extensions.adoc[Extensions]
 ** xref:faq.adoc[FAQ]

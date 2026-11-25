@@ -1,0 +1,115 @@
+= Upgrading to Projectile 3.3
+
+Projectile 3.3 reworked how files get ignored. Before it, every indexing
+method had its own idea of what an ignore entry meant, and `alien` (the
+default) skipped Projectile's ignore rules altogether. Now there's one
+pattern language, matched the same way everywhere.
+
+That's a real improvement, but it also means that an existing setup can list
+different files after the upgrade. This page covers what changed and how to
+get the old behavior back where that's possible.
+
+TIP: xref:ignoring.adoc[Ignoring files] documents the rules as they are now.
+`projectile-doctor` (kbd:[s-p H]) shows the rules in effect for the current
+project, which is the quickest way to see why a file is or isn't listed.
+
+== `alien` indexing honors your ignore rules
+
+This is the change most people will notice. Under `alien` indexing Projectile
+used to hand the listing to `git ls-files`, `fd` and friends and show whatever
+came back. `.projectile`, `projectile-globally-ignored-files`,
+`projectile-globally-ignored-directories` and the rest were not consulted.
+
+They are now, so an `alien` project will list fewer files than it did if you
+had ignore rules lying around that never applied. If you'd rather have the
+old behavior:
+
+[source,elisp]
+----
+(setq projectile-alien-honors-ignores nil)
+----
+
+`projectile-warn-when-dirconfig-is-ignored`, which only existed to warn that
+`alien` was skipping `.projectile`, is gone.
+
+== One pattern language for every ignore setting
+
+`.projectile` entries and the global ignore options are all gitignore-style
+patterns now (see xref:ignoring.adoc#pattern-language[the pattern language]):
+
+* a pattern without a slash matches at any depth
+* a pattern with a slash is anchored at the project root
+* a trailing `/` matches directories only
+* `*`, `**`, `?` and `[...]` are wildcards
+
+A few things that used to work differently:
+
+* The `*` prefix in `projectile-globally-ignored-directories` used to be a
+  marker meaning "at any depth". Any depth is the default now and `*` is a
+  plain wildcard, so `*node_modules` also matches `my_node_modules`. Write
+  `node_modules`.
+* A bare entry is no longer top-level-only under `hybrid`. If you meant only
+  the directory at the project root, write `/tmp` instead of `tmp`.
+* Matching is case-sensitive under every indexing method. `native` and
+  `hybrid` used to fold case, so `.elc` also hid `BUILD.ELC`.
+
+`projectile-global-ignore-file-patterns` is the exception: it still holds
+Emacs regexps and still applies only under `native` indexing. (It was renamed
+to `projectile-globally-ignored-file-regexps` in 3.4 to make that obvious.)
+
+== More directories are ignored by default
+
+`projectile-globally-ignored-directories` now covers the dependency and build
+output directories of the common ecosystems: `node_modules`, `target`,
+`_build`, `__pycache__`, `.venv`, `.next`, `.gradle` and a couple of dozen
+more. Names that projects sometimes commit (`vendor`, `dist`, `public`,
+`build`) were left out on purpose.
+
+If you work on something that lives in one of those directories, take it back:
+
+[source,elisp]
+----
+(add-to-list 'projectile-globally-unignored-directories "target")
+----
+
+`.ensime_cache` and `.eunit` were dropped from the list.
+
+== Removed functions
+
+The functions that built lists of absolute ignored paths are gone, as nothing
+computes ignores that way any more:
+
+* `projectile-ignored-files` and `projectile-ignored-directories`, and their
+  `-rel` variants
+* `projectile-project-ignored`, `projectile-project-ignored-files` and
+  `projectile-project-ignored-directories`
+* `projectile-paths-to-ignore` and `projectile-patterns-to-ignore`
+
+`projectile-ignored-file-p` and `projectile-ignored-directory-p` are still
+around, but their optional second argument is now a project root rather than
+a pre-computed list of ignored paths. They give the same answer indexing
+would.
+
+This only matters if you (or a package you use) called these directly.
+
+== Project types
+
+Many project types were brought up to date. The changes you might notice:
+
+* Rails and Django had their development server wired to the _compile_
+  command, with nothing on run. The server is the run command now
+  (kbd:[s-p c r]).
+* A PHP application is no longer detected as a Node project because of the
+  `package.json` its asset pipeline ships.
+* `go.mod` is the Go type's project file, so it marks the root of a Go
+  project outside version control.
+* Bazel is detected by `MODULE.bazel`, Gradle by the Kotlin DSL files or a
+  settings file alone, Zig by `build.zig`.
+* The default commands for Symfony, Dart, `setup.py` and poetry projects were
+  replaced with ones that work with the current tools.
+
+== A key that moved in `projectile-dispatch`
+
+"Display buffer" moved from kbd:[B] to kbd:[C-o], which matches its
+kbd:[s-p 4 C-o] binding. kbd:[B] is the prefix for the project bookmark
+commands.
