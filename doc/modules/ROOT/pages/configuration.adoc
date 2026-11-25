@@ -440,8 +440,8 @@ replacement for GNU grep, and on top of that it does fuzzy and boolean
 searches, looks inside archives and compressed files, and has an interactive
 mode.
 
-`projectile-grep` runs whatever `grep-program` names, so pointing it at `ugrep`
-is all it takes:
+`projectile-grep` and `projectile-find-references` run whatever `grep-program`
+names, so pointing it at `ugrep` is all it takes:
 
 [source,elisp]
 ----
