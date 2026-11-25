@@ -23,6 +23,7 @@
 
 ### Changes
 
+- [#2205](https://github.com/bbatsov/projectile/pull/2205): `projectile-ripgrep` now uses the `rg` package when both `rg` and `ripgrep` are installed, instead of the other way around. `ripgrep` was archived by its author in 2022.
 - [#2205](https://github.com/bbatsov/projectile/pull/2205): `projectile-replace` and the replace reviewer no longer use `ag` to narrow down the files to look at; `rg`, `git grep` and `grep` do that now.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-replace` and the replace reviewer no longer use `ack` to narrow down the files to look at. It was only ever reached with `ack` installed and neither `rg` nor `ag`, where `git grep` or `grep` now do the same job.
 - [#2184](https://github.com/bbatsov/projectile/pull/2184): Rename the options that still broke their naming schemes: `projectile-ignored-project-patterns` to `projectile-ignored-project-regexps` (it holds regexps, and since 3.4 "patterns" means globs), `projectile-track-known-projects-automatically` to `projectile-auto-track-known-projects`, `projectile-watch-directory-limit` to `projectile-watch-max-directories`, `projectile-dashboard-recent-files` to `projectile-dashboard-max-recent-files` (a count, not a list) and `projectile-session-autosave` to `projectile-session-auto-save`. The old names still work as obsolete aliases.

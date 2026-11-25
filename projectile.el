@@ -8709,9 +8709,19 @@ alone."
 (defun projectile--ripgrep (search-term &optional regexp)
   "Run a ripgrep (rg) search for SEARCH-TERM in the project.
 When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
-Requires the `ripgrep' or `rg' Emacs package."
-  ;; we rely on the external packages ripgrep and rg for the actual search
-  (cond ((require 'ripgrep nil 'noerror)
+Requires the `rg' Emacs package, or failing that the `ripgrep' one.
+`rg' comes first when both are installed: it is the maintained one of
+the two, `ripgrep' having been archived by its author."
+  ;; we rely on the external packages rg and ripgrep for the actual search
+  (cond ((require 'rg nil 'noerror)
+         (rg-run search-term
+                 "*"                       ;; all files
+                 (projectile-acquire-root)
+                 (not regexp)              ;; literal search?
+                 nil                       ;; no need to confirm
+                 ;; `rg' quotes these itself
+                 (projectile--ripgrep-ignore-globs)))
+        ((require 'ripgrep nil 'noerror)
          ;; `ripgrep' runs its command line through the shell, so quote
          (let ((args (projectile--ripgrep-ignore-globs t)))
            (ripgrep-regexp search-term
@@ -8722,15 +8732,7 @@ Requires the `ripgrep' or `rg' Emacs package."
                                      "--hidden"
                                    "--fixed-strings --hidden")
                                  args))))
-        ((require 'rg nil 'noerror)
-         (rg-run search-term
-                 "*"                       ;; all files
-                 (projectile-acquire-root)
-                 (not regexp)              ;; literal search?
-                 nil                       ;; no need to confirm
-                 ;; `rg' quotes these itself
-                 (projectile--ripgrep-ignore-globs)))
-        (t (user-error "Packages `ripgrep' and `rg' are not available"))))
+        (t (user-error "Packages `rg' and `ripgrep' are not available"))))
 
 ;;;; Search backends registry
 
@@ -8766,8 +8768,8 @@ Use this to plug in your own search tool, e.g.:
   :search (lambda (term _regexp) (projectile--grep term)))
 (projectile-register-search-backend 'ripgrep
   :description "ripgrep (rg)"
-  :available (lambda () (or (require 'ripgrep nil 'noerror)
-                            (require 'rg nil 'noerror)))
+  :available (lambda () (or (require 'rg nil 'noerror)
+                            (require 'ripgrep nil 'noerror)))
   :search #'projectile--ripgrep)
 
 ;;;###autoload

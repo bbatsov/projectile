@@ -83,6 +83,17 @@
     (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
     (spy-on 'projectile--ripgrep-ignore-globs :and-return-value '("--glob=!x")))
 
+  (it "prefers the `rg' package when both are installed"
+    (cl-letf (((symbol-function 'require)
+               (lambda (feature &rest _) (memq feature '(rg ripgrep))))
+              ((symbol-function 'rg-run) #'ignore)
+              ((symbol-function 'ripgrep-regexp) #'ignore))
+      (spy-on 'rg-run)
+      (spy-on 'ripgrep-regexp)
+      (projectile--ripgrep "foo")
+      (expect 'rg-run :to-have-been-called)
+      (expect 'ripgrep-regexp :not :to-have-been-called)))
+
   (it "asks for shell-quoted globs on the `ripgrep' path (#2176)"
     (cl-letf (((symbol-function 'require)
                (lambda (feature &rest _) (eq feature 'ripgrep)))
