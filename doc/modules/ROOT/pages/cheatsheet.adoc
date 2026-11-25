@@ -7,331 +7,440 @@ NOTE: Projectile doesn't have a default key prefix for its commands, but all the
 
 Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
+[cols="2,4,7"]
 |===
-| Keybinding | Description
+| Keybinding | Command | Description
 
 | kbd:[s-p f]
+| `projectile-find-file`
 | Display a list of all files in the project. With a prefix argument it will clear the cache first.
 
 | kbd:[s-p F]
+| `projectile-find-file-in-known-projects`
 | Display a list of all files in all known projects.
 
 | kbd:[s-p n f]
+| `projectile-find-file-in-sibling-projects`
 | Display a list of all files in the projects related to this one - kbd:[s-p F] narrowed to the family the current project belongs to (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p g]
+| `projectile-find-file-dwim`
 | Display a list of all files at point in the project. With a prefix argument it will clear the cache first.
 
 | kbd:[s-p 4 4]
+| `projectile-other-window-command`
 | Display the buffer of the next command in another window (see the note on prefix commands below).
 
 | kbd:[s-p 5 5]
+| `projectile-other-frame-command`
 | Display the buffer of the next command in another frame (see the note on prefix commands below).
 
 | kbd:[s-p 4 f]
+| `projectile-find-file-other-window`
 | Jump to a project's file using completion and show it in another window.
 
 | kbd:[s-p 4 g]
+| `projectile-find-file-dwim-other-window`
 | Jump to a project's file based on context at point and show it in another window.
 
 | kbd:[s-p 5 f]
+| `projectile-find-file-other-frame`
 | Jump to a project's file using completion and show it in another frame.
 
 | kbd:[s-p 5 g]
+| `projectile-find-file-dwim-other-frame`
 | Jump to a project's file based on context at point and show it in another frame.
 
 | kbd:[s-p d]
+| `projectile-find-dir`
 | Display a list of all directories in the project. With a prefix argument it will clear the cache first.
 
 | kbd:[s-p 4 d]
+| `projectile-find-dir-other-window`
 | Switch to a project directory and show it in another window.
 
 | kbd:[s-p 5 d]
+| `projectile-find-dir-other-frame`
 | Switch to a project directory and show it in another frame.
 
 | kbd:[s-p T]
+| `projectile-find-test-file`
 | Display a list of all test files (specs, features, etc.) in the project.
 
 | kbd:[s-p l]
+| `projectile-find-file-in-directory`
 | Display a list of all files in a directory (that's not necessarily a project)
 
 | kbd:[s-p C]
+| `projectile-find-changed-file`
 | Jump to a file changed in the project - staged, unstaged or untracked. With a prefix argument, everything that differs from a revision you pick. Git only.
 
 | kbd:[s-p s s]
+| `projectile-search`
 | Search the project with the configured backend (`projectile-search`, see below). With a prefix argument it performs a regexp search.
 
 | kbd:[s-p s g]
+| `projectile-grep`
 | Run grep on the files in the project.
 
 | kbd:[M-- s-p s g]
+| `projectile-grep`
 | Run grep on `projectile-grep-default-files` in the project.
 
 | kbd:[s-p s r]
+| `projectile-ripgrep`
 | Runs `rg` (`ripgrep`) on the project, performing a literal search. Requires the presence of `rg.el` or `ripgrep.el`. With a prefix argument it will perform a regex search.
 
 | kbd:[s-p s a]
+| `projectile-ag`
 | Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
 
 | kbd:[s-p s x] or kbd:[s-p ?]
+| `projectile-find-references`
 | Find references to the symbol at point within the project. Uses internally the `xref` library.
 
 | kbd:[s-p s R]
+| `projectile-search-review`
 | Reviewable search: gather all matches for a literal string into a read-only results buffer you can navigate, filter and reshape (see below).
 
 | kbd:[s-p s X]
+| `projectile-search-regexp-review`
 | Reviewable search for an Emacs regexp (the regexp sibling of kbd:[s-p s R]).
 
 | kbd:[s-p s t]
+| `projectile-todos`
 | Collect the project's `TODO`/`FIXME`-style annotations into the reviewable search buffer. With a prefix argument it prompts for which keywords to search for.
 
 | kbd:[s-p n s]
+| `projectile-search-in-sibling-projects`
 | Search the current project and the ones related to it, collecting every match in one reviewable buffer. With a prefix argument the term is an Emacs regexp (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p n t]
+| `projectile-todos-in-sibling-projects`
 | Collect the `TODO`/`FIXME`-style annotations of the current project and the ones related to it into the reviewable search buffer.
 
 | kbd:[s-p n b]
+| `projectile-switch-to-buffer-in-sibling-projects`
 | Switch to a buffer open in the current project or in any related to it.
 
 | kbd:[s-p n o]
+| `projectile-multi-occur-in-sibling-projects`
 | Do a `multi-occur` in the buffers open in the current project and the ones related to it. With a prefix argument, show that many lines of context.
 
 | kbd:[s-p v]
+| `projectile-vc`
 | Run `vc-dir` on the root directory of the project.
 
 | kbd:[s-p b]
+| `projectile-switch-to-buffer`
 | Display a list of all project buffers currently open.
 
 | kbd:[s-p 4 b]
+| `projectile-switch-to-buffer-other-window`
 | Switch to a project buffer and show it in another window.
 
 | kbd:[s-p 5 b]
+| `projectile-switch-to-buffer-other-frame`
 | Switch to a project buffer and show it in another frame.
 
 | kbd:[s-p 4 C-o]
+| `projectile-display-buffer`
 | Display a project buffer in another window without selecting it.
 
 | kbd:[s-p a]
+| `projectile-find-other-file`
 | Switch between files with the same name but different extensions.
 
 | kbd:[s-p 4 a]
+| `projectile-find-other-file-other-window`
 | Switch between files with the same name but different extensions in other window.
 
 | kbd:[s-p 5 a]
+| `projectile-find-other-file-other-frame`
 | Switch between files with the same name but different extensions in other frame.
 
 | kbd:[s-p o]
+| `projectile-multi-occur`
 | Runs `multi-occur` on all project buffers currently open.
 
 | kbd:[s-p r]
+| `projectile-replace`
 | Runs interactive query-replace on all files in the project.
 
 | kbd:[s-p R]
+| `projectile-replace-review`
 | Reviewable replace: gather all matches in a results buffer where you can preview and toggle them before applying (see below).
 
 | kbd:[s-p u]
+| `projectile-replace-undo`
 | Undo the last replace applied from the reviewable replace buffer.
 
 | kbd:[s-p i]
+| `projectile-invalidate-cache`
 | Invalidates the project cache (if existing).
 
 | kbd:[s-p k]
+| `projectile-kill-buffers`
 | Kills all project buffers.
 
 | kbd:[s-p I]
+| `projectile-ibuffer`
 | Open an IBuffer window showing all buffers in the current project.
 
 | kbd:[s-p D]
+| `projectile-dired`
 | Opens the root of the project in `dired`.
 
 | kbd:[s-p 4 D]
+| `projectile-dired-other-window`
 | Opens the root of the project in `dired` in another window.
 
 | kbd:[s-p 5 D]
+| `projectile-dired-other-frame`
 | Opens the root of the project in `dired` in another frame.
 
 | kbd:[s-p e]
+| `projectile-recentf`
 | Shows a list of recently visited project files.
 
 | kbd:[s-p left]
+| `projectile-previous-project-buffer`
 | Switch to the previous project buffer.
 
 | kbd:[s-p right]
+| `projectile-next-project-buffer`
 | Switch to the next project buffer.
 
 | kbd:[s-p E]
+| `projectile-edit-dir-locals`
 | Opens the root `dir-locals-file` of the project.
 
 | kbd:[s-p !]
+| `projectile-run-shell-command-in-root`
 | Runs `shell-command` in the root directory of the project.
 
 | kbd:[s-p &]
+| `projectile-run-async-shell-command-in-root`
 | Runs `async-shell-command` in the root directory of the project.
 
 | kbd:[s-p c o]
+| `projectile-configure-project`
 | Runs a standard configure command for your type of project.
 
 | kbd:[s-p c c]
+| `projectile-compile-project`
 | Runs a standard compilation command for your type of project.
 
 | kbd:[s-p c t]
+| `projectile-test-project`
 | Runs a standard test command for your type of project.
 
 | kbd:[s-p c .]
+| `projectile-run-test-at-point`
 | Runs the test at point (requires Emacs 29+ with tree-sitter).
 
 | kbd:[s-p c i]
+| `projectile-install-project`
 | Runs a standard install command for your type of project.
 
 | kbd:[s-p c p]
+| `projectile-package-project`
 | Runs a standard package command for your type of project.
 
 | kbd:[s-p c r]
+| `projectile-run-project`
 | Runs a standard run command for your type of project.
 
 | kbd:[s-p c x]
+| `projectile-run-task`
 | Runs one of the project's named tasks (see `projectile-tasks`). With a prefix argument the task's command can be edited first.
 
 | kbd:[s-p c X]
+| `projectile-repeat-last-task`
 | Re-runs the last task executed in the project.
 
 | kbd:[s-p c m f]
+| `projectile-find-file-in-subproject`
 | Finds a file in one of the project's subprojects, prompting for the subproject first.
 
 | kbd:[s-p c m o]
+| `projectile-configure-subproject`
 | Runs the configure command in the nearest subproject instead of at the project root.
 
 | kbd:[s-p c m c]
+| `projectile-compile-subproject`
 | Runs the compile command in the nearest subproject.
 
 | kbd:[s-p c m t]
+| `projectile-test-subproject`
 | Runs the test command in the nearest subproject.
 
 | kbd:[s-p c m i]
+| `projectile-install-subproject`
 | Runs the install command in the nearest subproject.
 
 | kbd:[s-p c m p]
+| `projectile-package-subproject`
 | Runs the package command in the nearest subproject.
 
 | kbd:[s-p c m r]
+| `projectile-run-subproject`
 | Runs the run command in the nearest subproject.
 
 | kbd:[s-p t]
+| `projectile-toggle-between-implementation-and-test`
 | Toggle between an implementation file and its test file.
 
 | kbd:[s-p 4 t]
+| `projectile-find-implementation-or-test-other-window`
 | Jump to implementation or test file in other window.
 
 | kbd:[s-p 5 t]
+| `projectile-find-implementation-or-test-other-frame`
 | Jump to implementation or test file in other frame.
 
 | kbd:[s-p j]
+| `projectile-find-file-of-kind`
 | Find a project file of a chosen kind (e.g. a Rails model or controller), using the project type's `:file-kinds`.
 
 | kbd:[s-p 4 j]
+| `projectile-find-file-of-kind-other-window`
 | Find a project file of a chosen kind and show it in another window.
 
 | kbd:[s-p 5 j]
+| `projectile-find-file-of-kind-other-frame`
 | Find a project file of a chosen kind and show it in another frame.
 
 | kbd:[s-p J]
+| `projectile-toggle-related-file`
 | Jump from the current file to a related file of another kind, cycling through them on repeated presses.
 
 | kbd:[s-p z]
+| `projectile-cache-current-file`
 | Adds the currently visited file to the cache.
 
 | kbd:[s-p p]
+| `projectile-switch-project`
 | Display a list of known projects you can switch to.
 
 | kbd:[s-p A]
+| `projectile-add-known-project`
 | Add a directory to the known projects.
 
 | kbd:[s-p 4 p]
+| `projectile-switch-project-other-window`
 | Switch to a known project and show it in another window (runs `projectile-switch-project-other-window-action`, by default find-file in the other window).
 
 | kbd:[s-p 5 p]
+| `projectile-switch-project-other-frame`
 | Switch to a known project and show it in another frame (runs `projectile-switch-project-other-frame-action`).
 
 | kbd:[s-p q]
+| `projectile-switch-open-project`
 | Display a list of open projects you can switch to.
 
 | kbd:[s-p W]
+| `projectile-switch-worktree`
 | Switch to another checkout of the current project's repository - a git worktree, a Jujutsu workspace, or another clone of the same upstream - showing what tells each apart (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p n p]
+| `projectile-switch-sibling-project`
 | Switch to a project related to the current one, rather than to any known project (see xref:across_repositories.adoc[Working across repositories]).
 
 | kbd:[s-p S]
+| `projectile-save-project-buffers`
 | Save all project buffers.
 
 | kbd:[s-p m]
+| `projectile-dispatch`
 | Open the Projectile dispatch menu (a `transient` interface to Projectile's commands).
 
 | kbd:[s-p P]
+| `projectile-dashboard`
 | Open `projectile-dashboard` - a summary of the current project (branch, recent files, tasks, lifecycle commands), with every entry actionable (see xref:usage.adoc#dashboard[Project dashboard]).
 
 | kbd:[s-p H]
+| `projectile-doctor`
 | Run `projectile-doctor` - a diagnostic report on how Projectile sees the current project (see xref:troubleshooting.adoc#doctor[Troubleshooting]).
 
 | kbd:[s-p x r]
+| `projectile-run`
 | Start or visit a shell/REPL/terminal for the project, using the configured backend (`projectile-run`, see below).
 
 | kbd:[s-p x e]
+| `projectile-run-eshell`
 | Start or visit an `eshell` for the project.
 
 | kbd:[s-p x i]
+| `projectile-run-ielm`
 | Start or visit an `ielm` (Elisp REPL) for the project.
 
 | kbd:[s-p x t]
+| `projectile-run-term`
 | Start or visit an `ansi-term` for the project.
 
 | kbd:[s-p x s]
+| `projectile-run-shell`
 | Start or visit a `shell` for the project.
 
 | kbd:[s-p x g]
+| `projectile-run-gdb`
 | Start or visit a `gdb` for the project.
 
 | kbd:[s-p x v]
+| `projectile-run-vterm`
 | Start or visit a `vterm` for the project.
 
 | kbd:[s-p x x]
+| `projectile-run-eat`
 | Start or visit an `eat` terminal for the project.
 
 | kbd:[s-p x G]
+| `projectile-run-ghostel`
 | Start or visit a `ghostel` terminal for the project.
 
 | kbd:[s-p x 4 <key>]
+|
 | Any of the above in another window, e.g. kbd:[s-p x 4 s] for a `shell`. Every backend supports this except `gdb`.
 
 | kbd:[s-p B s]
+| `projectile-bookmark-set`
 | Set a bookmark at point, named after the current project.
 
 | kbd:[s-p B j]
+| `projectile-bookmark-jump`
 | Jump to one of the current project's bookmarks.
 
 | kbd:[s-p B d]
+| `projectile-bookmark-delete`
 | Delete one of the current project's bookmarks.
 
 | kbd:[s-p w s]
+| `projectile-session-save`
 | Save the current project's session (see `projectile-session-mode`).
 
 | kbd:[s-p w S]
+| `projectile-session-save-all`
 | Save every open project's session.
 
 | kbd:[s-p w r]
+| `projectile-session-restore`
 | Restore the current project's saved session.
 
 | kbd:[s-p w R]
+| `projectile-session-restore-all`
 | Reopen every saved project's session, each into its own tab.
 
 | kbd:[s-p w f]
+| `projectile-session-forget`
 | Forget (delete) the current project's saved session.
 
 | kbd:[s-p w b]
+| `projectile-session-switch-to-buffer`
 | Switch to a buffer belonging to the current tab's project.
 
 | kbd:[s-p ESC]
+| `projectile-project-buffers-other-buffer`
 | Switch to the most recently selected Projectile buffer.
 |===
 
