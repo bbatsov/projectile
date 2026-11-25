@@ -218,7 +218,65 @@
           (projectile-serialize '(some random data) this-test-file)
           (expect (projectile-unserialize this-test-file) :to-equal '(some random data))
           (when (file-exists-p this-test-file)
-            (delete-file this-test-file)))))))
+            (delete-file this-test-file))))))
+
+  (it "names its coding system, so no locale has to be able to encode the data"
+    (let ((this-test-file (projectile-test-tmp-file-path))
+          (data '("/src/проект/" "/src/プロジェクト/")))
+      (unwind-protect
+          (progn
+            (projectile-serialize data this-test-file)
+            (expect (projectile-unserialize this-test-file) :to-equal data)
+            (with-temp-buffer
+              (insert-file-contents-literally this-test-file)
+              (expect (looking-at-p ";;; -\\*- coding: utf-8-emacs -\\*-\n")
+                      :to-be-truthy)))
+        (when (file-exists-p this-test-file)
+          (delete-file this-test-file)))))
+
+  (it "replaces the file in one step, leaving nothing else behind"
+    (projectile-test-with-sandbox
+      (let ((file (expand-file-name "data.eld")))
+        (projectile-serialize '(old) file)
+        (projectile-serialize '(new) file)
+        (expect (projectile-unserialize file) :to-equal '(new))
+        (expect (directory-files default-directory nil
+                                 directory-files-no-dot-files-regexp)
+                :to-equal '("data.eld")))))
+
+  (it "keeps the permissions the file had"
+    (projectile-test-with-sandbox
+      (let ((file (expand-file-name "data.eld")))
+        (projectile-serialize '(old) file)
+        (set-file-modes file #o640)
+        (projectile-serialize '(new) file)
+        (expect (file-modes file) :to-equal #o640))))
+
+  (it "writes in place when the directory takes no new files"
+    (assume (not (memq system-type '(windows-nt ms-dos)))
+            "directory permissions do not work this way on Windows")
+    (projectile-test-with-sandbox
+      (let ((file (expand-file-name "data.eld")))
+        (projectile-serialize '(old) file)
+        (unwind-protect
+            (progn
+              (set-file-modes default-directory #o555)
+              (assume (not (file-writable-p default-directory))
+                      "running as a user no mode stops")
+              (projectile-serialize '(new) file)
+              (expect (projectile-unserialize file) :to-equal '(new)))
+          (set-file-modes default-directory #o755)))))
+
+  (it "leaves the existing file alone when the data cannot be written"
+    (projectile-test-with-sandbox
+      (let ((file (expand-file-name "data.eld")))
+        (projectile-serialize '(old) file)
+        (spy-on 'rename-file :and-throw-error 'file-error)
+        (expect (projectile-serialize '(new) file) :to-throw 'file-error)
+        (expect (projectile-unserialize file) :to-equal '(old))
+        (expect (directory-files default-directory nil
+                                 directory-files-no-dot-files-regexp)
+                :to-equal '("data.eld"))))))
 
 (describe "projectile-clear-known-projects"
   (it "clears known projects"

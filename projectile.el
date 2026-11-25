@@ -1843,10 +1843,34 @@ specify a project explicitly via the optional PROJECT param."
 (defun projectile-serialize (data filename)
   "Serialize DATA to FILENAME.
 
-The saved data can be restored with `projectile-unserialize'."
+The saved data can be restored with `projectile-unserialize'.
+
+The file is written as `utf-8-emacs' and says so on its first line.
+Left to the locale, a path the default coding system cannot encode makes
+Emacs stop and ask for one - on every save.
+
+It is also written under a temporary name and then renamed over
+FILENAME, so that neither a crash nor another Emacs reading at that
+moment ever sees half a file.  The file keeps its permissions.  A remote
+FILENAME is written in place, where the extra round trips would cost more
+than they buy, and so is one whose directory will not take a second file."
   (if (file-writable-p filename)
-    (with-temp-file filename
-      (insert (let (print-length) (prin1-to-string data))))
+      (let* ((target (expand-file-name (file-chase-links filename)))
+             (temp (and (not (file-remote-p target))
+                        (file-writable-p (file-name-directory target))
+                        (make-temp-file (concat target "."))))
+             (coding-system-for-write 'utf-8-emacs))
+        (unwind-protect
+            (progn
+              (with-temp-file (or temp target)
+                (insert ";;; -*- coding: utf-8-emacs -*-\n"
+                        (let (print-length) (prin1-to-string data))))
+              (when temp
+                (when-let* ((modes (file-modes target)))
+                  (set-file-modes temp modes))
+                (rename-file temp target t)))
+          (when (and temp (file-exists-p temp))
+            (delete-file temp))))
     (display-warning 'projectile (format "Cache file '%s' is not writable" filename) :warning)))
 
 (defun projectile-unserialize (filename)

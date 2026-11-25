@@ -31,6 +31,7 @@
 
 ### Bugs fixed
 
+- [#2204](https://github.com/bbatsov/projectile/pull/2204): Saving the known projects, a file cache, frecency data or a session no longer stops to ask for a coding system when a path has characters the locale cannot encode, and the file is replaced in one step so that another Emacs never reads it half written.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-replace` and the replace reviewer can search for a term that starts with a dash, such as `--verbose`; rg, ag, git grep and grep read it as an option and the replace found nothing.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-ripgrep` searches hidden files for a regexp search too when it runs through the `ripgrep` package, as it already did for a literal one.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): A Cargo or Go workspace with a plain `package.json` at its root gets its subprojects from its own manifest again, instead of falling back to scanning for markers.
