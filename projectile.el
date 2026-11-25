@@ -9278,7 +9278,6 @@ Returns a list of expanded filenames."
 (defvar projectile-files-with-string-commands
   '((rg . "rg -liF --no-heading --color never ")
     (ag . "ag --literal --ignore-case --nocolor --noheading -l ")
-    (ack . "ack --literal --ignore-case --nocolor -l ")
     (git . "git grep -HlIiF ")
     ;; -r: recursive
     ;; -H: show filename for each match
@@ -9291,19 +9290,18 @@ Returns a list of expanded filenames."
 ;; One descriptor per search tool, capturing how the (optional) file
 ;; extension filter is expressed.  Combined with the tool's base command
 ;; from `projectile-files-with-string-commands', this drives
-;; `projectile--construct-files-with-string-command' so the five
+;; `projectile--construct-files-with-string-command' so the four
 ;; per-tool constructors need not repeat the same skeleton.  Keys:
 ;;
 ;;   :kind        how the filter attaches to the base command --
 ;;                `prefix' inserts it between the base and the search term
 ;;                (rg, ag); `suffix' appends it after the whole command
-;;                (git, grep); `pipe' feeds a separate file listing into
-;;                the base command (ack).
+;;                (git, grep).
 ;;   :ext-regexp  when non-nil, the extension glob is turned into an
 ;;                anchored regexp via `projectile--search-glob-to-regexp'
-;;                (ag, ack) rather than passed through verbatim.
+;;                (ag) rather than passed through verbatim.
 ;;   :ext-anchor  appended to the extension before it is quoted (the
-;;                trailing "$" that anchors ag's and ack's regexp).
+;;                trailing "$" that anchors ag's regexp).
 ;;   :ext-open    text emitted just before the extension.
 ;;   :ext-close   text emitted just after the extension.
 ;;   :term-format when non-nil, the base command is a format string whose
@@ -9317,12 +9315,11 @@ Returns a list of expanded filenames."
   '((rg   . (:kind prefix :term-guard "-e " :ext-open "-g " :ext-close " "))
     (ag   . (:kind prefix :term-guard "-- "
              :ext-regexp t :ext-anchor "$" :ext-open "-G " :ext-close " "))
-    (ack  . (:kind pipe :ext-regexp t :ext-anchor "$"))
     (git  . (:kind suffix :term-guard "-e " :ext-open "  -- "))
     (grep . (:kind suffix :term-guard "-e " :term-format t :ext-open " --include "))))
 
 (defun projectile--search-glob-to-regexp (file-ext)
-  "Turn extension glob FILE-EXT into the regexp body used by ag/ack.
+  "Turn extension glob FILE-EXT into the regexp body used by ag.
 Dots are escaped and \"*\" wildcards dropped, e.g. \"*.el\" becomes
 \"\\.el\"; the caller anchors it with a trailing \"$\"."
   (replace-regexp-in-string
@@ -9369,8 +9366,7 @@ and, when FILE-EXT is a string, the extension filter described by
             (close (plist-get desc :ext-close)))
         (pcase (plist-get desc :kind)
           ('prefix (concat base open ext close search-term))
-          ('suffix (concat core open ext close))
-          ('pipe (concat "ack -g " ext " | " base "-x " search-term)))))))
+          ('suffix (concat core open ext close)))))))
 
 (defun projectile--rg-construct-command (search-term &optional file-ext)
   "Construct Rg option to search files by the extension FILE-EXT."
@@ -9379,10 +9375,6 @@ and, when FILE-EXT is a string, the extension filter described by
 (defun projectile--ag-construct-command (search-term &optional file-ext)
   "Construct Ag option to search files by the extension FILE-EXT."
   (projectile--construct-files-with-string-command 'ag search-term file-ext))
-
-(defun projectile--ack-construct-command (search-term &optional file-ext)
-  "Construct Ack option to search files by the extension FILE-EXT."
-  (projectile--construct-files-with-string-command 'ack search-term file-ext))
 
 (defun projectile--git-grep-construct-command (search-term &optional file-ext)
   "Construct Grep option to search files by the extension FILE-EXT."
@@ -9395,7 +9387,7 @@ and, when FILE-EXT is a string, the extension filter described by
 (defun projectile-files-with-string (string directory &optional file-ext)
   "Return a list of all files containing STRING in DIRECTORY.
 
-Tries to use rg, ag, ack, git-grep, and grep in that order.  If those
+Tries to use rg, ag, git-grep, and grep in that order.  If those
 are impossible (for instance on Windows), returns a list of all
 files in the project."
   (if (projectile-unixy-system-p)
@@ -9404,8 +9396,6 @@ files in the project."
                          (projectile--rg-construct-command search-term file-ext))
                         ((executable-find "ag")
                          (projectile--ag-construct-command search-term file-ext))
-                        ((executable-find "ack")
-                         (projectile--ack-construct-command search-term file-ext))
                         ((and (executable-find "git")
                               ;; DIRECTORY's VCS, not the current project's -
                               ;; a group search asks about each member in turn

@@ -199,9 +199,6 @@ modify buffers without saving them."
     (it "builds the ag command"
       (expect (projectile--ag-construct-command "foo")
               :to-equal "ag --literal --ignore-case --nocolor --noheading -l -- foo"))
-    (it "builds the ack command"
-      (expect (projectile--ack-construct-command "foo")
-              :to-equal "ack --literal --ignore-case --nocolor -l foo"))
     (it "builds the git-grep command"
       (expect (projectile--git-grep-construct-command "foo")
               :to-equal "git grep -HlIiF -e foo"))
@@ -222,9 +219,6 @@ modify buffers without saving them."
     (it "builds the ag command with an anchored regexp"
       (expect (projectile--ag-construct-command "foo" "*.el")
               :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\\\.el\\$ -- foo"))
-    (it "builds the ack command as a piped listing"
-      (expect (projectile--ack-construct-command "foo" "*.el")
-              :to-equal "ack -g \\\\.el\\$ | ack --literal --ignore-case --nocolor -l -x foo"))
     (it "builds the git-grep command with a pathspec"
       (expect (projectile--git-grep-construct-command "foo" "*.el")
               :to-equal "git grep -HlIiF -e foo  -- \\*.el"))

@@ -337,11 +337,11 @@ buffers so they don't leak into the next spec."
   "Force `projectile-files-with-string' to shell out to plain grep.
 Skips the calling spec when grep isn't available.  Pinning the tool makes
 the specs exercise the external listing pipeline deterministically no
-matter which of rg/ag/ack happens to be installed."
+matter which of rg/ag happens to be installed."
   (assume (projectile-unixy-system-p) "needs unixy text utilities")
   (spy-on 'executable-find :and-call-fake
           (lambda (command &rest _)
-            ;; keep `projectile-unixy-system-p' truthy, hide rg/ag/ack/git
+            ;; keep `projectile-unixy-system-p' truthy, hide rg/ag/git
             (member command '("grep" "cut" "uniq")))))
 
 (defun projectile-test-disk (file)
