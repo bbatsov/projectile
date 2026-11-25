@@ -432,12 +432,26 @@ For the `grep` backend, in Git projects you can use `vc-git-grep` instead of
 (setq projectile-use-git-grep t)
 ----
 
-TIP: If you'd like something faster than `grep` that still behaves like `grep`,
+[TIP]
+====
+If you'd like something faster than `grep` that still behaves like `grep`,
 take a look at https://github.com/Genivia/ugrep[ugrep]. It's built as a drop-in
 replacement for GNU grep, and on top of that it does fuzzy and boolean
 searches, looks inside archives and compressed files, and has an interactive
-mode. Emacs knows about it as well: `ugrep` is one of the programs you can set
-`xref-search-program` to.
+mode.
+
+`projectile-grep` runs whatever `grep-program` names, so pointing it at `ugrep`
+is all it takes:
+
+[source,elisp]
+----
+(setq grep-program "ugrep")
+----
+
+Set it in your init file, before the first search of the session. Emacs builds
+its grep commands once and keeps them. `ugrep` is also one of the programs you
+can set `xref-search-program` to.
+====
 
 === Adding your own search backend
 
