@@ -9421,6 +9421,15 @@ before it (#1677)."
   (fileloop-initialize-replace from to files 'default)
   (fileloop-continue))
 
+(defun projectile--files-also-in (files others)
+  "Return the members of FILES that are in OTHERS too, in the order of FILES.
+OTHERS is typically a whole project, so it is turned into a hash set
+first instead of being walked once per member of FILES."
+  (let ((set (make-hash-table :test 'equal :size (length others))))
+    (dolist (file others)
+      (puthash file t set))
+    (seq-filter (lambda (file) (gethash file set)) files)))
+
 ;;;###autoload
 (defun projectile-replace (&optional arg)
   "Replace a literal string in the project's files.
@@ -9450,7 +9459,7 @@ on which to run the replacement."
          ;; ignored via .projectile or other ignore rules are excluded.
          (project-files (mapcar (lambda (file) (expand-file-name file directory))
                                 (projectile-dir-files directory)))
-         (filtered-files (seq-filter (lambda (f) (member f project-files)) files)))
+         (filtered-files (projectile--files-also-in files project-files)))
     (projectile--replace-in-files (regexp-quote old-text) new-text filtered-files)))
 
 ;;;###autoload
@@ -10054,8 +10063,8 @@ by an external grep this way."
       (let ((project-files (mapcar (lambda (f) (expand-file-name f directory))
                                    (projectile-dir-files directory))))
         (if (and literal (not case-fold))
-            (seq-filter (lambda (f) (member f project-files))
-                        (projectile-files-with-string term directory))
+            (projectile--files-also-in
+             (projectile-files-with-string term directory) project-files)
           (seq-remove (lambda (f) (or (file-directory-p f) (not (file-exists-p f))))
                       project-files))))
     ;; a recorded group can name a directory that has since been moved away

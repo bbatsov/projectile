@@ -164,6 +164,14 @@ modify buffers without saving them."
       (expect (projectile-replace-test--contents "a.txt")
               :to-equal "hello bar world\n"))))
 
+(describe "projectile--files-also-in"
+  (it "keeps the files found in the other list, in their original order"
+    (expect (projectile--files-also-in '("/p/c" "/p/x" "/p/a") '("/p/a" "/p/b" "/p/c"))
+            :to-equal '("/p/c" "/p/a")))
+  (it "returns nothing when either list is empty"
+    (expect (projectile--files-also-in nil '("/p/a")) :to-be nil)
+    (expect (projectile--files-also-in '("/p/a") nil) :to-be nil)))
+
 (describe "projectile-replace-regexp"
   (it "replaces regexp matches across multiple project files"
     (projectile-replace-test--with-project

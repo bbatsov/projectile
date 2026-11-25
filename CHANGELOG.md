@@ -23,6 +23,7 @@
 
 ### Changes
 
+- [#2206](https://github.com/bbatsov/projectile/pull/2206): `projectile-replace` and the replace reviewer no longer slow down on large projects when narrowing a literal search to the files of the project.
 - [#2205](https://github.com/bbatsov/projectile/pull/2205): Deprecate `projectile-ag` and the `ag` search backend, to be removed in Projectile 4.0. The Silver Searcher has not been developed since 2020 and the `ag` package is archived; `projectile-ripgrep` and `projectile-search-review` take its place.
   - Running `projectile-ripgrep` through the archived `ripgrep` package is deprecated as well, in favour of the `rg` package.
   - Each warns once per session when used.
