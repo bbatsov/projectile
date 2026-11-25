@@ -1247,6 +1247,11 @@ See also `projectile-remove-known-project',
 Contains a copy of `projectile-known-projects' when it was last
 synchronized with `projectile-known-projects-file'.")
 
+(defvar projectile--known-projects-file-mtime nil
+  "Modification time `projectile-known-projects-file' had when last saved.
+A file that still carries it has not been written by another Emacs
+since, so there is nothing on disk to merge.")
+
 (defcustom projectile-known-projects-file
   (locate-user-emacs-file "projectile-bookmarks.eld")
   "Name and location of the Projectile's known projects file.
@@ -14371,6 +14376,11 @@ built up over years to a stray byte is worse than being told about it."
           (and (sequencep projectile-known-projects)
                (copy-sequence projectile-known-projects)))))
 
+(defun projectile--known-projects-file-mtime ()
+  "Return the modification time of the known projects file, or nil."
+  (file-attribute-modification-time
+   (file-attributes projectile-known-projects-file)))
+
 (defun projectile-save-known-projects ()
   "Save PROJECTILE-KNOWN-PROJECTS to PROJECTILE-KNOWN-PROJECTS-FILE.
 Text properties are stripped on the way out: a propertized string
@@ -14389,7 +14399,9 @@ the first place (see issue #1927)."
                         projectile-known-projects-file)
   (setq projectile-known-projects-on-file
         (and (sequencep projectile-known-projects)
-             (copy-sequence projectile-known-projects))))
+             (copy-sequence projectile-known-projects))
+        projectile--known-projects-file-mtime
+        (projectile--known-projects-file-mtime)))
 
 (defun projectile--quarantine-known-projects-file ()
   "Move an unreadable known projects file aside and say so.
@@ -14430,7 +14442,21 @@ known projects with it (see issue #1927)."
   "Merge any change from `projectile-known-projects-file' and save to disk.
 
 This enables multiple Emacs processes to make changes without
-overwriting each other's changes."
+overwriting each other's changes.
+
+Nothing is read or written when there is nothing to merge: the list is
+what was last saved, and the file is as this Emacs last left it.  That
+is the state after every file visited in a project but the first, each
+of which asks for its project to be added again."
+  (unless (and projectile--known-projects-file-mtime
+               (equal projectile-known-projects
+                      projectile-known-projects-on-file)
+               (equal projectile--known-projects-file-mtime
+                      (projectile--known-projects-file-mtime)))
+    (projectile--merge-known-projects)))
+
+(defun projectile--merge-known-projects ()
+  "Merge the known projects file into the list in memory, and save it."
   (let* ((known-now projectile-known-projects)
          (known-on-file-raw (projectile--read-known-projects-file))
          (unreadable (eq known-on-file-raw 'unreadable))

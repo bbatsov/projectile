@@ -139,7 +139,40 @@
       (expect projectile-known-projects :to-equal '("~/project/"))
       (projectile-add-known-project "~/b")
       (projectile-add-known-project "~/b/")
-      (expect projectile-known-projects :to-equal '("~/b/" "~/project/")))))
+      (expect projectile-known-projects :to-equal '("~/b/" "~/project/"))))
+  (it "leaves the file alone when the project already heads the list"
+    ;; the state after every file visited in a project but the first
+    (let ((projectile-known-projects nil)
+          (projectile-known-projects-on-file nil)
+          (projectile--known-projects-file-mtime nil))
+      (projectile-add-known-project "~/a/")
+      (spy-on 'projectile-serialize :and-call-through)
+      (spy-on 'projectile--read-known-projects-file :and-call-through)
+      (projectile-add-known-project "~/a")
+      (expect 'projectile--read-known-projects-file :not :to-have-been-called)
+      (expect 'projectile-serialize :not :to-have-been-called)
+      (expect projectile-known-projects :to-equal '("~/a/"))
+      (projectile-add-known-project "~/b/")
+      (expect 'projectile-serialize :to-have-been-called-times 1)))
+  (it "still merges what another Emacs wrote to the file in the meantime"
+    (let ((projectile-known-projects nil)
+          (projectile-known-projects-on-file nil)
+          (projectile--known-projects-file-mtime nil))
+      (projectile-add-known-project "~/a/")
+      (projectile-serialize '("~/b/" "~/a/") projectile-known-projects-file)
+      ;; make the write show regardless of the file system's clock resolution
+      (set-file-times projectile-known-projects-file
+                      (time-add (current-time) 10))
+      (projectile-add-known-project "~/a/")
+      (expect projectile-known-projects :to-equal '("~/a/" "~/b/"))))
+  (it "writes the file again when it has gone missing"
+    (let ((projectile-known-projects nil)
+          (projectile-known-projects-on-file nil)
+          (projectile--known-projects-file-mtime nil))
+      (projectile-add-known-project "~/a/")
+      (delete-file projectile-known-projects-file)
+      (projectile-add-known-project "~/a/")
+      (expect (file-exists-p projectile-known-projects-file) :to-be-truthy))))
 
 (describe "projectile-load-known-projects"
   (it "loads known projects from the known projects file"
