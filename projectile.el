@@ -14435,7 +14435,11 @@ common case does not pay for a `file-truename' per project."
   (if (or projectile-ignored-projects
           projectile-ignored-project-regexps
           projectile-ignored-project-function)
-      (seq-remove #'projectile-ignored-project-p projects)
+      ;; resolve the ignore list once, not once per project
+      (let ((ignored (projectile-ignored-projects)))
+        (seq-remove (lambda (project)
+                      (projectile--ignored-project-p project ignored))
+                    projects))
     projects))
 
 (defun projectile-ignored-project-p (project-root)
@@ -14445,10 +14449,17 @@ For remote (TRAMP) paths the symlink-resolution step is skipped:
 `file-truename' would round-trip to the remote, and matching against
 `projectile-ignored-projects' for a remote project is uncommon enough
 that requiring exact paths is acceptable.  Local behavior is unchanged."
+  (projectile--ignored-project-p project-root (projectile-ignored-projects)))
+
+(defun projectile--ignored-project-p (project-root ignored)
+  "Return non-nil if PROJECT-ROOT is ignored, given the IGNORED projects.
+IGNORED is what the function `projectile-ignored-projects' returns; a
+caller checking many projects passes it in, because building it resolves
+the symlinks of every entry of the option."
   (let ((project-root (if (file-remote-p project-root)
                           project-root
                         (file-truename project-root))))
-    (or (member project-root (projectile-ignored-projects))
+    (or (member project-root ignored)
         (seq-some (lambda (regexp) (string-match-p regexp project-root))
                   projectile-ignored-project-regexps)
         (and (functionp projectile-ignored-project-function)

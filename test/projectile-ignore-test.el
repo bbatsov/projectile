@@ -566,6 +566,20 @@
               :to-be-truthy))
     (expect 'file-truename :not :to-have-been-called)))
 
+(describe "projectile--remove-ignored-projects"
+  (it "drops the ignored projects and keeps the rest in order"
+    (let ((projectile-ignored-projects '("/b/"))
+          (projectile-ignored-project-regexps '("\\`/tmp/")))
+      (spy-on 'file-truename :and-call-fake #'identity)
+      (expect (projectile--remove-ignored-projects '("/a/" "/b/" "/tmp/c/" "/d/"))
+              :to-equal '("/a/" "/d/"))))
+  (it "resolves the ignore list once, however many projects it checks"
+    (let ((projectile-ignored-projects '("/b/")))
+      (spy-on 'file-truename :and-call-fake #'identity)
+      (spy-on 'projectile-ignored-projects :and-call-through)
+      (projectile--remove-ignored-projects '("/a/" "/b/" "/c/" "/d/"))
+      (expect 'projectile-ignored-projects :to-have-been-called-times 1))))
+
 (describe "projectile-keep-project-p"
   (it "keeps remote projects without stat'ing them"
     ;; Both connected and disconnected remote paths must be kept
