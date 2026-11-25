@@ -6013,14 +6013,6 @@ so the key is that directory's path with its final segment singularized;
                 (projectile--singularize
                  (file-name-nondirectory resource-dir)))))))
 
-(defun projectile--django-app-key (rel-path)
-  "Return the Django app directory of REL-PATH.
-This is REL-PATH's parent directory (without a trailing slash), so
-\"polls/models.py\" keys as \"polls\" and a nested \"apps/polls/models.py\"
-keys as \"apps/polls\" without colliding with a different \"polls\" app."
-  (when-let* ((dir (file-name-directory rel-path)))
-    (directory-file-name dir)))
-
 (defun projectile--parent-directory-key (rel-path)
   "Return REL-PATH\\='s parent directory, without a trailing slash.
 A key for the frameworks that group a resource\\='s files in a directory
