@@ -10876,15 +10876,21 @@ searched, defaulting to just ROOT."
   "Return the ripgrep executable name if available, else nil."
   (and (executable-find "rg") "rg"))
 
-(defun projectile-search--rg-fastpath-p (literal &optional rg-pattern)
+(defun projectile-search--rg-fastpath-p (literal &optional rg-pattern roots)
   "Return non-nil when the search reviewer should use the ripgrep fast-path.
 True for a LITERAL search, or for a non-literal one that supplied
 RG-PATTERN (a ripgrep-syntax equivalent of its Emacs regexp), when
 `projectile-search-use-ripgrep' is set, `rg' is available, and we are
-interactive; batch (`noninteractive') keeps the deterministic elisp scan."
+interactive; batch (`noninteractive') keeps the deterministic elisp scan.
+
+ROOTS are the directories the search covers, defaulting to
+`default-directory'.  A remote one rules the fast-path out: `rg' is
+started as a local process, which for a remote directory would search
+some local directory instead and report its hits under remote names."
   (and projectile-search-use-ripgrep
        (or literal rg-pattern)
        (not noninteractive)
+       (not (seq-some #'file-remote-p (or roots (list default-directory))))
        (projectile-search--rg-executable)
        t))
 
@@ -11165,7 +11171,8 @@ several projects takes it too - `projectile-search--gather-rg' runs one
    ((with-current-buffer buffer
       (and (derived-mode-p 'projectile-search-mode)
            (projectile-search--rg-fastpath-p projectile-replace--literal
-                                             projectile-replace--rg-pattern)))
+                                             projectile-replace--rg-pattern
+                                             projectile-replace--projects)))
     (projectile-search--gather-rg
      buffer (buffer-local-value 'projectile-replace--term buffer) on-done))
    ((projectile-replace--async-p)
@@ -11216,7 +11223,8 @@ buffer state."
           ;; engine is off (`projectile-search-async' nil); `--start' then
           ;; dispatches it to ripgrep
           (and (eq mode #'projectile-search-mode)
-               (projectile-search--rg-fastpath-p literal rg-pattern)))
+               (projectile-search--rg-fastpath-p literal rg-pattern
+                                                 (or projects (list root)))))
       (let ((buf (get-buffer-create buf-name)))
         (projectile-replace--seed buf mode root term regexp replacement
                                   literal case-fold word rg-pattern projects)
@@ -11486,13 +11494,14 @@ Emacs regexp.  There is no replacement prompt.
 This is `projectile-search-in-projects' over the one project you are in;
 the prompt is built here because only the single-project case can name
 the tool that will do the scanning."
-  (projectile-search-in-projects
-   (list (projectile-acquire-root)) literal
-   (format "Search %s%s for"
-           (projectile--search-tool-tag
-            (if (and literal (projectile-search--rg-fastpath-p t))
-                "ripgrep" "elisp"))
-           (if literal "" " regexp"))))
+  (let ((roots (list (projectile-acquire-root))))
+    (projectile-search-in-projects
+     roots literal
+     (format "Search %s%s for"
+             (projectile--search-tool-tag
+              (if (and literal (projectile-search--rg-fastpath-p t nil roots))
+                  "ripgrep" "elisp"))
+             (if literal "" " regexp")))))
 
 ;;;###autoload
 (defun projectile-search-review ()

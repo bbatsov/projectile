@@ -503,6 +503,19 @@ REGEXP-P selects `projectile-search-regexp-review'."
     (let ((noninteractive t) (projectile-search-use-ripgrep t))
       (expect (projectile-search--rg-fastpath-p t) :to-be nil)))
 
+  (it "fastpath-p rules out a remote root, which a local rg cannot search"
+    (let ((noninteractive nil) (projectile-search-use-ripgrep t))
+      (expect (projectile-search--rg-fastpath-p t nil '("/src/repo/"))
+              :to-be-truthy)
+      (expect (projectile-search--rg-fastpath-p t nil '("/ssh:host:/src/repo/"))
+              :to-be nil)
+      ;; one remote project among several is enough
+      (expect (projectile-search--rg-fastpath-p
+               t nil '("/src/repo/" "/ssh:host:/src/repo/"))
+              :to-be nil)
+      (let ((default-directory "/ssh:host:/src/repo/"))
+        (expect (projectile-search--rg-fastpath-p t) :to-be nil))))
+
   (it "routes a literal search-mode buffer to the ripgrep gather"
     (projectile-test-with-project
         (("a.txt" . "foo\n"))
