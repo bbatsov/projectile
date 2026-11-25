@@ -105,6 +105,11 @@
     (spy-on 'projectile-project-vcs :and-return-value 'hg)
     (expect (projectile-worktrees-from-git "/src/repo/") :to-be nil))
 
+  (it "gives up on a remote project before asking what its VCS is"
+    (spy-on 'projectile-project-vcs)
+    (expect (projectile-worktrees-from-git "/ssh:host:/src/repo/") :to-be nil)
+    (expect 'projectile-project-vcs :not :to-have-been-called))
+
   (it "returns nothing for a project sitting below a repository's root"
     ;; `projectile-project-vcs' answers `git' for a project inside a
     ;; checkout, because it walks up to find the repository - but the
@@ -296,9 +301,11 @@
 
   (it "says so for a remote project rather than reaching over TRAMP"
     (spy-on 'projectile-acquire-root :and-return-value "/ssh:host:/src/repo/")
+    (spy-on 'projectile-project-vcs)
     (expect (condition-case err (projectile-switch-worktree)
               (user-error (error-message-string err)))
-            :to-match "remote project"))
+            :to-match "remote project")
+    (expect 'projectile-project-vcs :not :to-have-been-called))
 
   (it "switches to the chosen worktree"
     (projectile-test-with-sandbox

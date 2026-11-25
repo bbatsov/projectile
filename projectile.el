@@ -14768,8 +14768,9 @@ there\\='s nothing there to switch to."
 
 Git registers them itself, so this finds worktrees that have never been
 visited in this Emacs session - which the known projects can't do."
-  (when-let* (((eq (projectile-project-vcs root) 'git))
+  (when-let* (;; first, so that a remote project costs no TRAMP round trip
               ((not (file-remote-p root)))
+              ((eq (projectile-project-vcs root) 'git))
               ;; Only a checkout's own top level has worktrees.  ROOT can
               ;; just as well be a directory *inside* one - a project marked
               ;; out by its own `.projectile' in a corner of a bigger
