@@ -213,6 +213,30 @@ The same is true of the `+`, `-`, and `!` prefixes: leading spaces
 and tabs before the prefix are skipped, so accidental indentation
 won't silently turn the entry into a literal ignore pattern.
 
+=== Sourcing the settings from another configuration file
+
+When a project has no `.projectile` file, `projectile-dirconfig-parsers` lets
+you source the ignore/keep/ensure settings from a configuration file of
+another tool instead.  It's an alist of file names and parser functions; the
+parser of the first file found in the project root is called with the file's
+absolute path and must return a `projectile-dirconfig` structure (or nil when
+the file holds no configuration):
+
+[source,elisp]
+----
+(setq projectile-dirconfig-parsers
+      '((".project" . my-eclipse-project-parser)))
+
+(defun my-eclipse-project-parser (path)
+  "Parse the Eclipse XML at PATH into a `projectile-dirconfig'."
+  ...)
+----
+
+Parsers that only need to fall back to the built-in syntax can delegate to
+`projectile-read-dirconfig-file`.  A `.projectile` file always takes
+precedence when it exists, and recognizing a configuration file as a project
+root marker is governed separately by `projectile-project-root-files`.
+
 == Ignored files using the project indexing tools
 
 If you're using the `hybrid` or `alien` indexing strategies, the simplest
