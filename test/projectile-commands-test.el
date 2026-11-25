@@ -168,6 +168,23 @@
       (expect (gethash "/proj/b/" projectile-compilation-cmd-map) :to-equal "other")
       (expect (gethash "/proj/a-extra/" projectile-compilation-cmd-map) :to-equal "sibling"))))
 
+(describe "projectile--run-project-cmd in a compilation dir that does not exist"
+  (it "creates a nested one along with its parents"
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-maybe-read-command :and-call-fake
+            (lambda (_arg default-cmd &rest _) default-cmd))
+    (projectile-test-with-sandbox
+      (projectile-test-with-files
+          ("project/.projectile")
+        (let* ((projectile-project-root (expand-file-name "project/"))
+               (projectile-project-compilation-dir "build/debug")
+               (projectile-project-command-history (make-hash-table :test 'equal))
+               (default-directory projectile-project-root))
+          (projectile--run-project-cmd "make" (make-hash-table :test 'equal)
+                                       :command-type 'compile)
+          (expect (file-directory-p (expand-file-name "build/debug" projectile-project-root))
+                  :to-be-truthy))))))
+
 (describe "projectile--run-project-cmd"
 
   (before-each

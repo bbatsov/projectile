@@ -31,6 +31,7 @@
 
 ### Bugs fixed
 
+- [#2204](https://github.com/bbatsov/projectile/pull/2204): A nested `projectile-project-compilation-dir` such as `build/debug` is created along with its parents when it does not exist yet, instead of the lifecycle command failing.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): Visiting a match from the search or replace results works after the buffer it was found in has been killed, and lands on the right line in a narrowed buffer.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): The search and replace reviewers now scan the whole of an open buffer that is narrowed, instead of missing the matches outside the restriction and numbering the rest from its start.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): Visiting a file no longer reads and rewrites the known projects file when its project is already the most recent one, which was most of the cost of the `find-file` hook.

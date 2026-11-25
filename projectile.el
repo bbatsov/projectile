@@ -13096,7 +13096,7 @@ The command actually run is returned."
       (user-error "No %scommand configured for project type `%s'"
                   (or prompt-prefix "") (projectile-project-type)))
     (unless (file-directory-p default-directory)
-      (mkdir default-directory))
+      (make-directory default-directory t))
     ;; Substitute placeholders: %p -> project name
     (when (string-match-p "%p" command)
       (setq command (string-replace "%p" (projectile-project-name project-root) command)))
