@@ -682,4 +682,23 @@
       (expect (indirect-variable (car pair)) :to-be (cdr pair))
       (expect (get (car pair) 'byte-obsolete-variable) :not :to-be nil))))
 
+(describe "autoload cookies"
+  (it "sit on public definitions only"
+    ;; A helper inserted between a cookie and its command inherits the
+    ;; cookie, and the command silently loses it.
+    (with-temp-buffer
+      (insert-file-contents (locate-library "projectile.el" t))
+      (let (private)
+        (while (re-search-forward
+                "^;;;###autoload\n(\\(?:cl-\\)?def[a-z-]+ \\(projectile--[^ \n]+\\)" nil t)
+          (push (match-string 1) private))
+        (expect private :to-be nil))))
+
+  (it "covers projectile-run-test-at-point"
+    (with-temp-buffer
+      (insert-file-contents (locate-library "projectile.el" t))
+      (expect (re-search-forward
+               "^;;;###autoload\n(defun projectile-run-test-at-point " nil t)
+              :to-be-truthy))))
+
 ;;; projectile-core-test.el ends here

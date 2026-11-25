@@ -13602,7 +13602,6 @@ enclosing node whose type is in RULE's `:node-types', call the rule's
       (setq node (treesit-node-parent node)))
     name))
 
-;;;###autoload
 (defun projectile--test-at-point-file-name (file dir)
   "Return FILE spelled relative to DIR for a test-at-point command.
 
@@ -13625,6 +13624,7 @@ inside DIR."
                                           (file-truename dir))))
         (if (string-prefix-p ".." resolved) spelled resolved)))))
 
+;;;###autoload
 (defun projectile-run-test-at-point (arg)
   "Run the test around point, if any.
 

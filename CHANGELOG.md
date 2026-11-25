@@ -31,6 +31,7 @@
 
 ### Bugs fixed
 
+- [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-run-test-at-point` is autoloaded again; its autoload cookie had ended up on an internal helper.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-search-review` and `projectile-todos` no longer run a local `rg` for a remote project, which searched a local directory and labelled its hits with remote paths; remote projects use the Emacs Lisp scanner.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-switch-worktree` no longer lists the root of a remote project over TRAMP before reporting that it does not look for the checkouts of one.
 - [#2196](https://github.com/bbatsov/projectile/pull/2196): With the default in-memory cache, a project with a `.projectile` no longer throws its cache away and re-indexes on every `projectile-find-file` ([#2193](https://github.com/bbatsov/projectile/issues/2193)).
