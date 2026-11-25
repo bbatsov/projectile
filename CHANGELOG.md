@@ -27,6 +27,7 @@
 
 ### Changes
 
+- [#2209](https://github.com/bbatsov/projectile/pull/2209): The prompts for which files to search (`C-u s-p s g`) and which to replace in (`C-u s-p r`) complete over the file extensions that occur in the project, most common first.
 - [#2209](https://github.com/bbatsov/projectile/pull/2209): The replace commands read what to replace with the search prompt, so it has the same suggestions, history and identifier completion, and `M-n` at the "with" prompt brings up the text being replaced, ready to be edited. Replacements have a history of their own, `projectile-replace-history`.
 - [#2208](https://github.com/bbatsov/projectile/pull/2208): `projectile-find-references` uses the same prompt as the other search commands, so the symbol at point is the default rather than text already typed into the minibuffer.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Deleting files inside a project with a persistent cache no longer writes the cache file once per deleted file. The write waits until Emacs is idle, and pending cache writes are flushed when Emacs exits.
@@ -48,6 +49,7 @@
 
 ### Bugs fixed
 
+- [#2209](https://github.com/bbatsov/projectile/pull/2209): `C-u projectile-replace` asked for a file extension and then matched it against whole file names, so answering `el` replaced nothing. A bare extension is now turned into the glob (`*.el`).
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Deleting a file removes it from the file cache of the project it belongs to, not from the cache of the project the current buffer happens to be in.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): The search reviewer now shows what `rg` reported when it fails (a pattern it rejects, an unreadable directory) instead of an empty "No matches" buffer.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): On an Emacs built without native JSON, `projectile-search-review` and `projectile-todos` fall back to the Emacs Lisp scanner instead of running `rg` and reporting no matches.

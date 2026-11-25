@@ -8446,6 +8446,103 @@ This is a subset of `grep-read-files', where either a matching entry from
                (and ext (concat "*." ext)))))
       (or default-alias default-extension))))
 
+(defun projectile--file-extensions (files)
+  "Return the file name extensions that occur in FILES, commonest first."
+  (let ((counts (make-hash-table :test 'equal))
+        extensions)
+    (dolist (file files)
+      (when-let* ((extension (file-name-extension file))
+                  ((not (string-empty-p extension))))
+        (cl-incf (gethash extension counts 0))))
+    (maphash (lambda (extension count) (push (cons extension count) extensions))
+             counts)
+    (mapcar #'car (sort extensions
+                        (lambda (a b)
+                          (or (> (cdr a) (cdr b))
+                              (and (= (cdr a) (cdr b))
+                                   (string< (car a) (car b)))))))))
+
+(defun projectile--in-given-order (candidates)
+  "Return a completion table offering CANDIDATES in the order given.
+Completion UIs sort candidates their own way otherwise, which would
+undo an order that means something."
+  (lambda (string predicate action)
+    (if (eq action 'metadata)
+        '(metadata (display-sort-function . identity)
+                   (cycle-sort-function . identity))
+      (complete-with-action action candidates string predicate))))
+
+(defun projectile--directory-extensions (directory)
+  "Return the extensions among the project files under DIRECTORY, or nil.
+Commonest first.  Nil for a remote DIRECTORY: listing its files to dress
+up a prompt is not worth a wait over TRAMP."
+  (unless (file-remote-p directory)
+    (projectile--file-extensions (projectile-dir-files directory))))
+
+(defun projectile--lazily-in-given-order (candidates-function)
+  "Return a completion table over what CANDIDATES-FUNCTION returns.
+The function is called once, the first time the candidates are asked
+for, so a prompt answered without completing never pays for them.  The
+candidates are offered in the order returned."
+  (let ((candidates 'unknown))
+    (lambda (string predicate action)
+      (when (eq candidates 'unknown)
+        (setq candidates (funcall candidates-function)))
+      (funcall (projectile--in-given-order candidates)
+               string predicate action))))
+
+(defun projectile--completing-read-free-text (prompt table &optional history default)
+  "Read free text with PROMPT, completing over TABLE where that helps.
+The completion maps make \\`SPC' and \\`?' complete, which is no good in a
+prompt that takes several patterns separated by spaces, or a glob.
+HISTORY and DEFAULT are as for `completing-read'."
+  (minibuffer-with-setup-hook
+      (lambda ()
+        (local-set-key (kbd "SPC") #'self-insert-command)
+        (local-set-key (kbd "?") #'self-insert-command))
+    (completing-read prompt table nil nil nil history default)))
+
+(defun projectile--read-grep-files (directory)
+  "Read the file name patterns to grep in, completing over DIRECTORY's own.
+The candidates are a glob for each extension that occurs among the
+project files under DIRECTORY, commonest first, and the default is
+`projectile-grep-default-files'.  Anything else can be typed too, several
+patterns separated by spaces included."
+  (let ((default (projectile-grep-default-files)))
+    (projectile--completing-read-free-text
+     (projectile-prepend-project-name (format-prompt "Grep in" default))
+     (projectile--lazily-in-given-order
+      (lambda ()
+        (mapcar (lambda (extension) (concat "*." extension))
+                (projectile--directory-extensions directory))))
+     'grep-files-history default)))
+
+(defun projectile--read-file-extension-glob (directory)
+  "Read a file extension to narrow a replacement in DIRECTORY, as a glob.
+The candidates are the extensions that occur among the project files
+under DIRECTORY, commonest first.  Returns nil for empty input, which
+stands for every file.
+
+The search tools match the result against whole file names, so an
+extension has to become a glob: \".el\" becomes \"*.el\", and so does
+\"el\" when it is one of the project's extensions.  Anything else - a
+glob, a file name such as \"Makefile\" - is returned as typed."
+  (let* ((extensions 'unknown)
+         (known (lambda ()
+                  (when (eq extensions 'unknown)
+                    (setq extensions (projectile--directory-extensions directory)))
+                  extensions))
+         (input (string-trim
+                 (projectile--completing-read-free-text
+                  (projectile-prepend-project-name
+                   "With file extension (empty means all files): ")
+                  (projectile--lazily-in-given-order known)))))
+    (cond ((string-empty-p input) nil)
+          ((string-match-p "[*?[]" input) input)
+          ((string-prefix-p "." input) (concat "*" input))
+          ((member input (funcall known)) (concat "*." input))
+          (t input))))
+
 (defun projectile--globally-ignored-file-suffixes-glob ()
   "Return ignored file suffixes as a list of glob patterns."
   (mapcar (lambda (pat) (concat "*" pat)) projectile-globally-ignored-file-suffixes))
@@ -9124,8 +9221,8 @@ With REGEXP given, don't query the user for a regexp."
                                     (projectile--search-tool-tag "grep")))))
         (files (and arg (or (and (equal current-prefix-arg '-)
                                  (projectile-grep-default-files))
-                            (read-string (projectile-prepend-project-name "Grep in: ")
-                                         (projectile-grep-default-files))))))
+                            (projectile--read-grep-files
+                             (projectile-acquire-root))))))
     (projectile--grep search-regexp files)))
 
 ;;;###autoload
@@ -9750,9 +9847,7 @@ on which to run the replacement."
          (file-ext (if arg
                        (if (fboundp #'helm-grep-get-file-extensions)
                            (car (helm-grep-get-file-extensions (list directory)))
-                         (read-string
-                          (projectile-prepend-project-name
-                           "With file extension (empty string means all files): ")))
+                         (projectile--read-file-extension-glob directory))
                      nil))
          (old-text (projectile--read-search-term
                     (projectile-prepend-project-name "Replace: ")

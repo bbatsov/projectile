@@ -55,6 +55,90 @@
     (expect (car (spy-calls-args-for 'xref-matches-in-directory 0))
             :to-equal "foo")))
 
+(describe "projectile--file-extensions"
+  (it "lists the extensions in use, commonest first, ties alphabetically"
+    (expect (projectile--file-extensions
+             '("a.el" "lib/b.el" "README.md" "doc/x.adoc" "c.el" "Makefile"
+               "doc/y.adoc" ".gitignore" "weird."))
+            :to-equal '("el" "adoc" "md"))))
+
+(describe "projectile--read-grep-files"
+  (before-each
+    (spy-on 'projectile-prepend-project-name :and-call-fake #'identity)
+    (spy-on 'projectile-dir-files :and-return-value '("a.el" "b.el" "c.md")))
+
+  (it "completes over a glob per extension in the project, in order of use"
+    (let (table)
+      (spy-on 'projectile-grep-default-files :and-return-value "*.el")
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_prompt collection &rest _) (setq table collection) "*.md"))
+      (expect (projectile--read-grep-files "/project/") :to-equal "*.md")
+      (expect (all-completions "" table) :to-equal '("*.el" "*.md"))
+      (expect (completion-metadata-get (completion-metadata "" table nil)
+                                       'display-sort-function)
+              :to-be #'identity)))
+
+  (it "does not list the project's files unless completion is asked for"
+    (spy-on 'projectile-grep-default-files :and-return-value "*.el")
+    (spy-on 'completing-read :and-return-value "*.el")
+    (projectile--read-grep-files "/project/")
+    (expect 'projectile-dir-files :not :to-have-been-called))
+
+  (it "does not list a remote directory at all"
+    (expect (projectile--directory-extensions "/ssh:host:/project/") :to-be nil)
+    (expect 'projectile-dir-files :not :to-have-been-called))
+
+  (it "shows the pattern of the current file as the default"
+    (spy-on 'projectile-grep-default-files :and-return-value "*.el")
+    (spy-on 'completing-read :and-return-value "*.el")
+    (projectile--read-grep-files "/project/")
+    (let ((args (spy-calls-args-for 'completing-read 0)))
+      (expect (car args) :to-match "Grep in (default \\*\\.el): ")
+      (expect (nth 6 args) :to-equal "*.el"))))
+
+(describe "projectile--completing-read-free-text"
+  (it "lets SPC and ? be typed, for several patterns and for globs"
+    (let (keys)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (&rest _)
+                ;; what the prompt's setup hook does in the minibuffer
+                (with-temp-buffer
+                  (use-local-map (make-sparse-keymap))
+                  (run-hooks 'minibuffer-setup-hook)
+                  (setq keys (list (local-key-binding (kbd "SPC"))
+                                   (local-key-binding (kbd "?")))))
+                "*.el *.c"))
+      (expect (projectile--completing-read-free-text "Files: " nil)
+              :to-equal "*.el *.c")
+      (expect keys :to-equal '(self-insert-command self-insert-command)))))
+
+(describe "projectile--read-file-extension-glob"
+  (before-each
+    (spy-on 'projectile-dir-files :and-return-value '("a.el" "b.el" "c.md")))
+
+  (it "offers the extensions in the project"
+    (let (table)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_prompt collection &rest _) (setq table collection) "el"))
+      (projectile--read-file-extension-glob "/project/")
+      (expect (all-completions "" table) :to-equal '("el" "md"))))
+
+  (it "turns an extension into the glob the search tools need"
+    (spy-on 'completing-read :and-return-value "el")
+    (expect (projectile--read-file-extension-glob "/project/") :to-equal "*.el")
+    (spy-on 'completing-read :and-return-value ".rs ")
+    (expect (projectile--read-file-extension-glob "/project/") :to-equal "*.rs"))
+
+  (it "leaves a glob or a file name as typed"
+    (spy-on 'completing-read :and-return-value "*.[ch]")
+    (expect (projectile--read-file-extension-glob "/project/") :to-equal "*.[ch]")
+    (spy-on 'completing-read :and-return-value "Makefile")
+    (expect (projectile--read-file-extension-glob "/project/") :to-equal "Makefile"))
+
+  (it "returns nil for empty input, meaning every file"
+    (spy-on 'completing-read :and-return-value "")
+    (expect (projectile--read-file-extension-glob "/project/") :to-be nil)))
+
 (describe "projectile--ripgrep-ignore-globs"
   (it "builds unquoted --glob=! exclusions that also work on Windows (#1946)"
     (spy-on 'projectile--dirconfig-ignore :and-return-value '("*.log"))
