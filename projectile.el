@@ -9817,43 +9817,49 @@ whose NUL bytes would make an in-buffer replacement meaningless."
 (defun projectile-replace--scan-region (file buffer regexp budget)
   "Collect up to BUDGET matches of REGEXP in the current buffer.
 Each match is recorded as a `projectile-replace--match' tagged with
-FILE and BUFFER (nil when scanning a disk re-read)."
+FILE and BUFFER (nil when scanning a disk re-read).
+
+The whole buffer is scanned, whatever it is narrowed to: the search is
+over the file, and a line number counted from the start of a restriction
+would name the wrong line everywhere it is shown or exported."
   (let ((matches nil)
         (count 0)
         (done nil)
         (tick (and buffer (buffer-chars-modified-tick buffer))))
     (save-excursion
-      (goto-char (point-min))
-      (while (and (not done)
-                  (< count budget)
-                  (re-search-forward regexp nil t))
-        (if (= (match-beginning 0) (match-end 0))
-            ;; A regexp that can match the empty string (e.g. `^', `a*')
-            ;; leaves point put; advance past it, but at end-of-buffer there
-            ;; is nowhere to advance, so stop rather than spin forever.
-            (if (eobp)
-                (setq done t)
-              (forward-char 1))
-          (let ((beg (match-beginning 0))
-                (end (match-end 0))
-                (md (match-data t))
-                (groups (projectile-replace--capture-groups))
-                line lstart col context)
-            (save-excursion
-              (goto-char beg)
-              (setq line (line-number-at-pos)
-                    lstart (line-beginning-position)
-                    col (- beg lstart)
-                    context (buffer-substring-no-properties
-                             lstart (line-end-position))))
-            (push (projectile-replace--match-create
-                   :file file :buffer buffer :tick tick
-                   :line line :column col :beg beg :end end
-                   :string (buffer-substring-no-properties beg end)
-                   :match-data md :groups groups
-                   :context context :enabled t)
-                  matches)
-            (cl-incf count)))))
+      (save-restriction
+        (widen)
+        (goto-char (point-min))
+        (while (and (not done)
+                    (< count budget)
+                    (re-search-forward regexp nil t))
+          (if (= (match-beginning 0) (match-end 0))
+              ;; A regexp that can match the empty string (e.g. `^', `a*')
+              ;; leaves point put; advance past it, but at end-of-buffer there
+              ;; is nowhere to advance, so stop rather than spin forever.
+              (if (eobp)
+                  (setq done t)
+                (forward-char 1))
+            (let ((beg (match-beginning 0))
+                  (end (match-end 0))
+                  (md (match-data t))
+                  (groups (projectile-replace--capture-groups))
+                  line lstart col context)
+              (save-excursion
+                (goto-char beg)
+                (setq line (line-number-at-pos)
+                      lstart (line-beginning-position)
+                      col (- beg lstart)
+                      context (buffer-substring-no-properties
+                               lstart (line-end-position))))
+              (push (projectile-replace--match-create
+                     :file file :buffer buffer :tick tick
+                     :line line :column col :beg beg :end end
+                     :string (buffer-substring-no-properties beg end)
+                     :match-data md :groups groups
+                     :context context :enabled t)
+                    matches)
+              (cl-incf count))))))
     (nreverse matches)))
 
 (defun projectile-replace--scan-file (file regexp budget)
@@ -10452,15 +10458,20 @@ LITERAL selects verbatim vs. capture-group expansion.  M's stored
 Checked against the current buffer.  This is the authoritative guard
 against stale positions: if the file changed on disk, or the live buffer
 was edited, since the scan, the recorded spans no longer hold the matched
-text and applying them would corrupt unrelated bytes."
-  (cl-every (lambda (m)
-              (let ((beg (projectile-replace--match-beg m))
-                    (end (projectile-replace--match-end m)))
-                (and (integerp beg) (integerp end)
-                     (<= (point-min) beg end (point-max))
-                     (string= (buffer-substring-no-properties beg end)
-                              (projectile-replace--match-string m)))))
-            matches))
+text and applying them would corrupt unrelated bytes.
+
+The positions count from the start of the file, so they are checked
+against the whole buffer, not against whatever it is narrowed to."
+  (save-restriction
+    (widen)
+    (cl-every (lambda (m)
+                (let ((beg (projectile-replace--match-beg m))
+                      (end (projectile-replace--match-end m)))
+                  (and (integerp beg) (integerp end)
+                       (<= (point-min) beg end (point-max))
+                       (string= (buffer-substring-no-properties beg end)
+                                (projectile-replace--match-string m)))))
+              matches)))
 
 (defun projectile-replace--skip (name reason)
   "Warn that NAME is skipped for REASON and return the symbol `skipped'."
@@ -10633,14 +10644,17 @@ so `projectile-replace-undo' can revert it."
 Checked against the current buffer.  This is the guard that keeps an undo
 from corrupting a file that moved on since the replace: unless every
 recorded span still holds the written text, verbatim, the file is left
-alone."
-  (cl-every (lambda (e)
-              (let* ((beg (projectile-replace--undo-edit-beg e))
-                     (new (projectile-replace--undo-edit-new e))
-                     (end (+ beg (length new))))
-                (and (<= (point-min) beg end (point-max))
-                     (string= (buffer-substring-no-properties beg end) new))))
-            edits))
+alone.  As with `projectile-replace--positions-valid-p', the whole
+buffer is what the spans are checked against."
+  (save-restriction
+    (widen)
+    (cl-every (lambda (e)
+                (let* ((beg (projectile-replace--undo-edit-beg e))
+                       (new (projectile-replace--undo-edit-new e))
+                       (end (+ beg (length new))))
+                  (and (<= (point-min) beg end (point-max))
+                       (string= (buffer-substring-no-properties beg end) new))))
+              edits)))
 
 (defun projectile-replace--undo-one (e)
   "Put back the text edit E replaced, in the current buffer."

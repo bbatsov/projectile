@@ -101,6 +101,32 @@ REGEXP-P selects `projectile-replace-regexp-review'."
         (expect (projectile-test-disk "open.txt")
                 :to-equal "first bar\nlast bar\n"))))
 
+  (it "scans the whole of an open buffer that happens to be narrowed"
+    (projectile-test-with-project
+        (("open.txt" . "first foo\nmiddle\nlast foo\n"))
+      (projectile-test-use-plain-grep)
+      (with-current-buffer (find-file-noselect (expand-file-name "open.txt"))
+        (goto-char (point-min))
+        (forward-line 1)
+        (narrow-to-region (point) (point-max)))
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          ;; the match above the restriction is found, and the one inside
+          ;; it is numbered from the top of the file
+          (expect (mapcar #'projectile-replace--match-line
+                          projectile-replace--matches)
+                  :to-equal '(1 3)))
+        ;; and both are applied, then undone, restriction or not
+        (projectile-replace-review-test--apply buf)
+        (expect (projectile-test-disk "open.txt")
+                :to-equal "first bar\nmiddle\nlast bar\n")
+        (projectile-replace-undo)
+        (expect (projectile-test-disk "open.txt")
+                :to-equal "first foo\nmiddle\nlast foo\n"))
+      (with-current-buffer (get-file-buffer (expand-file-name "open.txt"))
+        ;; the user's narrowing is still in place
+        (expect (buffer-narrowed-p) :to-be-truthy))))
+
   (it "leaves a disabled match untouched and applies only the enabled ones"
     (projectile-test-with-project
         (("t.txt" . "foo foo foo\n"))
