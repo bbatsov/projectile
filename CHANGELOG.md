@@ -27,6 +27,7 @@
 
 ### Changes
 
+- [#2209](https://github.com/bbatsov/projectile/pull/2209): The replace commands read what to replace with the search prompt, so it has the same suggestions, history and identifier completion, and `M-n` at the "with" prompt brings up the text being replaced, ready to be edited. Replacements have a history of their own, `projectile-replace-history`.
 - [#2208](https://github.com/bbatsov/projectile/pull/2208): `projectile-find-references` uses the same prompt as the other search commands, so the symbol at point is the default rather than text already typed into the minibuffer.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Deleting files inside a project with a persistent cache no longer writes the cache file once per deleted file. The write waits until Emacs is idle, and pending cache writes are flushed when Emacs exits.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): `projectile-find-test-file` is much faster on large projects: the project type and its test conventions are looked up once, not once per file.

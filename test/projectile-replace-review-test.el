@@ -34,7 +34,7 @@
   "Drive the review command for TERM/REPLACEMENT and return the results buffer.
 REGEXP-P selects `projectile-replace-regexp-review'."
   (let ((inputs (list term replacement)))
-    (spy-on 'read-string :and-call-fake (lambda (&rest _) (pop inputs)))
+    (spy-on 'read-from-minibuffer :and-call-fake (lambda (&rest _) (pop inputs)))
     ;; keep window juggling out of the batch run without tripping
     ;; buttercup's interactive-form check on a spied command
     (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
@@ -1049,7 +1049,7 @@ REGEXP-P selects `projectile-replace-regexp-review'."
       (let ((buf (projectile-replace-review-test--run "foo" "bar")))
         (with-current-buffer buf
           (expect (buffer-string) :to-match "bar")
-          (spy-on 'read-string :and-return-value "baz")
+          (spy-on 'read-from-minibuffer :and-return-value "baz")
           (projectile-replace--set-replacement)
           (expect projectile-replace--replacement :to-equal "baz")
           (expect (buffer-string) :to-match "baz")))))

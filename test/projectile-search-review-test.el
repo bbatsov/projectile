@@ -282,7 +282,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
       (let ((buf (projectile-search-review-test--run "foo")))
         (with-current-buffer buf
           ;; the bridge prompts only for the replacement
-          (spy-on 'read-string :and-return-value "bar")
+          (spy-on 'read-from-minibuffer :and-return-value "bar")
           (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
             (projectile-search--to-replace)))
         (let ((rbuf (get-buffer projectile-replace-buffer-name)))
@@ -301,7 +301,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
         (("s.txt" . "foo foobar foo\n"))
       (let ((buf (projectile-search-review-test--run "\\_<foo\\_>" 'regexp)))
         (with-current-buffer buf
-          (spy-on 'read-string :and-return-value "X")
+          (spy-on 'read-from-minibuffer :and-return-value "X")
           (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
             (projectile-search--to-replace)))
         (with-current-buffer (get-buffer projectile-replace-buffer-name)

@@ -173,6 +173,16 @@
     (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "sym")
     (expect (projectile--read-search-term "Search: ") :to-equal "sym"))
 
+  (it "takes a prompt that started out with text at its word"
+    (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "sym")
+    (spy-on 'projectile--search-term-suggestions :and-return-value '("sym" "fn"))
+    (spy-on 'read-from-minibuffer :and-return-value "")
+    ;; cleared and confirmed: empty, not the symbol that was cleared away
+    (expect (projectile--read-search-term "Replace: " nil "sym") :to-equal "")
+    ;; and M-n does not offer the text the prompt already holds
+    (expect (car (last (spy-calls-args-for 'read-from-minibuffer 0)))
+            :to-equal '("fn")))
+
   (it "returns the empty string when there is nothing at point either"
     (spy-on 'read-from-minibuffer :and-return-value "")
     (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "")

@@ -46,7 +46,7 @@ REGEXP-P is non-nil, with the prompts stubbed out and the query loop of
 `perform-replace' short-circuited."
   (let ((inputs (list old new))
         (real-perform-replace (symbol-function 'perform-replace)))
-    (spy-on 'read-string :and-call-fake (lambda (&rest _) (pop inputs)))
+    (spy-on 'read-from-minibuffer :and-call-fake (lambda (&rest _) (pop inputs)))
     (spy-on 'perform-replace :and-call-fake
             (lambda (from to _query-flag &rest args)
               ;; Perform the replacement without querying, and return
@@ -163,6 +163,39 @@ modify buffers without saving them."
       (projectile-replace-test--replace "foo" "bar")
       (expect (projectile-replace-test--contents "a.txt")
               :to-equal "hello bar world\n"))))
+
+(describe "projectile--read-replacement"
+  (it "offers the term itself on M-n and keeps its own history"
+    (spy-on 'projectile-prepend-project-name :and-call-fake #'identity)
+    (spy-on 'read-from-minibuffer :and-return-value "new-name")
+    (expect (projectile--read-replacement "old-name") :to-equal "new-name")
+    (expect 'read-from-minibuffer :to-have-been-called-with
+            "Replace old-name with: " nil nil nil
+            'projectile-replace-history "old-name"))
+
+  (it "takes empty input for an empty replacement, not for the term"
+    (spy-on 'read-from-minibuffer :and-return-value "")
+    (expect (projectile--read-replacement "old-name") :to-equal ""))
+
+  (it "can start out with text and a prompt of the caller's"
+    (spy-on 'read-from-minibuffer :and-return-value "x")
+    (projectile--read-replacement "old" "With: " "current")
+    (expect 'read-from-minibuffer :to-have-been-called-with
+            "With: " "current" nil nil 'projectile-replace-history "old")))
+
+(describe "the replace commands' term prompt"
+  (it "starts out with the symbol at point and completes over the directory searched"
+    (spy-on 'projectile-acquire-root :and-return-value "/project/")
+    (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "sym")
+    (spy-on 'projectile--read-search-term :and-return-value "sym")
+    (spy-on 'projectile--read-replacement :and-return-value "new")
+    (spy-on 'projectile-files-with-string :and-return-value nil)
+    (spy-on 'projectile-dir-files :and-return-value nil)
+    (spy-on 'projectile--replace-in-files)
+    (projectile-replace)
+    (expect (cdr (spy-calls-args-for 'projectile--read-search-term 0))
+            :to-equal '(("/project/") "sym"))
+    (expect 'projectile--read-replacement :to-have-been-called-with "sym")))
 
 (describe "projectile--files-also-in"
   (it "keeps the files found in the other list, in their original order"

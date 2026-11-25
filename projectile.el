@@ -8639,7 +8639,7 @@ prompt."
           (and (car search-ring)
                (substring-no-properties (car search-ring)))))))
 
-(defun projectile--read-search-term (prompt &optional roots)
+(defun projectile--read-search-term (prompt &optional roots initial)
   "Read something to search for with PROMPT and return it.
 
 The prompt is free text.  \\`M-n' goes through what the current buffer
@@ -8648,8 +8648,12 @@ suggests (see `projectile--search-term-suggestions') and \\`M-p' through
 symbol at point.  With
 `projectile-search-complete-identifiers', \\`TAB' completes the word
 before point against the identifiers of the projects at ROOTS, which
-defaults to the current project."
-  (let* ((suggestions (projectile--search-term-suggestions))
+defaults to the current project.
+
+INITIAL, when non-nil, is text the prompt starts out with.  The prompt is
+then taken at its word: clearing it and pressing \\`RET' returns the empty
+string and not the symbol that was just cleared away."
+  (let* ((suggestions (remove initial (projectile--search-term-suggestions)))
          (roots (mapcar #'expand-file-name
                         (or roots (ensure-list (projectile-project-root)))))
          (complete (and projectile-search-complete-identifiers roots))
@@ -8666,11 +8670,11 @@ defaults to the current project."
                                  (projectile--identifier-capf roots hyphens)
                                  nil t)))
                  (read-from-minibuffer
-                  prompt nil
+                  prompt initial
                   ;; without completion `TAB' keeps inserting a tab
                   (if complete projectile--search-term-map minibuffer-local-map)
                   nil 'projectile-search-history suggestions))))
-    (if (string-empty-p term)
+    (if (and (string-empty-p term) (not initial))
         (or (projectile--search-term-default) "")
       term)))
 
@@ -9714,6 +9718,24 @@ first instead of being walked once per member of FILES."
       (puthash file t set))
     (seq-filter (lambda (file) (gethash file set)) files)))
 
+(defvar projectile-replace-history nil
+  "History of the replacement texts read by Projectile's replace commands.")
+
+(defun projectile--read-replacement (term &optional prompt initial)
+  "Read what to replace TERM with and return it.
+
+Most replacements are an edit of what they replace, so \\`M-n' brings up
+TERM itself to be changed.  Empty input is an empty replacement, which
+deletes the matches.  The replacements have a history of their own,
+`projectile-replace-history'.
+
+PROMPT defaults to \"Replace TERM with: \" under the project's name, and
+INITIAL is text the prompt starts out with."
+  (read-from-minibuffer
+   (or prompt
+       (projectile-prepend-project-name (format "Replace %s with: " term)))
+   initial nil nil 'projectile-replace-history term))
+
 ;;;###autoload
 (defun projectile-replace (&optional arg)
   "Replace a literal string in the project's files.
@@ -9732,12 +9754,11 @@ on which to run the replacement."
                           (projectile-prepend-project-name
                            "With file extension (empty string means all files): ")))
                      nil))
-         (old-text (read-string
+         (old-text (projectile--read-search-term
                     (projectile-prepend-project-name "Replace: ")
+                    (list directory)
                     (projectile-symbol-or-selection-at-point)))
-         (new-text (read-string
-                    (projectile-prepend-project-name
-                     (format "Replace %s with: " old-text))))
+         (new-text (projectile--read-replacement old-text))
          (files (projectile-files-with-string old-text directory file-ext))
          ;; Filter results through the project's file list so that files
          ;; ignored via .projectile or other ignore rules are excluded.
@@ -9757,10 +9778,12 @@ to run the replacement."
                         (file-name-as-directory
                          (read-directory-name "Replace regexp in directory: "))
                       (projectile-acquire-root)))
-         (old-text (read-string
+         (old-text (projectile--read-search-term
                     (projectile-prepend-project-name "Replace regexp: ")
+                    (list directory)
                     (projectile-symbol-or-selection-at-point)))
-         (new-text (read-string
+         (new-text (projectile--read-replacement
+                    old-text
                     (projectile-prepend-project-name
                      (format "Replace regexp %s with: " old-text))))
          (files
@@ -10645,8 +10668,10 @@ otherwise they are all enabled."
   "Re-read the replacement string and re-render the previews."
   (interactive)
   (setq projectile-replace--replacement
-        (read-string (format "Replace %s with: " projectile-replace--term)
-                     projectile-replace--replacement))
+        (projectile--read-replacement
+         projectile-replace--term
+         (format "Replace %s with: " projectile-replace--term)
+         projectile-replace--replacement))
   (projectile-replace--render-preserve))
 
 (defun projectile-replace--regather ()
@@ -11737,13 +11762,12 @@ buffer state."
 LITERAL non-nil runs a literal replace; otherwise the search term is an
 Emacs regexp and the replacement may reference capture groups."
   (let* ((root (projectile-acquire-root))
-         (term (read-string
+         (term (projectile--read-search-term
                 (projectile-prepend-project-name
                  (if literal "Replace: " "Replace regexp: "))
+                (list root)
                 (projectile-symbol-or-selection-at-point)))
-         (replacement (read-string
-                       (projectile-prepend-project-name
-                        (format "Replace %s with: " term))))
+         (replacement (projectile--read-replacement term))
          (regexp (if literal (regexp-quote term) term))
          (case-fold case-fold-search)
          (word projectile-search-whole-word)
@@ -11850,9 +11874,7 @@ any filtering is undone and every match comes back enabled), mirroring
          (case-fold projectile-replace--case-fold)
          (word projectile-replace--word)
          (regexp projectile-replace--search)
-         (replacement (read-string
-                       (projectile-prepend-project-name
-                        (format "Replace %s with: " term))))
+         (replacement (projectile--read-replacement term))
          (candidates (projectile-replace--candidates term literal case-fold projects)))
     (projectile-replace--open
      #'projectile-replace-mode projectile-replace-buffer-name

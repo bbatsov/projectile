@@ -483,6 +483,10 @@ project the first kbd:[TAB] can take a moment; if you'd rather not have it:
 (setq projectile-search-complete-identifiers nil)
 ----
 
+The replace commands read what to replace with the same prompt. When they ask
+what to replace it _with_, kbd:[M-n] brings up the original text, as most
+replacements are an edit of what they replace.
+
 === Adding your own search backend
 
 Register a backend with `projectile-register-search-backend`.  It takes a name,
