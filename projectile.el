@@ -9826,11 +9826,17 @@ would name the wrong line everywhere it is shown or exported."
   (let ((matches nil)
         (count 0)
         (done nil)
-        (tick (and buffer (buffer-chars-modified-tick buffer))))
+        (tick (and buffer (buffer-chars-modified-tick buffer)))
+        ;; Matches come in buffer order, so each line number is the previous
+        ;; one plus the lines in between.  `line-number-at-pos' would count
+        ;; from the top of the buffer for every match.
+        (line 1)
+        (counted-to nil))
     (save-excursion
       (save-restriction
         (widen)
         (goto-char (point-min))
+        (setq counted-to (point))
         (while (and (not done)
                     (< count budget)
                     (re-search-forward regexp nil t))
@@ -9845,11 +9851,12 @@ would name the wrong line everywhere it is shown or exported."
                   (end (match-end 0))
                   (md (match-data t))
                   (groups (projectile-replace--capture-groups))
-                  line lstart col context)
+                  lstart col context)
               (save-excursion
                 (goto-char beg)
-                (setq line (line-number-at-pos)
-                      lstart (line-beginning-position)
+                (setq lstart (line-beginning-position)
+                      line (+ line (count-lines counted-to lstart))
+                      counted-to lstart
                       col (- beg lstart)
                       context (buffer-substring-no-properties
                                lstart (line-end-position))))

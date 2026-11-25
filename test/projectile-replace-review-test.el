@@ -218,6 +218,23 @@ REGEXP-P selects `projectile-replace-regexp-review'."
         (expect (projectile-test-disk "secret/hide.txt")
                 :to-equal "foo\n")))))
 
+(describe "projectile-replace--scan-region line numbers"
+  (it "numbers matches on the same, adjacent and distant lines"
+    (with-temp-buffer
+      (insert "x x\nx\n\n\nno\nx\n")
+      (expect (mapcar (lambda (m)
+                        (cons (projectile-replace--match-line m)
+                              (projectile-replace--match-column m)))
+                      (projectile-replace--scan-region "f" nil "x" 100))
+              :to-equal '((1 . 0) (1 . 2) (2 . 0) (6 . 0)))))
+
+  (it "agrees with `line-number-at-pos' for a match spanning lines"
+    (with-temp-buffer
+      (insert "a\nfoo\nbar\nb\nfoo\nbar\n")
+      (expect (mapcar #'projectile-replace--match-line
+                      (projectile-replace--scan-region "f" nil "foo\nbar" 100))
+              :to-equal '(2 5)))))
+
 (describe "projectile-replace--expand"
   (it "returns the replacement verbatim in literal mode"
     (expect (projectile-replace--expand "a\\1b" '("whole") t)
