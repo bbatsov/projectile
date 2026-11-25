@@ -106,7 +106,7 @@
           (projectile-search-backends
            (list (cons 'grep (list :search (lambda (&rest _) nil)))))
           (projectile-search-backend 'grep))
-      (spy-on 'read-string :and-call-fake (lambda (p &rest _) (setq prompt p) "foo"))
+      (spy-on 'read-from-minibuffer :and-call-fake (lambda (p &rest _) (setq prompt p) "foo"))
       ;; term nil -> the interactive prompt path that used to crash
       (projectile-search nil nil)
       (expect prompt :to-match (regexp-quote "[grep]"))))
@@ -118,8 +118,8 @@
     (it "shows the symbol-at-point default, faced, and returns it on RET"
       (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "foo")
       (let (prompt)
-        (spy-on 'read-string :and-call-fake
-                (lambda (p &rest _) (setq prompt p) "foo"))
+        (spy-on 'read-from-minibuffer :and-call-fake
+                (lambda (p &rest _) (setq prompt p) ""))
         (expect (projectile--read-search-string-with-default "Grep for") :to-equal "foo")
         (expect prompt :to-match (regexp-quote "(default: foo)"))
         ;; the default value itself carries the highlight face
@@ -130,10 +130,282 @@
     (it "omits the default label when there is no symbol at point"
       (spy-on 'projectile-symbol-or-selection-at-point :and-return-value nil)
       (let (prompt)
-        (spy-on 'read-string :and-call-fake
+        (spy-on 'read-from-minibuffer :and-call-fake
                 (lambda (p &rest _) (setq prompt p) "typed"))
         (projectile--read-search-string-with-default "Grep for")
         (expect prompt :not :to-match "default")))))
+
+(describe "projectile--search-term-suggestions"
+  (it "offers the symbol at point, the enclosing function, the file and the last isearch"
+    (with-temp-buffer
+      (emacs-lisp-mode)
+      (insert "(defun my-fn ()\n  (other-thing))\n")
+      (search-backward "other-thing")
+      (setq buffer-file-name "/tmp/widgets.el")
+      (unwind-protect
+          (let ((search-ring '("needle")))
+            (expect (projectile--search-term-suggestions)
+                    :to-equal '("other-thing" "my-fn" "widgets" "needle")))
+        (setq buffer-file-name nil))))
+
+  (it "prefers the region and drops blanks and repeats"
+    (with-temp-buffer
+      (insert "alpha beta")
+      (let ((search-ring '("alpha beta" "")))
+        (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "alpha beta")
+        (spy-on 'add-log-current-defun :and-return-value " ")
+        (expect (projectile--search-term-suggestions) :to-equal '("alpha beta"))))))
+
+(describe "projectile--read-search-term"
+  (before-each
+    (spy-on 'projectile-project-root :and-return-value "/project/"))
+
+  (it "reads free text with its own history and the suggestions on M-n"
+    (spy-on 'projectile--search-term-suggestions :and-return-value '("sym" "fn"))
+    (spy-on 'read-from-minibuffer :and-return-value "typed")
+    (expect (projectile--read-search-term "Search: ") :to-equal "typed")
+    (expect 'read-from-minibuffer :to-have-been-called-with
+            "Search: " nil projectile--search-term-map nil
+            'projectile-search-history '("sym" "fn")))
+
+  (it "falls back to the symbol at point on empty input, not to a later suggestion"
+    (spy-on 'read-from-minibuffer :and-return-value "")
+    (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "sym")
+    (expect (projectile--read-search-term "Search: ") :to-equal "sym"))
+
+  (it "returns the empty string when there is nothing at point either"
+    (spy-on 'read-from-minibuffer :and-return-value "")
+    (spy-on 'projectile-symbol-or-selection-at-point :and-return-value "")
+    (spy-on 'projectile--search-term-suggestions :and-return-value '("widgets"))
+    (expect (projectile--read-search-term "Search: ") :to-equal ""))
+
+  (it "completes identifiers in the minibuffer, over the roots it was given"
+    (let (capfs)
+      (spy-on 'read-from-minibuffer :and-call-fake
+              (lambda (&rest _)
+                ;; what the prompt's setup hook would do in the minibuffer
+                (with-temp-buffer
+                  (run-hooks 'minibuffer-setup-hook)
+                  (setq capfs completion-at-point-functions))
+                "x"))
+      (spy-on 'projectile--identifier-capf :and-return-value #'ignore)
+      (projectile--read-search-term "Search: " '("/a/" "/b/"))
+      (expect (car capfs) :to-be #'ignore)
+      (expect (car (spy-calls-args-for 'projectile--identifier-capf 0))
+              :to-equal '("/a/" "/b/"))))
+
+  (it "leaves completion, and the TAB key, alone when the option is off"
+    (let ((projectile-search-complete-identifiers nil)
+          keymap)
+      (spy-on 'read-from-minibuffer :and-call-fake
+              (lambda (_prompt _initial map &rest _)
+                (setq keymap map)
+                (with-temp-buffer (run-hooks 'minibuffer-setup-hook))
+                "x"))
+      (spy-on 'projectile--identifier-capf)
+      (projectile--read-search-term "Search: ")
+      (expect 'projectile--identifier-capf :not :to-have-been-called)
+      (expect keymap :to-be minibuffer-local-map)))
+
+  (it "takes hyphens for operators only on the word of a programming mode"
+    (spy-on 'read-from-minibuffer :and-call-fake
+            (lambda (&rest _)
+              (with-temp-buffer (run-hooks 'minibuffer-setup-hook))
+              "x"))
+    (spy-on 'projectile--identifier-capf :and-return-value #'ignore)
+    (with-temp-buffer
+      (c-mode)
+      (projectile--read-search-term "Search: "))
+    (with-temp-buffer
+      (emacs-lisp-mode)
+      (projectile--read-search-term "Search: "))
+    (with-temp-buffer
+      (text-mode)
+      (projectile--read-search-term "Search: "))
+    (expect (mapcar #'cadr (spy-calls-all-args 'projectile--identifier-capf))
+            :to-equal '(nil t t)))
+
+  (it "binds TAB to completion without losing the minibuffer's own keys"
+    (expect (lookup-key projectile--search-term-map (kbd "TAB"))
+            :to-be #'completion-at-point)
+    (expect (lookup-key projectile--search-term-map (kbd "RET"))
+            :to-be (lookup-key minibuffer-local-map (kbd "RET")))))
+
+(describe "projectile--identifiers"
+  (it "lists the identifiers with a prefix, the commonest first"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.el" . "(foo-bar 1)\n(foo-bar 2)\n(foo-baz)\n(food)\n(unrelated)\n")
+         ("b.el" . "(foo-bar 3) (foo_qux)\n"))
+      (expect (projectile--identifiers "foo" (list default-directory) t)
+              :to-equal '("foo-bar" "foo-baz" "foo_qux" "food"))))
+
+  (it "stops at a hyphen in the languages where it is an operator"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.c" . "total = count-offset;\ncount_max = 2;\n"))
+      (expect (projectile--identifiers "count" (list default-directory) nil)
+              :to-equal '("count" "count_max"))))
+
+  (it "matches the prefix case-sensitively"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.el" . "Foobar foobar FOOBAR\n"))
+      (expect (projectile--identifiers "foo" (list default-directory) t)
+              :to-equal '("foobar"))))
+
+  (it "only matches where an identifier starts, not after a hyphen inside one"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.el" . "(my-find-file)\n(my-find-file)\n(find-file)\nfind-dir\n"))
+      (expect (projectile--identifiers "find" (list default-directory) t)
+              :to-equal '("find-dir" "find-file"))
+      (expect (projectile--identifiers "-find" (list default-directory) t)
+              :to-be nil)))
+
+  (it "drops the hyphen of an operator that follows an identifier"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.c" . "length--;\nlength - 1;\n"))
+      (expect (projectile--identifiers "len" (list default-directory) t)
+              :to-equal '("length"))))
+
+  (it "looks into dotfiles, which are project files too"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        ((".config.el" . "(hidden-setting)\n"))
+      (expect (projectile--identifiers "hidden" (list default-directory) t)
+              :to-equal '("hidden-setting"))))
+
+  (it "is not thrown off by the user's ripgrep configuration"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.el" . "(foo-bar)\n")
+         ("ripgreprc" . "--column\n--stats\n"))
+      (let ((process-environment
+             (cons (concat "RIPGREP_CONFIG_PATH=" (expand-file-name "ripgreprc"))
+                   process-environment)))
+        (expect (projectile--identifiers "foo" (list default-directory) t)
+                :to-equal '("foo-bar")))))
+
+  (it "refuses a prefix that is not made of identifier characters"
+    (spy-on 'call-process)
+    (expect (projectile--identifiers "foo(" '("/project/") t) :to-be nil)
+    (expect (projectile--identifiers "a|b" '("/project/") t) :to-be nil)
+    (expect 'call-process :not :to-have-been-called))
+
+  (it "does not look up a prefix too short to narrow anything down"
+    (spy-on 'call-process)
+    (expect (projectile--identifiers "f" '("/project/") t) :to-be nil)
+    (expect 'call-process :not :to-have-been-called))
+
+  (it "never runs a process for a remote project"
+    (spy-on 'call-process)
+    (expect (projectile--identifiers "foo" '("/ssh:host:/project/") t) :to-be nil)
+    (expect 'call-process :not :to-have-been-called)))
+
+(describe "projectile--identifier-command"
+  (it "falls back to git grep in a git project when ripgrep is missing"
+    (spy-on 'executable-find :and-call-fake
+            (lambda (program &rest _) (and (equal program "git") "/usr/bin/git")))
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (let ((command (projectile--identifier-command "foo" '("/project/") nil)))
+      (expect (seq-take command 3) :to-equal '("git" "--no-pager" "grep"))
+      ;; no `\\b': the regex library of Apple's git does not have it
+      (expect (car (last command)) :to-equal "(^|[^[:alnum:]_])foo[[:alnum:]_]*")))
+
+  (it "produces a git grep that finds identifiers"
+    (assume (executable-find "git") "git is not installed")
+    (spy-on 'executable-find :and-call-fake
+            (lambda (program &rest _) (and (equal program "git") "git")))
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    ;; a repository of its own: the suite's sandbox sits inside Projectile's
+    ;; checkout, and CI runs as a user git will not trust that checkout for
+    (let ((root (file-name-as-directory (make-temp-file "projectile-git-" t))))
+      (unwind-protect
+          (let ((default-directory root))
+            (with-temp-file (expand-file-name "a.el" root)
+              (insert "(my-find-file)\n(find-file)\n(find-file)\n(find-dir)\n"))
+            (assume (and (eq 0 (call-process "git" nil nil nil "init" "-q"))
+                         (eq 0 (call-process "git" nil nil nil "add" "a.el")))
+                    "could not set up a git repository")
+            (expect (projectile--identifiers "find" (list root) t)
+                    :to-equal '("find-file" "find-dir")))
+        (delete-directory root t))))
+
+  (it "has nothing to offer without ripgrep outside git, or across projects"
+    (spy-on 'executable-find :and-call-fake
+            (lambda (program &rest _) (and (equal program "git") "/usr/bin/git")))
+    (spy-on 'projectile-project-vcs :and-return-value 'none)
+    (expect (projectile--identifier-command "foo" '("/project/") nil) :to-be nil)
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (expect (projectile--identifier-command "foo" '("/a/" "/b/") nil) :to-be nil)))
+
+(describe "projectile--identifier-capf"
+  (before-each
+    (spy-on 'projectile--identifiers :and-return-value '("foo-bar" "foo-baz")))
+
+  (it "completes the word before point"
+    (with-temp-buffer
+      (insert "defun foo-b")
+      (let ((result (funcall (projectile--identifier-capf '("/project/") t))))
+        (expect (buffer-substring (nth 0 result) (nth 1 result)) :to-equal "foo-b")
+        (expect (all-completions "foo-b" (nth 2 result))
+                :to-equal '("foo-bar" "foo-baz"))
+        (expect 'projectile--identifiers
+                :to-have-been-called-with "foo-b" '("/project/") t))))
+
+  (it "looks up the word, not whatever a completion style asks the table about"
+    (with-temp-buffer
+      (insert "foo-b")
+      (let ((table (nth 2 (funcall (projectile--identifier-capf '("/project/") t)))))
+        ;; flex and substring ask about the empty string
+        (expect (all-completions "" table) :to-equal '("foo-bar" "foo-baz"))
+        (expect (all-completions "foo-ba" table) :to-equal '("foo-bar" "foo-baz"))
+        (expect (spy-calls-all-args 'projectile--identifiers)
+                :to-equal '(("foo-b" ("/project/") t))))))
+
+  (it "runs one lookup per word, however often it is asked"
+    (with-temp-buffer
+      (insert "foo-b")
+      (let ((capf (projectile--identifier-capf '("/project/") t)))
+        (all-completions "" (nth 2 (funcall capf)))
+        (all-completions "" (nth 2 (funcall capf)))
+        (expect 'projectile--identifiers :to-have-been-called-times 1)
+        (insert "a")
+        (all-completions "" (nth 2 (funcall capf)))
+        (expect 'projectile--identifiers :to-have-been-called-times 2))))
+
+  (it "stops the word at a hyphen where hyphens are operators"
+    (with-temp-buffer
+      (insert "count -off")
+      (let ((result (funcall (projectile--identifier-capf '("/project/") nil))))
+        (expect (buffer-substring (nth 0 result) (nth 1 result)) :to-equal "-off")
+        (all-completions "" (nth 2 result))
+        ;; a word typed with a hyphen in it is taken at its word
+        (expect 'projectile--identifiers
+                :to-have-been-called-with "-off" '("/project/") t)))
+    (with-temp-buffer
+      (insert "count")
+      (let ((result (funcall (projectile--identifier-capf '("/project/") nil))))
+        (all-completions "" (nth 2 result))
+        (expect 'projectile--identifiers
+                :to-have-been-called-with "count" '("/project/") nil))))
+
+  (it "offers nothing for a word too short to look up"
+    (with-temp-buffer
+      (insert "some f")
+      (expect (funcall (projectile--identifier-capf '("/project/") t)) :to-be nil)))
+
+  (it "asks for the candidates to be shown in the order they were found"
+    (with-temp-buffer
+      (insert "foo")
+      (let* ((table (nth 2 (funcall (projectile--identifier-capf '("/project/") t))))
+             (metadata (completion-metadata "foo" table nil)))
+        (expect (completion-metadata-get metadata 'display-sort-function)
+                :to-be #'identity)
+        (expect (completion-metadata-get metadata 'category)
+                :to-be 'projectile-identifier)))))
 
 (describe "the search wrapper commands"
   (it "projectile-ripgrep forces the ripgrep backend"

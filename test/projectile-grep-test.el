@@ -41,6 +41,20 @@
             ;; the gitignore patterns are respelled in project.el's format
             "foo\\.bar" "*" "/my/root/" '("*.elc" "./build/"))))
 
+(describe "projectile-find-references prompt"
+  (it "asks with the shared search prompt when no symbol is given"
+    (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
+    (spy-on 'projectile--project-ignore-globs :and-return-value nil)
+    (spy-on 'xref-matches-in-directory :and-return-value nil)
+    (spy-on 'xref-show-xrefs :and-call-fake
+            (lambda (fetcher &rest _) (funcall fetcher)))
+    (spy-on 'projectile--read-search-string-with-default :and-return-value "foo")
+    (projectile-find-references)
+    (expect 'projectile--read-search-string-with-default
+            :to-have-been-called-with "Find references to")
+    (expect (car (spy-calls-args-for 'xref-matches-in-directory 0))
+            :to-equal "foo")))
+
 (describe "projectile--ripgrep-ignore-globs"
   (it "builds unquoted --glob=! exclusions that also work on Windows (#1946)"
     (spy-on 'projectile--dirconfig-ignore :and-return-value '("*.log"))
@@ -346,9 +360,9 @@
               (current-prefix-arg '-)
               (sym (cadr test)))
           (spy-on 'projectile-project-vcs :and-return-value 'git)
-          (spy-on 'read-string :and-call-fake
-                  (lambda (prompt initial-input history default-value &rest args)
-                    (if (should (equal sym default-value)) default-value)))
+          (spy-on 'read-from-minibuffer :and-call-fake
+                  (lambda (_prompt _initial _keymap _read _history defaults &rest _)
+                    (if (should (equal sym (car defaults))) (car defaults))))
           (spy-on 'vc-git-grep :and-call-fake
                   (lambda (regexp files dir)
                     (progn (expect regexp :to-equal sym)

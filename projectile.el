@@ -8471,20 +8471,225 @@ prompt makes clear which tool will run."
   (format "[%s]" (propertize (format "%s" tool)
                              'face 'projectile-search-prompt-tool)))
 
-(defun projectile--read-search-string-with-default (prompt-label)
+(defvar projectile-search-history nil
+  "History of the terms read by Projectile's search prompts.")
+
+(defcustom projectile-search-complete-identifiers t
+  "Whether \\`TAB' in a search prompt completes the project's identifiers.
+
+When non-nil, the prompts that read something to search for complete the
+word before point against the identifiers that occur in the project,
+most frequent first.  The candidates come from a `rg' (or, failing that,
+a `git grep') run for that prefix, so nothing is indexed up front and
+there is a short pause on a large project.
+
+The prompt stays free text either way: completion only happens when you
+ask for it, and whatever you type is what gets searched for."
+  :group 'projectile
+  :type 'boolean
+  :package-version '(projectile . "3.5.0"))
+
+(defconst projectile--identifier-min-prefix 2
+  "How many characters an identifier prefix needs before it is looked up.
+Shorter prefixes match a large part of any project.")
+
+(defvar projectile--search-term-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map minibuffer-local-map)
+    (define-key map (kbd "TAB") #'completion-at-point)
+    map)
+  "Keymap of the prompts that read a search term and complete identifiers.
+`minibuffer-local-map' with \\`TAB' completing, as the prompt is free text
+and has no completion of its own.")
+
+(defun projectile--identifier-command (prefix roots hyphens)
+  "Return the command listing the identifiers under ROOTS that start with PREFIX.
+
+The command prints one occurrence per line, each possibly preceded by the
+character in front of it: the pattern has to say where an identifier
+starts itself, as a word boundary would also match after the `-' inside
+one.  HYPHENS non-nil lets an identifier contain `-'.
+
+Returns nil when PREFIX is not made of identifier characters alone, when
+neither `rg' nor a usable `git' is around, or when ROOTS are remote:
+spawning a process per completion over TRAMP is not worth the wait."
+  (when (and (string-match-p "\\`[[:alnum:]_-]+\\'" prefix)
+             (not (seq-some #'file-remote-p roots)))
+    (cond
+     ((executable-find "rg")
+      (append (list "rg"
+                    ;; the output is parsed, so the user's configuration
+                    ;; must not get to reshape it
+                    "--no-config"
+                    "--only-matching" "--no-line-number" "--no-filename"
+                    "--no-messages" "--color" "never" "--case-sensitive"
+                    ;; dotfiles are project files like any other
+                    "--hidden" "--glob" "!.git/"
+                    "--regexp"
+                    (if hyphens
+                        (concat "(^|[^\\w-])" prefix "[\\w-]*")
+                      (concat "(^|\\W)" prefix "\\w*"))
+                    "--")
+              roots))
+     ((and (executable-find "git")
+           (not (cdr roots))
+           (eq (projectile-project-vcs (car roots)) 'git))
+      (list "git" "--no-pager" "grep" "--only-matching" "-h" "-I"
+            "--no-color" "--extended-regexp" "-e"
+            (if hyphens
+                (concat "(^|[^[:alnum:]_-])" prefix "[[:alnum:]_-]*")
+              (concat "(^|[^[:alnum:]_])" prefix "[[:alnum:]_]*")))))))
+
+(defun projectile--identifiers (prefix roots hyphens)
+  "Return the identifiers under ROOTS that start with PREFIX, commonest first.
+ROOTS is a list of project roots and HYPHENS is as for
+`projectile--identifier-command'.  PREFIX is matched case-sensitively, the
+way identifiers are."
+  (when-let* (((>= (length prefix) projectile--identifier-min-prefix))
+              (command (projectile--identifier-command prefix roots hyphens)))
+    (let ((default-directory (car roots))
+          (counts (make-hash-table :test 'equal)))
+      (with-temp-buffer
+        ;; the exit status is of no interest: 1 is "nothing matched", and
+        ;; anything worse leaves nothing to complete, which is fine too
+        (ignore-errors
+          (apply #'call-process (car command) nil '(t nil) nil (cdr command)))
+        (goto-char (point-min))
+        (while (not (eobp))
+          (let ((match (buffer-substring-no-properties
+                        (point) (line-end-position))))
+            ;; drop the character in front of the identifier, and the `-'
+            ;; of an operator that happened to follow it
+            (unless (string-prefix-p prefix match)
+              (setq match (substring match (min 1 (length match)))))
+            (setq match (string-trim-right match "-+"))
+            (when (string-prefix-p prefix match)
+              (cl-incf (gethash match counts 0))))
+          (forward-line 1)))
+      (let (identifiers)
+        (maphash (lambda (identifier count) (push (cons identifier count) identifiers))
+                 counts)
+        (mapcar #'car (sort identifiers
+                            (lambda (a b)
+                              (or (> (cdr a) (cdr b))
+                                  (and (= (cdr a) (cdr b))
+                                       (string< (car a) (car b)))))))))))
+
+(defun projectile--identifier-capf (roots hyphens)
+  "Return a `completion-at-point' function for identifiers under ROOTS.
+
+It completes the word before point against the identifiers that start
+with it, offered commonest first.  The lookup is for that word, whatever
+string a completion style then asks the table about, so the styles filter
+one list instead of each starting a search of their own; the lists are
+remembered for as long as the function is in use.
+
+HYPHENS non-nil lets identifiers contain `-'.  A word typed with one in it
+is looked up that way regardless."
+  (let ((cache (make-hash-table :test 'equal)))
+    (lambda ()
+      (let* ((end (point))
+             (beg (save-excursion
+                    (skip-chars-backward "[:alnum:]_-" (minibuffer-prompt-end))
+                    (point)))
+             (hyphens (or hyphens
+                          (and (save-excursion
+                                 (goto-char beg)
+                                 (search-forward "-" end t))
+                               t)))
+             (word (buffer-substring-no-properties beg end))
+             (key (cons word hyphens)))
+        (when (>= (length word) projectile--identifier-min-prefix)
+          (list beg end
+                (let ((table (completion-table-dynamic
+                              (lambda (_string)
+                                (let ((known (gethash key cache 'unknown)))
+                                  (if (eq known 'unknown)
+                                      (puthash key
+                                               (projectile--identifiers
+                                                word roots hyphens)
+                                               cache)
+                                    known))))))
+                  (lambda (string predicate action)
+                    (if (eq action 'metadata)
+                        '(metadata (category . projectile-identifier)
+                                   (display-sort-function . identity)
+                                   (cycle-sort-function . identity))
+                      (complete-with-action action table string predicate))))))))))
+
+(defun projectile--search-term-default ()
+  "Return the region or the symbol at point, or nil when there is neither.
+This is what a search prompt searches for when nothing is typed."
+  (let ((default (projectile-symbol-or-selection-at-point)))
+    (unless (or (null default) (string-blank-p default))
+      default)))
+
+(defun projectile--search-term-suggestions ()
+  "Return what the current buffer suggests searching for, likeliest first.
+That is the region or the symbol at point, the name of the function
+around point, the base name of the visited file and the last thing
+searched for with Isearch.  These are what \\`M-n' offers in a search
+prompt."
+  (delete-dups
+   (seq-remove
+    (lambda (suggestion) (or (null suggestion) (string-blank-p suggestion)))
+    (list (projectile-symbol-or-selection-at-point)
+          (ignore-errors (add-log-current-defun))
+          (and buffer-file-name (file-name-base buffer-file-name))
+          (and (car search-ring)
+               (substring-no-properties (car search-ring)))))))
+
+(defun projectile--read-search-term (prompt &optional roots)
+  "Read something to search for with PROMPT and return it.
+
+The prompt is free text.  \\`M-n' goes through what the current buffer
+suggests (see `projectile--search-term-suggestions') and \\`M-p' through
+`projectile-search-history'.  Empty input stands for the region or the
+symbol at point.  With
+`projectile-search-complete-identifiers', \\`TAB' completes the word
+before point against the identifiers of the projects at ROOTS, which
+defaults to the current project."
+  (let* ((suggestions (projectile--search-term-suggestions))
+         (roots (mapcar #'expand-file-name
+                        (or roots (ensure-list (projectile-project-root)))))
+         (complete (and projectile-search-complete-identifiers roots))
+         ;; `-' is an operator only where a programming mode says so.  A
+         ;; README or a Dired buffer says nothing about the language of the
+         ;; project, and leaving hyphens out there would cut every Lisp or
+         ;; CSS identifier short.
+         (hyphens (not (and (derived-mode-p 'prog-mode)
+                            (not (memq (char-syntax ?-) '(?w ?_))))))
+         (term (minibuffer-with-setup-hook
+                   (lambda ()
+                     (when complete
+                       (add-hook 'completion-at-point-functions
+                                 (projectile--identifier-capf roots hyphens)
+                                 nil t)))
+                 (read-from-minibuffer
+                  prompt nil
+                  ;; without completion `TAB' keeps inserting a tab
+                  (if complete projectile--search-term-map minibuffer-local-map)
+                  nil 'projectile-search-history suggestions))))
+    (if (string-empty-p term)
+        (or (projectile--search-term-default) "")
+      term)))
+
+(defun projectile--read-search-string-with-default (prompt-label &optional roots)
   "Read a search string, defaulting to the symbol or region at point.
 PROMPT-LABEL is the action shown in the prompt (already carrying any
 faced tool tag its caller wants).  The default value, when there is one,
-is appended and faced as `(default VALUE)'."
+is appended and faced as `(default VALUE)'.  ROOTS is the projects being
+searched, when that is not just the current one.  See
+`projectile--read-search-term' for what the prompt offers."
   (let* ((prompt-label (projectile-prepend-project-name prompt-label))
-         (default-value (projectile-symbol-or-selection-at-point))
-         (default-label (if (or (not default-value)
-                                (string= default-value ""))
-                            ""
-                          (format " (default: %s)"
-                                  (propertize default-value
-                                              'face 'projectile-search-prompt-default)))))
-    (read-string (format "%s%s: " prompt-label default-label) nil nil default-value)))
+         (default-value (projectile--search-term-default))
+         (default-label (if default-value
+                            (format " (default: %s)"
+                                    (propertize default-value
+                                                'face 'projectile-search-prompt-default))
+                          "")))
+    (projectile--read-search-term
+     (format "%s%s: " prompt-label default-label) roots)))
 
 ;;; Grep command construction
 ;;
@@ -8993,9 +9198,8 @@ Projectile project too when `projectile-mode' is enabled."
   (require 'xref)
   (let* ((project-root (projectile-acquire-root))
          (symbol (or symbol
-                     (read-string
-                      (projectile-prepend-project-name "Find references to: ")
-                      (projectile-symbol-or-selection-at-point))))
+                     (projectile--read-search-string-with-default
+                      "Find references to")))
          ;; `xref-matches-in-directory' reads its IGNORES in project.el's
          ;; format, not gitignore's.
          (ignores (mapcar #'projectile--project-el-ignore-glob
@@ -15519,7 +15723,8 @@ them in turn when ripgrep is available."
                 (or prompt (format "Search %d project%s%s for"
                                    (length projects)
                                    (if (cdr projects) "s" "")
-                                   (if literal "" " regexp")))))
+                                   (if literal "" " regexp")))
+                projects))
          (regexp (if literal (regexp-quote term) term))
          (case-fold case-fold-search)
          (candidates (lambda ()

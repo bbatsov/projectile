@@ -61,7 +61,7 @@ the two truename'd roots and `parent' to the directory holding them."
 
 (defun projectile-group-test--search (projects term)
   "Run `projectile-search-in-projects' over PROJECTS for literal TERM."
-  (spy-on 'read-string :and-call-fake (lambda (&rest _) term))
+  (spy-on 'read-from-minibuffer :and-call-fake (lambda (&rest _) term))
   (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
     (projectile-search-in-projects projects t))
   (get-buffer projectile-search-buffer-name))
@@ -284,7 +284,7 @@ the two truename'd roots and `parent' to the directory holding them."
     (projectile-group-test--with-projects
       (projectile-test-use-plain-grep)
       (spy-on 'projectile-sibling-projects :and-return-value (list alpha beta))
-      (spy-on 'read-string :and-call-fake (lambda (&rest _) "needle"))
+      (spy-on 'read-from-minibuffer :and-call-fake (lambda (&rest _) "needle"))
       (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
         (projectile-search-in-sibling-projects))
       (expect (projectile-test-match-files

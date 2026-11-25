@@ -34,7 +34,7 @@
   "Drive the search review command for TERM and return the results buffer.
 REGEXP-P selects `projectile-search-regexp-review'."
   (let ((inputs (list term)))
-    (spy-on 'read-string :and-call-fake (lambda (&rest _) (pop inputs)))
+    (spy-on 'read-from-minibuffer :and-call-fake (lambda (&rest _) (pop inputs)))
     (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
       (call-interactively (if regexp-p
                               #'projectile-search-regexp-review
@@ -90,7 +90,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
     (spy-on 'projectile-search--rg-fastpath-p :and-return-value t)
     (let (label)
       (spy-on 'projectile--read-search-string-with-default :and-call-fake
-              (lambda (l) (setq label l) "foo"))
+              (lambda (l &rest _) (setq label l) "foo"))
       (projectile-search--review t)
       (expect label :to-match (regexp-quote "[ripgrep]"))))
 
@@ -98,7 +98,7 @@ REGEXP-P selects `projectile-search-regexp-review'."
     (spy-on 'projectile-search--rg-fastpath-p :and-return-value nil)
     (let (label)
       (spy-on 'projectile--read-search-string-with-default :and-call-fake
-              (lambda (l) (setq label l) "foo"))
+              (lambda (l &rest _) (setq label l) "foo"))
       (projectile-search--review nil)
       (expect label :to-match (regexp-quote "[elisp]")))))
 

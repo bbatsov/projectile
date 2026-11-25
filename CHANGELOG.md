@@ -8,6 +8,10 @@
 
 ### New features
 
+- [#2208](https://github.com/bbatsov/projectile/pull/2208): The search prompts are smarter about what you might be looking for, while staying plain text prompts.
+  - `TAB` completes the word before point against the identifiers that occur in the project, most common first (`projectile-search-complete-identifiers`).
+  - `M-n` offers the name of the function around point, the name of the current file and the last Isearch string, after the symbol or region at point.
+  - They have a history of their own, `projectile-search-history`, instead of sharing the generic minibuffer history.
 - [#2182](https://github.com/bbatsov/projectile/pull/2182): Add `projectile-todos-in-projects` and `projectile-multi-occur-in-projects`, so every sibling command now has a public generic taking any list of projects behind it and a command for a group of your own is a two-line wrapper for all five.
 - [#2181](https://github.com/bbatsov/projectile/pull/2181): Sapling and Bazaar projects can now list their own ignored files, via the new `projectile-sapling-ignored-command` and `projectile-bzr-ignored-command`.
 - [#2180](https://github.com/bbatsov/projectile/pull/2180): Every shell backend can now open in another window (`s-p x 4 <key>`), not just vterm, eat and ghostel: `shell`, `eshell`, `ielm`, `term` and the backend-dispatching `projectile-run` gained `-other-window` commands.
@@ -23,6 +27,7 @@
 
 ### Changes
 
+- [#2208](https://github.com/bbatsov/projectile/pull/2208): `projectile-find-references` uses the same prompt as the other search commands, so the symbol at point is the default rather than text already typed into the minibuffer.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Deleting files inside a project with a persistent cache no longer writes the cache file once per deleted file. The write waits until Emacs is idle, and pending cache writes are flushed when Emacs exits.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): `projectile-find-test-file` is much faster on large projects: the project type and its test conventions are looked up once, not once per file.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Listing the known projects is faster with `projectile-ignored-projects` set: its entries are symlink-resolved once per listing, not once per project.

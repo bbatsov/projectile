@@ -287,6 +287,9 @@ and the other reference pages.
 | `projectile-search-backend`
 | The backend ‘projectile-search’ uses to search the project.
 
+| `projectile-search-complete-identifiers`
+| Whether kbd:[TAB] in a search prompt completes the project's identifiers.
+
 | `projectile-search-max-matches`
 | Upper bound on how many matches a review buffer collects.
 

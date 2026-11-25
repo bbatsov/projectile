@@ -458,6 +458,31 @@ its grep commands once and keeps them. `ugrep` is also one of the programs you
 can set `xref-search-program` to.
 ====
 
+=== The search prompt
+
+Every command that asks what to search for uses the same prompt. It's plain
+text - whatever you type is what gets searched for - but it knows a few
+things about where you are:
+
+* kbd:[RET] on an empty prompt searches for the region or the symbol at point.
+* kbd:[M-n] goes through a few more suggestions: the name of the function
+  you're in, the name of the current file and the last thing you searched for
+  with Isearch.
+* kbd:[M-p] goes through the terms you've searched for before. The search
+  prompts have a history of their own (`projectile-search-history`).
+* kbd:[TAB] completes the word before point against the identifiers that
+  occur in the project, most common first.
+
+The identifiers come from running `rg` (or `git grep`, if you don't have
+ripgrep) for the prefix you've typed, so there's nothing to index and the
+list is never stale. You need to type at least two characters. On a big
+project the first kbd:[TAB] can take a moment; if you'd rather not have it:
+
+[source,elisp]
+----
+(setq projectile-search-complete-identifiers nil)
+----
+
 === Adding your own search backend
 
 Register a backend with `projectile-register-search-backend`.  It takes a name,
