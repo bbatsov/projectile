@@ -14,7 +14,7 @@ If the functionality in `project.el` is good enough for you then you should prob
 
 == At a glance
 
-NOTE: As of early 2026. (Projectile 2.10 and `project.el` in Emacs 31)
+NOTE: As of late 2026. (Projectile 3.5 and `project.el` in Emacs 31)
 
 |===
 | | Projectile | project.el
@@ -52,15 +52,15 @@ NOTE: As of early 2026. (Projectile 2.10 and `project.el` in Emacs 31)
 | `cl-defgeneric` / `cl-defmethod`
 
 | Built-in Project Types
-| 60+
+| ~100
 | n/a
 
 | Number of Configuration Options
-| ~95
+| ~130
 | ~25
 
 | Number of Commands
-| ~90
+| ~180
 | ~35
 
 | Minor Mode
@@ -106,13 +106,36 @@ as Projectile's `alien` strategy. Admittedly, that's probably the most commonly 
 === `.projectile`
 
 Projectile has its own project marker/configuration file. It's a remnant of the early days of the project where I wanted to build a tool that didn't
-rely on the third-party applications and its significance today is not that big. (it will be completely ignored unless you're using `native` or `hybrid` indexing)
+rely on the third-party applications and its significance today is not that big. Its ignore rules apply under every indexing strategy
+(see xref:ignoring.adoc[Ignoring files]).
 
 === Backend protocol
 
 `project.el` defines a small protocol via `cl-defgeneric` (`project-root`, `project-files`, `project-buffers`, etc.) and ships two backends: a transient one for ad-hoc directories and a VC-aware one. New backends are added with `cl-defmethod`.
 
 Projectile detects projects via root markers and expresses per-language behavior through *project types* (`projectile-register-project-type`). More opinionated, more out of the box, less polymorphic.
+
+== What Projectile does that `project.el` doesn't
+
+The concordance tables below compare the two command by command, but the bigger
+differences are whole features that `project.el` has no counterpart for:
+
+* *Reviewable search and replace* - `projectile-search-review` and `projectile-replace-review` collect every match
+  in a buffer, where you can filter the matches, toggle them one by one and only then apply the replacement
+  (and undo it with `projectile-replace-undo`). See xref:usage.adoc[Usage].
+* *Project tasks* - `projectile-run-task` runs the tasks a project defines (npm scripts, just recipes, Make targets and so on)
+  next to the lifecycle commands, and `projectile-run-test-at-point` runs a single test. See xref:tasks.adoc[Project commands, tasks & tests].
+* *Monorepos* - every lifecycle command has a subproject variant that builds one member of a workspace with the member's own toolchain.
+  See xref:tasks.adoc#subprojects[Monorepos and subprojects].
+* *Working across repositories* - `projectile-switch-worktree` moves between the checkouts of one repository, and the
+  sibling commands find files, search and switch buffers across a family of related projects. See xref:across_repositories.adoc[Working across repositories].
+* *Per-project sessions* - `projectile-session-mode` gives each project a tab of its own and saves and restores its window layout.
+  See xref:sessions.adoc[Per-project sessions].
+* *A project dashboard and a doctor* - `projectile-dashboard` summarizes the current project in one buffer, and `projectile-doctor`
+  explains how Projectile sees it (root, type, indexing, ignore rules) when something looks off.
+* *Frecency* - `projectile-find-file` puts the files you visit most often and most recently on top.
+* *Project bookmarks and TODOs* - bookmarks scoped to the project (`projectile-bookmark-set` and friends), and `projectile-todos`
+  to collect the project's `TODO`/`FIXME` comments.
 
 == What `project.el` does that Projectile doesn't (yet)
 
@@ -255,6 +278,22 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | Find references
 | `projectile-find-references`
 | (use `xref-find-references`)
+
+| Search with a reviewable results buffer
+| `projectile-search-review`, `projectile-search-regexp-review`
+| —
+
+| Replace with a preview of every match
+| `projectile-replace-review`, `projectile-replace-regexp-review`
+| —
+
+| Undo a replacement
+| `projectile-replace-undo`
+| —
+
+| Collect TODO comments
+| `projectile-todos`
+| —
 |===
 
 === Build, test, run, VC
@@ -293,6 +332,14 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | VC dir
 | `projectile-vc`
 | `project-vc-dir`
+
+| Run a task the project defines
+| `projectile-run-task`
+| —
+
+| Run the test at point
+| `projectile-run-test-at-point`
+| —
 |===
 
 === Shell, terminal, REPL
@@ -437,6 +484,7 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 * Projectile has a lot more features, although one can argue that some of them are rarely needed
   ** Projectile's dispatch menu (`projectile-dispatch`, a `transient` interface) is pretty cool for driving a project!
   ** Test/implementation toggling, a related-files framework, persistent on-disk caching, integrations with most Emacs shells out of the box
+  ** Reviewable search and replace, project tasks, per-project sessions, a project dashboard and commands that work across related repositories
 * It's easier to contribute to Projectile
   ** Projectile is hosted in GitHub
   ** It accepts pull requests
