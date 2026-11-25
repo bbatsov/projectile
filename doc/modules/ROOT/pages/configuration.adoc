@@ -557,6 +557,57 @@ new project root and the previous one (`nil` when there was none):
 NOTE: Moving to a buffer outside any project doesn't count as a change; the
 functions run again only when another project is entered.
 
+== Faces
+
+Projectile's own buffers and prompts are coloured with a handful of faces.
+All of them inherit from standard faces, so they follow your theme out of the
+box. You can tweak them with kbd:[M-x] `customize-group` kbd:[RET] `projectile`
+or with `custom-set-faces`.
+
+The search and replace results buffers:
+
+|===
+| Face | Used for | Inherits from
+
+| `projectile-replace-header` | the status header at the top | `font-lock-keyword-face` (bold)
+| `projectile-replace-file` | the per-file header lines | `font-lock-function-name-face` (bold)
+| `projectile-replace-line-number` | the `LINE:COL` in front of each match | `shadow`
+| `projectile-replace-match` | a match with no replacement pending | `match`
+| `projectile-replace-old` | the text a replacement will remove | `diff-removed` (struck through)
+| `projectile-replace-new` | the text a replacement will insert | `diff-added`
+|===
+
+The search prompts:
+
+|===
+| Face | Used for | Inherits from
+
+| `projectile-search-prompt-tool` | the tool that's going to run the search | `font-lock-function-name-face` (bold)
+| `projectile-search-prompt-default` | the default search term | `font-lock-constant-face`
+|===
+
+The dashboard and the doctor report:
+
+|===
+| Face | Used for | Inherits from
+
+| `projectile-report-section` | section headers | `font-lock-function-name-face` (bold)
+| `projectile-report-label` | field labels | `shadow`
+| `projectile-report-value` | the project's root, type and name | `font-lock-string-face`
+| `projectile-report-ok` | findings that are fine | `success`
+| `projectile-report-warning` | findings that suggest a change | `warning`
+| `projectile-report-info` | informational findings | `shadow`
+| `projectile-report-hint` | the key hints at the bottom | `shadow` (italic)
+|===
+
+For example, to make matches stand out more in the results buffers:
+
+[source,elisp]
+----
+(custom-set-faces
+ '(projectile-replace-match ((t :inherit highlight :weight bold))))
+----
+
 == Miscellaneous
 
 === Verbose messages
