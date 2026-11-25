@@ -281,9 +281,18 @@
           (projectile-current-project-on-switch 'keep))
       (expect (projectile-relevant-known-projects) :to-equal '("/projects/a/"))))
 
+  (it "excludes projects matched by projectile-ignored-project-regexps alone"
+    (let ((projectile-known-projects '("/projects/a/" "/vendor/b/"))
+          (projectile-ignored-projects nil)
+          (projectile-ignored-project-function nil)
+          (projectile-ignored-project-regexps '("\\`/vendor/"))
+          (projectile-current-project-on-switch 'keep))
+      (expect (projectile-relevant-known-projects) :to-equal '("/projects/a/"))))
+
   (it "does not filter (or call the ignore check) without any ignore config (#1663)"
     (let ((projectile-known-projects '("/projects/a/" "/projects/b/"))
           (projectile-ignored-projects nil)
+          (projectile-ignored-project-regexps nil)
           (projectile-ignored-project-function nil)
           (projectile-current-project-on-switch 'keep))
       (spy-on 'projectile-ignored-project-p)

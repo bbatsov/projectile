@@ -13907,16 +13907,14 @@ if `projectile-auto-cleanup-known-projects' or
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects.
 
-Projects matched by `projectile-ignored-projects' or
+Projects matched by `projectile-ignored-projects',
+`projectile-ignored-project-regexps' or
 `projectile-ignored-project-function' are excluded, even if they were
 added to the known projects before being ignored (see #1663).
 
 It factors the value of `projectile-current-project-on-switch'."
-  (let ((known-projects (projectile-known-projects)))
-    ;; Only filter when there's actually some ignore configuration, so the
-    ;; common case doesn't pay for a `file-truename' per known project.
-    (when (or projectile-ignored-projects projectile-ignored-project-function)
-      (setq known-projects (seq-remove #'projectile-ignored-project-p known-projects)))
+  (let ((known-projects (projectile--remove-ignored-projects
+                         (projectile-known-projects))))
     (pcase projectile-current-project-on-switch
       ('remove (projectile--remove-current-project known-projects))
       ('move-to-end (projectile--move-current-project-to-end known-projects))
@@ -14271,6 +14269,16 @@ lookup (see `projectile-ignored-project-p')."
   (mapcar (lambda (project)
             (if (file-remote-p project) project (file-truename project)))
           projectile-ignored-projects))
+
+(defun projectile--remove-ignored-projects (projects)
+  "Return PROJECTS without the ones `projectile-ignored-project-p' matches.
+Nothing is checked when there is no ignore configuration to apply, so the
+common case does not pay for a `file-truename' per project."
+  (if (or projectile-ignored-projects
+          projectile-ignored-project-regexps
+          projectile-ignored-project-function)
+      (seq-remove #'projectile-ignored-project-p projects)
+    projects))
 
 (defun projectile-ignored-project-p (project-root)
   "Return t if PROJECT-ROOT should not be added to `projectile-known-projects'.
@@ -15063,14 +15071,7 @@ filtering, instead of each of them paying for both.")
 (defun projectile--sibling-candidate-projects ()
   "Return the known projects a sibling signal may draw on."
   (or projectile--sibling-project-pool
-      (let ((projects (projectile-known-projects)))
-        ;; Only filter when there's ignore configuration to apply, so the
-        ;; common case doesn't pay for a `file-truename' per known project.
-        (if (or projectile-ignored-projects
-                projectile-ignored-project-regexps
-                projectile-ignored-project-function)
-            (seq-remove #'projectile-ignored-project-p projects)
-          projects))))
+      (projectile--remove-ignored-projects (projectile-known-projects))))
 
 (defun projectile--siblings-by-key (root key-function)
   "Return the known projects KEY-FUNCTION gives the same answer for as ROOT.
