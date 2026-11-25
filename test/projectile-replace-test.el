@@ -196,9 +196,6 @@ modify buffers without saving them."
     (it "builds the rg command"
       (expect (projectile--rg-construct-command "foo")
               :to-equal "rg -liF --no-heading --color never -e foo"))
-    (it "builds the ag command"
-      (expect (projectile--ag-construct-command "foo")
-              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -- foo"))
     (it "builds the git-grep command"
       (expect (projectile--git-grep-construct-command "foo")
               :to-equal "git grep -HlIiF -e foo"))
@@ -216,9 +213,6 @@ modify buffers without saving them."
     (it "builds the rg command with a glob"
       (expect (projectile--rg-construct-command "foo" "*.el")
               :to-equal "rg -liF --no-heading --color never -g \\*.el -e foo"))
-    (it "builds the ag command with an anchored regexp"
-      (expect (projectile--ag-construct-command "foo" "*.el")
-              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\\\.el\\$ -- foo"))
     (it "builds the git-grep command with a pathspec"
       (expect (projectile--git-grep-construct-command "foo" "*.el")
               :to-equal "git grep -HlIiF -e foo  -- \\*.el"))
@@ -233,33 +227,22 @@ modify buffers without saving them."
     (before-each
       (assume (not (memq system-type '(windows-nt ms-dos))) "POSIX shell"))
 
-    (it "hands ag the anchored regexp with its backslash intact"
-      ;; Unquoted, the shell ate the backslash and ag matched any
-      ;; character where a literal dot was meant.
-      (let ((arg (projectile--search-ext-argument
-                  (alist-get 'ag projectile--search-tool-descriptors) "*.el")))
-        (expect (shell-command-to-string (concat "printf %s " arg))
-                :to-equal "\\.el$")))
-
     (it "hands rg the glob as one literal argument"
-      (let ((arg (projectile--search-ext-argument
-                  (alist-get 'rg projectile--search-tool-descriptors) "*.el")))
+      (let ((arg (projectile--search-ext-argument "*.el")))
         (expect (shell-command-to-string (concat "printf %s " arg))
                 :to-equal "*.el")))
 
     (it "survives an extension holding a quote"
-      (let ((arg (projectile--search-ext-argument
-                  (alist-get 'rg projectile--search-tool-descriptors) "a'b")))
+      (let ((arg (projectile--search-ext-argument "a'b")))
         (expect (shell-command-to-string (concat "printf %s " arg))
                 :to-equal "a'b")))
 
     (it "leaves an extension holding shell syntax inert"
-      ;; Typed into the prompt, `; touch ...' used to run on the ag path.
+      ;; Typed into the prompt, `; touch ...' used to run.
       (let* ((evidence (make-temp-name
                         (expand-file-name "projectile-quoting-"
                                           temporary-file-directory)))
              (arg (projectile--search-ext-argument
-                   (alist-get 'ag projectile--search-tool-descriptors)
                    (concat "*.el; touch " evidence "; echo "))))
         (unwind-protect
             (progn
