@@ -819,6 +819,15 @@
       (expect (indirect-variable (car pair)) :to-be (cdr pair))
       (expect (get (car pair) 'byte-obsolete-variable) :not :to-be nil))))
 
+(describe "the project.el backend"
+  (it "answers `project-root' for a Projectile project"
+    (expect (project-root (cons 'projectile "/projects/foo/"))
+            :to-equal "/projects/foo/"))
+  (it "hands project.el the root Projectile found"
+    (spy-on 'projectile-project-root :and-return-value "/projects/foo/")
+    (expect (project-root (project-projectile "/projects/foo/src/"))
+            :to-equal "/projects/foo/")))
+
 (describe "autoload cookies"
   (it "sit on public definitions only"
     ;; A helper inserted between a cookie and its command inherits the
