@@ -90,6 +90,18 @@
       (projectile--ripgrep "foo" t))
     (expect 'projectile--ripgrep-ignore-globs :to-have-been-called-with t))
 
+  (it "searches hidden files on the `ripgrep' path, regexp or literal (#1708)"
+    (let (seen)
+      (cl-letf (((symbol-function 'require)
+                 (lambda (feature &rest _) (eq feature 'ripgrep)))
+                ((symbol-function 'ripgrep-regexp)
+                 (lambda (_term _dir args) (push args seen))))
+        (projectile--ripgrep "foo" t)
+        (projectile--ripgrep "foo"))
+      (expect (nreverse seen)
+              :to-equal '(("--hidden" "--glob=!x")
+                          ("--fixed-strings --hidden" "--glob=!x")))))
+
   (it "asks for unquoted globs on the `rg' path, which quotes them itself"
     (cl-letf (((symbol-function 'require)
                (lambda (feature &rest _) (eq feature 'rg)))

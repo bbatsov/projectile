@@ -31,6 +31,7 @@
 
 ### Bugs fixed
 
+- [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-ripgrep` searches hidden files for a regexp search too when it runs through the `ripgrep` package, as it already did for a literal one.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): A Cargo or Go workspace with a plain `package.json` at its root gets its subprojects from its own manifest again, instead of falling back to scanning for markers.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-switch-project` now hides known projects matched by `projectile-ignored-project-regexps` even when that is the only ignore option set.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-run-test-at-point` is autoloaded again; its autoload cookie had ended up on an internal helper.

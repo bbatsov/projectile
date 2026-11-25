@@ -8687,9 +8687,12 @@ Requires the `ripgrep' or `rg' Emacs package."
          (let ((args (projectile--ripgrep-ignore-globs t)))
            (ripgrep-regexp search-term
                            (projectile-acquire-root)
-                           (if regexp
-                               args
-                             (cons "--fixed-strings --hidden" args)))))
+                           ;; hidden files are searched either way, as
+                           ;; the `rg' package and grep do (see #1708)
+                           (cons (if regexp
+                                     "--hidden"
+                                   "--fixed-strings --hidden")
+                                 args))))
         ((require 'rg nil 'noerror)
          (rg-run search-term
                  "*"                       ;; all files
