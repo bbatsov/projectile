@@ -564,6 +564,40 @@
               (projectile-project-types mock-projectile-project-types))
       (expect (projectile--test-to-impl-dir "/bar/other/bar") :to-throw))))
 
+(describe "projectile-test-files"
+  (it "keeps the files the project type's prefix or suffix marks as tests"
+    (projectile-test-with-stub-root "project/" ()
+      (spy-on 'projectile-project-type :and-return-value 'demo)
+      (let ((projectile-test-prefix-function (lambda (_type) "test_"))
+            (projectile-test-suffix-function (lambda (_type) "_spec"))
+            (projectile-related-files-function #'ignore))
+        (expect (projectile-test-files
+                 '("src/foo.py" "test/test_foo.py" "spec/bar_spec.rb" "bar.rb"))
+                :to-equal '("test/test_foo.py" "spec/bar_spec.rb")))))
+
+  (it "lets the related-files function overrule the name"
+    (projectile-test-with-stub-root "project/" ()
+      (spy-on 'projectile-project-type :and-return-value 'demo)
+      (let ((projectile-test-prefix-function (lambda (_type) "test_"))
+            (projectile-test-suffix-function #'ignore)
+            (projectile-related-files-function
+             (lambda (_type)
+               (lambda (path)
+                 (cond ((equal path "checks/foo.py") (list :impl "src/foo.py"))
+                       ((equal path "test_helper.py") (list :test "x.py")))))))
+        (expect (projectile-test-files
+                 '("checks/foo.py" "test_helper.py" "test_foo.py" "src/foo.py"))
+                :to-equal '("checks/foo.py" "test_foo.py")))))
+
+  (it "looks the project type up once for the whole list"
+    (projectile-test-with-stub-root "project/" ()
+      (spy-on 'projectile-project-type :and-return-value 'demo)
+      (let ((projectile-test-prefix-function (lambda (_type) "test_"))
+            (projectile-test-suffix-function #'ignore)
+            (projectile-related-files-function #'ignore))
+        (projectile-test-files '("a.py" "b.py" "test_c.py"))
+        (expect 'projectile-project-type :to-have-been-called-times 1)))))
+
 (describe "projectile-test-prefix"
   :var ((mock-projectile-project-types
          '((foo test-prefix "Test"))))

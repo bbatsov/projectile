@@ -23,6 +23,7 @@
 
 ### Changes
 
+- [#2206](https://github.com/bbatsov/projectile/pull/2206): `projectile-find-test-file` is much faster on large projects: the project type and its test conventions are looked up once, not once per file.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Listing the known projects is faster with `projectile-ignored-projects` set: its entries are symlink-resolved once per listing, not once per project.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): The search and replace reviewers scan a large file with many matches much faster: line numbers are counted from the previous match instead of from the top of the file.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): `projectile-replace` and the replace reviewer no longer slow down on large projects when narrowing a literal search to the files of the project.

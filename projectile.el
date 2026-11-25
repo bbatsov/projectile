@@ -5686,7 +5686,7 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 
 (defun projectile-test-files (files)
   "Return only the test FILES."
-  (seq-filter 'projectile-test-file-p files))
+  (seq-filter (projectile--test-file-predicate) files))
 
 (defun projectile--merge-related-files-fns (related-files-fns)
   "Merge multiple RELATED-FILES-FNS into one function."
@@ -5703,17 +5703,24 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first."
 (defun projectile--related-files-plist (project-root file)
   "Return a plist containing all related files information for FILE.
 PROJECT-ROOT is the project root."
-  (if-let* ((rel-path (if (file-name-absolute-p file)
-                         (file-relative-name file project-root)
-                       file))
-           (custom-function (funcall projectile-related-files-function (projectile-project-type))))
-      (funcall (cond ((functionp custom-function)
-                      custom-function)
-                     ((consp custom-function)
-                      (projectile--merge-related-files-fns custom-function))
-                     (t
-                      (error "Unsupported value type of :related-files-fn")))
-               rel-path)))
+  (when-let* ((related-fn (projectile--related-files-fn
+                           (projectile-project-type))))
+    (funcall related-fn (if (file-name-absolute-p file)
+                            (file-relative-name file project-root)
+                          file))))
+
+(defun projectile--related-files-fn (project-type)
+  "Return the one function answering for PROJECT-TYPE's related files, or nil.
+A type can register a single function or a list of them; a list is
+merged, so the caller always has one function to call with a path."
+  (when-let* ((custom-function (funcall projectile-related-files-function
+                                        project-type)))
+    (cond ((functionp custom-function)
+           custom-function)
+          ((consp custom-function)
+           (projectile--merge-related-files-fns custom-function))
+          (t
+           (error "Unsupported value type of :related-files-fn")))))
 
 (defun projectile--related-files-plist-by-kind (file kind)
   "Return a plist containing :paths and/or :predicate of KIND for FILE."
@@ -6368,13 +6375,32 @@ for the kind, and repeated invocations cycle through them in table order."
 
 (defun projectile-test-file-p (file)
   "Check if FILE is a test file."
-  (let ((kinds (projectile--related-files-kinds file)))
-    (cond ((member :impl kinds) t)
-          ((member :test kinds) nil)
-          (t (or (seq-some (lambda (pat) (string-prefix-p pat (file-name-nondirectory file)))
-                          (delq nil (list (funcall projectile-test-prefix-function (projectile-project-type)))))
-                 (seq-some (lambda (pat) (string-suffix-p pat (file-name-sans-extension (file-name-nondirectory file))))
-                          (delq nil (list (funcall projectile-test-suffix-function (projectile-project-type))))))))))
+  (funcall (projectile--test-file-predicate) file))
+
+(defun projectile--test-file-predicate ()
+  "Return a function telling whether a file of the current project is a test.
+Everything that is the same for every file - the project root, its type,
+and the type's related-files function and test prefix and suffix - is
+looked up here, once, so filtering a whole project does not look it up
+again for each file."
+  (let* ((root (projectile-project-root))
+         (type (projectile-project-type))
+         (related-fn (and root (projectile--related-files-fn type)))
+         (prefix (funcall projectile-test-prefix-function type))
+         (suffix (funcall projectile-test-suffix-function type)))
+    (lambda (file)
+      (let ((plist (and related-fn
+                        (funcall related-fn
+                                 (if (file-name-absolute-p file)
+                                     (file-relative-name file root)
+                                   file)))))
+        (cond ((plist-member plist :impl) t)
+              ((plist-member plist :test) nil)
+              (t (let ((name (file-name-nondirectory file)))
+                   (or (and prefix (string-prefix-p prefix name))
+                       (and suffix
+                            (string-suffix-p
+                             suffix (file-name-sans-extension name)))))))))))
 
 (defun projectile-current-project-test-files ()
   "Return a list of test files for the current project."
