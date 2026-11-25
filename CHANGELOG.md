@@ -37,6 +37,7 @@
 
 ### Bugs fixed
 
+- [#2206](https://github.com/bbatsov/projectile/pull/2206): The search reviewer now shows what `rg` reported when it fails (a pattern it rejects, an unreadable directory) instead of an empty "No matches" buffer.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): On an Emacs built without native JSON, `projectile-search-review` and `projectile-todos` fall back to the Emacs Lisp scanner instead of running `rg` and reporting no matches.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-session-switch-to-buffer`, `projectile-find-file-in-projects` and `projectile-find-file-in-directory` advertise the completion category their candidates really are (`buffer` and `file`), so Marginalia and Embark stop treating them as files relative to the project root.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): A nested `projectile-project-compilation-dir` such as `build/debug` is created along with its parents when it does not exist yet, instead of the lifecycle command failing.

@@ -9723,6 +9723,11 @@ search has no known ripgrep equivalent.")
   "List of `projectile-replace--match' structs shown in the results buffer.")
 (defvar-local projectile-replace--truncated nil
   "Non-nil when the match list was capped at `projectile-search-max-matches'.")
+(defvar-local projectile-replace--scan-error nil
+  "What the search tool wrote to stderr when the last scan failed, or nil.
+Set by the ripgrep fast-path when `rg' exits with an error, so a broken
+search (a pattern ripgrep rejects, an unreadable directory) is told apart
+from one that found nothing.")
 (defvar-local projectile-replace--filtered nil
   "Non-nil when the shown match list was pruned by a filter command.
 Re-searching (\\<projectile-replace-mode-map>\\[projectile-replace--refresh]) gathers from scratch and clears this.")
@@ -9929,9 +9934,8 @@ on re-scan, on quit, and from `kill-buffer-hook'."
   (when projectile-replace--scan-timer
     (cancel-timer projectile-replace--scan-timer))
   (when (process-live-p projectile-replace--scan-process)
-    ;; drop our sentinel first so killing it doesn't run the finish handler
-    (set-process-sentinel projectile-replace--scan-process #'ignore)
-    (delete-process projectile-replace--scan-process))
+    ;; drops our sentinel first, so killing it doesn't run the finish handler
+    (projectile-search--rg-delete-process projectile-replace--scan-process))
   ;; Bump the generation so a chunk timer that already fired and is queued
   ;; behind us no-ops rather than resurrecting this scan.
   (cl-incf projectile-replace--scan-generation)
@@ -10169,6 +10173,7 @@ async scan streams matches in."
                      "\\[projectile-replace--toggle-word] word  "
                      "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
                      "\\[projectile-replace--keep-files]/\\[projectile-replace--flush-files] keep/flush file\n\n")))
+    (projectile-replace--insert-scan-error)
     (if (null matches)
         (insert "No matches.\n")
       (dolist (m matches)
@@ -10183,6 +10188,17 @@ async scan streams matches in."
       (insert (format "\n(showing the first %d matches)\n"
                       projectile-search-max-matches)))
     (goto-char (point-min))))
+
+(defun projectile-replace--insert-scan-error ()
+  "Insert the scan's error output, if any, at point.
+A scan that produced matches all the same did not fail outright, and is
+not announced as if it had."
+  (when projectile-replace--scan-error
+    (insert (propertize (concat (if projectile-replace--matches
+                                    "The search reported errors:\n"
+                                  "The search failed:\n")
+                                projectile-replace--scan-error "\n\n")
+                        'face 'error))))
 
 (defun projectile-replace--render-preserve ()
   "Redraw the results buffer, keeping point on the same line.
@@ -11060,13 +11076,59 @@ against a killed BUFFER."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (when (process-live-p projectile-replace--scan-process)
-        (set-process-sentinel projectile-replace--scan-process #'ignore)
-        (delete-process projectile-replace--scan-process))
+        (projectile-search--rg-delete-process projectile-replace--scan-process))
       (setq projectile-replace--scanning nil
             projectile-replace--scan-process nil
             projectile-replace--scan-timer nil)
       (projectile-replace--render-preserve)
       (when on-done (funcall on-done buffer)))))
+
+(defun projectile-search--rg-stderr-process ()
+  "Return a pipe process that collects what one `rg' run writes to stderr.
+The text accumulates in the process's `text' property.  A pipe of its
+own keeps a diagnostic line (an unreadable directory, say) out of the
+JSON stream, where it could split a match across filter chunks, and a
+pipe per run keeps the output of one project's `rg' from being taken for
+another's.  Emacs does not delete it along with the `rg' it serves; see
+`projectile-search--rg-delete-process'."
+  (make-pipe-process
+   :name "projectile-search-rg-stderr"
+   :buffer nil
+   :noquery t
+   :coding 'utf-8-unix
+   :sentinel #'ignore
+   :filter (lambda (proc output)
+             (process-put proc 'text
+                          (concat (process-get proc 'text) output)))))
+
+(defun projectile-search--rg-delete-process (proc)
+  "Delete the `rg' process PROC and its stderr pipe, running no sentinel."
+  (set-process-sentinel proc #'ignore)
+  (when-let* ((stderr (process-get proc 'projectile-stderr)))
+    (delete-process stderr))
+  (delete-process proc))
+
+(defun projectile-search--rg-failure (proc)
+  "Return what the finished `rg' PROC wrote to stderr if it failed, else nil.
+ripgrep exits with 0 when it matched and 1 when it did not; anything
+else, or dying from a signal, is a failure.  It can fail and still have
+printed matches (one unreadable directory is enough), so the caller
+keeps whatever arrived."
+  (let ((stderr (process-get proc 'projectile-stderr)))
+    (prog1
+        (when (or (eq (process-status proc) 'signal)
+                  (> (process-exit-status proc) 1))
+          ;; The pipe can still be holding output when the sentinel of the
+          ;; main process runs.  Waiting on that one process alone keeps
+          ;; timers and other processes from running in the middle of the
+          ;; sentinel.
+          (while (accept-process-output stderr 0.05 nil 1))
+          (let ((output (string-trim (or (process-get stderr 'text) ""))))
+            (if (string-empty-p output)
+                (format "ripgrep exited abnormally (%s)"
+                        (process-exit-status proc))
+              output)))
+      (delete-process stderr))))
 
 (defun projectile-search--gather-rg (buffer term on-done)
   "Scan for literal TERM into BUFFER via `rg --json', then call ON-DONE.
@@ -11129,11 +11191,7 @@ the match cap is hit."
       (let* (;; run rg IN the project root so the relative `./' search path and
              ;; the `/'-anchored ignore globs resolve against it
              (default-directory root)
-             ;; keep rg's stderr out of the JSON stream, so a diagnostic line
-             ;; (e.g. an unreadable directory) can't split a match across filter
-             ;; chunks and get silently dropped
-             (stderr-buffer (get-buffer-create " *projectile-search-rg-stderr*"))
-             (_ (with-current-buffer stderr-buffer (erase-buffer)))
+             (stderr (projectile-search--rg-stderr-process))
              (proc
               (make-process
                :name "projectile-search-rg"
@@ -11141,7 +11199,7 @@ the match cap is hit."
                :command command
                :connection-type 'pipe
                :noquery t
-               :stderr stderr-buffer
+               :stderr stderr
                :coding 'utf-8-unix
                :filter
                (lambda (_proc output)
@@ -11157,16 +11215,24 @@ the match cap is hit."
                            (projectile-search--rg-finish buffer on-done)))))))
                :sentinel
                (lambda (proc _event)
-                 (when (and (buffer-live-p buffer)
-                            (memq (process-status proc) '(exit signal)))
-                   (with-current-buffer buffer
-                     (when (and (eq proc projectile-replace--scan-process)
-                                (= generation projectile-replace--scan-generation))
-                       (if (or projectile-replace--truncated
-                               (projectile-search--rg-ingest
-                                buffer (list pending) root))
-                           (projectile-search--rg-finish buffer on-done)
-                         (funcall continue)))))))))
+                 (when (memq (process-status proc) '(exit signal))
+                   ;; asked for first and unconditionally: it is also what
+                   ;; disposes of the stderr pipe
+                   (let ((failure (projectile-search--rg-failure proc)))
+                     (when (buffer-live-p buffer)
+                       (with-current-buffer buffer
+                         (when (and (eq proc projectile-replace--scan-process)
+                                    (= generation
+                                       projectile-replace--scan-generation))
+                           ;; in a group the first failure is the one reported
+                           (unless projectile-replace--scan-error
+                             (setq projectile-replace--scan-error failure))
+                           (if (or projectile-replace--truncated
+                                   (projectile-search--rg-ingest
+                                    buffer (list pending) root))
+                               (projectile-search--rg-finish buffer on-done)
+                             (funcall continue)))))))))))
+        (process-put proc 'projectile-stderr stderr)
         (with-current-buffer buffer
           (setq projectile-replace--scan-process proc))
         proc))))
@@ -11223,7 +11289,8 @@ plain regexp search always take the elisp path below.  A search spanning
 several projects takes it too - `projectile-search--gather-rg' runs one
 `rg' per project in turn."
   (with-current-buffer buffer
-    (projectile-replace--cancel-scan))
+    (projectile-replace--cancel-scan)
+    (setq projectile-replace--scan-error nil))
   (cond
    ((with-current-buffer buffer
       (and (derived-mode-p 'projectile-search-mode)
@@ -11251,13 +11318,23 @@ several projects takes it too - `projectile-search--gather-rg' runs one
       (when on-done (funcall on-done buffer))))))
 
 (defun projectile-replace--open-finish (buffer)
-  "Announce truncation once the scan filling BUFFER has finished."
+  "Announce a failure or truncation once the scan filling BUFFER has finished."
   (with-current-buffer buffer
-    (when projectile-replace--truncated
-      (message "%s"
-               (projectile-prepend-project-name
-                (format "showing the first %d matches"
-                        projectile-search-max-matches))))))
+    (let ((notes
+           (delq nil
+                 (list
+                  (when projectile-replace--scan-error
+                    (concat (if projectile-replace--matches
+                                "search reported errors: "
+                              "search failed: ")
+                            (car (split-string projectile-replace--scan-error
+                                               "\n"))))
+                  (when projectile-replace--truncated
+                    (format "showing the first %d matches"
+                            projectile-search-max-matches))))))
+      (when notes
+        (message "%s" (projectile-prepend-project-name
+                       (string-join notes "; ")))))))
 
 (defun projectile-replace--open (mode buf-name root term regexp replacement
                                       literal case-fold candidates no-match-msg
@@ -11458,6 +11535,7 @@ property so the shared navigation, visit and filter commands find it."
                      "\\[projectile-replace--toggle-word] word  "
                      "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
                      "\\[projectile-replace--keep-files]/\\[projectile-replace--flush-files] keep/flush file\n\n")))
+    (projectile-replace--insert-scan-error)
     (if (null matches)
         (insert "No matches.\n")
       (dolist (m matches)

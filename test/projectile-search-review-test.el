@@ -485,6 +485,125 @@ REGEXP-P selects `projectile-search-regexp-review'."
             (expect (process-live-p proc) :to-be nil)
             (expect (memq proc (process-list)) :to-be nil)))))))
 
+(describe "projectile-search-review ripgrep failures"
+  (it "shows what the tool wrote to stderr when it exits with an error"
+    (assume (executable-find "sh") "needs a POSIX shell")
+    (projectile-test-with-project
+        (("a.txt" . "foo\n"))
+      (cl-letf (((symbol-function 'projectile-search--rg-command)
+                 (lambda (&rest _)
+                   (list "sh" "-c" "echo 'rg: regex parse error' >&2; exit 2"))))
+        (let ((buf (get-buffer-create projectile-search-buffer-name)))
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    default-directory "foo" "foo" nil t t)
+          (projectile-search--gather-rg buf "foo" nil)
+          (projectile-search-review-test--wait buf)
+          (with-current-buffer buf
+            (expect projectile-replace--scan-error
+                    :to-equal "rg: regex parse error")
+            (expect (buffer-string) :to-match "The search failed:")
+            (expect (buffer-string) :to-match "rg: regex parse error"))))))
+
+  (it "does not treat finding nothing as a failure"
+    (assume (executable-find "sh") "needs a POSIX shell")
+    (projectile-test-with-project
+        (("a.txt" . "foo\n"))
+      (cl-letf (((symbol-function 'projectile-search--rg-command)
+                 (lambda (&rest _) (list "sh" "-c" "exit 1"))))
+        (let ((buf (get-buffer-create projectile-search-buffer-name)))
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    default-directory "foo" "foo" nil t t)
+          (projectile-search--gather-rg buf "foo" nil)
+          (projectile-search-review-test--wait buf)
+          (with-current-buffer buf
+            (expect projectile-replace--scan-error :to-be nil)
+            (expect (buffer-string) :not :to-match "The search failed"))))))
+
+  (it "reports a pattern ripgrep rejects"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name)))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "(foo" "(foo" nil nil t
+                                  nil "(foo")
+        (projectile-search--gather-rg buf "(foo" nil)
+        (projectile-search-review-test--wait buf)
+        (with-current-buffer buf
+          (expect projectile-replace--scan-error :to-match "unclosed group")))))
+
+  (it "does not call a search with matches a failed one"
+    (assume (executable-find "rg") "ripgrep is not installed")
+    (projectile-test-with-project
+        (("a.txt" . "foo\n"))
+      (let ((real (symbol-function 'projectile-search--rg-command))
+            (buf (get-buffer-create projectile-search-buffer-name)))
+        ;; ripgrep exits with 2 for a path it cannot read, and still prints
+        ;; the matches from everything else
+        (cl-letf (((symbol-function 'projectile-search--rg-command)
+                   (lambda (&rest args)
+                     (append (apply real args) (list "./no-such-dir")))))
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    default-directory "foo" "foo" nil t t)
+          (projectile-search--gather-rg buf "foo" #'projectile-replace--open-finish)
+          (spy-on 'message)
+          (projectile-search-review-test--wait buf)
+          (with-current-buffer buf
+            (expect projectile-replace--scan-error :to-match "no-such-dir")
+            (expect (length projectile-replace--matches) :to-equal 1)
+            (expect (buffer-string) :to-match "The search reported errors:")
+            (expect (buffer-string) :not :to-match "The search failed"))))))
+
+  (it "leaves no stderr pipe behind, finished or cancelled"
+    (assume (executable-find "sleep") "needs a sleep executable")
+    (projectile-test-with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (before (process-list)))
+        (cl-letf (((symbol-function 'projectile-search--rg-command)
+                   (lambda (&rest _) (list "sh" "-c" "exit 1"))))
+          (projectile-replace--seed buf #'projectile-search-mode
+                                    default-directory "foo" "foo" nil t t)
+          (projectile-search--gather-rg buf "foo" nil)
+          (projectile-search-review-test--wait buf))
+        (cl-letf (((symbol-function 'projectile-search--rg-command)
+                   (lambda (&rest _) (list "sleep" "30"))))
+          (projectile-search--gather-rg buf "foo" nil)
+          (with-current-buffer buf (projectile-replace--cancel-scan)))
+        (expect (seq-difference (process-list) before) :to-be nil))))
+
+  (it "forgets the failure when the search is run again"
+    (projectile-test-with-project
+        (("a.txt" . "foo\n"))
+      (let ((buf (get-buffer-create projectile-search-buffer-name))
+            (projectile-search-async nil))
+        (projectile-replace--seed buf #'projectile-search-mode
+                                  default-directory "foo" "foo" nil t t)
+        (with-current-buffer buf
+          (setq projectile-replace--scan-error "rg: boom"))
+        (spy-on 'projectile-search--rg-fastpath-p :and-return-value nil)
+        (projectile-replace--start buf (list (expand-file-name "a.txt")) "foo" nil)
+        (expect (buffer-local-value 'projectile-replace--scan-error buf)
+                :to-be nil))))
+
+  (it "announces the failure in the echo area"
+    (with-temp-buffer
+      (setq projectile-replace--scan-error "rg: boom\nmore detail")
+      (spy-on 'message)
+      (projectile-replace--open-finish (current-buffer))
+      (expect (apply #'format (spy-calls-args-for 'message 0))
+              :to-match "search failed: rg: boom$")))
+
+  (it "announces errors and truncation together"
+    (with-temp-buffer
+      (setq projectile-replace--scan-error "rg: boom"
+            projectile-replace--truncated t
+            projectile-replace--matches (list (projectile-replace--match-create)))
+      (spy-on 'message)
+      (projectile-replace--open-finish (current-buffer))
+      (expect (apply #'format (spy-calls-args-for 'message 0))
+              :to-match "search reported errors: rg: boom; showing the first"))))
+
 (describe "projectile-search-review ripgrep dispatch"
   (before-each
     ;; make the fast-path see ripgrep as available without depending on a
