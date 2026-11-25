@@ -10271,14 +10271,26 @@ count when its tally grows, so the lines already on screen do not move."
   (interactive)
   (let ((m (projectile-replace--match-at-point)))
     (unless m (user-error "No match on this line"))
-    (let ((buf (or (projectile-replace--match-buffer m)
-                   (find-file-noselect (projectile-replace--match-file m))))
-          (line (projectile-replace--match-line m))
-          (col (projectile-replace--match-column m)))
+    (let* ((scanned (projectile-replace--match-buffer m))
+           ;; the buffer the scan read may well have been killed since
+           (buf (if (buffer-live-p scanned)
+                    scanned
+                  (find-file-noselect (projectile-replace--match-file m))))
+           (line (projectile-replace--match-line m))
+           (col (projectile-replace--match-column m)))
       (switch-to-buffer-other-window buf)
-      (goto-char (point-min))
-      (forward-line (1- line))
-      (forward-char (min col (- (line-end-position) (point)))))))
+      ;; LINE counts from the top of the file, so find it there, and only
+      ;; give up the buffer's narrowing when the match lies outside it.
+      (let ((pos (save-excursion
+                   (save-restriction
+                     (widen)
+                     (goto-char (point-min))
+                     (forward-line (1- line))
+                     (forward-char (min col (- (line-end-position) (point))))
+                     (point)))))
+        (unless (<= (point-min) pos (point-max))
+          (widen))
+        (goto-char pos)))))
 
 (defun projectile-replace--toggle ()
   "Toggle whether the match on the current line will be applied."

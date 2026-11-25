@@ -127,6 +127,41 @@ REGEXP-P selects `projectile-replace-regexp-review'."
         ;; the user's narrowing is still in place
         (expect (buffer-narrowed-p) :to-be-truthy))))
 
+  (it "visits a match whose buffer was killed after the scan"
+    (projectile-test-with-project
+        (("open.txt" . "first\nthe foo here\n"))
+      (projectile-test-use-plain-grep)
+      (find-file-noselect (expand-file-name "open.txt"))
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (kill-buffer (get-file-buffer (expand-file-name "open.txt")))
+        (cl-letf (((symbol-function 'switch-to-buffer-other-window)
+                   #'set-buffer))
+          (with-current-buffer buf
+            (goto-char (point-min))
+            (projectile-replace--goto-next-match)
+            (projectile-replace--visit)
+            (expect (buffer-file-name)
+                    :to-equal (expand-file-name "open.txt"))
+            (expect (looking-at-p "foo here") :to-be-truthy))))))
+
+  (it "visits a match outside the buffer's narrowing by widening"
+    (projectile-test-with-project
+        (("open.txt" . "a foo up top\nmiddle\nlast\n"))
+      (projectile-test-use-plain-grep)
+      (let ((file-buf (find-file-noselect (expand-file-name "open.txt")))
+            (buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer file-buf
+          (goto-char (point-min))
+          (forward-line 1)
+          (narrow-to-region (point) (point-max)))
+        (cl-letf (((symbol-function 'switch-to-buffer-other-window)
+                   #'set-buffer))
+          (with-current-buffer buf
+            (goto-char (point-min))
+            (projectile-replace--goto-next-match)
+            (projectile-replace--visit)
+            (expect (looking-at-p "foo up top") :to-be-truthy))))))
+
   (it "leaves a disabled match untouched and applies only the enabled ones"
     (projectile-test-with-project
         (("t.txt" . "foo foo foo\n"))
