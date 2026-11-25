@@ -64,8 +64,8 @@ Here's how a typical Projectile configuration would look:
 
 [source,elisp]
 ----
-;; Optional: ag is nice alternative to using grep with Projectile
-(use-package ag
+;; Optional: rg is a nice alternative to using grep with Projectile
+(use-package rg
   :ensure t)
 
 ;; Optional: Enable vertico as the selection framework to use with Projectile
@@ -195,12 +195,11 @@ the deletions are staged, which can be confusing. You can eliminate
 the use of fd in this circumstance by setting `projectile-git-use-fd`
 to nil.
 
-To benefit from the `projectile-ag` and `projectile-ripgrep` commands
-to perform file search, it's recommended to install
-https://github.com/ggreer/the_silver_searcher[ag] (`the_silver_searcher`) and/or
-https://github.com/BurntSushi/ripgrep[rg] (`ripgrep`)
+To benefit from the `projectile-ripgrep` command, and to make the
+xref:usage.adoc#reviewing-search-matches[reviewable search] faster, it's
+recommended to install https://github.com/BurntSushi/ripgrep[rg] (`ripgrep`).
 
-TIP: You should also install the Emacs packages `ag`, `ripgrep` or `rg` if you want to make use of Projectile's commands `projectile-ag` and `projectile-ripgrep`.
+TIP: `projectile-ripgrep` also needs the Emacs package `rg`. The reviewable search talks to `rg` directly and needs no package.
 
 == Interactive commands
 

@@ -89,11 +89,11 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p s r]
 | `projectile-ripgrep`
-| Runs `rg` (`ripgrep`) on the project, performing a literal search. Requires the presence of `rg.el` or `ripgrep.el`. With a prefix argument it will perform a regex search.
+| Runs `rg` (`ripgrep`) on the project, performing a literal search. Requires the presence of `rg.el` (the archived `ripgrep.el` still works, but support for it is deprecated). With a prefix argument it will perform a regex search.
 
 | kbd:[s-p s a]
 | `projectile-ag`
-| Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
+| Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search. Deprecated: `ag` is no longer maintained, and the command will be removed in Projectile 4.0.
 
 | kbd:[s-p s x] or kbd:[s-p ?]
 | `projectile-find-references`

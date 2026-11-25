@@ -47,7 +47,7 @@ Here are some of Projectile's features in no particular order:
 * kill (close) all project buffers
 * xref:usage.adoc#reviewing-and-applying-replacements[replace in project], with a reviewable before/after preview
 * multi-occur in project buffers
-* xref:usage.adoc#reviewing-search-matches[grep (search) in project] (multiple back-ends like `ag`, `rg`, and a native reviewable results UI)
+* xref:usage.adoc#reviewing-search-matches[grep (search) in project] (back-ends like `grep` and `rg`, and a native reviewable results UI)
 * find references in project (using `xref` internally)
 * visit project in `dired`
 * run xref:tasks.adoc#project-tasks[project commands and tasks] (build/test/run, your own named tasks, and the npm scripts, Make targets and justfile recipes a project already defines)

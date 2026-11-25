@@ -424,6 +424,11 @@ The dedicated commands `projectile-grep` (kbd:[s-p s g]), `projectile-ripgrep`
 (kbd:[s-p s r]) and `projectile-ag` (kbd:[s-p s a]) still exist; they're just
 `projectile-search` with a forced backend.
 
+NOTE: The `ag` backend and `projectile-ag` are deprecated as of Projectile 3.5
+and will be removed in 4.0 - neither The Silver Searcher nor the `ag` package
+is maintained any longer. The same goes for running `projectile-ripgrep`
+through the archived `ripgrep` package: install `rg` and it's used instead.
+
 For the `grep` backend, in Git projects you can use `vc-git-grep` instead of
 `rgrep`, which tends to be faster as it respects `.gitignore`:
 

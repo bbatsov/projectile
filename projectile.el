@@ -916,13 +916,15 @@ Either a backend name registered in `projectile-search-backends'
 \(`grep', `ripgrep', `ag', or one you registered yourself with
 `projectile-register-search-backend'), `auto' to pick the first
 available backend (favouring ripgrep, then grep), or `prompt' to be
-asked which backend to use each time."
+asked which backend to use each time.
+
+The `ag' backend is deprecated and will be removed in Projectile 4.0."
   :group 'projectile
   :type '(choice (const :tag "Automatic" auto)
                  (const :tag "Prompt each time" prompt)
                  (const :tag "grep" grep)
                  (const :tag "ripgrep" ripgrep)
-                 (const :tag "ag" ag)
+                 (const :tag "ag (deprecated)" ag)
                  (symbol :tag "Other registered backend"))
   :package-version '(projectile . "3.0.0"))
 
@@ -8662,12 +8664,27 @@ left matches at any depth, which is as close as `ag' gets."
                      (t body))))
            (projectile--ignore-patterns))))
 
+(defvar projectile--deprecations-warned nil
+  "The deprecated features this session has already been warned about.")
+
+(defun projectile--warn-deprecated (feature message)
+  "Warn that FEATURE is deprecated, with MESSAGE, once per session."
+  (unless (memq feature projectile--deprecations-warned)
+    (push feature projectile--deprecations-warned)
+    (display-warning 'projectile message :warning)))
+
 (defun projectile--ag (search-term &optional regexp)
   "Run an `ag' search for SEARCH-TERM in the project.
 When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
-Requires the `ag' Emacs package."
+Requires the `ag' Emacs package.
+
+Deprecated: neither The Silver Searcher nor the `ag' package is
+maintained any longer, and this backend goes away in Projectile 4.0."
   (unless (require 'ag nil 'noerror)
     (user-error "Package `ag' is not available"))
+  (projectile--warn-deprecated
+   'ag
+   "The ag search backend is deprecated and will be removed in Projectile 4.0: The Silver Searcher and the `ag' package are no longer maintained.  Use `projectile-ripgrep' or `projectile-search-review' instead.")
   (let ((ag-command (if regexp 'ag-regexp 'ag))
         (ag-ignore-list (delq nil
                               (seq-uniq
@@ -8711,7 +8728,8 @@ alone."
 When REGEXP is non-nil, SEARCH-TERM is treated as a regular expression.
 Requires the `rg' Emacs package, or failing that the `ripgrep' one.
 `rg' comes first when both are installed: it is the maintained one of
-the two, `ripgrep' having been archived by its author."
+the two, `ripgrep' having been archived by its author.  Support for
+`ripgrep' is deprecated and goes away in Projectile 4.0."
   ;; we rely on the external packages rg and ripgrep for the actual search
   (cond ((require 'rg nil 'noerror)
          (rg-run search-term
@@ -8722,6 +8740,9 @@ the two, `ripgrep' having been archived by its author."
                  ;; `rg' quotes these itself
                  (projectile--ripgrep-ignore-globs)))
         ((require 'ripgrep nil 'noerror)
+         (projectile--warn-deprecated
+          'ripgrep
+          "Support for the `ripgrep' package is deprecated and will be removed in Projectile 4.0: the package has been archived.  Install the `rg' package and `projectile-ripgrep' will use that instead.")
          ;; `ripgrep' runs its command line through the shell, so quote
          (let ((args (projectile--ripgrep-ignore-globs t)))
            (ripgrep-regexp search-term
@@ -8758,9 +8779,10 @@ Use this to plug in your own search tool, e.g.:
   (apply #'projectile-register-backend 'projectile-search-backends name plist))
 
 ;; Built-ins.  Registered so the `auto' preference favours ripgrep, then grep
-;; (which is always available); ag is only used when explicitly selected.
+;; (which is always available); ag is only used when explicitly selected,
+;; and is deprecated.
 (projectile-register-search-backend 'ag
-  :description "the Silver Searcher (ag)"
+  :description "the Silver Searcher (ag, deprecated)"
   :available (lambda () (require 'ag nil 'noerror))
   :search #'projectile--ag)
 (projectile-register-search-backend 'grep
@@ -8823,7 +8845,10 @@ With REGEXP given, don't query the user for a regexp."
 This is `projectile-search' with the ag backend.
 
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
-regular expression."
+regular expression.
+
+This command is obsolete: The Silver Searcher is no longer maintained.
+Use `projectile-ripgrep' or `projectile-search-review' instead."
   (interactive
    (list (projectile--read-search-string-with-default
           (format "Search %s%s for"
@@ -8833,6 +8858,8 @@ regular expression."
   (let ((projectile-search-backend 'ag))
     (projectile-search search-term arg)))
 
+(make-obsolete 'projectile-ag 'projectile-ripgrep "3.5.0")
+
 ;;;###autoload
 (defun projectile-ripgrep (search-term &optional arg)
   "Run a ripgrep (rg) search with SEARCH-TERM in the project.
@@ -8841,8 +8868,9 @@ This is `projectile-search' with the ripgrep backend.
 With an optional prefix argument ARG SEARCH-TERM is interpreted as a
 regular expression.
 
-This command depends on the Emacs packages ripgrep or rg being
-installed to work."
+This command depends on the Emacs package rg being installed to work.
+The ripgrep package is still accepted in its place, but support for it
+is deprecated."
   (interactive
    (list (projectile--read-search-string-with-default
           (format "Search %s%s for"
@@ -17224,7 +17252,9 @@ Magit that don't trigger `find-file-hook'."
     (define-key map (kbd "s s") #'projectile-search)
     (define-key map (kbd "s g") #'projectile-grep)
     (define-key map (kbd "s r") #'projectile-ripgrep)
-    (define-key map (kbd "s a") #'projectile-ag)
+    ;; obsolete, but it keeps its key until it is removed in 4.0
+    (with-suppressed-warnings ((obsolete projectile-ag))
+      (define-key map (kbd "s a") #'projectile-ag))
     (define-key map (kbd "s x") #'projectile-find-references)
     (define-key map (kbd "s R") #'projectile-search-review)
     (define-key map (kbd "s X") #'projectile-search-regexp-review)
@@ -17451,8 +17481,11 @@ PROPS is a plist of:
 ;; Regexp search
 (projectile-dispatch--define projectile-dispatch-search projectile-search
   :prefix-arg "--regexp")
-(projectile-dispatch--define projectile-dispatch-ag projectile-ag
-  :prefix-arg "--regexp")
+;; `projectile-ag' is obsolete, and so is its wrapper; both stay until 4.0
+(with-suppressed-warnings ((obsolete projectile-ag))
+  (projectile-dispatch--define projectile-dispatch-ag projectile-ag
+    :prefix-arg "--regexp"))
+(make-obsolete 'projectile-dispatch-ag 'projectile-dispatch-ripgrep "3.5.0")
 (projectile-dispatch--define projectile-dispatch-ripgrep projectile-ripgrep
   :prefix-arg "--regexp")
 
@@ -17579,7 +17612,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
       ("ss" "search" projectile-dispatch-search)
       ("sg" "grep" projectile-grep)
       ("sr" "ripgrep" projectile-dispatch-ripgrep)
-      ("sa" "ag" projectile-dispatch-ag)
+      ("sa" "ag (deprecated)" projectile-dispatch-ag)
       ("sx" "references" projectile-find-references)
       ("sR" "search (review)" projectile-dispatch-search-review)
       ("ns" "search siblings" projectile-dispatch-search-siblings)
@@ -17734,7 +17767,7 @@ search/replace case-sensitive, `--word' makes it match whole words,
          ["Search (default backend)" projectile-search]
          ["Search with grep" projectile-grep]
          ["Search with ripgrep" projectile-ripgrep]
-         ["Search with ag" projectile-ag]
+         ["Search with ag (deprecated)" projectile-ag]
          ["Search in sibling projects" projectile-search-in-sibling-projects]
          ["TODOs in sibling projects" projectile-todos-in-sibling-projects]
          ["Multi-occur in sibling projects" projectile-multi-occur-in-sibling-projects]

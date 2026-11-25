@@ -260,7 +260,7 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | —
 
 | Ag
-| `projectile-ag`
+| `projectile-ag` (deprecated)
 | —
 
 | Find regex via xref

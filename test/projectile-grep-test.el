@@ -81,7 +81,26 @@
 (describe "projectile--ripgrep"
   (before-each
     (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
-    (spy-on 'projectile--ripgrep-ignore-globs :and-return-value '("--glob=!x")))
+    (spy-on 'projectile--ripgrep-ignore-globs :and-return-value '("--glob=!x"))
+    (spy-on 'display-warning)
+    (setq projectile--deprecations-warned nil))
+
+  (it "warns once that the `ripgrep' package is on its way out"
+    (cl-letf (((symbol-function 'require)
+               (lambda (feature &rest _) (eq feature 'ripgrep)))
+              ((symbol-function 'ripgrep-regexp) #'ignore))
+      (projectile--ripgrep "foo")
+      (projectile--ripgrep "bar"))
+    (expect 'display-warning :to-have-been-called-times 1)
+    (expect (cadr (spy-calls-args-for 'display-warning 0))
+            :to-match "`ripgrep' package is deprecated"))
+
+  (it "has nothing to warn about on the `rg' path"
+    (cl-letf (((symbol-function 'require)
+               (lambda (feature &rest _) (eq feature 'rg)))
+              ((symbol-function 'rg-run) #'ignore))
+      (projectile--ripgrep "foo"))
+    (expect 'display-warning :not :to-have-been-called))
 
   (it "prefers the `rg' package when both are installed"
     (cl-letf (((symbol-function 'require)
@@ -119,6 +138,34 @@
               ((symbol-function 'rg-run) #'ignore))
       (projectile--ripgrep "foo" t))
     (expect 'projectile--ripgrep-ignore-globs :to-have-been-called-with)))
+
+;; ag.el's own variable, unbound here because the package is not loaded
+(defvar ag-ignore-list)
+
+(describe "the deprecated ag backend"
+  (before-each
+    (spy-on 'projectile-acquire-root :and-return-value "/my/root/")
+    (spy-on 'projectile-project-vcs :and-return-value 'git)
+    (spy-on 'display-warning)
+    (setq projectile--deprecations-warned nil))
+
+  (it "still searches, and warns once that it is going away"
+    (let (searched ag-ignore-list)
+      (cl-letf (((symbol-function 'require)
+                 (lambda (feature &rest _) (eq feature 'ag)))
+                ((symbol-function 'ag)
+                 (lambda (term dir) (push (list term dir) searched))))
+        (projectile--ag "foo")
+        (projectile--ag "bar"))
+      (expect (nreverse searched)
+              :to-equal '(("foo" "/my/root/") ("bar" "/my/root/"))))
+    (expect 'display-warning :to-have-been-called-times 1)
+    (expect (cadr (spy-calls-args-for 'display-warning 0))
+            :to-match "ag search backend is deprecated"))
+
+  (it "marks projectile-ag obsolete in favour of projectile-ripgrep"
+    (expect (car (get 'projectile-ag 'byte-obsolete-info))
+            :to-be 'projectile-ripgrep)))
 
 (describe "projectile--ag-ignore-patterns"
   (it "strips the gitignore markers ag can't make sense of"
