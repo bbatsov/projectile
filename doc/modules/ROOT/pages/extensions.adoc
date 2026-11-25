@@ -1,4 +1,4 @@
-== Extensions
+= Extensions
 
 There are a number of packages that built on top of the basic functionality provided by Projectile:
 

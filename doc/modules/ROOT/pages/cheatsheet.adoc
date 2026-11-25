@@ -73,7 +73,7 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 | kbd:[s-p s a]
 | Runs `ag` (`the_silver_searcher`) on the project, performing a literal search. Requires the presence of `ag.el`. With a prefix argument it will perform a regex search.
 
-| kbd:[s-p s x]
+| kbd:[s-p s x] or kbd:[s-p ?]
 | Find references to the symbol at point within the project. Uses internally the `xref` library.
 
 | kbd:[s-p s R]
@@ -138,6 +138,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p k]
 | Kills all project buffers.
+
+| kbd:[s-p I]
+| Open an IBuffer window showing all buffers in the current project.
 
 | kbd:[s-p D]
 | Opens the root of the project in `dired`.
@@ -240,6 +243,9 @@ Here's a list of the interactive Emacs Lisp functions, provided by Projectile:
 
 | kbd:[s-p p]
 | Display a list of known projects you can switch to.
+
+| kbd:[s-p A]
+| Add a directory to the known projects.
 
 | kbd:[s-p 4 p]
 | Switch to a known project and show it in another window (runs `projectile-switch-project-other-window-action`, by default find-file in the other window).

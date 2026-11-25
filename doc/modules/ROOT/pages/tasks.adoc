@@ -12,6 +12,8 @@ There are a few variables that are intended to be customized via `.dir-locals.el
 * for installation - `projectile-project-install-cmd`
 * for packaging - `projectile-project-package-cmd`
 * for running - `projectile-project-run-cmd`
+* for the directory the lifecycle commands run in, relative to the project root - `projectile-project-compilation-dir`
+* for overriding the detected project type - `projectile-project-type`
 * for configuring the test prefix - `projectile-project-test-prefix`
 * for configuring the test suffix - `projectile-project-test-suffix`
 * for configuring the related-files-fn property - `projectile-project-related-files-fn`

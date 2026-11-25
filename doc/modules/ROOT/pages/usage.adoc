@@ -264,6 +264,9 @@ supports these keys:
 | kbd:[x]
 | Toggle between literal and regexp matching and re-scan.
 
+| kbd:[w]
+| Toggle whole-word matching and re-scan.
+
 | kbd:[k] / kbd:[d]
 | Keep / flush the matches whose line matches a regexp you type.
 
@@ -397,6 +400,9 @@ The results buffer supports these keys:
 
 | kbd:[x]
 | Toggle between literal and regexp matching and re-scan.
+
+| kbd:[w]
+| Toggle whole-word matching and re-scan.
 
 | kbd:[k] / kbd:[d]
 | Keep / flush the matches whose line matches a regexp you type.
@@ -695,7 +701,7 @@ type's own manifest and its `.projectile`, when it has them (see
 * the version control system, the current branch and how many files are
 modified or untracked
 * the project files you visit most, ranked by frecency - the same ranking
-`projectile-find-file`'s completion uses
+``projectile-find-file``'s completion uses
 * the project's xref:tasks.adoc[tasks]
 * the lifecycle commands (compile, test, run, ...) that are configured for it
 
