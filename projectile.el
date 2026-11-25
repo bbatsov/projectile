@@ -9280,12 +9280,17 @@ Returns a list of expanded filenames."
 ;;   :term-format when non-nil, the base command is a format string whose
 ;;                %s is the search term (grep) rather than a prefix the
 ;;                term is concatenated onto.
+;;   :term-guard  text emitted just before the search term so that one
+;;                starting with a dash is read as the pattern and not as
+;;                an option: `--verbose' is a perfectly good thing to
+;;                search for.
 (defvar projectile--search-tool-descriptors
-  '((rg   . (:kind prefix :ext-open "-g " :ext-close " "))
-    (ag   . (:kind prefix :ext-regexp t :ext-anchor "$" :ext-open "-G " :ext-close " "))
+  '((rg   . (:kind prefix :term-guard "-e " :ext-open "-g " :ext-close " "))
+    (ag   . (:kind prefix :term-guard "-- "
+             :ext-regexp t :ext-anchor "$" :ext-open "-G " :ext-close " "))
     (ack  . (:kind pipe :ext-regexp t :ext-anchor "$"))
-    (git  . (:kind suffix :ext-open "  -- "))
-    (grep . (:kind suffix :term-format t :ext-open " --include "))))
+    (git  . (:kind suffix :term-guard "-e " :ext-open "  -- "))
+    (grep . (:kind suffix :term-guard "-e " :term-format t :ext-open " --include "))))
 
 (defun projectile--search-glob-to-regexp (file-ext)
   "Turn extension glob FILE-EXT into the regexp body used by ag/ack.
@@ -9320,6 +9325,11 @@ and, when FILE-EXT is a string, the extension filter described by
   (let* ((base (alist-get tool projectile-files-with-string-commands))
          (desc (alist-get tool projectile--search-tool-descriptors))
          (term-format (plist-get desc :term-format))
+         (guard (plist-get desc :term-guard))
+         ;; a base command someone has already given the guard keeps its one
+         (search-term (if (and guard (string-suffix-p guard base))
+                          search-term
+                        (concat guard search-term)))
          ;; the plain, no-extension command, shared by every :kind
          (core (if term-format (format base search-term)
                  (concat base search-term))))

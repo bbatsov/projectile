@@ -195,36 +195,42 @@ modify buffers without saving them."
   (describe "without a file-extension filter"
     (it "builds the rg command"
       (expect (projectile--rg-construct-command "foo")
-              :to-equal "rg -liF --no-heading --color never foo"))
+              :to-equal "rg -liF --no-heading --color never -e foo"))
     (it "builds the ag command"
       (expect (projectile--ag-construct-command "foo")
-              :to-equal "ag --literal --ignore-case --nocolor --noheading -l foo"))
+              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -- foo"))
     (it "builds the ack command"
       (expect (projectile--ack-construct-command "foo")
               :to-equal "ack --literal --ignore-case --nocolor -l foo"))
     (it "builds the git-grep command"
       (expect (projectile--git-grep-construct-command "foo")
-              :to-equal "git grep -HlIiF foo"))
+              :to-equal "git grep -HlIiF -e foo"))
     (it "builds the grep command"
       (expect (projectile--grep-construct-command "foo")
-              :to-equal "grep -rHlIiF foo .")))
+              :to-equal "grep -rHlIiF -e foo .")))
+
+  (it "does not repeat a term guard the base command already ends with"
+    (let ((projectile-files-with-string-commands
+           '((rg . "rg -l --no-heading -e "))))
+      (expect (projectile--rg-construct-command "foo")
+              :to-equal "rg -l --no-heading -e foo")))
 
   (describe "with a file-extension filter"
     (it "builds the rg command with a glob"
       (expect (projectile--rg-construct-command "foo" "*.el")
-              :to-equal "rg -liF --no-heading --color never -g \\*.el foo"))
+              :to-equal "rg -liF --no-heading --color never -g \\*.el -e foo"))
     (it "builds the ag command with an anchored regexp"
       (expect (projectile--ag-construct-command "foo" "*.el")
-              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\\\.el\\$ foo"))
+              :to-equal "ag --literal --ignore-case --nocolor --noheading -l -G \\\\.el\\$ -- foo"))
     (it "builds the ack command as a piped listing"
       (expect (projectile--ack-construct-command "foo" "*.el")
               :to-equal "ack -g \\\\.el\\$ | ack --literal --ignore-case --nocolor -l -x foo"))
     (it "builds the git-grep command with a pathspec"
       (expect (projectile--git-grep-construct-command "foo" "*.el")
-              :to-equal "git grep -HlIiF foo  -- \\*.el"))
+              :to-equal "git grep -HlIiF -e foo  -- \\*.el"))
     (it "builds the grep command with an include"
       (expect (projectile--grep-construct-command "foo" "*.el")
-              :to-equal "grep -rHlIiF foo . --include \\*.el")))
+              :to-equal "grep -rHlIiF -e foo . --include \\*.el")))
 
   ;; The extension reaches these commands from `read-string', so it can
   ;; carry anything the user typed.  What matters isn't how it's escaped
@@ -277,7 +283,15 @@ modify buffers without saving them."
       (let ((files (projectile-files-with-string "foo" default-directory)))
         (expect (sort files #'string<)
                 :to-equal (list (expand-file-name "cased.txt")
-                                (expand-file-name "exact.txt")))))))
+                                (expand-file-name "exact.txt"))))))
+
+  (it "finds a term that starts with a dash instead of passing it as an option"
+    (projectile-replace-test--with-project
+        (("flags.txt" . "run it with --verbose\n")
+         ("none.txt" . "bar\n"))
+      (projectile-test-use-plain-grep)
+      (expect (projectile-files-with-string "--verbose" default-directory)
+              :to-equal (list (expand-file-name "flags.txt"))))))
 
 (describe "projectile-files-from-cmd"
   (it "returns canonical expanded file names even for non-canonical directories (#1115)"
