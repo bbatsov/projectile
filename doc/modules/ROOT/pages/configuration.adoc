@@ -70,9 +70,6 @@ project, press kbd:[C-u s-p p] (a prefix argument to any switch-project
 command). After you pick a project, Projectile opens the `projectile-dispatch`
 menu so you can choose what to do in it.
 
-NOTE: This requires the optional `transient` dependency. Without it the prefix
-argument is ignored and the usual `projectile-switch-project-action` runs.
-
 [[dashboard-switch-action]]
 === `projectile-dashboard`
 
@@ -85,7 +82,7 @@ With this setting you land in a summary of the project you just switched to -
 its type and file count, the branch and how dirty the working tree is, the
 files you were last working on, and the tasks and lifecycle commands you can
 run - all of it actionable with kbd:[RET]. It's the closest thing Projectile
-has to `project.el`'s command menu, except it also tells you where you are.
+has to ``project.el``'s command menu, except it also tells you where you are.
 
 The dashboard is built to be cheap enough for this: it never indexes the
 project (a cold project simply reports "not indexed yet") and it skips the VCS
@@ -106,13 +103,13 @@ file in project:
 works even if the filename is incomplete, but there's only a single file
 in the current project that matches the filename at point. For example,
 if there's only a single file named "projectile/projectile.el" but the
-current filename is "projectile/proj" (incomplete), projectile-find-file
+current filename is "projectile/proj" (incomplete), `projectile-find-file-dwim`
 still switches to "projectile/projectile.el" immediately because this
 is the only filename that matches.
 * If it finds a list of files, the list is displayed for selecting. A
 list of files is displayed when a filename appears more than one in the
 project or the filename at point is a prefix of more than two files in a
-project. For example, if `projectile-find-file' is executed on a
+project. For example, if `projectile-find-file-dwim` is executed on a
 filepath like "projectile/", it lists the content of that directory.
 If it is executed on a partial filename like "projectile/a", a list of
 files with character 'a' in that directory is presented.

@@ -120,7 +120,7 @@ A few `project.el` features have no real equivalent in Projectile:
 
 * `project-find-matching-buffer` — jump to the equivalent buffer in another known project, matched by relative path. Handy for forks and parallel-layout microservices.
 * `project-file-history-behavior` set to `relativize` — when switching projects, file-name history is rewritten as relative paths, so muscle memory carries across projects.
-* `project-other-window-command` / `-other-frame-command` / `-other-tab-command` — prefix commands that redirect the next project command's output. Projectile takes the brute-force route instead: a `-other-window` and `-other-frame` variant for almost every command.
+* `project-other-tab-command` — a prefix command that shows the next project command's buffer in another tab. Projectile has the window and frame prefixes (`projectile-other-window-command` on kbd:[s-p 4 4] and `projectile-other-frame-command` on kbd:[s-p 5 5]), plus a `-other-window` and `-other-frame` variant of most commands, but nothing for tabs.
 * `project-prompter` and `project-read-file-name-function` — single-function knobs for the project / file-name prompts. Cleaner extension point than `projectile-completion-system`.
 * `project-prune-zombie-projects` (Emacs 31) — finer-grained pruning triggers for zombie projects. Projectile only has a single boolean (`projectile-auto-cleanup-known-projects`).
 * `project-vc-cache-timeout` as an alist of `(predicate . timeout)` pairs, so e.g. remote and local can have different TTLs.
@@ -193,7 +193,7 @@ Side-by-side mapping of the most common entry points. Useful both when picking b
 | —
 
 | "Other window/frame" variants
-| `…-other-window` / `…-other-frame` per command
+| `projectile-other-window-command` / `projectile-other-frame-command` (prefix style), plus `…-other-window` / `…-other-frame` per command
 | `project-other-window-command` / `-other-frame-command` / `-other-tab-command` (prefix style)
 |===
 

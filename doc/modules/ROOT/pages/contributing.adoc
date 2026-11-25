@@ -56,8 +56,7 @@ Tests should run fine in `shell-mode` or `term-mode`. It's also possible to use 
 == Documentation
 
 Good documentation is just as important as good code.
-Consider improving and extending this manual and the
-https://github.com/bbatsov/projectile/wiki[community wiki].
+Consider improving and extending this manual.
 
 === Working on the docs
 
@@ -66,7 +65,7 @@ https://antora.org[Antora] is used to convert the manual into HTML.
 The filesystem layout is described at https://docs.antora.org/antora/latest/component-structure/.
 
 To make changes to the manual you simply have to change the files under `doc`.
-The manual will be regenerated manually periodically.
+The site is rebuilt and published automatically whenever the site's own repository changes; a new Projectile release shows up once its tag is added there.
 
 ==== Installing Antora
 
@@ -93,16 +92,7 @@ $ cd docs.projectile.mx
 $ make build
 ----
 
-After you're done with the initial setup you can use the `make` to push changes to the site:
-
-[source]
-----
-$ make deploy
-----
-
-NOTE: You'll need commit access to the repository for this to work.
-
-To check the generated site you can simply open `docs/index.html` in your favourite browser.
+To check the generated site you can simply open `build/site/index.html` in your favourite browser. There's nothing to deploy by hand - a GitHub Action publishes the site.
 
 If you want to make changes to the manual's page structure you'll have to edit
 https://github.com/bbatsov/projectile/blob/master/doc/modules/ROOT/nav.adoc[nav.adoc].
