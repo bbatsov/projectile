@@ -13002,19 +13002,73 @@ via .dir-locals.el and finally the default run command for a project
 of that type."
   (projectile--phase-command 'run compile-dir))
 
+(defvar projectile--command-tasks-directory nil
+  "Directory whose tasks a command prompt suggests, when not the project root.
+Bound by the subproject commands to the subproject: its command runs
+there, so the root's Make targets are of no use to it.")
+
+(defun projectile--command-suggestions (command command-type root)
+  "Return commands worth offering at a prompt that starts out with COMMAND.
+
+COMMAND-TYPE is what the prompt is for - a lifecycle phase such as
+`compile' or `test', or anything else for a prompt that is not for one.
+The suggestions are the default command of the project's type for that
+phase, followed by the commands of the tasks of the project at ROOT
+\(see `projectile-project-tasks'), the tasks named after the phase
+first.  COMMAND itself is left out: it is in the prompt already.
+
+Only commands that are plain strings are suggested.  A type or a task
+whose command is a function is meant to be called when it is run - the
+CMake preset pickers ask a question - and not to fill in a prompt.
+
+Nothing is suggested for a remote ROOT, where discovering the tasks
+means reading several files over TRAMP before the prompt can show."
+  (unless (file-remote-p root)
+    (let* ((phase (and command-type (symbolp command-type) command-type))
+           (default (and phase
+                         (plist-get (alist-get (projectile-project-type)
+                                               projectile-project-types)
+                                    (intern (format "%s-command" phase)))))
+           (tasks (seq-filter (lambda (task) (stringp (cdr task)))
+                              (ignore-errors (projectile-project-tasks nil root))))
+           ;; a compile prompt is after the "build" task as much as after
+           ;; one called "compile"
+           (wanted (and phase
+                        (concat "\\(?:\\`\\|[^[:alnum:]]\\)"
+                                (if (eq phase 'compile)
+                                    "\\(?:build\\|compile\\)"
+                                  (regexp-quote (symbol-name phase)))
+                                "\\(?:[^[:alnum:]]\\|\\'\\)")))
+           (named (and wanted
+                       (seq-filter (lambda (task)
+                                     (string-match-p wanted (car task)))
+                                   tasks))))
+      (delete-dups
+       (remove command
+               (append (and (stringp default) (list default))
+                       (mapcar #'cdr named)
+                       (mapcar #'cdr tasks)))))))
+
 (defun projectile-read-command (prompt command &optional command-type)
   "Adapted from the function `compilation-read-command'.
 
 COMMAND-TYPE, when non-nil, selects the per-type command history
-\(see `projectile--get-command-history') as the minibuffer history."
-  (let ((compile-history
-         ;; fetch the command history for the current project
-         (ring-elements (projectile--get-command-history (projectile-acquire-root)
-                                                         command-type))))
+\(see `projectile--get-command-history') as the minibuffer history.
+
+\\`M-p' goes back through that history, and \\`M-n' forward through what
+the project itself suggests running (see
+`projectile--command-suggestions')."
+  (let* ((root (projectile-acquire-root))
+         (compile-history
+          ;; fetch the command history for the current project
+          (ring-elements (projectile--get-command-history root command-type))))
     (read-shell-command prompt command
                         (if (equal (car compile-history) command)
                             '(compile-history . 1)
-                          'compile-history))))
+                          'compile-history)
+                        (projectile--command-suggestions
+                         command command-type
+                         (or projectile--command-tasks-directory root)))))
 
 ;;; Subprojects
 ;;
@@ -13747,7 +13801,8 @@ its compilation directory against."
          ;; type so a Rust crate in a JavaScript repo runs `cargo test'
          ;; rather than the repository's `npm test'.  The dir-local
          ;; override and the per-directory command cache still win over it.
-         (projectile-project-type (projectile-subproject-type subproject)))
+         (projectile-project-type (projectile-subproject-type subproject))
+         (projectile--command-tasks-directory subproject))
     (projectile--run-lifecycle-phase phase show-prompt subproject)))
 
 (defmacro projectile--define-subproject-commands (&rest phases)

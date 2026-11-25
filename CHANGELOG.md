@@ -27,6 +27,7 @@
 
 ### Changes
 
+- [#2209](https://github.com/bbatsov/projectile/pull/2209): `M-n` at a compile, test or run prompt goes through what the project suggests running: the default command of its type and the commands of its tasks (Make targets, npm scripts and so on), the ones named after the phase first.
 - [#2209](https://github.com/bbatsov/projectile/pull/2209): The prompts for which files to search (`C-u s-p s g`) and which to replace in (`C-u s-p r`) complete over the file extensions that occur in the project, most common first.
 - [#2209](https://github.com/bbatsov/projectile/pull/2209): The replace commands read what to replace with the search prompt, so it has the same suggestions, history and identifier completion, and `M-n` at the "with" prompt brings up the text being replaced, ready to be edited. Replacements have a history of their own, `projectile-replace-history`.
 - [#2208](https://github.com/bbatsov/projectile/pull/2208): `projectile-find-references` uses the same prompt as the other search commands, so the symbol at point is the default rather than text already typed into the minibuffer.

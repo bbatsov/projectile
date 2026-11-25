@@ -60,6 +60,11 @@ only cycle through previous *test* commands instead of a mix of every command
 you've run in the project. `projectile-repeat-last-command` still re-runs the
 most recent command of any type.
 
+kbd:[M-n] goes the other way, through commands you haven't run yet but the
+project suggests: the default command of its type, followed by the commands of
+its xref:tasks.adoc#project-tasks[tasks] - the ones named after what you're
+doing first, so the test prompt starts with `make test` or `npm test`.
+
 [#history-scope]
 === History across checkouts
 

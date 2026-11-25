@@ -27,6 +27,100 @@
 
 (require 'projectile-test-helpers)
 
+(describe "projectile--command-suggestions"
+  :var (saved-types)
+  (before-each
+    ;; a `let' cannot span `before-each' and the specs, so the registry is
+    ;; swapped by hand and put back afterwards
+    (setq saved-types projectile-project-types
+          projectile-project-types
+          '((demo test-command "demo test" compile-command "demo build")))
+    (spy-on 'projectile-project-type :and-return-value 'demo)
+    (spy-on 'projectile-project-tasks :and-return-value
+            `(("make:lint" . "make lint")
+              ("make:test" . "make test")
+              ("npm:build" . "npm run build")
+              ("dynamic" . ,(lambda () "computed"))
+              ("make:compile" . "make compile"))))
+  (after-each
+    (setq projectile-project-types saved-types))
+
+  (it "offers the type's default, then the tasks named after the phase, then the rest"
+    (expect (projectile--command-suggestions "something else" 'test "/project/")
+            :to-equal '("demo test" "make test" "make lint" "npm run build"
+                        "make compile"))
+    (expect 'projectile-project-tasks :to-have-been-called-with nil "/project/"))
+
+  (it "counts a build task as one for the compile prompt"
+    (expect (seq-take (projectile--command-suggestions nil 'compile "/project/") 3)
+            :to-equal '("demo build" "npm run build" "make compile")))
+
+  (it "leaves out the command the prompt already holds"
+    (expect (projectile--command-suggestions "demo test" 'test "/project/")
+            :to-equal '("make test" "make lint" "npm run build" "make compile")))
+
+  (it "offers the other tasks at a prompt that is not for a lifecycle phase"
+    (expect (projectile--command-suggestions "make lint" '(task . "make:lint")
+                                             "/project/")
+            :to-equal '("make test" "npm run build" "make compile")))
+
+  (it "takes a task to be named after a phase by a whole word of its name"
+    (spy-on 'projectile-project-tasks :and-return-value
+            '(("make:latest" . "make latest")
+              ("make:uninstall" . "make uninstall")
+              ("make:install" . "make install")
+              ("npm:test:unit" . "npm run test:unit")))
+    (expect (car (projectile--command-suggestions nil 'install "/project/"))
+            :to-equal "make install")
+    (expect (cadr (projectile--command-suggestions nil 'test "/project/"))
+            :to-equal "npm run test:unit"))
+
+  (it "never calls a type command that is a function"
+    (let* ((called nil)
+           (projectile-project-types
+            `((demo test-command ,(lambda () (setq called t) "picked")))))
+      (expect (projectile--command-suggestions nil 'test "/project/")
+              :not :to-contain "picked")
+      (expect called :to-be nil)))
+
+  (it "suggests nothing for a remote project"
+    (expect (projectile--command-suggestions nil 'test "/ssh:host:/project/")
+            :to-be nil)
+    (expect 'projectile-project-tasks :not :to-have-been-called)))
+
+(describe "projectile-read-command"
+  (it "puts the suggestions on M-n and the history on M-p"
+    (spy-on 'projectile-acquire-root :and-return-value "/project/")
+    (spy-on 'projectile--get-command-history :and-return-value (make-ring 4))
+    (spy-on 'projectile--command-suggestions :and-return-value '("make test"))
+    (spy-on 'read-shell-command :and-return-value "make test")
+    (expect (projectile-read-command "Test command: " "old" 'test)
+            :to-equal "make test")
+    (expect 'projectile--command-suggestions
+            :to-have-been-called-with "old" 'test "/project/")
+    (expect 'read-shell-command :to-have-been-called-with
+            "Test command: " "old" 'compile-history '("make test")))
+
+  (it "takes the tasks of the subproject when the command runs in one"
+    (spy-on 'projectile-acquire-root :and-return-value "/project/")
+    (spy-on 'projectile--get-command-history :and-return-value (make-ring 4))
+    (spy-on 'projectile--command-suggestions)
+    (spy-on 'read-shell-command :and-return-value "x")
+    (let ((projectile--command-tasks-directory "/project/sub/"))
+      (projectile-read-command "Test command: " "old" 'test))
+    (expect 'projectile--command-suggestions
+            :to-have-been-called-with "old" 'test "/project/sub/")))
+
+(describe "projectile--run-subproject-phase"
+  (it "points the command prompt at the subproject's tasks"
+    (let (seen)
+      (spy-on 'projectile-subproject-root :and-return-value "/project/sub/")
+      (spy-on 'projectile-subproject-type :and-return-value 'npm)
+      (spy-on 'projectile--run-lifecycle-phase :and-call-fake
+              (lambda (&rest _) (setq seen projectile--command-tasks-directory)))
+      (projectile--run-subproject-phase 'test nil)
+      (expect seen :to-equal "/project/sub/"))))
+
 (describe "projectile-compilation-dir"
   (it "returns the compilation directory for a project"
     (cl-flet ((compilation-dir-for (project-root rel-dir)
