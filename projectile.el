@@ -10205,31 +10205,40 @@ Shows the term, the replacement (or \"(none)\"), the match and file
 counts, the mode flags (regexp/literal and case), and a note when the
 list has been filtered.  The header carries no `projectile-replace-match'
 property, so match navigation skips it."
+  (projectile-replace--status-header
+   (format "Replace %S with %s"
+           projectile-replace--term
+           (if (and projectile-replace--replacement
+                    (not (string-empty-p projectile-replace--replacement)))
+               (format "%S" projectile-replace--replacement)
+             "(none)"))))
+
+(defun projectile-replace--status-header (title)
+  "Return TITLE and the status line of the current results buffer.
+The status line has the match and file counts, the mode flags
+\(regexp/literal, case, whole-word) and notes for a filtered list and for
+a scan still running.  Shared by the replace and the search reviewer,
+which differ in TITLE alone."
   (let* ((matches projectile-replace--matches)
          (nmatches (length matches))
          (seen (make-hash-table :test 'equal))
-         (repl (if (and projectile-replace--replacement
-                        (not (string-empty-p projectile-replace--replacement)))
-                   (format "%S" projectile-replace--replacement)
-                 "(none)"))
-         nfiles flags)
+         nfiles)
     (dolist (m matches)
       (puthash (projectile-replace--match-file m) t seen))
-    (setq nfiles (hash-table-count seen)
-          flags (concat
-                 (if projectile-replace--literal "[literal]" "[regexp]")
-                 " "
-                 (if projectile-replace--case-fold
-                     "[ignore-case]" "[case-sensitive]")
-                 (if projectile-replace--word " [word]" "")
-                 (if projectile-replace--filtered "  filtered" "")
-                 (projectile-replace--scanning-note nmatches)))
+    (setq nfiles (hash-table-count seen))
     (propertize
-     (format "Replace %S with %s\n%d match%s in %d file%s  %s\n"
-             projectile-replace--term repl
+     (format "%s\n%d match%s in %d file%s  %s\n"
+             title
              nmatches (if (= nmatches 1) "" "es")
              nfiles (if (= nfiles 1) "" "s")
-             flags)
+             (concat
+              (if projectile-replace--literal "[literal]" "[regexp]")
+              " "
+              (if projectile-replace--case-fold
+                  "[ignore-case]" "[case-sensitive]")
+              (if projectile-replace--word " [word]" "")
+              (if projectile-replace--filtered "  filtered" "")
+              (projectile-replace--scanning-note nmatches)))
      'face 'projectile-replace-header)))
 
 (defun projectile-replace--scanning-note (nmatches)
@@ -10243,27 +10252,39 @@ async scan streams matches in."
 
 (defun projectile-replace--render ()
   "Redraw the current results buffer from its buffer-local state."
+  (let ((replacement projectile-replace--replacement)
+        (literal projectile-replace--literal))
+    (projectile-replace--render-results
+     (projectile-replace--header-string)
+     (concat "\\<projectile-replace-mode-map>"
+             "\\[projectile-replace--toggle] toggle  "
+             "\\[projectile-replace--toggle-file] toggle file  "
+             "\\[projectile-replace--set-replacement] set replacement  "
+             "\\[projectile-replace--apply] apply  "
+             "\\[projectile-replace--export] export  "
+             "\\[projectile-replace--refresh] re-search  "
+             "\\[projectile-replace--visit] visit  "
+             "\\[projectile-replace--quit] quit\n")
+     (lambda (m) (projectile-replace--render-line m replacement literal)))))
+
+(defun projectile-replace--render-results (header keys render-line)
+  "Redraw the current results buffer: HEADER, a key summary, the matches.
+KEYS is the first line of the key summary, the commands particular to
+the mode, in `substitute-command-keys' syntax; the second line, the
+commands that reshape the search, is the same in every results buffer.
+RENDER-LINE is called with a match and returns its propertized line.
+The matches are grouped under a header per file."
   (let ((inhibit-read-only t)
         (root projectile-replace--root)
-        (replacement projectile-replace--replacement)
-        (literal projectile-replace--literal)
         (matches projectile-replace--matches)
         (counts (make-hash-table :test 'equal))
         (prev-file nil))
     (dolist (m matches)
       (cl-incf (gethash (projectile-replace--match-file m) counts 0)))
     (erase-buffer)
-    (insert (projectile-replace--header-string))
+    (insert header)
     (insert (substitute-command-keys
-             (concat "\\<projectile-replace-mode-map>"
-                     "\\[projectile-replace--toggle] toggle  "
-                     "\\[projectile-replace--toggle-file] toggle file  "
-                     "\\[projectile-replace--set-replacement] set replacement  "
-                     "\\[projectile-replace--apply] apply  "
-                     "\\[projectile-replace--export] export  "
-                     "\\[projectile-replace--refresh] re-search  "
-                     "\\[projectile-replace--visit] visit  "
-                     "\\[projectile-replace--quit] quit\n"
+             (concat keys
                      "\\[projectile-replace--toggle-case] case  "
                      "\\[projectile-replace--toggle-regexp] regexp/literal  "
                      "\\[projectile-replace--toggle-word] word  "
@@ -10279,7 +10300,7 @@ async scan streams matches in."
             (setq prev-file file)
             (insert (projectile-replace--file-header
                      file root (gethash file counts))))
-          (insert (projectile-replace--render-line m replacement literal)))))
+          (insert (funcall render-line m)))))
     (when projectile-replace--truncated
       (insert (format "\n(showing the first %d matches)\n"
                       projectile-search-max-matches)))
@@ -10944,17 +10965,16 @@ Projectile's own apply command
     (projectile-replace--export-guidance)
     buf))
 
-(defvar projectile-replace-mode-map
+(defvar projectile-replace--results-map
   (let ((map (make-sparse-keymap)))
+    ;; `define-derived-mode' only gives a mode map this parent when it has
+    ;; none, and the mode maps have this one
+    (set-keymap-parent map special-mode-map)
     (define-key map (kbd "RET") #'projectile-replace--visit)
     (define-key map (kbd "n") #'projectile-replace--goto-next-match)
     (define-key map (kbd "p") #'projectile-replace--goto-prev-match)
     (define-key map (kbd "M-n") #'projectile-replace--goto-next-file)
     (define-key map (kbd "M-p") #'projectile-replace--goto-prev-file)
-    (define-key map (kbd "t") #'projectile-replace--toggle)
-    (define-key map (kbd "SPC") #'projectile-replace--toggle)
-    (define-key map (kbd "f") #'projectile-replace--toggle-file)
-    (define-key map (kbd "r") #'projectile-replace--set-replacement)
     (define-key map (kbd "c") #'projectile-replace--toggle-case)
     (define-key map (kbd "x") #'projectile-replace--toggle-regexp)
     (define-key map (kbd "w") #'projectile-replace--toggle-word)
@@ -10963,10 +10983,22 @@ Projectile's own apply command
     (define-key map (kbd "K") #'projectile-replace--keep-files)
     (define-key map (kbd "D") #'projectile-replace--flush-files)
     (define-key map (kbd "e") #'projectile-replace--export)
-    (define-key map (kbd "!") #'projectile-replace--apply)
-    (define-key map (kbd "C-c C-c") #'projectile-replace--apply)
     (define-key map (kbd "g") #'projectile-replace--refresh)
     (define-key map (kbd "q") #'projectile-replace--quit)
+    map)
+  "The keys every results buffer has: moving around and reshaping the search.
+The parent of `projectile-replace-mode-map' and
+`projectile-search-mode-map', which add what is particular to each.")
+
+(defvar projectile-replace-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map projectile-replace--results-map)
+    (define-key map (kbd "t") #'projectile-replace--toggle)
+    (define-key map (kbd "SPC") #'projectile-replace--toggle)
+    (define-key map (kbd "f") #'projectile-replace--toggle-file)
+    (define-key map (kbd "r") #'projectile-replace--set-replacement)
+    (define-key map (kbd "!") #'projectile-replace--apply)
+    (define-key map (kbd "C-c C-c") #'projectile-replace--apply)
     map)
   "Keymap for `projectile-replace-mode'.")
 
@@ -11564,28 +11596,8 @@ Shows the term, the match and file counts, the mode flags
 \(regexp/literal and case), and a note when the list has been filtered.
 Carries no `projectile-replace-match' property, so match navigation
 skips it."
-  (let* ((matches projectile-replace--matches)
-         (nmatches (length matches))
-         (seen (make-hash-table :test 'equal))
-         nfiles flags)
-    (dolist (m matches)
-      (puthash (projectile-replace--match-file m) t seen))
-    (setq nfiles (hash-table-count seen)
-          flags (concat
-                 (if projectile-replace--literal "[literal]" "[regexp]")
-                 " "
-                 (if projectile-replace--case-fold
-                     "[ignore-case]" "[case-sensitive]")
-                 (if projectile-replace--word " [word]" "")
-                 (if projectile-replace--filtered "  filtered" "")
-                 (projectile-replace--scanning-note nmatches)))
-    (propertize
-     (format "Search %S\n%d match%s in %d file%s  %s\n"
-             projectile-replace--term
-             nmatches (if (= nmatches 1) "" "es")
-             nfiles (if (= nfiles 1) "" "s")
-             flags)
-     'face 'projectile-replace-header)))
+  (projectile-replace--status-header
+   (format "Search %S" projectile-replace--term)))
 
 (defun projectile-search--render-line (m)
   "Return the propertized results line for match M.
@@ -11610,42 +11622,15 @@ property so the shared navigation, visit and filter commands find it."
 
 (defun projectile-search--render ()
   "Redraw the current search results buffer from its buffer-local state."
-  (let ((inhibit-read-only t)
-        (root projectile-replace--root)
-        (matches projectile-replace--matches)
-        (counts (make-hash-table :test 'equal))
-        (prev-file nil))
-    (dolist (m matches)
-      (cl-incf (gethash (projectile-replace--match-file m) counts 0)))
-    (erase-buffer)
-    (insert (projectile-search--header-string))
-    (insert (substitute-command-keys
-             (concat "\\<projectile-search-mode-map>"
-                     "\\[projectile-replace--visit] visit  "
-                     "\\[projectile-replace--refresh] re-search  "
-                     "\\[projectile-search--to-replace] replace these  "
-                     "\\[projectile-replace--export] export  "
-                     "\\[projectile-replace--quit] quit\n"
-                     "\\[projectile-replace--toggle-case] case  "
-                     "\\[projectile-replace--toggle-regexp] regexp/literal  "
-                     "\\[projectile-replace--toggle-word] word  "
-                     "\\[projectile-replace--keep-matches]/\\[projectile-replace--flush-matches] keep/flush line  "
-                     "\\[projectile-replace--keep-files]/\\[projectile-replace--flush-files] keep/flush file\n\n")))
-    (projectile-replace--insert-scan-error)
-    (if (null matches)
-        (insert "No matches.\n")
-      (dolist (m matches)
-        (let ((file (projectile-replace--match-file m)))
-          (unless (equal prev-file file)
-            (when prev-file (insert "\n"))
-            (setq prev-file file)
-            (insert (projectile-replace--file-header
-                     file root (gethash file counts))))
-          (insert (projectile-search--render-line m)))))
-    (when projectile-replace--truncated
-      (insert (format "\n(showing the first %d matches)\n"
-                      projectile-search-max-matches)))
-    (goto-char (point-min))))
+  (projectile-replace--render-results
+   (projectile-search--header-string)
+   (concat "\\<projectile-search-mode-map>"
+           "\\[projectile-replace--visit] visit  "
+           "\\[projectile-replace--refresh] re-search  "
+           "\\[projectile-search--to-replace] replace these  "
+           "\\[projectile-replace--export] export  "
+           "\\[projectile-replace--quit] quit\n")
+   #'projectile-search--render-line))
 
 (defun projectile-search--to-replace ()
   "Hand the current search to the reviewable replace UI.
@@ -11673,22 +11658,8 @@ any filtering is undone and every match comes back enabled), mirroring
 
 (defvar projectile-search-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET") #'projectile-replace--visit)
-    (define-key map (kbd "n") #'projectile-replace--goto-next-match)
-    (define-key map (kbd "p") #'projectile-replace--goto-prev-match)
-    (define-key map (kbd "M-n") #'projectile-replace--goto-next-file)
-    (define-key map (kbd "M-p") #'projectile-replace--goto-prev-file)
-    (define-key map (kbd "c") #'projectile-replace--toggle-case)
-    (define-key map (kbd "x") #'projectile-replace--toggle-regexp)
-    (define-key map (kbd "w") #'projectile-replace--toggle-word)
-    (define-key map (kbd "k") #'projectile-replace--keep-matches)
-    (define-key map (kbd "d") #'projectile-replace--flush-matches)
-    (define-key map (kbd "K") #'projectile-replace--keep-files)
-    (define-key map (kbd "D") #'projectile-replace--flush-files)
-    (define-key map (kbd "e") #'projectile-replace--export)
+    (set-keymap-parent map projectile-replace--results-map)
     (define-key map (kbd "r") #'projectile-search--to-replace)
-    (define-key map (kbd "g") #'projectile-replace--refresh)
-    (define-key map (kbd "q") #'projectile-replace--quit)
     map)
   "Keymap for `projectile-search-mode'.")
 

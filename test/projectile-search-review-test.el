@@ -485,6 +485,23 @@ REGEXP-P selects `projectile-search-regexp-review'."
             (expect (process-live-p proc) :to-be nil)
             (expect (memq proc (process-list)) :to-be nil)))))))
 
+(describe "the keymaps of the results buffers"
+  (it "share the keys for moving around and reshaping the search"
+    (dolist (key '("RET" "n" "p" "M-n" "M-p" "c" "x" "w" "k" "d" "K" "D" "e" "g" "q"))
+      (expect (lookup-key projectile-search-mode-map (kbd key))
+              :to-be (lookup-key projectile-replace-mode-map (kbd key)))
+      (expect (commandp (lookup-key projectile-search-mode-map (kbd key)))
+              :to-be-truthy)))
+  (it "still inherit the keys of `special-mode'"
+    (dolist (map (list projectile-search-mode-map projectile-replace-mode-map))
+      (expect (lookup-key map (kbd "<")) :to-be #'beginning-of-buffer)
+      (expect (lookup-key map (kbd "h")) :to-be #'describe-mode)))
+  (it "bind `r' to what each buffer does with a replacement"
+    (expect (lookup-key projectile-search-mode-map (kbd "r"))
+            :to-be #'projectile-search--to-replace)
+    (expect (lookup-key projectile-replace-mode-map (kbd "r"))
+            :to-be #'projectile-replace--set-replacement)))
+
 (describe "projectile-search-review ripgrep failures"
   (it "shows what the tool wrote to stderr when it exits with an error"
     (assume (executable-find "sh") "needs a POSIX shell")
