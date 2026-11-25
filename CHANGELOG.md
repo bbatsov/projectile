@@ -23,6 +23,7 @@
 
 ### Changes
 
+- [#2206](https://github.com/bbatsov/projectile/pull/2206): Deleting files inside a project with a persistent cache no longer writes the cache file once per deleted file. The write waits until Emacs is idle, and pending cache writes are flushed when Emacs exits.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): `projectile-find-test-file` is much faster on large projects: the project type and its test conventions are looked up once, not once per file.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): Listing the known projects is faster with `projectile-ignored-projects` set: its entries are symlink-resolved once per listing, not once per project.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): The search and replace reviewers scan a large file with many matches much faster: line numbers are counted from the previous match instead of from the top of the file.
@@ -41,6 +42,7 @@
 
 ### Bugs fixed
 
+- [#2206](https://github.com/bbatsov/projectile/pull/2206): Deleting a file removes it from the file cache of the project it belongs to, not from the cache of the project the current buffer happens to be in.
 - [#2206](https://github.com/bbatsov/projectile/pull/2206): The search reviewer now shows what `rg` reported when it fails (a pattern it rejects, an unreadable directory) instead of an empty "No matches" buffer.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): On an Emacs built without native JSON, `projectile-search-review` and `projectile-todos` fall back to the Emacs Lisp scanner instead of running `rg` and reporting no matches.
 - [#2204](https://github.com/bbatsov/projectile/pull/2204): `projectile-session-switch-to-buffer`, `projectile-find-file-in-projects` and `projectile-find-file-in-directory` advertise the completion category their candidates really are (`buffer` and `file`), so Marginalia and Embark stop treating them as files relative to the project root.

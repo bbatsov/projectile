@@ -187,6 +187,143 @@
       (expect 'projectile--maybe-watch-project
               :to-have-been-called-with "/project/" '("foo.el")))))
 
+(describe "the delete-file advice"
+  :var (projectile-projects-cache projectile--pending-cache-flush-timers)
+  (before-each
+    (setq projectile-projects-cache (make-hash-table :test 'equal)
+          projectile--pending-cache-flush-timers (make-hash-table :test 'equal))
+    (spy-on 'file-truename :and-call-fake #'identity)
+    (spy-on 'projectile--maybe-watch-project)
+    (spy-on 'projectile-serialize)
+    (spy-on 'projectile--schedule-cache-flush))
+
+  (it "purges the file from its own project, whatever buffer is current"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t)
+          (default-directory "/elsewhere/"))
+      (puthash "/project/" '("foo.el" "src/bar.el") projectile-projects-cache)
+      (puthash "/other/" '("src/bar.el") projectile-projects-cache)
+      (spy-on 'projectile-project-root)
+      (delete-file-projectile-remove-from-cache "/project/src/bar.el")
+      (expect (gethash "/project/" projectile-projects-cache) :to-equal '("foo.el"))
+      (expect (gethash "/other/" projectile-projects-cache) :to-equal '("src/bar.el"))
+      (expect 'projectile-project-root :not :to-have-been-called)))
+
+  (it "purges the file from an enclosing project that lists it too"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t))
+      (puthash "/mono/" '("app/a.el" "README") projectile-projects-cache)
+      (puthash "/mono/app/" '("a.el") projectile-projects-cache)
+      (delete-file-projectile-remove-from-cache "/mono/app/a.el")
+      (expect (gethash "/mono/" projectile-projects-cache) :to-equal '("README"))
+      (expect (gethash "/mono/app/" projectile-projects-cache) :to-be nil)))
+
+  (it "leaves the caches alone for a file outside every cached project"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t))
+      (puthash "/project/" '("foo.el") projectile-projects-cache)
+      (delete-file-projectile-remove-from-cache "/tmp/scratch123")
+      (expect (gethash "/project/" projectile-projects-cache) :to-equal '("foo.el"))
+      (expect 'projectile--maybe-watch-project :not :to-have-been-called)))
+
+  (it "does not resolve symlinks when nothing is cached"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t))
+      (delete-file-projectile-remove-from-cache "/tmp/scratch123")
+      (expect 'file-truename :not :to-have-been-called)))
+
+  (it "does nothing when the cache is not kept up to date"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache nil))
+      (puthash "/project/" '("foo.el") projectile-projects-cache)
+      (delete-file-projectile-remove-from-cache "/project/foo.el")
+      (expect (gethash "/project/" projectile-projects-cache) :to-equal '("foo.el"))))
+
+  (it "leaves the write of a persistent cache for when Emacs is idle"
+    (let ((projectile-enable-caching 'persistent)
+          (projectile-auto-update-cache t))
+      (puthash "/project/" '("foo.el" "bar.el") projectile-projects-cache)
+      (delete-file-projectile-remove-from-cache "/project/foo.el")
+      (expect 'projectile-serialize :not :to-have-been-called)
+      (expect 'projectile--schedule-cache-flush
+              :to-have-been-called-with "/project/"))))
+
+(describe "the delete-file advice and awkward file names"
+  :var (projectile-projects-cache)
+  (before-each
+    (setq projectile-projects-cache (make-hash-table :test 'equal))
+    (spy-on 'projectile--maybe-watch-project)
+    (puthash "/Project/" '("foo.el") projectile-projects-cache))
+
+  (it "does not signal when the directory cannot be resolved"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t))
+      (spy-on 'file-truename :and-throw-error 'file-error)
+      (expect (delete-file-projectile-remove-from-cache "/Project/foo.el")
+              :not :to-throw)
+      (expect (gethash "/Project/" projectile-projects-cache) :to-be nil)))
+
+  (it "matches a root spelled in another case on a case-insensitive filesystem"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t))
+      (spy-on 'file-truename :and-call-fake #'identity)
+      (spy-on 'file-name-case-insensitive-p :and-return-value t)
+      (delete-file-projectile-remove-from-cache "/project/foo.el")
+      (expect (gethash "/Project/" projectile-projects-cache) :to-be nil)))
+
+  (it "does not on a case-sensitive one"
+    (let ((projectile-enable-caching t)
+          (projectile-auto-update-cache t))
+      (spy-on 'file-truename :and-call-fake #'identity)
+      (spy-on 'file-name-case-insensitive-p :and-return-value nil)
+      (delete-file-projectile-remove-from-cache "/project/foo.el")
+      (expect (gethash "/Project/" projectile-projects-cache)
+              :to-equal '("foo.el")))))
+
+(describe "projectile--flush-cache"
+  (it "does not write nil over the cache file of a project no longer in memory"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal)))
+      (spy-on 'projectile-serialize)
+      (projectile--flush-cache "/gone/")
+      (expect 'projectile-serialize :not :to-have-been-called)))
+
+  (it "writes an empty list for a project whose last file was removed"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal)))
+      (puthash "/project/" nil projectile-projects-cache)
+      (spy-on 'projectile-serialize)
+      (spy-on 'projectile-project-cache-file :and-return-value "/tmp/cache.eld")
+      (projectile--flush-cache "/project/")
+      (expect 'projectile-serialize
+              :to-have-been-called-with nil "/tmp/cache.eld"))))
+
+(describe "projectile--flush-pending-caches"
+  (it "writes out every cache with a pending idle write and cancels the timers"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile--pending-cache-flush-timers (make-hash-table :test 'equal))
+          (timer (run-with-idle-timer 3600 nil #'ignore)))
+      (puthash "/project/" '("foo.el") projectile-projects-cache)
+      (puthash "/project/" timer projectile--pending-cache-flush-timers)
+      (spy-on 'projectile-serialize)
+      (spy-on 'projectile-project-cache-file :and-return-value "/tmp/cache.eld")
+      (projectile--flush-pending-caches)
+      (expect 'projectile-serialize
+              :to-have-been-called-with '("foo.el") "/tmp/cache.eld")
+      (expect (memq timer timer-idle-list) :to-be nil)
+      (expect (hash-table-count projectile--pending-cache-flush-timers)
+              :to-equal 0)))
+
+  (it "skips a remote project it would have to reconnect to"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (projectile--pending-cache-flush-timers (make-hash-table :test 'equal)))
+      (puthash "/ssh:host:/project/" '("foo.el") projectile-projects-cache)
+      (puthash "/ssh:host:/project/" (run-with-idle-timer 3600 nil #'ignore)
+               projectile--pending-cache-flush-timers)
+      (spy-on 'file-remote-p :and-call-fake
+              (lambda (_file &optional _id connected) (not connected)))
+      (spy-on 'projectile-serialize)
+      (projectile--flush-pending-caches)
+      (expect 'projectile-serialize :not :to-have-been-called))))
+
 (describe "projectile-purge-dir-from-cache"
   (it "removes files under the directory from the in-memory cache"
     (let ((projectile-projects-cache (make-hash-table :test 'equal))

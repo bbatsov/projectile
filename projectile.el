@@ -1185,11 +1185,7 @@ into a single delayed disk write per project.")
 ;; recreating the cache file we just deleted with nil contents.
 (projectile--register-project-cache-cleanup
  'projectile--pending-cache-flush-timers
- (lambda (project-root)
-   (when-let* ((timer (gethash project-root
-                               projectile--pending-cache-flush-timers)))
-     (cancel-timer timer)
-     (remhash project-root projectile--pending-cache-flush-timers))))
+ #'projectile--cancel-cache-flush)
 
 ;; Deliberately a plain defvar rather than a `projectile-define-project-cache':
 ;; the descriptors in this table are live OS resources, so the test sandbox
@@ -2087,19 +2083,37 @@ The cache is created both in memory and on the hard drive."
           "Remove file from cache: "
           (projectile-current-project-files)
           :caller 'projectile-read-file)))
-  (let* ((project-root (projectile-project-root))
-         (project-cache (gethash project-root projectile-projects-cache)))
-    (if (projectile-file-cached-p file project-root)
-        (let ((new-cache (remove file project-cache)))
-          (puthash project-root new-cache projectile-projects-cache)
+  (let ((project-root (projectile-project-root)))
+    (if (projectile--purge-file-from-cache file project-root)
+        (progn
+          ;; The command writes the cache out there and then; whatever
+          ;; `projectile--purge-file-from-cache' scheduled is redundant.
           (when (projectile-persistent-cache-p)
-            (projectile-serialize new-cache (projectile-project-cache-file project-root)))
-          ;; Re-derive watches from the shrunken cache, otherwise the purged
-          ;; file's directory keeps being watched and a later create-event
-          ;; there re-adds the entries we just removed.
-          (projectile--maybe-watch-project project-root new-cache)
+            (projectile--cancel-cache-flush project-root)
+            (projectile-serialize (gethash project-root projectile-projects-cache)
+                                  (projectile-project-cache-file project-root)))
           (projectile--message "%s removed from cache" file))
       (user-error "%s is not in the cache" file))))
+
+(defun projectile--purge-file-from-cache (file project-root)
+  "Remove FILE from PROJECT-ROOT's cached file list.
+FILE is relative to PROJECT-ROOT.  Returns non-nil when it was listed.
+
+A persistent cache is written out once Emacs is idle rather than here:
+this runs for every file Emacs deletes inside a cached project, and a
+command deleting a few hundred of them would otherwise serialize the
+whole list a few hundred times."
+  (let ((project-cache (gethash project-root projectile-projects-cache)))
+    (when (member file project-cache)
+      (let ((new-cache (remove file project-cache)))
+        (puthash project-root new-cache projectile-projects-cache)
+        (when (projectile-persistent-cache-p)
+          (projectile--schedule-cache-flush project-root))
+        ;; Re-derive watches from the shrunken cache, otherwise the purged
+        ;; file's directory keeps being watched and a later create-event
+        ;; there re-adds the entries we just removed.
+        (projectile--maybe-watch-project project-root new-cache)
+        t))))
 
 ;;;###autoload
 (defun projectile-purge-dir-from-cache (dir)
@@ -2124,21 +2138,44 @@ The cache is created both in memory and on the hard drive."
   "Check if FILE is already in PROJECT cache."
   (member file (gethash project projectile-projects-cache)))
 
+(defun projectile--cancel-cache-flush (project)
+  "Cancel the pending idle-time write of PROJECT's cache, if there is one."
+  (when-let* ((timer (gethash project projectile--pending-cache-flush-timers)))
+    (cancel-timer timer)
+    (remhash project projectile--pending-cache-flush-timers)))
+
+(defun projectile--flush-cache (project)
+  "Write PROJECT's in-memory file list to its cache file.
+Does nothing when there is no list in memory any more (the entry
+expired, say): writing nil would empty a cache file that is still good."
+  (let ((files (gethash project projectile-projects-cache 'missing)))
+    (unless (eq files 'missing)
+      (projectile-serialize files (projectile-project-cache-file project)))))
+
+(defun projectile--flush-pending-caches ()
+  "Write out every cache that is waiting for Emacs to be idle.
+On `kill-emacs-hook', so quitting before the idle timer fires does not
+leave the cache file without the latest additions and removals."
+  (dolist (project (hash-table-keys projectile--pending-cache-flush-timers))
+    (projectile--cancel-cache-flush project)
+    ;; Nothing here may get in the way of Emacs exiting: not an error, and
+    ;; not a remote host that has to be reconnected to first.
+    (when (or (not (file-remote-p project))
+              (file-remote-p project nil t))
+      (ignore-errors (projectile--flush-cache project)))))
+
 (defun projectile--schedule-cache-flush (project)
   "Arrange for PROJECT's in-memory cache to be serialized after Emacs is idle.
 A pending flush for the same PROJECT is cancelled and rescheduled, so that
 adding several files in quick succession only results in a single disk write,
 and the write always uses the latest in-memory contents."
-  (when-let* ((existing (gethash project projectile--pending-cache-flush-timers)))
-    (cancel-timer existing))
+  (projectile--cancel-cache-flush project)
   (puthash project
            (run-with-idle-timer
             30 nil
             (lambda ()
               (remhash project projectile--pending-cache-flush-timers)
-              (projectile-serialize
-               (gethash project projectile-projects-cache)
-               (projectile-project-cache-file project))))
+              (projectile--flush-cache project)))
            projectile--pending-cache-flush-timers))
 
 
@@ -2922,14 +2959,39 @@ When called interactively, always re-scans; the automatic scan (see
 
 
 (defun delete-file-projectile-remove-from-cache (filename &optional _trash)
-  (if (and projectile-enable-caching projectile-auto-update-cache (projectile-project-p))
-      (let* ((project-root (projectile-project-root))
-             (true-filename (file-truename filename))
-             (relative-filename (file-relative-name true-filename project-root)))
-        (if (projectile-file-cached-p relative-filename project-root)
-            (projectile-purge-file-from-cache relative-filename)))))
+  "Drop FILENAME from the file cache of every project that lists it.
+Advice for `delete-file', so it runs for every file Emacs deletes,
+temporary files and auto-saves included; anything not under a project
+with a file list in memory costs a few string comparisons and nothing
+else.
 
-
+The projects are found from FILENAME, not from the current buffer: the
+buffer deleting a file is often not in that file's project at all."
+  (when (and projectile-enable-caching
+             projectile-auto-update-cache
+             (not (hash-table-empty-p projectile-projects-cache)))
+    (let* ((file (expand-file-name filename))
+           ;; Roots are symlink-resolved, so the directory has to be as well
+           ;; (though never over TRAMP).  The last component is left alone: a
+           ;; symlink is listed under its own name, not its target's.
+           ;; This is advice on every deletion in Emacs, so a directory that
+           ;; cannot be resolved must not get in the way of one.
+           (file (or (and (not (file-remote-p file))
+                          (ignore-errors
+                            (expand-file-name
+                             (file-name-nondirectory file)
+                             (file-truename (file-name-directory file)))))
+                     file)))
+      (dolist (root (hash-table-keys projectile-projects-cache))
+        (when (or (string-prefix-p root file)
+                  ;; the same directory in another case, where that is so
+                  (and (string-prefix-p root file t)
+                       (not (file-remote-p root))
+                       (file-name-case-insensitive-p root)))
+          (projectile--purge-file-from-cache
+           (projectile--project-relative-name file root) root))))))
+
+
 ;;; Project root related utilities
 (defun projectile-parent (path)
   "Return the parent directory of PATH.
@@ -18078,6 +18140,7 @@ Otherwise behave as if called interactively.
     (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook t)
     (add-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions t)
     (add-hook 'kill-emacs-hook #'projectile--frecency-save)
+    (add-hook 'kill-emacs-hook #'projectile--flush-pending-caches)
     (when projectile-dynamic-mode-line
       (add-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change))
     (add-hook 'kill-emacs-hook #'projectile--teardown-all-watches)
@@ -18094,6 +18157,7 @@ Otherwise behave as if called interactively.
     (remove-hook 'dired-before-readin-hook #'projectile--maybe-run-project-changed-functions)
     (projectile--frecency-save)
     (remove-hook 'kill-emacs-hook #'projectile--frecency-save)
+    (remove-hook 'kill-emacs-hook #'projectile--flush-pending-caches)
     (remove-hook 'window-configuration-change-hook #'projectile-update-mode-line-on-window-change)
     (remove-hook 'kill-emacs-hook #'projectile--teardown-all-watches)
     (projectile--teardown-all-watches)
