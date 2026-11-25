@@ -10948,8 +10948,9 @@ searched, defaulting to just ROOT."
   "Return non-nil when the search reviewer should use the ripgrep fast-path.
 True for a LITERAL search, or for a non-literal one that supplied
 RG-PATTERN (a ripgrep-syntax equivalent of its Emacs regexp), when
-`projectile-search-use-ripgrep' is set, `rg' is available, and we are
-interactive; batch (`noninteractive') keeps the deterministic elisp scan.
+`projectile-search-use-ripgrep' is set, `rg' is available, this Emacs can
+parse the JSON it reports in, and we are interactive; batch
+\(`noninteractive') keeps the deterministic elisp scan.
 
 ROOTS are the directories the search covers, defaulting to
 `default-directory'.  A remote one rules the fast-path out: `rg' is
@@ -10959,6 +10960,7 @@ some local directory instead and report its hits under remote names."
        (or literal rg-pattern)
        (not noninteractive)
        (not (seq-some #'file-remote-p (or roots (list default-directory))))
+       (json-available-p)
        (projectile-search--rg-executable)
        t))
 

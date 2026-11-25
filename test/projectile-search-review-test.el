@@ -503,6 +503,11 @@ REGEXP-P selects `projectile-search-regexp-review'."
     (let ((noninteractive t) (projectile-search-use-ripgrep t))
       (expect (projectile-search--rg-fastpath-p t) :to-be nil)))
 
+  (it "fastpath-p needs native JSON to read what rg reports"
+    (let ((noninteractive nil) (projectile-search-use-ripgrep t))
+      (spy-on 'json-available-p :and-return-value nil)
+      (expect (projectile-search--rg-fastpath-p t) :to-be nil)))
+
   (it "fastpath-p rules out a remote root, which a local rg cannot search"
     (let ((noninteractive nil) (projectile-search-use-ripgrep t))
       (expect (projectile-search--rg-fastpath-p t nil '("/src/repo/"))
