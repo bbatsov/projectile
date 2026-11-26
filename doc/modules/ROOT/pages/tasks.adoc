@@ -67,6 +67,10 @@ doing first, so the test prompt starts with `make test` or `npm test`.
 
 image::projectile-command-prompt.gif["The test command prompt going from the project type's default through the project's own test tasks with M-n"]
 
+The prompts of `projectile-run-shell-command-in-root` (kbd:[s-p !]) and
+`projectile-run-async-shell-command-in-root` (kbd:[s-p &]) offer the task
+commands on kbd:[M-n] as well.
+
 [#history-scope]
 === History across checkouts
 

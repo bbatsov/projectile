@@ -27,6 +27,22 @@
 
 (require 'projectile-test-helpers)
 
+(describe "projectile--shell-command-suggestions"
+  (it "offers the commands of the project's tasks"
+    (spy-on 'projectile-project-root :and-return-value "/project/")
+    (spy-on 'projectile--command-suggestions :and-return-value '("make lint"))
+    (expect (projectile--shell-command-suggestions) :to-equal '("make lint"))
+    (expect 'projectile--command-suggestions
+            :to-have-been-called-with nil nil "/project/"))
+
+  (it "offers nothing outside a project, and does not ask for one"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (spy-on 'projectile-acquire-root)
+    (spy-on 'projectile--command-suggestions)
+    (expect (projectile--shell-command-suggestions) :to-be nil)
+    (expect 'projectile-acquire-root :not :to-have-been-called)
+    (expect 'projectile--command-suggestions :not :to-have-been-called)))
+
 (describe "projectile--command-suggestions"
   :var (saved-types)
   (before-each

@@ -9367,17 +9367,28 @@ Projectile project too when `projectile-mode' is enabled."
   (projectile-with-default-dir (projectile-acquire-root)
     (call-interactively #'execute-extended-command)))
 
+(defun projectile--shell-command-suggestions ()
+  "Return the commands of the current project's tasks, or nil outside one.
+They are what \\`M-n' goes through at the prompts for a shell command to
+run in the project's root (see `projectile--command-suggestions')."
+  (when-let* ((root (projectile-project-root)))
+    (projectile--command-suggestions nil nil root)))
+
 ;;;###autoload
 (defun projectile-run-shell-command-in-root (command &optional output-buffer error-buffer)
   "Invoke `shell-command' in the project's root."
-  (interactive (list (read-shell-command "Shell command: ")))
+  (interactive (list (read-shell-command
+                      "Shell command: " nil nil
+                      (projectile--shell-command-suggestions))))
   (projectile-with-default-dir (projectile-acquire-root)
     (shell-command command output-buffer error-buffer)))
 
 ;;;###autoload
 (defun projectile-run-async-shell-command-in-root (command &optional output-buffer error-buffer)
   "Invoke `async-shell-command' in the project's root."
-  (interactive (list (read-shell-command "Async shell command: ")))
+  (interactive (list (read-shell-command
+                      "Async shell command: " nil nil
+                      (projectile--shell-command-suggestions))))
   (projectile-with-default-dir (projectile-acquire-root)
     (async-shell-command command output-buffer error-buffer)))
 
