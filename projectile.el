@@ -7929,14 +7929,53 @@ Only git is supported; any other version control system returns nil."
                (projectile--git-status-changed-files root))))
         (seq-uniq (projectile--git-relativize paths root toplevel))))))
 
+(defun projectile--git-ref-suggestions (root refs)
+  "Return the revisions among REFS that work in ROOT is usually compared to.
+Likeliest first: the branch the remote treats as its default, then
+`main' or `master', the branch the current one tracks, and the latest
+tag before the commit that is checked out.  The branch that is checked
+out is left out, like a tag on its tip: comparing against either is what
+the command does without being asked.
+
+Nothing is suggested for a remote ROOT, where every question put to git
+is a round trip made before the prompt can show."
+  (unless (file-remote-p root)
+    (let* ((ask (lambda (&rest args)
+                  (when-let* ((output (apply #'projectile--git root args))
+                              (line (string-trim output))
+                              ((not (string-empty-p line))))
+                    line)))
+           (current (funcall ask "symbolic-ref" "--quiet" "--short" "HEAD"))
+           (remote-head (funcall ask "symbolic-ref" "--quiet" "--short"
+                                 "refs/remotes/origin/HEAD"))
+           (trunk (and remote-head
+                       (string-remove-prefix "origin/" remote-head)))
+           (upstream (funcall ask "rev-parse" "--abbrev-ref"
+                              "--symbolic-full-name" "@{upstream}"))
+           (tag (funcall ask "describe" "--tags" "--abbrev=0" "HEAD^")))
+      (seq-filter (lambda (ref) (member ref refs))
+                  (delete-dups
+                   (remove current
+                           (delq nil (list trunk remote-head "main" "master"
+                                           upstream tag))))))))
+
 (defun projectile--read-git-ref (root)
-  "Read a git revision to compare against, completing over ROOT\\='s branches."
-  (let ((branches (when-let* ((output (projectile--git
-                                       root "for-each-ref" "--format=%(refname:short)"
-                                       "refs/heads" "refs/remotes")))
-                    (split-string output "\n" t))))
-    (completing-read "Compare against: " branches nil nil nil nil
-                     (car (member "main" branches)))))
+  "Read a git revision to compare against, completing over ROOT\\='s own.
+The candidates are its branches and its tags, the newest tag first.  The
+default, and what \\`M-n' goes on to, are the revisions returned by
+`projectile--git-ref-suggestions'."
+  (let* ((list-refs (lambda (&rest args)
+                      (when-let* ((output (apply #'projectile--git root
+                                                 "for-each-ref"
+                                                 "--format=%(refname:short)"
+                                                 args)))
+                        (split-string output "\n" t))))
+         (refs (append (funcall list-refs "refs/heads" "refs/remotes")
+                       (funcall list-refs "--sort=-creatordate" "refs/tags")))
+         (suggestions (projectile--git-ref-suggestions root refs)))
+    (completing-read (format-prompt "Compare against" (car suggestions))
+                     (projectile--in-given-order refs)
+                     nil nil nil nil suggestions)))
 
 ;;;###autoload
 (defun projectile-find-changed-file (&optional arg)

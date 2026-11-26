@@ -660,9 +660,15 @@ actually touched rather than the whole project: everything git reports as
 staged, unstaged or untracked.
 
 With a prefix argument it asks for a revision to compare against - completing
-over the project's branches - and the candidates become everything that differs
-from it, plus anything not yet tracked. That is the "what did this branch
-change" list, which is usually what you want when picking a review back up.
+over the project's branches and tags - and the candidates become everything
+that differs from it, plus anything not yet tracked. That is the "what did this
+branch change" list, which is usually what you want when picking a review back
+up.
+
+The prompt defaults to the branch the remote treats as its default (or `main`
+or `master`), so on a feature branch kbd:[C-u s-p C] kbd:[RET] is all it takes.
+kbd:[M-n] goes on to the branch the current one tracks and to the latest tag,
+which answers "what changed since the last release".
 
 The command is git-only and says so on any other version control system. Paths
 are reported relative to the project even when it sits below the repository

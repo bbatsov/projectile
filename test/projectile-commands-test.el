@@ -1349,6 +1349,76 @@
     (projectile-find-changed-file t)
     (expect 'projectile-git-changed-files :to-have-been-called-with "/proj/" "main")))
 
+(describe "projectile--read-git-ref"
+  (defun projectile-ref-test--git (&rest args)
+    (apply #'call-process "git" nil nil nil args))
+
+  (defmacro projectile-ref-test--with-repo (&rest body)
+    "Run BODY in a repository with a tagged `main' and a `feature' branch."
+    (declare (indent 0))
+    `(projectile-test-with-sandbox
+      (projectile-test-with-files
+       ("project/" "project/base.el")
+       (let* ((root (projectile-test-project-root))
+              (default-directory root))
+         (projectile-ref-test--git "init" "-q")
+         (projectile-ref-test--git "config" "user.email" "t@t.dev")
+         (projectile-ref-test--git "config" "user.name" "T")
+         (projectile-ref-test--git "add" "-A")
+         (projectile-ref-test--git "commit" "-qm" "init")
+         (projectile-ref-test--git "branch" "-M" "main")
+         (projectile-ref-test--git "tag" "v1.0")
+         (projectile-ref-test--git "checkout" "-q" "-b" "feature")
+         (write-region ";; work\n" nil "base.el")
+         (projectile-ref-test--git "commit" "-qam" "work")
+         ,@body))))
+
+  (it "suggests the trunk and the latest tag, but not the branch checked out"
+    (projectile-ref-test--with-repo
+      (expect (projectile--git-ref-suggestions
+               root '("feature" "main" "v1.0"))
+              :to-equal '("main" "v1.0"))
+      ;; on main the tag sits on the commit checked out, so it is no use
+      (projectile-ref-test--git "checkout" "-q" "main")
+      (expect (projectile--git-ref-suggestions
+               root '("feature" "main" "v1.0"))
+              :to-be nil)))
+
+  (it "suggests nothing for a remote project"
+    (spy-on 'projectile--git)
+    (expect (projectile--git-ref-suggestions "/ssh:host:/project/" '("main"))
+            :to-be nil)
+    (expect 'projectile--git :not :to-have-been-called))
+
+  (it "puts the branch the remote treats as its default first"
+    (projectile-ref-test--with-repo
+      (projectile-ref-test--git "branch" "trunk" "main")
+      (projectile-ref-test--git "update-ref" "refs/remotes/origin/trunk" "main")
+      (projectile-ref-test--git "symbolic-ref" "refs/remotes/origin/HEAD"
+                                "refs/remotes/origin/trunk")
+      (expect (projectile--git-ref-suggestions
+               root '("feature" "main" "trunk" "origin/trunk" "v1.0"))
+              :to-equal '("trunk" "origin/trunk" "main" "v1.0"))))
+
+  (it "suggests only revisions that exist"
+    (projectile-ref-test--with-repo
+      (expect (projectile--git-ref-suggestions root '("feature"))
+              :to-be nil)))
+
+  (it "completes over branches and tags, with the suggestions as defaults"
+    (projectile-ref-test--with-repo
+      (let (prompt candidates defaults)
+        (spy-on 'completing-read :and-call-fake
+                (lambda (p table &rest rest)
+                  (setq prompt p
+                        candidates (all-completions "" table)
+                        defaults (nth 4 rest))
+                  "main"))
+        (expect (projectile--read-git-ref root) :to-equal "main")
+        (expect prompt :to-match "Compare against.*main")
+        (expect candidates :to-equal '("feature" "main" "v1.0"))
+        (expect defaults :to-equal '("main" "v1.0"))))))
+
 (describe "projectile-use-comint-mode-p"
   (it "makes no command interactive when nil"
     (let ((projectile-use-comint-mode nil))
