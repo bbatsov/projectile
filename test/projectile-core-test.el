@@ -481,6 +481,59 @@
       (expect (alist-get 'category (cdr (funcall table "" nil 'metadata)))
               :to-be 'buffer))))
 
+(describe "projectile-completing-read defaults"
+  (before-each
+    (spy-on 'projectile-prepend-project-name :and-call-fake
+            (lambda (prompt) (concat "[proj] " prompt))))
+
+  (it "hands the default to completing-read and shows it in the prompt"
+    (let (prompt default)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (p &rest rest) (setq prompt p default (nth 5 rest)) "b"))
+      (projectile-completing-read "Pick: " '("a" "b") :default "b")
+      (expect default :to-equal "b")
+      (expect prompt :to-equal "[proj] Pick (default b): ")))
+
+  (it "leaves the prompt alone without a default"
+    (let (prompt default)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (p &rest rest) (setq prompt p default (nth 5 rest)) "a"))
+      (projectile-completing-read "Pick: " '("a" "b"))
+      (expect default :to-be nil)
+      (expect prompt :to-equal "[proj] Pick: ")))
+
+  (it "defaults a buffer switch to the most recent other project buffer"
+    (let (default)
+      (spy-on 'projectile-project-buffer-names :and-return-value
+              (list (buffer-name) "recent" "older"))
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_p &rest rest) (setq default (nth 5 rest)) "recent"))
+      (projectile-read-buffer-to-switch "Switch: ")
+      (expect default :to-equal "recent"))))
+
+(describe "projectile--read-cached-project"
+  (it "defaults to the current project when it has a cache"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          prompt default)
+      (puthash "/a/" '("x") projectile-projects-cache)
+      (puthash "/b/" '("y") projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/b/")
+      (spy-on 'completing-read :and-call-fake
+              (lambda (p &rest rest) (setq prompt p default (nth 5 rest)) "/b/"))
+      (projectile--read-cached-project "Remove cache for")
+      (expect default :to-equal "/b/")
+      (expect prompt :to-equal "Remove cache for (default /b/): ")))
+
+  (it "has no default when the current project is not cached"
+    (let ((projectile-projects-cache (make-hash-table :test 'equal))
+          (default 'unset))
+      (puthash "/a/" '("x") projectile-projects-cache)
+      (spy-on 'projectile-project-root :and-return-value "/b/")
+      (spy-on 'completing-read :and-call-fake
+              (lambda (_p &rest rest) (setq default (nth 5 rest)) "/a/"))
+      (projectile--read-cached-project "Remove cache for")
+      (expect default :to-be nil))))
+
 (describe "Embark integration"
   (it "resolves a project-file target that exists under the root"
     (spy-on 'projectile-project-root :and-return-value "/proj/")

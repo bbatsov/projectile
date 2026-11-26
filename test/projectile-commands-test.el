@@ -1479,6 +1479,45 @@
 ;; find-file-in-subproject offering nothing in a Go workspace.  One spec each,
 ;; asking only whether the command reaches its destination.
 
+(describe "projectile--subproject-containing"
+  (it "finds the subproject a file is in"
+    (expect (projectile--subproject-containing
+             "/proj/lib/src/util.js" '("app/" "lib/") "/proj/")
+            :to-equal "lib/"))
+
+  (it "prefers the innermost of nested subprojects"
+    (expect (projectile--subproject-containing
+             "/proj/lib/core/a.js" '("lib/" "lib/core/") "/proj/")
+            :to-equal "lib/core/"))
+
+  (it "returns nil for a file outside every subproject"
+    (expect (projectile--subproject-containing
+             "/proj/README.md" '("app/" "lib/") "/proj/")
+            :to-be nil)
+    ;; a directory merely sharing a prefix with a subproject is not in it
+    (expect (projectile--subproject-containing
+             "/proj/library/a.js" '("lib/") "/proj/")
+            :to-be nil))
+
+  (it "is what the subproject prompt defaults to"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-subprojects :and-return-value '("app/" "lib/"))
+    (spy-on 'projectile-project-files :and-return-value '("lib/util.js"))
+    (spy-on 'find-file)
+    (let (default)
+      (spy-on 'projectile-completing-read :and-call-fake
+              (lambda (prompt _choices &rest keys)
+                (when (string-prefix-p "Subproject" prompt)
+                  (setq default (plist-get keys :default)))
+                (if (string-prefix-p "Subproject" prompt) "lib/" "lib/util.js")))
+      (with-temp-buffer
+        (setq buffer-file-name "/proj/lib/util.test.js")
+        (unwind-protect
+            (projectile-find-file-in-subproject)
+          (set-buffer-modified-p nil)
+          (setq buffer-file-name nil)))
+      (expect default :to-equal "lib/"))))
+
 (describe "projectile-find-file"
   (it "opens the chosen file, resolved against the project root"
     (projectile-test-with-project

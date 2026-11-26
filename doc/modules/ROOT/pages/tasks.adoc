@@ -114,6 +114,8 @@ the project name appended when `projectile-compilation-buffer-scope` includes
 
 image::projectile-run-task.png[projectile-run-task prompting for one of the project's tasks]
 
+The task you ran last in the project is the default at the prompt.
+
 A task's command is either a shell command string or a function called with no
 arguments (with `default-directory` at the project root) that returns one.
 
@@ -273,7 +275,8 @@ without running the tool. A polyglot repository works either way: a
 `Cargo.toml` under a `package.json` project is still a subproject.
 
 * `projectile-find-file-in-subproject` (kbd:[s-p c m f]) prompts for a
-  subproject and then completes over just its files.
+  subproject and then completes over just its files. The subproject of the
+  file you're in is the default.
 +
 image::projectile-find-file-in-subproject.png["The subproject prompt, listing the parts of a monorepo"]
 * Every lifecycle command has a subproject variant, bound one level down from

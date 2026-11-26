@@ -388,6 +388,33 @@ main.o: main.c
       (expect (ring-elements (projectile--get-command-history "/proj/"))
               :to-equal '("make lint"))))
 
+  (it "defaults to the task run last in the project"
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-completing-read :and-return-value "lint")
+    (let ((projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-last-task-map (make-hash-table :test 'equal))
+          (projectile-tasks '(("build" . "make") ("lint" . "make lint"))))
+      (projectile-run-task nil)
+      (expect (plist-get (cddr (spy-calls-args-for 'projectile-completing-read 0))
+                         :default)
+              :to-be nil)
+      (projectile-run-task nil)
+      (expect (plist-get (cddr (spy-calls-args-for 'projectile-completing-read 1))
+                         :default)
+              :to-equal "lint")))
+
+  (it "has no default when the last task is gone"
+    (spy-on 'projectile-run-compilation)
+    (spy-on 'projectile-completing-read :and-return-value "build")
+    (let ((projectile-project-command-history (make-hash-table :test 'equal))
+          (projectile-last-task-map (make-hash-table :test 'equal))
+          (projectile-tasks '(("build" . "make"))))
+      (puthash "/proj/" '("deploy" . "make deploy") projectile-last-task-map)
+      (projectile-run-task nil)
+      (expect (plist-get (cddr (spy-calls-args-for 'projectile-completing-read 0))
+                         :default)
+              :to-be nil)))
+
   (it "gives a task an interactive buffer when comint mode covers everything"
     ;; A task can be something like a sudo rebuild, which is unusable in a
     ;; read-only compilation buffer - there's nowhere to type the password

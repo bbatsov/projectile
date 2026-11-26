@@ -1965,6 +1965,14 @@ file)."
   (dolist (entry projectile--project-cache-cleanups)
     (funcall (cdr entry) project-root)))
 
+(defun projectile--read-cached-project (prompt)
+  "Read the root of a project with cached files, prompting with PROMPT.
+The current project is the default when it has a cache."
+  (let* ((roots (hash-table-keys projectile-projects-cache))
+         (default (car (member (projectile-project-root) roots))))
+    (completing-read (format-prompt prompt default) roots
+                     nil nil nil nil default)))
+
 ;;;###autoload
 (defun projectile-invalidate-cache (prompt)
   "Remove the current project's files from `projectile-projects-cache'.
@@ -1987,8 +1995,7 @@ argument)."
   (clrhash projectile-file-exists-cache)
   (when-let* ((project-root
               (if prompt
-                  (completing-read "Remove cache for: "
-                                   (hash-table-keys projectile-projects-cache))
+                  (projectile--read-cached-project "Remove cache for")
                 (projectile-project-root))))
     (projectile--invalidate-project-cache project-root)
     (projectile--message "Invalidated cache for %s"
@@ -4673,13 +4680,14 @@ opened through use of recentf."
   "Read the name of a buffer to switch to, prompting with PROMPT.
 
 This function excludes the current buffer from the offered
-choices."
-  (projectile-completing-read
-   prompt
-   (delete (buffer-name (current-buffer))
-           (projectile-project-buffer-names))
-   :category 'buffer
-   :caller 'projectile-read-buffer))
+choices.  The default is the project's most recently selected buffer
+other than the current one."
+  (let ((names (delete (buffer-name (current-buffer))
+                       (projectile-project-buffer-names))))
+    (projectile-completing-read prompt names
+                                :category 'buffer
+                                :default (car names)
+                                :caller 'projectile-read-buffer)))
 
 ;;; Other window/frame display variants
 ;;
@@ -5161,7 +5169,7 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
-(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function annotation-function (category 'project-file))
+(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function annotation-function (category 'project-file) default)
   "Present a project tailored PROMPT with CHOICES.
 
 Reads with `completing-read', unless `projectile-completion-system' is a
@@ -5185,13 +5193,21 @@ appropriately; it defaults to `project-file' (the candidates are project
 files) and should be overridden when they are not - e.g. `buffer' for a
 buffer switch or `file' for a directory.  A nil CATEGORY omits it.
 
+DEFAULT is the answer an empty input stands for, as in
+`completing-read'; it is shown in the prompt.  It does not reach a
+function set as `projectile-completion-system'.
+
 CALLER is accepted for backward compatibility but no longer used."
   (ignore caller)
   (let* ((prompt (projectile-prepend-project-name prompt))
          (res (if (functionp projectile-completion-system)
                   (funcall projectile-completion-system prompt choices)
                 (completing-read
-                 prompt
+                 (if default
+                     (format-prompt (replace-regexp-in-string
+                                     " *: *\\'" "" prompt)
+                                    default)
+                   prompt)
                  (lambda (string pred action)
                    ;; The completion category lets packages like marginalia
                    ;; and embark enhance how candidates are presented.
@@ -5203,7 +5219,7 @@ CALLER is accepted for backward compatibility but no longer used."
                                       `((display-sort-function . ,sort-function)
                                         (cycle-sort-function . ,sort-function))))
                      (complete-with-action action choices string pred)))
-                 nil nil initial-input))))
+                 nil nil initial-input nil default))))
     (if action (funcall action res) res)))
 
 ;;; Listing a project's files and directories
@@ -13462,6 +13478,19 @@ if no subproject is found between DIR and the project root."
     (or result
         (user-error "No subproject found between current directory and project root"))))
 
+(defun projectile--subproject-containing (file subprojects project-root)
+  "Return the one of SUBPROJECTS that FILE is in, or nil.
+SUBPROJECTS are directories relative to PROJECT-ROOT, as
+`projectile-project-subprojects' returns them.  The innermost one wins
+when they nest."
+  (let ((relative (file-relative-name (file-truename file)
+                                      (expand-file-name project-root)))
+        innermost)
+    (dolist (subproject subprojects innermost)
+      (when (and (string-prefix-p subproject relative)
+                 (length> subproject (length innermost)))
+        (setq innermost subproject)))))
+
 ;;;###autoload
 (defun projectile-find-file-in-subproject ()
   "Jump to a file in one of the current project's subprojects.
@@ -13472,7 +13501,11 @@ that part of the repository."
          (subprojects (projectile-project-subprojects project-root)))
     (unless subprojects
       (user-error "No subprojects found in %s" project-root))
-    (let* ((subproject (projectile-completing-read "Subproject: " subprojects))
+    (let* ((subproject (projectile-completing-read
+                        "Subproject: " subprojects
+                        :default (projectile--subproject-containing
+                                  (or (buffer-file-name) default-directory)
+                                  subprojects project-root)))
            ;; Narrow the project's own listing rather than indexing the
            ;; subdirectory afresh: it's already there, and indexing the
            ;; subdirectory as if it were a project of its own would drop
@@ -14469,10 +14502,15 @@ compilation buffer named after the task."
   (interactive "P")
   ;; Establish we're in a project before prompting, so the task menu
   ;; doesn't pop up (with globally-defined tasks) outside one.
-  (let ((tasks (projectile-project-tasks nil (projectile-acquire-root))))
+  (let* ((project-root (projectile-acquire-root))
+         (tasks (projectile-project-tasks nil project-root)))
     (unless tasks
       (user-error "No tasks defined for the current project"))
-    (let* ((task-name (projectile-completing-read "Run task: " (mapcar #'car tasks)))
+    (let* ((last-task (car (gethash project-root projectile-last-task-map)))
+           (task-name (projectile-completing-read
+                       "Run task: " (mapcar #'car tasks)
+                       ;; a task that has since been removed is no default
+                       :default (car (assoc last-task tasks))))
            (task (assoc task-name tasks)))
       (unless task
         (user-error "No task named `%s' in the current project" task-name))
