@@ -303,6 +303,14 @@ flush) or by its project-relative file name (kbd:[K] keep, kbd:[D] flush).
 Filtering only hides matches from the current list; re-running the search
 (kbd:[g]) gathers from scratch and brings them back.
 
+The file filters suggest regexps so you rarely have to write one. The default
+is the directory of the match at point, and kbd:[M-n] goes on to that file's
+extension, the file itself and then the top-level directories with matches in
+them, busiest first. Getting the tests out of the way is kbd:[D] kbd:[RET] with
+point on any match in a test:
+
+image::projectile-filter-prompt.gif["Flushing every match under test/ from the search results by accepting the default the prompt suggests"]
+
 Applying edits a file's matches from the bottom up so earlier edits don't
 disturb later ones, edits already-open buffers in place under a single undo
 step (and saves them), and writes closed files back to disk preserving their

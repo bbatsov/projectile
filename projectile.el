@@ -10925,15 +10925,56 @@ Honors the buffer's case setting."
   (projectile-replace--filter-by
    (lambda (m) (not (projectile-replace--line-matches-p m regexp)))))
 
+(defun projectile-replace--file-filter-suggestions ()
+  "Return regexps worth offering when filtering the results by file.
+The ones made from the file of the match at point come first - its
+directory, its extension and the file itself - followed by the top-level
+directories with matches in them, the one with the most matches first."
+  (let* ((root projectile-replace--root)
+         (names (make-hash-table :test 'equal))
+         (relative (lambda (m)
+                     (let ((file (projectile-replace--match-file m)))
+                       (or (gethash file names)
+                           (puthash file (file-relative-name file root)
+                                    names)))))
+         (counts (make-hash-table :test 'equal))
+         (here (when-let* ((m (projectile-replace--match-at-point)))
+                 (funcall relative m)))
+         directories)
+    (dolist (m projectile-replace--matches)
+      (let ((name (funcall relative m)))
+        (when (string-match "\\`[^/]+/" name)
+          (let ((top (match-string 0 name)))
+            (puthash top (1+ (gethash top counts 0)) counts)))))
+    (maphash (lambda (directory count) (push (cons directory count) directories))
+             counts)
+    (delete-dups
+     (append
+      (when here
+        (delq nil
+              (list (when-let* ((directory (file-name-directory here)))
+                      (concat "^" (regexp-quote directory)))
+                    (when-let* ((extension (file-name-extension here)))
+                      (concat (regexp-quote (concat "." extension)) "$"))
+                    (concat "^" (regexp-quote here) "$"))))
+      (mapcar (lambda (entry) (concat "^" (regexp-quote (car entry))))
+              (sort directories
+                    (lambda (a b)
+                      (if (= (cdr a) (cdr b))
+                          (string< (car a) (car b))
+                        (> (cdr a) (cdr b))))))))))
+
 (defun projectile-replace--keep-files (regexp)
   "Keep only matches whose project-relative file matches REGEXP."
-  (interactive (list (read-regexp "Keep matches whose file matches regexp")))
+  (interactive (list (read-regexp "Keep matches whose file matches regexp"
+                                  (projectile-replace--file-filter-suggestions))))
   (projectile-replace--filter-by
    (lambda (m) (projectile-replace--file-matches-p m regexp))))
 
 (defun projectile-replace--flush-files (regexp)
   "Remove matches whose project-relative file matches REGEXP."
-  (interactive (list (read-regexp "Flush matches whose file matches regexp")))
+  (interactive (list (read-regexp "Flush matches whose file matches regexp"
+                                  (projectile-replace--file-filter-suggestions))))
   (projectile-replace--filter-by
    (lambda (m) (not (projectile-replace--file-matches-p m regexp)))))
 

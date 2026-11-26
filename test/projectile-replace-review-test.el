@@ -578,6 +578,51 @@ REGEXP-P selects `projectile-replace-regexp-review'."
         (expect (projectile-test-disk "lib/skip.txt")
                 :to-equal "foo\n")))))
 
+(describe "projectile-replace--file-filter-suggestions"
+  (it "offers the file at point's directory, extension and name, then the busiest directories"
+    (projectile-test-with-project
+        (("top.txt" . "foo\n")
+         ("lib/a.txt" . "foo\nfoo\n")
+         ("lib/sub/b.txt" . "foo\n")
+         ("test/c.el" . "foo\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (while (not (when-let* ((m (projectile-replace--match-at-point)))
+                        (string-suffix-p "c.el" (projectile-replace--match-file m))))
+            (forward-line 1))
+          (expect (projectile-replace--file-filter-suggestions)
+                  :to-equal '("^test/" "\\.el$" "^test/c\\.el$" "^lib/"))))))
+
+  (it "offers the directories alone when point is not on a match"
+    (projectile-test-with-project
+        (("top.txt" . "foo\n")
+         ("lib/a.txt" . "foo\nfoo\n")
+         ("test/c.el" . "foo\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (expect (projectile-replace--match-at-point) :to-be nil)
+          (expect (projectile-replace--file-filter-suggestions)
+                  :to-equal '("^lib/" "^test/"))))))
+
+  (it "hands them to the prompts that filter by file"
+    (projectile-test-with-project
+        (("lib/a.txt" . "foo\n")
+         ("test/c.el" . "foo\n"))
+      (projectile-test-use-plain-grep)
+      (let ((buf (projectile-replace-review-test--run "foo" "bar")))
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (spy-on 'read-regexp :and-return-value "^lib/")
+          (call-interactively #'projectile-replace--flush-files)
+          (expect (spy-calls-args-for 'read-regexp 0)
+                  :to-equal '("Flush matches whose file matches regexp"
+                              ("^lib/" "^test/")))
+          (expect (length projectile-replace--matches) :to-equal 1))))))
+
 (describe "projectile-replace-review status header"
   (it "reflects the mode flags and updates when they toggle"
     (projectile-test-with-project
