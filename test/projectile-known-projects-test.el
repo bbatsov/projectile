@@ -117,6 +117,28 @@
         (ignore-errors (delete-directory outside t))
         (delete-file projectile-known-projects-file nil)))))
 
+(describe "projectile--read-project-to-add"
+  (before-each
+    (spy-on 'read-directory-name :and-return-value "/answer/"))
+
+  (it "starts at the root of a project that is not a known one yet"
+    (spy-on 'projectile-project-root :and-return-value "/work/new/")
+    (let ((projectile-known-projects '("/work/old/")))
+      (expect (projectile--read-project-to-add "Add: ") :to-equal "/answer/")
+      (expect 'read-directory-name
+              :to-have-been-called-with "Add: " "/work/new/")))
+
+  (it "starts wherever the buffer is in a project that is known already"
+    (spy-on 'projectile-project-root :and-return-value "/work/old/")
+    (let ((projectile-known-projects '("/work/old/")))
+      (projectile--read-project-to-add "Add: ")
+      (expect 'read-directory-name :to-have-been-called-with "Add: " nil)))
+
+  (it "starts wherever the buffer is outside a project"
+    (spy-on 'projectile-project-root :and-return-value nil)
+    (projectile--read-project-to-add "Add: ")
+    (expect 'read-directory-name :to-have-been-called-with "Add: " nil)))
+
 (describe "projectile-add-known-project"
   :var (projectile-known-projects-file)
   (before-each

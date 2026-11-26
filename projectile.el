@@ -14983,10 +14983,22 @@ the symlinks of every entry of the option."
         (and (functionp projectile-ignored-project-function)
              (funcall projectile-ignored-project-function project-root)))))
 
+(defun projectile--read-project-to-add (prompt)
+  "Read the directory of a project to add to the known ones, with PROMPT.
+In a project that is not a known one yet the prompt starts at its root
+instead of wherever in it the current buffer happens to be: that root is
+what is about to be added more often than not."
+  (read-directory-name
+   prompt
+   (when-let* ((root (projectile-project-root))
+               ((not (member (projectile--known-project-root root)
+                             projectile-known-projects))))
+     root)))
+
 ;;;###autoload
 (defun projectile-add-known-project (project-root)
   "Add PROJECT-ROOT to the list of known projects."
-  (interactive (list (read-directory-name "Add to known projects: ")))
+  (interactive (list (projectile--read-project-to-add "Add to known projects: ")))
   (unless (projectile-ignored-project-p project-root)
     (push (projectile--known-project-root project-root) projectile-known-projects)
     (setq projectile-known-projects (seq-uniq projectile-known-projects))
@@ -14997,7 +15009,8 @@ the symlinks of every entry of the option."
   "Add PROJECT-ROOT to the list of known projects and switch to it.
 This combines `projectile-add-known-project' and
 `projectile-switch-project-by-name' into a single command."
-  (interactive (list (read-directory-name "Add and switch to project: ")))
+  (interactive (list (projectile--read-project-to-add
+                      "Add and switch to project: ")))
   (projectile-add-known-project project-root)
   (projectile-switch-project-by-name (file-name-as-directory project-root)))
 
