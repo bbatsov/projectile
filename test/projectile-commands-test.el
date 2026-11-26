@@ -1518,6 +1518,176 @@
           (setq buffer-file-name nil)))
       (expect default :to-equal "lib/"))))
 
+(describe "projectile--files-named-at-point"
+  :var ((files '("README.md" "src/util.js" "src/app/util.js" "test/util.test.js"
+                 "lib/store.el")))
+  (it "finds the files a bare file name could be"
+    (with-temp-buffer
+      (insert "see util.js for details")
+      (search-backward "til")
+      (expect (projectile--files-named-at-point files "/proj/")
+              :to-equal '("src/util.js" "src/app/util.js"))))
+
+  (it "matches a partial path at a directory boundary"
+    (with-temp-buffer
+      (insert "import ./app/util.js")
+      (search-backward "app")
+      (expect (projectile--files-named-at-point files "/proj/")
+              :to-equal '("src/app/util.js"))))
+
+  (it "ignores a trailing line number"
+    (with-temp-buffer
+      (insert "README.md:12:3: typo")
+      (goto-char (point-min))
+      (expect (projectile--files-named-at-point files "/proj/")
+              :to-equal '("README.md"))))
+
+  (it "matches a name without its extension"
+    (with-temp-buffer
+      (insert "(require 'store)")
+      (search-backward "tor")
+      (expect (projectile--files-named-at-point files "/proj/")
+              :to-equal '("lib/store.el")))
+    (with-temp-buffer
+      (insert "import ./app/util")
+      (search-backward "app")
+      (expect (projectile--files-named-at-point files "/proj/")
+              :to-equal '("src/app/util.js"))))
+
+  (it "ignores what follows the name in a sentence or a backtrace"
+    (dolist (text '("in README.md, then" "see README.md." "README.md:"
+                    "README.md:12:in 'render'"))
+      (with-temp-buffer
+        (insert text)
+        (search-backward "READ")
+        (expect (projectile--files-named-at-point files "/proj/")
+                :to-equal '("README.md")))))
+
+  (it "does not take a longer name for the one at point"
+    (with-temp-buffer
+      (insert "til.js")
+      (goto-char (point-min))
+      (expect (projectile--files-named-at-point files "/proj/") :to-be nil)))
+
+  (it "resolves an absolute name inside the project"
+    (with-temp-buffer
+      (insert "/proj/lib/store.el")
+      (goto-char (point-min))
+      (expect (projectile--files-named-at-point files "/proj/")
+              :to-equal '("lib/store.el"))))
+
+  (it "returns nothing when point names no file of the project"
+    (with-temp-buffer
+      (insert "nothing /elsewhere/lib/store.el")
+      (goto-char (point-min))
+      (expect (projectile--files-named-at-point files "/proj/") :to-be nil)
+      (goto-char (point-max))
+      (expect (projectile--files-named-at-point files "/proj/") :to-be nil))
+    (with-temp-buffer
+      (expect (projectile--files-named-at-point files "/proj/") :to-be nil))))
+
+(describe "projectile--find-file-suggestions"
+  :var ((files '("src/util.js" "src/util.css" "test/util.test.js" "README.md")))
+  (before-each
+    (spy-on 'projectile-project-root :and-return-value "/proj/"))
+
+  (it "offers the file at point, then the test, then the other files"
+    (spy-on 'projectile-test-file-p :and-return-value nil)
+    (spy-on 'projectile--find-matching-test :and-return-value
+            '("test/util.test.js"))
+    (spy-on 'projectile-get-other-files :and-return-value '("src/util.css"))
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/src/util.js")
+      (insert "see README.md")
+      (set-buffer-modified-p nil)
+      (search-backward "READ")
+      (unwind-protect
+          (expect (projectile--find-file-suggestions "/proj/" files)
+                  :to-equal '("README.md" "test/util.test.js" "src/util.css"))
+        (setq buffer-file-name nil))))
+
+  (it "offers the implementation from a test"
+    (spy-on 'projectile-test-file-p :and-return-value t)
+    (spy-on 'projectile--find-matching-file :and-return-value '("src/util.js"))
+    (spy-on 'projectile-get-other-files :and-return-value nil)
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/test/util.test.js")
+      (unwind-protect
+          (expect (projectile--find-file-suggestions "/proj/" files)
+                  :to-equal '("src/util.js"))
+        (setq buffer-file-name nil))))
+
+  (it "drops a counterpart that does not exist and survives one that signals"
+    (spy-on 'projectile-test-file-p :and-return-value nil)
+    (spy-on 'projectile--find-matching-test :and-return-value
+            '("test/missing.test.js"))
+    (spy-on 'projectile-get-other-files :and-call-fake
+            (lambda (&rest _) (error "No other files")))
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/src/util.js")
+      (unwind-protect
+          (expect (projectile--find-file-suggestions "/proj/" files) :to-be nil)
+        (setq buffer-file-name nil))))
+
+  (it "hands the listing it was given to the helpers instead of listing again"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-files)
+    (spy-on 'projectile-test-file-p :and-return-value nil)
+    (let (seen)
+      (spy-on 'projectile--find-matching-test :and-call-fake
+              (lambda (&rest _)
+                (setq seen (projectile-current-project-files))
+                nil))
+      (spy-on 'projectile-get-other-files :and-return-value nil)
+      (with-temp-buffer
+        (setq buffer-file-name "/proj/src/util.js")
+        (unwind-protect
+            (projectile--find-file-suggestions "/proj/" files)
+          (setq buffer-file-name nil)))
+      (expect seen :to-be files)
+      (expect 'projectile-project-files :not :to-have-been-called)))
+
+  (it "goes by the project of the file while another project is being switched to"
+    ;; `projectile-switch-project' rebinds `default-directory', so the
+    ;; buffer answers for the project being switched to.
+    (spy-on 'projectile-project-root :and-call-fake
+            (lambda (&optional dir) (if dir "/proj/" "/other/")))
+    (spy-on 'projectile--find-matching-test)
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/src/util.js")
+      (unwind-protect
+          (expect (projectile--find-file-suggestions "/other/" files) :to-be nil)
+        (setq buffer-file-name nil))
+      (expect 'projectile--find-matching-test :not :to-have-been-called)))
+
+  (it "is what the find file prompt offers"
+    (spy-on 'projectile-acquire-root :and-return-value "/proj/")
+    (spy-on 'projectile-project-files :and-return-value files)
+    (spy-on 'projectile--find-file-suggestions :and-return-value '("README.md"))
+    (spy-on 'find-file)
+    (let (suggestions)
+      (spy-on 'projectile-completing-read :and-call-fake
+              (lambda (_prompt _choices &rest keys)
+                (setq suggestions (funcall (plist-get keys :suggestions)))
+                "README.md"))
+      (projectile-find-file)
+      (expect suggestions :to-equal '("README.md"))
+      (expect 'projectile--find-file-suggestions
+              :to-have-been-called-with "/proj/" files)))
+
+  (it "sticks to the file at point in a buffer of another project"
+    (spy-on 'projectile--find-matching-test)
+    (with-temp-buffer
+      (setq buffer-file-name "/proj/src/util.js")
+      (insert "README.md")
+      (set-buffer-modified-p nil)
+      (goto-char (point-min))
+      (unwind-protect
+          (expect (projectile--find-file-suggestions "/other/" files)
+                  :to-equal '("README.md"))
+        (setq buffer-file-name nil))
+      (expect 'projectile--find-matching-test :not :to-have-been-called))))
+
 (describe "projectile-find-file"
   (it "opens the chosen file, resolved against the project root"
     (projectile-test-with-project

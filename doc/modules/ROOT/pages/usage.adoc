@@ -43,6 +43,17 @@ Projectile's completion categories integrate with nicely):
 
 image::projectile-find-file.gif[projectile-find-file narrowing the project's files in the minibuffer]
 
+Often the file you're after is one the current buffer already points to. At the
+kbd:[s-p f] prompt kbd:[M-n] brings up the file named at point (a bare name, a
+relative path, an import that leaves the extension out, a name followed by a
+line number),
+then the test of the file you're in (or the implementation, if you're in the
+test) and its other files, the way `projectile-find-other-file` understands
+them. After those it carries on through the rest of the project's files, as
+it always did.
+
+image::projectile-find-file-suggestions.gif["The find file prompt bringing up the file imported at point with M-n, then the test of the current file"]
+
 And this is what switching projects (kbd:[s-p p]) looks like:
 
 image::projectile-switch-project.png[projectile-switch-project prompting for one of the known projects]

@@ -5169,7 +5169,26 @@ Never use on many files since it's going to recalculate the
 project-root for every file."
   (expand-file-name name (projectile-project-root dir)))
 
-(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function annotation-function (category 'project-file) default)
+(defun projectile--suggestions-before-completions (suggestions)
+  "Return a `minibuffer-default-add-function' that offers SUGGESTIONS first.
+SUGGESTIONS is a function returning a list of strings.  It is called in
+the buffer the minibuffer was entered from, the first time
+\\`M-n' runs out of defaults, so a prompt answered without it never pays
+for them.  The usual walk through the completion candidates follows."
+  (lambda ()
+    (let ((suggested (when-let* ((window (minibuffer-selected-window)))
+                       (with-selected-window window
+                         ;; a suggestion is not worth a remote connection
+                         (let ((non-essential t))
+                           (funcall suggestions))))))
+      ;; The defaults lead the list `minibuffer-default-add-completions'
+      ;; returns too, and naming them first keeps them ahead of the
+      ;; suggestions once the duplicates go.
+      (delete-dups (append (ensure-list minibuffer-default)
+                           suggested
+                           (minibuffer-default-add-completions))))))
+
+(cl-defun projectile-completing-read (prompt choices &key initial-input action caller sort-function annotation-function (category 'project-file) default suggestions)
   "Present a project tailored PROMPT with CHOICES.
 
 Reads with `completing-read', unless `projectile-completion-system' is a
@@ -5194,32 +5213,41 @@ files) and should be overridden when they are not - e.g. `buffer' for a
 buffer switch or `file' for a directory.  A nil CATEGORY omits it.
 
 DEFAULT is the answer an empty input stands for, as in
-`completing-read'; it is shown in the prompt.  It does not reach a
-function set as `projectile-completion-system'.
+`completing-read'; it is shown in the prompt.  SUGGESTIONS is a function
+returning further likely answers, offered after DEFAULT on \\`M-n'.  It
+is only called when the user gets that far, in the buffer the command
+was invoked from.  Neither reaches a function set as
+`projectile-completion-system'.
 
 CALLER is accepted for backward compatibility but no longer used."
   (ignore caller)
   (let* ((prompt (projectile-prepend-project-name prompt))
          (res (if (functionp projectile-completion-system)
                   (funcall projectile-completion-system prompt choices)
-                (completing-read
-                 (if default
-                     (format-prompt (replace-regexp-in-string
-                                     " *: *\\'" "" prompt)
-                                    default)
-                   prompt)
-                 (lambda (string pred action)
-                   ;; The completion category lets packages like marginalia
-                   ;; and embark enhance how candidates are presented.
-                   (if (eq action 'metadata)
-                       `(metadata ,@(when category `((category . ,category)))
-                                  ,@(when annotation-function
-                                      `((annotation-function . ,annotation-function)))
-                                  ,@(when sort-function
-                                      `((display-sort-function . ,sort-function)
-                                        (cycle-sort-function . ,sort-function))))
-                     (complete-with-action action choices string pred)))
-                 nil nil initial-input nil default))))
+                (minibuffer-with-setup-hook
+                    (lambda ()
+                      (when suggestions
+                        (setq-local minibuffer-default-add-function
+                                    (projectile--suggestions-before-completions
+                                     suggestions))))
+                  (completing-read
+                   (if default
+                       (format-prompt (replace-regexp-in-string
+                                       " *: *\\'" "" prompt)
+                                      default)
+                     prompt)
+                   (lambda (string pred action)
+                     ;; The completion category lets packages like marginalia
+                     ;; and embark enhance how candidates are presented.
+                     (if (eq action 'metadata)
+                         `(metadata ,@(when category `((category . ,category)))
+                                    ,@(when annotation-function
+                                        `((annotation-function . ,annotation-function)))
+                                    ,@(when sort-function
+                                        `((display-sort-function . ,sort-function)
+                                          (cycle-sort-function . ,sort-function))))
+                       (complete-with-action action choices string pred)))
+                   nil nil initial-input nil default)))))
     (if action (funcall action res) res)))
 
 ;;; Listing a project's files and directories
@@ -5320,9 +5348,17 @@ CALLER is accepted for backward compatibility but no longer used."
         files
       (projectile-sort-files files))))
 
+(defvar projectile--listed-files nil
+  "A project root consed onto a listing of its files already in hand.
+Bound around code that asks for `projectile-current-project-files' while
+its caller holds the list, so the project is not listed again.")
+
 (defun projectile-current-project-files ()
   "Return a list of the files in the current project."
-  (projectile-project-files (projectile-acquire-root)))
+  (let ((root (projectile-acquire-root)))
+    (if (equal root (car projectile--listed-files))
+        (cdr projectile--listed-files)
+      (projectile-project-files root))))
 
 (defun projectile-process-current-project-files (action)
   "Process the current project's files using ACTION."
@@ -5565,6 +5601,62 @@ See `projectile-find-file-dwim' for the details of how the file at
 point is used to narrow down the candidates."
   (projectile--find-file-dwim invalidate-cache #'find-file-other-window))
 
+(defun projectile--files-named-at-point (files project-root)
+  "Return the ones among FILES that the text at point names.
+FILES are relative to PROJECT-ROOT.  A name matches the files whose path
+ends with it, so a bare file name and a path relative to some directory
+both find their file.  The extension may be left out, which covers a
+`require' or an import.  A trailing line number is ignored, and so is
+the punctuation of the sentence the name sits in."
+  (when-let* ((name (thing-at-point 'filename t))
+              (name (if (file-name-absolute-p name)
+                        (let ((root (expand-file-name project-root))
+                              ;; the root is a truename; what was typed
+                              ;; into a buffer need not be
+                              (name (if (file-remote-p name)
+                                        name
+                                      (file-truename name))))
+                          (and (string-prefix-p root name)
+                               (file-relative-name name root)))
+                      name))
+              (name (replace-regexp-in-string
+                     "\\`\\(?:\\.\\.?/\\)+\\|\\(?::[0-9]+.*\\|[:,.]+\\)\\'"
+                     "" name))
+              ((not (string-empty-p name))))
+    ;; One regexp rather than a few string operations per file: this runs
+    ;; over every file of the project.
+    (let ((regexp (concat "\\(?:\\`\\|/\\)" (regexp-quote name)
+                          "\\(?:\\.[^./]*\\)?\\'"))
+          (case-fold-search nil))
+      (seq-filter (lambda (file) (string-match-p regexp file)) files))))
+
+(defun projectile--find-file-suggestions (project-root files)
+  "Return the ones among FILES most likely wanted from the current buffer.
+FILES are the files of the project at PROJECT-ROOT.  Those are the files
+named at point, then the test or the implementation of the file being
+visited, then its other files (see `projectile-get-other-files')."
+  (let* ((visited (buffer-file-name))
+         (related
+          ;; Ask what project the file is in, not the buffer:
+          ;; `default-directory' is rebound while switching projects.
+          (when (and visited
+                     (equal (projectile-project-root
+                             (file-name-directory visited))
+                            project-root))
+            ;; Some project types signal when they know of no counterpart,
+            ;; which is no reason to fail a prompt that merely asked.
+            (let ((projectile--listed-files (cons project-root files)))
+              (append (ignore-errors
+                        (if (projectile-test-file-p visited)
+                            (projectile--find-matching-file visited)
+                          (projectile--find-matching-test visited)))
+                      (ignore-errors
+                        (projectile-get-other-files visited)))))))
+    (delete-dups
+     (append (seq-take (projectile--files-named-at-point files project-root) 5)
+             ;; a counterpart that does not exist yet is not one to find
+             (seq-intersection related files)))))
+
 (defun projectile--find-file (invalidate-cache &optional ff-variant)
   "Jump to a project's file using completion.
 With INVALIDATE-CACHE invalidates the cache first.  With FF-VARIANT set to a
@@ -5573,11 +5665,15 @@ would be `find-file-other-window' or `find-file-other-frame'"
   (interactive "P")
   (projectile-maybe-invalidate-cache invalidate-cache)
   (let* ((project-root (projectile-acquire-root))
-         (file (projectile-completing-read "Find file: "
-                                           (projectile-project-files project-root)
+         (files (projectile-project-files project-root))
+         (file (projectile-completing-read "Find file: " files
                                            :caller 'projectile-read-file
                                            :sort-function
-                                           (projectile--frecency-sort-function project-root)))
+                                           (projectile--frecency-sort-function project-root)
+                                           :suggestions
+                                           (lambda ()
+                                             (projectile--find-file-suggestions
+                                              project-root files))))
          (ff (or ff-variant #'find-file)))
     (when file
       (funcall ff (expand-file-name file project-root))

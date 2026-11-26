@@ -511,6 +511,57 @@
       (projectile-read-buffer-to-switch "Switch: ")
       (expect default :to-equal "recent"))))
 
+(describe "projectile--suggestions-before-completions"
+  (it "puts the suggestions between the default and the candidates"
+    (spy-on 'minibuffer-selected-window :and-call-fake #'selected-window)
+    (spy-on 'minibuffer-default-add-completions :and-return-value
+            '("default" "a" "b" "c"))
+    (let ((minibuffer-default "default"))
+      (expect (funcall (projectile--suggestions-before-completions
+                        (lambda () '("c" "a"))))
+              :to-equal '("default" "c" "a" "b"))))
+
+  (it "asks for the suggestions in the buffer the prompt came from"
+    (spy-on 'minibuffer-default-add-completions :and-return-value nil)
+    (let ((origin (selected-window)) asked-in)
+      (spy-on 'minibuffer-selected-window :and-return-value origin)
+      (with-temp-buffer
+        (funcall (projectile--suggestions-before-completions
+                  (lambda () (setq asked-in (current-buffer)) nil))))
+      (expect asked-in :to-be (window-buffer origin))))
+
+  (it "is installed in the minibuffer without being called"
+    (spy-on 'projectile-prepend-project-name :and-call-fake #'identity)
+    (let (called installed)
+      (spy-on 'completing-read :and-call-fake
+              (lambda (&rest _)
+                ;; what entering the minibuffer would do
+                (with-temp-buffer
+                  (run-hooks 'minibuffer-setup-hook)
+                  (setq installed
+                        (and (local-variable-p 'minibuffer-default-add-function)
+                             minibuffer-default-add-function)))
+                "a"))
+      (projectile-completing-read "Pick: " '("a")
+                                  :suggestions (lambda () (setq called t) '("s")))
+      (expect called :to-be nil)
+      (spy-on 'minibuffer-selected-window :and-call-fake #'selected-window)
+      (spy-on 'minibuffer-default-add-completions :and-return-value '("a"))
+      (expect (funcall installed) :to-equal '("s" "a"))))
+
+  (it "leaves the minibuffer alone without suggestions"
+    (spy-on 'projectile-prepend-project-name :and-call-fake #'identity)
+    (let ((installed 'unset))
+      (spy-on 'completing-read :and-call-fake
+              (lambda (&rest _)
+                (with-temp-buffer
+                  (run-hooks 'minibuffer-setup-hook)
+                  (setq installed
+                        (local-variable-p 'minibuffer-default-add-function)))
+                "a"))
+      (projectile-completing-read "Pick: " '("a"))
+      (expect installed :to-be nil))))
+
 (describe "projectile--read-cached-project"
   (it "defaults to the current project when it has a cache"
     (let ((projectile-projects-cache (make-hash-table :test 'equal))
