@@ -5837,7 +5837,7 @@ If KIND is not provided, a list of possible kinds can be chosen."
     (if-let* ((available-kinds (projectile--related-files-kinds file)))
         (setq kind (if (= (length available-kinds) 1)
                        (car available-kinds)
-                     (intern (projectile-completing-read "Kind :" available-kinds
+                     (intern (projectile-completing-read "Kind: " available-kinds
                                                          :caller 'projectile-read-file))))
       (user-error "No related files found")))
 
