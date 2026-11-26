@@ -473,6 +473,8 @@ things about where you are:
 * kbd:[TAB] completes the word before point against the identifiers that
   occur in the project, most common first.
 
+image::projectile-search-prompt.gif["The search prompt going through its suggestions with M-n, then completing a typed prefix against the project's identifiers with TAB"]
+
 The identifiers come from running `rg` (or `git grep`, if you don't have
 ripgrep) for the prefix you've typed, so there's nothing to index and the
 list is never stale. You need to type at least two characters. On a big

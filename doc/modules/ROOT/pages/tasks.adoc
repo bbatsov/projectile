@@ -65,6 +65,8 @@ project suggests: the default command of its type, followed by the commands of
 its xref:tasks.adoc#project-tasks[tasks] - the ones named after what you're
 doing first, so the test prompt starts with `make test` or `npm test`.
 
+image::projectile-command-prompt.gif["The test command prompt going from the project type's default through the project's own test tasks with M-n"]
+
 [#history-scope]
 === History across checkouts
 
