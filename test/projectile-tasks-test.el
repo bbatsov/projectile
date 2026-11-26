@@ -162,7 +162,39 @@ test filter=\"\":
 
     (it "does not mistake an assignment for a recipe"
       (projectile-test-with-project (("justfile" . "export FOO := \"bar\"\n"))
-        (expect (projectile-tasks-from-just (projectile-project-root)) :to-be nil))))
+        (expect (projectile-tasks-from-just (projectile-project-root)) :to-be nil)))
+
+    (it "reads the recipes of the modules a justfile declares"
+      (projectile-test-with-project
+          (("justfile" . "mod foo
+mod? bar 'tools/bar.just'
+[private]
+mod baz # nested
+
+default:
+    @just --list
+")
+           ("foo.just" . "build:\n    echo foo\n")
+           ("tools/bar.just" . "lint:\n    echo bar\n")
+           ("baz/mod.just" . "mod qux\n\ntest:\n    echo baz\n")
+           ("baz/qux/justfile" . "run:\n    echo qux\n"))
+        (expect (projectile-tasks-from-just (projectile-project-root))
+                :to-equal '(("just:default" . "just default")
+                            ("just:foo::build" . "just foo::build")
+                            ("just:bar::lint" . "just bar::lint")
+                            ("just:baz::test" . "just baz::test")
+                            ("just:baz::qux::run" . "just baz::qux::run")))))
+
+    (it "skips a module without a source file and a module that loops back"
+      (projectile-test-with-project
+          (("justfile" . "mod? missing\nmod self 'justfile'\n\nbuild:\n    cargo build\n"))
+        (expect (projectile-tasks-from-just (projectile-project-root))
+                :to-equal '(("just:build" . "just build")))))
+
+    (it "does not mistake a recipe called mod for a module"
+      (projectile-test-with-project (("justfile" . "mod target:\n    echo {{target}}\n"))
+        (expect (projectile-tasks-from-just (projectile-project-root))
+                :to-equal '(("just:mod" . "just mod"))))))
 
   (describe "projectile-tasks-from-taskfile"
     (it "reads the keys of the tasks mapping"
